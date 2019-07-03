@@ -1,8 +1,8 @@
 #pragma once
-#include "Entity.h"
+#include "PhysicsEntity.h"
 #include "Vector2.h"
 
-class Player : public Entity
+class Player : public PhysicsEntity
 {
 public:
 	Vector2 startPosition;

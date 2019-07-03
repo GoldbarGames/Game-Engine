@@ -83,14 +83,14 @@ void Player::CheckCollisions(Game& game, bool& collideX, bool& collideY)
 	SDL_Rect myBounds = *GetBounds();
 
 	SDL_Rect newBoundsHorizontal = myBounds;
-	newBoundsHorizontal.x = myBounds.x + velocity.x;;
+	newBoundsHorizontal.x = myBounds.x + velocity.x;
 
 	SDL_Rect newBoundsVertical = myBounds;
 	newBoundsVertical.y = myBounds.y + velocity.y;
 
 	// Negate space that checks collision in the wrong axis
-//TODO: Can we come up with a better solution?
-//TODO: Maybe use 2 for loops instead? Or 2 hitboxes?
+    //TODO: Can we come up with a better solution?
+    //TODO: Maybe use 2 for loops instead? Or 2 hitboxes?
 	newBoundsHorizontal.y += velocity.y;
 	newBoundsHorizontal.h -= velocity.y * 2;
 

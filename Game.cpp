@@ -1,6 +1,9 @@
 #include "Game.h"
 #include "Sprite.h"
 #include "Player.h"
+#include "debug_state.h"
+#include "editor_state.h"
+#include "Tile.h"
 
 using std::string;
 
@@ -29,6 +32,8 @@ void Game::InitSDL()
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
+	//toolbox = SDL_CreateWindow("Toolbox", SDL_WINDOWPOS_CENTERED+ 500, SDL_WINDOWPOS_CENTERED, 200, 300, SDL_WINDOW_OPENGL);
+
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 }
 
@@ -39,7 +44,9 @@ void Game::EndSDL()
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
-	window = NULL;
+	SDL_DestroyWindow(toolbox);
+	window = nullptr;
+	toolbox = nullptr;
 
 	SDL_Quit();
 	IMG_Quit();
@@ -62,7 +69,10 @@ bool Game::SetOpenGLAttributes()
 	success +=  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
 	return success == 0;
+
+
 }
+
 
 void Game::SpawnPerson(Vector2 position)
 {
@@ -70,6 +80,7 @@ void Game::SpawnPerson(Vector2 position)
 	// and if so, we use that one, instead of creating a new one
 	Sprite* sprite = new Sprite(5, spriteManager.GetImage("assets/sprites/wdk_blink.png"), renderer);
 
+	//TODO: Make this a Physics Entity, not just an Entity
 	Entity* person = new Entity();
 	Animator* anim = new Animator("xyz");
 	anim->MapStateToSprite("xyz", sprite);
@@ -81,6 +92,14 @@ void Game::SpawnPerson(Vector2 position)
 
 	//TODO: Also make sure to sort the sprites for drawing in the right order
 	entities.emplace_back(person);
+}
+
+void Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable)
+{
+	Tile* tile = new Tile(frame, spriteManager.GetImage(tilesheet), renderer);
+	tile->SetPosition(position);
+	tile->impassable = impassable;
+	entities.emplace_back(tile);
 }
 
 Player* Game::SpawnPlayer(Vector2 position)
@@ -120,12 +139,15 @@ void Game::Play(string gameName)
 	floor->SetPosition(Vector2(0, 300));
 	floor->impassable = true;
 
-	SpawnPerson(Vector2(400, 0));
-	SpawnPerson(Vector2(0, 0));
+	//SpawnPerson(Vector2(400, 0));
+	//SpawnPerson(Vector2(0, 0));
 
 	entities.emplace_back(floor);
 
 	//entities.emplace_back(bg);
+
+	SpawnTile(Vector2(5, 3), "assets/tiles/housetiles5.png", Vector2(100, 180), true);
+	SpawnTile(Vector2(6, 6), "assets/tiles/housetiles5.png", Vector2(300, 180), false);
 
 	mainContext = SDL_GL_CreateContext(window);
 
@@ -163,6 +185,12 @@ void Game::Play(string gameName)
 					break;
 				case SDLK_r:
 					player->ResetPosition();
+					break;
+				case SDLK_1: // toggle Debug mode
+					SetModeDebug(!GetModeDebug());
+					break;
+				case SDLK_2: // toggle Editor mode
+					SetModeEdit(!GetModeEdit());
 					break;
 				default:
 					break;

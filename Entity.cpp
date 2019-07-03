@@ -1,4 +1,5 @@
 #include "Entity.h"
+#include "debug_state.h"
 
 Entity::Entity()
 {
@@ -44,6 +45,13 @@ void Entity::Render(SDL_Renderer * renderer)
 			currentSprite->Render(position, animator->speed, renderer);
 		else
 			currentSprite->Render(position, 0, renderer);
+
+		if (GetModeDebug())
+		{
+			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+			SDL_RenderDrawRect(renderer, currentSprite->GetRect());
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		}		
 	}
 }
 

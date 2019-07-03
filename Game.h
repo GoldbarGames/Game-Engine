@@ -12,10 +12,14 @@
 #include "SpriteManager.h"
 #include "Player.h"
 
+using std::string;
+
 class Game
 {
 private:
 	SDL_Window* window = nullptr;
+	SDL_Window* toolbox = nullptr;
+
 	SDL_Surface* screenSurface = nullptr;
 
 	SDL_Renderer * renderer = nullptr;
@@ -35,6 +39,7 @@ private:
 	bool SetOpenGLAttributes();
 	Player* SpawnPlayer(Vector2 position);
 	void SpawnPerson(Vector2 position);
+	void SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable);
 	void CalcDt();
 public:
 	bool pressedJumpButton;
@@ -44,6 +49,6 @@ public:
 	double dt = 0;
 	void InitSDL();
 	void EndSDL();
-	void Play(std::string gameName);
+	void Play(string gameName);
 };
 

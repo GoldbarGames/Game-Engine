@@ -12,6 +12,7 @@ SpriteManager::SpriteManager()
 	LoadImage("assets/bg/bg.png");
 	LoadImage("assets/sprites/floor.png");
 
+	LoadImage("assets/tiles/housetiles5.png");
 
 }
 

@@ -53,9 +53,6 @@ void Sprite::Render(Vector2 position, int speed, SDL_Renderer * renderer)
 
 	Animate(speed);
 	SDL_RenderCopy(renderer, texture, &textureRect, &windowRect);
-	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-	SDL_RenderDrawRect(renderer, &windowRect);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 }
 
 const SDL_Rect* Sprite::GetRect()
