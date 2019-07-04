@@ -29,6 +29,7 @@ void Game::CalcDt()
 void Game::InitSDL()
 {
 	SDL_Init(SDL_INIT_VIDEO);
+	TTF_Init();
 
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
@@ -44,8 +45,10 @@ void Game::EndSDL()
 	SDL_DestroyRenderer(renderer);	
 	SDL_DestroyWindow(window);	
 	window = nullptr;
-	
 
+	TTF_CloseFont(theFont);
+	
+	TTF_Quit();
 	SDL_Quit();
 	IMG_Quit();
 }
@@ -159,6 +162,19 @@ void Game::Play(string gameName)
 
 	SortEntities();
 
+	SDL_Color color = { 255, 255, 255, 255 };
+	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
+	textSurface = TTF_RenderText_Solid(theFont, "This is a test!", color);
+	textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+	textTextureRect.x = 0;
+	textTextureRect.y = 0;
+	SDL_QueryTexture(textTexture, NULL, NULL, &textTextureRect.w, &textTextureRect.h);
+	textWindowRect.w = textTextureRect.w;
+	textWindowRect.h = textTextureRect.h;
+
+
+
+
 	bool quit = false;
 	while (!quit)
 	{
@@ -250,8 +266,7 @@ void Game::Render()
 				SDL_Rect rect;
 				rect.x = x * TILE_SIZE * SCALE;
 				rect.y = y * TILE_SIZE * SCALE;
-
-				// Draw a yellow rectangle around the currently selected tile				
+		
 				SDL_RenderDrawRect(renderer, &rect);				
 			}
 		}
@@ -267,6 +282,8 @@ void Game::Render()
 	// Render editor toolbox
 	if (GetModeEdit())
 		editor.Render(renderer);
+
+	SDL_RenderCopy(renderer, textTexture, &textTextureRect, &textWindowRect);
 
 	SDL_RenderPresent(renderer);
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "SDL.h"
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 #include <GL/glew.h>
 #include <string>
 #include <iostream>
@@ -18,10 +19,6 @@ using std::string;
 class Game
 {
 private:
-	
-
-
-
 	SDL_Surface* screenSurface = nullptr;
 
 	SDL_Renderer * renderer = nullptr;
@@ -43,6 +40,12 @@ private:
 	void SpawnPerson(Vector2 position);
 	
 	void CalcDt();
+
+	TTF_Font* theFont = nullptr;
+	SDL_Texture* textTexture = nullptr;
+	SDL_Surface* textSurface = nullptr;
+	SDL_Rect textWindowRect;
+	SDL_Rect textTextureRect;
 	
 public:
 	SDL_Window* window = nullptr;
