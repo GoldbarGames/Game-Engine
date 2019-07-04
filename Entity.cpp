@@ -35,6 +35,7 @@ void Entity::SetPosition(Vector2 newPosition)
 void Entity::SetAnimator(Animator * anim)
 {
 	animator = anim;
+	anim->DoState(this);
 }
 
 void Entity::Render(SDL_Renderer * renderer)

@@ -149,6 +149,7 @@
     <ClInclude Include="Entity.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameEngine.h" />
+    <ClInclude Include="globals.h" />
     <ClInclude Include="ImageDeleter.h" />
     <ClInclude Include="PhysicsEntity.h" />
     <ClInclude Include="Player.h" />

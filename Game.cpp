@@ -4,6 +4,7 @@
 #include "debug_state.h"
 #include "editor_state.h"
 #include "Tile.h"
+#include "globals.h"
 
 using std::string;
 
@@ -32,9 +33,10 @@ void Game::InitSDL()
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
-	//toolbox = SDL_CreateWindow("Toolbox", SDL_WINDOWPOS_CENTERED+ 500, SDL_WINDOWPOS_CENTERED, 200, 300, SDL_WINDOW_OPENGL);
+	toolbox = SDL_CreateWindow("Toolbox", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 240, 240, SDL_WINDOW_OPENGL);
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	rendererToolbox = SDL_CreateRenderer(toolbox, -1, SDL_RENDERER_ACCELERATED);
 }
 
 void Game::EndSDL()
@@ -42,7 +44,10 @@ void Game::EndSDL()
 	// Delete our OpengL context
 	SDL_GL_DeleteContext(mainContext);
 
+	SDL_DestroyTexture(toolboxTexture);
+
 	SDL_DestroyRenderer(renderer);
+	SDL_DestroyRenderer(rendererToolbox);
 	SDL_DestroyWindow(window);
 	SDL_DestroyWindow(toolbox);
 	window = nullptr;
@@ -69,8 +74,6 @@ bool Game::SetOpenGLAttributes()
 	success +=  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
 	return success == 0;
-
-
 }
 
 
@@ -97,7 +100,9 @@ void Game::SpawnPerson(Vector2 position)
 void Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable)
 {
 	Tile* tile = new Tile(frame, spriteManager.GetImage(tilesheet), renderer);
-	tile->SetPosition(position);
+	int newTileX = position.x - ((int)position.x % (TILE_SIZE * SCALE));
+	int newTileY = position.y - ((int)position.y % (TILE_SIZE * SCALE));
+	tile->SetPosition(Vector2(newTileX, newTileY));
 	tile->impassable = impassable;
 	entities.emplace_back(tile);
 }
@@ -107,16 +112,13 @@ Player* Game::SpawnPlayer(Vector2 position)
 	Player* player = new Player();
 	Animator* anim1 = new Animator("blink");
 
-	Sprite* sprite1 = new Sprite(6, spriteManager.GetImage("assets/sprites/wdk_walk.png"), renderer);
-	Sprite* sprite2 = new Sprite(5, spriteManager.GetImage("assets/sprites/wdk_blink.png"), renderer);
-
-	anim1->MapStateToSprite("walk", sprite1);
-	anim1->MapStateToSprite("blink", sprite2);
+	anim1->MapStateToSprite("walk", new Sprite(6, spriteManager.GetImage("assets/sprites/wdk_walk.png"), renderer));
+	anim1->MapStateToSprite("blink", new Sprite(5, spriteManager.GetImage("assets/sprites/wdk_blink.png"), renderer));
 
 	player->SetAnimator(anim1);
-	player->SetSprite(sprite2);
 	player->SetPosition(position);
 	player->startPosition = position;
+	player->drawOrder = 99;
 
 	entities.emplace_back(player);
 
@@ -146,7 +148,7 @@ void Game::Play(string gameName)
 
 	//entities.emplace_back(bg);
 
-	SpawnTile(Vector2(5, 3), "assets/tiles/housetiles5.png", Vector2(100, 180), true);
+	SpawnTile(Vector2(5, 3), "assets/tiles/housetiles5.png", Vector2(100, 180), false);
 	SpawnTile(Vector2(6, 6), "assets/tiles/housetiles5.png", Vector2(300, 180), false);
 
 	mainContext = SDL_GL_CreateContext(window);
@@ -160,6 +162,23 @@ void Game::Play(string gameName)
 
 	SDL_GL_SwapWindow(window);
 
+	SortEntities();
+
+	// TILE SHEET FOR TOOLBOX
+
+	toolboxTexture = SDL_CreateTextureFromSurface(rendererToolbox, spriteManager.GetImage("assets/tiles/housetiles5.png"));
+	toolboxTextureRect.x = 0;
+	toolboxTextureRect.y = 0;
+
+	SDL_QueryTexture(toolboxTexture, NULL, NULL, &toolboxTextureRect.w, &toolboxTextureRect.h);
+
+	toolboxWindowRect.x = 0;
+	toolboxWindowRect.y = 0;
+	toolboxWindowRect.w = toolboxTextureRect.w;
+	toolboxWindowRect.h = toolboxTextureRect.h;
+
+
+
 	bool quit = false;
 	while (!quit)
 	{
@@ -172,6 +191,33 @@ void Game::Play(string gameName)
 		{
 			if (event.type == SDL_QUIT)
 				quit = true;
+
+			if (event.type == SDL_MOUSEBUTTONDOWN)
+			{
+				int mouseX = 0;
+				int mouseY = 0;
+
+				if (SDL_GetMouseState(&mouseX, &mouseY) & SDL_BUTTON(SDL_BUTTON_LEFT))
+				{
+					int gameWindowFlags = SDL_GetWindowFlags(window);
+					bool clickedGameWindow = gameWindowFlags & SDL_WINDOW_MOUSE_FOCUS;
+					
+					int toolboxWindowFlags = SDL_GetWindowFlags(toolbox);
+					bool clickedToolboxWindow = toolboxWindowFlags & SDL_WINDOW_MOUSE_FOCUS;
+					
+					if (clickedGameWindow)
+					{
+						// mouse has been left-clicked at position X,Y
+						SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/housetiles5.png", Vector2(mouseX, mouseY), true);
+						SortEntities();
+					}
+					else if (clickedToolboxWindow) //TODO: highlight with rectangle
+					{
+						editorTileX = (mouseX - (mouseX % (TILE_SIZE))) / TILE_SIZE;
+						editorTileY = (mouseY - (mouseY % (TILE_SIZE))) / TILE_SIZE;
+					}
+				}
+			}
 
 			if (event.type == SDL_KEYDOWN)
 			{
@@ -220,7 +266,7 @@ void Game::Update()
 {
 	CalcDt();
 
-	for (int i = entities.size() - 1; i >= 0; i--)
+	for (int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Update(*this);
 	}
@@ -230,10 +276,32 @@ void Game::Render()
 {
 	SDL_RenderClear(renderer);
 
-	for (int i = entities.size()-1; i >= 0; i--)
+	for (int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Render(renderer);
 	}
 	
 	SDL_RenderPresent(renderer);
+
+
+	SDL_RenderClear(rendererToolbox);
+	SDL_RenderCopy(rendererToolbox, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
+	SDL_RenderPresent(rendererToolbox);
+}
+
+// Implementation of insertion sort:
+// Splits the list into two portions - sorted and unsorted.
+// Then steps through the unsorted list, checking where the next one fits.
+void Game::SortEntities()
+{
+	const int n = entities.size();
+	for (int i = 0; i < n; i++)
+	{
+		int j = i;
+		while (j > 0 && entities[j - 1]->drawOrder > entities[j]->drawOrder)
+		{
+			std::swap(entities[j], entities[j - 1]);
+			j--;
+		}
+	}
 }

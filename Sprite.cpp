@@ -1,4 +1,5 @@
 #include "Sprite.h"
+#include "globals.h"
 
 using std::string;
 
@@ -48,8 +49,8 @@ void Sprite::Render(Vector2 position, int speed, SDL_Renderer * renderer)
 {
 	windowRect.x = position.x;
 	windowRect.y = position.y;
-	windowRect.w = frameWidth * scale.x;
-	windowRect.h = frameHeight * scale.y;
+	windowRect.w = frameWidth * SCALE;
+	windowRect.h = frameHeight * SCALE;
 
 	Animate(speed);
 	SDL_RenderCopy(renderer, texture, &textureRect, &windowRect);

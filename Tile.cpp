@@ -1,5 +1,6 @@
 #include "tile.h"
 #include "debug_state.h"
+#include "globals.h"
 
 using std::string;
 
@@ -16,7 +17,7 @@ Tile::~Tile()
 Tile::Tile(Vector2 frame, SDL_Surface * image, SDL_Renderer * renderer)
 {
 	texture = SDL_CreateTextureFromSurface(renderer, image);
-	currentFrame = Vector2( (frame.x-1) * 24, (frame.y-1) * 24); // this converts from human coords to pixel coords
+	currentFrame = Vector2( (frame.x-1) * TILE_SIZE, (frame.y-1) * TILE_SIZE); // this converts from human coords to pixel coords
 
 	// Set start position
 	windowRect.x = 0;
@@ -24,8 +25,8 @@ Tile::Tile(Vector2 frame, SDL_Surface * image, SDL_Renderer * renderer)
 
 	textureRect.x = currentFrame.x;
 	textureRect.y = currentFrame.y;
-	textureRect.w = 24;
-	textureRect.h = 24;
+	textureRect.w = TILE_SIZE;
+	textureRect.h = TILE_SIZE;
 }
 
 void Tile::Animate()
@@ -47,8 +48,8 @@ void Tile::Render(SDL_Renderer * renderer)
 {
 	windowRect.x = position.x;
 	windowRect.y = position.y;
-	windowRect.w = 24 * scale.x;
-	windowRect.h = 24 * scale.y;
+	windowRect.w = TILE_SIZE * SCALE;
+	windowRect.h = TILE_SIZE * SCALE;
 
 	//Animate(speed);
 	SDL_RenderCopy(renderer, texture, &textureRect, &windowRect);

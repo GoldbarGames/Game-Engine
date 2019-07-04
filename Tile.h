@@ -16,7 +16,7 @@ private:
 	SDL_Rect textureRect;
 	SDL_Rect windowRect;
 
-	Vector2 scale = Vector2(2, 2);
+	Vector2 scale = Vector2(1, 1);
 	
 	//Vector2 currentFrame = Vector2(1,1); // the selected tile among all tiles in the tilesheet
 	
@@ -26,7 +26,6 @@ private:
 	//std::unordered_map<Vector2, SDL_Rect>* tileMap;
 
 public:
-	bool impassable = false;
 	void Destroy();
 	const SDL_Rect* GetBounds();
 	void Animate();

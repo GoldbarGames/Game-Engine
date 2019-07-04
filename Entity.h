@@ -14,6 +14,7 @@ protected:
 
 public:
 	int id = 0; //TODO
+	int drawOrder = 0; // order for drawing
 	Entity();
 	~Entity();
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off

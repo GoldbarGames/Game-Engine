@@ -14,7 +14,7 @@ private:
 	SDL_Rect textureRect;
 	SDL_Rect windowRect;
 
-	Vector2 scale = Vector2(2, 2);
+	Vector2 scale = Vector2(1, 1);
 	int numberFrames = 1;
 	float frameWidth = 0;
 	float frameHeight = 0;

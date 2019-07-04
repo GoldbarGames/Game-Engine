@@ -23,10 +23,23 @@ private:
 	SDL_Surface* screenSurface = nullptr;
 
 	SDL_Renderer * renderer = nullptr;
+	SDL_Renderer * rendererToolbox = nullptr;
 
 	SDL_GLContext mainContext = nullptr;
 
 	SpriteManager spriteManager;
+
+	// EDITOR TILE STUFF
+
+	SDL_Texture * toolboxTexture = nullptr;
+	SDL_Rect toolboxTextureRect;
+	SDL_Rect toolboxWindowRect;
+
+	int editorTileX = 0;
+	int editorTileY = 0;
+
+	// EDITOR TILE STUFF
+
 
 	int screenWidth = 640;
 	int screenHeight = 480;
@@ -41,6 +54,7 @@ private:
 	void SpawnPerson(Vector2 position);
 	void SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable);
 	void CalcDt();
+	void SortEntities();
 public:
 	bool pressedJumpButton;
 	std::vector<Entity*> entities;
