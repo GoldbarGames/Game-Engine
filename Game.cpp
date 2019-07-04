@@ -120,6 +120,8 @@ Player* Game::SpawnPlayer(Vector2 position)
 
 void Game::Play(string gameName)
 {
+	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
+
 	entities.reserve(5);
 
 	Player* player = SpawnPlayer(Vector2(220, 0));
@@ -237,15 +239,36 @@ void Game::Render()
 {
 	SDL_RenderClear(renderer);
 
+	// Render editor grid
+	if (GetModeEdit())
+	{
+		SDL_SetRenderDrawColor(renderer, 64, 64, 64, 64);
+		for (int x = 0; x < 100; x++)
+		{
+			for (int y = 0; y < 100; y++)
+			{
+				SDL_Rect rect;
+				rect.x = x * TILE_SIZE * SCALE;
+				rect.y = y * TILE_SIZE * SCALE;
+
+				// Draw a yellow rectangle around the currently selected tile				
+				SDL_RenderDrawRect(renderer, &rect);				
+			}
+		}
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	}
+
+	// Render all entities
 	for (int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Render(renderer);
 	}
 
-	editor.Render(renderer);
-	SDL_RenderPresent(renderer);
+	// Render editor toolbox
+	if (GetModeEdit())
+		editor.Render(renderer);
 
-	
+	SDL_RenderPresent(renderer);
 }
 
 // Implementation of insertion sort:

@@ -8,6 +8,8 @@ SpriteManager::SpriteManager()
 	//TODO: Find all PNG files in the assets folder automatically?
 	//OR find a way to only load them when needed?
 
+	LoadImage("assets/gui/icon.png");
+
 	LoadImage("assets/sprites/wdk_walk.png");
 	LoadImage("assets/sprites/wdk_blink.png");
 	LoadImage("assets/bg/bg.png");

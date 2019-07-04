@@ -35,6 +35,11 @@ void Editor::StartEdit(SDL_Renderer* renderer, SDL_Surface* tilesheet)
 	toolboxWindowRect.h = toolboxTextureRect.h;
 
 	SDL_SetWindowSize(toolbox, toolboxWindowRect.w, toolboxWindowRect.h);
+
+	selectedRect.x = toolboxWindowRect.x;
+	selectedRect.y = 0;
+	selectedRect.w = 24;
+	selectedRect.h = 24;
 }
 
 void Editor::StopEdit()
@@ -58,12 +63,18 @@ void Editor::HandleEdit(Game& game)
 		//int toolboxWindowFlags = SDL_GetWindowFlags(toolbox);
 		//bool clickedToolboxWindow = toolboxWindowFlags & SDL_WINDOW_MOUSE_FOCUS;
 
-		bool clickedToolboxWindow = mouseX >= toolboxWindowRect.x && mouseY >= toolboxWindowRect.y;
+		bool clickedToolboxWindow = mouseX >= toolboxWindowRect.x && mouseY <= toolboxWindowRect.h;
 
 		if (clickedToolboxWindow)
 		{
-			editorTileX = ((screenWidth - mouseX) - ((screenWidth - mouseX) % (TILE_SIZE * 1))) / (TILE_SIZE * 1) + 1;
-			editorTileY = (mouseY - (mouseY % (TILE_SIZE * 1))) / (TILE_SIZE * 1) + 1;
+			int xOffset = (mouseX - toolboxWindowRect.x);
+			selectedRect.x = (xOffset - (xOffset % (TILE_SIZE * 1)));
+			selectedRect.y = (mouseY - (mouseY % (TILE_SIZE * 1)));
+
+			editorTileX = (selectedRect.x / (TILE_SIZE * 1)) + 1;
+			editorTileY = (selectedRect.y / (TILE_SIZE * 1)) + 1;
+
+			selectedRect.x += toolboxWindowRect.x;
 		}
 		else // if (clickedToolboxWindow) //TODO: highlight with rectangle
 		{
@@ -79,4 +90,9 @@ void Editor::Render(SDL_Renderer* renderer)
 	//SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
 	//SDL_RenderPresent(renderer);
+
+	// Draw a yellow rectangle around the currently selected tile
+	SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+	SDL_RenderDrawRect(renderer, &selectedRect);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);	
 }

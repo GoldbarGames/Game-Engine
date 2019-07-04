@@ -15,6 +15,7 @@ private:
 	SDL_Texture * toolboxTexture = nullptr;
 	SDL_Rect toolboxTextureRect;
 	SDL_Rect toolboxWindowRect;
+	SDL_Rect selectedRect;
 
 	int editorTileX = 0;
 	int editorTileY = 0;
