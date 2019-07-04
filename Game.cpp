@@ -33,10 +33,7 @@ void Game::InitSDL()
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
-	toolbox = SDL_CreateWindow("Toolbox", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 240, 240, SDL_WINDOW_OPENGL);
-
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-	rendererToolbox = SDL_CreateRenderer(toolbox, -1, SDL_RENDERER_ACCELERATED);
 }
 
 void Game::EndSDL()
@@ -44,14 +41,10 @@ void Game::EndSDL()
 	// Delete our OpengL context
 	SDL_GL_DeleteContext(mainContext);
 
-	SDL_DestroyTexture(toolboxTexture);
-
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyRenderer(rendererToolbox);
-	SDL_DestroyWindow(window);
-	SDL_DestroyWindow(toolbox);
+	SDL_DestroyRenderer(renderer);	
+	SDL_DestroyWindow(window);	
 	window = nullptr;
-	toolbox = nullptr;
+	
 
 	SDL_Quit();
 	IMG_Quit();
@@ -148,8 +141,8 @@ void Game::Play(string gameName)
 
 	//entities.emplace_back(bg);
 
-	SpawnTile(Vector2(5, 3), "assets/tiles/housetiles5.png", Vector2(100, 180), false);
-	SpawnTile(Vector2(6, 6), "assets/tiles/housetiles5.png", Vector2(300, 180), false);
+	//SpawnTile(Vector2(5, 3), "assets/tiles/housetiles5.png", Vector2(100, 180), false);
+	//SpawnTile(Vector2(6, 6), "assets/tiles/housetiles5.png", Vector2(300, 180), false);
 
 	mainContext = SDL_GL_CreateContext(window);
 
@@ -163,21 +156,6 @@ void Game::Play(string gameName)
 	SDL_GL_SwapWindow(window);
 
 	SortEntities();
-
-	// TILE SHEET FOR TOOLBOX
-
-	toolboxTexture = SDL_CreateTextureFromSurface(rendererToolbox, spriteManager.GetImage("assets/tiles/housetiles5.png"));
-	toolboxTextureRect.x = 0;
-	toolboxTextureRect.y = 0;
-
-	SDL_QueryTexture(toolboxTexture, NULL, NULL, &toolboxTextureRect.w, &toolboxTextureRect.h);
-
-	toolboxWindowRect.x = 0;
-	toolboxWindowRect.y = 0;
-	toolboxWindowRect.w = toolboxTextureRect.w;
-	toolboxWindowRect.h = toolboxTextureRect.h;
-
-
 
 	bool quit = false;
 	while (!quit)
@@ -194,29 +172,8 @@ void Game::Play(string gameName)
 
 			if (event.type == SDL_MOUSEBUTTONDOWN)
 			{
-				int mouseX = 0;
-				int mouseY = 0;
-
-				if (SDL_GetMouseState(&mouseX, &mouseY) & SDL_BUTTON(SDL_BUTTON_LEFT))
-				{
-					int gameWindowFlags = SDL_GetWindowFlags(window);
-					bool clickedGameWindow = gameWindowFlags & SDL_WINDOW_MOUSE_FOCUS;
-					
-					int toolboxWindowFlags = SDL_GetWindowFlags(toolbox);
-					bool clickedToolboxWindow = toolboxWindowFlags & SDL_WINDOW_MOUSE_FOCUS;
-					
-					if (clickedGameWindow)
-					{
-						// mouse has been left-clicked at position X,Y
-						SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/housetiles5.png", Vector2(mouseX, mouseY), true);
-						SortEntities();
-					}
-					else if (clickedToolboxWindow) //TODO: highlight with rectangle
-					{
-						editorTileX = (mouseX - (mouseX % (TILE_SIZE))) / TILE_SIZE;
-						editorTileY = (mouseY - (mouseY % (TILE_SIZE))) / TILE_SIZE;
-					}
-				}
+				if (GetModeEdit())
+					editor.HandleEdit(*this);
 			}
 
 			if (event.type == SDL_KEYDOWN)
@@ -237,6 +194,10 @@ void Game::Play(string gameName)
 					break;
 				case SDLK_2: // toggle Editor mode
 					SetModeEdit(!GetModeEdit());
+					if (GetModeEdit())
+						editor.StartEdit(spriteManager.GetImage("assets/tiles/housetiles5.png"));
+					else
+						editor.StopEdit();
 					break;
 				default:
 					break;
@@ -283,10 +244,7 @@ void Game::Render()
 	
 	SDL_RenderPresent(renderer);
 
-
-	SDL_RenderClear(rendererToolbox);
-	SDL_RenderCopy(rendererToolbox, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
-	SDL_RenderPresent(rendererToolbox);
+	editor.Render();
 }
 
 // Implementation of insertion sort:
