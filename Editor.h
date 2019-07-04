@@ -10,7 +10,7 @@ class Editor
 {
 private:
 	SDL_Window* toolbox = nullptr;
-	SDL_Renderer * rendererToolbox = nullptr;
+	//SDL_Renderer * rendererToolbox = nullptr;
 
 	SDL_Texture * toolboxTexture = nullptr;
 	SDL_Rect toolboxTextureRect;
@@ -21,9 +21,9 @@ private:
 public:
 	Editor();
 	~Editor();
-	void StartEdit(SDL_Surface* tilesheet);
+	void StartEdit(SDL_Renderer* renderer, SDL_Surface* tilesheet);
 	void StopEdit();
 	void HandleEdit(Game& game);
-	void Render();
+	void Render(SDL_Renderer* renderer);
 };
 

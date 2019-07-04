@@ -52,12 +52,12 @@ void Player::Update(Game& game)
 
 void Player::UpdatePhysics(Game& game)
 {
-	const float GRAVITY = 0.005f; //TODO: Better way of handling gravity
+	const float GRAVITY = 0.002f; //TODO: Better way of handling gravity
 	velocity.y += GRAVITY;
 
 	if (game.pressedJumpButton)
 	{
-		velocity.y = -1.0f;
+		velocity.y = -1.2f;
 	}
 
 	bool collideX = false;
@@ -67,12 +67,12 @@ void Player::UpdatePhysics(Game& game)
 
 	if (!collideX)
 	{
-		position.x += velocity.x;
+		position.x += (velocity.x * game.dt);
 	}
 
 	if (!collideY)
 	{
-		position.y += velocity.y;
+		position.y += (velocity.y * game.dt);
 	}
 
 }

@@ -195,7 +195,7 @@ void Game::Play(string gameName)
 				case SDLK_2: // toggle Editor mode
 					SetModeEdit(!GetModeEdit());
 					if (GetModeEdit())
-						editor.StartEdit(spriteManager.GetImage("assets/tiles/housetiles5.png"));
+						editor.StartEdit(renderer, spriteManager.GetImage("assets/tiles/housetiles5.png"));
 					else
 						editor.StopEdit();
 					break;
@@ -241,10 +241,11 @@ void Game::Render()
 	{
 		entities[i]->Render(renderer);
 	}
-	
+
+	editor.Render(renderer);
 	SDL_RenderPresent(renderer);
 
-	editor.Render();
+	
 }
 
 // Implementation of insertion sort:

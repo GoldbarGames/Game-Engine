@@ -31,9 +31,6 @@ private:
 
 	SpriteManager spriteManager;
 
-	int screenWidth = 640;
-	int screenHeight = 480;
-
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;
 
