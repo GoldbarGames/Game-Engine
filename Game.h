@@ -23,7 +23,6 @@ private:
 
 	SDL_Renderer * renderer = nullptr;
 	
-
 	SDL_GLContext mainContext = nullptr;
 
 	SpriteManager spriteManager;
@@ -58,6 +57,7 @@ public:
 	void EndSDL();
 	void Play(string gameName);
 	void SortEntities();
-	void SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable);
+	void SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer);
+	void SetText(string newText);
 };
 

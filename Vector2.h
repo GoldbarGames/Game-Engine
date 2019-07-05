@@ -9,5 +9,6 @@ public:
 	~Vector2();
 	Vector2& operator+=(Vector2& rhs);
 	Vector2& operator-=(Vector2& rhs);
+	bool operator==(Vector2& rhs);
 };
 

@@ -27,6 +27,11 @@ const SDL_Rect* Entity::GetBounds()
 	return currentSprite->GetRect();
 }
 
+Vector2 Entity::GetPosition()
+{
+	return position;
+}
+
 void Entity::SetPosition(Vector2 newPosition)
 {
 	position = newPosition;
@@ -49,7 +54,11 @@ void Entity::Render(SDL_Renderer * renderer)
 
 		if (GetModeDebug())
 		{
-			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+			if (impassable)
+				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+			else
+				SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
 			SDL_RenderDrawRect(renderer, currentSprite->GetRect());
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		}		

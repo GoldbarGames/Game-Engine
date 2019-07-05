@@ -93,12 +93,13 @@ void Game::SpawnPerson(Vector2 position)
 	entities.emplace_back(person);
 }
 
-void Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable)
+void Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer)
 {
 	Tile* tile = new Tile(frame, spriteManager.GetImage(tilesheet), renderer);
 	int newTileX = position.x - ((int)position.x % (TILE_SIZE * SCALE));
 	int newTileY = position.y - ((int)position.y % (TILE_SIZE * SCALE));
 	tile->SetPosition(Vector2(newTileX, newTileY));
+	tile->layer = drawingLayer;
 	tile->impassable = impassable;
 	entities.emplace_back(tile);
 }
@@ -121,9 +122,33 @@ Player* Game::SpawnPlayer(Vector2 position)
 	return player;
 }
 
+void Game::SetText(string newText)
+{
+	//TODO: Check what to do here to avoid memory leaks
+	//if (textSurface != nullptr)
+	//	delete textSurface;
+	//if (textTexture != nullptr)
+	//	delete textTexture;
+
+	//TODO: Clean up this code, put it in a better location
+	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
+	textSurface = TTF_RenderText_Solid(theFont, newText.c_str(), { 255, 255, 255, 255 });
+	textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+	textTextureRect.x = 0;
+	textTextureRect.y = 0;
+	SDL_QueryTexture(textTexture, NULL, NULL, &textTextureRect.w, &textTextureRect.h);
+	textWindowRect.w = textTextureRect.w;
+	textWindowRect.h = textTextureRect.h;
+}
+
 void Game::Play(string gameName)
 {
 	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
+
+	//TODO: Implement scrolling camera
+	SDL_Rect camera = { 0, 0, screenWidth, screenHeight };
+
+
 
 	entities.reserve(5);
 
@@ -162,18 +187,7 @@ void Game::Play(string gameName)
 
 	SortEntities();
 
-	SDL_Color color = { 255, 255, 255, 255 };
-	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
-	textSurface = TTF_RenderText_Solid(theFont, "This is a test!", color);
-	textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-	textTextureRect.x = 0;
-	textTextureRect.y = 0;
-	SDL_QueryTexture(textTexture, NULL, NULL, &textTextureRect.w, &textTextureRect.h);
-	textWindowRect.w = textTextureRect.w;
-	textWindowRect.h = textTextureRect.h;
-
-
-
+	editor.SetText("Drawing on layer: " + DrawingLayerNames[editor.drawingLayer], renderer);
 
 	bool quit = false;
 	while (!quit)
@@ -187,12 +201,6 @@ void Game::Play(string gameName)
 		{
 			if (event.type == SDL_QUIT)
 				quit = true;
-
-			if (event.type == SDL_MOUSEBUTTONDOWN)
-			{
-				if (GetModeEdit())
-					editor.HandleEdit(*this);
-			}
 
 			if (event.type == SDL_KEYDOWN)
 			{
@@ -213,9 +221,35 @@ void Game::Play(string gameName)
 				case SDLK_2: // toggle Editor mode
 					SetModeEdit(!GetModeEdit());
 					if (GetModeEdit())
-						editor.StartEdit(renderer, spriteManager.GetImage("assets/tiles/housetiles5.png"));
+						editor.StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor.tilesheets[editor.tilesheetIndex] + ".png"));
 					else
 						editor.StopEdit();
+					break;
+				case SDLK_3: // toggle drawing layers
+					
+					if (GetModeEdit())
+					{
+						if (editor.drawingLayer == BACKGROUND)
+							editor.drawingLayer = FOREGROUND;
+						else if (editor.drawingLayer == FOREGROUND)
+							editor.drawingLayer = BACKGROUND;
+
+						editor.SetText("Drawing on layer: " + DrawingLayerNames[editor.drawingLayer], renderer);
+
+					}
+
+					
+					break;
+				case SDLK_4:
+
+					if (GetModeEdit())
+					{
+						editor.tilesheetIndex++;
+						if (editor.tilesheetIndex > 1)
+							editor.tilesheetIndex = 0;
+						editor.StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor.tilesheets[editor.tilesheetIndex] + ".png"));
+					}
+
 					break;
 				default:
 					break;
@@ -234,7 +268,12 @@ void Game::Play(string gameName)
 			}
 		}
 
-		Update();
+		CalcDt();
+
+		if (!GetModeEdit())
+			Update();
+		else
+			editor.HandleEdit(*this);
 
 		Render();
 	}
@@ -243,8 +282,6 @@ void Game::Play(string gameName)
 
 void Game::Update()
 {
-	CalcDt();
-
 	for (int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Update(*this);
@@ -281,10 +318,10 @@ void Game::Render()
 
 	// Render editor toolbox
 	if (GetModeEdit())
+	{
 		editor.Render(renderer);
-
-	SDL_RenderCopy(renderer, textTexture, &textTextureRect, &textWindowRect);
-
+	}
+		
 	SDL_RenderPresent(renderer);
 }
 

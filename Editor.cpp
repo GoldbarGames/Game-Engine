@@ -2,6 +2,7 @@
 #include "Game.h"
 #include "globals.h"
 
+using std::string;
 
 Editor::Editor()
 {
@@ -55,7 +56,14 @@ void Editor::HandleEdit(Game& game)
 	int mouseX = 0;
 	int mouseY = 0;
 
-	if (SDL_GetMouseState(&mouseX, &mouseY) & SDL_BUTTON(SDL_BUTTON_LEFT))
+	const int mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+
+	int clickedX = mouseX - ((int)mouseX % (TILE_SIZE * SCALE));
+	int clickedY = mouseY - ((int)mouseY % (TILE_SIZE * SCALE));
+
+	Vector2 clickedPosition(clickedX, clickedY);
+
+	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 	{
 		//int gameWindowFlags = SDL_GetWindowFlags(game.window);
 		//bool clickedGameWindow = //gameWindowFlags & SDL_WINDOW_MOUSE_FOCUS;
@@ -78,9 +86,37 @@ void Editor::HandleEdit(Game& game)
 		}
 		else // if (clickedToolboxWindow) //TODO: highlight with rectangle
 		{
-			// mouse has been left-clicked at position X,Y
-			game.SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/housetiles5.png", Vector2(mouseX, mouseY), true);
-			game.SortEntities();
+			bool canPlaceTileHere = true;
+			for (int i = 0; i < game.entities.size(); i++)
+			{
+				if (game.entities[i]->GetPosition() == clickedPosition && 
+					game.entities[i]->layer == drawingLayer)
+				{
+					canPlaceTileHere = false;
+					break;
+				}
+			}
+
+			if (canPlaceTileHere)
+			{
+				bool impassable = (drawingLayer == FOREGROUND);
+				game.SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/" + tilesheets[tilesheetIndex] + ".png", 
+					Vector2(mouseX, mouseY), impassable, drawingLayer);
+				game.SortEntities();
+			}
+		}
+	}
+	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
+	{
+		for (int i = game.entities.size() - 1; i >= 0; i--)
+		{
+			if (game.entities[i]->GetPosition() == clickedPosition &&
+				game.entities[i]->layer == drawingLayer)
+			{
+				delete game.entities[i];
+				game.entities.erase(game.entities.begin() + i);
+				break;
+			}
 		}
 	}
 }
@@ -95,4 +131,25 @@ void Editor::Render(SDL_Renderer* renderer)
 	SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
 	SDL_RenderDrawRect(renderer, &selectedRect);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);	
+
+	SDL_RenderCopy(renderer, textTexture, &textTextureRect, &textWindowRect);
+}
+
+void Editor::SetText(string newText, SDL_Renderer* renderer)
+{
+	//TODO: Check what to do here to avoid memory leaks
+	//if (textSurface != nullptr)
+	//	delete textSurface;
+	//if (textTexture != nullptr)
+	//	delete textTexture;
+
+	//TODO: Clean up this code, put it in a better location
+	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
+	textSurface = TTF_RenderText_Solid(theFont, newText.c_str(), { 255, 255, 255, 255 });
+	textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+	textTextureRect.x = 0;
+	textTextureRect.y = 0;
+	SDL_QueryTexture(textTexture, NULL, NULL, &textTextureRect.w, &textTextureRect.h);
+	textWindowRect.w = textTextureRect.w;
+	textWindowRect.h = textTextureRect.h;
 }

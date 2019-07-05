@@ -2,6 +2,7 @@
 #include "SDL.h"
 #include "Sprite.h"
 #include "Animator.h"
+#include "Editor.h"
 
 class Game;
 
@@ -20,10 +21,14 @@ public:
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
 	Animator* GetAnimator();
 	virtual const SDL_Rect* GetBounds();
+	Vector2 GetPosition();
 	void SetPosition(Vector2 newPosition);
 	void SetAnimator(Animator* anim);
 	void SetSprite(Sprite* sprite);
 	virtual void Update(Game& game);
 	virtual void Render(SDL_Renderer * renderer);
+
+	//TODO: Change this to an enum
+	DrawingLayer layer = FOREGROUND;
 };
 

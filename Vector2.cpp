@@ -31,3 +31,8 @@ Vector2 & Vector2::operator-=(Vector2 & rhs)
 
 	return *this;
 }
+
+bool Vector2::operator==(Vector2 & rhs)
+{
+	return (x == rhs.x && y == rhs.y);
+}
