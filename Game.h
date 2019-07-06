@@ -2,6 +2,7 @@
 #include "SDL.h"
 #include <SDL_image.h>
 #include <SDL_ttf.h>
+#include <SDL_mixer.h>
 #include <GL/glew.h>
 #include <string>
 #include <iostream>
@@ -45,6 +46,7 @@ private:
 	SDL_Rect textWindowRect;
 	SDL_Rect textTextureRect;
 
+	Mix_Music* currentBGM = nullptr;
 	
 	
 	void MainLoop();

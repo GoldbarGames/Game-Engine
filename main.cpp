@@ -5,8 +5,6 @@
 
 int main(int argc, char *args[])
 {
-
-
 	Game game;
 	//game.Play("Witch Doctor Kaneko");
 	game.PlayLevel("Witch Doctor Kaneko", "level");

@@ -5,8 +5,8 @@ const int TILE_SIZE = 24;
 const int SCALE = 2;
 
 // can change resolution, this is base res
-const int screenWidth = 640;
-const int screenHeight = 480;
+const int screenWidth = 1280;
+const int screenHeight = 720;
 
 enum DrawingLayer { BACKGROUND, FOREGROUND };
 static const std::string DrawingLayerNames[] = { "BACKGROUND", "FOREGROUND" };

@@ -186,6 +186,11 @@ void Editor::SaveLevel(Game& game)
 
 void Editor::LoadLevel(Game& game, std::string levelName)
 {
+	// Clear the old level
+	for (int i = 0; i < game.entities.size(); i++)
+		delete game.entities[i];		
+	game.entities.clear();
+
 	std::ifstream fin;
 	fin.open("data/" + levelName + ".wdk");
 

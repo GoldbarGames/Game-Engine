@@ -31,6 +31,10 @@ void Game::InitSDL()
 	SDL_Init(SDL_INIT_VIDEO);
 	TTF_Init();
 
+	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+	currentBGM = Mix_LoadMUS("assets/bgm/Witchs_Waltz.ogg");
+	Mix_PlayMusic(currentBGM, -1);
+
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
@@ -46,8 +50,12 @@ void Game::EndSDL()
 	SDL_DestroyWindow(window);	
 	window = nullptr;
 
+	Mix_FreeMusic(currentBGM);
+	currentBGM = nullptr;
+
 	TTF_CloseFont(theFont);
 	
+	Mix_Quit();
 	TTF_Quit();
 	SDL_Quit();
 	IMG_Quit();
