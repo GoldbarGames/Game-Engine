@@ -238,6 +238,12 @@ void Game::MainLoop()
 				case SDLK_x:
 					pressedJumpButton = true;
 					break;
+				case SDLK_m:
+					if (Mix_PausedMusic())
+						Mix_ResumeMusic();
+					else
+						Mix_PauseMusic();
+					break;
 				case SDLK_r:
 					if (player != nullptr)
 						player->ResetPosition();
