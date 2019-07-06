@@ -39,6 +39,8 @@ public:
 	void StartEdit(SDL_Renderer* renderer, SDL_Surface* tilesheet);
 	void StopEdit();
 	void HandleEdit(Game& game);
+	void SaveLevel(Game& game);
+	void LoadLevel(Game& game, std::string levelName);
 	void Render(SDL_Renderer* renderer);
 	void SetText(string newText, SDL_Renderer* renderer);
 	DrawingLayer drawingLayer = BACKGROUND;

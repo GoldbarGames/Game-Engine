@@ -57,7 +57,7 @@ void Player::UpdatePhysics(Game& game)
 
 	if (game.pressedJumpButton)
 	{
-		velocity.y = -1.2f;
+		velocity.y = -0.8f;
 	}
 
 	bool collideX = false;

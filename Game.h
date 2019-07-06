@@ -35,8 +35,7 @@ private:
 	void Update();
 	void Render();
 	bool SetOpenGLAttributes();
-	Player* SpawnPlayer(Vector2 position);
-	void SpawnPerson(Vector2 position);
+
 	
 	void CalcDt();
 
@@ -45,9 +44,13 @@ private:
 	SDL_Surface* textSurface = nullptr;
 	SDL_Rect textWindowRect;
 	SDL_Rect textTextureRect;
+
 	
+	
+	void MainLoop();
 public:
 	SDL_Window* window = nullptr;
+	Player* player = nullptr;
 	bool pressedJumpButton;
 	std::vector<Entity*> entities;
 	Game();
@@ -58,6 +61,10 @@ public:
 	void Play(string gameName);
 	void SortEntities();
 	void SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer);
+	Player* SpawnPlayer(Vector2 position);
+	void SpawnPerson(Vector2 position);
 	void SetText(string newText);
+	void PlayLevel(string gameName, string levelName);
+
 };
 

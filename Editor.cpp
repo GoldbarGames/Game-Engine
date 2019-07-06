@@ -1,6 +1,9 @@
 #include "Editor.h"
 #include "Game.h"
 #include "globals.h"
+#include <fstream>
+#include <sstream>
+#include <iterator>
 
 using std::string;
 
@@ -152,4 +155,71 @@ void Editor::SetText(string newText, SDL_Renderer* renderer)
 	SDL_QueryTexture(textTexture, NULL, NULL, &textTextureRect.w, &textTextureRect.h);
 	textWindowRect.w = textTextureRect.w;
 	textWindowRect.h = textTextureRect.h;
+}
+
+void Editor::SaveLevel(Game& game)
+{
+	std::ofstream fout;
+	fout.open("data/level.wdk");
+
+	for (int i = 0; i < game.entities.size(); i++)
+	{
+		if (game.entities[i]->etype == "tile")
+		{
+			fout << game.entities[i]->id << " " << game.entities[i]->etype << " " << game.entities[i]->GetPosition().x <<
+				" " << game.entities[i]->GetPosition().y << " " << game.entities[i]->drawOrder <<
+				" " << game.entities[i]->layer << " " << game.entities[i]->impassable << 
+				" " << game.entities[i]->tilesheetIndex << " " << game.entities[i]->tileCoordinates.x << 
+				" " << game.entities[i]->tileCoordinates.y << "" << std::endl;
+		}
+		else
+		{
+			fout << game.entities[i]->id << " " << game.entities[i]->etype << " " << game.entities[i]->GetPosition().x <<
+				" " << game.entities[i]->GetPosition().y << " " << game.entities[i]->drawOrder <<
+				" " << game.entities[i]->layer << " " << game.entities[i]->impassable << std::endl;
+		}
+		
+	}
+
+	fout.close();
+}
+
+void Editor::LoadLevel(Game& game, std::string levelName)
+{
+	std::ifstream fin;
+	fin.open("data/" + levelName + ".wdk");
+
+	char line[256];
+
+	fin.getline(line, 256);
+
+	while (fin.good())
+	{
+		std::istringstream buf(line);
+		std::istream_iterator<std::string> beg(buf), end;
+		std::vector<std::string> tokens(beg, end);
+
+		int positionX = std::stoi(tokens[2]);
+		int positionY = std::stoi(tokens[3]);
+
+		if (tokens[1] == "tile")
+		{
+			int layer = std::stoi(tokens[5]);
+			int impassable = std::stoi(tokens[6]);
+			int tilesheet = std::stoi(tokens[7]);
+			int frameX = std::stoi(tokens[8]);
+			int frameY = std::stoi(tokens[9]);			
+			
+			game.SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheets[tilesheet] + ".png",
+				Vector2(positionX, positionY), impassable, (DrawingLayer)layer);
+		}
+		else if (tokens[1] == "player")
+		{			
+			game.player = game.SpawnPlayer(Vector2(positionX, positionY));
+		}
+
+		fin.getline(line, 256);
+	}
+
+	fin.close();
 }

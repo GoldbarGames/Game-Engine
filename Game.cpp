@@ -101,6 +101,9 @@ void Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool imp
 	tile->SetPosition(Vector2(newTileX, newTileY));
 	tile->layer = drawingLayer;
 	tile->impassable = impassable;
+	tile->etype = "tile";
+	tile->tileCoordinates = frame;
+	tile->tilesheetIndex = editor.tilesheetIndex;
 	entities.emplace_back(tile);
 }
 
@@ -116,6 +119,7 @@ Player* Game::SpawnPlayer(Vector2 position)
 	player->SetPosition(position);
 	player->startPosition = position;
 	player->drawOrder = 99;
+	player->etype = "player";
 
 	entities.emplace_back(player);
 
@@ -141,6 +145,16 @@ void Game::SetText(string newText)
 	textWindowRect.h = textTextureRect.h;
 }
 
+void Game::PlayLevel(string gameName, string levelName)
+{
+	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
+
+	editor.LoadLevel(*this, levelName);
+
+	MainLoop();
+
+}
+
 void Game::Play(string gameName)
 {
 	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
@@ -148,11 +162,9 @@ void Game::Play(string gameName)
 	//TODO: Implement scrolling camera
 	SDL_Rect camera = { 0, 0, screenWidth, screenHeight };
 
-
-
 	entities.reserve(5);
 
-	Player* player = SpawnPlayer(Vector2(220, 0));
+	player = SpawnPlayer(Vector2(220, 0));
 
 	Sprite* background = new Sprite(1, spriteManager.GetImage("assets/bg/bg.png"), renderer);
 	Entity* bg = new Entity();
@@ -174,6 +186,12 @@ void Game::Play(string gameName)
 	//SpawnTile(Vector2(5, 3), "assets/tiles/housetiles5.png", Vector2(100, 180), false);
 	//SpawnTile(Vector2(6, 6), "assets/tiles/housetiles5.png", Vector2(300, 180), false);
 
+	MainLoop();
+
+}
+
+void Game::MainLoop()
+{
 	mainContext = SDL_GL_CreateContext(window);
 
 	SetOpenGLAttributes();
@@ -213,7 +231,8 @@ void Game::Play(string gameName)
 					pressedJumpButton = true;
 					break;
 				case SDLK_r:
-					player->ResetPosition();
+					if (player != nullptr)
+						player->ResetPosition();
 					break;
 				case SDLK_1: // toggle Debug mode
 					SetModeDebug(!GetModeDebug());
@@ -226,7 +245,7 @@ void Game::Play(string gameName)
 						editor.StopEdit();
 					break;
 				case SDLK_3: // toggle drawing layers
-					
+
 					if (GetModeEdit())
 					{
 						if (editor.drawingLayer == BACKGROUND)
@@ -238,7 +257,7 @@ void Game::Play(string gameName)
 
 					}
 
-					
+
 					break;
 				case SDLK_4:
 
@@ -250,6 +269,14 @@ void Game::Play(string gameName)
 						editor.StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor.tilesheets[editor.tilesheetIndex] + ".png"));
 					}
 
+					break;
+				case SDLK_9:
+					if (GetModeEdit())
+						editor.SaveLevel(*this);
+					break;
+				case SDLK_l:
+					if (GetModeEdit())
+						editor.LoadLevel(*this, "level");
 					break;
 				default:
 					break;
