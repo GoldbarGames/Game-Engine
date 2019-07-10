@@ -44,10 +44,10 @@ void Tile::Destroy()
 	SDL_DestroyTexture(texture);
 }
 
-void Tile::Render(SDL_Renderer * renderer)
+void Tile::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 {
-	windowRect.x = position.x;
-	windowRect.y = position.y;
+	windowRect.x = position.x - cameraOffset.x;
+	windowRect.y = position.y - cameraOffset.y;
 	windowRect.w = TILE_SIZE * SCALE;
 	windowRect.h = TILE_SIZE * SCALE;
 

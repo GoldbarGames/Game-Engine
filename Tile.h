@@ -29,7 +29,7 @@ public:
 	void Destroy();
 	const SDL_Rect* GetBounds();
 	void Animate();
-	void Render(SDL_Renderer* renderer);
+	void Render(SDL_Renderer* renderer, Vector2 cameraOffset);
 	Tile(Vector2 frame, SDL_Surface * image, SDL_Renderer * renderer);
 	Tile();
 	~Tile();

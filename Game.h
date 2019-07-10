@@ -47,6 +47,8 @@ private:
 	SDL_Rect textTextureRect;
 
 	Mix_Music* currentBGM = nullptr;
+
+	
 	
 	
 	void MainLoop();
@@ -58,6 +60,7 @@ public:
 	Game();
 	~Game();
 	double dt = 0;
+	Vector2 camera = Vector2(0, 0);
 	void InitSDL();
 	void EndSDL();
 	void Play(string gameName);

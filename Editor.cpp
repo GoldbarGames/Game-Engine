@@ -89,6 +89,8 @@ void Editor::HandleEdit(Game& game)
 		}
 		else // if (clickedToolboxWindow) //TODO: highlight with rectangle
 		{
+			clickedPosition += game.camera;
+
 			bool canPlaceTileHere = true;
 			for (int i = 0; i < game.entities.size(); i++)
 			{
@@ -111,6 +113,7 @@ void Editor::HandleEdit(Game& game)
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{
+		clickedPosition += game.camera;
 		for (int i = game.entities.size() - 1; i >= 0; i--)
 		{
 			if (game.entities[i]->GetPosition() == clickedPosition &&

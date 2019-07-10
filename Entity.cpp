@@ -32,6 +32,13 @@ Vector2 Entity::GetPosition()
 	return position;
 }
 
+Vector2 Entity::GetCenter()
+{
+	float x = position.x + (currentSprite->GetRect()->w / 2.0f);
+	float y = position.y + (currentSprite->GetRect()->h / 2.0f);
+	return Vector2(x, y);
+}
+
 void Entity::SetPosition(Vector2 newPosition)
 {
 	position = newPosition;
@@ -43,14 +50,14 @@ void Entity::SetAnimator(Animator * anim)
 	anim->DoState(this);
 }
 
-void Entity::Render(SDL_Renderer * renderer)
+void Entity::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 {
 	if (currentSprite != nullptr)
 	{
 		if (animator != nullptr)
-			currentSprite->Render(position, animator->speed, renderer);
+			currentSprite->Render(position - cameraOffset, animator->speed, renderer);
 		else
-			currentSprite->Render(position, 0, renderer);
+			currentSprite->Render(position - cameraOffset, 0, renderer);
 
 		if (GetModeDebug())
 		{

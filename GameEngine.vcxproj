@@ -79,7 +79,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\Anton\source\SDL2-2.0.9\include;C:\Users\Anton\source\SDL2_image-2.0.4\include;C:\Users\Anton\source\glew-2.1.0\include;C:\Users\Anton\source\glm;C:\Users\Anton\source\nlohmann;C:\Users\Anton\source\SDL2_ttf-2.0.15\include;C:\Users\Anton\source\SDL2_mixer-2.0.4\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -104,7 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\Anton\source\SDL2-2.0.9\include;C:\Users\Anton\source\SDL2_image-2.0.4\include;C:\Users\Anton\source\glew-2.1.0\include;C:\Users\Anton\source\glm;C:\Users\Anton\source\nlohmann;C:\Users\Anton\source\SDL2_ttf-2.0.15\include;C:\Users\Anton\source\SDL2_mixer-2.0.4\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

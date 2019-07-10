@@ -33,7 +33,7 @@ void Game::InitSDL()
 
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 	currentBGM = Mix_LoadMUS("assets/bgm/Witchs_Waltz.ogg");
-	Mix_PlayMusic(currentBGM, -1);
+	
 
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
@@ -106,7 +106,7 @@ void Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool imp
 	Tile* tile = new Tile(frame, spriteManager.GetImage(tilesheet), renderer);
 	int newTileX = position.x - ((int)position.x % (TILE_SIZE * SCALE));
 	int newTileY = position.y - ((int)position.y % (TILE_SIZE * SCALE));
-	tile->SetPosition(Vector2(newTileX, newTileY));
+	tile->SetPosition(Vector2(newTileX + camera.x, newTileY + camera.y));
 	tile->layer = drawingLayer;
 	tile->impassable = impassable;
 	tile->etype = "tile";
@@ -160,15 +160,11 @@ void Game::PlayLevel(string gameName, string levelName)
 	editor.LoadLevel(*this, levelName);
 
 	MainLoop();
-
 }
 
 void Game::Play(string gameName)
 {
 	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
-
-	//TODO: Implement scrolling camera
-	SDL_Rect camera = { 0, 0, screenWidth, screenHeight };
 
 	entities.reserve(5);
 
@@ -181,7 +177,7 @@ void Game::Play(string gameName)
 	Sprite* floorSprite = new Sprite(1, spriteManager.GetImage("assets/sprites/floor.png"), renderer);
 	Entity* floor = new Entity();
 	floor->SetSprite(floorSprite);
-	floor->SetPosition(Vector2(0, 300));
+	floor->SetPosition(Vector2(150, 300));
 	floor->impassable = true;
 
 	//SpawnPerson(Vector2(400, 0));
@@ -195,11 +191,12 @@ void Game::Play(string gameName)
 	//SpawnTile(Vector2(6, 6), "assets/tiles/housetiles5.png", Vector2(300, 180), false);
 
 	MainLoop();
-
 }
 
 void Game::MainLoop()
 {
+	//Mix_PlayMusic(currentBGM, -1);
+
 	mainContext = SDL_GL_CreateContext(window);
 
 	SetOpenGLAttributes();
@@ -254,9 +251,16 @@ void Game::MainLoop()
 				case SDLK_2: // toggle Editor mode
 					SetModeEdit(!GetModeEdit());
 					if (GetModeEdit())
+					{
+						camera.x = camera.x - ((int)camera.x % (TILE_SIZE * SCALE));
+						camera.y = camera.y - ((int)camera.y % (TILE_SIZE * SCALE));
 						editor.StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor.tilesheets[editor.tilesheetIndex] + ".png"));
+					}
 					else
+					{
 						editor.StopEdit();
+					}
+						
 					break;
 				case SDLK_3: // toggle drawing layers
 
@@ -312,9 +316,37 @@ void Game::MainLoop()
 		CalcDt();
 
 		if (!GetModeEdit())
+		{
 			Update();
+		}
 		else
+		{
+			//TODO: Make this a function
+			const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+			float cameraSpeed = 1.0f;
+
+			if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
+			{
+				camera.y -= (TILE_SIZE * SCALE);
+			}
+			else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
+			{
+				camera.y += (TILE_SIZE * SCALE);
+			}
+
+			if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
+			{
+				camera.x -= (TILE_SIZE * SCALE);
+
+			}
+			else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
+			{
+				camera.x += (TILE_SIZE * SCALE);
+			}
+
 			editor.HandleEdit(*this);
+		}
+			
 
 		Render();
 	}
@@ -323,6 +355,10 @@ void Game::MainLoop()
 
 void Game::Update()
 {
+	camera = player->GetCenter();
+	camera.x -= (screenWidth / 2.0f);  
+	camera.y -= (screenHeight / 2.0f);
+
 	for (int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Update(*this);
@@ -343,8 +379,7 @@ void Game::Render()
 			{
 				SDL_Rect rect;
 				rect.x = x * TILE_SIZE * SCALE;
-				rect.y = y * TILE_SIZE * SCALE;
-		
+				rect.y = y * TILE_SIZE * SCALE;	
 				SDL_RenderDrawRect(renderer, &rect);				
 			}
 		}
@@ -354,7 +389,7 @@ void Game::Render()
 	// Render all entities
 	for (int i = 0; i < entities.size(); i++)
 	{
-		entities[i]->Render(renderer);
+		entities[i]->Render(renderer, camera);
 	}
 
 	// Render editor toolbox

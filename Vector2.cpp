@@ -16,7 +16,7 @@ Vector2::~Vector2()
 {
 }
 
-Vector2& Vector2::operator+=(Vector2& rhs)
+Vector2& Vector2::operator+=(const Vector2& rhs)
 {
 	this->x += rhs.x;
 	this->y += rhs.y;
@@ -24,7 +24,7 @@ Vector2& Vector2::operator+=(Vector2& rhs)
 	return *this;
 }
 
-Vector2 & Vector2::operator-=(Vector2 & rhs)
+Vector2 & Vector2::operator-=(const Vector2 & rhs)
 {
 	this->x -= rhs.x;
 	this->y -= rhs.y;
@@ -32,7 +32,19 @@ Vector2 & Vector2::operator-=(Vector2 & rhs)
 	return *this;
 }
 
-bool Vector2::operator==(Vector2 & rhs)
+Vector2& Vector2::operator+(const Vector2& rhs)
+{
+	Vector2 newVector2(this->x + rhs.x, this->y + rhs.y);
+	return newVector2;
+}
+
+Vector2& Vector2::operator-(const Vector2 & rhs)
+{
+	Vector2 newVector2(this->x - rhs.x, this->y - rhs.y);
+	return newVector2;
+}
+
+bool Vector2::operator==(const Vector2 & rhs)
 {
 	return (x == rhs.x && y == rhs.y);
 }

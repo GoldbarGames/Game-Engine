@@ -1,5 +1,6 @@
 #include "Player.h"
 #include "Game.h"
+#include "debug_state.h"
 
 Player::Player()
 {
@@ -52,12 +53,14 @@ void Player::Update(Game& game)
 
 void Player::UpdatePhysics(Game& game)
 {
-	const float GRAVITY = 0.002f; //TODO: Better way of handling gravity
-	velocity.y += GRAVITY;
+	const float GRAVITY = 0.001f; //TODO: Better way of handling gravity
 
+	if (velocity.y < 1)
+		velocity.y += GRAVITY;
+	`
 	if (game.pressedJumpButton)
 	{
-		velocity.y = -0.8f;
+		velocity.y = -0.4f;
 	}
 
 	bool collideX = false;
@@ -74,7 +77,6 @@ void Player::UpdatePhysics(Game& game)
 	{
 		position.y += (velocity.y * game.dt);
 	}
-
 }
 
 void Player::CheckCollisions(Game& game, bool& collideX, bool& collideY)
@@ -91,11 +93,12 @@ void Player::CheckCollisions(Game& game, bool& collideX, bool& collideY)
 	// Negate space that checks collision in the wrong axis
     //TODO: Can we come up with a better solution?
     //TODO: Maybe use 2 for loops instead? Or 2 hitboxes?
+
 	newBoundsHorizontal.y += velocity.y;
-	newBoundsHorizontal.h -= velocity.y * 2;
+	newBoundsHorizontal.h -= velocity.y * 3;
 
 	newBoundsVertical.x += velocity.x;
-	newBoundsVertical.w -= velocity.x * 2;
+	newBoundsVertical.w -= velocity.x * 3;
 
 	for (int i = 0; i < game.entities.size(); i++)
 	{
@@ -126,4 +129,26 @@ void Player::CheckCollisions(Game& game, bool& collideX, bool& collideY)
 void Player::ResetPosition()
 {
 	position = startPosition;
+}
+
+void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
+{
+	if (currentSprite != nullptr)
+	{
+		if (animator != nullptr)
+			currentSprite->Render(position - cameraOffset, animator->speed, renderer);
+		else
+			currentSprite->Render(position - cameraOffset, 0, renderer);
+
+		if (GetModeDebug())
+		{
+			if (impassable)
+				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+			else
+				SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
+			SDL_RenderDrawRect(renderer, currentSprite->GetRect());
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		}
+	}
 }

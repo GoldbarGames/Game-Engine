@@ -31,8 +31,6 @@ private:
 	SDL_Rect textWindowRect;
 	SDL_Rect textTextureRect;
 
-	
-
 public:
 	Editor();
 	~Editor();

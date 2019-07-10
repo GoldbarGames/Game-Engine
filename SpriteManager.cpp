@@ -3,6 +3,7 @@
 #include <SDL_image.h>
 #include <GL/glew.h>
 
+
 SpriteManager::SpriteManager()
 {
 	//TODO: Find all PNG files in the assets folder automatically?
