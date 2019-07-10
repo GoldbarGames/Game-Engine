@@ -57,7 +57,7 @@ void Player::UpdatePhysics(Game& game)
 
 	if (velocity.y < 1)
 		velocity.y += GRAVITY;
-	`
+	
 	if (game.pressedJumpButton)
 	{
 		velocity.y = -0.4f;
