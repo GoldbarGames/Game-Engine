@@ -1,6 +1,7 @@
 #include "Player.h"
 #include "Game.h"
 #include "debug_state.h"
+#include <string>
 
 Player::Player()
 {
@@ -58,7 +59,7 @@ void Player::UpdatePhysics(Game& game)
 	if (velocity.y < 1)
 		velocity.y += GRAVITY;
 	
-	if (game.pressedJumpButton)
+	if (game.pressedJumpButton && jumpsRemaining > 0)
 	{
 		velocity.y = -0.4f;
 	}
@@ -75,6 +76,12 @@ void Player::UpdatePhysics(Game& game)
 
 	if (!collideY)
 	{
+		if (game.pressedJumpButton && jumpsRemaining > 0)
+		{
+			jumpsRemaining--;
+			game.jumpsRemainingText->SetText("Jumps Remaining: " + std::to_string(jumpsRemaining));
+		}
+
 		position.y += (velocity.y * game.dt);
 	}
 }
@@ -100,7 +107,9 @@ void Player::CheckCollisions(Game& game, bool& collideX, bool& collideY)
 	newBoundsVertical.x += velocity.x;
 	newBoundsVertical.w -= velocity.x * 3;
 
-	for (int i = 0; i < game.entities.size(); i++)
+	//animator->SetBool("isGrounded", false);
+
+	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
 		if (collideX && collideY)
 			break;
@@ -120,7 +129,11 @@ void Player::CheckCollisions(Game& game, bool& collideX, bool& collideY)
 
 				// if colliding with ground, set velocity.y to zero
 				if (theirBounds->y >= myBounds.y + myBounds.h - 1)
+				{
+					animator->SetBool("isGrounded", true);
+					jumpsRemaining = 5;
 					velocity.y = 0;
+				}					
 			}
 		}
 	}

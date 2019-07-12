@@ -31,7 +31,7 @@ private:
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;
 
-	Editor editor;
+	
 	
 	void Update();
 	void Render();
@@ -41,18 +41,16 @@ private:
 	void CalcDt();
 
 	TTF_Font* theFont = nullptr;
-	SDL_Texture* textTexture = nullptr;
-	SDL_Surface* textSurface = nullptr;
-	SDL_Rect textWindowRect;
-	SDL_Rect textTextureRect;
+	
 
 	Mix_Music* currentBGM = nullptr;
 
 	
-	
-	
+
 	void MainLoop();
 public:
+	Text* jumpsRemainingText = nullptr;
+	Editor* editor = nullptr;
 	SDL_Window* window = nullptr;
 	Player* player = nullptr;
 	bool pressedJumpButton;
@@ -68,7 +66,6 @@ public:
 	void SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer);
 	Player* SpawnPlayer(Vector2 position);
 	void SpawnPerson(Vector2 position);
-	void SetText(string newText);
 	void PlayLevel(string gameName, string levelName);
 
 };

@@ -4,6 +4,8 @@
 
 class Player : public PhysicsEntity
 {
+private:
+	int jumpsRemaining = 2;
 public:
 	Vector2 startPosition;
 	Player();

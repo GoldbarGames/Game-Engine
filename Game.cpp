@@ -11,6 +11,16 @@ using std::string;
 Game::Game()
 {
 	InitSDL();
+
+	editor = new Editor(renderer);
+
+	// Initialize the font before all text
+	theFont = theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
+
+	// Initialize all text
+	jumpsRemainingText = new Text(renderer, theFont);
+	jumpsRemainingText->SetText("Jumps Remaining: 2");
+	jumpsRemainingText->SetPosition(0, 100);
 }
 
 Game::~Game()
@@ -111,17 +121,21 @@ void Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool imp
 	tile->impassable = impassable;
 	tile->etype = "tile";
 	tile->tileCoordinates = frame;
-	tile->tilesheetIndex = editor.tilesheetIndex;
+	tile->tilesheetIndex = editor->tilesheetIndex;
 	entities.emplace_back(tile);
 }
 
 Player* Game::SpawnPlayer(Vector2 position)
 {
 	Player* player = new Player();
-	Animator* anim1 = new Animator("blink");
+	Animator* anim1 = new Animator("idle");
 
-	anim1->MapStateToSprite("walk", new Sprite(6, spriteManager.GetImage("assets/sprites/wdk_walk.png"), renderer));
-	anim1->MapStateToSprite("blink", new Sprite(5, spriteManager.GetImage("assets/sprites/wdk_blink.png"), renderer));
+	anim1->SetBool("isGrounded", false);
+
+	anim1->MapStateToSprite("walk", new Sprite(6, spriteManager.GetImage("assets/sprites/kaneko/wdk_walk.png"), renderer));
+	anim1->MapStateToSprite("blink", new Sprite(5, spriteManager.GetImage("assets/sprites/kaneko/wdk_blink.png"), renderer));
+	anim1->MapStateToSprite("idle", new Sprite(2, spriteManager.GetImage("assets/sprites/kaneko/wdk_idle.png"), renderer));
+	anim1->MapStateToSprite("jump", new Sprite(2, spriteManager.GetImage("assets/sprites/kaneko/wdk_jump.png"), renderer));
 
 	player->SetAnimator(anim1);
 	player->SetPosition(position);
@@ -134,30 +148,11 @@ Player* Game::SpawnPlayer(Vector2 position)
 	return player;
 }
 
-void Game::SetText(string newText)
-{
-	//TODO: Check what to do here to avoid memory leaks
-	//if (textSurface != nullptr)
-	//	delete textSurface;
-	//if (textTexture != nullptr)
-	//	delete textTexture;
-
-	//TODO: Clean up this code, put it in a better location
-	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
-	textSurface = TTF_RenderText_Solid(theFont, newText.c_str(), { 255, 255, 255, 255 });
-	textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-	textTextureRect.x = 0;
-	textTextureRect.y = 0;
-	SDL_QueryTexture(textTexture, NULL, NULL, &textTextureRect.w, &textTextureRect.h);
-	textWindowRect.w = textTextureRect.w;
-	textWindowRect.h = textTextureRect.h;
-}
-
 void Game::PlayLevel(string gameName, string levelName)
 {
 	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
 
-	editor.LoadLevel(*this, levelName);
+	editor->LoadLevel(*this, levelName);
 
 	MainLoop();
 }
@@ -210,7 +205,7 @@ void Game::MainLoop()
 
 	SortEntities();
 
-	editor.SetText("Drawing on layer: " + DrawingLayerNames[editor.drawingLayer], renderer);
+	editor->currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[editor->drawingLayer]);
 
 	bool quit = false;
 	while (!quit)
@@ -254,11 +249,11 @@ void Game::MainLoop()
 					{
 						camera.x = camera.x - ((int)camera.x % (TILE_SIZE * SCALE));
 						camera.y = camera.y - ((int)camera.y % (TILE_SIZE * SCALE));
-						editor.StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor.tilesheets[editor.tilesheetIndex] + ".png"));
+						editor->StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor->tilesheets[editor->tilesheetIndex] + ".png"));
 					}
 					else
 					{
-						editor.StopEdit();
+						editor->StopEdit();
 					}
 						
 					break;
@@ -266,12 +261,12 @@ void Game::MainLoop()
 
 					if (GetModeEdit())
 					{
-						if (editor.drawingLayer == BACKGROUND)
-							editor.drawingLayer = FOREGROUND;
-						else if (editor.drawingLayer == FOREGROUND)
-							editor.drawingLayer = BACKGROUND;
+						if (editor->drawingLayer == BACKGROUND)
+							editor->drawingLayer = FOREGROUND;
+						else if (editor->drawingLayer == FOREGROUND)
+							editor->drawingLayer = BACKGROUND;
 
-						editor.SetText("Drawing on layer: " + DrawingLayerNames[editor.drawingLayer], renderer);
+						editor->currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[editor->drawingLayer]);
 
 					}
 
@@ -281,20 +276,20 @@ void Game::MainLoop()
 
 					if (GetModeEdit())
 					{
-						editor.tilesheetIndex++;
-						if (editor.tilesheetIndex > 1)
-							editor.tilesheetIndex = 0;
-						editor.StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor.tilesheets[editor.tilesheetIndex] + ".png"));
+						editor->tilesheetIndex++;
+						if (editor->tilesheetIndex > 1)
+							editor->tilesheetIndex = 0;
+						editor->StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor->tilesheets[editor->tilesheetIndex] + ".png"));
 					}
 
 					break;
 				case SDLK_9:
 					if (GetModeEdit())
-						editor.SaveLevel(*this);
+						editor->SaveLevel(*this);
 					break;
 				case SDLK_l:
 					if (GetModeEdit())
-						editor.LoadLevel(*this, "level");
+						editor->LoadLevel(*this, "level");
 					break;
 				default:
 					break;
@@ -344,7 +339,7 @@ void Game::MainLoop()
 				camera.x += (TILE_SIZE * SCALE);
 			}
 
-			editor.HandleEdit(*this);
+			editor->HandleEdit(*this);
 		}
 			
 
@@ -395,7 +390,12 @@ void Game::Render()
 	// Render editor toolbox
 	if (GetModeEdit())
 	{
-		editor.Render(renderer);
+		editor->Render(renderer);
+	}
+
+	if (GetModeDebug())
+	{
+		jumpsRemainingText->Render(renderer);
 	}
 		
 	SDL_RenderPresent(renderer);

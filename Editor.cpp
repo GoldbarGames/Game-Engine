@@ -7,9 +7,11 @@
 
 using std::string;
 
-Editor::Editor()
+Editor::Editor(SDL_Renderer* renderer)
 {
-	
+	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
+
+	currentEditModeLayer = new Text(renderer, theFont);
 }
 
 Editor::~Editor()
@@ -138,7 +140,7 @@ void Editor::Render(SDL_Renderer* renderer)
 	SDL_RenderDrawRect(renderer, &selectedRect);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);	
 
-	SDL_RenderCopy(renderer, textTexture, &textTextureRect, &textWindowRect);
+	currentEditModeLayer->Render(renderer);
 }
 
 void Editor::SetText(string newText, SDL_Renderer* renderer)
@@ -149,15 +151,8 @@ void Editor::SetText(string newText, SDL_Renderer* renderer)
 	//if (textTexture != nullptr)
 	//	delete textTexture;
 
-	//TODO: Clean up this code, put it in a better location
-	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
-	textSurface = TTF_RenderText_Solid(theFont, newText.c_str(), { 255, 255, 255, 255 });
-	textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-	textTextureRect.x = 0;
-	textTextureRect.y = 0;
-	SDL_QueryTexture(textTexture, NULL, NULL, &textTextureRect.w, &textTextureRect.h);
-	textWindowRect.w = textTextureRect.w;
-	textWindowRect.h = textTextureRect.h;
+
+	currentEditModeLayer->SetText(newText);
 }
 
 void Editor::SaveLevel(Game& game)

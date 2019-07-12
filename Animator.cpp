@@ -46,18 +46,39 @@ void Animator::OnExit(std::string state)
 
 void Animator::Update(Entity* entity)
 {
+	//TODO: How to check if the animation has played exactly once?
+
 	// If conditions met, set current state to next state
 	// Else, stay in current state
 
 	if (currentState == "walk")
 	{
 		if (!GetBool("walking"))
-			SetState("blink");
+			SetState("idle");
+
+		if (!GetBool("isGrounded"))
+			SetState("jump");
 	}
 	else if (currentState == "blink")
 	{
 		if (GetBool("walking"))
 			SetState("walk");
+
+		if (!GetBool("isGrounded"))
+			SetState("jump");
+	}
+	else if (currentState == "idle")
+	{
+		if (GetBool("walking"))
+			SetState("walk");
+		
+		if (!GetBool("isGrounded"))
+			SetState("jump");
+	}
+	else if (currentState == "jump")
+	{
+		if (GetBool("isGrounded"))
+			SetState("idle");
 	}
 
 	// Then, carry out whatever the current state is

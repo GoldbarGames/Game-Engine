@@ -7,6 +7,8 @@
 #include "globals.h"
 #include <string>
 
+#include "Text.h"
+
 using std::string;
 
 class Game;
@@ -26,13 +28,11 @@ private:
 	int editorTileY = 0;
 
 	TTF_Font* theFont = nullptr;
-	SDL_Texture* textTexture = nullptr;
-	SDL_Surface* textSurface = nullptr;
-	SDL_Rect textWindowRect;
-	SDL_Rect textTextureRect;
 
 public:
-	Editor();
+	Text* currentEditModeLayer = nullptr;
+
+	Editor(SDL_Renderer* renderer);
 	~Editor();
 	void StartEdit(SDL_Renderer* renderer, SDL_Surface* tilesheet);
 	void StopEdit();
