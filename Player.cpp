@@ -60,7 +60,7 @@ void Player::UpdatePhysics(Game& game)
 	if (velocity.y < 1)
 		velocity.y += GRAVITY;
 	
-	if (game.pressedJumpButton) // && jumpsRemaining > 0)
+	if (game.pressedJumpButton && jumpsRemaining > 0)
 	{
 		velocity.y = -0.4f;
 	}
@@ -136,7 +136,7 @@ void Player::CheckCollisions(Game& game)
 
 	if (!verticalCollision)
 	{
-		if (game.pressedJumpButton) // && jumpsRemaining > 0)
+		if (game.pressedJumpButton && jumpsRemaining > 0)
 		{
 			jumpsRemaining--;
 			game.jumpsRemainingText->SetText("Jumps Remaining: " + std::to_string(jumpsRemaining));
