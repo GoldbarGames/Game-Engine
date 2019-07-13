@@ -10,6 +10,7 @@ Player::Player()
 
 Player::~Player()
 {
+
 }
 
 void Player::Update(Game& game)
@@ -32,13 +33,13 @@ void Player::Update(Game& game)
 	if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
 	{
 		animator->SetBool("walking", true);
-		velocity.x -= horizontalSpeed * game.dt;
+		velocity.x -= horizontalSpeed;
 		
 	}
 	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
 	{
 		animator->SetBool("walking", true);
-		velocity.x += horizontalSpeed * game.dt;
+		velocity.x += horizontalSpeed;
 	}
 	else
 	{
@@ -59,59 +60,35 @@ void Player::UpdatePhysics(Game& game)
 	if (velocity.y < 1)
 		velocity.y += GRAVITY;
 	
-	if (game.pressedJumpButton && jumpsRemaining > 0)
+	if (game.pressedJumpButton) // && jumpsRemaining > 0)
 	{
 		velocity.y = -0.4f;
 	}
 
-	bool collideX = false;
-	bool collideY = false;
+	CheckCollisions(game);
 
-	CheckCollisions(game, collideX, collideY);
-
-	if (!collideX)
-	{
-		position.x += (velocity.x * game.dt);
-	}
-
-	if (!collideY)
-	{
-		if (game.pressedJumpButton && jumpsRemaining > 0)
-		{
-			jumpsRemaining--;
-			game.jumpsRemainingText->SetText("Jumps Remaining: " + std::to_string(jumpsRemaining));
-		}
-
-		position.y += (velocity.y * game.dt);
-	}
 }
 
-void Player::CheckCollisions(Game& game, bool& collideX, bool& collideY)
+void Player::CheckCollisions(Game& game)
 {
+	bool horizontalCollision = false;
+	bool verticalCollision = false;
+
 	// Get bounds assuming the move is valid
 	SDL_Rect myBounds = *GetBounds();
 
 	SDL_Rect newBoundsHorizontal = myBounds;
-	newBoundsHorizontal.x = myBounds.x + velocity.x;
+	newBoundsHorizontal.x = myBounds.x + (velocity.x * game.dt);
+	newBoundsHorizontal.y -= 1; // this needs to be here so that it does not check for ground collision when moving horizontally
 
 	SDL_Rect newBoundsVertical = myBounds;
-	newBoundsVertical.y = myBounds.y + velocity.y;
+	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
 
-	// Negate space that checks collision in the wrong axis
-    //TODO: Can we come up with a better solution?
-    //TODO: Maybe use 2 for loops instead? Or 2 hitboxes?
-
-	newBoundsHorizontal.y += velocity.y;
-	newBoundsHorizontal.h -= velocity.y * 3;
-
-	newBoundsVertical.x += velocity.x;
-	newBoundsVertical.w -= velocity.x * 3;
-
-	//animator->SetBool("isGrounded", false);
+	animator->SetBool("isGrounded", true);
 
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
-		if (collideX && collideY)
+		if (horizontalCollision && verticalCollision)
 			break;
 
 		const SDL_Rect * theirBounds = game.entities[i]->GetBounds();
@@ -120,22 +97,40 @@ void Player::CheckCollisions(Game& game, bool& collideX, bool& collideY)
 		{
 			if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
 			{
-				collideX = true;
+				horizontalCollision = true;
+				velocity.x = 0;
 			}
-
+			
 			if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
 			{
-				collideY = true;
-
+				verticalCollision = true;
+				
 				// if colliding with ground, set velocity.y to zero
-				if (theirBounds->y >= myBounds.y + myBounds.h - 1)
+				if (velocity.y > 0)
 				{
 					animator->SetBool("isGrounded", true);
-					jumpsRemaining = 5;
-					velocity.y = 0;
-				}					
+					jumpsRemaining = 2;
+				}	
+
+				velocity.y = 0;
 			}
 		}
+	}
+
+	if (!horizontalCollision)
+	{
+		position.x += (velocity.x * game.dt);
+	}
+
+	if (!verticalCollision)
+	{
+		if (game.pressedJumpButton) // && jumpsRemaining > 0)
+		{
+			jumpsRemaining--;
+			game.jumpsRemainingText->SetText("Jumps Remaining: " + std::to_string(jumpsRemaining));
+		}
+
+		position.y += (velocity.y * game.dt);
 	}
 }
 

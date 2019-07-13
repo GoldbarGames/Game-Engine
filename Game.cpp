@@ -130,7 +130,7 @@ Player* Game::SpawnPlayer(Vector2 position)
 	Player* player = new Player();
 	Animator* anim1 = new Animator("idle");
 
-	anim1->SetBool("isGrounded", false);
+	anim1->SetBool("isGrounded", true);
 
 	anim1->MapStateToSprite("walk", new Sprite(6, spriteManager.GetImage("assets/sprites/kaneko/wdk_walk.png"), renderer));
 	anim1->MapStateToSprite("blink", new Sprite(5, spriteManager.GetImage("assets/sprites/kaneko/wdk_blink.png"), renderer));
@@ -219,6 +219,11 @@ void Game::MainLoop()
 		{
 			if (event.type == SDL_QUIT)
 				quit = true;
+
+			if (event.type == SDL_MOUSEWHEEL)
+			{
+				//TODO: Zooming in and out
+			}
 
 			if (event.type == SDL_KEYDOWN)
 			{
