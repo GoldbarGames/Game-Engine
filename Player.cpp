@@ -84,6 +84,13 @@ void Player::CheckCollisions(Game& game)
 	SDL_Rect newBoundsVertical = myBounds;
 	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
 
+	// this needs to be here so that it does not check for wall collision when moving vertically
+	if (velocity.x > 0)
+		newBoundsVertical.x -= 1; 
+	else if (velocity.x < 0)
+		newBoundsVertical.x += 1;
+
+
 	animator->SetBool("isGrounded", true);
 
 	for (unsigned int i = 0; i < game.entities.size(); i++)
