@@ -5,7 +5,7 @@
 
 Player::Player()
 {
-
+	CreateCollider(0, 0, 0.75f, 0.9f);
 }
 
 Player::~Player()
@@ -62,7 +62,7 @@ void Player::UpdatePhysics(Game& game)
 	
 	if (game.pressedJumpButton && jumpsRemaining > 0)
 	{
-		velocity.y = -0.4f;
+		velocity.y = -0.6f;
 	}
 
 	CheckCollisions(game);
@@ -71,11 +71,13 @@ void Player::UpdatePhysics(Game& game)
 
 void Player::CheckCollisions(Game& game)
 {
+	CalculateCollider(game.camera.x, game.camera.y);
+
 	bool horizontalCollision = false;
 	bool verticalCollision = false;
 
 	// Get bounds assuming the move is valid
-	SDL_Rect myBounds = *GetBounds();
+	SDL_Rect myBounds = *GetColliderBounds();
 
 	SDL_Rect newBoundsHorizontal = myBounds;
 	newBoundsHorizontal.x = myBounds.x + (velocity.x * game.dt);
@@ -87,7 +89,12 @@ void Player::CheckCollisions(Game& game)
 	if (velocity.x > 0)
 		newBoundsVertical.x -= 1; 
 	else if (velocity.x < 0)
+	{
 		newBoundsVertical.x += 1;
+		newBoundsHorizontal.x -= 1;
+	}		
+	else
+		newBoundsVertical.x -= 1;
 
 	// this needs to be here so that it does not check for vertical collision when moving horizontally
 	if (velocity.y > 0)
@@ -95,8 +102,7 @@ void Player::CheckCollisions(Game& game)
 	else if (velocity.y < 0)
 		newBoundsHorizontal.y += 1;
 
-
-	animator->SetBool("isGrounded", true);
+	animator->SetBool("isGrounded", false);
 
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
@@ -168,7 +174,44 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 				SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
 
 			SDL_RenderDrawRect(renderer, currentSprite->GetRect());
+			
+			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+			CalculateCollider(cameraOffset.x, cameraOffset.y); //TODO: better way than calculating this twice?
+			
+			SDL_RenderDrawRect(renderer, collisionBounds);
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		}
 	}
+}
+
+void Player::CalculateCollider(float cameraOffsetX, float cameraOffsetY)
+{
+	// scale the bounds of the sprite by a number
+	collisionBounds->w = startSpriteSize.x * colliderWidth;
+	collisionBounds->h = startSpriteSize.y * colliderHeight;
+
+	// set the collision bounds position to where the player actually is
+	collisionBounds->x = position.x + collider->x - cameraOffsetX;
+	collisionBounds->y = position.y + collider->y - cameraOffsetY;
+
+	// get the distance to the center of the sprite
+	//TODO: Should this use the current sprite or the start sprite?
+	float halfWidth = (currentSprite->GetRect()->w / (2.0f));
+	float halfHeight = (currentSprite->GetRect()->h / (2.0f));
+
+	// get the position of the center of the sprite (in world space)
+	float positionCenterX = collisionBounds->x + halfWidth;
+	float positionCenterY = collisionBounds->y + halfHeight;
+
+	// get the distance to the pivot point from the center of the sprite
+	//TODO: Grab the 16 and 24 based on the current sprite (use a dict/map?)
+	Vector2 pivotPoint = Vector2(16 - (halfWidth / SCALE), 24 - (halfHeight / SCALE));
+
+	// set the position such that the center is at the pivot point
+	collisionBounds->x = positionCenterX + (pivotPoint.x * SCALE * colliderWidth) - halfWidth;
+	collisionBounds->y = positionCenterY + (pivotPoint.y * SCALE * colliderHeight) - halfHeight;
+
+	// set the position such that the center is at the center
+	collisionBounds->x += (startSpriteSize.x - collisionBounds->w) / 2.0f;
+	collisionBounds->y += (startSpriteSize.y - collisionBounds->h) / 2.0f;
 }

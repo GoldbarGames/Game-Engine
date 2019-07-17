@@ -1,4 +1,4 @@
-bool modeDebug = false;
+bool modeDebug = true;
 
 void SetModeDebug(bool b) {
 	modeDebug = b;

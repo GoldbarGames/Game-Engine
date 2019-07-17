@@ -15,5 +15,6 @@ public:
 	void Render(SDL_Renderer * renderer, Vector2 cameraOffset);
 	void CheckCollisions(Game& game);
 	void ResetPosition();
+	void CalculateCollider(float cameraOffsetX, float cameraOffsetY);
 };
 

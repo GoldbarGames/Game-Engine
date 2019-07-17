@@ -12,14 +12,14 @@ class Sprite
 private:
 	SDL_Texture * texture = nullptr;
 	SDL_Rect textureRect;
-	SDL_Rect windowRect;
-
+	
 	Vector2 scale = Vector2(1, 1);
 	int numberFrames = 1;
 	float frameWidth = 0;
 	float frameHeight = 0;
 
 public:
+	SDL_Rect windowRect;
 	void Destroy();
 	const SDL_Rect* GetRect();
 	void Animate(int msPerFrame);
