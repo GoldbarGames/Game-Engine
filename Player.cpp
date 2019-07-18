@@ -181,16 +181,14 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 		}
 		*/
 
-		Vector2 offset = cameraOffset + pivotDifference;
+		float colX = (collisionBounds->x + (collisionBounds->w / 2));
+		float colY = (collisionBounds->y + (collisionBounds->h / 2));
 
-		float pdX = (pivot.x * SCALE) - (previousPivot.x * SCALE);
-		float pdY = (pivot.y * SCALE) - (previousPivot.y * SCALE);
+		Vector2 collisionCenter = Vector2(colX, colY);
+		
+		Vector2 pivotOffset = collisionCenter - currentSprite->pivot;
 
-		pivotDifference = Vector2(pdX, pdY);
-		offset = cameraOffset + pivotDifference;
-
-		if (pivotDifference.x != 0)
-			int test = 0;
+		Vector2 offset = pivotOffset;
 
 		/*
 		if (animator != nullptr && animator->beforePreviousState != animator->currentState)
@@ -206,9 +204,9 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 		}*/
 		
 		if (animator != nullptr)
-			currentSprite->Render(position - offset, animator->speed, renderer);
+			currentSprite->Render(offset, animator->speed, renderer);
 		else
-			currentSprite->Render(position - offset, 0, renderer);
+			currentSprite->Render(offset, 0, renderer);
 
 		if (GetModeDebug())
 		{
@@ -232,13 +230,15 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 
 void Player::CalculateCollider(Vector2 cameraOffset)
 {
-	// scale the bounds of the sprite by a number
-	collisionBounds->w = startSpriteSize.x * colliderWidth;
-	collisionBounds->h = startSpriteSize.y * colliderHeight;
-
 	// set the collision bounds position to where the player actually is
 	collisionBounds->x = position.x + collider->x - cameraOffset.x;
 	collisionBounds->y = position.y + collider->y - cameraOffset.y;
+
+	// scale the bounds of the sprite by a number to set the collider's width and height
+	collisionBounds->w = startSpriteSize.x * colliderWidth;
+	collisionBounds->h = startSpriteSize.y * colliderHeight;
+
+	//TODO: Align the pivot point of the sprite onto the center of the collision box
 
 	/*
 	// get the distance to the center of the sprite
