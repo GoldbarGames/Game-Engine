@@ -3,9 +3,11 @@
 
 using std::string;
 
-Sprite::Sprite(int numFrames, SDL_Surface * image, SDL_Renderer * renderer)
+Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, SDL_Renderer * renderer, Vector2 newPivot)
 {
-	texture = SDL_CreateTextureFromSurface(renderer, image);
+	texture = SDL_CreateTextureFromSurface(renderer, manager.GetImage(filepath));
+
+	pivot = newPivot;
 
 	// Set start position
 	windowRect.x = 0;

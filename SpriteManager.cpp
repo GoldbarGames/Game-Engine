@@ -3,7 +3,6 @@
 #include <SDL_image.h>
 #include <GL/glew.h>
 
-
 SpriteManager::SpriteManager()
 {
 	//TODO: Find all PNG files in the assets folder automatically?
@@ -85,6 +84,11 @@ void SpriteManager::LoadImage(std::string const & image)
 SDL_Surface* SpriteManager::GetImage(std::string const& image)
 {
 	return images[image].get();
+}
+
+Vector2 SpriteManager::GetPivotPoint(std::string const& filename)
+{
+	return pivotPoints[filename];
 }
 
 SpriteManager::~SpriteManager()

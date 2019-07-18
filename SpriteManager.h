@@ -4,13 +4,16 @@
 #include <memory>
 #include <unordered_map>
 #include "ImageDeleter.h"
+#include "Vector2.h"
 
 class SpriteManager
 {
 private:
 	std::unordered_map<std::string, std::unique_ptr<SDL_Surface, ImageDeleter>> images;
+	std::unordered_map<std::string, Vector2> pivotPoints;
 public:
 	SDL_Surface* GetImage(std::string const& image);
+	Vector2 GetPivotPoint(std::string const& filename);
 	void LoadImage(std::string const & image);
 	SpriteManager();
 	~SpriteManager();

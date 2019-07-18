@@ -95,7 +95,7 @@ void Game::SpawnPerson(Vector2 position)
 {
 	//TODO: Make a sprite factory that can check to see if we have already loaded a sprite
 	// and if so, we use that one, instead of creating a new one
-	Sprite* sprite = new Sprite(5, spriteManager.GetImage("assets/sprites/wdk_blink.png"), renderer);
+	Sprite* sprite = new Sprite(5, spriteManager, "assets/sprites/wdk_blink.png", renderer, Vector2(16, 24));
 
 	//TODO: Make this a Physics Entity, not just an Entity
 	Entity* person = new Entity();
@@ -132,10 +132,10 @@ Player* Game::SpawnPlayer(Vector2 position)
 
 	anim1->SetBool("isGrounded", true);
 
-	anim1->MapStateToSprite("walk", new Sprite(6, spriteManager.GetImage("assets/sprites/kaneko/wdk_walk.png"), renderer));
-	anim1->MapStateToSprite("blink", new Sprite(5, spriteManager.GetImage("assets/sprites/kaneko/wdk_blink.png"), renderer));
-	anim1->MapStateToSprite("idle", new Sprite(2, spriteManager.GetImage("assets/sprites/kaneko/wdk_idle.png"), renderer));
-	anim1->MapStateToSprite("jump", new Sprite(2, spriteManager.GetImage("assets/sprites/kaneko/wdk_jump.png"), renderer));
+	anim1->MapStateToSprite("walk", new Sprite(6, spriteManager, "assets/sprites/kaneko/wdk_walk.png", renderer, Vector2(16,24)));
+	anim1->MapStateToSprite("blink", new Sprite(5, spriteManager, "assets/sprites/kaneko/wdk_blink.png", renderer, Vector2(16, 24)));
+	anim1->MapStateToSprite("idle", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_idle.png", renderer, Vector2(16, 24)));
+	anim1->MapStateToSprite("jump", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_jump.png", renderer, Vector2(24, 24)));
 
 	player->SetAnimator(anim1);
 	player->SetPosition(position);
@@ -165,20 +165,12 @@ void Game::Play(string gameName)
 
 	player = SpawnPlayer(Vector2(220, 0));
 
-	Sprite* background = new Sprite(1, spriteManager.GetImage("assets/bg/bg.png"), renderer);
+	Sprite* background = new Sprite(1, spriteManager, "assets/bg/bg.png", renderer, Vector2(0,0));
 	Entity* bg = new Entity();
 	bg->SetSprite(background);
 
-	Sprite* floorSprite = new Sprite(1, spriteManager.GetImage("assets/sprites/floor.png"), renderer);
-	Entity* floor = new Entity();
-	floor->SetSprite(floorSprite);
-	floor->SetPosition(Vector2(150, 300));
-	floor->impassable = true;
-
 	//SpawnPerson(Vector2(400, 0));
 	//SpawnPerson(Vector2(0, 0));
-
-	entities.emplace_back(floor);
 
 	//entities.emplace_back(bg);
 

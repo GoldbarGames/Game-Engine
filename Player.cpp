@@ -66,12 +66,16 @@ void Player::UpdatePhysics(Game& game)
 	}
 
 	CheckCollisions(game);
-
 }
 
 void Player::CheckCollisions(Game& game)
 {
-	CalculateCollider(game.camera.x, game.camera.y);
+	// method 1
+	//pivot = game.spriteManager.GetPivotPoint(currentSprite->filename);
+
+	//method 2 (we need to set the pivot member variable for the Render function!)
+	pivot = currentSprite->pivot;
+	CalculateCollider(game.camera);
 
 	bool horizontalCollision = false;
 	bool verticalCollision = false;
@@ -87,18 +91,18 @@ void Player::CheckCollisions(Game& game)
 
 	// this needs to be here so that it does not check for horizontal collision when moving vertically
 	if (velocity.x > 0)
-		newBoundsVertical.x -= 1; 
+	newBoundsVertical.x -= 1;
 	else if (velocity.x < 0)
 	{
 		newBoundsVertical.x += 1;
 		newBoundsHorizontal.x -= 1;
-	}		
+	}
 	else
-		newBoundsVertical.x -= 1;
+	newBoundsVertical.x -= 1;
 
 	// this needs to be here so that it does not check for vertical collision when moving horizontally
 	if (velocity.y > 0)
-		newBoundsHorizontal.y -= 1;
+	newBoundsHorizontal.y -= 1;
 	else if (velocity.y < 0)
 		newBoundsHorizontal.y += 1;
 
@@ -118,17 +122,17 @@ void Player::CheckCollisions(Game& game)
 				horizontalCollision = true;
 				velocity.x = 0;
 			}
-			
+
 			if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
 			{
 				verticalCollision = true;
-				
+
 				// if colliding with ground, set velocity.y to zero
 				if (velocity.y > 0)
 				{
 					animator->SetBool("isGrounded", true);
 					jumpsRemaining = 2;
-				}	
+				}
 
 				velocity.y = 0;
 			}
@@ -159,12 +163,52 @@ void Player::ResetPosition()
 
 void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 {
+
 	if (currentSprite != nullptr)
 	{
+		// if the anim that we are going to is the same
+		// as the anim we previously left,
+		// then dont offset based on the pivot
+
+		/*
+		if (animator->currentState == "idle" || animator->currentState == "walk")
+		{
+			pivotDifference = Vector2(0, 0);
+		}
+		else if (animator->currentState == "jump")
+		{
+			pivotDifference = Vector2(-4, 0);
+		}
+		*/
+
+		Vector2 offset = cameraOffset + pivotDifference;
+
+		float pdX = (pivot.x * SCALE) - (previousPivot.x * SCALE);
+		float pdY = (pivot.y * SCALE) - (previousPivot.y * SCALE);
+
+		pivotDifference = Vector2(pdX, pdY);
+		offset = cameraOffset + pivotDifference;
+
+		if (pivotDifference.x != 0)
+			int test = 0;
+
+		/*
+		if (animator != nullptr && animator->beforePreviousState != animator->currentState)
+		{
+			float pdX = (pivot.x * SCALE) - (previousPivot.x * SCALE);
+			float pdY = (pivot.y * SCALE) - (previousPivot.y * SCALE);
+
+			pivotDifference = Vector2(pdX * SCALE, pdY * SCALE);
+			offset = cameraOffset + pivotDifference;
+
+			if (pivotDifference.x != 0)
+				int test = 0;
+		}*/
+		
 		if (animator != nullptr)
-			currentSprite->Render(position - cameraOffset, animator->speed, renderer);
+			currentSprite->Render(position - offset, animator->speed, renderer);
 		else
-			currentSprite->Render(position - cameraOffset, 0, renderer);
+			currentSprite->Render(position - offset, 0, renderer);
 
 		if (GetModeDebug())
 		{
@@ -176,26 +220,28 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 			SDL_RenderDrawRect(renderer, currentSprite->GetRect());
 			
 			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-			CalculateCollider(cameraOffset.x, cameraOffset.y); //TODO: better way than calculating this twice?
+			CalculateCollider(cameraOffset); //TODO: better way than calculating this twice?
 			
 			SDL_RenderDrawRect(renderer, collisionBounds);
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		}
 	}
+
+	previousPivot = pivot;
 }
 
-void Player::CalculateCollider(float cameraOffsetX, float cameraOffsetY)
+void Player::CalculateCollider(Vector2 cameraOffset)
 {
 	// scale the bounds of the sprite by a number
 	collisionBounds->w = startSpriteSize.x * colliderWidth;
 	collisionBounds->h = startSpriteSize.y * colliderHeight;
 
 	// set the collision bounds position to where the player actually is
-	collisionBounds->x = position.x + collider->x - cameraOffsetX;
-	collisionBounds->y = position.y + collider->y - cameraOffsetY;
+	collisionBounds->x = position.x + collider->x - cameraOffset.x;
+	collisionBounds->y = position.y + collider->y - cameraOffset.y;
 
+	/*
 	// get the distance to the center of the sprite
-	//TODO: Should this use the current sprite or the start sprite?
 	float halfWidth = (currentSprite->GetRect()->w / (2.0f));
 	float halfHeight = (currentSprite->GetRect()->h / (2.0f));
 
@@ -204,14 +250,14 @@ void Player::CalculateCollider(float cameraOffsetX, float cameraOffsetY)
 	float positionCenterY = collisionBounds->y + halfHeight;
 
 	// get the distance to the pivot point from the center of the sprite
-	//TODO: Grab the 16 and 24 based on the current sprite (use a dict/map?)
-	Vector2 pivotPoint = Vector2(16 - (halfWidth / SCALE), 24 - (halfHeight / SCALE));
+	pivotDistance = Vector2(16 - (halfWidth / SCALE), 24 - (halfHeight / SCALE));
 
 	// set the position such that the center is at the pivot point
-	collisionBounds->x = positionCenterX + (pivotPoint.x * SCALE * colliderWidth) - halfWidth;
-	collisionBounds->y = positionCenterY + (pivotPoint.y * SCALE * colliderHeight) - halfHeight;
+	collisionBounds->x = positionCenterX + (pivotDistance.x * SCALE * colliderWidth) - halfWidth;
+	collisionBounds->y = positionCenterY + (pivotDistance.y * SCALE * colliderHeight) - halfHeight;
 
 	// set the position such that the center is at the center
-	collisionBounds->x += (startSpriteSize.x - collisionBounds->w) / 2.0f;
-	collisionBounds->y += (startSpriteSize.y - collisionBounds->h) / 2.0f;
+	collisionBounds->x += (currentSprite->GetRect()->w - collisionBounds->w) / 2.0f;
+	collisionBounds->y += (currentSprite->GetRect()->h - collisionBounds->h) / 2.0f;
+	*/
 }

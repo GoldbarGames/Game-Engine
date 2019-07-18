@@ -12,6 +12,8 @@ Animator::Animator(std::string initialState)
 {
 	// Set the initial state
 	currentState = initialState;
+	previousState = currentState;
+	beforePreviousState = previousState;
 }
 
 Animator::Animator(SpriteManager * spriteManager, SDL_Renderer * renderer)
@@ -87,6 +89,8 @@ void Animator::Update(Entity* entity)
 
 void Animator::SetState(std::string state)
 {
+	beforePreviousState = previousState;
+	previousState = currentState;	
 	currentState = state;
 }
 

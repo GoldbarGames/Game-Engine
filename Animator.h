@@ -10,8 +10,7 @@ class Animator
 {
 private:
 	enum AnimState { Walk, Blink }; //TODO: How to make these unique for each character?
-	std::string currentState = "";
-	std::string previousState = "";
+
 	std::unordered_map<std::string, Sprite*> mapStateToSprite;
 
 	// parameters for triggering transitions between states
@@ -19,6 +18,9 @@ private:
 	std::unordered_map<std::string, float> mapParamsFloat;
 	std::unordered_map<std::string, int> mapParamsInt;
 public:
+	std::string currentState = "";
+	std::string previousState = "";
+	std::string beforePreviousState = "";
 	int speed = 100;
 	void SetState(std::string state);
 	void OnEnter(std::string state);

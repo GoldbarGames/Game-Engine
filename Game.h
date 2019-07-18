@@ -26,13 +26,11 @@ private:
 	
 	SDL_GLContext mainContext = nullptr;
 
-	SpriteManager spriteManager;
+	
 
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;
 
-	
-	
 	void Update();
 	void Render();
 	bool SetOpenGLAttributes();
@@ -49,6 +47,7 @@ private:
 
 	void MainLoop();
 public:
+	SpriteManager spriteManager;
 	Text* jumpsRemainingText = nullptr;
 	Editor* editor = nullptr;
 	SDL_Window* window = nullptr;

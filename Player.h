@@ -6,6 +6,10 @@ class Player : public PhysicsEntity
 {
 private:
 	int jumpsRemaining = 2;
+	Vector2 pivot = Vector2(0, 0);
+	Vector2 pivotDistance = Vector2(0, 0);
+	Vector2 previousPivot = Vector2(0, 0);
+	Vector2 pivotDifference = Vector2(0, 0);
 public:
 	Vector2 startPosition;
 	Player();
@@ -15,6 +19,6 @@ public:
 	void Render(SDL_Renderer * renderer, Vector2 cameraOffset);
 	void CheckCollisions(Game& game);
 	void ResetPosition();
-	void CalculateCollider(float cameraOffsetX, float cameraOffsetY);
+	void CalculateCollider(Vector2 cameraOffset);
 };
 
