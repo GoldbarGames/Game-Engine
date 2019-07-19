@@ -21,13 +21,9 @@ using std::string;
 class Game
 {
 private:
-	SDL_Surface* screenSurface = nullptr;
-
+	SDL_Surface * screenSurface = nullptr;
 	SDL_Renderer * renderer = nullptr;
-	
 	SDL_GLContext mainContext = nullptr;
-
-	
 
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;

@@ -71,6 +71,10 @@ SpriteManager::SpriteManager()
 	// Background images
 	LoadImage("assets/bg/forest/forest_ground.png");
 	LoadImage("assets/bg/forest/forest_sky1.png");
+	LoadImage("assets/bg/forest/forest_trees_front.png");
+	LoadImage("assets/bg/forest/forest_trees_front_curved.png");
+	LoadImage("assets/bg/forest/forest_trees_back.png");
+	LoadImage("assets/bg/forest/forest_trees_back_curved.png");
 	LoadImage("assets/sprites/floor.png");
 
 	LoadImage("assets/tiles/housetiles5.png");

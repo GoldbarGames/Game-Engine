@@ -11,5 +11,6 @@ public:
 	Background(Vector2 pos);
 	~Background();
 	void Render(SDL_Renderer * renderer, Vector2 cameraOffset);
+	void AddLayer(SpriteManager& spriteManager, SDL_Renderer* renderer, std::string filepath, int drawOrder);
 };
 

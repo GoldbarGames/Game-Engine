@@ -130,17 +130,12 @@ Background* Game::SpawnBackground(Vector2 pos)
 {
 	Background* background = new Background(pos);
 
-	Sprite* layer = new Sprite(1, spriteManager, "assets/bg/forest/forest_ground.png", renderer, Vector2(0, 0));
-	Entity* bg = new Entity();
-	bg->drawOrder = -1;
-	bg->SetSprite(layer);
-	background->layers.emplace_back(bg);
-
-	Sprite* layer2 = new Sprite(1, spriteManager, "assets/bg/forest/forest_sky1.png", renderer, Vector2(0, 0));
-	Entity* bg2 = new Entity();
-	bg2->drawOrder = -2;
-	bg2->SetSprite(layer2);
-	background->layers.emplace_back(bg2);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_ground.png", -90);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_sky1.png", -99);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_front.png", -10);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_front_curved.png", -11);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_back.png", -20);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_back_curved.png", -21);
 
 	SortEntities(background->layers);
 
@@ -389,6 +384,12 @@ void Game::Render()
 {
 	SDL_RenderClear(renderer);
 
+	// Render all backgrounds and their layers
+	for (int i = 0; i < backgrounds.size(); i++)
+	{
+		backgrounds[i]->Render(renderer, camera);
+	}
+
 	// Render editor grid
 	if (GetModeEdit())
 	{
@@ -406,12 +407,6 @@ void Game::Render()
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	}
 
-	// Render all backgrounds and their layers
-	for (int i = 0; i < backgrounds.size(); i++)
-	{
-		backgrounds[i]->Render(renderer, camera);
-	}
-
 	// Render all entities
 	for (int i = 0; i < entities.size(); i++)
 	{
@@ -426,7 +421,7 @@ void Game::Render()
 
 	if (GetModeDebug())
 	{
-		jumpsRemainingText->Render(renderer);
+		//jumpsRemainingText->Render(renderer);
 	}
 		
 	SDL_RenderPresent(renderer);
