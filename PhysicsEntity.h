@@ -21,6 +21,8 @@ public:
 	PhysicsEntity();
 	~PhysicsEntity();
 
+	Vector2 GetCenter();
+
 	void CreateCollider(float x, float y, float w, float h);
 	const SDL_Rect* GetColliderBounds();
 

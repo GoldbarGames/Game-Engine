@@ -32,13 +32,6 @@ Vector2 Entity::GetPosition()
 	return position;
 }
 
-Vector2 Entity::GetCenter()
-{
-	float x = position.x + (currentSprite->GetRect()->w / 2.0f);
-	float y = position.y + (currentSprite->GetRect()->h / 2.0f);
-	return Vector2(x, y);
-}
-
 void Entity::SetPosition(Vector2 newPosition)
 {
 	position = newPosition;

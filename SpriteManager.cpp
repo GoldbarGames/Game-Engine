@@ -69,7 +69,8 @@ SpriteManager::SpriteManager()
 	LoadImage("assets/sprites/kaneko/wdk_walk.png");
 
 	// Background images
-	LoadImage("assets/bg/bg.png");
+	LoadImage("assets/bg/forest/forest_ground.png");
+	LoadImage("assets/bg/forest/forest_sky1.png");
 	LoadImage("assets/sprites/floor.png");
 
 	LoadImage("assets/tiles/housetiles5.png");

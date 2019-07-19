@@ -90,7 +90,6 @@ bool Game::SetOpenGLAttributes()
 	return success == 0;
 }
 
-
 void Game::SpawnPerson(Vector2 position)
 {
 	//TODO: Make a sprite factory that can check to see if we have already loaded a sprite
@@ -125,6 +124,31 @@ void Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool imp
 	entities.emplace_back(tile);
 }
 
+//TODO: How can we dynamically get the size of the background so that we can loop them without hardcoding it?
+// (low priority / not too important)
+Background* Game::SpawnBackground(Vector2 pos)
+{
+	Background* background = new Background(pos);
+
+	Sprite* layer = new Sprite(1, spriteManager, "assets/bg/forest/forest_ground.png", renderer, Vector2(0, 0));
+	Entity* bg = new Entity();
+	bg->drawOrder = -1;
+	bg->SetSprite(layer);
+	background->layers.emplace_back(bg);
+
+	Sprite* layer2 = new Sprite(1, spriteManager, "assets/bg/forest/forest_sky1.png", renderer, Vector2(0, 0));
+	Entity* bg2 = new Entity();
+	bg2->drawOrder = -2;
+	bg2->SetSprite(layer2);
+	background->layers.emplace_back(bg2);
+
+	SortEntities(background->layers);
+
+	backgrounds.emplace_back(background);
+
+	return background;
+}
+
 Player* Game::SpawnPlayer(Vector2 position)
 {
 	Player* player = new Player();
@@ -148,6 +172,8 @@ Player* Game::SpawnPlayer(Vector2 position)
 	return player;
 }
 
+
+
 void Game::PlayLevel(string gameName, string levelName)
 {
 	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
@@ -164,10 +190,6 @@ void Game::Play(string gameName)
 	entities.reserve(5);
 
 	player = SpawnPlayer(Vector2(220, 0));
-
-	Sprite* background = new Sprite(1, spriteManager, "assets/bg/bg.png", renderer, Vector2(0,0));
-	Entity* bg = new Entity();
-	bg->SetSprite(background);
 
 	//SpawnPerson(Vector2(400, 0));
 	//SpawnPerson(Vector2(0, 0));
@@ -195,7 +217,14 @@ void Game::MainLoop()
 
 	SDL_GL_SwapWindow(window);
 
-	SortEntities();
+	const int NUM_BGS = 5;
+	const int BG_WIDTH = 636;
+	for (int i = 0; i < NUM_BGS; i++)
+	{
+		SpawnBackground(Vector2(BG_WIDTH * SCALE * -i, 0));
+	}
+
+	SortEntities(entities);
 
 	editor->currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[editor->drawingLayer]);
 
@@ -266,7 +295,6 @@ void Game::MainLoop()
 						editor->currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[editor->drawingLayer]);
 
 					}
-
 
 					break;
 				case SDLK_4:
@@ -378,6 +406,12 @@ void Game::Render()
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	}
 
+	// Render all backgrounds and their layers
+	for (int i = 0; i < backgrounds.size(); i++)
+	{
+		backgrounds[i]->Render(renderer, camera);
+	}
+
 	// Render all entities
 	for (int i = 0; i < entities.size(); i++)
 	{
@@ -401,15 +435,15 @@ void Game::Render()
 // Implementation of insertion sort:
 // Splits the list into two portions - sorted and unsorted.
 // Then steps through the unsorted list, checking where the next one fits.
-void Game::SortEntities()
+void Game::SortEntities(std::vector<Entity*>& entityVector)
 {
-	const int n = entities.size();
+	const int n = entityVector.size();
 	for (int i = 0; i < n; i++)
 	{
 		int j = i;
-		while (j > 0 && entities[j - 1]->drawOrder > entities[j]->drawOrder)
+		while (j > 0 && entityVector[j - 1]->drawOrder > entityVector[j]->drawOrder)
 		{
-			std::swap(entities[j], entities[j - 1]);
+			std::swap(entityVector[j], entityVector[j - 1]);
 			j--;
 		}
 	}

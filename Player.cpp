@@ -166,42 +166,13 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 
 	if (currentSprite != nullptr)
 	{
-		// if the anim that we are going to is the same
-		// as the anim we previously left,
-		// then dont offset based on the pivot
-
-		/*
-		if (animator->currentState == "idle" || animator->currentState == "walk")
-		{
-			pivotDifference = Vector2(0, 0);
-		}
-		else if (animator->currentState == "jump")
-		{
-			pivotDifference = Vector2(-4, 0);
-		}
-		*/
-
-		float colX = (collisionBounds->x + (collisionBounds->w / 2));
-		float colY = (collisionBounds->y + (collisionBounds->h / 2));
-
-		Vector2 collisionCenter = Vector2(colX, colY);
-		
-		Vector2 pivotOffset = collisionCenter - currentSprite->pivot;
+		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2));
+		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2));
+		Vector2 collisionCenter = Vector2(collisionCenterX, collisionCenterY);
+		Vector2 scaledPivot = Vector2(currentSprite->pivot.x * SCALE, currentSprite->pivot.y * SCALE);
+		Vector2 pivotOffset = collisionCenter - scaledPivot;
 
 		Vector2 offset = pivotOffset;
-
-		/*
-		if (animator != nullptr && animator->beforePreviousState != animator->currentState)
-		{
-			float pdX = (pivot.x * SCALE) - (previousPivot.x * SCALE);
-			float pdY = (pivot.y * SCALE) - (previousPivot.y * SCALE);
-
-			pivotDifference = Vector2(pdX * SCALE, pdY * SCALE);
-			offset = cameraOffset + pivotDifference;
-
-			if (pivotDifference.x != 0)
-				int test = 0;
-		}*/
 		
 		if (animator != nullptr)
 			currentSprite->Render(offset, animator->speed, renderer);
@@ -237,27 +208,4 @@ void Player::CalculateCollider(Vector2 cameraOffset)
 	// scale the bounds of the sprite by a number to set the collider's width and height
 	collisionBounds->w = startSpriteSize.x * colliderWidth;
 	collisionBounds->h = startSpriteSize.y * colliderHeight;
-
-	//TODO: Align the pivot point of the sprite onto the center of the collision box
-
-	/*
-	// get the distance to the center of the sprite
-	float halfWidth = (currentSprite->GetRect()->w / (2.0f));
-	float halfHeight = (currentSprite->GetRect()->h / (2.0f));
-
-	// get the position of the center of the sprite (in world space)
-	float positionCenterX = collisionBounds->x + halfWidth;
-	float positionCenterY = collisionBounds->y + halfHeight;
-
-	// get the distance to the pivot point from the center of the sprite
-	pivotDistance = Vector2(16 - (halfWidth / SCALE), 24 - (halfHeight / SCALE));
-
-	// set the position such that the center is at the pivot point
-	collisionBounds->x = positionCenterX + (pivotDistance.x * SCALE * colliderWidth) - halfWidth;
-	collisionBounds->y = positionCenterY + (pivotDistance.y * SCALE * colliderHeight) - halfHeight;
-
-	// set the position such that the center is at the center
-	collisionBounds->x += (currentSprite->GetRect()->w - collisionBounds->w) / 2.0f;
-	collisionBounds->y += (currentSprite->GetRect()->h - collisionBounds->h) / 2.0f;
-	*/
 }

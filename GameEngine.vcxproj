@@ -130,6 +130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Animator.cpp" />
+    <ClCompile Include="Background.cpp" />
     <ClCompile Include="debug_state.cpp" />
     <ClCompile Include="Editor.cpp" />
     <ClCompile Include="editor_state.cpp" />
@@ -148,6 +149,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Animator.h" />
+    <ClInclude Include="Background.h" />
     <ClInclude Include="debug_state.h" />
     <ClInclude Include="Editor.h" />
     <ClInclude Include="editor_state.h" />

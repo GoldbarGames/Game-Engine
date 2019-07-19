@@ -28,14 +28,12 @@ public:
 	Animator* GetAnimator();
 	virtual const SDL_Rect* GetBounds();
 	Vector2 GetPosition();
-	Vector2 GetCenter();
 	void SetPosition(Vector2 newPosition);
 	void SetAnimator(Animator* anim);
 	void SetSprite(Sprite* sprite);
 	virtual void Update(Game& game);
 	virtual void Render(SDL_Renderer * renderer, Vector2 cameraOffset);
 
-	//TODO: Change this to an enum
 	DrawingLayer layer = FOREGROUND;
 };
 

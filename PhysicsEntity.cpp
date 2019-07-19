@@ -15,6 +15,13 @@ const SDL_Rect* PhysicsEntity::GetColliderBounds()
 	return collisionBounds;
 }
 
+Vector2 PhysicsEntity::GetCenter()
+{
+	float x = position.x + (collisionBounds->w / 2.0f);
+	float y = position.y + (collisionBounds->h / 2.0f);
+	return Vector2(x, y);
+}
+
 void PhysicsEntity::CreateCollider(float x, float y, float w, float h)
 {
 	if (collider != nullptr)

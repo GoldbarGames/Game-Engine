@@ -13,6 +13,7 @@
 #include "Entity.h"
 #include "SpriteManager.h"
 #include "Player.h"
+#include "Background.h"
 #include "Editor.h"
 
 using std::string;
@@ -39,11 +40,10 @@ private:
 	void CalcDt();
 
 	TTF_Font* theFont = nullptr;
-	
-
 	Mix_Music* currentBGM = nullptr;
 
-	
+	std::vector<Background*> backgrounds;
+
 
 	void MainLoop();
 public:
@@ -61,10 +61,11 @@ public:
 	void InitSDL();
 	void EndSDL();
 	void Play(string gameName);
-	void SortEntities();
+	void SortEntities(std::vector<Entity*>& entityVector);
 	void SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer);
 	Player* SpawnPlayer(Vector2 position);
 	void SpawnPerson(Vector2 position);
+	Background* SpawnBackground(Vector2 pos);
 	void PlayLevel(string gameName, string levelName);
 
 };

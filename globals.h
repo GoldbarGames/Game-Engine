@@ -10,3 +10,7 @@ const int screenHeight = 720;
 
 enum DrawingLayer { BACKGROUND, FOREGROUND };
 static const std::string DrawingLayerNames[] = { "BACKGROUND", "FOREGROUND" };
+
+//TODO
+//enum CollisionLayer { PLAYER, FOREGROUND };
+//static const std::string DrawingLayerNames[] = { "PLAYER", "FOREGROUND" };

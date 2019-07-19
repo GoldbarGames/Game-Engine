@@ -109,7 +109,7 @@ void Editor::HandleEdit(Game& game)
 				bool impassable = (drawingLayer == FOREGROUND);
 				game.SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/" + tilesheets[tilesheetIndex] + ".png", 
 					Vector2(mouseX, mouseY), impassable, drawingLayer);
-				game.SortEntities();
+				game.SortEntities(game.entities);
 			}
 		}
 	}
