@@ -23,6 +23,7 @@ private:
 	SDL_Rect toolboxTextureRect;
 	SDL_Rect toolboxWindowRect;
 	SDL_Rect selectedRect;
+	SDL_Rect hoveredTileRect;
 
 	int editorTileX = 0;
 	int editorTileY = 0;
@@ -31,6 +32,7 @@ private:
 
 public:
 	Text* currentEditModeLayer = nullptr;
+	Text* cursorPosition = nullptr;
 
 	Editor(SDL_Renderer* renderer);
 	~Editor();

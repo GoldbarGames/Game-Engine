@@ -9,8 +9,6 @@ class Entity;
 class Animator
 {
 private:
-	enum AnimState { Walk, Blink }; //TODO: How to make these unique for each character?
-
 	std::unordered_map<std::string, Sprite*> mapStateToSprite;
 
 	// parameters for triggering transitions between states
@@ -18,6 +16,7 @@ private:
 	std::unordered_map<std::string, float> mapParamsFloat;
 	std::unordered_map<std::string, int> mapParamsInt;
 public:
+	std::string animatorType = "";
 	std::string currentState = "";
 	std::string previousState = "";
 	std::string beforePreviousState = "";
@@ -33,8 +32,10 @@ public:
 	bool GetBool(std::string param);
 	void MapStateToSprite(std::string state, Sprite* sprite);
 	Animator(std::vector<Sprite*> sprites);
-	Animator(std::string initialState);
+	Animator(std::string animType, std::string initialState);
 	Animator(SpriteManager * spriteManager, SDL_Renderer * renderer);
 	~Animator();
+
+	void CheckStateKaneko();
 };
 

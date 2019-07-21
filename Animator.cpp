@@ -8,9 +8,10 @@ Animator::Animator(std::vector<Sprite*> sprites)
 }
 
 // PRE-CONDITION: Initialize all anim parameters
-Animator::Animator(std::string initialState)
+Animator::Animator(std::string animType, std::string initialState)
 {
 	// Set the initial state
+	animatorType = animType;
 	currentState = initialState;
 	previousState = currentState;
 	beforePreviousState = previousState;
@@ -53,6 +54,18 @@ void Animator::Update(Entity* entity)
 	// If conditions met, set current state to next state
 	// Else, stay in current state
 
+	if (animatorType == "kaneko")
+	{
+		CheckStateKaneko();
+	}
+
+
+	// Then, carry out whatever the current state is
+	DoState(entity);
+}
+
+void Animator::CheckStateKaneko()
+{
 	if (currentState == "walk")
 	{
 		if (!GetBool("walking"))
@@ -73,7 +86,7 @@ void Animator::Update(Entity* entity)
 	{
 		if (GetBool("walking"))
 			SetState("walk");
-		
+
 		if (!GetBool("isGrounded"))
 			SetState("jump");
 	}
@@ -82,9 +95,6 @@ void Animator::Update(Entity* entity)
 		if (GetBool("isGrounded"))
 			SetState("idle");
 	}
-
-	// Then, carry out whatever the current state is
-	DoState(entity);
 }
 
 void Animator::SetState(std::string state)

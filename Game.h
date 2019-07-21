@@ -15,6 +15,7 @@
 #include "Player.h"
 #include "Background.h"
 #include "Editor.h"
+#include "Tile.h"
 
 using std::string;
 
@@ -58,7 +59,7 @@ public:
 	void EndSDL();
 	void Play(string gameName);
 	void SortEntities(std::vector<Entity*>& entityVector);
-	void SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer);
+	Tile* SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer);
 	Player* SpawnPlayer(Vector2 position);
 	void SpawnPerson(Vector2 position);
 	Background* SpawnBackground(Vector2 pos);

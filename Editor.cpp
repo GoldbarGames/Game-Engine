@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <iterator>
+#include "Tile.h"
 
 using std::string;
 
@@ -12,6 +13,8 @@ Editor::Editor(SDL_Renderer* renderer)
 	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
 
 	currentEditModeLayer = new Text(renderer, theFont);
+	cursorPosition = new Text(renderer, theFont);
+	cursorPosition->SetPosition(0, 50);
 }
 
 Editor::~Editor()
@@ -46,6 +49,9 @@ void Editor::StartEdit(SDL_Renderer* renderer, SDL_Surface* tilesheet)
 	selectedRect.y = 0;
 	selectedRect.w = 24;
 	selectedRect.h = 24;
+
+	hoveredTileRect.w = 24 * SCALE;
+	hoveredTileRect.h = 24 * SCALE;
 }
 
 void Editor::StopEdit()
@@ -67,6 +73,13 @@ void Editor::HandleEdit(Game& game)
 	int clickedY = mouseY - ((int)mouseY % (TILE_SIZE * SCALE));
 
 	Vector2 clickedPosition(clickedX, clickedY);
+
+	hoveredTileRect.x = clickedX;
+	hoveredTileRect.y = clickedY;
+
+	std::string clickedPos = std::to_string(clickedX + (int)game.camera.x) + " " + std::to_string(clickedY + (int)game.camera.y);
+
+	cursorPosition->SetText("Position: " + clickedPos);
 
 	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 	{
@@ -94,7 +107,7 @@ void Editor::HandleEdit(Game& game)
 			clickedPosition += game.camera;
 
 			bool canPlaceTileHere = true;
-			for (int i = 0; i < game.entities.size(); i++)
+			for (unsigned int i = 0; i < game.entities.size(); i++)
 			{
 				if (game.entities[i]->GetPosition() == clickedPosition && 
 					game.entities[i]->layer == drawingLayer)
@@ -116,7 +129,7 @@ void Editor::HandleEdit(Game& game)
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{
 		clickedPosition += game.camera;
-		//clickedPosition.RoundToInt(); // without this line, would not delete tiles from previous edit
+		clickedPosition.RoundToInt(); // without this line, would not delete tiles from previous edit
 
 		for (int i = game.entities.size() - 1; i >= 0; i--)
 		{
@@ -133,16 +146,22 @@ void Editor::HandleEdit(Game& game)
 
 void Editor::Render(SDL_Renderer* renderer)
 {
-	//SDL_RenderClear(renderer);
-	SDL_RenderCopy(renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
-	//SDL_RenderPresent(renderer);
+	// Draw a white rectangle around the currently highlighted grid tile
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	SDL_RenderDrawRect(renderer, &hoveredTileRect);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
-	// Draw a yellow rectangle around the currently selected tile
+	// Draw the tilesheet
+	SDL_RenderCopy(renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
+
+	// Draw a yellow rectangle around the currently selected tileset tile
 	SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
 	SDL_RenderDrawRect(renderer, &selectedRect);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);	
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
+	// Draw text
 	currentEditModeLayer->Render(renderer);
+	cursorPosition->Render(renderer);
 }
 
 void Editor::SetText(string newText, SDL_Renderer* renderer)
@@ -153,7 +172,6 @@ void Editor::SetText(string newText, SDL_Renderer* renderer)
 	//if (textTexture != nullptr)
 	//	delete textTexture;
 
-
 	currentEditModeLayer->SetText(newText);
 }
 
@@ -162,23 +180,22 @@ void Editor::SaveLevel(Game& game)
 	std::ofstream fout;
 	fout.open("data/level.wdk");
 
-	for (int i = 0; i < game.entities.size(); i++)
+	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
 		if (game.entities[i]->etype == "tile")
 		{
-			fout << game.entities[i]->id << " " << game.entities[i]->etype << " " << game.entities[i]->GetPosition().x <<
-				" " << game.entities[i]->GetPosition().y << " " << game.entities[i]->drawOrder <<
+			fout << game.entities[i]->id << " " << game.entities[i]->etype << " " << (game.entities[i]->GetPosition().x / SCALE) <<
+				" " << (game.entities[i]->GetPosition().y / SCALE) << " " << game.entities[i]->drawOrder <<
 				" " << game.entities[i]->layer << " " << game.entities[i]->impassable << 
 				" " << game.entities[i]->tilesheetIndex << " " << game.entities[i]->tileCoordinates.x << 
 				" " << game.entities[i]->tileCoordinates.y << "" << std::endl;
 		}
 		else
 		{
-			fout << game.entities[i]->id << " " << game.entities[i]->etype << " " << game.entities[i]->GetPosition().x <<
-				" " << game.entities[i]->GetPosition().y << " " << game.entities[i]->drawOrder <<
+			fout << game.entities[i]->id << " " << game.entities[i]->etype << " " << (game.entities[i]->GetPosition().x / SCALE) <<
+				" " << (game.entities[i]->GetPosition().y / SCALE) << " " << game.entities[i]->drawOrder <<
 				" " << game.entities[i]->layer << " " << game.entities[i]->impassable << std::endl;
-		}
-		
+		}		
 	}
 
 	fout.close();
@@ -187,7 +204,7 @@ void Editor::SaveLevel(Game& game)
 void Editor::LoadLevel(Game& game, std::string levelName)
 {
 	// Clear the old level
-	for (int i = 0; i < game.entities.size(); i++)
+	for (unsigned int i = 0; i < game.entities.size(); i++)
 		delete game.entities[i];		
 	game.entities.clear();
 
@@ -215,8 +232,10 @@ void Editor::LoadLevel(Game& game, std::string levelName)
 			int frameX = std::stoi(tokens[8]);
 			int frameY = std::stoi(tokens[9]);			
 			
-			game.SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheets[tilesheet] + ".png",
-				Vector2(positionX, positionY), impassable, (DrawingLayer)layer);
+			Tile* newTile = game.SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheets[tilesheet] + ".png",
+				Vector2(positionX * SCALE, positionY * SCALE), impassable, (DrawingLayer)layer);
+
+			newTile->tilesheetIndex = tilesheet;
 		}
 		else if (tokens[1] == "player")
 		{			

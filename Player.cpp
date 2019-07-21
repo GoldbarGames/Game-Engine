@@ -33,8 +33,7 @@ void Player::Update(Game& game)
 	if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
 	{
 		animator->SetBool("walking", true);
-		velocity.x -= horizontalSpeed;
-		
+		velocity.x -= horizontalSpeed;		
 	}
 	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
 	{
@@ -46,6 +45,11 @@ void Player::Update(Game& game)
 		//TODO: Add friction
 		velocity.x = 0;
 	}
+
+	if (velocity.x > maxHorizontalSpeed)
+		velocity.x = maxHorizontalSpeed;
+	else if (velocity.x < -maxHorizontalSpeed)
+		velocity.x = -maxHorizontalSpeed;
 
 	UpdatePhysics(game);
 
@@ -91,21 +95,29 @@ void Player::CheckCollisions(Game& game)
 
 	// this needs to be here so that it does not check for horizontal collision when moving vertically
 	if (velocity.x > 0)
-	newBoundsVertical.x -= 1;
+	{
+		newBoundsVertical.x -= 1;
+	}	
 	else if (velocity.x < 0)
 	{
 		newBoundsVertical.x += 1;
 		newBoundsHorizontal.x -= 1;
 	}
 	else
-	newBoundsVertical.x -= 1;
-
+	{
+		newBoundsVertical.x -= 1;
+	}
+	
 	// this needs to be here so that it does not check for vertical collision when moving horizontally
 	if (velocity.y > 0)
-	newBoundsHorizontal.y -= 1;
+	{
+		newBoundsHorizontal.y -= 1;
+	}
 	else if (velocity.y < 0)
+	{
 		newBoundsHorizontal.y += 1;
-
+	}
+		
 	animator->SetBool("isGrounded", false);
 
 	for (unsigned int i = 0; i < game.entities.size(); i++)
@@ -163,7 +175,6 @@ void Player::ResetPosition()
 
 void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 {
-
 	if (currentSprite != nullptr)
 	{
 		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2));
@@ -173,6 +184,9 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 		Vector2 pivotOffset = collisionCenter - scaledPivot;
 
 		Vector2 offset = pivotOffset;
+
+		if (GetModeEdit())
+			offset -= cameraOffset;
 		
 		if (animator != nullptr)
 			currentSprite->Render(offset, animator->speed, renderer);

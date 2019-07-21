@@ -44,7 +44,7 @@ void Game::InitSDL()
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 	currentBGM = Mix_LoadMUS("assets/bgm/Witchs_Waltz.ogg");
 	
-
+	 
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
@@ -98,7 +98,7 @@ void Game::SpawnPerson(Vector2 position)
 
 	//TODO: Make this a Physics Entity, not just an Entity
 	Entity* person = new Entity();
-	Animator* anim = new Animator("xyz");
+	Animator* anim = new Animator("", "xyz");
 	anim->MapStateToSprite("xyz", sprite);
 	anim->speed = 50;
 	person->SetAnimator(anim);
@@ -110,7 +110,7 @@ void Game::SpawnPerson(Vector2 position)
 	entities.emplace_back(person);
 }
 
-void Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer)
+Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer)
 {
 	Tile* tile = new Tile(frame, spriteManager.GetImage(tilesheet), renderer);
 	int newTileX = position.x - ((int)position.x % (TILE_SIZE * SCALE));
@@ -122,6 +122,7 @@ void Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool imp
 	tile->tileCoordinates = frame;
 	tile->tilesheetIndex = editor->tilesheetIndex;
 	entities.emplace_back(tile);
+	return tile;
 }
 
 //TODO: How can we dynamically get the size of the background so that we can loop them without hardcoding it?
@@ -147,7 +148,7 @@ Background* Game::SpawnBackground(Vector2 pos)
 Player* Game::SpawnPlayer(Vector2 position)
 {
 	Player* player = new Player();
-	Animator* anim1 = new Animator("idle");
+	Animator* anim1 = new Animator("kaneko", "idle");
 
 	anim1->SetBool("isGrounded", true);
 
@@ -374,7 +375,7 @@ void Game::Update()
 	camera.x -= (screenWidth / 2.0f);  
 	camera.y -= (screenHeight / 2.0f);
 
-	for (int i = 0; i < entities.size(); i++)
+	for (unsigned int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Update(*this);
 	}
@@ -385,7 +386,7 @@ void Game::Render()
 	SDL_RenderClear(renderer);
 
 	// Render all backgrounds and their layers
-	for (int i = 0; i < backgrounds.size(); i++)
+	for (unsigned int i = 0; i < backgrounds.size(); i++)
 	{
 		backgrounds[i]->Render(renderer, camera);
 	}
@@ -408,7 +409,7 @@ void Game::Render()
 	}
 
 	// Render all entities
-	for (int i = 0; i < entities.size(); i++)
+	for (unsigned int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Render(renderer, camera);
 	}
