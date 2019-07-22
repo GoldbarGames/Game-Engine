@@ -16,6 +16,7 @@
 #include "Background.h"
 #include "Editor.h"
 #include "Tile.h"
+#include "Timer.h"
 
 using std::string;
 
@@ -41,11 +42,22 @@ private:
 
 	std::vector<Background*> backgrounds;
 
+	Timer timer;
+	Timer fpsLimit;
+
+	bool limitFPS = false;
+
 
 	void MainLoop();
 public:
 	SpriteManager spriteManager;
+	
 	Text* jumpsRemainingText = nullptr;
+	Text* fpsText = nullptr;
+	Text* timerText = nullptr;
+
+
+
 	Editor* editor = nullptr;
 	SDL_Window* window = nullptr;
 	Player* player = nullptr;

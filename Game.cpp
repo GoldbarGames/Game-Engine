@@ -21,6 +21,14 @@ Game::Game()
 	jumpsRemainingText = new Text(renderer, theFont);
 	jumpsRemainingText->SetText("Jumps Remaining: 2");
 	jumpsRemainingText->SetPosition(0, 100);
+
+	fpsText = new Text(renderer, theFont);
+	fpsText->SetText("FPS:");
+	fpsText->SetPosition(0, 0);
+
+	timerText = new Text(renderer, theFont);
+	timerText->SetText("");
+	timerText->SetPosition(0, 100);
 }
 
 Game::~Game()
@@ -48,7 +56,7 @@ void Game::InitSDL()
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
 }
 
 void Game::EndSDL()
@@ -224,9 +232,25 @@ void Game::MainLoop()
 
 	editor->currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[editor->drawingLayer]);
 
+	//Start counting frames per second
+	int countedFrames = 0;
+	timer.Start();
+	
+
 	bool quit = false;
 	while (!quit)
 	{
+		fpsLimit.Start();
+
+		//Calculate and correct fps
+		float avgFPS = countedFrames / (timer.GetTicks() / 1000.f);
+		if (avgFPS > 2000000)
+		{
+			avgFPS = 0;
+		}
+
+		fpsText->SetText("FPS: " + std::to_string(avgFPS));
+
 		// Reset all inputs here
 		pressedJumpButton = false;
 
@@ -331,6 +355,8 @@ void Game::MainLoop()
 
 		CalcDt();
 
+		timerText->SetText(std::to_string(timer.GetTicks()/1000.0f));
+
 		if (!GetModeEdit())
 		{
 			Update();
@@ -365,6 +391,20 @@ void Game::MainLoop()
 			
 
 		Render();
+
+		countedFrames++;
+
+		//If frame finished early
+		if (limitFPS)
+		{
+			int frameTicks = fpsLimit.GetTicks();
+			if (frameTicks < SCREEN_TICKS_PER_FRAME)
+			{
+				//Wait remaining time
+				SDL_Delay(SCREEN_TICKS_PER_FRAME - frameTicks);
+			}
+		}
+		
 	}
 
 }
@@ -424,6 +464,9 @@ void Game::Render()
 	{
 		//jumpsRemainingText->Render(renderer);
 	}
+
+	fpsText->Render(renderer);
+	timerText->Render(renderer);
 		
 	SDL_RenderPresent(renderer);
 }

@@ -13,9 +13,10 @@ Background::~Background()
 
 void Background::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 {
+	cameraOffset = Vector2(0.1f, 0);
 	for (unsigned int i = 0; i < layers.size(); i++)
 	{
-		layers[i]->Render(renderer, cameraOffset + position);
+		layers[i]->Render(renderer, position);
 	}
 }
 

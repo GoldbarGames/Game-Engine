@@ -129,7 +129,7 @@ void Editor::HandleEdit(Game& game)
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{
 		clickedPosition += game.camera;
-		clickedPosition.RoundToInt(); // without this line, would not delete tiles from previous edit
+		//clickedPosition.RoundToInt(); // without this line, would not delete tiles from previous edit
 
 		for (int i = game.entities.size() - 1; i >= 0; i--)
 		{
