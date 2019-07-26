@@ -17,6 +17,7 @@
 #include "Editor.h"
 #include "Tile.h"
 #include "Timer.h"
+#include "MenuScreen.h"
 
 using std::string;
 
@@ -24,7 +25,7 @@ class Game
 {
 private:
 	SDL_Surface * screenSurface = nullptr;
-	SDL_Renderer * renderer = nullptr;
+	
 	SDL_GLContext mainContext = nullptr;
 
 	Uint64 timeNow = SDL_GetPerformanceCounter();
@@ -47,9 +48,17 @@ private:
 
 	bool limitFPS = false;
 
+	std::unordered_map<std::string, MenuScreen*> allMenus;
+	std::vector<MenuScreen*> openedMenus;
+	
 
 	void MainLoop();
+	bool HandleEvent(SDL_Event& event);
+	bool HandleMenuEvent(SDL_Event& event);
+	void HandleEditMode();
+	void UpdateMenu();
 public:
+	SDL_Renderer * renderer = nullptr;
 	SpriteManager spriteManager;
 	
 	Text* jumpsRemainingText = nullptr;

@@ -29,6 +29,13 @@ Game::Game()
 	timerText = new Text(renderer, theFont);
 	timerText->SetText("");
 	timerText->SetPosition(0, 100);
+
+
+	// Initialize all the menus
+	allMenus["Title"] = new MenuScreen("Title", *this);
+	allMenus["Pause"] = new MenuScreen("Pause", *this);
+	allMenus["Settings"] = new MenuScreen("Settings", *this);
+	allMenus["Spellbook"] = new MenuScreen("Spellbook", *this);
 }
 
 Game::~Game()
@@ -51,7 +58,6 @@ void Game::InitSDL()
 
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 	currentBGM = Mix_LoadMUS("assets/bgm/Witchs_Waltz.ogg");
-	
 	 
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
@@ -249,7 +255,7 @@ void Game::MainLoop()
 			avgFPS = 0;
 		}
 
-		fpsText->SetText("FPS: " + std::to_string(avgFPS));
+		//fpsText->SetText("FPS: " + std::to_string(avgFPS));
 
 		// Reset all inputs here
 		pressedJumpButton = false;
@@ -258,138 +264,32 @@ void Game::MainLoop()
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
 		{
-			if (event.type == SDL_QUIT)
-				quit = true;
+			if (openedMenus.size() > 0)
+				quit = HandleMenuEvent(event);
+			else
+				quit = HandleEvent(event);
 
-			if (event.type == SDL_MOUSEWHEEL)
-			{
-				//TODO: Zooming in and out
-			}
-
-			if (event.type == SDL_KEYDOWN)
-			{
-				switch (event.key.keysym.sym)
-				{
-				case SDLK_ESCAPE:
-					quit = true;
-					break;
-				case SDLK_x:
-					pressedJumpButton = true;
-					break;
-				case SDLK_m:
-					if (Mix_PausedMusic())
-						Mix_ResumeMusic();
-					else
-						Mix_PauseMusic();
-					break;
-				case SDLK_r:
-					if (player != nullptr)
-						player->ResetPosition();
-					break;
-				case SDLK_1: // toggle Debug mode
-					SetModeDebug(!GetModeDebug());
-					break;
-				case SDLK_2: // toggle Editor mode
-					SetModeEdit(!GetModeEdit());
-					if (GetModeEdit())
-					{
-						camera.x = camera.x - ((int)camera.x % (TILE_SIZE * SCALE));
-						camera.y = camera.y - ((int)camera.y % (TILE_SIZE * SCALE));
-						editor->StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor->tilesheets[editor->tilesheetIndex] + ".png"));
-					}
-					else
-					{
-						editor->StopEdit();
-					}
-						
-					break;
-				case SDLK_3: // toggle drawing layers
-
-					if (GetModeEdit())
-					{
-						if (editor->drawingLayer == BACKGROUND)
-							editor->drawingLayer = FOREGROUND;
-						else if (editor->drawingLayer == FOREGROUND)
-							editor->drawingLayer = BACKGROUND;
-
-						editor->currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[editor->drawingLayer]);
-
-					}
-
-					break;
-				case SDLK_4:
-
-					if (GetModeEdit())
-					{
-						editor->tilesheetIndex++;
-						if (editor->tilesheetIndex > 1)
-							editor->tilesheetIndex = 0;
-						editor->StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor->tilesheets[editor->tilesheetIndex] + ".png"));
-					}
-
-					break;
-				case SDLK_9:
-					if (GetModeEdit())
-						editor->SaveLevel(*this);
-					break;
-				case SDLK_l:
-					if (GetModeEdit())
-						editor->LoadLevel(*this, "level");
-					break;
-				default:
-					break;
-				}
-			}
-			else if (event.type == SDL_KEYUP)
-			{
-				switch (event.key.keysym.sym)
-				{
-				case SDLK_x:
-					pressedJumpButton = false;
-					break;
-				default:
-					break;
-				}
-			}
+			if (quit)
+				break;
 		}
 
 		CalcDt();
 
-		timerText->SetText(std::to_string(timer.GetTicks()/1000.0f));
+		//timerText->SetText(std::to_string(timer.GetTicks()/1000.0f));
 
-		if (!GetModeEdit())
+		if (GetModeEdit())
 		{
-			Update();
+			HandleEditMode();			
+		}
+		else if (openedMenus.size() > 0)
+		{
+			UpdateMenu();
 		}
 		else
 		{
-			//TODO: Make this a function
-			const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-			float cameraSpeed = 1.0f;
-
-			if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
-			{
-				camera.y -= (TILE_SIZE * SCALE);
-			}
-			else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
-			{
-				camera.y += (TILE_SIZE * SCALE);
-			}
-
-			if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
-			{
-				camera.x -= (TILE_SIZE * SCALE);
-
-			}
-			else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
-			{
-				camera.x += (TILE_SIZE * SCALE);
-			}
-
-			editor->HandleEdit(*this);
+			Update();
 		}
 			
-
 		Render();
 
 		countedFrames++;
@@ -401,12 +301,173 @@ void Game::MainLoop()
 			if (frameTicks < SCREEN_TICKS_PER_FRAME)
 			{
 				//Wait remaining time
-				SDL_Delay(SCREEN_TICKS_PER_FRAME - frameTicks);
+				//SDL_Delay(SCREEN_TICKS_PER_FRAME - frameTicks);
 			}
 		}
-		
 	}
 
+}
+
+void Game::UpdateMenu()
+{
+
+}
+
+void Game::HandleEditMode()
+{
+	//TODO: Make this a function
+	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+	float cameraSpeed = 1.0f;
+
+	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
+	{
+		camera.y -= (TILE_SIZE * SCALE);
+	}
+	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
+	{
+		camera.y += (TILE_SIZE * SCALE);
+	}
+
+	if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
+	{
+		camera.x -= (TILE_SIZE * SCALE);
+
+	}
+	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
+	{
+		camera.x += (TILE_SIZE * SCALE);
+	}
+
+	editor->HandleEdit(*this);
+}
+
+bool Game::HandleMenuEvent(SDL_Event& event)
+{
+	bool quit = false;
+
+	if (event.type == SDL_QUIT)
+		quit = true;
+
+	if (event.type == SDL_KEYDOWN)
+	{
+		switch (event.key.keysym.sym)
+		{
+		case SDLK_ESCAPE:
+			openedMenus.pop_back();
+			break;
+		case SDLK_q:
+			quit = true;
+			break;
+		default:
+			break;
+		}
+	}
+
+	return quit;
+}
+
+bool Game::HandleEvent(SDL_Event& event)
+{
+	bool quit = false;
+
+	if (event.type == SDL_QUIT)
+		quit = true;
+
+	if (event.type == SDL_MOUSEWHEEL)
+	{
+		//TODO: Zooming in and out
+	}
+
+	if (event.type == SDL_KEYDOWN)
+	{
+		switch (event.key.keysym.sym)
+		{
+		case SDLK_ESCAPE:
+			openedMenus.emplace_back(allMenus["Pause"]);
+			break;
+		case SDLK_q:
+			quit = true;
+			break;
+		case SDLK_x:
+			pressedJumpButton = true;
+			break;
+		case SDLK_m:
+			if (Mix_PausedMusic())
+				Mix_ResumeMusic();
+			else
+				Mix_PauseMusic();
+			break;
+		case SDLK_r:
+			if (player != nullptr)
+				player->ResetPosition();
+			break;
+		case SDLK_1: // toggle Debug mode
+			SetModeDebug(!GetModeDebug());
+			break;
+		case SDLK_2: // toggle Editor mode
+			SetModeEdit(!GetModeEdit());
+			if (GetModeEdit())
+			{
+				camera.x = camera.x - ((int)camera.x % (TILE_SIZE * SCALE));
+				camera.y = camera.y - ((int)camera.y % (TILE_SIZE * SCALE));
+				editor->StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor->tilesheets[editor->tilesheetIndex] + ".png"));
+			}
+			else
+			{
+				editor->StopEdit();
+			}
+
+			break;
+		case SDLK_3: // toggle drawing layers
+
+			if (GetModeEdit())
+			{
+				if (editor->drawingLayer == BACKGROUND)
+					editor->drawingLayer = FOREGROUND;
+				else if (editor->drawingLayer == FOREGROUND)
+					editor->drawingLayer = BACKGROUND;
+
+				editor->currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[editor->drawingLayer]);
+
+			}
+
+			break;
+		case SDLK_4:
+
+			if (GetModeEdit())
+			{
+				editor->tilesheetIndex++;
+				if (editor->tilesheetIndex > 1)
+					editor->tilesheetIndex = 0;
+				editor->StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor->tilesheets[editor->tilesheetIndex] + ".png"));
+			}
+
+			break;
+		case SDLK_9:
+			if (GetModeEdit())
+				editor->SaveLevel(*this);
+			break;
+		case SDLK_l:
+			if (GetModeEdit())
+				editor->LoadLevel(*this, "level");
+			break;
+		default:
+			break;
+		}
+	}
+	else if (event.type == SDL_KEYUP)
+	{
+		switch (event.key.keysym.sym)
+		{
+		case SDLK_x:
+			pressedJumpButton = false;
+			break;
+		default:
+			break;
+		}
+	}
+
+	return quit;
 }
 
 void Game::Update()
@@ -465,8 +526,14 @@ void Game::Render()
 		//jumpsRemainingText->Render(renderer);
 	}
 
-	fpsText->Render(renderer);
-	timerText->Render(renderer);
+	//fpsText->Render(renderer);
+	//timerText->Render(renderer);
+
+	// Render all menu screens
+	if (openedMenus.size() > 0)
+	{
+		openedMenus[openedMenus.size() - 1]->Render(renderer);
+	}
 		
 	SDL_RenderPresent(renderer);
 }

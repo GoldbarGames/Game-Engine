@@ -10,6 +10,9 @@ SpriteManager::SpriteManager()
 
 	LoadImage("assets/gui/icon.png");
 
+	// Menu images
+	LoadImage("assets/gui/menu.png");
+
 	// Kaneko images
 	LoadImage("assets/sprites/kaneko/wdk_blink.png");
 	LoadImage("assets/sprites/kaneko/wdk_break.png");

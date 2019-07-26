@@ -18,7 +18,6 @@ private:
 	int numberFrames = 1;
 	float frameWidth = 0;
 	float frameHeight = 0;
-	
 
 public:
 	Vector2 pivot = Vector2(0, 0);

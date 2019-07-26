@@ -26,6 +26,8 @@ Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, SDL_
 	frameWidth = textureRect.w / numberFrames;
 	frameHeight = textureRect.h;
 	textureRect.w /= numberFrames;
+	windowRect.w = frameWidth * SCALE;
+	windowRect.h = frameHeight * SCALE;
 }
 
 Sprite::~Sprite()
