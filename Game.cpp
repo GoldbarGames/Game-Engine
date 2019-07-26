@@ -15,7 +15,7 @@ Game::Game()
 	editor = new Editor(renderer);
 
 	// Initialize the font before all text
-	theFont = theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
+	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
 
 	// Initialize all text
 	jumpsRemainingText = new Text(renderer, theFont);
@@ -242,8 +242,7 @@ void Game::MainLoop()
 	int countedFrames = 0;
 	timer.Start();
 	
-
-	bool quit = false;
+	quit = false;
 	while (!quit)
 	{
 		fpsLimit.Start();
@@ -283,7 +282,15 @@ void Game::MainLoop()
 		}
 		else if (openedMenus.size() > 0)
 		{
-			UpdateMenu();
+			Uint32 ticks = timer.GetTicks();
+			if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
+			{				
+				if (openedMenus[openedMenus.size() - 1]->Update() > 0)
+					lastPressedKeyTicks = ticks;				
+			}
+
+			if (lastPressedKeyTicks > 0)
+				int test = 0;
 		}
 		else
 		{
@@ -305,11 +312,6 @@ void Game::MainLoop()
 			}
 		}
 	}
-
-}
-
-void Game::UpdateMenu()
-{
 
 }
 
@@ -341,6 +343,7 @@ void Game::HandleEditMode()
 	editor->HandleEdit(*this);
 }
 
+// PRE-CONDITION: openedMenus.size() > 0
 bool Game::HandleMenuEvent(SDL_Event& event)
 {
 	bool quit = false;
@@ -357,6 +360,9 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 			break;
 		case SDLK_q:
 			quit = true;
+			break;
+		case SDLK_RETURN:
+			quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
 			break;
 		default:
 			break;
@@ -383,7 +389,8 @@ bool Game::HandleEvent(SDL_Event& event)
 		switch (event.key.keysym.sym)
 		{
 		case SDLK_ESCAPE:
-			openedMenus.emplace_back(allMenus["Pause"]);
+			if (!GetModeEdit())
+				openedMenus.emplace_back(allMenus["Pause"]);
 			break;
 		case SDLK_q:
 			quit = true;
@@ -428,7 +435,6 @@ bool Game::HandleEvent(SDL_Event& event)
 					editor->drawingLayer = BACKGROUND;
 
 				editor->currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[editor->drawingLayer]);
-
 			}
 
 			break;
@@ -526,8 +532,8 @@ void Game::Render()
 		//jumpsRemainingText->Render(renderer);
 	}
 
-	//fpsText->Render(renderer);
-	//timerText->Render(renderer);
+	fpsText->Render(renderer);
+	timerText->Render(renderer);
 
 	// Render all menu screens
 	if (openedMenus.size() > 0)

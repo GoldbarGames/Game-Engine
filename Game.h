@@ -34,11 +34,9 @@ private:
 	void Update();
 	void Render();
 	bool SetOpenGLAttributes();
-
 	
 	void CalcDt();
-
-	TTF_Font* theFont = nullptr;
+	
 	Mix_Music* currentBGM = nullptr;
 
 	std::vector<Background*> backgrounds;
@@ -49,23 +47,24 @@ private:
 	bool limitFPS = false;
 
 	std::unordered_map<std::string, MenuScreen*> allMenus;
-	std::vector<MenuScreen*> openedMenus;
-	
+
+	Uint32 lastPressedKeyTicks = 0;
 
 	void MainLoop();
 	bool HandleEvent(SDL_Event& event);
 	bool HandleMenuEvent(SDL_Event& event);
 	void HandleEditMode();
-	void UpdateMenu();
 public:
 	SDL_Renderer * renderer = nullptr;
 	SpriteManager spriteManager;
+	TTF_Font* theFont = nullptr;
 	
 	Text* jumpsRemainingText = nullptr;
 	Text* fpsText = nullptr;
 	Text* timerText = nullptr;
+	std::vector<MenuScreen*> openedMenus;
 
-
+	bool quit = false;
 
 	Editor* editor = nullptr;
 	SDL_Window* window = nullptr;
