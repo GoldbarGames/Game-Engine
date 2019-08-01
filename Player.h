@@ -1,16 +1,17 @@
 #pragma once
 #include "PhysicsEntity.h"
 #include "Vector2.h"
+#include "Timer.h"
 
 class Player : public PhysicsEntity
 {
 private:
 	int jumpsRemaining = 2;
-	Vector2 pivot = Vector2(0, 0);
 	Vector2 pivotDistance = Vector2(0, 0);
 	Vector2 previousPivot = Vector2(0, 0);
 	Vector2 pivotDifference = Vector2(0, 0);
 	const float maxHorizontalSpeed = 0.5f;
+	Timer missileTimer;
 public:
 	Vector2 startPosition;
 	Player();

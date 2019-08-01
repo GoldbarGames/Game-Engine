@@ -104,10 +104,28 @@ bool Game::SetOpenGLAttributes()
 	return success == 0;
 }
 
+bool Game::SpawnMissile(Vector2 position)
+{
+	//TODO: Make a way for this to return false
+	Missile* missile = new Missile();
+	
+	Animator* anim = new Animator("debug_missile", "moving");
+	anim->SetBool("destroyed", false);
+	missile->SetAnimator(anim);
+
+	anim->MapStateToSprite("moving", new Sprite(8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, Vector2(14, 7)));
+	anim->MapStateToSprite("destroyed", new Sprite(8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, Vector2(14, 7)));
+
+	missile->SetPosition(position);
+	missile->SetVelocity(Vector2(0.5f,0));
+
+	entities.emplace_back(missile);
+
+	return true;
+}
+
 void Game::SpawnPerson(Vector2 position)
 {
-	//TODO: Make a sprite factory that can check to see if we have already loaded a sprite
-	// and if so, we use that one, instead of creating a new one
 	Sprite* sprite = new Sprite(5, spriteManager, "assets/sprites/wdk_blink.png", renderer, Vector2(16, 24));
 
 	//TODO: Make this a Physics Entity, not just an Entity
@@ -193,6 +211,18 @@ Player* Game::SpawnPlayer(Vector2 position)
 	return player;
 }
 
+void Game::DeleteEntity(Entity* entity)
+{
+	std::vector<Entity*>::iterator index = std::find(entities.begin(), entities.end(), entity);
+	if (index != entities.end()) // means the element was not found
+		entities.erase(index);
+}
+
+void Game::DeleteEntity(int index)
+{
+	delete entities[index];
+	entities.erase(entities.begin() + index);
+}
 
 
 void Game::PlayLevel(string gameName, string levelName)
@@ -497,10 +527,23 @@ void Game::Update()
 	camera.x -= (screenWidth / 2.0f);  
 	camera.y -= (screenHeight / 2.0f);
 
-	for (unsigned int i = 0; i < entities.size(); i++)
+	// Option 1: Destroy entities before we update them
+	unsigned int k = 0;
+	while(k < entities.size())
 	{
+		if (entities[k]->shouldDelete)
+			DeleteEntity(k);
+		else
+			k++;
+	}
+
+	for (unsigned int i = 0; i < entities.size(); i++)
+	{		
+		// Option 2: Destroy entities as we update them
 		entities[i]->Update(*this);
 	}
+
+	// Option 3: Destroy entities after we update them
 }
 
 void Game::Render()

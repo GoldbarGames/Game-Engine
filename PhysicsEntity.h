@@ -22,8 +22,9 @@ public:
 
 	Vector2 GetCenter();
 
-	void CreateCollider(float x, float y, float w, float h);
+	void CreateCollider(float startX, float startY, float x, float y, float w, float h);
 	const SDL_Rect* GetColliderBounds();
 
+	void SetVelocity(Vector2 newVelocity);
 };
 

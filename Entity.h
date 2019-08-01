@@ -17,6 +17,8 @@ protected:
 	Sprite* currentSprite = nullptr;
 
 public:
+	Vector2 pivot = Vector2(0, 0);
+	bool shouldDelete = false;
 	std::string etype = "entity";
 	int id = 0; //TODO
 	int drawOrder = 0; // order for drawing

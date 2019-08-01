@@ -5,7 +5,8 @@
 
 Player::Player()
 {
-	CreateCollider(0, 0, 0.75f, 0.9f);
+	CreateCollider(27, 46, 0, 0, 0.75f, 0.9f);
+	missileTimer.Start(1);
 }
 
 Player::~Player()
@@ -17,9 +18,15 @@ void Player::Update(Game& game)
 {
 	animator->SetBool("walking", false);
 
-	if (game.pressedDebugButton)
+	//TODO: Should we limit the number that can be spawned?
+	//TODO: Add a time limit between shots
+	if (game.pressedDebugButton && missileTimer.HasElapsed())
 	{
-		animator->SetBool("isCastingDebug", true);
+		if (game.SpawnMissile(this->position))
+		{
+			animator->SetBool("isCastingDebug", true);
+			missileTimer.Start(1000);
+		}			
 	}	
 
 	if (!animator->GetBool("isCastingDebug"))
@@ -85,6 +92,7 @@ void Player::UpdatePhysics(Game& game)
 	CheckCollisions(game);
 }
 
+//TODO: Check that the entity we are colliding with is not to be destroyed on the next frame?
 void Player::CheckCollisions(Game& game)
 {
 	// method 1

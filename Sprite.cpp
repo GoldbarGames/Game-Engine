@@ -28,6 +28,17 @@ Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, SDL_
 	textureRect.w /= numberFrames;
 	windowRect.w = frameWidth * SCALE;
 	windowRect.h = frameHeight * SCALE;
+
+	startFrame = 0;
+	endFrame = numberFrames;
+}
+
+Sprite::Sprite(int start, int end, int numFrames, SpriteManager& manager, std::string filepath, SDL_Renderer * renderer, Vector2 newPivot)
+{
+	Sprite(numFrames, manager, filepath, renderer, newPivot);
+
+	startFrame = start;
+	endFrame = end;
 }
 
 Sprite::~Sprite()
@@ -47,7 +58,7 @@ void Sprite::Animate(int msPerFrame, Uint32 time)
 		if (time < 0)
 			time = SDL_GetTicks();
 
-		int frame = (time / msPerFrame) % numberFrames;
+		int frame = startFrame + ( (time / msPerFrame) % endFrame);
 		textureRect.x = frame * textureRect.w;
 	}
 }

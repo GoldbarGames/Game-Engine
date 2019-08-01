@@ -18,6 +18,7 @@
 #include "Tile.h"
 #include "Timer.h"
 #include "MenuScreen.h"
+#include "Missile.h"
 
 using std::string;
 
@@ -83,11 +84,18 @@ public:
 	void EndSDL();
 	void Play(string gameName);
 	void SortEntities(std::vector<Entity*>& entityVector);
+	
+	// Spawn functions
 	Tile* SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer);
 	Player* SpawnPlayer(Vector2 position);
 	void SpawnPerson(Vector2 position);
 	Background* SpawnBackground(Vector2 pos);
+	bool SpawnMissile(Vector2 position);
+	
 	void PlayLevel(string gameName, string levelName);
+
+	void DeleteEntity(Entity* entity);
+	void DeleteEntity(int index);
 
 };
 

@@ -2,7 +2,7 @@
 
 PhysicsEntity::PhysicsEntity()
 {
-	CreateCollider(0, 0, 1, 1);
+	CreateCollider(0, 0, 0, 0, 1, 1);
 }
 
 PhysicsEntity::~PhysicsEntity()
@@ -15,6 +15,11 @@ const SDL_Rect* PhysicsEntity::GetColliderBounds()
 	return collisionBounds;
 }
 
+void PhysicsEntity::SetVelocity(Vector2 newVelocity)
+{
+	velocity = newVelocity;
+}
+
 Vector2 PhysicsEntity::GetCenter()
 {
 	float x = position.x + (collisionBounds->w / 2.0f);
@@ -22,7 +27,7 @@ Vector2 PhysicsEntity::GetCenter()
 	return Vector2(x, y);
 }
 
-void PhysicsEntity::CreateCollider(float x, float y, float w, float h)
+void PhysicsEntity::CreateCollider(float startX, float startY, float x, float y, float w, float h)
 {
 	if (collider != nullptr)
 		delete collider;
@@ -45,6 +50,6 @@ void PhysicsEntity::CreateCollider(float x, float y, float w, float h)
 	collisionBounds->w = 1;
 	collisionBounds->h = 1;
 
-	startSpriteSize.x = 27 * SCALE;
-	startSpriteSize.y = 46 * SCALE;
+	startSpriteSize.x = startX * SCALE;
+	startSpriteSize.y = startY * SCALE;
 }

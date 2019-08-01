@@ -136,8 +136,7 @@ void Editor::HandleEdit(Game& game)
 			if (game.entities[i]->GetPosition() == clickedPosition &&
 				game.entities[i]->layer == drawingLayer)
 			{
-				delete game.entities[i];
-				game.entities.erase(game.entities.begin() + i);
+				game.DeleteEntity(i);
 				break;
 			}
 		}

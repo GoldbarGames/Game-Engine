@@ -82,6 +82,9 @@ SpriteManager::SpriteManager()
 
 	LoadImage("assets/tiles/housetiles5.png");
 	LoadImage("assets/tiles/foresttiles.png");
+
+	// Spells
+	LoadImage("assets/sprites/spells/debug_missile.png");
 }
 
 void SpriteManager::LoadImage(std::string const & image)
