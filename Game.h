@@ -69,7 +69,11 @@ public:
 	Editor* editor = nullptr;
 	SDL_Window* window = nullptr;
 	Player* player = nullptr;
+	
+	//TODO: Make an input class maybe
 	bool pressedJumpButton;
+	bool pressedDebugButton;
+
 	std::vector<Entity*> entities;
 	Game();
 	~Game();

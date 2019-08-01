@@ -170,6 +170,17 @@ Player* Game::SpawnPlayer(Vector2 position)
 	anim1->MapStateToSprite("blink", new Sprite(5, spriteManager, "assets/sprites/kaneko/wdk_blink.png", renderer, Vector2(16, 24)));
 	anim1->MapStateToSprite("idle", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_idle.png", renderer, Vector2(16, 24)));
 	anim1->MapStateToSprite("jump", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_jump.png", renderer, Vector2(24, 24)));
+	
+	//TODO: Make states for debug in air, up, down, on ladder, etc. (FIX PIVOT POINTS)
+	anim1->MapStateToSprite("debug", new Sprite(10, spriteManager, "assets/sprites/kaneko/wdk_debug.png", renderer, Vector2(25, 26)));
+	anim1->MapStateToSprite("debug_up", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_up.png", renderer, Vector2(25, 26)));
+	anim1->MapStateToSprite("debug_down", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_down.png", renderer, Vector2(25, 26)));
+	anim1->MapStateToSprite("debug_air", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air.png", renderer, Vector2(25, 26)));
+	anim1->MapStateToSprite("debug_air_up", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_air_up.png", renderer, Vector2(25, 26)));
+	anim1->MapStateToSprite("debug_air_down", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_air_down.png", renderer, Vector2(25, 26)));
+	anim1->MapStateToSprite("debug_climb", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_climb.png", renderer, Vector2(25, 26)));
+
+
 
 	player->SetAnimator(anim1);
 	player->SetPosition(position);
@@ -258,6 +269,7 @@ void Game::MainLoop()
 
 		// Reset all inputs here
 		pressedJumpButton = false;
+		pressedDebugButton = false;
 
 		// Check for inputs
 		SDL_Event event;
@@ -397,6 +409,9 @@ bool Game::HandleEvent(SDL_Event& event)
 			break;
 		case SDLK_x:
 			pressedJumpButton = true;
+			break;
+		case SDLK_c:
+			pressedDebugButton = true;
 			break;
 		case SDLK_m:
 			if (Mix_PausedMusic())

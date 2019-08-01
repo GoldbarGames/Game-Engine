@@ -14,13 +14,22 @@ Timer::~Timer()
 
 }
 
-void Timer::Start()
+bool Timer::HasElapsed()
+{
+	// is calling this function multiple times per frame really a good idea?
+	Uint32 totalTime = SDL_GetTicks();
+	return totalTime  > endTime;
+}
+
+void Timer::Start(Uint32 duration)
 {
 	started = true;
 	paused = false;
 
 	startTicks = SDL_GetTicks();
 	pausedTicks = 0;
+
+	endTime = startTicks + duration;
 }
 
 void Timer::Stop()

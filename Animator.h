@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include "SpriteManager.h"
 #include "Sprite.h"
+#include "Timer.h"
 #include <SDL.h>
 
 class Entity;
@@ -15,7 +16,10 @@ private:
 	std::unordered_map<std::string, bool> mapParamsBool;
 	std::unordered_map<std::string, float> mapParamsFloat;
 	std::unordered_map<std::string, int> mapParamsInt;
+
+	
 public:
+	Timer animationTimer;
 	std::string animatorType = "";
 	std::string currentState = "";
 	std::string previousState = "";

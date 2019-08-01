@@ -40,23 +40,26 @@ void Sprite::Destroy()
 	SDL_DestroyTexture(texture);
 }
 
-void Sprite::Animate(int msPerFrame)
+void Sprite::Animate(int msPerFrame, Uint32 time)
 {
 	if (msPerFrame != 0)
 	{
-		int frame = (SDL_GetTicks() / msPerFrame) % numberFrames;
+		if (time < 0)
+			time = SDL_GetTicks();
+
+		int frame = (time / msPerFrame) % numberFrames;
 		textureRect.x = frame * textureRect.w;
 	}
 }
 
-void Sprite::Render(Vector2 position, int speed, SDL_Renderer * renderer)
+void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_Renderer * renderer)
 {
 	windowRect.x = position.x;
 	windowRect.y = position.y;
 	windowRect.w = frameWidth * SCALE;
 	windowRect.h = frameHeight * SCALE;
 
-	Animate(speed);
+	Animate(speed, time);
 	SDL_RenderCopy(renderer, texture, &textureRect, &windowRect);
 }
 

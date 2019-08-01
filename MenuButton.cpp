@@ -55,7 +55,7 @@ void MenuButton::Render(SDL_Renderer* renderer)
 	// Draw the button image
 	//TODO: What should the color be here? Dunno if this is right
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-	image->Render(position, 0, renderer);
+	image->Render(position, 0, -1, renderer);
 
 	text->Render(renderer);
 }

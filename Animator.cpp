@@ -59,7 +59,6 @@ void Animator::Update(Entity* entity)
 		CheckStateKaneko();
 	}
 
-
 	// Then, carry out whatever the current state is
 	DoState(entity);
 }
@@ -73,6 +72,9 @@ void Animator::CheckStateKaneko()
 
 		if (!GetBool("isGrounded"))
 			SetState("jump");
+
+		if (GetBool("isCastingDebug"))
+			SetState("debug");
 	}
 	else if (currentState == "blink")
 	{
@@ -81,6 +83,9 @@ void Animator::CheckStateKaneko()
 
 		if (!GetBool("isGrounded"))
 			SetState("jump");
+
+		if (GetBool("isCastingDebug"))
+			SetState("debug");
 	}
 	else if (currentState == "idle")
 	{
@@ -89,11 +94,41 @@ void Animator::CheckStateKaneko()
 
 		if (!GetBool("isGrounded"))
 			SetState("jump");
+
+		if (GetBool("isCastingDebug"))
+			SetState("debug");
 	}
 	else if (currentState == "jump")
 	{
 		if (GetBool("isGrounded"))
 			SetState("idle");
+
+		if (GetBool("isCastingDebug"))
+			SetState("debug_air");
+	}
+	else if (currentState == "debug")
+	{
+		if (animationTimer.HasElapsed())
+		{
+			SetBool("isCastingDebug", false);
+
+			if (GetBool("isGrounded"))
+				SetState("idle");
+			else
+				SetState("jump");
+		}
+	}
+	else if (currentState == "debug_air")
+	{
+		if (animationTimer.HasElapsed())
+		{
+			SetBool("isCastingDebug", false);
+
+			if (GetBool("isGrounded"))
+				SetState("idle");
+			else
+				SetState("jump");
+		}
 	}
 }
 
@@ -102,6 +137,14 @@ void Animator::SetState(std::string state)
 	beforePreviousState = previousState;
 	previousState = currentState;	
 	currentState = state;
+
+	if (currentState == "debug" || currentState == "debug_air")
+		speed = 50;
+	else
+		speed = 100;
+
+	// set duration of the animation based on the playback speed and number of frames
+	animationTimer.Start(speed * mapStateToSprite[currentState]->numberFrames);
 }
 
 bool Animator::GetBool(std::string param)

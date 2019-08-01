@@ -48,9 +48,9 @@ void Entity::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 	if (currentSprite != nullptr)
 	{
 		if (animator != nullptr)
-			currentSprite->Render(position - cameraOffset, animator->speed, renderer);
+			currentSprite->Render(position - cameraOffset, animator->speed, animator->animationTimer.GetTicks(), renderer);
 		else
-			currentSprite->Render(position - cameraOffset, 0, renderer);
+			currentSprite->Render(position - cameraOffset, 0, -1, renderer);
 
 		if (GetModeDebug())
 		{

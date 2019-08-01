@@ -17,6 +17,24 @@ void Player::Update(Game& game)
 {
 	animator->SetBool("walking", false);
 
+	if (game.pressedDebugButton)
+	{
+		animator->SetBool("isCastingDebug", true);
+	}	
+
+	if (!animator->GetBool("isCastingDebug"))
+	{
+		GetMoveInput();
+	}
+
+	UpdatePhysics(game);
+
+	if (animator != nullptr)
+		animator->Update(this);
+}
+
+void Player::GetMoveInput()
+{
 	//Set texture based on current keystate
 	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 
@@ -33,7 +51,7 @@ void Player::Update(Game& game)
 	if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
 	{
 		animator->SetBool("walking", true);
-		velocity.x -= horizontalSpeed;		
+		velocity.x -= horizontalSpeed;
 	}
 	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
 	{
@@ -50,11 +68,6 @@ void Player::Update(Game& game)
 		velocity.x = maxHorizontalSpeed;
 	else if (velocity.x < -maxHorizontalSpeed)
 		velocity.x = -maxHorizontalSpeed;
-
-	UpdatePhysics(game);
-
-	if (animator != nullptr)
-		animator->Update(this);
 }
 
 void Player::UpdatePhysics(Game& game)
@@ -189,9 +202,9 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 			offset -= cameraOffset;
 		
 		if (animator != nullptr)
-			currentSprite->Render(offset, animator->speed, renderer);
+			currentSprite->Render(offset, animator->speed, animator->animationTimer.GetTicks(), renderer);
 		else
-			currentSprite->Render(offset, 0, renderer);
+			currentSprite->Render(offset, 0, -1, renderer);
 
 		if (GetModeDebug())
 		{
