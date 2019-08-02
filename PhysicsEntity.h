@@ -26,5 +26,8 @@ public:
 	const SDL_Rect* GetColliderBounds();
 
 	void SetVelocity(Vector2 newVelocity);
+
+	void Pause(Uint32 ticks) override;
+	void Unpause(Uint32 ticks) override;
 };
 

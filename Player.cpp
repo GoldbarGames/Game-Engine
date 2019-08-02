@@ -22,7 +22,11 @@ void Player::Update(Game& game)
 	//TODO: Add a time limit between shots
 	if (game.pressedDebugButton && missileTimer.HasElapsed())
 	{
-		if (game.SpawnMissile(this->position))
+		Vector2 missilePosition = this->position;
+		missilePosition.x += (this->currentSprite->GetRect()->w / 2);
+		missilePosition.y += (this->currentSprite->GetRect()->h / 2);
+
+		if (game.SpawnMissile(missilePosition))
 		{
 			animator->SetBool("isCastingDebug", true);
 			missileTimer.Start(1000);

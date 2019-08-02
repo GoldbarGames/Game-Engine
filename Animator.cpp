@@ -58,6 +58,14 @@ void Animator::Update(Entity* entity)
 	{
 		CheckStateKaneko();
 	}
+	else if (animatorType == "debug_missile")
+	{
+		if (currentState == "moving")
+		{
+			if (GetBool("destroyed"))
+				SetState("destroyed");
+		}
+	}
 
 	// Then, carry out whatever the current state is
 	DoState(entity);
@@ -144,7 +152,7 @@ void Animator::SetState(std::string state)
 		speed = 100;
 
 	// set duration of the animation based on the playback speed and number of frames
-	animationTimer.Start(speed * mapStateToSprite[currentState]->numberFrames);
+	animationTimer.Start(speed * mapStateToSprite[currentState]->endFrame, mapStateToSprite[currentState]->shouldLoop);
 }
 
 bool Animator::GetBool(std::string param)

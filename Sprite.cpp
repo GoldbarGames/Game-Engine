@@ -33,12 +33,36 @@ Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, SDL_
 	endFrame = numberFrames;
 }
 
-Sprite::Sprite(int start, int end, int numFrames, SpriteManager& manager, std::string filepath, SDL_Renderer * renderer, Vector2 newPivot)
+Sprite::Sprite(int start, int end, int numFrames, SpriteManager& manager, 
+	std::string filepath, SDL_Renderer * renderer, Vector2 newPivot, bool loop)
 {
-	Sprite(numFrames, manager, filepath, renderer, newPivot);
+	texture = SDL_CreateTextureFromSurface(renderer, manager.GetImage(filepath));
+
+	pivot = newPivot;
+
+	// Set start position
+	windowRect.x = 0;
+	windowRect.y = 0;
+
+	//'textureRect' defines the dimensions of the rendering sprite on texture	
+	textureRect.x = 0;
+	textureRect.y = 0;
+
+	//SDL_QueryTexture() method gets the width and height of the texture
+	SDL_QueryTexture(texture, NULL, NULL, &textureRect.w, &textureRect.h);
+	//Now, textureRect.w and textureRect.h are filled with respective dimensions of the image/texture
+
+	//As there are 8 frames with same width, we simply get the width of a frame by dividing with 8
+	numberFrames = numFrames;
+	frameWidth = textureRect.w / numberFrames;
+	frameHeight = textureRect.h;
+	textureRect.w /= numberFrames;
+	windowRect.w = frameWidth * SCALE;
+	windowRect.h = frameHeight * SCALE;
 
 	startFrame = start;
 	endFrame = end;
+	shouldLoop = loop;
 }
 
 Sprite::~Sprite()
@@ -55,11 +79,17 @@ void Sprite::Animate(int msPerFrame, Uint32 time)
 {
 	if (msPerFrame != 0)
 	{
-		if (time < 0)
+		if (time < 0) // change frame based on total time
 			time = SDL_GetTicks();
-
-		int frame = startFrame + ( (time / msPerFrame) % endFrame);
-		textureRect.x = frame * textureRect.w;
+		else if (time > 0) // change frame based on time relative to the animator
+		{
+			int frame = startFrame + ((time / msPerFrame) % endFrame);
+			textureRect.x = frame * textureRect.w;
+		}
+		else // if time == 0, show the last frame
+		{
+			textureRect.x = endFrame * textureRect.w;
+		}
 	}
 }
 

@@ -1,5 +1,6 @@
 #include "Entity.h"
 #include "debug_state.h"
+#include <iostream>
 
 Entity::Entity()
 {
@@ -9,6 +10,24 @@ Entity::Entity()
 Entity::~Entity()
 {
 	
+}
+
+void Entity::Pause(Uint32 ticks)
+{
+	if (animator != nullptr)
+	{
+		std::cout << "-- pausing --" << std::endl;
+		animator->animationTimer.Pause(ticks);
+	}	
+}
+
+void Entity::Unpause(Uint32 ticks)
+{
+	if (animator != nullptr)
+	{
+		std::cout << "-- unpausing --" << std::endl;
+		animator->animationTimer.Unpause(ticks);
+	}
 }
 
 void Entity::Update(Game& game)

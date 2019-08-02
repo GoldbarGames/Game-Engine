@@ -36,6 +36,9 @@ public:
 	virtual void Update(Game& game);
 	virtual void Render(SDL_Renderer * renderer, Vector2 cameraOffset);
 
+	virtual void Pause(Uint32 ticks);
+	virtual void Unpause(Uint32 ticks);
+
 	DrawingLayer layer = FOREGROUND;
 };
 

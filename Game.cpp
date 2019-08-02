@@ -113,11 +113,14 @@ bool Game::SpawnMissile(Vector2 position)
 	anim->SetBool("destroyed", false);
 	missile->SetAnimator(anim);
 
-	anim->MapStateToSprite("moving", new Sprite(8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, Vector2(14, 7)));
-	anim->MapStateToSprite("destroyed", new Sprite(8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, Vector2(14, 7)));
+	//TODO: Maybe instead of mapping a state to a sprite, we map a state (string) to a state struct that contains a sprite?
+	Vector2 pivotPoint = Vector2(14, 7);
+	anim->MapStateToSprite("moving", new Sprite(0, 3, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint));
+	anim->MapStateToSprite("destroyed", new Sprite(4, 7, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint, false));
 
-	missile->SetPosition(position);
-	missile->SetVelocity(Vector2(0.5f,0));
+	missile->SetPosition(position - pivotPoint);
+	missile->SetVelocity(Vector2(0.1f,0));
+	missile->GetAnimator()->SetState("moving");
 
 	entities.emplace_back(missile);
 
@@ -395,10 +398,14 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 
 	if (event.type == SDL_KEYDOWN)
 	{
+		Uint32 ticks = SDL_GetTicks();
 		switch (event.key.keysym.sym)
 		{
 		case SDLK_ESCAPE:
 			openedMenus.pop_back();
+			
+			for (int i = 0; i < entities.size(); i++)
+				entities[i]->Unpause(ticks);
 			break;
 		case SDLK_q:
 			quit = true;
@@ -432,7 +439,12 @@ bool Game::HandleEvent(SDL_Event& event)
 		{
 		case SDLK_ESCAPE:
 			if (!GetModeEdit())
+			{
 				openedMenus.emplace_back(allMenus["Pause"]);
+				Uint32 ticks = SDL_GetTicks();
+				for (int i = 0; i < entities.size(); i++)
+					entities[i]->Pause(ticks);
+			}				
 			break;
 		case SDLK_q:
 			quit = true;

@@ -6,6 +6,8 @@ Missile::Missile()
 {
 	CreateCollider(23, 16, 0, 0, 0.75f, 0.9f);
 
+	timeToLive.Start(2000);
+
 	//TODO: Is there a good way to do this from within the constructor?
 	//animator = new Animator("missile", "moving"); //TODO: Make these parameters?
 	//animator->SetBool("destroyed", false);
@@ -18,11 +20,24 @@ Missile::~Missile()
 
 void Missile::Update(Game& game)
 {
+	if (timeToLive.HasElapsed())
+	{
+		if (animator->GetBool("destroyed") && animator->animationTimer.HasElapsed())
+		{
+			shouldDelete = true;
+		}
+		else
+		{
+			animator->SetBool("destroyed", true);
+		}
+	}
+	else
+	{
+		UpdatePhysics(game);
+	}
+
 	if (animator != nullptr)
 		animator->Update(this);
-
-	if (!animator->GetBool("destroyed"))
-		UpdatePhysics(game);	
 }
 
 void Missile::UpdatePhysics(Game& game)
@@ -30,12 +45,14 @@ void Missile::UpdatePhysics(Game& game)
 	// check for collisions, and destroy if it hits a wall or an enemy'
 	if (CheckCollisions(game))
 	{
-		// destroy the missile
-		animator->SetBool("destroyed", true);
-
-		//TODO: Play the death animation, then destroy it
-
-		shouldDelete = true;
+		if (animator->GetBool("destroyed") && animator->animationTimer.HasElapsed())
+		{
+			shouldDelete = true;
+		}
+		else
+		{
+			animator->SetBool("destroyed", true);
+		}
 	}
 	else
 	{
@@ -60,7 +77,7 @@ void Missile::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 			offset -= cameraOffset;
 
 		if (animator != nullptr)
-			currentSprite->Render(offset, animator->speed, animator->animationTimer.GetTicks(), renderer);
+			currentSprite->Render(offset, animator->speed, animator->animationTimer.GetAnimationTime(), renderer);
 		else
 			currentSprite->Render(offset, 0, -1, renderer);
 
@@ -95,6 +112,9 @@ void Missile::CalculateCollider(Vector2 cameraOffset)
 
 bool Missile::CheckCollisions(Game& game)
 {
+	if (currentSprite == nullptr && animator != nullptr)
+		animator->DoState(this);
+
 	pivot = currentSprite->pivot;
 	CalculateCollider(game.camera);
 
@@ -154,4 +174,25 @@ bool Missile::CheckCollisions(Game& game)
 	}
 
 	return false;
+}
+
+void Missile::Pause(Uint32 ticks)
+{
+	//std::cout << "----" << std::endl;
+	//std::cout << string(50, '\n');
+	//std::cout << "pause missile" << std::endl;
+	timeToLive.Pause(ticks);
+	if (animator != nullptr)
+		animator->animationTimer.Pause(ticks);
+	//std::cout << "----" << std::endl;
+}
+
+void Missile::Unpause(Uint32 ticks)
+{
+	//std::cout << "----" << std::endl;
+	//std::cout << "unpause missile" << std::endl;
+	timeToLive.Unpause(ticks);
+	if (animator != nullptr)
+		animator->animationTimer.Unpause(ticks);
+	//std::cout << "----" << std::endl;
 }

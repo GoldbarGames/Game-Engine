@@ -3,6 +3,7 @@
 
 class Missile : public PhysicsEntity
 {
+	Timer timeToLive;
 public:
 	Missile();
 	~Missile();
@@ -11,5 +12,7 @@ public:
 	void Render(SDL_Renderer* renderer, Vector2 cameraOffset);
 	bool CheckCollisions(Game& game);
 	void CalculateCollider(Vector2 cameraOffset);
+	void Pause(Uint32 ticks) override;
+	void Unpause(Uint32 ticks) override;
 };
 

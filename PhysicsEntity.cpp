@@ -53,3 +53,15 @@ void PhysicsEntity::CreateCollider(float startX, float startY, float x, float y,
 	startSpriteSize.x = startX * SCALE;
 	startSpriteSize.y = startY * SCALE;
 }
+
+void PhysicsEntity::Pause(Uint32 ticks)
+{
+	if (animator != nullptr)
+		animator->animationTimer.Pause(ticks);
+}
+
+void PhysicsEntity::Unpause(Uint32 ticks)
+{
+	if (animator != nullptr)
+		animator->animationTimer.Unpause(ticks);
+}
