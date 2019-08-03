@@ -19,7 +19,7 @@ private:
 	float frameWidth = 0;
 	float frameHeight = 0;
 
-public:
+public:	
 	bool shouldLoop = true;
 	int startFrame = 0;
 	int endFrame = 0;
@@ -30,7 +30,7 @@ public:
 	void Destroy();
 	const SDL_Rect* GetRect();
 	void Animate(int msPerFrame, Uint32 time);
-	void Render(Vector2 position, int speed, Uint32 time, SDL_Renderer* renderer);
+	void Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, SDL_Renderer* renderer, float angle=0);
 	Sprite(int numFrames, SpriteManager& manager, std::string filepath, SDL_Renderer * renderer, Vector2 newPivot);
 	Sprite(int start, int end, int numFrames, SpriteManager& manager, std::string filepath, SDL_Renderer * renderer, Vector2 newPivot, bool loop=true);
 	~Sprite();

@@ -104,7 +104,7 @@ bool Game::SetOpenGLAttributes()
 	return success == 0;
 }
 
-bool Game::SpawnMissile(Vector2 position)
+bool Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 {
 	//TODO: Make a way for this to return false
 	Missile* missile = new Missile();
@@ -119,7 +119,8 @@ bool Game::SpawnMissile(Vector2 position)
 	anim->MapStateToSprite("destroyed", new Sprite(4, 7, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint, false));
 
 	missile->SetPosition(position - pivotPoint);
-	missile->SetVelocity(Vector2(0.1f,0));
+	missile->SetVelocity(velocity);
+	missile->angle = angle;
 	missile->GetAnimator()->SetState("moving");
 
 	entities.emplace_back(missile);
@@ -192,13 +193,16 @@ Player* Game::SpawnPlayer(Vector2 position)
 	anim1->MapStateToSprite("idle", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_idle.png", renderer, Vector2(16, 24)));
 	anim1->MapStateToSprite("jump", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_jump.png", renderer, Vector2(24, 24)));
 	
+	anim1->MapStateToSprite("look_up", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_lookup.png", renderer, Vector2(16, 24)));
+	anim1->MapStateToSprite("look_down", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_lookdown.png", renderer, Vector2(16, 24)));
+
 	//TODO: Make states for debug in air, up, down, on ladder, etc. (FIX PIVOT POINTS)
 	anim1->MapStateToSprite("debug", new Sprite(10, spriteManager, "assets/sprites/kaneko/wdk_debug.png", renderer, Vector2(25, 26)));
-	anim1->MapStateToSprite("debug_up", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_up.png", renderer, Vector2(25, 26)));
-	anim1->MapStateToSprite("debug_down", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_down.png", renderer, Vector2(25, 26)));
-	anim1->MapStateToSprite("debug_air", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air.png", renderer, Vector2(25, 26)));
-	anim1->MapStateToSprite("debug_air_up", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_air_up.png", renderer, Vector2(25, 26)));
-	anim1->MapStateToSprite("debug_air_down", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_air_down.png", renderer, Vector2(25, 26)));
+	anim1->MapStateToSprite("debug_up", new Sprite(10, spriteManager, "assets/sprites/kaneko/wdk_debug_up.png", renderer, Vector2(25, 26)));
+	anim1->MapStateToSprite("debug_down", new Sprite(10, spriteManager, "assets/sprites/kaneko/wdk_debug_down.png", renderer, Vector2(25, 26)));
+	anim1->MapStateToSprite("debug_air", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air.png", renderer, Vector2(28, 26)));
+	anim1->MapStateToSprite("debug_air_up", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air_up.png", renderer, Vector2(28, 26)));
+	anim1->MapStateToSprite("debug_air_down", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air_down.png", renderer, Vector2(28, 26)));
 	anim1->MapStateToSprite("debug_climb", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_climb.png", renderer, Vector2(25, 26)));
 
 

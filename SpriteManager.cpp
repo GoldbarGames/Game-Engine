@@ -23,6 +23,7 @@ SpriteManager::SpriteManager()
 	LoadImage("assets/sprites/kaneko/wdk_debug_air_down.png");
 	LoadImage("assets/sprites/kaneko/wdk_debug_air_up.png");
 	LoadImage("assets/sprites/kaneko/wdk_debug_climb.png");
+	LoadImage("assets/sprites/kaneko/wdk_debug_up.png");
 	LoadImage("assets/sprites/kaneko/wdk_debug_down.png");
 	LoadImage("assets/sprites/kaneko/wdk_door_enter.png");
 	LoadImage("assets/sprites/kaneko/wdk_double.png");

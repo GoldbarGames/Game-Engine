@@ -90,7 +90,7 @@ public:
 	Player* SpawnPlayer(Vector2 position);
 	void SpawnPerson(Vector2 position);
 	Background* SpawnBackground(Vector2 pos);
-	bool SpawnMissile(Vector2 position);
+	bool SpawnMissile(Vector2 position, Vector2 velocity, float angle);
 	
 	void PlayLevel(string gameName, string levelName);
 

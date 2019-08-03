@@ -22,6 +22,6 @@ public:
 	void CheckCollisions(Game& game);
 	void ResetPosition();
 	void CalculateCollider(Vector2 cameraOffset);
-	void GetMoveInput();
+	void GetMoveInput(const Uint8* input);
 };
 

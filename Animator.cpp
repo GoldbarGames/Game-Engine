@@ -73,6 +73,29 @@ void Animator::Update(Entity* entity)
 
 void Animator::CheckStateKaneko()
 {
+	if (currentState == "look_up")
+	{
+		if (!GetBool("holdingUp"))
+		{
+			SetState("idle");
+		}
+		else if (GetBool("isCastingDebug"))
+		{
+			SetState("debug_air_up");
+		}
+	}
+	else if (currentState == "look_down")
+	{
+		if (!GetBool("holdingDown"))
+		{
+			SetState("idle");
+		}
+		else if (GetBool("isCastingDebug"))
+		{
+			SetState("debug_air_down");
+		}
+	}
+
 	if (currentState == "walk")
 	{
 		if (!GetBool("walking"))
@@ -82,7 +105,14 @@ void Animator::CheckStateKaneko()
 			SetState("jump");
 
 		if (GetBool("isCastingDebug"))
-			SetState("debug");
+		{
+			if (GetBool("holdingUp"))
+				SetState("debug_up");
+			else if (GetBool("holdingDown"))
+				SetState("debug_down");
+			else
+				SetState("debug");
+		}
 	}
 	else if (currentState == "blink")
 	{
@@ -93,10 +123,23 @@ void Animator::CheckStateKaneko()
 			SetState("jump");
 
 		if (GetBool("isCastingDebug"))
-			SetState("debug");
+		{
+			if (GetBool("holdingUp"))
+				SetState("debug_up");
+			else if (GetBool("holdingDown"))
+				SetState("debug_down");
+			else
+				SetState("debug");
+		}
 	}
 	else if (currentState == "idle")
 	{
+		if (GetBool("holdingUp"))
+			SetState("look_up");
+
+		if (GetBool("holdingDown"))
+			SetState("look_down");
+
 		if (GetBool("walking"))
 			SetState("walk");
 
@@ -104,7 +147,14 @@ void Animator::CheckStateKaneko()
 			SetState("jump");
 
 		if (GetBool("isCastingDebug"))
-			SetState("debug");
+		{
+			if (GetBool("holdingUp"))
+				SetState("debug_up");
+			else if (GetBool("holdingDown"))
+				SetState("debug_down");
+			else
+				SetState("debug");
+		}
 	}
 	else if (currentState == "jump")
 	{
@@ -112,31 +162,37 @@ void Animator::CheckStateKaneko()
 			SetState("idle");
 
 		if (GetBool("isCastingDebug"))
-			SetState("debug_air");
-	}
-	else if (currentState == "debug")
-	{
-		if (animationTimer.HasElapsed())
 		{
-			SetBool("isCastingDebug", false);
-
-			if (GetBool("isGrounded"))
-				SetState("idle");
+			if (GetBool("holdingUp"))
+				SetState("debug_air_up");
+			else if (GetBool("holdingDown"))
+				SetState("debug_air_down");
 			else
-				SetState("jump");
-		}
+				SetState("debug_air");
+		}			
 	}
-	else if (currentState == "debug_air")
+	else if (IsStateDebugSpell())
 	{
-		if (animationTimer.HasElapsed())
-		{
-			SetBool("isCastingDebug", false);
+		StateKanekoDebugSpell();
+	}
+}
 
-			if (GetBool("isGrounded"))
-				SetState("idle");
-			else
-				SetState("jump");
-		}
+bool Animator::IsStateDebugSpell()
+{
+	return (currentState == "debug" || currentState == "debug_up" || currentState == "debug_down" ||
+		currentState == "debug_air" || currentState == "debug_air_up" || currentState == "debug_air_down");
+}
+
+void Animator::StateKanekoDebugSpell()
+{
+	if (animationTimer.HasElapsed())
+	{
+		SetBool("isCastingDebug", false);
+
+		if (GetBool("isGrounded"))
+			SetState("idle");
+		else
+			SetState("jump");
 	}
 }
 
@@ -146,7 +202,7 @@ void Animator::SetState(std::string state)
 	previousState = currentState;	
 	currentState = state;
 
-	if (currentState == "debug" || currentState == "debug_air")
+	if (IsStateDebugSpell())
 		speed = 50;
 	else
 		speed = 100;

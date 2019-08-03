@@ -17,7 +17,8 @@ protected:
 	Sprite* currentSprite = nullptr;
 
 public:
-	Vector2 pivot = Vector2(0, 0);
+	SDL_RendererFlip flip = SDL_FLIP_NONE;
+	Vector2 entityPivot = Vector2(0, 0);
 	bool shouldDelete = false;
 	std::string etype = "entity";
 	int id = 0; //TODO

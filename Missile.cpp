@@ -77,9 +77,9 @@ void Missile::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 			offset -= cameraOffset;
 
 		if (animator != nullptr)
-			currentSprite->Render(offset, animator->speed, animator->animationTimer.GetAnimationTime(), renderer);
+			currentSprite->Render(offset, animator->speed, animator->animationTimer.GetAnimationTime(), flip, renderer, angle);
 		else
-			currentSprite->Render(offset, 0, -1, renderer);
+			currentSprite->Render(offset, 0, -1, flip, renderer, angle);
 
 		if (GetModeDebug())
 		{
@@ -115,7 +115,7 @@ bool Missile::CheckCollisions(Game& game)
 	if (currentSprite == nullptr && animator != nullptr)
 		animator->DoState(this);
 
-	pivot = currentSprite->pivot;
+	entityPivot = currentSprite->pivot;
 	CalculateCollider(game.camera);
 
 	bool horizontalCollision = false;

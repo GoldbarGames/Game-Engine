@@ -104,10 +104,10 @@ void Timer::Unpause(Uint32 ticks)
 		// if the timer has an end, add to the end the time that was skipped
 		if (endTime > 0)
 		{
-			endTime = sdl_ticks + (endTime - pausedTime);
+			endTime += sdl_ticks - pausedTime;
 		}
 
-		std::cout << "new end: " << endTime << std::endl;
+		//std::cout << "new end: " << endTime << std::endl;
 
 		//Reset the paused ticks
 		pausedTicks = 0;

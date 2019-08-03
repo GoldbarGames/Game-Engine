@@ -16,8 +16,13 @@ Player::~Player()
 
 void Player::Update(Game& game)
 {
-	animator->SetBool("walking", false);
+	//Set texture based on current keystate
+	const Uint8* input = SDL_GetKeyboardState(NULL);
 
+	animator->SetBool("walking", false);
+	animator->SetBool("holdingUp", input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
+	animator->SetBool("holdingDown", input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
+	
 	//TODO: Should we limit the number that can be spawned?
 	//TODO: Add a time limit between shots
 	if (game.pressedDebugButton && missileTimer.HasElapsed())
@@ -26,16 +31,43 @@ void Player::Update(Game& game)
 		missilePosition.x += (this->currentSprite->GetRect()->w / 2);
 		missilePosition.y += (this->currentSprite->GetRect()->h / 2);
 
-		if (game.SpawnMissile(missilePosition))
+		const float missileSpeed = 0.1f;
+		Vector2 missileVelocity = Vector2(0, 0);
+
+		float angle = 0;
+
+		if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
+		{
+			missileVelocity.y = -missileSpeed;
+			angle = 270;
+		}			
+		else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
+		{
+			missileVelocity.y = missileSpeed;
+			angle = 90;
+		}			
+		else if (flip == SDL_FLIP_NONE)
+		{
+			missileVelocity.x = missileSpeed;
+		}
+		else if (flip == SDL_FLIP_HORIZONTAL)
+		{
+			missileVelocity.x = -missileSpeed;
+			angle = 180;
+		}
+
+		if (game.SpawnMissile(missilePosition, missileVelocity, angle))
 		{
 			animator->SetBool("isCastingDebug", true);
 			missileTimer.Start(1000);
 		}			
 	}	
 
-	if (!animator->GetBool("isCastingDebug"))
+	// Don't move if we are casting debug, or looking up/down
+	if (!animator->GetBool("isCastingDebug") && !animator->GetBool("holdingUp")  
+		&& !animator->GetBool("holdingDown"))
 	{
-		GetMoveInput();
+		GetMoveInput(input);
 	}
 
 	UpdatePhysics(game);
@@ -44,30 +76,19 @@ void Player::Update(Game& game)
 		animator->Update(this);
 }
 
-void Player::GetMoveInput()
+void Player::GetMoveInput(const Uint8* input)
 {
-	//Set texture based on current keystate
-	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-
-	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
-	{
-
-	}
-
-	if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
-	{
-
-	}
-
-	if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
+	if (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A])
 	{
 		animator->SetBool("walking", true);
 		velocity.x -= horizontalSpeed;
+		flip = SDL_FLIP_HORIZONTAL;
 	}
-	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
+	else if (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D])
 	{
 		animator->SetBool("walking", true);
 		velocity.x += horizontalSpeed;
+		flip = SDL_FLIP_NONE;
 	}
 	else
 	{
@@ -90,20 +111,26 @@ void Player::UpdatePhysics(Game& game)
 	
 	if (game.pressedJumpButton && jumpsRemaining > 0)
 	{
-		velocity.y = -0.6f;
+		if (animator->GetBool("holdingUp") || animator->GetBool("holdingDown"))
+		{
+			game.pressedJumpButton = false;
+		}
+		else
+		{
+			velocity.y = -0.6f;
+		}	
 	}
 
 	CheckCollisions(game);
 }
 
-//TODO: Check that the entity we are colliding with is not to be destroyed on the next frame?
 void Player::CheckCollisions(Game& game)
 {
 	// method 1
 	//pivot = game.spriteManager.GetPivotPoint(currentSprite->filename);
 
 	//method 2 (we need to set the pivot member variable for the Render function!)
-	pivot = currentSprite->pivot;
+	
 	CalculateCollider(game.camera);
 
 	bool horizontalCollision = false;
@@ -202,21 +229,29 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 {
 	if (currentSprite != nullptr)
 	{
+		entityPivot = currentSprite->pivot;
+
+		// Get center of the white collision box, and use it as a vector2
 		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2));
 		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2));
 		Vector2 collisionCenter = Vector2(collisionCenterX, collisionCenterY);
-		Vector2 scaledPivot = Vector2(currentSprite->pivot.x * SCALE, currentSprite->pivot.y * SCALE);
-		Vector2 pivotOffset = collisionCenter - scaledPivot;
 
-		Vector2 offset = pivotOffset;
+		if (flip == SDL_FLIP_HORIZONTAL)
+		{
+			entityPivot.x = (currentSprite->windowRect.w / SCALE) - currentSprite->pivot.x;
+		}
+
+		// scale the pivot and subtract it from the collision center
+		Vector2 scaledPivot = Vector2(entityPivot.x * SCALE, currentSprite->pivot.y * SCALE);
+		Vector2 offset = collisionCenter - scaledPivot;
 
 		if (GetModeEdit())
 			offset -= cameraOffset;
 		
 		if (animator != nullptr)
-			currentSprite->Render(offset, animator->speed, animator->animationTimer.GetTicks(), renderer);
+			currentSprite->Render(offset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
 		else
-			currentSprite->Render(offset, 0, -1, renderer);
+			currentSprite->Render(offset, 0, -1, flip, renderer);
 
 		if (GetModeDebug())
 		{
@@ -235,7 +270,7 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 		}
 	}
 
-	previousPivot = pivot;
+	previousPivot = entityPivot;
 }
 
 void Player::CalculateCollider(Vector2 cameraOffset)

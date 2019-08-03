@@ -93,7 +93,7 @@ void Sprite::Animate(int msPerFrame, Uint32 time)
 	}
 }
 
-void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_Renderer * renderer)
+void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, SDL_Renderer * renderer, float angle)
 {
 	windowRect.x = position.x;
 	windowRect.y = position.y;
@@ -101,7 +101,10 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_Renderer * ren
 	windowRect.h = frameHeight * SCALE;
 
 	Animate(speed, time);
-	SDL_RenderCopy(renderer, texture, &textureRect, &windowRect);
+
+	const SDL_Point* point = new SDL_Point{(int)pivot.x, (int)pivot.y};
+
+	SDL_RenderCopyEx(renderer, texture, &textureRect, &windowRect, angle, point, flip);
 }
 
 const SDL_Rect* Sprite::GetRect()

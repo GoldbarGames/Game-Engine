@@ -41,5 +41,7 @@ public:
 	~Animator();
 
 	void CheckStateKaneko();
+	void StateKanekoDebugSpell();
+	bool IsStateDebugSpell();
 };
 
