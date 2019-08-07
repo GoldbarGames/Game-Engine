@@ -6,29 +6,33 @@
 #include "editor_state.h"
 #include "globals.h"
 #include <string>
+#include <vector>
 
 #include "Text.h"
+#include "EditorButton.h"
 
 using std::string;
-
-class Game;
 
 class Editor
 {
 private:
-	SDL_Window* toolbox = nullptr;
-	//SDL_Renderer * rendererToolbox = nullptr;
+	//SDL_Window* toolbox = nullptr;
 
 	SDL_Texture * toolboxTexture = nullptr;
 	SDL_Rect toolboxTextureRect;
 	SDL_Rect toolboxWindowRect;
+
 	SDL_Rect selectedRect;
 	SDL_Rect hoveredTileRect;
 
 	int editorTileX = 0;
 	int editorTileY = 0;
 
+	Uint32 previousMouseState = 0;
+
 	TTF_Font* theFont = nullptr;
+
+	std::vector<EditorButton*> buttons;
 
 public:
 	Text* currentEditModeLayer = nullptr;
@@ -36,7 +40,7 @@ public:
 
 	Editor(SDL_Renderer* renderer);
 	~Editor();
-	void StartEdit(SDL_Renderer* renderer, SDL_Surface* tilesheet);
+	void StartEdit(Game &game);
 	void StopEdit();
 	void HandleEdit(Game& game);
 	void SaveLevel(Game& game);
@@ -46,5 +50,8 @@ public:
 	DrawingLayer drawingLayer = BACKGROUND;
 	int tilesheetIndex = 0;
 	const string tilesheets[2] = { "housetiles5", "foresttiles" };
+	void ClickedButton(std::string buttonName, Game& game);
+	void ToggleLayer();
+	void ToggleTileset(Game& game);
 };
 

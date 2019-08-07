@@ -20,7 +20,7 @@ private:
 public:
 	std::string functionName = ""; // function to execute when button is pressed
 	bool isSelected = false;
-	MenuButton(std::string t, std::string filepath, std::string function, Vector2 pos, Game& game);
+	MenuButton(std::string txt, std::string filepath, std::string function, Vector2 pos, Game& game);
 	~MenuButton();
 	void Render(SDL_Renderer* renderer);
 	MenuButton* buttonPressedUp = nullptr;

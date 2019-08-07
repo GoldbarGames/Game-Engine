@@ -307,11 +307,15 @@ void Game::MainLoop()
 		// Reset all inputs here
 		pressedJumpButton = false;
 		pressedDebugButton = false;
+		//clickedMouse = false;
 
 		// Check for inputs
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
 		{
+			//if (event.type == SDL_MOUSEBUTTONDOWN)
+			//	clickedMouse = true;
+
 			if (openedMenus.size() > 0)
 				quit = HandleMenuEvent(event);
 			else
@@ -478,7 +482,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			{
 				camera.x = camera.x - ((int)camera.x % (TILE_SIZE * SCALE));
 				camera.y = camera.y - ((int)camera.y % (TILE_SIZE * SCALE));
-				editor->StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor->tilesheets[editor->tilesheetIndex] + ".png"));
+				editor->StartEdit(*this);
 			}
 			else
 			{
@@ -487,28 +491,12 @@ bool Game::HandleEvent(SDL_Event& event)
 
 			break;
 		case SDLK_3: // toggle drawing layers
-
 			if (GetModeEdit())
-			{
-				if (editor->drawingLayer == BACKGROUND)
-					editor->drawingLayer = FOREGROUND;
-				else if (editor->drawingLayer == FOREGROUND)
-					editor->drawingLayer = BACKGROUND;
-
-				editor->currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[editor->drawingLayer]);
-			}
-
+				editor->ToggleLayer();
 			break;
 		case SDLK_4:
-
 			if (GetModeEdit())
-			{
-				editor->tilesheetIndex++;
-				if (editor->tilesheetIndex > 1)
-					editor->tilesheetIndex = 0;
-				editor->StartEdit(renderer, spriteManager.GetImage("assets/tiles/" + editor->tilesheets[editor->tilesheetIndex] + ".png"));
-			}
-
+				editor->ToggleTileset(*this);
 			break;
 		case SDLK_9:
 			if (GetModeEdit())

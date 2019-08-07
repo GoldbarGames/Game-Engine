@@ -1,12 +1,12 @@
 #include "MenuButton.h"
 #include "Game.h"
 
-MenuButton::MenuButton(std::string t, std::string filepath, std::string function, Vector2 pos, Game& game)
+MenuButton::MenuButton(std::string txt, std::string filepath, std::string function, Vector2 pos, Game& game)
 {
 	image = new Sprite(1, game.spriteManager, filepath, game.renderer, Vector2(0,0));
 
 	text = new Text(game.renderer, game.theFont);
-	text->SetText(t);
+	text->SetText(txt);
 	text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->textWindowRect.h/2));
 
 	functionName = function;

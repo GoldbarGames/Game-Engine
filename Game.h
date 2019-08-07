@@ -97,5 +97,6 @@ public:
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
 
+	//bool clickedMouse = false;
 };
 

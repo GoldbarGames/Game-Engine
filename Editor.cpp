@@ -22,14 +22,14 @@ Editor::~Editor()
 
 }
 
-void Editor::StartEdit(SDL_Renderer* renderer, SDL_Surface* tilesheet)
+void Editor::StartEdit(Game &game)
 {
 	//toolbox = SDL_CreateWindow("Toolbox", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 100, 100, SDL_WINDOW_OPENGL);
 	//rendererToolbox = SDL_CreateRenderer(toolbox, -1, SDL_RENDERER_ACCELERATED);
 
 	// TILE SHEET FOR TOOLBOX
 
-	toolboxTexture = SDL_CreateTextureFromSurface(renderer, tilesheet);
+	toolboxTexture = SDL_CreateTextureFromSurface(game.renderer, game.spriteManager.GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png"));
 	toolboxTextureRect.x = 0;
 	toolboxTextureRect.y = 0;
 
@@ -43,7 +43,7 @@ void Editor::StartEdit(SDL_Renderer* renderer, SDL_Surface* tilesheet)
 	toolboxWindowRect.w = toolboxTextureRect.w;
 	toolboxWindowRect.h = toolboxTextureRect.h;
 
-	SDL_SetWindowSize(toolbox, toolboxWindowRect.w, toolboxWindowRect.h);
+	//SDL_SetWindowSize(toolbox, toolboxWindowRect.w, toolboxWindowRect.h);
 
 	selectedRect.x = toolboxWindowRect.x;
 	selectedRect.y = 0;
@@ -52,14 +52,33 @@ void Editor::StartEdit(SDL_Renderer* renderer, SDL_Surface* tilesheet)
 
 	hoveredTileRect.w = 24 * SCALE;
 	hoveredTileRect.h = 24 * SCALE;
+
+	// Create all the buttons for the editor
+	for (int i = 0; i < buttons.size(); i++)
+		delete buttons[i];
+	buttons.clear();
+
+	int buttonX = 0;
+	const int buttonWidth = 50;
+	const int buttonHeight = 50;
+	const int buttonSpacing = 20;
+
+	std::vector<string> buttonNames = { "tileset", "layer" };
+
+	for (int i = 0; i < buttonNames.size(); i++)
+	{
+		buttons.emplace_back(new EditorButton("assets/gui/menu.png", buttonNames[i],
+			Vector2(buttonX, screenHeight-buttonHeight), game));
+		buttonX += buttonWidth + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
+	}
 }
 
 void Editor::StopEdit()
 {
 	SDL_DestroyTexture(toolboxTexture);
 	//SDL_DestroyRenderer(rendererToolbox);
-	SDL_DestroyWindow(toolbox);
-	toolbox = nullptr;
+	//SDL_DestroyWindow(toolbox);
+	//toolbox = nullptr;
 }
 
 void Editor::HandleEdit(Game& game)
@@ -67,7 +86,7 @@ void Editor::HandleEdit(Game& game)
 	int mouseX = 0;
 	int mouseY = 0;
 
-	const int mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+	const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
 	int clickedX = mouseX - ((int)mouseX % (TILE_SIZE * SCALE));
 	int clickedY = mouseY - ((int)mouseY % (TILE_SIZE * SCALE));
@@ -91,6 +110,14 @@ void Editor::HandleEdit(Game& game)
 
 		bool clickedToolboxWindow = mouseX >= toolboxWindowRect.x && mouseY <= toolboxWindowRect.h;
 
+		// Get name of the button that was clicked, if any
+		string clickedButton = "";
+		for (int i = 0; i < buttons.size(); i++)
+		{
+			if (buttons[i]->IsClicked(mouseX, mouseY))
+				clickedButton = buttons[i]->name;
+		}
+
 		if (clickedToolboxWindow)
 		{
 			int xOffset = (mouseX - toolboxWindowRect.x);
@@ -102,7 +129,11 @@ void Editor::HandleEdit(Game& game)
 
 			selectedRect.x += toolboxWindowRect.x;
 		}
-		else // if (clickedToolboxWindow) //TODO: highlight with rectangle
+		else if ( !(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) && clickedButton != "")
+		{
+			ClickedButton(clickedButton, game);
+		}
+		else // we clicked somewhere in the game world, so place a tile/object
 		{
 			clickedPosition += game.camera;
 
@@ -141,6 +172,38 @@ void Editor::HandleEdit(Game& game)
 			}
 		}
 	}
+
+	previousMouseState = mouseState;
+}
+
+void Editor::ClickedButton(string buttonName, Game& game)
+{
+	if (buttonName == "tileset")
+	{
+		ToggleTileset(game);
+	}
+	else if (buttonName == "layer")
+	{
+		ToggleLayer();
+	}
+}
+
+void Editor::ToggleLayer()
+{
+	if (drawingLayer == BACKGROUND)
+		drawingLayer = FOREGROUND;
+	else if (drawingLayer == FOREGROUND)
+		drawingLayer = BACKGROUND;
+
+	currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[drawingLayer]);
+}
+
+void Editor::ToggleTileset(Game& game)
+{
+	tilesheetIndex++;
+	if (tilesheetIndex > 1)
+		tilesheetIndex = 0;
+	StartEdit(game);
 }
 
 void Editor::Render(SDL_Renderer* renderer)
@@ -161,6 +224,12 @@ void Editor::Render(SDL_Renderer* renderer)
 	// Draw text
 	currentEditModeLayer->Render(renderer);
 	cursorPosition->Render(renderer);
+
+	// Draw all buttons
+	for (int i = 0; i < buttons.size(); i++)
+	{
+		buttons[i]->Render(renderer);
+	}
 }
 
 void Editor::SetText(string newText, SDL_Renderer* renderer)
