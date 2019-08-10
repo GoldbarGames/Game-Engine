@@ -9,5 +9,7 @@ public:
 	Door(Vector2 pos, Vector2 dest);
 	~Door();
 	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
+	Vector2 GetDestination();
+	void SetDestination(Vector2 dest);
 };
 

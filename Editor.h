@@ -44,6 +44,8 @@ private:
 
 	std::unordered_map<std::string, Entity*> previewMap;
 
+	bool placingDoor = false;
+
 public:
 	Text* currentEditModeLayer = nullptr;
 	Text* cursorPosition = nullptr;
@@ -67,5 +69,7 @@ public:
 	void ClickedButton(std::string buttonName);
 	void ToggleLayer();
 	void ToggleTileset();
+	void LeftClick(Vector2 clickedPosition, int mouseX, int mouseY);
+	void RightClick(Vector2 clickedPosition);
 };
 

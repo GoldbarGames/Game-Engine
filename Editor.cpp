@@ -89,6 +89,166 @@ void Editor::StopEdit()
 	//toolbox = nullptr;
 }
 
+void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
+{
+	bool clickedToolboxWindow = mouseX >= toolboxWindowRect.x && mouseY <= toolboxWindowRect.h;
+
+	// Get name of the button that was clicked, if any
+	string clickedButton = "";
+	for (unsigned int i = 0; i < buttons.size(); i++)
+	{
+		if (buttons[i]->IsClicked(mouseX, mouseY))
+			clickedButton = buttons[i]->name;
+	}
+
+	if (clickedToolboxWindow)
+	{
+		int xOffset = (mouseX - toolboxWindowRect.x);
+		selectedRect.x = (xOffset - (xOffset % (TILE_SIZE * 1)));
+		selectedRect.y = (mouseY - (mouseY % (TILE_SIZE * 1)));
+
+		editorTileX = (selectedRect.x / (TILE_SIZE * 1)) + 1;
+		editorTileY = (selectedRect.y / (TILE_SIZE * 1)) + 1;
+
+		selectedRect.x += toolboxWindowRect.x;
+	}
+	else if (clickedButton != "")
+	{
+		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+		{
+			ClickedButton(clickedButton);
+			objectPreview = previewMap[objectMode];
+		}
+	}
+	else // we clicked somewhere in the game world, so place a tile/object
+	{
+		clickedPosition += game->camera;
+
+		// if we are placing a tile...
+		if (objectMode == "tile")
+		{
+			bool canPlaceTileHere = true;
+			for (unsigned int i = 0; i < game->entities.size(); i++)
+			{
+				if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
+					game->entities[i]->layer == drawingLayer &&
+					game->entities[i]->etype == "tile")
+				{
+					canPlaceTileHere = false;
+					break;
+				}
+			}
+
+			if (canPlaceTileHere)
+			{
+				bool impassable = (drawingLayer == FOREGROUND);
+				game->SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
+					Vector2(mouseX, mouseY), impassable, drawingLayer);
+				game->SortEntities(game->entities);
+			}
+		}
+		else // when placing an object
+		{
+			bool canPlaceObjectHere = true; //TODO: actually check for this
+
+			clickedPosition.x = (int)clickedPosition.x;
+			clickedPosition.y = (int)clickedPosition.y;
+
+			for (unsigned int i = 0; i < game->entities.size(); i++)
+			{
+				if (game->entities[i]->GetPosition() == clickedPosition &&
+					game->entities[i]->etype == objectMode)
+				{
+					canPlaceObjectHere = false;
+					break;
+				}
+			}
+
+			if (canPlaceObjectHere)
+			{
+				if (objectMode == "door")
+				{
+					if (!placingDoor)
+					{
+						std::cout << "trying to spawn entrance" << std::endl;
+						currentDoor = game->SpawnDoor(Vector2(mouseX, mouseY));
+						if (currentDoor != nullptr)
+						{
+							std::cout << "placing door set true" << std::endl;
+							placingDoor = true;
+							game->SortEntities(game->entities);
+						}
+
+					}
+					else
+					{
+						std::cout << "trying to spawn destination" << std::endl;
+						Door* destination = game->SpawnDoor(Vector2(mouseX, mouseY));
+						if (destination != nullptr)
+						{
+							std::cout << "placing door set false" << std::endl;
+							placingDoor = false;
+
+							currentDoor->SetDestination(destination->GetPosition());
+							destination->SetDestination(currentDoor->GetPosition());
+							currentDoor = nullptr;
+
+							game->SortEntities(game->entities);
+						}
+					}
+
+				}
+			}
+
+
+		}
+	}
+}
+
+void Editor::RightClick(Vector2 clickedPosition)
+{
+	clickedPosition += game->camera;
+
+	//TODO: Fix this
+	//clickedPosition.RoundToInt(); // with this line, cannot delete tiles from previous edit
+
+	for (int i = game->entities.size() - 1; i >= 0; i--)
+	{
+		if (game->entities[i]->etype == objectMode &&
+			game->entities[i]->layer == drawingLayer &&
+			game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt())
+		{
+			if (game->entities[i]->etype == "door")
+			{
+				// Save destination and delete the entry door
+				Door* door = static_cast<Door*>(game->entities[i]);
+				Vector2 dest = door->GetDestination();
+
+				// Only delete if both doors have been placed
+				if (dest != Vector2(0, 0))
+				{
+					game->DeleteEntity(i);
+
+					// Delete the exit door
+					for (int k = 0; k < game->entities.size(); k++)
+					{
+						if (game->entities[k]->GetPosition() == dest)
+						{
+							game->DeleteEntity(k);
+							return;
+						}
+					}
+				}				
+			}
+			else
+			{
+				game->DeleteEntity(i);
+				return;
+			}
+		}
+	}
+}
+
 void Editor::HandleEdit()
 {
 	int mouseX = 0;
@@ -104,119 +264,16 @@ void Editor::HandleEdit()
 	hoveredTileRect.x = clickedX;
 	hoveredTileRect.y = clickedY;
 
-	std::string clickedPos = std::to_string(clickedX + (int)game->camera.x) + " " + std::to_string(clickedY + (int)game->camera.y);
-
-	cursorPosition->SetText("Position: " + clickedPos);
+	std::string clickedText = std::to_string(clickedX + (int)game->camera.x) + " " + std::to_string(clickedY + (int)game->camera.y);
+	cursorPosition->SetText("Position: " + clickedText);
 
 	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 	{
-		//int gameWindowFlags = SDL_GetWindowFlags(game->window);
-		//bool clickedGameWindow = //gameWindowFlags & SDL_WINDOW_MOUSE_FOCUS;
-
-		//int toolboxWindowFlags = SDL_GetWindowFlags(toolbox);
-		//bool clickedToolboxWindow = toolboxWindowFlags & SDL_WINDOW_MOUSE_FOCUS;
-
-		bool clickedToolboxWindow = mouseX >= toolboxWindowRect.x && mouseY <= toolboxWindowRect.h;
-
-		// Get name of the button that was clicked, if any
-		string clickedButton = "";
-		for (unsigned int i = 0; i < buttons.size(); i++)
-		{
-			if (buttons[i]->IsClicked(mouseX, mouseY))
-				clickedButton = buttons[i]->name;
-		}
-
-		if (clickedToolboxWindow)
-		{
-			int xOffset = (mouseX - toolboxWindowRect.x);
-			selectedRect.x = (xOffset - (xOffset % (TILE_SIZE * 1)));
-			selectedRect.y = (mouseY - (mouseY % (TILE_SIZE * 1)));
-
-			editorTileX = (selectedRect.x / (TILE_SIZE * 1)) + 1;
-			editorTileY = (selectedRect.y / (TILE_SIZE * 1)) + 1;
-
-			selectedRect.x += toolboxWindowRect.x;
-		}
-		else if (clickedButton != "")
-		{
-			if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
-			{
-				ClickedButton(clickedButton);
-				objectPreview = previewMap[objectMode];
-			}				
-		}
-		else // we clicked somewhere in the game world, so place a tile/object
-		{
-			clickedPosition += game->camera;
-
-			// if we are placing a tile...
-			if (objectMode == "tile")
-			{
-				bool canPlaceTileHere = true;
-				for (unsigned int i = 0; i < game->entities.size(); i++)
-				{
-					if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
-						game->entities[i]->layer == drawingLayer && 
-						game->entities[i]->etype == "tile")
-					{
-						canPlaceTileHere = false;
-						break;
-					}
-				}
-
-				if (canPlaceTileHere)
-				{
-					bool impassable = (drawingLayer == FOREGROUND);
-					game->SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
-						Vector2(mouseX, mouseY), impassable, drawingLayer);
-					game->SortEntities(game->entities);
-				}
-			}
-			else // when placing an object
-			{
-				bool canPlaceObjectHere = true; //TODO: actually check for this
-
-				clickedPosition.x = (int)clickedPosition.x;
-				clickedPosition.y = (int)clickedPosition.y;
-
-				for (unsigned int i = 0; i < game->entities.size(); i++)
-				{
-					if (game->entities[i]->GetPosition() == clickedPosition &&
-						game->entities[i]->etype == objectMode)
-					{
-						canPlaceObjectHere = false;
-						break;
-					}
-				}
-
-				if (canPlaceObjectHere)
-				{
-					if (objectMode == "door")
-					{
-						currentDoor = game->SpawnDoor(Vector2(mouseX, mouseY));
-						game->SortEntities(game->entities);
-					}
-				}
-
-
-			}
-		}
+		LeftClick(clickedPosition, mouseX, mouseY);
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{
-		clickedPosition += game->camera;
-		//clickedPosition.RoundToInt(); // with this line, cannot delete tiles from previous edit
-
-		for (int i = game->entities.size() - 1; i >= 0; i--)
-		{
-			if (game->entities[i]->etype == objectMode &&
-				game->entities[i]->layer == drawingLayer &&
-				game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() )
-			{
-				game->DeleteEntity(i);
-				break;
-			}
-		}
+		RightClick(clickedPosition);
 	}
 
 	previousMouseState = mouseState;
@@ -289,7 +346,37 @@ void Editor::Render(SDL_Renderer* renderer)
 		}
 
 		objectPreview->GetSprite()->Render(Vector2(hoveredTileRect.x, hoveredTileRect.y), 0, -1, SDL_FLIP_NONE, renderer, 0);
+
+		if (placingDoor && currentDoor != nullptr)
+		{
+			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+			Vector2 doorCenter = currentDoor->GetCenter();
+			Vector2 doorPos = currentDoor->GetPosition() + doorCenter - game->camera;
+			SDL_RenderDrawLine(renderer, doorPos.x, doorPos.y, hoveredTileRect.x + doorCenter.x, hoveredTileRect.y + doorCenter.y);
+
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		}
 	}
+
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	for (int i = 0; i < game->entities.size(); i++)
+	{
+		if (game->entities[i]->etype == "door")
+		{			
+			Door* door = static_cast<Door*>(game->entities[i]);
+
+			Vector2 destPos = door->GetDestination();
+			if (destPos.x != 0 && destPos.y != 0)
+			{
+				destPos = destPos - game->camera;
+				Vector2 doorCenter = door->GetCenter();
+				Vector2 doorPos = door->GetPosition() + doorCenter - game->camera;
+				SDL_RenderDrawLine(renderer, doorPos.x, doorPos.y, destPos.x + doorCenter.x, destPos.y + doorCenter.y);
+			}	
+		}
+	}
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
 	// Draw the tilesheet
 	SDL_RenderCopy(renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);

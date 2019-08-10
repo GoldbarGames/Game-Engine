@@ -2,9 +2,13 @@
 #include "debug_state.h"
 #include <iostream>
 
+unsigned int Entity::nextValidID = 0;
+
 Entity::Entity(Vector2 pos)
 {
 	position = pos;
+	id = nextValidID;
+	nextValidID++;
 }
 
 Entity::~Entity()
@@ -57,6 +61,11 @@ const SDL_Rect* Entity::GetBounds()
 Vector2 Entity::GetPosition()
 {
 	return position;
+}
+
+Vector2 Entity::GetCenter()
+{
+	return Vector2(currentSprite->windowRect.w/2, currentSprite->windowRect.h / 2);
 }
 
 void Entity::SetPosition(Vector2 newPosition)

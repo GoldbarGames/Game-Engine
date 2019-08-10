@@ -9,6 +9,7 @@ class Game;
 class Entity
 {
 protected:
+	static unsigned int nextValidID;
 	Vector2 position = Vector2(0, 0);
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
@@ -34,6 +35,7 @@ public:
 	Animator* GetAnimator();
 	virtual const SDL_Rect* GetBounds();
 	Vector2 GetPosition();
+	Vector2 GetCenter();
 	void SetPosition(Vector2 newPosition);
 	void SetAnimator(Animator* anim);
 	void SetSprite(Sprite* sprite);

@@ -15,6 +15,16 @@ Door::~Door()
 
 }
 
+Vector2 Door::GetDestination()
+{
+	return destination;
+}
+
+void Door::SetDestination(Vector2 dest)
+{
+	destination = dest;
+}
+
 bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 {
 	bool shouldSpawn = true;
@@ -34,7 +44,6 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 		myBounds.x = spawnPosition.x;
 		myBounds.y = spawnPosition.y;
 	}
-
 
 	SDL_Rect tileBelowMyBoundsLeft = myBounds;
 	tileBelowMyBoundsLeft.y += myBounds.h;
