@@ -12,7 +12,7 @@ Game::Game()
 {
 	InitSDL();
 
-	editor = new Editor(renderer);
+	editor = new Editor(*this);
 
 	// Initialize the font before all text
 	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
@@ -29,7 +29,6 @@ Game::Game()
 	timerText = new Text(renderer, theFont);
 	timerText->SetText("");
 	timerText->SetPosition(0, 100);
-
 
 	// Initialize all the menus
 	allMenus["Title"] = new MenuScreen("Title", *this);
@@ -104,21 +103,56 @@ bool Game::SetOpenGLAttributes()
 	return success == 0;
 }
 
+Door* Game::CreateDoor(Vector2 position)
+{
+	Door* newDoor = new Door(position, Vector2(0, 0));
+
+	//TODO: How to make this work for doors that will be related to other tilesets?
+	Animator* anim = new Animator("door", "closed");
+
+	Vector2 pivotPoint = Vector2(0, 0);
+	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, "assets/sprites/objects/door1.png", renderer, pivotPoint));
+	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, "assets/sprites/objects/door1.png", renderer, pivotPoint));
+
+	newDoor->SetAnimator(anim);
+
+	return newDoor;
+}
+
+Door* Game::SpawnDoor(Vector2 position) // maybe pass in the tileset number for the door?
+{
+	// maybe make this its own function? snap to grid?
+	int doorX = position.x + camera.x - ((int)(position.x) % (TILE_SIZE * SCALE));
+	int doorY = position.y + camera.y - ((int)(position.y) % (TILE_SIZE * SCALE));
+
+	Door* newDoor = CreateDoor(Vector2(doorX, doorY));
+
+	if (!newDoor->CanSpawnHere(Vector2(doorX, doorY), *this))
+	{
+		delete newDoor;
+		return nullptr;
+	}
+	else
+	{
+		entities.emplace_back(newDoor);
+		return newDoor;
+	}	
+}
+
 bool Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 {
 	//TODO: Make a way for this to return false
-	Missile* missile = new Missile();
-	
+
 	Animator* anim = new Animator("debug_missile", "moving");
 	anim->SetBool("destroyed", false);
-	missile->SetAnimator(anim);
 
-	//TODO: Maybe instead of mapping a state to a sprite, we map a state (string) to a state struct that contains a sprite?
 	Vector2 pivotPoint = Vector2(14, 7);
 	anim->MapStateToSprite("moving", new Sprite(0, 3, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint));
 	anim->MapStateToSprite("destroyed", new Sprite(4, 7, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint, false));
 
-	missile->SetPosition(position - pivotPoint);
+	Missile* missile = new Missile(position - pivotPoint);
+
+	missile->SetAnimator(anim);
 	missile->SetVelocity(velocity);
 	missile->angle = angle;
 	missile->GetAnimator()->SetState("moving");
@@ -130,6 +164,9 @@ bool Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 
 void Game::SpawnPerson(Vector2 position)
 {
+	//TODO: Rewrite this for NPC characters
+
+	/*
 	Sprite* sprite = new Sprite(5, spriteManager, "assets/sprites/wdk_blink.png", renderer, Vector2(16, 24));
 
 	//TODO: Make this a Physics Entity, not just an Entity
@@ -144,14 +181,16 @@ void Game::SpawnPerson(Vector2 position)
 
 	//TODO: Also make sure to sort the sprites for drawing in the right order
 	entities.emplace_back(person);
+	*/
 }
 
 Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer)
 {
-	Tile* tile = new Tile(frame, spriteManager.GetImage(tilesheet), renderer);
-	int newTileX = position.x - ((int)position.x % (TILE_SIZE * SCALE));
-	int newTileY = position.y - ((int)position.y % (TILE_SIZE * SCALE));
-	tile->SetPosition(Vector2(newTileX + camera.x, newTileY + camera.y));
+	int newTileX = position.x + camera.x - ((int)(position.x ) % (TILE_SIZE * SCALE));
+	int newTileY = position.y + camera.y - ((int)(position.y ) % (TILE_SIZE * SCALE));
+
+	Tile* tile = new Tile(Vector2(newTileX, newTileY), frame, spriteManager.GetImage(tilesheet), renderer);
+
 	tile->layer = drawingLayer;
 	tile->impassable = impassable;
 	tile->etype = "tile";
@@ -183,7 +222,7 @@ Background* Game::SpawnBackground(Vector2 pos)
 
 Player* Game::SpawnPlayer(Vector2 position)
 {
-	Player* player = new Player();
+	Player* player = new Player(position);
 	Animator* anim1 = new Animator("kaneko", "idle");
 
 	anim1->SetBool("isGrounded", true);
@@ -204,8 +243,6 @@ Player* Game::SpawnPlayer(Vector2 position)
 	anim1->MapStateToSprite("debug_air_up", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air_up.png", renderer, Vector2(28, 26)));
 	anim1->MapStateToSprite("debug_air_down", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air_down.png", renderer, Vector2(28, 26)));
 	anim1->MapStateToSprite("debug_climb", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_climb.png", renderer, Vector2(25, 26)));
-
-
 
 	player->SetAnimator(anim1);
 	player->SetPosition(position);
@@ -231,12 +268,11 @@ void Game::DeleteEntity(int index)
 	entities.erase(entities.begin() + index);
 }
 
-
 void Game::PlayLevel(string gameName, string levelName)
 {
 	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
 
-	editor->LoadLevel(*this, levelName);
+	editor->LoadLevel(levelName);
 
 	MainLoop();
 }
@@ -264,17 +300,15 @@ void Game::MainLoop()
 {
 	//Mix_PlayMusic(currentBGM, -1);
 
+	// Set up OpenGL stuff
 	mainContext = SDL_GL_CreateContext(window);
-
 	SetOpenGLAttributes();
-
 	SDL_GL_SetSwapInterval(1);
-
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
-
 	SDL_GL_SwapWindow(window);
 
+	// Create the backgrounds
 	const int NUM_BGS = 5;
 	const int BG_WIDTH = 636;
 	for (int i = 0; i < NUM_BGS; i++)
@@ -329,6 +363,7 @@ void Game::MainLoop()
 
 		//timerText->SetText(std::to_string(timer.GetTicks()/1000.0f));
 
+		
 		if (GetModeEdit())
 		{
 			HandleEditMode();			
@@ -349,12 +384,13 @@ void Game::MainLoop()
 		{
 			Update();
 		}
-			
+				
 		Render();
 
 		countedFrames++;
 
 		//If frame finished early
+		/*
 		if (limitFPS)
 		{
 			int frameTicks = fpsLimit.GetTicks();
@@ -363,7 +399,7 @@ void Game::MainLoop()
 				//Wait remaining time
 				//SDL_Delay(SCREEN_TICKS_PER_FRAME - frameTicks);
 			}
-		}
+		}*/
 	}
 
 }
@@ -393,7 +429,7 @@ void Game::HandleEditMode()
 		camera.x += (TILE_SIZE * SCALE);
 	}
 
-	editor->HandleEdit(*this);
+	editor->HandleEdit();
 }
 
 // PRE-CONDITION: openedMenus.size() > 0
@@ -412,7 +448,7 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 		case SDLK_ESCAPE:
 			openedMenus.pop_back();
 			
-			for (int i = 0; i < entities.size(); i++)
+			for (unsigned int i = 0; i < entities.size(); i++)
 				entities[i]->Unpause(ticks);
 			break;
 		case SDLK_q:
@@ -450,7 +486,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			{
 				openedMenus.emplace_back(allMenus["Pause"]);
 				Uint32 ticks = SDL_GetTicks();
-				for (int i = 0; i < entities.size(); i++)
+				for (unsigned int i = 0; i < entities.size(); i++)
 					entities[i]->Pause(ticks);
 			}				
 			break;
@@ -482,13 +518,12 @@ bool Game::HandleEvent(SDL_Event& event)
 			{
 				camera.x = camera.x - ((int)camera.x % (TILE_SIZE * SCALE));
 				camera.y = camera.y - ((int)camera.y % (TILE_SIZE * SCALE));
-				editor->StartEdit(*this);
+				editor->StartEdit();
 			}
 			else
 			{
 				editor->StopEdit();
 			}
-
 			break;
 		case SDLK_3: // toggle drawing layers
 			if (GetModeEdit())
@@ -496,15 +531,15 @@ bool Game::HandleEvent(SDL_Event& event)
 			break;
 		case SDLK_4:
 			if (GetModeEdit())
-				editor->ToggleTileset(*this);
+				editor->ToggleTileset();
 			break;
 		case SDLK_9:
 			if (GetModeEdit())
-				editor->SaveLevel(*this);
+				editor->SaveLevel();
 			break;
 		case SDLK_l:
 			if (GetModeEdit())
-				editor->LoadLevel(*this, "level");
+				editor->LoadLevel("level");
 			break;
 		default:
 			break;
@@ -531,7 +566,7 @@ void Game::Update()
 	camera.x -= (screenWidth / 2.0f);  
 	camera.y -= (screenHeight / 2.0f);
 
-	// Option 1: Destroy entities before we update them
+	// Destroy entities before we update them
 	unsigned int k = 0;
 	while(k < entities.size())
 	{
@@ -541,13 +576,11 @@ void Game::Update()
 			k++;
 	}
 
+	// Update all entities
 	for (unsigned int i = 0; i < entities.size(); i++)
 	{		
-		// Option 2: Destroy entities as we update them
 		entities[i]->Update(*this);
 	}
-
-	// Option 3: Destroy entities after we update them
 }
 
 void Game::Render()

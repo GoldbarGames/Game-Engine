@@ -16,7 +16,7 @@ public:
 	Vector2 position = Vector2(0,0);
 	std::string name = "";
 
-	EditorButton(std::string filepath, std::string function, Vector2 pos, Game& game);
+	EditorButton(std::string function, Vector2 pos, Game& game);
 	~EditorButton();
 
 	void Render(SDL_Renderer* renderer);

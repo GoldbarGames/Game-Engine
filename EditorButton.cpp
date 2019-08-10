@@ -1,9 +1,10 @@
 #include "EditorButton.h"
 #include "Game.h"
 
-EditorButton::EditorButton(std::string filepath, std::string function, Vector2 pos, Game& game)
+EditorButton::EditorButton(std::string function, Vector2 pos, Game& game)
 {
-	buttonTexture = SDL_CreateTextureFromSurface(game.renderer, game.spriteManager.GetImage(filepath));
+	buttonTexture = SDL_CreateTextureFromSurface(game.renderer, 
+		game.spriteManager.GetImage("assets/editor/btn" + function + ".png"));
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
 

@@ -17,7 +17,7 @@ public:
 	float colliderWidth = 1;
 	float colliderHeight = 1;
 
-	PhysicsEntity();
+	PhysicsEntity(Vector2 pos);
 	~PhysicsEntity();
 
 	Vector2 GetCenter();

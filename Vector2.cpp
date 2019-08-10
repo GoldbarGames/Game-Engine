@@ -32,32 +32,36 @@ Vector2& Vector2::operator-=(const Vector2 & rhs)
 	return *this;
 }
 
-Vector2& Vector2::operator+(const Vector2& rhs)
+Vector2 Vector2::operator+(const Vector2& rhs)
 {
-	this->x += rhs.x;
-	this->y += rhs.y;
-	return *this;
+	Vector2 result = Vector2(this->x, this->y);
+	result.x += rhs.x;
+	result.y += rhs.y;
+	return result;
 }
 
-Vector2& Vector2::operator-(const Vector2 & rhs)
+Vector2 Vector2::operator-(const Vector2 & rhs)
 {
-	this->x -= rhs.x;
-	this->y -= rhs.y;
-	return *this;
+	Vector2 result = Vector2(this->x, this->y);
+	result.x -= rhs.x;
+	result.y -= rhs.y;
+	return result;
 }
 
-Vector2& Vector2::operator*(const Vector2 & rhs)
+Vector2 Vector2::operator*(const Vector2 & rhs)
 {
-	this->x *= rhs.x;
-	this->y *= rhs.y;
-	return *this;
+	Vector2 result = Vector2(this->x, this->y);
+	result.x *= rhs.x;
+	result.y *= rhs.y;
+	return result;
 }
 
-Vector2& Vector2::operator/(const Vector2 & rhs)
+Vector2 Vector2::operator/(const Vector2 & rhs)
 {
-	this->x /= rhs.x;
-	this->y /= rhs.y;
-	return *this;
+	Vector2 result = Vector2(this->x, this->y);
+	result.x /= rhs.x;
+	result.y /= rhs.y;
+	return result;
 }
 
 bool Vector2::operator==(const Vector2 & rhs)
@@ -65,8 +69,9 @@ bool Vector2::operator==(const Vector2 & rhs)
 	return (x == rhs.x && y == rhs.y);
 }
 
-void Vector2::RoundToInt()
+Vector2 Vector2::RoundToInt()
 {
-	x = (int)x;
-	y = (int)y;
+	int rx = (int)x;
+	int ry = (int)y;
+	return Vector2(rx, ry);
 }

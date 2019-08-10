@@ -1,6 +1,6 @@
 #include "PhysicsEntity.h"
 
-PhysicsEntity::PhysicsEntity()
+PhysicsEntity::PhysicsEntity(Vector2 pos) : Entity(pos)
 {
 	CreateCollider(0, 0, 0, 0, 1, 1);
 }

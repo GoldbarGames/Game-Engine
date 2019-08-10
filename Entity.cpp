@@ -2,14 +2,17 @@
 #include "debug_state.h"
 #include <iostream>
 
-Entity::Entity()
+Entity::Entity(Vector2 pos)
 {
-
+	position = pos;
 }
 
 Entity::~Entity()
 {
-	
+	if (animator != nullptr)
+		delete animator;
+	if (currentSprite != nullptr)
+		delete currentSprite;
 }
 
 void Entity::Pause(Uint32 ticks)
@@ -39,6 +42,11 @@ void Entity::Update(Game& game)
 Animator* Entity::GetAnimator()
 {
 	return animator;
+}
+
+Sprite* Entity::GetSprite()
+{
+	return currentSprite;
 }
 
 const SDL_Rect* Entity::GetBounds()
@@ -87,4 +95,9 @@ void Entity::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 void Entity::SetSprite(Sprite* sprite)
 {
 	currentSprite = sprite;
+}
+
+bool Entity::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
+{
+	return true;
 }

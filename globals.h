@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 
 const int TILE_SIZE = 24;
 const int SCALE = 2;
@@ -11,8 +12,8 @@ const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 const int screenWidth = 1280;
 const int screenHeight = 720;
 
-enum DrawingLayer { BACKGROUND, FOREGROUND };
-static const std::string DrawingLayerNames[] = { "BACKGROUND", "FOREGROUND" };
+enum DrawingLayer { BACKGROUND, FOREGROUND, OBJECT };
+static const std::vector<std::string> DrawingLayerNames = { "BACKGROUND", "FOREGROUND", "OBJECT" };
 
 //TODO
 //enum CollisionLayer { PLAYER, FOREGROUND };

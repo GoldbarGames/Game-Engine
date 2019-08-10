@@ -1,4 +1,5 @@
 #include "Background.h"
+#include "BackgroundLayer.h"
 
 Background::Background(Vector2 pos)
 {
@@ -23,7 +24,7 @@ void Background::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 void Background::AddLayer(SpriteManager& spriteManager, SDL_Renderer* renderer, std::string filepath, int drawOrder)
 {
 	Sprite* layer = new Sprite(1, spriteManager, filepath, renderer, Vector2(0, 0));
-	Entity* bg = new Entity();
+	Entity* bg = new BackgroundLayer(position);
 	bg->drawOrder = drawOrder;
 	bg->SetSprite(layer);
 	layers.emplace_back(bg);

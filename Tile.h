@@ -23,14 +23,12 @@ private:
 	Vector2 currentFrame = Vector2(0,0);
 	int animationFrames = 0; // how many frames to the right is the animation? (is there a better way?)
 
-	//std::unordered_map<Vector2, SDL_Rect>* tileMap;
-
 public:
 	void Destroy();
 	const SDL_Rect* GetBounds();
 	void Animate();
 	void Render(SDL_Renderer* renderer, Vector2 cameraOffset);
-	Tile(Vector2 frame, SDL_Surface * image, SDL_Renderer * renderer);
-	Tile();
+	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
+	Tile(Vector2 pos, Vector2 frame, SDL_Surface * image, SDL_Renderer * renderer);
 	~Tile();
 };

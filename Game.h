@@ -19,6 +19,7 @@
 #include "Timer.h"
 #include "MenuScreen.h"
 #include "Missile.h"
+#include "Door.h"
 
 using std::string;
 
@@ -76,6 +77,7 @@ public:
 	bool pressedDebugButton;
 
 	std::vector<Entity*> entities;
+
 	Game();
 	~Game();
 	double dt = 0;
@@ -91,6 +93,9 @@ public:
 	void SpawnPerson(Vector2 position);
 	Background* SpawnBackground(Vector2 pos);
 	bool SpawnMissile(Vector2 position, Vector2 velocity, float angle);
+
+	Door* CreateDoor(Vector2 position); // returns the Door entity with default parameters
+	Door* SpawnDoor(Vector2 position); // only returns Door if it can be spawned succesfully in-game, else null
 	
 	void PlayLevel(string gameName, string levelName);
 

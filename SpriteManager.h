@@ -14,7 +14,6 @@ private:
 public:
 	SDL_Surface* GetImage(std::string const& image);
 	Vector2 GetPivotPoint(std::string const& filename);
-	void LoadImage(std::string const & image);
 	SpriteManager();
 	~SpriteManager();
 };

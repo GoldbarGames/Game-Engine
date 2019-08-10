@@ -3,7 +3,7 @@
 #include "debug_state.h"
 #include <string>
 
-Player::Player()
+Player::Player(Vector2 pos) : PhysicsEntity(pos)
 {
 	CreateCollider(27, 46, 0, 0, 0.75f, 0.9f);
 	missileTimer.Start(1);

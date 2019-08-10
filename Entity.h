@@ -6,9 +6,6 @@
 
 class Game;
 
-//TODO: Make this work without overriding the class names
-//enum EntityType { Player, Tile, Object };
-
 class Entity
 {
 protected:
@@ -16,18 +13,24 @@ protected:
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
 
+	Entity(Vector2 pos);
+
 public:
+	virtual ~Entity();
 	SDL_RendererFlip flip = SDL_FLIP_NONE;
 	Vector2 entityPivot = Vector2(0, 0);
 	bool shouldDelete = false;
 	std::string etype = "entity";
 	int id = 0; //TODO
 	int drawOrder = 0; // order for drawing
+	DrawingLayer layer = FOREGROUND;
+
+	// maybe move this to the Tile class
 	int tilesheetIndex = 0;
 	Vector2 tileCoordinates = Vector2(0, 0);
-	Entity();
-	~Entity();
+
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
+	Sprite* GetSprite();
 	Animator* GetAnimator();
 	virtual const SDL_Rect* GetBounds();
 	Vector2 GetPosition();
@@ -40,6 +43,6 @@ public:
 	virtual void Pause(Uint32 ticks);
 	virtual void Unpause(Uint32 ticks);
 
-	DrawingLayer layer = FOREGROUND;
+	virtual bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
 };
 

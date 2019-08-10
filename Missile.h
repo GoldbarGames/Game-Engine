@@ -6,7 +6,7 @@ class Missile : public PhysicsEntity
 	Timer timeToLive;
 public:
 	float angle = 0;
-	Missile();
+	Missile(Vector2 pos);
 	~Missile();
 	void Update(Game& game);
 	void UpdatePhysics(Game& game);

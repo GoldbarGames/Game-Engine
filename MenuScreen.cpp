@@ -67,7 +67,7 @@ MenuScreen::~MenuScreen()
 
 void MenuScreen::Render(SDL_Renderer* renderer)
 {
-	for (int i = 0; i < buttons.size(); i++)
+	for (unsigned int i = 0; i < buttons.size(); i++)
 	{
 		buttons[i]->Render(renderer);
 	}

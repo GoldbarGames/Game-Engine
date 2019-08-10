@@ -7,16 +7,22 @@
 #include "globals.h"
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "Text.h"
 #include "EditorButton.h"
 
 using std::string;
 
+class Door;
+class Entity;
+
 class Editor
 {
 private:
 	//SDL_Window* toolbox = nullptr;
+
+	Game* game = nullptr;
 
 	SDL_Texture * toolboxTexture = nullptr;
 	SDL_Rect toolboxTextureRect;
@@ -34,24 +40,32 @@ private:
 
 	std::vector<EditorButton*> buttons;
 
+	Door* currentDoor = nullptr;
+
+	std::unordered_map<std::string, Entity*> previewMap;
+
 public:
 	Text* currentEditModeLayer = nullptr;
 	Text* cursorPosition = nullptr;
 
-	Editor(SDL_Renderer* renderer);
+	std::string objectMode = "tile";
+
+	Entity * objectPreview = nullptr;
+
+	Editor(Game &g);
 	~Editor();
-	void StartEdit(Game &game);
+	void StartEdit();
 	void StopEdit();
-	void HandleEdit(Game& game);
-	void SaveLevel(Game& game);
-	void LoadLevel(Game& game, std::string levelName);
+	void HandleEdit();
+	void SaveLevel();
+	void LoadLevel(std::string levelName);
 	void Render(SDL_Renderer* renderer);
 	void SetText(string newText, SDL_Renderer* renderer);
 	DrawingLayer drawingLayer = BACKGROUND;
 	int tilesheetIndex = 0;
 	const string tilesheets[2] = { "housetiles5", "foresttiles" };
-	void ClickedButton(std::string buttonName, Game& game);
+	void ClickedButton(std::string buttonName);
 	void ToggleLayer();
-	void ToggleTileset(Game& game);
+	void ToggleTileset();
 };
 

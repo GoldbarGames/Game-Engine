@@ -66,6 +66,14 @@ void Animator::Update(Entity* entity)
 				SetState("destroyed");
 		}
 	}
+	else if (animatorType == "door")
+	{
+		if (currentState == "closed")
+		{
+			if (GetBool("opened"))
+				SetState("opened");
+		}
+	}
 
 	// Then, carry out whatever the current state is
 	DoState(entity);

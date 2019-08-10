@@ -102,9 +102,9 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 	Animate(speed, time);
 
-	const SDL_Point* point = new SDL_Point{(int)pivot.x, (int)pivot.y};
+	const SDL_Point point = SDL_Point{(int)pivot.x, (int)pivot.y};
 
-	SDL_RenderCopyEx(renderer, texture, &textureRect, &windowRect, angle, point, flip);
+	SDL_RenderCopyEx(renderer, texture, &textureRect, &windowRect, angle, &point, flip);
 }
 
 const SDL_Rect* Sprite::GetRect()

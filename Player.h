@@ -14,7 +14,7 @@ private:
 	Timer missileTimer;
 public:
 	Vector2 startPosition;
-	Player();
+	Player(Vector2 pos);
 	~Player();
 	void Update(Game& game);
 	void UpdatePhysics(Game& game);

@@ -2,7 +2,7 @@
 #include "Game.h"
 #include "debug_state.h"
 
-Missile::Missile()
+Missile::Missile(Vector2 pos) : PhysicsEntity(pos)
 {
 	CreateCollider(23, 16, 0, 0, 0.75f, 0.9f);
 

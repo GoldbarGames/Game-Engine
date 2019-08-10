@@ -10,5 +10,3 @@ int main(int argc, char *args[])
 	game.PlayLevel("Witch Doctor Kaneko", "level");
 	return 0;
 }
-
-
