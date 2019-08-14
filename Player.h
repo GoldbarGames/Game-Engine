@@ -3,6 +3,8 @@
 #include "Vector2.h"
 #include "Timer.h"
 
+class Door;
+
 class Player : public PhysicsEntity
 {
 private:
@@ -12,7 +14,11 @@ private:
 	Vector2 pivotDifference = Vector2(0, 0);
 	const float maxHorizontalSpeed = 0.5f;
 	Timer missileTimer;
+	Timer doorTimer;	
+	std::vector<Entity*> thisFrameCollisions;
+	std::vector<Entity*> prevFrameCollisions;
 public:
+	Door* currentDoor = nullptr;
 	Vector2 startPosition;
 	Player(Vector2 pos);
 	~Player();
@@ -23,5 +29,7 @@ public:
 	void ResetPosition();
 	void CalculateCollider(Vector2 cameraOffset);
 	void GetMoveInput(const Uint8* input);
+	void CheckCollisionTrigger(Entity* collidedEntity);
+	Vector2 CalcScaledPivot();
 };
 

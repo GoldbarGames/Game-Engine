@@ -71,5 +71,6 @@ public:
 	void ToggleTileset();
 	void LeftClick(Vector2 clickedPosition, int mouseX, int mouseY);
 	void RightClick(Vector2 clickedPosition);
+	void SetLayer(DrawingLayer layer);
 };
 

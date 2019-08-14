@@ -8,11 +8,35 @@ Door::Door(Vector2 pos, Vector2 dest) : Entity(pos)
 	layer = DrawingLayer::OBJECT;
 	drawOrder = 90;
 	etype = "door";
+	trigger = true;
 }
 
 Door::~Door()
 {
 
+}
+
+void Door::OnTriggerStay(Entity* other)
+{
+
+}
+
+void Door::OnTriggerEnter(Entity* other)
+{
+	if (other->etype == "player")
+	{
+		Player* player = static_cast<Player*>(other);
+		player->currentDoor = this;
+	}
+}
+
+void Door::OnTriggerExit(Entity* other)
+{
+	if (other->etype == "player")
+	{
+		Player* player = static_cast<Player*>(other);
+		player->currentDoor = nullptr;
+	}
 }
 
 Vector2 Door::GetDestination()
@@ -72,6 +96,8 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 			}
 		}
 
+		//TODO: Check to make sure that we can't place a door inside a solid tile
+
 		// 2. Check to make sure that this door is one tile above a tile on the foreground layer
 		if (game.entities[i]->impassable)
 		{
@@ -88,7 +114,7 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 	}
 
 	if (!hasGroundLeft || !hasGroundRight)
-		shouldSpawn = false;
+		shouldSpawn = true;
 
 	return shouldSpawn;
 }

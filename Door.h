@@ -11,5 +11,9 @@ public:
 	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
 	Vector2 GetDestination();
 	void SetDestination(Vector2 dest);
+
+	void OnTriggerStay(Entity* other);
+	void OnTriggerEnter(Entity* other);
+	void OnTriggerExit(Entity* other);
 };
 

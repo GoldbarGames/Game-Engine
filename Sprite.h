@@ -16,8 +16,8 @@ private:
 	
 	Vector2 scale = Vector2(1, 1);
 	
-	float frameWidth = 0;
-	float frameHeight = 0;
+	int frameWidth = 0;
+	int frameHeight = 0;
 
 public:	
 	bool shouldLoop = true;

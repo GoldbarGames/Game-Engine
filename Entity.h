@@ -31,6 +31,8 @@ public:
 	Vector2 tileCoordinates = Vector2(0, 0);
 
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
+	bool trigger = false;
+
 	Sprite* GetSprite();
 	Animator* GetAnimator();
 	virtual const SDL_Rect* GetBounds();
@@ -46,5 +48,9 @@ public:
 	virtual void Unpause(Uint32 ticks);
 
 	virtual bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
+
+	virtual void OnTriggerStay(Entity* other);
+	virtual void OnTriggerEnter(Entity* other);
+	virtual void OnTriggerExit(Entity* other);
 };
 

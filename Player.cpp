@@ -7,6 +7,8 @@ Player::Player(Vector2 pos) : PhysicsEntity(pos)
 {
 	CreateCollider(27, 46, 0, 0, 0.75f, 0.9f);
 	missileTimer.Start(1);
+	doorTimer.Start(1);
+	etype = "player";
 }
 
 Player::~Player()
@@ -19,9 +21,23 @@ void Player::Update(Game& game)
 	//Set texture based on current keystate
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
+	bool wasHoldingUp = animator->GetBool("holdingUp");
+
 	animator->SetBool("walking", false);
 	animator->SetBool("holdingUp", input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
 	animator->SetBool("holdingDown", input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
+
+	// if we are holding up now and were not before...
+	if (animator->GetBool("holdingUp") && !wasHoldingUp)
+	{
+		// if we are in front of a door
+		if (currentDoor != nullptr && doorTimer.HasElapsed())
+		{
+			//TODO: Make this look better later
+			SetPosition(currentDoor->GetDestination() + CalcScaledPivot());
+			doorTimer.Start(1000);
+		}
+	}
 	
 	//TODO: Should we limit the number that can be spawned?
 	//TODO: Add a time limit between shots
@@ -126,11 +142,10 @@ void Player::UpdatePhysics(Game& game)
 
 void Player::CheckCollisions(Game& game)
 {
-	// method 1
-	//pivot = game.spriteManager.GetPivotPoint(currentSprite->filename);
+	// copy this frame into previous frame list (could be done at beginning or end)
+	prevFrameCollisions = thisFrameCollisions;
+	thisFrameCollisions.clear();
 
-	//method 2 (we need to set the pivot member variable for the Render function!)
-	
 	CalculateCollider(game.camera);
 
 	bool horizontalCollision = false;
@@ -174,32 +189,48 @@ void Player::CheckCollisions(Game& game)
 
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
-		if (horizontalCollision && verticalCollision)
-			break;
+		//if (horizontalCollision && verticalCollision)
+		//	break;
 
 		const SDL_Rect * theirBounds = game.entities[i]->GetBounds();
 
-		if (game.entities[i] != this && game.entities[i]->impassable)
+		if (game.entities[i] != this)
 		{
-			if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
+			if (game.entities[i]->impassable)
 			{
-				horizontalCollision = true;
-				velocity.x = 0;
-			}
-
-			if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
-			{
-				verticalCollision = true;
-
-				// if colliding with ground, set velocity.y to zero
-				if (velocity.y > 0)
+				if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
 				{
-					animator->SetBool("isGrounded", true);
-					jumpsRemaining = 2;
+					horizontalCollision = true;
+					velocity.x = 0;
 				}
 
-				velocity.y = 0;
+				if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
+				{
+					verticalCollision = true;
+					CheckCollisionTrigger(game.entities[i]);
+
+					// if colliding with ground, set velocity.y to zero
+					if (velocity.y > 0)
+					{
+						animator->SetBool("isGrounded", true);
+						jumpsRemaining = 2;
+					}
+
+					velocity.y = 0;
+				}
 			}
+			else if (game.entities[i]->trigger)
+			{
+				if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
+				{
+					CheckCollisionTrigger(game.entities[i]);
+				}
+				else if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
+				{
+					CheckCollisionTrigger(game.entities[i]);
+				}
+			}
+
 		}
 	}
 
@@ -218,11 +249,75 @@ void Player::CheckCollisions(Game& game)
 
 		position.y += (velocity.y * game.dt);
 	}
+
+
+	// Now we go over the list
+	// If there was an entity in the collision list that we did not collide with this frame, then call OnTriggerExit
+	// (maybe have two lists? keep track of this frame and the previous one?)
+	for (int i = 0; i < prevFrameCollisions.size(); i++)
+	{
+		bool triggerExit = true;
+		for (int k = 0; k < thisFrameCollisions.size(); k++)
+		{
+			if (thisFrameCollisions[k] == prevFrameCollisions[i])
+			{
+				triggerExit = false;
+				break;
+			}
+		}
+
+		if (triggerExit)
+			prevFrameCollisions[i]->OnTriggerExit(this);
+	}
+
+
+}
+
+void Player::CheckCollisionTrigger(Entity* collidedEntity)
+{
+	// Each frame, when we are in this function, we check to see if the collided entity is in a list.
+	// If it is not, then we do OnTriggerEnter and add it to the list
+	// If it is in the list, then we do OnTriggerStay
+
+	if (collidedEntity->trigger)
+	{
+		bool collisionStay = false;
+		for (int i = 0; i < thisFrameCollisions.size(); i++)
+		{
+			if (thisFrameCollisions[i] == collidedEntity)
+			{
+				collisionStay = true;
+				break;
+			}
+		}
+
+		
+		if (collisionStay)
+		{
+			collidedEntity->OnTriggerStay(this);
+		}
+		else
+		{
+			collidedEntity->OnTriggerEnter(this);
+		}
+		thisFrameCollisions.emplace_back(collidedEntity);
+	}
 }
 
 void Player::ResetPosition()
 {
 	position = startPosition;
+}
+
+Vector2 Player::CalcScaledPivot()
+{
+	if (flip == SDL_FLIP_HORIZONTAL)
+	{
+		entityPivot.x = (currentSprite->windowRect.w / SCALE) - currentSprite->pivot.x;
+	}
+
+	// scale the pivot and subtract it from the collision center
+	return Vector2(entityPivot.x * SCALE, currentSprite->pivot.y * SCALE);
 }
 
 void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
@@ -236,13 +331,7 @@ void Player::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2));
 		Vector2 collisionCenter = Vector2(collisionCenterX, collisionCenterY);
 
-		if (flip == SDL_FLIP_HORIZONTAL)
-		{
-			entityPivot.x = (currentSprite->windowRect.w / SCALE) - currentSprite->pivot.x;
-		}
-
-		// scale the pivot and subtract it from the collision center
-		Vector2 scaledPivot = Vector2(entityPivot.x * SCALE, currentSprite->pivot.y * SCALE);
+		Vector2 scaledPivot = CalcScaledPivot();
 		Vector2 offset = collisionCenter - scaledPivot;
 
 		if (GetModeEdit())

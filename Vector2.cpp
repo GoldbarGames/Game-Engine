@@ -71,7 +71,7 @@ bool Vector2::operator==(const Vector2 & rhs)
 
 bool Vector2::operator!=(const Vector2 & rhs)
 {
-	return (x != rhs.x && y != rhs.y);
+	return (x != rhs.x || y != rhs.y);
 }
 
 Vector2 Vector2::RoundToInt()

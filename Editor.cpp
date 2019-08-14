@@ -230,7 +230,7 @@ void Editor::RightClick(Vector2 clickedPosition)
 					game->DeleteEntity(i);
 
 					// Delete the exit door
-					for (int k = 0; k < game->entities.size(); k++)
+					for (unsigned int k = 0; k < game->entities.size(); k++)
 					{
 						if (game->entities[k]->GetPosition() == dest)
 						{
@@ -293,9 +293,15 @@ void Editor::ClickedButton(string buttonName)
 	else if (buttonName == "Door")
 	{
 		if (objectMode == "door")
+		{
+			SetLayer(DrawingLayer::BACKGROUND);
 			objectMode = "tile";
+		}
 		else
+		{
+			SetLayer(DrawingLayer::OBJECT);
 			objectMode = "door";
+		}
 	}
 	else if (buttonName == "Ladder")
 	{
@@ -309,8 +315,13 @@ void Editor::ToggleLayer()
 	layer++;
 	if (layer >= DrawingLayerNames.size())
 		layer = 0;
-	drawingLayer = (DrawingLayer)layer;
+	
+	SetLayer((DrawingLayer)layer);
+}
 
+void Editor::SetLayer(DrawingLayer layer)
+{
+	drawingLayer = layer;
 	currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[drawingLayer]);
 }
 
@@ -321,6 +332,8 @@ void Editor::ToggleTileset()
 		tilesheetIndex = 0;
 	StartEdit();
 }
+
+
 
 void Editor::Render(SDL_Renderer* renderer)
 {
@@ -360,7 +373,7 @@ void Editor::Render(SDL_Renderer* renderer)
 	}
 
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-	for (int i = 0; i < game->entities.size(); i++)
+	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
 		if (game->entities[i]->etype == "door")
 		{			
@@ -417,15 +430,22 @@ void Editor::SaveLevel()
 	{
 		if (game->entities[i]->etype == "tile")
 		{
-			fout << game->entities[i]->id << " " << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
+			fout << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
 				" " << (game->entities[i]->GetPosition().y / SCALE) << " " << game->entities[i]->drawOrder <<
 				" " << game->entities[i]->layer << " " << game->entities[i]->impassable << 
 				" " << game->entities[i]->tilesheetIndex << " " << game->entities[i]->tileCoordinates.x << 
 				" " << game->entities[i]->tileCoordinates.y << "" << std::endl;
 		}
+		else if (game->entities[i]->etype == "door")
+		{
+			Door* door = static_cast<Door*>(game->entities[i]);
+			fout << door->etype << " " << (door->GetPosition().x / SCALE) << " " <<
+				(door->GetPosition().y / SCALE) << " " << (door->GetDestination().x / SCALE) <<
+				" " << (door->GetDestination().y / SCALE) << "" << std::endl;
+		}
 		else
 		{
-			fout << game->entities[i]->id << " " << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
+			fout << " " << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
 				" " << (game->entities[i]->GetPosition().y / SCALE) << " " << game->entities[i]->drawOrder <<
 				" " << game->entities[i]->layer << " " << game->entities[i]->impassable << std::endl;
 		}		
@@ -433,6 +453,7 @@ void Editor::SaveLevel()
 
 	fout.close();
 }
+
 
 void Editor::LoadLevel(std::string levelName)
 {
@@ -454,23 +475,32 @@ void Editor::LoadLevel(std::string levelName)
 		std::istream_iterator<std::string> beg(buf), end;
 		std::vector<std::string> tokens(beg, end);
 
-		int positionX = std::stoi(tokens[2]);
-		int positionY = std::stoi(tokens[3]);
+		const std::string etype = tokens[0];
 
-		if (tokens[1] == "tile")
+		int positionX = std::stoi(tokens[1]);
+		int positionY = std::stoi(tokens[2]);
+
+		if (etype == "tile")
 		{
-			int layer = std::stoi(tokens[5]);
-			int impassable = std::stoi(tokens[6]);
-			int tilesheet = std::stoi(tokens[7]);
-			int frameX = std::stoi(tokens[8]);
-			int frameY = std::stoi(tokens[9]);			
+			int layer = std::stoi(tokens[4]);
+			int impassable = std::stoi(tokens[5]);
+			int tilesheet = std::stoi(tokens[6]);
+			int frameX = std::stoi(tokens[7]);
+			int frameY = std::stoi(tokens[8]);
 			
 			Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheets[tilesheet] + ".png",
 				Vector2(positionX * SCALE, positionY * SCALE), impassable, (DrawingLayer)layer);
 
 			newTile->tilesheetIndex = tilesheet;
 		}
-		else if (tokens[1] == "player")
+		else if (etype == "door")
+		{
+			Door* newDoor = game->SpawnDoor(Vector2(positionX * SCALE, positionY * SCALE));
+			int destX = std::stoi(tokens[3]);
+			int destY = std::stoi(tokens[4]);
+			newDoor->SetDestination(Vector2(destX * SCALE, destY * SCALE));
+		}
+		else if (etype == "player")
 		{			
 			game->player = game->SpawnPlayer(Vector2(positionX, positionY));
 		}
