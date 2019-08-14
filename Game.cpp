@@ -309,7 +309,7 @@ void Game::MainLoop()
 	SDL_GL_SwapWindow(window);
 
 	// Create the backgrounds
-	const int NUM_BGS = 5;
+	const int NUM_BGS = 1;
 	const int BG_WIDTH = 636;
 	for (int i = 0; i < NUM_BGS; i++)
 	{

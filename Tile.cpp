@@ -48,18 +48,23 @@ void Tile::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 	windowRect.h = TILE_SIZE * SCALE;
 
 	//Animate(speed);
-	SDL_RenderCopy(renderer, texture, &textureRect, &windowRect);
-
-	if (GetModeDebug())
+	if (windowRect.x < screenWidth && windowRect.y < screenHeight
+		&& windowRect.x > -windowRect.w && windowRect.y > -windowRect.h)
 	{
-		if (impassable)
-			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-		else
-			SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+		SDL_RenderCopy(renderer, texture, &textureRect, &windowRect);
 
-		SDL_RenderDrawRect(renderer, GetBounds());
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		if (GetModeDebug())
+		{
+			if (impassable)
+				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+			else
+				SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
+			SDL_RenderDrawRect(renderer, GetBounds());
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		}
 	}
+	
 }
 
 bool Tile::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
