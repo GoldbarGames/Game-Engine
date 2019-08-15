@@ -332,8 +332,7 @@ void Editor::RightClick(Vector2 clickedPosition)
 		}
 	}
 
-
-	if (ladderIndex >= 0)
+	if (ladderIndex >= 0 && !placingLadder)
 	{
 		std::string startingState = game->entities[ladderIndex]->GetAnimator()->currentState;
 		Vector2 lastPosition = game->entities[ladderIndex]->GetPosition();
