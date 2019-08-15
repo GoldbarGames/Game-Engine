@@ -20,6 +20,7 @@
 #include "MenuScreen.h"
 #include "Missile.h"
 #include "Door.h"
+#include "Ladder.h"
 
 using std::string;
 
@@ -96,11 +97,16 @@ public:
 
 	Door* CreateDoor(Vector2 position); // returns the Door entity with default parameters
 	Door* SpawnDoor(Vector2 position); // only returns Door if it can be spawned succesfully in-game, else null
+
+	Ladder* CreateLadder(Vector2 position);
+	Ladder* SpawnLadder(Vector2 position);
 	
 	void PlayLevel(string gameName, string levelName);
 
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
+
+	Vector2 SnapToGrid(Vector2 position);
 
 	//bool clickedMouse = false;
 };

@@ -31,6 +31,7 @@ Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, SDL_
 
 	startFrame = 0;
 	endFrame = numberFrames;
+	textureRect.x = startFrame * textureRect.w;
 }
 
 Sprite::Sprite(int start, int end, int numFrames, SpriteManager& manager, 
@@ -63,6 +64,7 @@ Sprite::Sprite(int start, int end, int numFrames, SpriteManager& manager,
 	startFrame = start;
 	endFrame = end;
 	shouldLoop = loop;
+	textureRect.x = startFrame * textureRect.w;
 }
 
 Sprite::~Sprite()
@@ -77,7 +79,7 @@ void Sprite::Destroy()
 
 void Sprite::Animate(int msPerFrame, Uint32 time)
 {
-	if (msPerFrame != 0)
+	if (msPerFrame != 0 && endFrame != 0 && (startFrame - endFrame) != 0)
 	{
 		if (time < 0) // change frame based on total time
 			time = SDL_GetTicks();

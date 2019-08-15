@@ -118,11 +118,11 @@ void Entity::OnTriggerStay(Entity* other)
 
 void Entity::OnTriggerEnter(Entity* other)
 {
-	int test = 0;
+
 }
 
 void Entity::OnTriggerExit(Entity* other)
 {
-	int test = 0;
+
 }
 

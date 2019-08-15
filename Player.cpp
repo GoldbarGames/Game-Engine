@@ -5,10 +5,12 @@
 
 Player::Player(Vector2 pos) : PhysicsEntity(pos)
 {
-	CreateCollider(27, 46, 0, 0, 0.75f, 0.9f);
-	missileTimer.Start(1);
-	doorTimer.Start(1);
 	etype = "player";
+	CreateCollider(27, 46, 0, 0, 0.75f, 0.9f);
+
+	//TODO: Pause all timers when game is paused
+	missileTimer.Start(1);
+	doorTimer.Start(1);	
 }
 
 Player::~Player()

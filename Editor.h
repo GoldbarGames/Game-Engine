@@ -16,6 +16,7 @@ using std::string;
 
 class Door;
 class Entity;
+class Ladder;
 
 class Editor
 {
@@ -41,10 +42,12 @@ private:
 	std::vector<EditorButton*> buttons;
 
 	Door* currentDoor = nullptr;
+	Ladder* currentLadder = nullptr;
 
 	std::unordered_map<std::string, Entity*> previewMap;
 
 	bool placingDoor = false;
+	bool placingLadder = false;
 
 public:
 	Text* currentEditModeLayer = nullptr;
@@ -69,8 +72,10 @@ public:
 	void ClickedButton(std::string buttonName);
 	void ToggleLayer();
 	void ToggleTileset();
+	void ToggleObjectMode(std::string mode);
 	void LeftClick(Vector2 clickedPosition, int mouseX, int mouseY);
 	void RightClick(Vector2 clickedPosition);
 	void SetLayer(DrawingLayer layer);
+	void DestroyLadder(std::string startingState, Vector2 lastPosition);
 };
 

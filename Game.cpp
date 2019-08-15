@@ -103,6 +103,54 @@ bool Game::SetOpenGLAttributes()
 	return success == 0;
 }
 
+Ladder* Game::CreateLadder(Vector2 position)
+{
+	Ladder* newLadder = new Ladder(position);
+
+	Animator* anim = new Animator("ladder", "middle");
+
+	anim->MapStateToSprite("middle", new Sprite(2, 2, 5, spriteManager, 
+		"assets/sprites/objects/ladder1.png", renderer, Vector2(0, 0)));
+
+	anim->MapStateToSprite("bottom", new Sprite(4, 4, 5, spriteManager,
+		"assets/sprites/objects/ladder1.png", renderer, Vector2(0, 0)));
+
+	anim->MapStateToSprite("top", new Sprite(0, 0, 5, spriteManager,
+		"assets/sprites/objects/ladder1.png", renderer, Vector2(0, 0)));
+
+	anim->speed = 0;
+	newLadder->SetAnimator(anim);
+
+	return newLadder;
+}
+
+Vector2 Game::SnapToGrid(Vector2 position)
+{
+	int x = position.x + camera.x - ((int)(position.x) % (TILE_SIZE * SCALE));
+	int y = position.y + camera.y - ((int)(position.y) % (TILE_SIZE * SCALE));
+	return Vector2(x, y);
+}
+
+Ladder* Game::SpawnLadder(Vector2 position)
+{
+	Vector2 snappedPosition = SnapToGrid(position);
+
+	Ladder* newLadder = CreateLadder(snappedPosition);
+
+	if (!newLadder->CanSpawnHere(snappedPosition, *this))
+	{
+		delete newLadder;
+		return nullptr;
+	}
+	else
+	{
+		entities.emplace_back(newLadder);
+		return newLadder;
+	}
+
+	return newLadder;
+}
+
 Door* Game::CreateDoor(Vector2 position)
 {
 	Door* newDoor = new Door(position, Vector2(0, 0));
@@ -121,13 +169,11 @@ Door* Game::CreateDoor(Vector2 position)
 
 Door* Game::SpawnDoor(Vector2 position) // maybe pass in the tileset number for the door?
 {
-	// maybe make this its own function? snap to grid?
-	int doorX = position.x + camera.x - ((int)(position.x) % (TILE_SIZE * SCALE));
-	int doorY = position.y + camera.y - ((int)(position.y) % (TILE_SIZE * SCALE));
+	Vector2 snappedPosition = SnapToGrid(position);
 
-	Door* newDoor = CreateDoor(Vector2(doorX, doorY));
+	Door* newDoor = CreateDoor(snappedPosition);
 
-	if (!newDoor->CanSpawnHere(Vector2(doorX, doorY), *this))
+	if (!newDoor->CanSpawnHere(snappedPosition, *this))
 	{
 		delete newDoor;
 		return nullptr;

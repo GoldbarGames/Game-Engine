@@ -21,7 +21,7 @@ Editor::Editor(Game& g)
 
 	previewMap["tile"] = nullptr;
 	previewMap["door"] = game->CreateDoor(Vector2(0,0));
-
+	previewMap["ladder"] = game->CreateLadder(Vector2(0, 0));
 
 	game->entities.clear();
 }
@@ -149,7 +149,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		}
 		else // when placing an object
 		{
-			bool canPlaceObjectHere = true; //TODO: actually check for this
+			bool canPlaceObjectHere = true;
 
 			clickedPosition.x = (int)clickedPosition.x;
 			clickedPosition.y = (int)clickedPosition.y;
@@ -198,6 +198,84 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 					}
 
 				}
+				else if (objectMode == "ladder")
+				{
+					if (!placingLadder)
+					{
+						std::cout << "trying to spawn ladder start" << std::endl;
+						currentLadder = game->SpawnLadder(Vector2(mouseX, mouseY));
+						if (currentLadder != nullptr)
+						{
+							std::cout << "placing ladder set true" << std::endl;
+							placingLadder = true;
+							game->SortEntities(game->entities);
+						}
+
+					}
+					else
+					{
+						Vector2 snappedPosition = game->SnapToGrid(Vector2(mouseX, mouseY));
+
+						// only spawn if the position we clicked at is on the same column as the ladder start
+						if (snappedPosition.x == currentLadder->GetPosition().x)
+						{
+							std::cout << "trying to spawn ladder end" << std::endl;
+							Ladder* ladderEnd = game->SpawnLadder(Vector2(mouseX, mouseY));
+							if (ladderEnd != nullptr)
+							{
+								std::cout << "placing ladder set false" << std::endl;
+								placingLadder = false;
+
+								// Define which edges of the ladder are the top and bottom
+								bool ladderGoesUp = false;
+								if (ladderEnd->GetPosition().y > currentLadder->GetPosition().y)
+								{
+									ladderEnd->GetAnimator()->SetState("bottom");
+									currentLadder->GetAnimator()->SetState("top");
+								}
+								else
+								{
+									ladderEnd->GetAnimator()->SetState("top");
+									currentLadder->GetAnimator()->SetState("bottom");
+									ladderGoesUp = true;
+								}
+
+								if (ladderGoesUp)
+								{
+									//TODO: Connect the two edges by spawning the middle parts
+									mouseY += TILE_SIZE * SCALE;
+
+									int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
+
+									while (snappedY < currentLadder->GetPosition().y)
+									{
+										game->SpawnLadder(Vector2(mouseX, mouseY));
+										mouseY += TILE_SIZE * SCALE;
+										snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
+									}
+								}
+								else
+								{
+									//TODO: Connect the two edges by spawning the middle parts
+									mouseY -= TILE_SIZE * SCALE;
+
+									int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
+
+									while (snappedY > currentLadder->GetPosition().y)
+									{
+										game->SpawnLadder(Vector2(mouseX, mouseY));
+										mouseY -= TILE_SIZE * SCALE;
+										snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
+									}
+								}
+
+								currentLadder = nullptr;
+
+								game->SortEntities(game->entities);
+							}
+						}
+					}
+				}
 			}
 
 
@@ -211,6 +289,8 @@ void Editor::RightClick(Vector2 clickedPosition)
 
 	//TODO: Fix this
 	//clickedPosition.RoundToInt(); // with this line, cannot delete tiles from previous edit
+
+	int ladderIndex = -1;
 
 	for (int i = game->entities.size() - 1; i >= 0; i--)
 	{
@@ -240,10 +320,61 @@ void Editor::RightClick(Vector2 clickedPosition)
 					}
 				}				
 			}
-			else
+			else if (game->entities[i]->etype == "ladder")
+			{
+				ladderIndex = i;
+			}
+			else // TODO: Delete entire ladder with a single click, rather than piece by piece
 			{
 				game->DeleteEntity(i);
 				return;
+			}
+		}
+	}
+
+
+	if (ladderIndex >= 0)
+	{
+		std::string startingState = game->entities[ladderIndex]->GetAnimator()->currentState;
+		Vector2 lastPosition = game->entities[ladderIndex]->GetPosition();
+		game->DeleteEntity(ladderIndex);
+
+		if (startingState == "top")
+			DestroyLadder("top", lastPosition);
+		else if (startingState == "bottom")
+			DestroyLadder("bottom", lastPosition);
+		else if (startingState == "middle")
+		{
+			DestroyLadder("top", lastPosition);
+			DestroyLadder("bottom", lastPosition);
+		}
+	}
+}
+
+void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
+{
+	bool exit = false;
+	while (!exit)
+	{
+		// go over all the entities and check to see if there is one at the next position
+		// if it is, and it is a ladder, then delete it and keep going
+		// otherwise, we are done, and can exit the loop
+
+		if (startingState == "top")
+			lastPosition.y += TILE_SIZE * SCALE;
+		else if (startingState == "bottom")
+			lastPosition.y -= TILE_SIZE * SCALE;
+
+		exit = true;
+
+		for (int i = 0; i < game->entities.size(); i++)
+		{
+			if (game->entities[i]->GetPosition() == lastPosition &&
+				game->entities[i]->etype == "ladder")
+			{
+				game->DeleteEntity(i);
+				exit = false;
+				break;
 			}
 		}
 	}
@@ -292,21 +423,26 @@ void Editor::ClickedButton(string buttonName)
 	}
 	else if (buttonName == "Door")
 	{
-		if (objectMode == "door")
-		{
-			SetLayer(DrawingLayer::BACKGROUND);
-			objectMode = "tile";
-		}
-		else
-		{
-			SetLayer(DrawingLayer::OBJECT);
-			objectMode = "door";
-		}
+		ToggleObjectMode("door");
 	}
 	else if (buttonName == "Ladder")
 	{
-
+		ToggleObjectMode("ladder");
 	}	
+}
+
+void Editor::ToggleObjectMode(std::string mode)
+{
+	if (objectMode == mode)
+	{
+		SetLayer(DrawingLayer::BACKGROUND);
+		objectMode = "tile";
+	}
+	else
+	{
+		SetLayer(DrawingLayer::OBJECT);
+		objectMode = mode;
+	}
 }
 
 void Editor::ToggleLayer()
