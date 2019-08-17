@@ -37,7 +37,16 @@ void Player::Update(Game& game)
 		{
 			//TODO: Make this look better later
 			SetPosition(currentDoor->GetDestination() + CalcScaledPivot());
-			doorTimer.Start(1000);
+			doorTimer.Start(500);
+		}
+		else if (currentLadder != nullptr) 
+		{
+			// TODO: What if there is a door and a ladder at the same spot?
+			if (currentLadder->GetAnimator()->currentState != "top")
+			{
+				velocity.y = 0;
+				animator->SetBool("onLadder", true);
+			}
 		}
 	}
 	
@@ -45,53 +54,119 @@ void Player::Update(Game& game)
 	//TODO: Add a time limit between shots
 	if (game.pressedDebugButton && missileTimer.HasElapsed())
 	{
-		Vector2 missilePosition = this->position;
-		missilePosition.x += (this->currentSprite->GetRect()->w / 2);
-		missilePosition.y += (this->currentSprite->GetRect()->h / 2);
-
-		const float missileSpeed = 0.1f;
-		Vector2 missileVelocity = Vector2(0, 0);
-
-		float angle = 0;
-
-		if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
-		{
-			missileVelocity.y = -missileSpeed;
-			angle = 270;
-		}			
-		else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
-		{
-			missileVelocity.y = missileSpeed;
-			angle = 90;
-		}			
-		else if (flip == SDL_FLIP_NONE)
-		{
-			missileVelocity.x = missileSpeed;
-		}
-		else if (flip == SDL_FLIP_HORIZONTAL)
-		{
-			missileVelocity.x = -missileSpeed;
-			angle = 180;
-		}
-
-		if (game.SpawnMissile(missilePosition, missileVelocity, angle))
-		{
-			animator->SetBool("isCastingDebug", true);
-			missileTimer.Start(1000);
-		}			
+		CastSpellDebug(game, input);
 	}	
 
-	// Don't move if we are casting debug, or looking up/down
-	if (!animator->GetBool("isCastingDebug") && !animator->GetBool("holdingUp")  
-		&& !animator->GetBool("holdingDown"))
+	
+	// If on the ladder, only move up or down
+	if (animator->GetBool("onLadder"))
 	{
-		GetMoveInput(input);
-	}
+		GetLadderInput(input);
 
-	UpdatePhysics(game);
+		CheckJumpButton(game);
+
+		CheckCollisions(game);
+	}
+	else
+	{
+		// Don't move if we are casting debug, or looking up/down
+		if (!animator->GetBool("isCastingDebug") && !animator->GetBool("holdingUp")
+			&& !animator->GetBool("holdingDown"))
+		{
+			GetMoveInput(input);
+		}
+
+		UpdatePhysics(game);
+	}
+	
 
 	if (animator != nullptr)
 		animator->Update(this);
+}
+
+void Player::CastSpellDebug(Game &game, const Uint8* input)
+{
+	Vector2 missilePosition = this->position;
+	missilePosition.x += (this->currentSprite->GetRect()->w / 2);
+	missilePosition.y += (this->currentSprite->GetRect()->h / 2);
+
+	const float missileSpeed = 0.1f;
+	Vector2 missileVelocity = Vector2(0, 0);
+
+	float angle = 0;
+
+	if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
+	{
+		missileVelocity.y = -missileSpeed;
+		angle = 270;
+	}
+	else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
+	{
+		missileVelocity.y = missileSpeed;
+		angle = 90;
+	}
+	else if (flip == SDL_FLIP_NONE)
+	{
+		missileVelocity.x = missileSpeed;
+	}
+	else if (flip == SDL_FLIP_HORIZONTAL)
+	{
+		missileVelocity.x = -missileSpeed;
+		angle = 180;
+	}
+
+	if (game.SpawnMissile(missilePosition, missileVelocity, angle))
+	{
+		animator->SetBool("isCastingDebug", true);
+		missileTimer.Start(1000);
+	}
+}
+
+void Player::GetLadderInput(const Uint8* input)
+{
+	animator->SetBool("climbing", false);
+
+	if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
+	{
+		animator->SetBool("climbing", true);
+		velocity.y -= horizontalSpeed;
+	}
+	else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
+	{
+		animator->SetBool("climbing", true);
+		velocity.y += horizontalSpeed;
+	}
+	else
+	{
+		velocity.y = 0;
+	}
+
+	if (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A])
+	{
+		animator->SetBool("climbing", true);
+		velocity.x -= horizontalSpeed;
+		flip = SDL_FLIP_HORIZONTAL;
+	}
+	else if (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D])
+	{
+		animator->SetBool("climbing", true);
+		velocity.x += horizontalSpeed;
+		flip = SDL_FLIP_NONE;
+	}
+	else
+	{
+		velocity.x = 0;
+	}
+
+	if (velocity.y > maxHorizontalSpeed)
+		velocity.y = maxHorizontalSpeed;
+	else if (velocity.y < -maxHorizontalSpeed)
+		velocity.y = -maxHorizontalSpeed;
+
+	if (velocity.x > maxHorizontalSpeed)
+		velocity.x = maxHorizontalSpeed;
+	else if (velocity.x < -maxHorizontalSpeed)
+		velocity.x = -maxHorizontalSpeed;
 }
 
 void Player::GetMoveInput(const Uint8* input)
@@ -120,13 +195,8 @@ void Player::GetMoveInput(const Uint8* input)
 		velocity.x = -maxHorizontalSpeed;
 }
 
-void Player::UpdatePhysics(Game& game)
+void Player::CheckJumpButton(Game& game)
 {
-	const float GRAVITY = 0.001f; //TODO: Better way of handling gravity
-
-	if (velocity.y < 1)
-		velocity.y += GRAVITY;
-	
 	if (game.pressedJumpButton && jumpsRemaining > 0)
 	{
 		if (animator->GetBool("holdingUp") || animator->GetBool("holdingDown"))
@@ -136,8 +206,18 @@ void Player::UpdatePhysics(Game& game)
 		else
 		{
 			velocity.y = -0.6f;
-		}	
+		}
 	}
+}
+
+void Player::UpdatePhysics(Game& game)
+{
+	const float GRAVITY = 0.002f; //TODO: Better way of handling gravity
+
+	if (velocity.y < 1)
+		velocity.y += GRAVITY;
+	
+	CheckJumpButton(game);
 
 	CheckCollisions(game);
 }
@@ -216,7 +296,13 @@ void Player::CheckCollisions(Game& game)
 					{
 						animator->SetBool("isGrounded", true);
 						jumpsRemaining = 2;
+
+						// this needs to be here to fix the collision with the ground
+						if (position.y + myBounds.h > theirBounds->y + theirBounds->h + 1)
+							position.y -= newBoundsVertical.y + newBoundsVertical.h - theirBounds->y - 1;
 					}
+					
+					
 
 					velocity.y = 0;
 				}
@@ -241,7 +327,7 @@ void Player::CheckCollisions(Game& game)
 		position.x += (velocity.x * game.dt);
 	}
 
-	if (!verticalCollision)
+	if (!verticalCollision || animator->GetBool("onLadder"))
 	{
 		if (game.pressedJumpButton && jumpsRemaining > 0)
 		{
@@ -251,7 +337,6 @@ void Player::CheckCollisions(Game& game)
 
 		position.y += (velocity.y * game.dt);
 	}
-
 
 	// Now we go over the list
 	// If there was an entity in the collision list that we did not collide with this frame, then call OnTriggerExit
@@ -268,7 +353,7 @@ void Player::CheckCollisions(Game& game)
 			}
 		}
 
-		if (triggerExit)
+		if (triggerExit && prevFrameCollisions[i] != nullptr)
 			prevFrameCollisions[i]->OnTriggerExit(this);
 	}
 
@@ -292,7 +377,6 @@ void Player::CheckCollisionTrigger(Entity* collidedEntity)
 				break;
 			}
 		}
-
 		
 		if (collisionStay)
 		{

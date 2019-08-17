@@ -57,6 +57,10 @@ private:
 	bool HandleEvent(SDL_Event& event);
 	bool HandleMenuEvent(SDL_Event& event);
 	void HandleEditMode();
+
+	
+	void DeleteEntity(Entity* entity);
+	void DeleteEntity(int index);
 public:
 	SDL_Renderer * renderer = nullptr;
 	SpriteManager spriteManager;
@@ -78,6 +82,7 @@ public:
 	bool pressedDebugButton;
 
 	std::vector<Entity*> entities;
+	void ShouldDeleteEntity(int index);
 
 	Game();
 	~Game();
@@ -103,8 +108,7 @@ public:
 	
 	void PlayLevel(string gameName, string levelName);
 
-	void DeleteEntity(Entity* entity);
-	void DeleteEntity(int index);
+
 
 	Vector2 SnapToGrid(Vector2 position);
 

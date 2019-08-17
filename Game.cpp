@@ -281,6 +281,9 @@ Player* Game::SpawnPlayer(Vector2 position)
 	anim1->MapStateToSprite("look_up", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_lookup.png", renderer, Vector2(16, 24)));
 	anim1->MapStateToSprite("look_down", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_lookdown.png", renderer, Vector2(16, 24)));
 
+	anim1->MapStateToSprite("ladder_idle", new Sprite(3, 3, 8, spriteManager, "assets/sprites/kaneko/wdk_ladder_climb.png", renderer, Vector2(15, 26)));
+	anim1->MapStateToSprite("ladder_climbing", new Sprite(0, 7, 8, spriteManager, "assets/sprites/kaneko/wdk_ladder_climb.png", renderer, Vector2(15, 26)));
+
 	//TODO: Make states for debug in air, up, down, on ladder, etc. (FIX PIVOT POINTS)
 	anim1->MapStateToSprite("debug", new Sprite(10, spriteManager, "assets/sprites/kaneko/wdk_debug.png", renderer, Vector2(25, 26)));
 	anim1->MapStateToSprite("debug_up", new Sprite(10, spriteManager, "assets/sprites/kaneko/wdk_debug_up.png", renderer, Vector2(25, 26)));
@@ -301,6 +304,11 @@ Player* Game::SpawnPlayer(Vector2 position)
 	return player;
 }
 
+void Game::ShouldDeleteEntity(int index)
+{
+	entities[index]->shouldDelete = true;
+}
+
 void Game::DeleteEntity(Entity* entity)
 {
 	std::vector<Entity*>::iterator index = std::find(entities.begin(), entities.end(), entity);
@@ -311,6 +319,7 @@ void Game::DeleteEntity(Entity* entity)
 void Game::DeleteEntity(int index)
 {
 	delete entities[index];
+	entities[index] = nullptr;
 	entities.erase(entities.begin() + index);
 }
 
@@ -409,7 +418,16 @@ void Game::MainLoop()
 
 		//timerText->SetText(std::to_string(timer.GetTicks()/1000.0f));
 
-		
+		// Destroy entities before we update them
+		unsigned int k = 0;
+		while (k < entities.size())
+		{
+			if (entities[k]->shouldDelete)
+				DeleteEntity(k);
+			else
+				k++;
+		}
+
 		if (GetModeEdit())
 		{
 			HandleEditMode();			
@@ -611,16 +629,6 @@ void Game::Update()
 	camera = player->GetCenter();
 	camera.x -= (screenWidth / 2.0f);  
 	camera.y -= (screenHeight / 2.0f);
-
-	// Destroy entities before we update them
-	unsigned int k = 0;
-	while(k < entities.size())
-	{
-		if (entities[k]->shouldDelete)
-			DeleteEntity(k);
-		else
-			k++;
-	}
 
 	// Update all entities
 	for (unsigned int i = 0; i < entities.size(); i++)

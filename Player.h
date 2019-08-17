@@ -4,6 +4,7 @@
 #include "Timer.h"
 
 class Door;
+class Ladder;
 
 class Player : public PhysicsEntity
 {
@@ -19,6 +20,7 @@ private:
 	std::vector<Entity*> prevFrameCollisions;
 public:
 	Door* currentDoor = nullptr;
+	Ladder* currentLadder = nullptr;
 	Vector2 startPosition;
 	Player(Vector2 pos);
 	~Player();
@@ -29,7 +31,10 @@ public:
 	void ResetPosition();
 	void CalculateCollider(Vector2 cameraOffset);
 	void GetMoveInput(const Uint8* input);
+	void GetLadderInput(const Uint8* input);
 	void CheckCollisionTrigger(Entity* collidedEntity);
 	Vector2 CalcScaledPivot();
+	void CastSpellDebug(Game &game, const Uint8* input);
+	void CheckJumpButton(Game& game);
 };
 

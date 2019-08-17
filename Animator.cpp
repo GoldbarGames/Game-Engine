@@ -140,10 +140,54 @@ void Animator::CheckStateKaneko()
 				SetState("debug");
 		}
 	}
+	else if (currentState == "ladder_idle")
+	{
+		if (!GetBool("onLadder"))
+		{
+			if (GetBool("isGrounded"))
+				SetState("idle");
+			else
+				SetState("jump");
+		}
+		else
+		{
+			if (GetBool("climbing"))
+			{
+				SetState("ladder_climbing");
+			}
+		}
+	}
+	else if (currentState == "ladder_climbing")
+	{
+		if (!GetBool("onLadder"))
+		{
+			if (GetBool("isGrounded"))
+				SetState("idle");
+			else
+				SetState("jump");
+		}
+		else
+		{
+			if (!GetBool("climbing"))
+			{
+				SetState("ladder_idle");
+			}
+		}
+	}
 	else if (currentState == "idle")
 	{
 		if (GetBool("holdingUp"))
-			SetState("look_up");
+		{
+			if (GetBool("onLadder"))
+			{
+				SetState("ladder_idle");
+				return; 
+			}				
+			else
+			{
+				SetState("look_up");
+			}				
+		}			
 
 		if (GetBool("holdingDown"))
 			SetState("look_down");
@@ -166,6 +210,15 @@ void Animator::CheckStateKaneko()
 	}
 	else if (currentState == "jump")
 	{
+		if (GetBool("holdingUp"))
+		{
+			if (GetBool("onLadder"))
+			{
+				SetState("ladder_idle");
+				return;
+			}
+		}
+
 		if (GetBool("isGrounded"))
 			SetState("idle");
 
@@ -215,7 +268,7 @@ void Animator::SetState(std::string state)
 	else
 		speed = 100;
 
-	// set duration of the animation based on the playback speed and number of frames
+	// set duration of the animation based on the playback speed and number of fram-es
 	animationTimer.Start(speed * mapStateToSprite[currentState]->endFrame, mapStateToSprite[currentState]->shouldLoop);
 }
 

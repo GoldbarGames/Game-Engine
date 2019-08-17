@@ -307,14 +307,14 @@ void Editor::RightClick(Vector2 clickedPosition)
 				// Only delete if both doors have been placed
 				if (dest != Vector2(0, 0))
 				{
-					game->DeleteEntity(i);
+					game->ShouldDeleteEntity(i);
 
 					// Delete the exit door
 					for (unsigned int k = 0; k < game->entities.size(); k++)
 					{
 						if (game->entities[k]->GetPosition() == dest)
 						{
-							game->DeleteEntity(k);
+							game->ShouldDeleteEntity(k);
 							return;
 						}
 					}
@@ -326,7 +326,7 @@ void Editor::RightClick(Vector2 clickedPosition)
 			}
 			else // TODO: Delete entire ladder with a single click, rather than piece by piece
 			{
-				game->DeleteEntity(i);
+				game->ShouldDeleteEntity(i);
 				return;
 			}
 		}
@@ -336,7 +336,7 @@ void Editor::RightClick(Vector2 clickedPosition)
 	{
 		std::string startingState = game->entities[ladderIndex]->GetAnimator()->currentState;
 		Vector2 lastPosition = game->entities[ladderIndex]->GetPosition();
-		game->DeleteEntity(ladderIndex);
+		game->ShouldDeleteEntity(ladderIndex);
 
 		if (startingState == "top")
 			DestroyLadder("top", lastPosition);
@@ -371,7 +371,7 @@ void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
 			if (game->entities[i]->GetPosition() == lastPosition &&
 				game->entities[i]->etype == "ladder")
 			{
-				game->DeleteEntity(i);
+				game->ShouldDeleteEntity(i);
 				exit = false;
 				break;
 			}
@@ -578,9 +578,16 @@ void Editor::SaveLevel()
 				(door->GetPosition().y / SCALE) << " " << (door->GetDestination().x / SCALE) <<
 				" " << (door->GetDestination().y / SCALE) << "" << std::endl;
 		}
+		else if (game->entities[i]->etype == "ladder")
+		{
+			Ladder* ladder = static_cast<Ladder*>(game->entities[i]);
+			fout << ladder->etype << " "  << (ladder->GetPosition().x / SCALE) << " " <<
+				(ladder->GetPosition().y / SCALE) << " " << ladder->GetAnimator()->currentState 
+				<< "" << std::endl;
+		}
 		else
 		{
-			fout << " " << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
+			fout << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
 				" " << (game->entities[i]->GetPosition().y / SCALE) << " " << game->entities[i]->drawOrder <<
 				" " << game->entities[i]->layer << " " << game->entities[i]->impassable << std::endl;
 		}		
@@ -634,6 +641,11 @@ void Editor::LoadLevel(std::string levelName)
 			int destX = std::stoi(tokens[3]);
 			int destY = std::stoi(tokens[4]);
 			newDoor->SetDestination(Vector2(destX * SCALE, destY * SCALE));
+		}
+		else if (etype == "ladder")
+		{
+			Ladder* newLadder = game->SpawnLadder(Vector2(positionX * SCALE, positionY * SCALE));
+			newLadder->GetAnimator()->SetState(tokens[3]);
 		}
 		else if (etype == "player")
 		{			
