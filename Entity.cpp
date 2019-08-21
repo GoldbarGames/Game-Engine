@@ -79,6 +79,20 @@ void Entity::SetAnimator(Animator * anim)
 	anim->DoState(this);
 }
 
+void Entity::RenderDebug(SDL_Renderer * renderer, Vector2 cameraOffset)
+{
+	if (GetModeDebug() && currentSprite != nullptr)
+	{
+		if (layer == DrawingLayer::COLLISION && impassable)
+			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+		else
+			SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
+		SDL_RenderDrawRect(renderer, currentSprite->GetRect());
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	}
+}
+
 void Entity::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 {
 	if (currentSprite != nullptr)
@@ -88,16 +102,7 @@ void Entity::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 		else
 			currentSprite->Render(position - cameraOffset, 0, -1, flip, renderer);
 
-		if (GetModeDebug())
-		{
-			if (impassable)
-				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-			else
-				SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-
-			SDL_RenderDrawRect(renderer, currentSprite->GetRect());
-			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-		}		
+		RenderDebug(renderer, cameraOffset);
 	}
 }
 

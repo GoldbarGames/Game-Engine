@@ -8,11 +8,11 @@ SpriteManager::SpriteManager()
 
 }
 
-SDL_Surface* SpriteManager::GetImage(std::string const& image)
+SDL_Surface* SpriteManager::GetImage(std::string const& imagePath)
 {
-	if (images[image].get() == nullptr)
-		images[image].reset(IMG_Load(image.c_str()));
-	return images[image].get();
+	if (images[imagePath].get() == nullptr)
+		images[imagePath].reset(IMG_Load(imagePath.c_str()));
+	return images[imagePath].get();
 }
 
 Vector2 SpriteManager::GetPivotPoint(std::string const& filename)

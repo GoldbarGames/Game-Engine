@@ -40,6 +40,7 @@ private:
 	TTF_Font* theFont = nullptr;
 
 	std::vector<EditorButton*> buttons;
+	std::vector<EditorButton*> layerButtons;
 
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;
@@ -66,10 +67,11 @@ public:
 	void LoadLevel(std::string levelName);
 	void Render(SDL_Renderer* renderer);
 	void SetText(string newText, SDL_Renderer* renderer);
-	DrawingLayer drawingLayer = BACKGROUND;
+	DrawingLayer drawingLayer = BACK;
 	int tilesheetIndex = 0;
 	const string tilesheets[2] = { "housetiles5", "foresttiles" };
 	void ClickedButton(std::string buttonName);
+	void ClickedLayerButton(std::string buttonText);
 	void ToggleLayer();
 	void ToggleTileset();
 	void ToggleObjectMode(std::string mode);

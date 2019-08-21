@@ -3,6 +3,27 @@
 
 using std::string;
 
+// constructor for tiles from tilesheets
+Sprite::Sprite(Vector2 frame, SDL_Surface * image, SDL_Renderer * renderer)
+{
+	texture = SDL_CreateTextureFromSurface(renderer, image);
+
+	// this converts from human coords to pixel coords
+	Vector2 currentFrame = Vector2((frame.x - 1) * TILE_SIZE, (frame.y - 1) * TILE_SIZE);
+
+	// Set start position
+	windowRect.x = 0;
+	windowRect.y = 0;
+
+	frameWidth = TILE_SIZE;
+	frameHeight = TILE_SIZE;
+
+	textureRect.x = currentFrame.x;
+	textureRect.y = currentFrame.y;
+	textureRect.w = TILE_SIZE;
+	textureRect.h = TILE_SIZE;
+}
+
 Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, SDL_Renderer * renderer, Vector2 newPivot)
 {
 	texture = SDL_CreateTextureFromSurface(renderer, manager.GetImage(filepath));

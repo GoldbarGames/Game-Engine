@@ -12,22 +12,12 @@
 class Tile : public Entity
 {
 private:
-	SDL_Texture * texture = nullptr;
-	SDL_Rect textureRect;
-	SDL_Rect windowRect;
-
-	Vector2 scale = Vector2(1, 1);
-	
-	//Vector2 currentFrame = Vector2(1,1); // the selected tile among all tiles in the tilesheet
-	
-	Vector2 currentFrame = Vector2(0,0);
 	int animationFrames = 0; // how many frames to the right is the animation? (is there a better way?)
 
 public:
 	void Destroy();
 	const SDL_Rect* GetBounds();
 	void Animate();
-	void Render(SDL_Renderer* renderer, Vector2 cameraOffset);
 	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
 	Tile(Vector2 pos, Vector2 frame, SDL_Surface * image, SDL_Renderer * renderer);
 	~Tile();

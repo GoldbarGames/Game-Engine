@@ -1,15 +1,15 @@
 #include "EditorButton.h"
 #include "Game.h"
 
-EditorButton::EditorButton(std::string function, Vector2 pos, Game& game)
+EditorButton::EditorButton(std::string txt, ::string filename, Vector2 pos, Game& game, Vector2 size)
 {
 	buttonTexture = SDL_CreateTextureFromSurface(game.renderer, 
-		game.spriteManager.GetImage("assets/editor/btn" + function + ".png"));
+		game.spriteManager.GetImage("assets/editor/btn" + filename + ".png"));
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
 
 	position = pos;
-	name = function;
+	name = filename;
 
 	SDL_QueryTexture(buttonTexture, NULL, NULL, &buttonTextureRect.w, &buttonTextureRect.h);
 
@@ -18,8 +18,28 @@ EditorButton::EditorButton(std::string function, Vector2 pos, Game& game)
 
 	buttonWindowRect.x = 0;
 	buttonWindowRect.y = 0;
-	buttonWindowRect.w = buttonTextureRect.w;
-	buttonWindowRect.h = buttonTextureRect.h;
+
+	text = new Text(game.renderer, game.theFont);
+	text->SetText(txt);
+	text->SetPosition(pos.x, pos.y + (buttonWindowRect.h / 2) - (text->textWindowRect.h / 2));
+
+	if (size.x != 0)
+	{
+		buttonWindowRect.w = size.x;
+	}
+	else
+	{
+		buttonWindowRect.w = buttonTextureRect.w;
+	}
+
+	if (size.y != 0)
+	{
+		buttonWindowRect.h = size.y;
+	}
+	else
+	{
+		buttonWindowRect.h = buttonTextureRect.h;
+	}
 }
 
 EditorButton::~EditorButton()
@@ -33,6 +53,8 @@ void EditorButton::Render(SDL_Renderer* renderer)
 	buttonWindowRect.y = position.y;
 
 	SDL_RenderCopy(renderer, buttonTexture, &buttonTextureRect, &buttonWindowRect);
+
+	text->Render(renderer);
 }
 
 bool EditorButton::IsClicked(const int& x, const int& y)

@@ -7,6 +7,8 @@ Player::Player(Vector2 pos) : PhysicsEntity(pos)
 {
 	etype = "player";
 	CreateCollider(27, 46, 0, 0, 0.75f, 0.9f);
+	layer = DrawingLayer::COLLISION;
+	drawOrder = 99;
 
 	//TODO: Pause all timers when game is paused
 	missileTimer.Start(1);

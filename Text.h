@@ -11,6 +11,7 @@ private:
 	SDL_Renderer* renderer;
 	TTF_Font* font;
 public:
+	std::string txt = "";
 	SDL_Texture* textTexture = nullptr;
 	SDL_Surface* textSurface = nullptr;
 	SDL_Rect textWindowRect;

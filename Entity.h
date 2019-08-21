@@ -24,7 +24,7 @@ public:
 	std::string etype = "entity";
 	int id = 0; //TODO
 	int drawOrder = 0; // order for drawing
-	DrawingLayer layer = FOREGROUND;
+	DrawingLayer layer = FRONT;
 
 	// maybe move this to the Tile class
 	int tilesheetIndex = 0;
@@ -43,6 +43,7 @@ public:
 	void SetSprite(Sprite* sprite);
 	virtual void Update(Game& game);
 	virtual void Render(SDL_Renderer * renderer, Vector2 cameraOffset);
+	void RenderDebug(SDL_Renderer * renderer, Vector2 cameraOffset);
 
 	virtual void Pause(Uint32 ticks);
 	virtual void Unpause(Uint32 ticks);

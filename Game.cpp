@@ -230,15 +230,16 @@ void Game::SpawnPerson(Vector2 position)
 	*/
 }
 
-Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, bool impassable, DrawingLayer drawingLayer)
+Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer)
 {
 	int newTileX = position.x + camera.x - ((int)(position.x ) % (TILE_SIZE * SCALE));
 	int newTileY = position.y + camera.y - ((int)(position.y ) % (TILE_SIZE * SCALE));
 
+	//Sprite* tileSprite = new Sprite(Vector2(newTileX, newTileY), spriteManager.GetImage(tilesheet), renderer);
 	Tile* tile = new Tile(Vector2(newTileX, newTileY), frame, spriteManager.GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
-	tile->impassable = impassable;
+	tile->impassable = drawingLayer == DrawingLayer::COLLISION;
 	tile->etype = "tile";
 	tile->tileCoordinates = frame;
 	tile->tilesheetIndex = editor->tilesheetIndex;
@@ -296,8 +297,6 @@ Player* Game::SpawnPlayer(Vector2 position)
 	player->SetAnimator(anim1);
 	player->SetPosition(position);
 	player->startPosition = position;
-	player->drawOrder = 99;
-	player->etype = "player";
 
 	entities.emplace_back(player);
 
@@ -373,7 +372,7 @@ void Game::MainLoop()
 
 	SortEntities(entities);
 
-	editor->currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[editor->drawingLayer]);
+	editor->currentEditModeLayer->SetText("Drawing on layer: " + GetDrawingLayerName(editor->drawingLayer));
 
 	//Start counting frames per second
 	int countedFrames = 0;
@@ -391,7 +390,7 @@ void Game::MainLoop()
 			avgFPS = 0;
 		}
 
-		//fpsText->SetText("FPS: " + std::to_string(avgFPS));
+		fpsText->SetText("FPS: " + std::to_string(avgFPS));
 
 		// Reset all inputs here
 		pressedJumpButton = false;
@@ -702,9 +701,19 @@ void Game::SortEntities(std::vector<Entity*>& entityVector)
 	for (int i = 0; i < n; i++)
 	{
 		int j = i;
-		while (j > 0 && entityVector[j - 1]->drawOrder > entityVector[j]->drawOrder)
+		while (j > 0)
 		{
-			std::swap(entityVector[j], entityVector[j - 1]);
+			if (entityVector[j - 1]->layer > entityVector[j]->layer)
+			{
+				std::swap(entityVector[j], entityVector[j - 1]);
+			}
+			else if (entityVector[j - 1]->layer == entityVector[j]->layer)
+			{
+				if (entityVector[j - 1]->drawOrder > entityVector[j]->drawOrder)
+				{
+					std::swap(entityVector[j], entityVector[j - 1]);
+				}
+			}
 			j--;
 		}
 	}

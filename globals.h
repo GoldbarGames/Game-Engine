@@ -12,9 +12,6 @@ const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 const int screenWidth = 1280;
 const int screenHeight = 720;
 
-enum DrawingLayer { BACKGROUND, FOREGROUND, OBJECT };
-static const std::vector<std::string> DrawingLayerNames = { "BACKGROUND", "FOREGROUND", "OBJECT" };
+enum DrawingLayer { BACK = 0, FRONT = 40, OBJECT = 20, COLLISION = 30, MIDDLE = 10 };
 
-//TODO
-//enum CollisionLayer { PLAYER, FOREGROUND };
-//static const std::string DrawingLayerNames[] = { "PLAYER", "FOREGROUND" };
+std::string GetDrawingLayerName(DrawingLayer layer);

@@ -23,6 +23,7 @@ void Text::SetFont(TTF_Font* newFont)
 
 void Text::SetText(string text)
 {
+	txt = text;
 	textSurface = TTF_RenderText_Solid(font, text.c_str(), { 255, 255, 255, 255 });
 	textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
 	SDL_QueryTexture(textTexture, NULL, NULL, &textTextureRect.w, &textTextureRect.h);

@@ -76,8 +76,27 @@ void Editor::StartEdit()
 
 	for (unsigned int i = 0; i < buttonNames.size(); i++)
 	{
-		buttons.emplace_back(new EditorButton(buttonNames[i], Vector2(buttonX, screenHeight-buttonHeight), *game));
+		buttons.emplace_back(new EditorButton("", buttonNames[i], Vector2(buttonX, screenHeight-buttonHeight), *game));
 		buttonX += buttonWidth + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
+	}
+
+	// Create the layer buttons
+
+	for (unsigned int i = 0; i < layerButtons.size(); i++)
+		delete layerButtons[i];
+	layerButtons.clear();
+
+	int buttonY = 200;
+	const int layerButtonWidth = 100;
+	const int layerButtonHeight = 50;
+	const int layerButtonSpacing = 20;
+
+	std::vector<string> layerButtonNames = { "BACK", "MIDDLE", "OBJECT", "COLLISION", "FRONT" };
+
+	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
+	{
+		layerButtons.emplace_back(new EditorButton(layerButtonNames[i], "Layer", Vector2(0, buttonY), *game, Vector2(layerButtonWidth, 0)));
+		buttonY += layerButtonHeight + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
 	}
 }
 
@@ -101,6 +120,13 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 			clickedButton = buttons[i]->name;
 	}
 
+	string clickedLayerButton = "";
+	for (unsigned int i = 0; i < layerButtons.size(); i++)
+	{
+		if (layerButtons[i]->IsClicked(mouseX, mouseY))
+			clickedLayerButton = layerButtons[i]->text->txt;
+	}
+
 	if (clickedToolboxWindow)
 	{
 		int xOffset = (mouseX - toolboxWindowRect.x);
@@ -118,6 +144,13 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		{
 			ClickedButton(clickedButton);
 			objectPreview = previewMap[objectMode];
+		}
+	}
+	else if (clickedLayerButton != "")
+	{
+		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+		{
+			ClickedLayerButton(clickedLayerButton);
 		}
 	}
 	else // we clicked somewhere in the game world, so place a tile/object
@@ -141,9 +174,8 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 			if (canPlaceTileHere)
 			{
-				bool impassable = (drawingLayer == FOREGROUND);
 				game->SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
-					Vector2(mouseX, mouseY), impassable, drawingLayer);
+					Vector2(mouseX, mouseY), drawingLayer);
 				game->SortEntities(game->entities);
 			}
 		}
@@ -430,11 +462,41 @@ void Editor::ClickedButton(string buttonName)
 	}	
 }
 
+
+void Editor::ClickedLayerButton(string buttonText)
+{
+	DrawingLayer layer = DrawingLayer::BACK;
+
+	if (buttonText == "BACK")
+	{
+		layer = DrawingLayer::BACK;
+	}
+	else if (buttonText == "MIDDLE")
+	{
+		layer = DrawingLayer::MIDDLE;
+	}
+	else if (buttonText == "OBJECT")
+	{
+		layer = DrawingLayer::OBJECT;
+	}
+	else if (buttonText == "COLLISION")
+	{
+		layer = DrawingLayer::COLLISION;
+	}
+	else if (buttonText == "FRONT")
+	{
+		layer = DrawingLayer::FRONT;
+	}
+
+	SetLayer(layer);
+}
+
+
 void Editor::ToggleObjectMode(std::string mode)
 {
 	if (objectMode == mode)
 	{
-		SetLayer(DrawingLayer::BACKGROUND);
+		SetLayer(DrawingLayer::BACK);
 		objectMode = "tile";
 	}
 	else
@@ -446,18 +508,34 @@ void Editor::ToggleObjectMode(std::string mode)
 
 void Editor::ToggleLayer()
 {
-	int layer = (int)drawingLayer;
-	layer++;
-	if (layer >= DrawingLayerNames.size())
-		layer = 0;
+	switch (drawingLayer)
+	{
+	case BACK:
+		drawingLayer = MIDDLE;
+		break;
+	case MIDDLE:
+		drawingLayer = OBJECT;
+		break;
+	case OBJECT:
+		drawingLayer = COLLISION;
+		break;
+	case COLLISION:
+		drawingLayer = FRONT;
+		break;
+	case FRONT:
+		drawingLayer = BACK;
+		break;
+	default:
+		return;
+	}
 	
-	SetLayer((DrawingLayer)layer);
+	SetLayer(drawingLayer);
 }
 
 void Editor::SetLayer(DrawingLayer layer)
 {
 	drawingLayer = layer;
-	currentEditModeLayer->SetText("Drawing on layer: " + DrawingLayerNames[drawingLayer]);
+	currentEditModeLayer->SetText("Drawing on layer: " + GetDrawingLayerName(drawingLayer));
 }
 
 void Editor::ToggleTileset()
@@ -542,6 +620,12 @@ void Editor::Render(SDL_Renderer* renderer)
 	for (unsigned int i = 0; i < buttons.size(); i++)
 	{
 		buttons[i]->Render(renderer);
+	}
+
+	// Draw all layer buttons
+	for (unsigned int i = 0; i < layerButtons.size(); i++)
+	{
+		layerButtons[i]->Render(renderer);
 	}
 }
 
@@ -631,7 +715,7 @@ void Editor::LoadLevel(std::string levelName)
 			int frameY = std::stoi(tokens[8]);
 			
 			Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheets[tilesheet] + ".png",
-				Vector2(positionX * SCALE, positionY * SCALE), impassable, (DrawingLayer)layer);
+				Vector2(positionX * SCALE, positionY * SCALE), (DrawingLayer)layer);
 
 			newTile->tilesheetIndex = tilesheet;
 		}

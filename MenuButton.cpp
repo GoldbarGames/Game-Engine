@@ -12,6 +12,7 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 	functionName = function;
 
 	//TODO: What if I want to scale the button to a particular width and height independent of the image?
+	//ANSWER: See the EditorButton
 
 	position = pos;
 	image->windowRect.x = pos.x;
