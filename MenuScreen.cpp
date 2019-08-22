@@ -63,9 +63,10 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 MenuScreen::~MenuScreen()
 {
+
 }
 
-void MenuScreen::Render(SDL_Renderer* renderer)
+void MenuScreen::Render(Renderer* renderer)
 {
 	for (unsigned int i = 0; i < buttons.size(); i++)
 	{

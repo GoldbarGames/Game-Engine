@@ -3,8 +3,7 @@
 
 EditorButton::EditorButton(std::string txt, ::string filename, Vector2 pos, Game& game, Vector2 size)
 {
-	buttonTexture = SDL_CreateTextureFromSurface(game.renderer, 
-		game.spriteManager.GetImage("assets/editor/btn" + filename + ".png"));
+	buttonTexture = game.renderer->CreateTextureFromSurface(game.spriteManager.GetImage("assets/editor/btn" + filename + ".png"));
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
 
@@ -21,7 +20,6 @@ EditorButton::EditorButton(std::string txt, ::string filename, Vector2 pos, Game
 
 	text = new Text(game.renderer, game.theFont);
 	text->SetText(txt);
-	text->SetPosition(pos.x, pos.y + (buttonWindowRect.h / 2) - (text->textWindowRect.h / 2));
 
 	if (size.x != 0)
 	{
@@ -40,6 +38,8 @@ EditorButton::EditorButton(std::string txt, ::string filename, Vector2 pos, Game
 	{
 		buttonWindowRect.h = buttonTextureRect.h;
 	}
+
+	text->SetPosition(pos.x, pos.y + (buttonWindowRect.h / 2) - (text->textWindowRect.h / 2));
 }
 
 EditorButton::~EditorButton()
@@ -47,12 +47,12 @@ EditorButton::~EditorButton()
 
 }
 
-void EditorButton::Render(SDL_Renderer* renderer)
+void EditorButton::Render(Renderer* renderer)
 {
 	buttonWindowRect.x = position.x;
 	buttonWindowRect.y = position.y;
 
-	SDL_RenderCopy(renderer, buttonTexture, &buttonTextureRect, &buttonWindowRect);
+	renderer->RenderCopy(buttonTexture, &buttonTextureRect, &buttonWindowRect);
 
 	text->Render(renderer);
 }

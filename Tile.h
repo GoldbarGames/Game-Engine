@@ -19,6 +19,6 @@ public:
 	const SDL_Rect* GetBounds();
 	void Animate();
 	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
-	Tile(Vector2 pos, Vector2 frame, SDL_Surface * image, SDL_Renderer * renderer);
+	Tile(Vector2 pos, Vector2 frame, SDL_Surface * image, Renderer * renderer);
 	~Tile();
 };

@@ -61,7 +61,8 @@ void Game::InitSDL()
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
+	renderer = new Renderer();
+	renderer->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
 }
 
 void Game::EndSDL()
@@ -69,7 +70,7 @@ void Game::EndSDL()
 	// Delete our OpengL context
 	SDL_GL_DeleteContext(mainContext);
 
-	SDL_DestroyRenderer(renderer);	
+	SDL_DestroyRenderer(renderer->renderer);	
 	SDL_DestroyWindow(window);	
 	window = nullptr;
 
@@ -390,7 +391,7 @@ void Game::MainLoop()
 			avgFPS = 0;
 		}
 
-		fpsText->SetText("FPS: " + std::to_string(avgFPS));
+		//fpsText->SetText("FPS: " + std::to_string(avgFPS));
 
 		// Reset all inputs here
 		pressedJumpButton = false;
@@ -638,7 +639,7 @@ void Game::Update()
 
 void Game::Render()
 {
-	SDL_RenderClear(renderer);
+	SDL_RenderClear(renderer->renderer);
 
 	// Render all backgrounds and their layers
 	for (unsigned int i = 0; i < backgrounds.size(); i++)
@@ -649,7 +650,7 @@ void Game::Render()
 	// Render editor grid
 	if (GetModeEdit())
 	{
-		SDL_SetRenderDrawColor(renderer, 64, 64, 64, 64);
+		SDL_SetRenderDrawColor(renderer->renderer, 64, 64, 64, 64);
 		for (int x = 0; x < 100; x++)
 		{
 			for (int y = 0; y < 100; y++)
@@ -657,10 +658,10 @@ void Game::Render()
 				SDL_Rect rect;
 				rect.x = x * TILE_SIZE * SCALE;
 				rect.y = y * TILE_SIZE * SCALE;	
-				SDL_RenderDrawRect(renderer, &rect);				
+				SDL_RenderDrawRect(renderer->renderer, &rect);
 			}
 		}
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
 
 	// Render all entities
@@ -689,7 +690,7 @@ void Game::Render()
 		openedMenus[openedMenus.size() - 1]->Render(renderer);
 	}
 		
-	SDL_RenderPresent(renderer);
+	SDL_RenderPresent(renderer->renderer);
 }
 
 // Implementation of insertion sort:

@@ -12,7 +12,7 @@ Background::~Background()
 
 }
 
-void Background::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
+void Background::Render(Renderer * renderer, Vector2 cameraOffset)
 {
 	cameraOffset = Vector2(0.1f, 0);
 	for (unsigned int i = 0; i < layers.size(); i++)
@@ -21,7 +21,7 @@ void Background::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 	}
 }
 
-void Background::AddLayer(SpriteManager& spriteManager, SDL_Renderer* renderer, std::string filepath, int drawOrder)
+void Background::AddLayer(SpriteManager& spriteManager, Renderer* renderer, std::string filepath, int drawOrder)
 {
 	Sprite* layer = new Sprite(1, spriteManager, filepath, renderer, Vector2(0, 0));
 	Entity* bg = new BackgroundLayer(position);

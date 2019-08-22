@@ -8,12 +8,11 @@ public:
 	
 	Collider collider;
 
-	void Render(SDL_Renderer * renderer, Vector2 cameraOffset);
+	void Render(Renderer * renderer, Vector2 cameraOffset);
 
 	Ladder(Vector2 pos);
 	~Ladder();
 
-	
 	const SDL_Rect* GetBounds();
 
 	void OnTriggerStay(Entity* other);

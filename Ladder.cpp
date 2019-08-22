@@ -1,6 +1,7 @@
 #include "Ladder.h"
 #include "Player.h"
 #include "debug_state.h"
+#include "Renderer.h"
 
 Ladder::Ladder(Vector2 pos) : Entity(pos)
 {
@@ -44,21 +45,21 @@ void Ladder::OnTriggerExit(Entity* other)
 	}
 }
 
-void Ladder::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
+void Ladder::Render(Renderer * renderer, Vector2 cameraOffset)
 {
 	Entity::Render(renderer, cameraOffset);
 	collider.CalculateCollider(position, cameraOffset); // calculate here for next update frame
 
 	if (GetModeDebug())
 	{
-		SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-		SDL_RenderDrawRect(renderer, currentSprite->GetRect());
+		SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 255);
+		SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
 
-		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 		collider.CalculateCollider(position, cameraOffset); //TODO: better way than calculating this twice?
 
-		SDL_RenderDrawRect(renderer, collider.collisionBounds);
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		SDL_RenderDrawRect(renderer->renderer, collider.collisionBounds);
+		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
 }
 

@@ -10,7 +10,7 @@ public:
 	~Missile();
 	void Update(Game& game);
 	void UpdatePhysics(Game& game);
-	void Render(SDL_Renderer* renderer, Vector2 cameraOffset);
+	void Render(Renderer* renderer, Vector2 cameraOffset);
 	bool CheckCollisions(Game& game);
 	void CalculateCollider(Vector2 cameraOffset);
 	void Pause(Uint32 ticks) override;

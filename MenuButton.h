@@ -22,7 +22,7 @@ public:
 	bool isSelected = false;
 	MenuButton(std::string txt, std::string filepath, std::string function, Vector2 pos, Game& game);
 	~MenuButton();
-	void Render(SDL_Renderer* renderer);
+	void Render(Renderer* renderer);
 	MenuButton* buttonPressedUp = nullptr;
 	MenuButton* buttonPressedDown = nullptr;
 	MenuButton* buttonPressedLeft = nullptr;

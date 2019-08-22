@@ -39,23 +39,24 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 
 MenuButton::~MenuButton()
 {
+
 }
 
-void MenuButton::Render(SDL_Renderer* renderer)
+void MenuButton::Render(Renderer* renderer)
 {
 	// Draw the outline
 	if (isSelected)
 	{
 		// TODO: Make this a color type that we can swap out
-		SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255); //yellow
-		SDL_RenderFillRect(renderer, &outlineHorizontal);
-		SDL_RenderFillRect(renderer, &outlineVertical);
-		SDL_RenderFillRect(renderer, &outlineCorners);
+		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255); //yellow
+		SDL_RenderFillRect(renderer->renderer, &outlineHorizontal);
+		SDL_RenderFillRect(renderer->renderer, &outlineVertical);
+		SDL_RenderFillRect(renderer->renderer, &outlineCorners);
 	}
 
 	// Draw the button image
 	//TODO: What should the color be here? Dunno if this is right
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 	image->Render(position, 0, -1, SDL_FLIP_NONE, renderer);
 
 	text->Render(renderer);

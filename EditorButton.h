@@ -7,6 +7,7 @@
 
 class Game;
 class Text;
+class Renderer;
 
 class EditorButton
 {
@@ -23,7 +24,7 @@ public:
 	EditorButton(std::string txt, std::string filename, Vector2 pos, Game& game, Vector2 size = Vector2(0,0));
 	~EditorButton();
 
-	void Render(SDL_Renderer* renderer);
+	void Render(Renderer* renderer);
 
 	bool IsClicked(const int& x, const int& y);
 };

@@ -38,7 +38,7 @@ void Editor::StartEdit()
 
 	// TILE SHEET FOR TOOLBOX
 
-	toolboxTexture = SDL_CreateTextureFromSurface(game->renderer, game->spriteManager.GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png"));
+	toolboxTexture = game->renderer->CreateTextureFromSurface(game->spriteManager.GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png"));
 	toolboxTextureRect.x = 0;
 	toolboxTextureRect.y = 0;
 
@@ -86,6 +86,10 @@ void Editor::StartEdit()
 		delete layerButtons[i];
 	layerButtons.clear();
 
+	for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
+		delete layerVisibleButtons[i];
+	layerVisibleButtons.clear();
+
 	int buttonY = 200;
 	const int layerButtonWidth = 100;
 	const int layerButtonHeight = 50;
@@ -96,6 +100,7 @@ void Editor::StartEdit()
 	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
 	{
 		layerButtons.emplace_back(new EditorButton(layerButtonNames[i], "Layer", Vector2(0, buttonY), *game, Vector2(layerButtonWidth, 0)));
+		layerVisibleButtons.emplace_back(new EditorButton("", "Visible", Vector2(layerButtonWidth, buttonY), *game, Vector2(50, 0)));
 		buttonY += layerButtonHeight + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
 	}
 }
@@ -127,6 +132,13 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 			clickedLayerButton = layerButtons[i]->text->txt;
 	}
 
+	string clickedLayerVisibleButton = "";
+	for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
+	{
+		if (layerVisibleButtons[i]->IsClicked(mouseX, mouseY))
+			clickedLayerVisibleButton = layerButtons[i]->text->txt;
+	}
+
 	if (clickedToolboxWindow)
 	{
 		int xOffset = (mouseX - toolboxWindowRect.x);
@@ -151,6 +163,13 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
 			ClickedLayerButton(clickedLayerButton);
+		}
+	}
+	else if (clickedLayerVisibleButton != "")
+	{
+		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+		{
+			game->renderer->ToggleVisibility(clickedLayerVisibleButton);
 		}
 	}
 	else // we clicked somewhere in the game world, so place a tile/object
@@ -546,46 +565,44 @@ void Editor::ToggleTileset()
 	StartEdit();
 }
 
-
-
-void Editor::Render(SDL_Renderer* renderer)
+void Editor::Render(Renderer* renderer)
 {
 	// Draw a white rectangle around the currently highlighted grid tile
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-	SDL_RenderDrawRect(renderer, &hoveredTileRect);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+	SDL_RenderDrawRect(renderer->renderer, &hoveredTileRect);
+	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 
 	// Draw the object or tile that will be placed here, if any
 	if (objectPreview != nullptr && objectPreview->GetSprite() != nullptr)
 	{	
 		if (GetModeDebug())
 		{
-			SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+			SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
 			if (!objectPreview->CanSpawnHere(Vector2(hoveredTileRect.x, hoveredTileRect.y), *game, false))
-				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 128);
+				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 128);
 			else
-				SDL_SetRenderDrawColor(renderer, 0, 255, 0, 128);
+				SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 128);
 
-			SDL_RenderFillRect(renderer, objectPreview->GetSprite()->GetRect());
-			SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
-			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+			SDL_RenderFillRect(renderer->renderer, objectPreview->GetSprite()->GetRect());
+			SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
+			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
 
 		objectPreview->GetSprite()->Render(Vector2(hoveredTileRect.x, hoveredTileRect.y), 0, -1, SDL_FLIP_NONE, renderer, 0);
 
 		if (placingDoor && currentDoor != nullptr)
 		{
-			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 
 			Vector2 doorCenter = currentDoor->GetCenter();
 			Vector2 doorPos = currentDoor->GetPosition() + doorCenter - game->camera;
-			SDL_RenderDrawLine(renderer, doorPos.x, doorPos.y, hoveredTileRect.x + doorCenter.x, hoveredTileRect.y + doorCenter.y);
+			SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, hoveredTileRect.x + doorCenter.x, hoveredTileRect.y + doorCenter.y);
 
-			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
 	}
 
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
 		if (game->entities[i]->etype == "door")
@@ -598,19 +615,19 @@ void Editor::Render(SDL_Renderer* renderer)
 				destPos = destPos - game->camera;
 				Vector2 doorCenter = door->GetCenter();
 				Vector2 doorPos = door->GetPosition() + doorCenter - game->camera;
-				SDL_RenderDrawLine(renderer, doorPos.x, doorPos.y, destPos.x + doorCenter.x, destPos.y + doorCenter.y);
+				SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, destPos.x + doorCenter.x, destPos.y + doorCenter.y);
 			}	
 		}
 	}
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 
 	// Draw the tilesheet
-	SDL_RenderCopy(renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
+	SDL_RenderCopy(renderer->renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
 
 	// Draw a yellow rectangle around the currently selected tileset tile
-	SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
-	SDL_RenderDrawRect(renderer, &selectedRect);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
+	SDL_RenderDrawRect(renderer->renderer, &selectedRect);
+	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 
 	// Draw text
 	currentEditModeLayer->Render(renderer);
@@ -627,9 +644,15 @@ void Editor::Render(SDL_Renderer* renderer)
 	{
 		layerButtons[i]->Render(renderer);
 	}
+
+	// Draw all layer visible buttons
+	for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
+	{
+		layerVisibleButtons[i]->Render(renderer);
+	}
 }
 
-void Editor::SetText(string newText, SDL_Renderer* renderer)
+void Editor::SetText(string newText)
 {
 	//TODO: Check what to do here to avoid memory leaks
 	//if (textSurface != nullptr)

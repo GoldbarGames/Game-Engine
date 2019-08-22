@@ -3,8 +3,10 @@
 #include "Vector2.h"
 #include "Timer.h"
 
+
 class Door;
 class Ladder;
+class Renderer;
 
 class Player : public PhysicsEntity
 {
@@ -26,7 +28,7 @@ public:
 	~Player();
 	void Update(Game& game);
 	void UpdatePhysics(Game& game);
-	void Render(SDL_Renderer * renderer, Vector2 cameraOffset);
+	void Render(Renderer * renderer, Vector2 cameraOffset);
 	void CheckCollisions(Game& game);
 	void ResetPosition();
 	void CalculateCollider(Vector2 cameraOffset);

@@ -14,7 +14,7 @@ public:
 	int selectedButtonIndex = 0;
 	MenuScreen(std::string n, Game& game);
 	~MenuScreen();
-	void Render(SDL_Renderer* renderer);
+	void Render(Renderer* renderer);
 	int Update();
 	bool PressSelectedButton(Game& game);
 };

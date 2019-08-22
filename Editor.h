@@ -17,6 +17,7 @@ using std::string;
 class Door;
 class Entity;
 class Ladder;
+class Renderer;
 
 class Editor
 {
@@ -41,6 +42,7 @@ private:
 
 	std::vector<EditorButton*> buttons;
 	std::vector<EditorButton*> layerButtons;
+	std::vector<EditorButton*> layerVisibleButtons;
 
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;
@@ -65,8 +67,8 @@ public:
 	void HandleEdit();
 	void SaveLevel();
 	void LoadLevel(std::string levelName);
-	void Render(SDL_Renderer* renderer);
-	void SetText(string newText, SDL_Renderer* renderer);
+	void Render(Renderer* renderer);
+	void SetText(string newText);
 	DrawingLayer drawingLayer = BACK;
 	int tilesheetIndex = 0;
 	const string tilesheets[2] = { "housetiles5", "foresttiles" };

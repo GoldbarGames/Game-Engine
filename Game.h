@@ -21,6 +21,7 @@
 #include "Missile.h"
 #include "Door.h"
 #include "Ladder.h"
+#include "Renderer.h"
 
 using std::string;
 
@@ -62,7 +63,7 @@ private:
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
 public:
-	SDL_Renderer * renderer = nullptr;
+	Renderer * renderer = nullptr;
 	SpriteManager spriteManager;
 	TTF_Font* theFont = nullptr;
 	

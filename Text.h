@@ -5,10 +5,12 @@
 
 using std::string;
 
+class Renderer;
+
 class Text
 {
 private:
-	SDL_Renderer* renderer;
+	Renderer* renderer;
 	TTF_Font* font;
 public:
 	std::string txt = "";
@@ -16,10 +18,10 @@ public:
 	SDL_Surface* textSurface = nullptr;
 	SDL_Rect textWindowRect;
 	SDL_Rect textTextureRect;
-	Text(SDL_Renderer* newRenderer, TTF_Font* newFont);
+	Text(Renderer* newRenderer, TTF_Font* newFont);
 	~Text();
 	void SetText(string text);
-	void Render(SDL_Renderer* renderer);
+	void Render(Renderer* renderer);
 	void SetPosition(float x, float y);
 	void SetFont(TTF_Font* newFont);
 };

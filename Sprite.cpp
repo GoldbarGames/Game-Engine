@@ -1,12 +1,13 @@
 #include "Sprite.h"
 #include "globals.h"
+#include "Renderer.h"
 
 using std::string;
 
 // constructor for tiles from tilesheets
-Sprite::Sprite(Vector2 frame, SDL_Surface * image, SDL_Renderer * renderer)
+Sprite::Sprite(Vector2 frame, SDL_Surface * image, Renderer * renderer)
 {
-	texture = SDL_CreateTextureFromSurface(renderer, image);
+	texture = renderer->CreateTextureFromSurface(image);
 
 	// this converts from human coords to pixel coords
 	Vector2 currentFrame = Vector2((frame.x - 1) * TILE_SIZE, (frame.y - 1) * TILE_SIZE);
@@ -24,9 +25,9 @@ Sprite::Sprite(Vector2 frame, SDL_Surface * image, SDL_Renderer * renderer)
 	textureRect.h = TILE_SIZE;
 }
 
-Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, SDL_Renderer * renderer, Vector2 newPivot)
+Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, Renderer * renderer, Vector2 newPivot)
 {
-	texture = SDL_CreateTextureFromSurface(renderer, manager.GetImage(filepath));
+	texture = renderer->CreateTextureFromSurface(manager.GetImage(filepath));
 
 	pivot = newPivot;
 
@@ -56,9 +57,9 @@ Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, SDL_
 }
 
 Sprite::Sprite(int start, int end, int numFrames, SpriteManager& manager, 
-	std::string filepath, SDL_Renderer * renderer, Vector2 newPivot, bool loop)
+	std::string filepath, Renderer * renderer, Vector2 newPivot, bool loop)
 {
-	texture = SDL_CreateTextureFromSurface(renderer, manager.GetImage(filepath));
+	texture = renderer->CreateTextureFromSurface(manager.GetImage(filepath));
 
 	pivot = newPivot;
 
@@ -116,7 +117,7 @@ void Sprite::Animate(int msPerFrame, Uint32 time)
 	}
 }
 
-void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, SDL_Renderer * renderer, float angle)
+void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, float angle)
 {
 	windowRect.x = position.x;
 	windowRect.y = position.y;
@@ -130,7 +131,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 		const SDL_Point point = SDL_Point{ (int)pivot.x, (int)pivot.y };
 
-		SDL_RenderCopyEx(renderer, texture, &textureRect, &windowRect, angle, &point, flip);
+		renderer->RenderCopyEx(texture, &textureRect, &windowRect, angle, &point, flip);
 	}
 }
 

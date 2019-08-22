@@ -61,7 +61,7 @@ void Missile::UpdatePhysics(Game& game)
 	}
 }
 
-void Missile::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
+void Missile::Render(Renderer * renderer, Vector2 cameraOffset)
 {
 	if (currentSprite != nullptr)
 	{
@@ -84,17 +84,17 @@ void Missile::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
 		if (GetModeDebug())
 		{
 			if (impassable)
-				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
 			else
-				SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+				SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 255);
 
-			SDL_RenderDrawRect(renderer, currentSprite->GetRect());
+			SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
 
-			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 			CalculateCollider(cameraOffset); //TODO: better way than calculating this twice?
 
-			SDL_RenderDrawRect(renderer, collisionBounds);
-			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+			SDL_RenderDrawRect(renderer->renderer, collisionBounds);
+			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
 	}
 }

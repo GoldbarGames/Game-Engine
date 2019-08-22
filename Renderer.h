@@ -1,0 +1,25 @@
+#pragma once
+#include "SDL.h"
+#include "SDL_image.h"
+#include <unordered_map>
+#include "globals.h"
+
+class Renderer
+{
+private:
+	std::unordered_map<std::string, bool> layersVisible;
+public:
+	SDL_Renderer * renderer;
+	int RenderCopy(SDL_Texture* texture, const SDL_Rect* srcrect, const SDL_Rect* dstrect);
+
+	int RenderCopyEx(SDL_Texture* texture, const SDL_Rect* srcrect, const SDL_Rect* dstrect,
+		const double angle, const SDL_Point* center, const SDL_RendererFlip flip);
+
+	SDL_Texture* CreateTextureFromSurface(SDL_Surface* surface);
+
+	void ToggleVisibility(std::string layer);
+	bool IsVisible(DrawingLayer layer);
+
+	Renderer();
+	~Renderer();
+};

@@ -1,6 +1,7 @@
 #include "Entity.h"
 #include "debug_state.h"
 #include <iostream>
+#include "Renderer.h"
 
 unsigned int Entity::nextValidID = 0;
 
@@ -79,23 +80,23 @@ void Entity::SetAnimator(Animator * anim)
 	anim->DoState(this);
 }
 
-void Entity::RenderDebug(SDL_Renderer * renderer, Vector2 cameraOffset)
+void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 {
 	if (GetModeDebug() && currentSprite != nullptr)
 	{
-		if (layer == DrawingLayer::COLLISION && impassable)
-			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+		if (impassable)
+			SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
 		else
-			SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+			SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 255);
 
-		SDL_RenderDrawRect(renderer, currentSprite->GetRect());
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
+		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
 }
 
-void Entity::Render(SDL_Renderer * renderer, Vector2 cameraOffset)
+void Entity::Render(Renderer * renderer, Vector2 cameraOffset)
 {
-	if (currentSprite != nullptr)
+	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)
 			currentSprite->Render(position - cameraOffset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
