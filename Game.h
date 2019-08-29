@@ -51,6 +51,7 @@ private:
 	bool limitFPS = false;
 
 	std::unordered_map<std::string, MenuScreen*> allMenus;
+	std::unordered_map<int, std::string> spriteMap;
 
 	Uint32 lastPressedKeyTicks = 0;
 
@@ -74,6 +75,8 @@ public:
 
 	bool quit = false;
 
+	std::string currentLevel = "";
+
 	Editor* editor = nullptr;
 	SDL_Window* window = nullptr;
 	Player* player = nullptr;
@@ -84,6 +87,7 @@ public:
 
 	std::vector<Entity*> entities;
 	void ShouldDeleteEntity(int index);
+	void ShouldDeleteEntity(Entity* entity);
 
 	Game();
 	~Game();
@@ -101,8 +105,8 @@ public:
 	Background* SpawnBackground(Vector2 pos);
 	bool SpawnMissile(Vector2 position, Vector2 velocity, float angle);
 
-	Door* CreateDoor(Vector2 position); // returns the Door entity with default parameters
-	Door* SpawnDoor(Vector2 position); // only returns Door if it can be spawned succesfully in-game, else null
+	Door* CreateDoor(Vector2 position, int spriteIndex); // returns the Door entity with default parameters
+	Door* SpawnDoor(Vector2 position, int spriteIndex=0); // only returns Door if it can be spawned succesfully in-game, else null
 
 	Ladder* CreateLadder(Vector2 position);
 	Ladder* SpawnLadder(Vector2 position);

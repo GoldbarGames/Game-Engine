@@ -47,6 +47,8 @@ private:
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;
 
+	int spriteMapIndex = 0;
+
 	std::unordered_map<std::string, Entity*> previewMap;
 
 	bool placingDoor = false;
@@ -77,6 +79,7 @@ public:
 	void ToggleLayer();
 	void ToggleTileset();
 	void ToggleObjectMode(std::string mode);
+	void ToggleSpriteMap();
 	void LeftClick(Vector2 clickedPosition, int mouseX, int mouseY);
 	void RightClick(Vector2 clickedPosition);
 	void SetLayer(DrawingLayer layer);

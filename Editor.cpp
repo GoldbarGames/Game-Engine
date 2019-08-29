@@ -20,7 +20,7 @@ Editor::Editor(Game& g)
 	cursorPosition->SetPosition(0, 50);
 
 	previewMap["tile"] = nullptr;
-	previewMap["door"] = game->CreateDoor(Vector2(0,0));
+	previewMap["door"] = game->CreateDoor(Vector2(0,0), spriteMapIndex);
 	previewMap["ladder"] = game->CreateLadder(Vector2(0, 0));
 
 	game->entities.clear();
@@ -172,7 +172,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 			game->renderer->ToggleVisibility(clickedLayerVisibleButton);
 		}
 	}
-	else // we clicked somewhere in the game world, so place a tile/object
+	else if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT))) // we clicked somewhere in the game world, so place a tile/object
 	{
 		clickedPosition += game->camera;
 
@@ -222,7 +222,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 					if (!placingDoor)
 					{
 						std::cout << "trying to spawn entrance" << std::endl;
-						currentDoor = game->SpawnDoor(Vector2(mouseX, mouseY));
+						currentDoor = game->SpawnDoor(Vector2(mouseX, mouseY), spriteMapIndex);
 						if (currentDoor != nullptr)
 						{
 							std::cout << "placing door set true" << std::endl;
@@ -234,7 +234,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 					else
 					{
 						std::cout << "trying to spawn destination" << std::endl;
-						Door* destination = game->SpawnDoor(Vector2(mouseX, mouseY));
+						Door* destination = game->SpawnDoor(Vector2(mouseX, mouseY), spriteMapIndex);
 						if (destination != nullptr)
 						{
 							std::cout << "placing door set false" << std::endl;
@@ -481,6 +481,23 @@ void Editor::ClickedButton(string buttonName)
 	}	
 }
 
+void Editor::ToggleSpriteMap()
+{
+	spriteMapIndex++;
+	//TODO: Make this better
+	if (spriteMapIndex > 2)
+		spriteMapIndex = 0;
+
+	// Update the preview sprites accordingly
+	if (objectMode == "door")
+	{
+		delete previewMap["door"];
+		previewMap["door"] = game->CreateDoor(Vector2(0, 0), spriteMapIndex);		
+	}
+
+	objectPreview = previewMap[objectMode];
+}
+
 
 void Editor::ClickedLayerButton(string buttonText)
 {
@@ -588,7 +605,8 @@ void Editor::Render(Renderer* renderer)
 			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
 
-		objectPreview->GetSprite()->Render(Vector2(hoveredTileRect.x, hoveredTileRect.y), 0, -1, SDL_FLIP_NONE, renderer, 0);
+		objectPreview->GetSprite()->Render(Vector2(hoveredTileRect.x, hoveredTileRect.y),
+			0, -1, SDL_FLIP_NONE, renderer, 0);
 
 		if (placingDoor && currentDoor != nullptr)
 		{
@@ -666,14 +684,16 @@ void Editor::SetText(string newText)
 void Editor::SaveLevel()
 {
 	std::ofstream fout;
-	fout.open("data/level.wdk");
+	fout.open("data/" + game->currentLevel + ".wdk");
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
 		if (game->entities[i]->etype == "tile")
 		{
-			fout << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
-				" " << (game->entities[i]->GetPosition().y / SCALE) << " " << game->entities[i]->drawOrder <<
+			float x = game->entities[i]->GetPosition().x / SCALE;
+			float y = game->entities[i]->GetPosition().y / SCALE;
+			fout << game->entities[i]->etype << " " << (x) <<
+				" " << (y) << " " << game->entities[i]->drawOrder <<
 				" " << game->entities[i]->layer << " " << game->entities[i]->impassable << 
 				" " << game->entities[i]->tilesheetIndex << " " << game->entities[i]->tileCoordinates.x << 
 				" " << game->entities[i]->tileCoordinates.y << "" << std::endl;

@@ -12,6 +12,11 @@ Game::Game()
 {
 	InitSDL();
 
+	// Initialize the sprite map (do this BEFORE the editor)
+	spriteMap[0] = "assets/sprites/objects/door1.png";
+	spriteMap[1] = "assets/sprites/objects/door_house.png";
+	spriteMap[2] = "assets/sprites/objects/door_house_outside.png";
+
 	editor = new Editor(*this);
 
 	// Initialize the font before all text
@@ -152,7 +157,7 @@ Ladder* Game::SpawnLadder(Vector2 position)
 	return newLadder;
 }
 
-Door* Game::CreateDoor(Vector2 position)
+Door* Game::CreateDoor(Vector2 position, int spriteIndex)
 {
 	Door* newDoor = new Door(position, Vector2(0, 0));
 
@@ -160,19 +165,19 @@ Door* Game::CreateDoor(Vector2 position)
 	Animator* anim = new Animator("door", "closed");
 
 	Vector2 pivotPoint = Vector2(0, 0);
-	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, "assets/sprites/objects/door1.png", renderer, pivotPoint));
-	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, "assets/sprites/objects/door1.png", renderer, pivotPoint));
+	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, spriteMap[spriteIndex], renderer, pivotPoint));
+	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, spriteMap[spriteIndex], renderer, pivotPoint));
 
 	newDoor->SetAnimator(anim);
 
 	return newDoor;
 }
 
-Door* Game::SpawnDoor(Vector2 position) // maybe pass in the tileset number for the door?
+Door* Game::SpawnDoor(Vector2 position, int spriteIndex) // maybe pass in the tileset number for the door?
 {
 	Vector2 snappedPosition = SnapToGrid(position);
 
-	Door* newDoor = CreateDoor(snappedPosition);
+	Door* newDoor = CreateDoor(snappedPosition, spriteIndex);
 
 	if (!newDoor->CanSpawnHere(snappedPosition, *this))
 	{
@@ -233,8 +238,8 @@ void Game::SpawnPerson(Vector2 position)
 
 Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer)
 {
-	int newTileX = position.x + camera.x - ((int)(position.x ) % (TILE_SIZE * SCALE));
-	int newTileY = position.y + camera.y - ((int)(position.y ) % (TILE_SIZE * SCALE));
+	int newTileX = position.x + (int)(camera.x) - ((int)(position.x ) % (TILE_SIZE * SCALE));
+	int newTileY = position.y + (int)(camera.y) - ((int)(position.y ) % (TILE_SIZE * SCALE));
 
 	//Sprite* tileSprite = new Sprite(Vector2(newTileX, newTileY), spriteManager.GetImage(tilesheet), renderer);
 	Tile* tile = new Tile(Vector2(newTileX, newTileY), frame, spriteManager.GetImage(tilesheet), renderer);
@@ -309,6 +314,13 @@ void Game::ShouldDeleteEntity(int index)
 	entities[index]->shouldDelete = true;
 }
 
+void Game::ShouldDeleteEntity(Entity* entity)
+{
+	//std::vector<Entity*>::iterator index = std::find(entities.begin(), entities.end(), entity);
+	//if (index != entities.end()) // means the element was not found
+	//	index->shouldDelete = true;
+}
+
 void Game::DeleteEntity(Entity* entity)
 {
 	std::vector<Entity*>::iterator index = std::find(entities.begin(), entities.end(), entity);
@@ -327,6 +339,7 @@ void Game::PlayLevel(string gameName, string levelName)
 {
 	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
 
+	currentLevel = levelName;
 	editor->LoadLevel(levelName);
 
 	MainLoop();
@@ -597,6 +610,10 @@ bool Game::HandleEvent(SDL_Event& event)
 			if (GetModeEdit())
 				editor->ToggleTileset();
 			break;
+		case SDLK_5:
+			if (GetModeEdit())
+				editor->ToggleSpriteMap();
+			break;
 		case SDLK_9:
 			if (GetModeEdit())
 				editor->SaveLevel();
@@ -655,6 +672,7 @@ void Game::Render()
 		{
 			for (int y = 0; y < 100; y++)
 			{
+				//TODO: Change this from TILE_SIZE to GRID_SIZE
 				SDL_Rect rect;
 				rect.x = x * TILE_SIZE * SCALE;
 				rect.y = y * TILE_SIZE * SCALE;	
