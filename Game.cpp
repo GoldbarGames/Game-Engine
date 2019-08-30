@@ -132,8 +132,8 @@ Ladder* Game::CreateLadder(Vector2 position)
 
 Vector2 Game::SnapToGrid(Vector2 position)
 {
-	int x = position.x + camera.x - ((int)(position.x) % (TILE_SIZE * SCALE));
-	int y = position.y + camera.y - ((int)(position.y) % (TILE_SIZE * SCALE));
+	int x = position.x + camera.x - ((int)(position.x) % (editor->GRID_SIZE * SCALE));
+	int y = position.y + camera.y - ((int)(position.y) % (editor->GRID_SIZE * SCALE));
 	return Vector2(x, y);
 }
 
@@ -238,8 +238,8 @@ void Game::SpawnPerson(Vector2 position)
 
 Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer)
 {
-	int newTileX = position.x + (int)(camera.x) - ((int)(position.x ) % (TILE_SIZE * SCALE));
-	int newTileY = position.y + (int)(camera.y) - ((int)(position.y ) % (TILE_SIZE * SCALE));
+	int newTileX = position.x + (int)(camera.x);
+	int newTileY = position.y + (int)(camera.y);
 
 	//Sprite* tileSprite = new Sprite(Vector2(newTileX, newTileY), spriteManager.GetImage(tilesheet), renderer);
 	Tile* tile = new Tile(Vector2(newTileX, newTileY), frame, spriteManager.GetImage(tilesheet), renderer);
@@ -489,21 +489,21 @@ void Game::HandleEditMode()
 
 	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
 	{
-		camera.y -= (TILE_SIZE * SCALE);
+		camera.y -= (editor->GRID_SIZE * SCALE);
 	}
 	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
 	{
-		camera.y += (TILE_SIZE * SCALE);
+		camera.y += (editor->GRID_SIZE * SCALE);
 	}
 
 	if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
 	{
-		camera.x -= (TILE_SIZE * SCALE);
+		camera.x -= (editor->GRID_SIZE * SCALE);
 
 	}
 	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
 	{
-		camera.x += (TILE_SIZE * SCALE);
+		camera.x += (editor->GRID_SIZE * SCALE);
 	}
 
 	editor->HandleEdit();
@@ -593,8 +593,8 @@ bool Game::HandleEvent(SDL_Event& event)
 			SetModeEdit(!GetModeEdit());
 			if (GetModeEdit())
 			{
-				camera.x = camera.x - ((int)camera.x % (TILE_SIZE * SCALE));
-				camera.y = camera.y - ((int)camera.y % (TILE_SIZE * SCALE));
+				camera.x = camera.x - ((int)camera.x % (editor->GRID_SIZE * SCALE));
+				camera.y = camera.y - ((int)camera.y % (editor->GRID_SIZE * SCALE));
 				editor->StartEdit();
 			}
 			else
@@ -604,7 +604,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			break;
 		case SDLK_3: // toggle drawing layers
 			if (GetModeEdit())
-				editor->ToggleLayer();
+				editor->ToggleGridSize();
 			break;
 		case SDLK_4:
 			if (GetModeEdit())
@@ -667,19 +667,7 @@ void Game::Render()
 	// Render editor grid
 	if (GetModeEdit())
 	{
-		SDL_SetRenderDrawColor(renderer->renderer, 64, 64, 64, 64);
-		for (int x = 0; x < 100; x++)
-		{
-			for (int y = 0; y < 100; y++)
-			{
-				//TODO: Change this from TILE_SIZE to GRID_SIZE
-				SDL_Rect rect;
-				rect.x = x * TILE_SIZE * SCALE;
-				rect.y = y * TILE_SIZE * SCALE;	
-				SDL_RenderDrawRect(renderer->renderer, &rect);
-			}
-		}
-		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+		editor->DrawGrid();
 	}
 
 	// Render all entities

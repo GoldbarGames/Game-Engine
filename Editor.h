@@ -54,7 +54,10 @@ private:
 	bool placingDoor = false;
 	bool placingLadder = false;
 
+	
+
 public:
+	int GRID_SIZE = 24;
 	Text* currentEditModeLayer = nullptr;
 	Text* cursorPosition = nullptr;
 
@@ -76,7 +79,7 @@ public:
 	const string tilesheets[2] = { "housetiles5", "foresttiles" };
 	void ClickedButton(std::string buttonName);
 	void ClickedLayerButton(std::string buttonText);
-	void ToggleLayer();
+	void ToggleGridSize();
 	void ToggleTileset();
 	void ToggleObjectMode(std::string mode);
 	void ToggleSpriteMap();
@@ -84,5 +87,6 @@ public:
 	void RightClick(Vector2 clickedPosition);
 	void SetLayer(DrawingLayer layer);
 	void DestroyLadder(std::string startingState, Vector2 lastPosition);
+	void DrawGrid();
 };
 

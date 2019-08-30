@@ -172,7 +172,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 			game->renderer->ToggleVisibility(clickedLayerVisibleButton);
 		}
 	}
-	else if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT))) // we clicked somewhere in the game world, so place a tile/object
+	else // we clicked somewhere in the game world, so place a tile/object
 	{
 		clickedPosition += game->camera;
 
@@ -294,28 +294,28 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 								if (ladderGoesUp)
 								{
 									//TODO: Connect the two edges by spawning the middle parts
-									mouseY += TILE_SIZE * SCALE;
+									mouseY += GRID_SIZE * SCALE;
 
 									int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
 									while (snappedY < currentLadder->GetPosition().y)
 									{
 										game->SpawnLadder(Vector2(mouseX, mouseY));
-										mouseY += TILE_SIZE * SCALE;
+										mouseY += GRID_SIZE * SCALE;
 										snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 									}
 								}
 								else
 								{
 									//TODO: Connect the two edges by spawning the middle parts
-									mouseY -= TILE_SIZE * SCALE;
+									mouseY -= GRID_SIZE * SCALE;
 
 									int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
 									while (snappedY > currentLadder->GetPosition().y)
 									{
 										game->SpawnLadder(Vector2(mouseX, mouseY));
-										mouseY -= TILE_SIZE * SCALE;
+										mouseY -= GRID_SIZE * SCALE;
 										snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 									}
 								}
@@ -328,8 +328,6 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 					}
 				}
 			}
-
-
 		}
 	}
 }
@@ -411,9 +409,9 @@ void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
 		// otherwise, we are done, and can exit the loop
 
 		if (startingState == "top")
-			lastPosition.y += TILE_SIZE * SCALE;
+			lastPosition.y += GRID_SIZE * SCALE;
 		else if (startingState == "bottom")
-			lastPosition.y -= TILE_SIZE * SCALE;
+			lastPosition.y -= GRID_SIZE * SCALE;
 
 		exit = true;
 
@@ -437,8 +435,8 @@ void Editor::HandleEdit()
 
 	const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
-	int clickedX = mouseX - ((int)mouseX % (TILE_SIZE * SCALE));
-	int clickedY = mouseY - ((int)mouseY % (TILE_SIZE * SCALE));
+	int clickedX = mouseX - ((int)mouseX % (GRID_SIZE * SCALE));
+	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE * SCALE));
 
 	Vector2 clickedPosition(clickedX, clickedY);
 
@@ -469,7 +467,7 @@ void Editor::ClickedButton(string buttonName)
 	}
 	else if (buttonName == "Layer")
 	{
-		ToggleLayer();
+		ToggleGridSize();
 	}
 	else if (buttonName == "Door")
 	{
@@ -542,30 +540,12 @@ void Editor::ToggleObjectMode(std::string mode)
 	}
 }
 
-void Editor::ToggleLayer()
+void Editor::ToggleGridSize()
 {
-	switch (drawingLayer)
-	{
-	case BACK:
-		drawingLayer = MIDDLE;
-		break;
-	case MIDDLE:
-		drawingLayer = OBJECT;
-		break;
-	case OBJECT:
-		drawingLayer = COLLISION;
-		break;
-	case COLLISION:
-		drawingLayer = FRONT;
-		break;
-	case FRONT:
-		drawingLayer = BACK;
-		break;
-	default:
-		return;
-	}
-	
-	SetLayer(drawingLayer);
+	if (GRID_SIZE == 24)
+		GRID_SIZE = 12;
+	else
+		GRID_SIZE = 24;
 }
 
 void Editor::SetLayer(DrawingLayer layer)
@@ -580,6 +560,22 @@ void Editor::ToggleTileset()
 	if (tilesheetIndex > 1)
 		tilesheetIndex = 0;
 	StartEdit();
+}
+
+void Editor::DrawGrid()
+{
+	SDL_SetRenderDrawColor(game->renderer->renderer, 64, 64, 64, 64);
+	for (int x = 0; x < 100; x++)
+	{
+		for (int y = 0; y < 100; y++)
+		{
+			SDL_Rect rect;
+			rect.x = x * GRID_SIZE * SCALE;
+			rect.y = y * GRID_SIZE * SCALE;
+			SDL_RenderDrawRect(game->renderer->renderer, &rect);
+		}
+	}
+	SDL_SetRenderDrawColor(game->renderer->renderer, 0, 0, 0, 255);
 }
 
 void Editor::Render(Renderer* renderer)

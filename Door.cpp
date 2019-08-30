@@ -71,14 +71,14 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 
 	SDL_Rect tileBelowMyBoundsLeft = myBounds;
 	tileBelowMyBoundsLeft.y += myBounds.h;
-	tileBelowMyBoundsLeft.w = TILE_SIZE * SCALE;
-	tileBelowMyBoundsLeft.h = TILE_SIZE * SCALE;
+	tileBelowMyBoundsLeft.w = game.editor->GRID_SIZE * SCALE;
+	tileBelowMyBoundsLeft.h = game.editor->GRID_SIZE * SCALE;
 
 	SDL_Rect tileBelowMyBoundsRight = myBounds;
-	tileBelowMyBoundsRight.x += TILE_SIZE * SCALE;
+	tileBelowMyBoundsRight.x += game.editor->GRID_SIZE * SCALE;
 	tileBelowMyBoundsRight.y += myBounds.h;
-	tileBelowMyBoundsRight.w = TILE_SIZE * SCALE;
-	tileBelowMyBoundsRight.h = TILE_SIZE * SCALE;
+	tileBelowMyBoundsRight.w = game.editor->GRID_SIZE * SCALE;
+	tileBelowMyBoundsRight.h = game.editor->GRID_SIZE * SCALE;
 
 	bool hasGroundLeft = false;
 	bool hasGroundRight = false;

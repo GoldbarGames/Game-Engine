@@ -244,6 +244,9 @@ void Player::CheckCollisions(Game& game)
 	SDL_Rect newBoundsVertical = myBounds;
 	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
 
+	SDL_Rect floorBounds = newBoundsVertical;
+	floorBounds.h += (int)(newBoundsVertical.h * 0.25f);
+
 	// this needs to be here so that it does not check for horizontal collision when moving vertically
 	if (velocity.x > 0)
 	{
@@ -286,9 +289,10 @@ void Player::CheckCollisions(Game& game)
 				{
 					horizontalCollision = true;
 					velocity.x = 0;
-				}
+				}		
 
-				if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
+				// checks the ground (using a rect that is a little bit larger
+				if (!verticalCollision && SDL_HasIntersection(&floorBounds, theirBounds))
 				{
 					verticalCollision = true;
 					CheckCollisionTrigger(game.entities[i]);
@@ -301,12 +305,17 @@ void Player::CheckCollisions(Game& game)
 
 						// this needs to be here to fix the collision with the ground
 						if (position.y + myBounds.h > theirBounds->y + theirBounds->h + 1)
-							position.y -= newBoundsVertical.y + newBoundsVertical.h - theirBounds->y - 1;
-					}
-					
-					
+							position.y -= floorBounds.y + floorBounds.h - theirBounds->y - 1;
 
-					velocity.y = 0;
+						velocity.y = 0;
+					}
+				}
+
+				// checks the ceiling
+				if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
+				{
+					verticalCollision = true;
+					CheckCollisionTrigger(game.entities[i]);
 				}
 			}
 			else if (game.entities[i]->trigger)
