@@ -107,10 +107,7 @@ void Editor::StartEdit()
 
 void Editor::StopEdit()
 {
-	SDL_DestroyTexture(toolboxTexture);
-	//SDL_DestroyRenderer(rendererToolbox);
-	//SDL_DestroyWindow(toolbox);
-	//toolbox = nullptr;
+
 }
 
 void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)

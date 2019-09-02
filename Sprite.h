@@ -29,7 +29,6 @@ public:
 	Vector2 pivot = Vector2(0, 0);
 	std::string filename = "";
 	SDL_Rect windowRect;
-	void Destroy();
 	const SDL_Rect* GetRect();
 	void Animate(int msPerFrame, Uint32 time);
 	void Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer* renderer, float angle=0);

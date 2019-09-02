@@ -91,12 +91,6 @@ Sprite::Sprite(int start, int end, int numFrames, SpriteManager* manager,
 
 Sprite::~Sprite()
 {
-	Destroy();
-}
-
-void Sprite::Destroy()
-{
-	SDL_DestroyTexture(texture);
 }
 
 void Sprite::Animate(int msPerFrame, Uint32 time)
