@@ -81,7 +81,6 @@ void Player::Update(Game& game)
 		UpdatePhysics(game);
 	}
 	
-
 	if (animator != nullptr)
 		animator->Update(this);
 }
@@ -224,182 +223,7 @@ void Player::UpdatePhysics(Game& game)
 	CheckCollisions(game);
 }
 
-void Player::CheckCollisions(Game& game)
-{
-	// copy this frame into previous frame list (could be done at beginning or end)
-	prevFrameCollisions = thisFrameCollisions;
-	thisFrameCollisions.clear();
 
-	CalculateCollider(game.camera);
-
-	bool horizontalCollision = false;
-	bool verticalCollision = false;
-
-	// Get bounds assuming the move is valid
-	SDL_Rect myBounds = *GetColliderBounds();
-
-	SDL_Rect newBoundsHorizontal = myBounds;
-	newBoundsHorizontal.x = myBounds.x + (velocity.x * game.dt);
-
-	SDL_Rect newBoundsVertical = myBounds;
-	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
-
-	SDL_Rect floorBounds = newBoundsVertical;
-	floorBounds.h += (int)(newBoundsVertical.h * 0.25f);
-
-	// this needs to be here so that it does not check for horizontal collision when moving vertically
-	if (velocity.x > 0)
-	{
-		newBoundsVertical.x -= 1;
-	}	
-	else if (velocity.x < 0)
-	{
-		newBoundsVertical.x += 1;
-		newBoundsHorizontal.x -= 1;
-	}
-	else
-	{
-		newBoundsVertical.x -= 1;
-	}
-	
-	// this needs to be here so that it does not check for vertical collision when moving horizontally
-	if (velocity.y > 0)
-	{
-		newBoundsHorizontal.y -= 1;
-	}
-	else if (velocity.y < 0)
-	{
-		newBoundsHorizontal.y += 1;
-	}
-		
-	animator->SetBool("isGrounded", false);
-
-	for (unsigned int i = 0; i < game.entities.size(); i++)
-	{
-		//if (horizontalCollision && verticalCollision)
-		//	break;
-
-		const SDL_Rect * theirBounds = game.entities[i]->GetBounds();
-
-		if (game.entities[i] != this)
-		{
-			if (game.entities[i]->impassable)
-			{
-				if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
-				{
-					horizontalCollision = true;
-					velocity.x = 0;
-				}		
-
-				// checks the ground (using a rect that is a little bit larger
-				if (!verticalCollision && SDL_HasIntersection(&floorBounds, theirBounds))
-				{
-					verticalCollision = true;
-					CheckCollisionTrigger(game.entities[i]);
-
-					// if colliding with ground, set velocity.y to zero
-					if (velocity.y > 0)
-					{
-						animator->SetBool("isGrounded", true);
-						jumpsRemaining = 2;
-
-						// this needs to be here to fix the collision with the ground
-						if (position.y + myBounds.h > theirBounds->y + theirBounds->h + 1)
-							position.y -= floorBounds.y + floorBounds.h - theirBounds->y - 1;
-
-						velocity.y = 0;
-					}
-				}
-
-				// checks the ceiling
-				if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
-				{
-					verticalCollision = true;
-					CheckCollisionTrigger(game.entities[i]);
-				}
-			}
-			else if (game.entities[i]->trigger)
-			{
-				if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
-				{
-					CheckCollisionTrigger(game.entities[i]);
-				}
-				else if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
-				{
-					CheckCollisionTrigger(game.entities[i]);
-				}
-			}
-
-		}
-	}
-
-	if (!horizontalCollision)
-	{
-		position.x += (velocity.x * game.dt);
-	}
-
-	if (!verticalCollision || animator->GetBool("onLadder"))
-	{
-		if (game.pressedJumpButton && jumpsRemaining > 0)
-		{
-			jumpsRemaining--;
-			game.jumpsRemainingText->SetText("Jumps Remaining: " + std::to_string(jumpsRemaining));
-		}
-
-		position.y += (velocity.y * game.dt);
-	}
-
-	// Now we go over the list
-	// If there was an entity in the collision list that we did not collide with this frame, then call OnTriggerExit
-	// (maybe have two lists? keep track of this frame and the previous one?)
-	for (int i = 0; i < prevFrameCollisions.size(); i++)
-	{
-		bool triggerExit = true;
-		for (int k = 0; k < thisFrameCollisions.size(); k++)
-		{
-			if (thisFrameCollisions[k] == prevFrameCollisions[i])
-			{
-				triggerExit = false;
-				break;
-			}
-		}
-
-		if (triggerExit && prevFrameCollisions[i] != nullptr)
-			prevFrameCollisions[i]->OnTriggerExit(this);
-	}
-
-
-}
-
-void Player::CheckCollisionTrigger(Entity* collidedEntity)
-{
-	// Each frame, when we are in this function, we check to see if the collided entity is in a list.
-	// If it is not, then we do OnTriggerEnter and add it to the list
-	// If it is in the list, then we do OnTriggerStay
-
-	if (collidedEntity->trigger)
-	{
-		bool collisionStay = false;
-		for (int i = 0; i < thisFrameCollisions.size(); i++)
-		{
-			if (thisFrameCollisions[i] == collidedEntity)
-			{
-				collisionStay = true;
-				break;
-			}
-		}
-		
-		if (collisionStay)
-		{
-			collidedEntity->OnTriggerStay(this);
-		}
-		else
-		{
-			collidedEntity->OnTriggerEnter(this);
-		}
-		thisFrameCollisions.emplace_back(collidedEntity);
-	}
-}
 
 void Player::ResetPosition()
 {
@@ -432,12 +256,21 @@ void Player::Render(Renderer * renderer, Vector2 cameraOffset)
 		Vector2 offset = collisionCenter - scaledPivot;
 
 		if (GetModeEdit())
-			offset -= cameraOffset;
-		
-		if (animator != nullptr)
-			currentSprite->Render(offset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
+		{
+			if (animator != nullptr)
+				currentSprite->Render(position - cameraOffset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
+			else
+				currentSprite->Render(position - cameraOffset, 0, -1, flip, renderer);
+		}
 		else
-			currentSprite->Render(offset, 0, -1, flip, renderer);
+		{
+			if (animator != nullptr)
+				currentSprite->Render(offset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
+			else
+				currentSprite->Render(offset, 0, -1, flip, renderer);
+		}		
+		
+		
 
 		if (GetModeDebug())
 		{
@@ -459,13 +292,3 @@ void Player::Render(Renderer * renderer, Vector2 cameraOffset)
 	previousPivot = entityPivot;
 }
 
-void Player::CalculateCollider(Vector2 cameraOffset)
-{
-	// set the collision bounds position to where the player actually is
-	collisionBounds->x = position.x + collider->x - cameraOffset.x;
-	collisionBounds->y = position.y + collider->y - cameraOffset.y;
-
-	// scale the bounds of the sprite by a number to set the collider's width and height
-	collisionBounds->w = startSpriteSize.x * colliderWidth;
-	collisionBounds->h = startSpriteSize.y * colliderHeight;
-}

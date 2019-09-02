@@ -5,7 +5,7 @@
 
 using std::string;
 
-Tile::Tile(Vector2 pos, Vector2 frame, SDL_Surface * image, Renderer * renderer) : Entity(pos)
+Tile::Tile(Vector2 pos, Vector2 frame, SDL_Texture * image, Renderer * renderer) : Entity(pos)
 {
 	currentSprite = new Sprite(frame, image, renderer);
 }

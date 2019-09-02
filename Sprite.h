@@ -34,9 +34,9 @@ public:
 	void Animate(int msPerFrame, Uint32 time);
 	void Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer* renderer, float angle=0);
 
-	Sprite(Vector2 frame, SDL_Surface * image, Renderer * renderer);
-	Sprite(int numFrames, SpriteManager& manager, std::string filepath, Renderer * renderer, Vector2 newPivot);
-	Sprite(int start, int end, int numFrames, SpriteManager& manager, std::string filepath, Renderer * renderer, Vector2 newPivot, bool loop=true);
+	Sprite(Vector2 frame, SDL_Texture * image, Renderer * renderer);
+	Sprite(int numFrames, SpriteManager* manager, std::string filepath, Renderer * renderer, Vector2 newPivot);
+	Sprite(int start, int end, int numFrames, SpriteManager* manager, std::string filepath, Renderer * renderer, Vector2 newPivot, bool loop=true);
 	~Sprite();
 };
 

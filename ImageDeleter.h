@@ -2,8 +2,8 @@
 
 struct ImageDeleter
 {
-	void operator()(SDL_Surface * surf)
+	void operator()(SDL_Texture * image)
 	{
-		SDL_FreeSurface(surf);
+		SDL_DestroyTexture(image);
 	}
 };

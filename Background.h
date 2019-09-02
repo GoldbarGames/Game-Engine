@@ -11,6 +11,6 @@ public:
 	Background(Vector2 pos);
 	~Background();
 	void Render(Renderer * renderer, Vector2 cameraOffset);
-	void AddLayer(SpriteManager& spriteManager, Renderer* renderer, std::string filepath, int drawOrder);
+	void AddLayer(SpriteManager* spriteManager, Renderer* renderer, std::string filepath, int drawOrder);
 };
 

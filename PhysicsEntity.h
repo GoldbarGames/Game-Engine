@@ -7,7 +7,9 @@ protected:
 	Vector2 velocity = Vector2(0, 0);
 	Vector2 acceleration = Vector2(0, 0);
 	float horizontalSpeed = 0.001f;
-
+	std::vector<Entity*> thisFrameCollisions;
+	std::vector<Entity*> prevFrameCollisions;
+	int jumpsRemaining = 2;
 public:
 
 	SDL_Rect* collider = nullptr;        // adjust the bounds this way
@@ -29,5 +31,9 @@ public:
 
 	void Pause(Uint32 ticks) override;
 	void Unpause(Uint32 ticks) override;
+
+	void CheckCollisions(Game& game);
+	void CalculateCollider(Vector2 cameraOffset);
+	void CheckCollisionTrigger(Entity* collidedEntity);
 };
 

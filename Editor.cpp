@@ -38,7 +38,7 @@ void Editor::StartEdit()
 
 	// TILE SHEET FOR TOOLBOX
 
-	toolboxTexture = game->renderer->CreateTextureFromSurface(game->spriteManager.GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png"));
+	toolboxTexture = game->spriteManager->GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png");
 	toolboxTextureRect.x = 0;
 	toolboxTextureRect.y = 0;
 
@@ -193,8 +193,13 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 			if (canPlaceTileHere)
 			{
+				int mod = (GRID_SIZE * SCALE);
+
+				int afterModX = ((int)(mouseX) % mod);
+				int afterModY = ((int)(mouseY) % mod);
+
 				game->SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
-					Vector2(mouseX, mouseY), drawingLayer);
+					Vector2(mouseX - afterModX, mouseY - afterModY), drawingLayer);
 				game->SortEntities(game->entities);
 			}
 		}
@@ -335,9 +340,6 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 void Editor::RightClick(Vector2 clickedPosition)
 {
 	clickedPosition += game->camera;
-
-	//TODO: Fix this
-	//clickedPosition.RoundToInt(); // with this line, cannot delete tiles from previous edit
 
 	int ladderIndex = -1;
 

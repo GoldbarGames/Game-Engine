@@ -65,7 +65,7 @@ private:
 	void DeleteEntity(int index);
 public:
 	Renderer * renderer = nullptr;
-	SpriteManager spriteManager;
+	SpriteManager* spriteManager = nullptr;
 	TTF_Font* theFont = nullptr;
 	
 	Text* jumpsRemainingText = nullptr;

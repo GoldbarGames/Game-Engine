@@ -21,7 +21,7 @@ void Background::Render(Renderer * renderer, Vector2 cameraOffset)
 	}
 }
 
-void Background::AddLayer(SpriteManager& spriteManager, Renderer* renderer, std::string filepath, int drawOrder)
+void Background::AddLayer(SpriteManager* spriteManager, Renderer* renderer, std::string filepath, int drawOrder)
 {
 	Sprite* layer = new Sprite(1, spriteManager, filepath, renderer, Vector2(0, 0));
 	Entity* bg = new BackgroundLayer(position);

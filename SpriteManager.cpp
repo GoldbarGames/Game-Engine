@@ -1,17 +1,21 @@
+#include "Renderer.h"
 #include "SpriteManager.h"
-#include "SDL.h"
-#include <SDL_image.h>
-#include <GL/glew.h>
 
-SpriteManager::SpriteManager()
+SpriteManager::SpriteManager(Renderer* r)
 {
-
+	renderer = r;
 }
 
-SDL_Surface* SpriteManager::GetImage(std::string const& imagePath)
+SDL_Texture* SpriteManager::GetImage(std::string const& imagePath)
 {
 	if (images[imagePath].get() == nullptr)
-		images[imagePath].reset(IMG_Load(imagePath.c_str()));
+	{
+		SDL_Surface * surface = IMG_Load(imagePath.c_str());
+		SDL_Texture * texture = renderer->CreateTextureFromSurface(surface);
+		images[imagePath].reset(texture);
+		SDL_FreeSurface(surface);
+	}
+		
 	return images[imagePath].get();
 }
 

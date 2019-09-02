@@ -21,8 +21,11 @@ Test::~Test()
 
 void Test::RunTest()
 {
+	/*
+
 	std::vector<std::string> names{ "assets/sprites/wdk_walk.png", "assets/bg/bg.png" };
 
+	
 	unordered_map<string, unique_ptr<SDL_Surface, ImageDeleter>> images;
 
 	for (auto name : names)
@@ -39,8 +42,11 @@ void Test::RunTest()
 			images[name] = move(img);
 		}
 	}
+	
 
 	cout << "Loaded " << images.size() << " Images" << endl;
+
+	*/
 }
 
 

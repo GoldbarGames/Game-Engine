@@ -5,9 +5,9 @@
 using std::string;
 
 // constructor for tiles from tilesheets
-Sprite::Sprite(Vector2 frame, SDL_Surface * image, Renderer * renderer)
+Sprite::Sprite(Vector2 frame, SDL_Texture * image, Renderer * renderer)
 {
-	texture = renderer->CreateTextureFromSurface(image);
+	texture = image;
 
 	// this converts from human coords to pixel coords
 	Vector2 currentFrame = Vector2((frame.x - 1) * TILE_SIZE, (frame.y - 1) * TILE_SIZE);
@@ -25,9 +25,9 @@ Sprite::Sprite(Vector2 frame, SDL_Surface * image, Renderer * renderer)
 	textureRect.h = TILE_SIZE;
 }
 
-Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, Renderer * renderer, Vector2 newPivot)
+Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath, Renderer * renderer, Vector2 newPivot)
 {
-	texture = renderer->CreateTextureFromSurface(manager.GetImage(filepath));
+	texture = manager->GetImage(filepath);
 
 	pivot = newPivot;
 
@@ -56,10 +56,10 @@ Sprite::Sprite(int numFrames, SpriteManager& manager, std::string filepath, Rend
 	textureRect.x = startFrame * textureRect.w;
 }
 
-Sprite::Sprite(int start, int end, int numFrames, SpriteManager& manager, 
+Sprite::Sprite(int start, int end, int numFrames, SpriteManager* manager, 
 	std::string filepath, Renderer * renderer, Vector2 newPivot, bool loop)
 {
-	texture = renderer->CreateTextureFromSurface(manager.GetImage(filepath));
+	texture = manager->GetImage(filepath);
 
 	pivot = newPivot;
 
@@ -91,7 +91,7 @@ Sprite::Sprite(int start, int end, int numFrames, SpriteManager& manager,
 
 Sprite::~Sprite()
 {
-	
+	Destroy();
 }
 
 void Sprite::Destroy()

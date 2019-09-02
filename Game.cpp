@@ -68,6 +68,8 @@ void Game::InitSDL()
 
 	renderer = new Renderer();
 	renderer->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
+
+	spriteManager = new SpriteManager(renderer);
 }
 
 void Game::EndSDL()
@@ -242,7 +244,7 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 	int newTileY = position.y + (int)(camera.y);
 
 	//Sprite* tileSprite = new Sprite(Vector2(newTileX, newTileY), spriteManager.GetImage(tilesheet), renderer);
-	Tile* tile = new Tile(Vector2(newTileX, newTileY), frame, spriteManager.GetImage(tilesheet), renderer);
+	Tile* tile = new Tile(Vector2(newTileX, newTileY), frame, spriteManager->GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION;
@@ -337,7 +339,7 @@ void Game::DeleteEntity(int index)
 
 void Game::PlayLevel(string gameName, string levelName)
 {
-	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
+	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));
 
 	currentLevel = levelName;
 	editor->LoadLevel(levelName);
@@ -347,7 +349,7 @@ void Game::PlayLevel(string gameName, string levelName)
 
 void Game::Play(string gameName)
 {
-	SDL_SetWindowIcon(window, spriteManager.GetImage("assets/gui/icon.png"));
+	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));
 
 	entities.reserve(5);
 
