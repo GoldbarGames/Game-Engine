@@ -141,6 +141,13 @@ Vector2 Game::SnapToGrid(Vector2 position)
 {
 	int x = position.x + camera.x - ((int)(position.x) % (editor->GRID_SIZE * SCALE));
 	int y = position.y + camera.y - ((int)(position.y) % (editor->GRID_SIZE * SCALE));
+
+	if (x % 2 != 0)
+		x++;
+
+	if (y % 2 != 0)
+		y++;
+
 	return Vector2(x, y);
 }
 
@@ -244,13 +251,26 @@ void Game::SpawnPerson(Vector2 position)
 	*/
 }
 
+Vector2 Game::CalcObjPos(Vector2 pos)
+{
+	int newTileX = pos.x + (int)(camera.x);
+	int newTileY = pos.y + (int)(camera.y);
+
+	if (newTileX % 2 != 0)
+		newTileX++;
+
+	if (newTileY % 2 != 0)
+		newTileY++;
+
+	return Vector2(newTileX, newTileY);
+}
+
 Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer)
 {
-	int newTileX = position.x + (int)(camera.x);
-	int newTileY = position.y + (int)(camera.y);
+	Vector2 newTilePos = CalcObjPos(position);
 
 	//Sprite* tileSprite = new Sprite(Vector2(newTileX, newTileY), spriteManager.GetImage(tilesheet), renderer);
-	Tile* tile = new Tile(Vector2(newTileX, newTileY), frame, spriteManager->GetImage(tilesheet), renderer);
+	Tile* tile = new Tile(newTilePos, frame, spriteManager->GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION;

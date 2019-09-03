@@ -335,15 +335,25 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 void Editor::RightClick(Vector2 clickedPosition)
 {
-	clickedPosition += game->camera;
+	clickedPosition.x += (int)game->camera.x;
+	clickedPosition.y += (int)game->camera.y;
 
 	int ladderIndex = -1;
 
 	for (int i = game->entities.size() - 1; i >= 0; i--)
 	{
+		Vector2 entityPosition = game->entities[i]->GetPosition().RoundToInt();
+		Vector2 clickedInt = clickedPosition.RoundToInt();
+
+		//
+
+		//TODO: Is there a better way than this?
 		if (game->entities[i]->etype == objectMode &&
 			game->entities[i]->layer == drawingLayer &&
-			game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt())
+			entityPosition.x >= clickedInt.x - 1 && 
+			entityPosition.x <= clickedInt.x + 1 &&
+			entityPosition.y >= clickedInt.y - 1 && 
+			entityPosition.y <= clickedInt.y + 1 )
 		{
 			if (game->entities[i]->etype == "door")
 			{
@@ -703,15 +713,19 @@ void Editor::SaveLevel()
 		else if (game->entities[i]->etype == "door")
 		{
 			Door* door = static_cast<Door*>(game->entities[i]);
-			fout << door->etype << " " << (door->GetPosition().x / SCALE) << " " <<
-				(door->GetPosition().y / SCALE) << " " << (door->GetDestination().x / SCALE) <<
+			Vector2 pos = door->GetPosition();//game->CalcObjPos();
+
+			fout << door->etype << " " << (pos.x / SCALE) << " " <<
+				(pos.y / SCALE) << " " << (door->GetDestination().x / SCALE) <<
 				" " << (door->GetDestination().y / SCALE) << " " << door->spriteIndex << "" << std::endl;
 		}
 		else if (game->entities[i]->etype == "ladder")
 		{
 			Ladder* ladder = static_cast<Ladder*>(game->entities[i]);
-			fout << ladder->etype << " "  << (ladder->GetPosition().x / SCALE) << " " <<
-				(ladder->GetPosition().y / SCALE) << " " << ladder->GetAnimator()->currentState 
+			Vector2 pos = ladder->GetPosition();//game->CalcObjPos();
+
+			fout << ladder->etype << " "  << (pos.x / SCALE) << " " <<
+				(pos.y / SCALE) << " " << ladder->GetAnimator()->currentState
 				<< " " << ladder->spriteIndex << "" << std::endl;
 		}
 		else

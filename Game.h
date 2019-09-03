@@ -113,7 +113,7 @@ public:
 	Ladder* SpawnLadder(Vector2 position, int spriteIndex=0);
 	
 	void PlayLevel(string gameName, string levelName);
-
+	Vector2 CalcObjPos(Vector2 pos);
 
 
 	Vector2 SnapToGrid(Vector2 position);
