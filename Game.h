@@ -51,7 +51,8 @@ private:
 	bool limitFPS = false;
 
 	std::unordered_map<std::string, MenuScreen*> allMenus;
-	std::unordered_map<int, std::string> spriteMap;
+	std::unordered_map<int, std::string> spriteMapDoor;
+	std::unordered_map<int, std::string> spriteMapLadder;
 
 	Uint32 lastPressedKeyTicks = 0;
 
@@ -108,8 +109,8 @@ public:
 	Door* CreateDoor(Vector2 position, int spriteIndex); // returns the Door entity with default parameters
 	Door* SpawnDoor(Vector2 position, int spriteIndex=0); // only returns Door if it can be spawned succesfully in-game, else null
 
-	Ladder* CreateLadder(Vector2 position);
-	Ladder* SpawnLadder(Vector2 position);
+	Ladder* CreateLadder(Vector2 position, int spriteIndex);
+	Ladder* SpawnLadder(Vector2 position, int spriteIndex=0);
 	
 	void PlayLevel(string gameName, string levelName);
 

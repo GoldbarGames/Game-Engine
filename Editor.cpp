@@ -21,7 +21,7 @@ Editor::Editor(Game& g)
 
 	previewMap["tile"] = nullptr;
 	previewMap["door"] = game->CreateDoor(Vector2(0,0), spriteMapIndex);
-	previewMap["ladder"] = game->CreateLadder(Vector2(0, 0));
+	previewMap["ladder"] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
 
 	game->entities.clear();
 }
@@ -256,14 +256,13 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 					if (!placingLadder)
 					{
 						std::cout << "trying to spawn ladder start" << std::endl;
-						currentLadder = game->SpawnLadder(Vector2(mouseX, mouseY));
+						currentLadder = game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
 						if (currentLadder != nullptr)
 						{
 							std::cout << "placing ladder set true" << std::endl;
 							placingLadder = true;
 							game->SortEntities(game->entities);
 						}
-
 					}
 					else
 					{
@@ -273,7 +272,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 						if (snappedPosition.x == currentLadder->GetPosition().x)
 						{
 							std::cout << "trying to spawn ladder end" << std::endl;
-							Ladder* ladderEnd = game->SpawnLadder(Vector2(mouseX, mouseY));
+							Ladder* ladderEnd = game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
 							if (ladderEnd != nullptr)
 							{
 								std::cout << "placing ladder set false" << std::endl;
@@ -295,28 +294,28 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 								if (ladderGoesUp)
 								{
-									//TODO: Connect the two edges by spawning the middle parts
+									// Connect the two edges by spawning the middle parts
 									mouseY += GRID_SIZE * SCALE;
 
 									int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
 									while (snappedY < currentLadder->GetPosition().y)
 									{
-										game->SpawnLadder(Vector2(mouseX, mouseY));
+										game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
 										mouseY += GRID_SIZE * SCALE;
 										snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 									}
 								}
 								else
 								{
-									//TODO: Connect the two edges by spawning the middle parts
+									// Connect the two edges by spawning the middle parts
 									mouseY -= GRID_SIZE * SCALE;
 
 									int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
 									while (snappedY > currentLadder->GetPosition().y)
 									{
-										game->SpawnLadder(Vector2(mouseX, mouseY));
+										game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
 										mouseY -= GRID_SIZE * SCALE;
 										snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 									}
@@ -480,16 +479,24 @@ void Editor::ClickedButton(string buttonName)
 
 void Editor::ToggleSpriteMap()
 {
-	spriteMapIndex++;
-	//TODO: Make this better
-	if (spriteMapIndex > 2)
-		spriteMapIndex = 0;
-
+	spriteMapIndex++; //TODO: Make this better, how to get length of each map?
+		
 	// Update the preview sprites accordingly
 	if (objectMode == "door")
 	{
+		if (spriteMapIndex > 2)
+			spriteMapIndex = 0;
+
 		delete previewMap["door"];
 		previewMap["door"] = game->CreateDoor(Vector2(0, 0), spriteMapIndex);		
+	}
+	else if (objectMode == "ladder")
+	{
+		if (spriteMapIndex > 2)
+			spriteMapIndex = 0;
+
+		delete previewMap["ladder"];
+		previewMap["ladder"] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
 	}
 
 	objectPreview = previewMap[objectMode];
@@ -698,14 +705,14 @@ void Editor::SaveLevel()
 			Door* door = static_cast<Door*>(game->entities[i]);
 			fout << door->etype << " " << (door->GetPosition().x / SCALE) << " " <<
 				(door->GetPosition().y / SCALE) << " " << (door->GetDestination().x / SCALE) <<
-				" " << (door->GetDestination().y / SCALE) << "" << std::endl;
+				" " << (door->GetDestination().y / SCALE) << " " << door->spriteIndex << "" << std::endl;
 		}
 		else if (game->entities[i]->etype == "ladder")
 		{
 			Ladder* ladder = static_cast<Ladder*>(game->entities[i]);
 			fout << ladder->etype << " "  << (ladder->GetPosition().x / SCALE) << " " <<
 				(ladder->GetPosition().y / SCALE) << " " << ladder->GetAnimator()->currentState 
-				<< "" << std::endl;
+				<< " " << ladder->spriteIndex << "" << std::endl;
 		}
 		else
 		{
@@ -759,14 +766,16 @@ void Editor::LoadLevel(std::string levelName)
 		}
 		else if (etype == "door")
 		{
-			Door* newDoor = game->SpawnDoor(Vector2(positionX * SCALE, positionY * SCALE));
+			int spriteIndex = std::stoi(tokens[5]);
+			Door* newDoor = game->SpawnDoor(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 			int destX = std::stoi(tokens[3]);
 			int destY = std::stoi(tokens[4]);
 			newDoor->SetDestination(Vector2(destX * SCALE, destY * SCALE));
 		}
 		else if (etype == "ladder")
 		{
-			Ladder* newLadder = game->SpawnLadder(Vector2(positionX * SCALE, positionY * SCALE));
+			int spriteIndex = std::stoi(tokens[4]);
+			Ladder* newLadder = game->SpawnLadder(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 			newLadder->GetAnimator()->SetState(tokens[3]);
 		}
 		else if (etype == "player")

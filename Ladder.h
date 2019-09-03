@@ -5,6 +5,8 @@
 class Ladder : public Entity
 {
 public:
+
+	int spriteIndex = 0;
 	
 	Collider collider;
 

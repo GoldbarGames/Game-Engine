@@ -13,9 +13,13 @@ Game::Game()
 	InitSDL();
 
 	// Initialize the sprite map (do this BEFORE the editor)
-	spriteMap[0] = "assets/sprites/objects/door1.png";
-	spriteMap[1] = "assets/sprites/objects/door_house.png";
-	spriteMap[2] = "assets/sprites/objects/door_house_outside.png";
+	spriteMapDoor[0] = "assets/sprites/objects/door1.png";
+	spriteMapDoor[1] = "assets/sprites/objects/door_house.png";
+	spriteMapDoor[2] = "assets/sprites/objects/door_house_outside.png";
+
+	spriteMapLadder[0] = "assets/sprites/objects/ladder1.png";
+	spriteMapLadder[1] = "assets/sprites/objects/ladder_house.png";
+	spriteMapLadder[2] = "assets/sprites/objects/ladder_b.png";
 
 	editor = new Editor(*this);
 
@@ -111,20 +115,21 @@ bool Game::SetOpenGLAttributes()
 	return success == 0;
 }
 
-Ladder* Game::CreateLadder(Vector2 position)
+Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
 {
 	Ladder* newLadder = new Ladder(position);
+	newLadder->spriteIndex = spriteIndex;
 
 	Animator* anim = new Animator("ladder", "middle");
 
 	anim->MapStateToSprite("middle", new Sprite(2, 2, 5, spriteManager, 
-		"assets/sprites/objects/ladder1.png", renderer, Vector2(0, 0)));
+		spriteMapLadder[spriteIndex], renderer, Vector2(0, 0)));
 
 	anim->MapStateToSprite("bottom", new Sprite(4, 4, 5, spriteManager,
-		"assets/sprites/objects/ladder1.png", renderer, Vector2(0, 0)));
+		spriteMapLadder[spriteIndex], renderer, Vector2(0, 0)));
 
 	anim->MapStateToSprite("top", new Sprite(0, 0, 5, spriteManager,
-		"assets/sprites/objects/ladder1.png", renderer, Vector2(0, 0)));
+		spriteMapLadder[spriteIndex], renderer, Vector2(0, 0)));
 
 	anim->speed = 0;
 	newLadder->SetAnimator(anim);
@@ -139,11 +144,11 @@ Vector2 Game::SnapToGrid(Vector2 position)
 	return Vector2(x, y);
 }
 
-Ladder* Game::SpawnLadder(Vector2 position)
+Ladder* Game::SpawnLadder(Vector2 position, int spriteIndex)
 {
 	Vector2 snappedPosition = SnapToGrid(position);
 
-	Ladder* newLadder = CreateLadder(snappedPosition);
+	Ladder* newLadder = CreateLadder(snappedPosition, spriteIndex);	
 
 	if (!newLadder->CanSpawnHere(snappedPosition, *this))
 	{
@@ -162,13 +167,14 @@ Ladder* Game::SpawnLadder(Vector2 position)
 Door* Game::CreateDoor(Vector2 position, int spriteIndex)
 {
 	Door* newDoor = new Door(position, Vector2(0, 0));
+	newDoor->spriteIndex = spriteIndex;
 
 	//TODO: How to make this work for doors that will be related to other tilesets?
 	Animator* anim = new Animator("door", "closed");
 
 	Vector2 pivotPoint = Vector2(0, 0);
-	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, spriteMap[spriteIndex], renderer, pivotPoint));
-	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, spriteMap[spriteIndex], renderer, pivotPoint));
+	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, spriteMapDoor[spriteIndex], renderer, pivotPoint));
+	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, spriteMapDoor[spriteIndex], renderer, pivotPoint));
 
 	newDoor->SetAnimator(anim);
 
