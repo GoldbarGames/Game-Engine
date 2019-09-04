@@ -14,7 +14,7 @@ Animator::Animator(std::string animType, std::string initialState)
 	animatorType = animType;
 	currentState = initialState;
 	previousState = currentState;
-	beforePreviousState = previousState;
+	beforePreviousState = previousState;	
 }
 
 Animator::Animator(SpriteManager * spriteManager, SDL_Renderer * renderer)
@@ -257,6 +257,17 @@ void Animator::StateKanekoDebugSpell()
 	}
 }
 
+void Animator::StartTimer()
+{
+	// set duration of the animation based on the playback speed and number of frames
+	animationTimer.Start(speed * mapStateToSprite[currentState]->endFrame, mapStateToSprite[currentState]->shouldLoop);
+}
+
+Sprite* Animator::GetCurrentSprite()
+{
+	return mapStateToSprite[currentState];
+}
+
 void Animator::SetState(std::string state)
 {
 	beforePreviousState = previousState;
@@ -268,8 +279,7 @@ void Animator::SetState(std::string state)
 	else
 		speed = 100;
 
-	// set duration of the animation based on the playback speed and number of fram-es
-	animationTimer.Start(speed * mapStateToSprite[currentState]->endFrame, mapStateToSprite[currentState]->shouldLoop);
+	StartTimer();
 }
 
 bool Animator::GetBool(std::string param)

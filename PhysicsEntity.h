@@ -35,5 +35,9 @@ public:
 	void CheckCollisions(Game& game);
 	void CalculateCollider(Vector2 cameraOffset);
 	void CheckCollisionTrigger(Entity* collidedEntity);
+
+	void Update(Game& game);
+	void Render(Renderer * renderer, Vector2 cameraOffset);
+	Vector2 CalcScaledPivot();
 };
 

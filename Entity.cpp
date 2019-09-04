@@ -77,6 +77,7 @@ void Entity::SetPosition(Vector2 newPosition)
 void Entity::SetAnimator(Animator * anim)
 {
 	animator = anim;
+	anim->StartTimer();
 	anim->DoState(this);
 }
 

@@ -18,10 +18,10 @@ private:
 	
 	Vector2 scale = Vector2(1, 1);
 	
+public:	
 	int frameWidth = 0;
 	int frameHeight = 0;
 
-public:	
 	bool shouldLoop = true;
 	int startFrame = 0;
 	int endFrame = 0;

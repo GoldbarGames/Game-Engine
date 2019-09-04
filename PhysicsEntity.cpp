@@ -1,5 +1,6 @@
 #include "PhysicsEntity.h"
 #include "Game.h"
+#include "debug_state.h"
 
 PhysicsEntity::PhysicsEntity(Vector2 pos) : Entity(pos)
 {
@@ -88,7 +89,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
 
 	SDL_Rect floorBounds = newBoundsVertical;
-	floorBounds.h += (int)(newBoundsVertical.h * 0.25f);
+	floorBounds.h += 20; // (int)(newBoundsVertical.h * 0.25f);
 
 	// this needs to be here so that it does not check for horizontal collision when moving vertically
 	if (velocity.x > 0)
@@ -210,8 +211,6 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		if (triggerExit && prevFrameCollisions[i] != nullptr)
 			prevFrameCollisions[i]->OnTriggerExit(this);
 	}
-
-
 }
 
 void PhysicsEntity::CheckCollisionTrigger(Entity* collidedEntity)
@@ -253,4 +252,76 @@ void PhysicsEntity::CalculateCollider(Vector2 cameraOffset)
 	// scale the bounds of the sprite by a number to set the collider's width and height
 	collisionBounds->w = startSpriteSize.x * colliderWidth;
 	collisionBounds->h = startSpriteSize.y * colliderHeight;
+}
+
+Vector2 PhysicsEntity::CalcScaledPivot()
+{
+	if (flip == SDL_FLIP_HORIZONTAL)
+	{
+		entityPivot.x = (currentSprite->windowRect.w / SCALE) - currentSprite->pivot.x;
+	}
+
+	// scale the pivot and subtract it from the collision center
+	return Vector2(entityPivot.x * SCALE, currentSprite->pivot.y * SCALE);
+}
+
+void PhysicsEntity::Update(Game& game)
+{
+	const float GRAVITY = 0.002f; //TODO: Better way of handling gravity
+
+	if (velocity.y < 1)
+		velocity.y += GRAVITY;
+
+	CheckCollisions(game);
+
+	if (animator != nullptr)
+		animator->Update(this);
+}
+
+void PhysicsEntity::Render(Renderer * renderer, Vector2 cameraOffset)
+{
+	if (currentSprite != nullptr)
+	{
+		entityPivot = currentSprite->pivot;
+
+		// Get center of the white collision box, and use it as a vector2
+		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2));
+		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2));
+		Vector2 collisionCenter = Vector2(collisionCenterX, collisionCenterY);
+
+		Vector2 scaledPivot = CalcScaledPivot();
+		Vector2 offset = collisionCenter - scaledPivot;
+
+		if (GetModeEdit())
+		{
+			if (animator != nullptr)
+				currentSprite->Render(position - cameraOffset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
+			else
+				currentSprite->Render(position - cameraOffset, 0, -1, flip, renderer);
+		}
+		else
+		{
+			if (animator != nullptr)
+				currentSprite->Render(offset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
+			else
+				currentSprite->Render(offset, 0, -1, flip, renderer);
+		}
+
+		if (GetModeDebug())
+		{
+			if (impassable)
+				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
+			else
+				SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 255);
+
+			SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
+
+			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+			CalculateCollider(cameraOffset); //TODO: better way than calculating this twice?
+
+			SDL_RenderDrawRect(renderer->renderer, collisionBounds);
+			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+		}
+	}
+
 }

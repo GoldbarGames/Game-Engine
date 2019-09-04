@@ -19,9 +19,14 @@ Editor::Editor(Game& g)
 	cursorPosition = new Text(game->renderer, theFont);
 	cursorPosition->SetPosition(0, 50);
 
+	npcNames = { "gramps", "the_man" };
+
 	previewMap["tile"] = nullptr;
 	previewMap["door"] = game->CreateDoor(Vector2(0,0), spriteMapIndex);
 	previewMap["ladder"] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
+
+	//TODO: Make the indexes different numbers for the names and sprite sheets?
+	previewMap["NPC"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 
 	game->entities.clear();
 }
@@ -72,7 +77,7 @@ void Editor::StartEdit()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "Tileset", "Layer", "Door", "Ladder" };
+	std::vector<string> buttonNames = { "Tileset", "Layer", "Door", "Ladder", "NPC" };
 
 	for (unsigned int i = 0; i < buttonNames.size(); i++)
 	{
@@ -136,7 +141,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 			clickedLayerVisibleButton = layerButtons[i]->text->txt;
 	}
 
-	if (clickedToolboxWindow)
+	if (objectMode == "tile" && clickedToolboxWindow)
 	{
 		int xOffset = (mouseX - toolboxWindowRect.x);
 		selectedRect.x = (xOffset - (xOffset % (TILE_SIZE * 1)));
@@ -219,7 +224,15 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 			if (canPlaceObjectHere)
 			{
-				if (objectMode == "door")
+				if (objectMode == "NPC")
+				{
+					currentNPC = game->SpawnNPC(npcNames[spriteMapIndex], Vector2(mouseX, mouseY), spriteMapIndex);
+					if (currentNPC != nullptr)
+					{
+						game->SortEntities(game->entities);
+					}
+				}
+				else if (objectMode == "door")
 				{
 					if (!placingDoor)
 					{
@@ -381,7 +394,7 @@ void Editor::RightClick(Vector2 clickedPosition)
 			{
 				ladderIndex = i;
 			}
-			else // TODO: Delete entire ladder with a single click, rather than piece by piece
+			else
 			{
 				game->ShouldDeleteEntity(i);
 				return;
@@ -485,6 +498,10 @@ void Editor::ClickedButton(string buttonName)
 	{
 		ToggleObjectMode("ladder");
 	}	
+	else if (buttonName == "NPC")
+	{
+		ToggleObjectMode("NPC");
+	}
 }
 
 void Editor::ToggleSpriteMap()
@@ -507,6 +524,14 @@ void Editor::ToggleSpriteMap()
 
 		delete previewMap["ladder"];
 		previewMap["ladder"] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
+	}
+	else if (objectMode == "NPC")
+	{
+		if (spriteMapIndex > 1)
+			spriteMapIndex = 0;
+
+		delete previewMap["NPC"];
+		previewMap["NPC"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 	}
 
 	objectPreview = previewMap[objectMode];
@@ -551,7 +576,11 @@ void Editor::ToggleObjectMode(std::string mode)
 	}
 	else
 	{
-		SetLayer(DrawingLayer::OBJECT);
+		if (mode == "NPC")
+			SetLayer(DrawingLayer::COLLISION);
+		else
+			SetLayer(DrawingLayer::OBJECT);
+
 		objectMode = mode;
 	}
 }
@@ -651,13 +680,18 @@ void Editor::Render(Renderer* renderer)
 	}
 	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 
-	// Draw the tilesheet
-	SDL_RenderCopy(renderer->renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
+	
+	if (objectMode == "tile")
+	{
+		// Draw the tilesheet (only if we are placing a tile)
+		SDL_RenderCopy(renderer->renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
 
-	// Draw a yellow rectangle around the currently selected tileset tile
-	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
-	SDL_RenderDrawRect(renderer->renderer, &selectedRect);
-	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+		// Draw a yellow rectangle around the currently selected tileset tile
+		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
+		SDL_RenderDrawRect(renderer->renderer, &selectedRect);
+		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+	}
+		
 
 	// Draw text
 	currentEditModeLayer->Render(renderer);

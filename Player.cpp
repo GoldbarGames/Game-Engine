@@ -34,8 +34,14 @@ void Player::Update(Game& game)
 	// if we are holding up now and were not before...
 	if (animator->GetBool("holdingUp") && !wasHoldingUp)
 	{
-		// if we are in front of a door
-		if (currentDoor != nullptr && doorTimer.HasElapsed())
+		// if we are in front of a door, ladder, or NPC...
+
+		if (currentNPC != nullptr)
+		{
+			//TODO: Display the textbox and stuff
+			int test = 0;
+		}
+		else if (currentDoor != nullptr && doorTimer.HasElapsed())
 		{
 			//TODO: Make this look better later
 			SetPosition(currentDoor->GetDestination() + CalcScaledPivot());
@@ -230,65 +236,6 @@ void Player::ResetPosition()
 	position = startPosition;
 }
 
-Vector2 Player::CalcScaledPivot()
-{
-	if (flip == SDL_FLIP_HORIZONTAL)
-	{
-		entityPivot.x = (currentSprite->windowRect.w / SCALE) - currentSprite->pivot.x;
-	}
 
-	// scale the pivot and subtract it from the collision center
-	return Vector2(entityPivot.x * SCALE, currentSprite->pivot.y * SCALE);
-}
 
-void Player::Render(Renderer * renderer, Vector2 cameraOffset)
-{
-	if (currentSprite != nullptr)
-	{
-		entityPivot = currentSprite->pivot;
-
-		// Get center of the white collision box, and use it as a vector2
-		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2));
-		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2));
-		Vector2 collisionCenter = Vector2(collisionCenterX, collisionCenterY);
-
-		Vector2 scaledPivot = CalcScaledPivot();
-		Vector2 offset = collisionCenter - scaledPivot;
-
-		if (GetModeEdit())
-		{
-			if (animator != nullptr)
-				currentSprite->Render(position - cameraOffset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
-			else
-				currentSprite->Render(position - cameraOffset, 0, -1, flip, renderer);
-		}
-		else
-		{
-			if (animator != nullptr)
-				currentSprite->Render(offset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
-			else
-				currentSprite->Render(offset, 0, -1, flip, renderer);
-		}		
-		
-		
-
-		if (GetModeDebug())
-		{
-			if (impassable)
-				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
-			else
-				SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 255);
-
-			SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
-			
-			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-			CalculateCollider(cameraOffset); //TODO: better way than calculating this twice?
-			
-			SDL_RenderDrawRect(renderer->renderer, collisionBounds);
-			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-		}
-	}
-
-	previousPivot = entityPivot;
-}
 

@@ -19,6 +19,7 @@ private:
 
 	
 public:
+	Sprite* GetCurrentSprite();
 	Timer animationTimer;
 	std::string animatorType = "";
 	std::string currentState = "";
@@ -34,6 +35,7 @@ public:
 	void SetFloat(std::string param, float value);
 	void SetInt(std::string param, int value);
 	bool GetBool(std::string param);
+	void StartTimer();
 	void MapStateToSprite(std::string state, Sprite* sprite);
 	Animator(std::vector<Sprite*> sprites);
 	Animator(std::string animType, std::string initialState);

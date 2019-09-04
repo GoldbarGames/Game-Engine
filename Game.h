@@ -22,6 +22,7 @@
 #include "Door.h"
 #include "Ladder.h"
 #include "Renderer.h"
+#include "NPC.h"
 
 using std::string;
 
@@ -53,6 +54,7 @@ private:
 	std::unordered_map<std::string, MenuScreen*> allMenus;
 	std::unordered_map<int, std::string> spriteMapDoor;
 	std::unordered_map<int, std::string> spriteMapLadder;
+	std::unordered_map<int, std::string> spriteMapNPCs;
 
 	Uint32 lastPressedKeyTicks = 0;
 
@@ -102,7 +104,6 @@ public:
 	// Spawn functions
 	Tile* SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer);
 	Player* SpawnPlayer(Vector2 position);
-	void SpawnPerson(Vector2 position);
 	Background* SpawnBackground(Vector2 pos);
 	bool SpawnMissile(Vector2 position, Vector2 velocity, float angle);
 
@@ -111,6 +112,9 @@ public:
 
 	Ladder* CreateLadder(Vector2 position, int spriteIndex);
 	Ladder* SpawnLadder(Vector2 position, int spriteIndex=0);
+
+	NPC* CreateNPC(std::string name, Vector2 position, int spriteIndex);
+	NPC* SpawnNPC(std::string name, Vector2 position, int spriteIndex = 0);
 	
 	void PlayLevel(string gameName, string levelName);
 	Vector2 CalcObjPos(Vector2 pos);

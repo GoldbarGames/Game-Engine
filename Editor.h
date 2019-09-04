@@ -18,6 +18,7 @@ class Door;
 class Entity;
 class Ladder;
 class Renderer;
+class NPC;
 
 class Editor
 {
@@ -44,8 +45,11 @@ private:
 	std::vector<EditorButton*> layerButtons;
 	std::vector<EditorButton*> layerVisibleButtons;
 
+	std::vector<std::string> npcNames;
+
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;
+	NPC* currentNPC = nullptr;
 
 	int spriteMapIndex = 0;
 

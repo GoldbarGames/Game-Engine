@@ -21,6 +21,9 @@ Game::Game()
 	spriteMapLadder[1] = "assets/sprites/objects/ladder_house.png";
 	spriteMapLadder[2] = "assets/sprites/objects/ladder_b.png";
 
+	spriteMapNPCs[0] = "assets/sprites/npcs/gramps.png";
+	spriteMapNPCs[1] = "assets/sprites/npcs/the_man.png";
+
 	editor = new Editor(*this);
 
 	// Initialize the font before all text
@@ -206,6 +209,55 @@ Door* Game::SpawnDoor(Vector2 position, int spriteIndex) // maybe pass in the ti
 	}	
 }
 
+NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
+{
+	NPC* newNPC = new NPC(name, position);
+
+	Animator* anim = new Animator(name, "idle");
+
+	Vector2 pivotPoint = Vector2(0, 0);
+
+	if (name == "gramps")
+	{
+		pivotPoint = Vector2(12, 28);
+		anim->MapStateToSprite("idle", new Sprite(0, 0, 3, spriteManager, spriteMapNPCs[spriteIndex], renderer, pivotPoint));
+		anim->MapStateToSprite("sad", new Sprite(1, 1, 3, spriteManager, spriteMapNPCs[spriteIndex], renderer, pivotPoint));
+		anim->MapStateToSprite("confused", new Sprite(2, 2, 3, spriteManager, spriteMapNPCs[spriteIndex], renderer, pivotPoint));
+		
+	}
+	else if (name == "the_man")
+	{
+		pivotPoint = Vector2(23, 36);
+		anim->speed = 200;
+		anim->MapStateToSprite("idle", new Sprite(0, 7, 8, spriteManager, spriteMapNPCs[spriteIndex], renderer, pivotPoint));
+	}
+
+	newNPC->ChangeCollider(anim->GetCurrentSprite()->frameWidth, anim->GetCurrentSprite()->frameHeight);
+
+	newNPC->SetAnimator(anim);
+	newNPC->trigger = true;
+
+	return newNPC;
+}
+
+NPC* Game::SpawnNPC(std::string name, Vector2 position, int spriteIndex)
+{
+	Vector2 snappedPosition = SnapToGrid(position);
+
+	NPC* newNPC = CreateNPC(name, snappedPosition, spriteIndex);
+
+	if (!newNPC->CanSpawnHere(snappedPosition, *this))
+	{
+		delete newNPC;
+		return nullptr;
+	}
+	else
+	{
+		entities.emplace_back(newNPC);
+		return newNPC;
+	}
+}
+
 bool Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 {
 	//TODO: Make a way for this to return false
@@ -227,28 +279,6 @@ bool Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 	entities.emplace_back(missile);
 
 	return true;
-}
-
-void Game::SpawnPerson(Vector2 position)
-{
-	//TODO: Rewrite this for NPC characters
-
-	/*
-	Sprite* sprite = new Sprite(5, spriteManager, "assets/sprites/wdk_blink.png", renderer, Vector2(16, 24));
-
-	//TODO: Make this a Physics Entity, not just an Entity
-	Entity* person = new Entity();
-	Animator* anim = new Animator("", "xyz");
-	anim->MapStateToSprite("xyz", sprite);
-	anim->speed = 50;
-	person->SetAnimator(anim);
-	person->SetPosition(position);
-	person->SetSprite(sprite);
-	person->impassable = true;
-
-	//TODO: Also make sure to sort the sprites for drawing in the right order
-	entities.emplace_back(person);
-	*/
 }
 
 Vector2 Game::CalcObjPos(Vector2 pos)
