@@ -14,6 +14,7 @@ private:
 	const float maxHorizontalSpeed = 0.5f;
 	Timer missileTimer;
 	Timer doorTimer;	
+	Timer cutsceneInputTimer;
 public:
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;

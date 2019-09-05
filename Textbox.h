@@ -16,6 +16,9 @@ public:
 	Text* text = nullptr;
 	Text* speaker = nullptr;
 
+
+	const Uint32 boxWidth = 575;
+
 	void Render(Renderer * renderer);
 
 	Textbox(SpriteManager * manager, Renderer * renderer);

@@ -41,13 +41,19 @@ public:
 
 class CutsceneManager
 {
+	Game* game = nullptr;
 	Textbox * textbox = nullptr;
 	std::vector<SceneLabel*> labels;
 	std::string language = "english";
 	std::string data = "";
+	int lineIndex = 0;
+	SceneLabel * currentLabel = nullptr;
 public:
-	CutsceneManager(Game& game);
+	CutsceneManager(Game& g);
 	void ParseScene();
 	std::string ParseWord(std::string text, char limit, int& index);
 	void Render(Renderer * renderer);
+	SceneLabel * JumpToLabel(std::string newLabelName);
+	void PlayCutscene(std::string labelName);
+	void ReadNextLine();
 };
