@@ -23,7 +23,7 @@ public:
 	~Player();
 	void Update(Game& game);
 	void UpdatePhysics(Game& game);
-	
+	void UpdateNormally(Game& game);
 
 	void ResetPosition();
 

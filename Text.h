@@ -21,6 +21,7 @@ public:
 	Text(Renderer* newRenderer, TTF_Font* newFont);
 	~Text();
 	void SetText(string text);
+	void SetTextWrapped(string text, Uint32 width);
 	void Render(Renderer* renderer);
 	void SetPosition(float x, float y);
 	void SetFont(TTF_Font* newFont);

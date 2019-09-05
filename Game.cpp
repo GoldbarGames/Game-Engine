@@ -12,6 +12,10 @@ Game::Game()
 {
 	InitSDL();
 
+	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager)
+	cutscene = new CutsceneManager(*this);
+	cutscene->ParseScene();
+
 	// Initialize the sprite map (do this BEFORE the editor)
 	spriteMapDoor[0] = "assets/sprites/objects/door1.png";
 	spriteMapDoor[1] = "assets/sprites/objects/door_house.png";
@@ -24,10 +28,10 @@ Game::Game()
 	spriteMapNPCs[0] = "assets/sprites/npcs/gramps.png";
 	spriteMapNPCs[1] = "assets/sprites/npcs/the_man.png";
 
-	editor = new Editor(*this);
-
 	// Initialize the font before all text
 	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
+
+	editor = new Editor(*this);
 
 	// Initialize all text
 	jumpsRemainingText = new Text(renderer, theFont);
@@ -747,6 +751,9 @@ void Game::Render()
 
 	fpsText->Render(renderer);
 	timerText->Render(renderer);
+
+	if (watchingCutscene)
+		cutscene->Render(renderer);
 
 	// Render all menu screens
 	if (openedMenus.size() > 0)

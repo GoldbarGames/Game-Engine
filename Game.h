@@ -23,6 +23,7 @@
 #include "Ladder.h"
 #include "Renderer.h"
 #include "NPC.h"
+#include "CutsceneManager.h"
 
 using std::string;
 
@@ -62,11 +63,12 @@ private:
 	bool HandleEvent(SDL_Event& event);
 	bool HandleMenuEvent(SDL_Event& event);
 	void HandleEditMode();
-
 	
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
 public:
+	CutsceneManager * cutscene;
+
 	Renderer * renderer = nullptr;
 	SpriteManager* spriteManager = nullptr;
 	TTF_Font* theFont = nullptr;
@@ -77,6 +79,8 @@ public:
 	std::vector<MenuScreen*> openedMenus;
 
 	bool quit = false;
+
+	bool watchingCutscene = false;
 
 	std::string currentLevel = "";
 

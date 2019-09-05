@@ -37,6 +37,22 @@ void Text::SetText(string text)
 	textWindowRect.h = textTextureRect.h;
 }
 
+void Text::SetTextWrapped(string text, Uint32 width)
+{
+	if (textSurface != nullptr)
+		SDL_FreeSurface(textSurface);
+
+	if (textTexture != nullptr)
+		SDL_DestroyTexture(textTexture);
+
+	txt = text;
+	textSurface = TTF_RenderText_Blended_Wrapped(font, text.c_str(), { 255, 255, 255, 255 }, width);
+	textTexture = renderer->CreateTextureFromSurface(textSurface);
+	SDL_QueryTexture(textTexture, NULL, NULL, &textTextureRect.w, &textTextureRect.h);
+	textWindowRect.w = textTextureRect.w;
+	textWindowRect.h = textTextureRect.h;
+}
+
 void Text::Render(Renderer* renderer)
 {
 	renderer->RenderCopy(textTexture, &textTextureRect, &textWindowRect);

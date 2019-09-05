@@ -4,6 +4,8 @@
 class NPC : public PhysicsEntity
 {
 public:
+	std::string cutsceneLabel = "test1";
+
 	std::string name = "";
 	NPC(std::string n, Vector2 pos);
 	~NPC();

@@ -11,7 +11,7 @@ using std::string;
 
 Editor::Editor(Game& g)
 {
-	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
+	theFont = g.theFont;
 
 	game = &g;
 

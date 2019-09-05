@@ -1,15 +1,33 @@
 #include "CutsceneManager.h"
-using namespace std;
+#include "Renderer.h"
+#include "Game.h"
 
-void CutsceneManager::ParseScene(string data)
+CutsceneManager::CutsceneManager(Game& game)
+{
+	textbox = new Textbox(game.spriteManager, game.renderer);
+
+	std::ifstream fin;
+	std::string directory = "data/" + language + "/cutscenes.txt";
+
+	fin.open(directory);
+
+	if (fin.is_open())
+	{
+		data = "";
+		for (std::string line; std::getline(fin, line); )
+		{
+			data += line;
+		}
+	}
+}
+
+void CutsceneManager::ParseScene()
 {
 	for (int i = 0; i < labels.size(); i++)
 		delete labels[i];
 	labels.clear();
 
 	int index = 0;
-
-	std::stringstream stream(data);
 
 	do
 	{
@@ -20,7 +38,7 @@ void CutsceneManager::ParseScene(string data)
 		newLabel->name = ParseWord(data, '*', index);
 		//cout << "Label name: " + newLabel->name;
 
-		std::vector<string> tempCommands;
+		std::vector<std::string> tempCommands;
 
 		// Until end of file or new label...
 		while (index < data.length() && data[index] != '*')
@@ -30,8 +48,8 @@ void CutsceneManager::ParseScene(string data)
 			{
 				index++;
 
-				string newText = "";
-				string newName = "";
+				std::string newText = "";
+				std::string newName = "";
 
 				// deal with names, if any
 				if (data[index] == ':')
@@ -45,7 +63,7 @@ void CutsceneManager::ParseScene(string data)
 					index++; // skip :
 					index++; // skip space
 				}
-				
+
 				// deal with the text
 				while (data[index] != '`')
 				{
@@ -53,13 +71,13 @@ void CutsceneManager::ParseScene(string data)
 					index++;
 				}
 
-				cout << newText << endl;
+				std::cout << newText << std::endl;
 
 				// add all commands for this line
 				SceneLine* tempLine = new SceneLine(newText, newName);
 				for (int i = 0; i < tempCommands.size(); i++)
 				{
-					cout << tempCommands[i] << endl;
+					std::cout << tempCommands[i] << std::endl;
 					tempLine->commands.emplace_back(tempCommands[i]);
 				}
 
@@ -74,16 +92,16 @@ void CutsceneManager::ParseScene(string data)
 			}
 			else
 			{
-				string commandLine = "";
+				std::string commandLine = "";
 
 				// read until we hit the end of the line
 				while (data[index] != ';')
 				{
-					string commandWord = ParseWord(data, ' ', index);
+					std::string commandWord = ParseWord(data, ' ', index);
 					commandLine += commandWord + " ";
 					if (index >= data.length())
 					{
-						cout << "Error on line: " + commandWord;
+						std::cout << "Error on line: " + commandWord;
 					}
 				}
 
@@ -98,9 +116,9 @@ void CutsceneManager::ParseScene(string data)
 	} while (index < data.length());
 }
 
-string CutsceneManager::ParseWord(string text, char limit, int& index)
+std::string CutsceneManager::ParseWord(std::string text, char limit, int& index)
 {
-	string word = "";
+	std::string word = "";
 
 	if (index >= text.length())
 		return word;
@@ -112,7 +130,7 @@ string CutsceneManager::ParseWord(string text, char limit, int& index)
 
 		if (index >= text.length())
 		{
-			cout << "ERROR: Parsing word, index out of range: " + word << endl;
+			std::cout << "ERROR: Parsing word, index out of range: " + word << std::endl;
 			break;
 		}
 	}
@@ -121,3 +139,7 @@ string CutsceneManager::ParseWord(string text, char limit, int& index)
 	return word;
 }
 
+void CutsceneManager::Render(Renderer * renderer)
+{
+	textbox->Render(renderer);
+}

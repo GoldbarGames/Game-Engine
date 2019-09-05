@@ -1,10 +1,12 @@
+#pragma once
+#include "Textbox.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
-#pragma once
+class Game;
 
 class SceneLine
 {
@@ -39,8 +41,13 @@ public:
 
 class CutsceneManager
 {
+	Textbox * textbox = nullptr;
 	std::vector<SceneLabel*> labels;
+	std::string language = "english";
+	std::string data = "";
 public:
-	void ParseScene(std::string data);
+	CutsceneManager(Game& game);
+	void ParseScene();
 	std::string ParseWord(std::string text, char limit, int& index);
+	void Render(Renderer * renderer);
 };

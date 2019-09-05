@@ -21,6 +21,22 @@ Player::~Player()
 }
 
 void Player::Update(Game& game)
+{	
+	if (game.watchingCutscene)
+	{
+		//TODO: Get input for handling the textbox
+		animator->SetBool("holdingUp",  false);
+	}
+	else
+	{
+		UpdateNormally(game);
+	}
+	
+	if (animator != nullptr)
+		animator->Update(this);
+}
+
+void Player::UpdateNormally(Game& game)
 {
 	//Set texture based on current keystate
 	const Uint8* input = SDL_GetKeyboardState(NULL);
@@ -39,7 +55,7 @@ void Player::Update(Game& game)
 		if (currentNPC != nullptr)
 		{
 			//TODO: Display the textbox and stuff
-			int test = 0;
+			game.watchingCutscene = true;
 		}
 		else if (currentDoor != nullptr && doorTimer.HasElapsed())
 		{
@@ -47,7 +63,7 @@ void Player::Update(Game& game)
 			SetPosition(currentDoor->GetDestination() + CalcScaledPivot());
 			doorTimer.Start(500);
 		}
-		else if (currentLadder != nullptr) 
+		else if (currentLadder != nullptr)
 		{
 			// TODO: What if there is a door and a ladder at the same spot?
 			if (currentLadder->GetAnimator()->currentState != "top")
@@ -57,15 +73,15 @@ void Player::Update(Game& game)
 			}
 		}
 	}
-	
+
 	//TODO: Should we limit the number that can be spawned?
 	//TODO: Add a time limit between shots
 	if (game.pressedDebugButton && missileTimer.HasElapsed())
 	{
 		CastSpellDebug(game, input);
-	}	
+	}
 
-	
+
 	// If on the ladder, only move up or down
 	if (animator->GetBool("onLadder"))
 	{
@@ -86,9 +102,6 @@ void Player::Update(Game& game)
 
 		UpdatePhysics(game);
 	}
-	
-	if (animator != nullptr)
-		animator->Update(this);
 }
 
 void Player::CastSpellDebug(Game &game, const Uint8* input)
