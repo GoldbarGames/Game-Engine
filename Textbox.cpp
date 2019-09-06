@@ -16,8 +16,8 @@ Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 	text->SetPosition(70, 530);
 
 	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?
-	speaker->SetText("GRAMPS");
-	text->SetTextWrapped("Hello, world! This is some text. The quick brown fox jumped over the lazy dog. Let's see what happens when we run out of room on the textbox!", 575 * SCALE);
+	speaker->SetText("");
+	text->SetTextWrapped("", 575 * SCALE);
 }
 
 Textbox::~Textbox()

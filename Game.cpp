@@ -216,6 +216,7 @@ Door* Game::SpawnDoor(Vector2 position, int spriteIndex) // maybe pass in the ti
 NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 {
 	NPC* newNPC = new NPC(name, position);
+	newNPC->spriteIndex = spriteIndex;
 
 	Animator* anim = new Animator(name, "idle");
 
@@ -338,6 +339,8 @@ Background* Game::SpawnBackground(Vector2 pos)
 Player* Game::SpawnPlayer(Vector2 position)
 {
 	Player* player = new Player(position);
+	player->game = this;
+
 	Animator* anim1 = new Animator("kaneko", "idle");
 
 	anim1->SetBool("isGrounded", true);
@@ -708,6 +711,9 @@ void Game::Update()
 	camera = player->GetCenter();
 	camera.x -= (screenWidth / 2.0f);  
 	camera.y -= (screenHeight / 2.0f);
+
+	if (watchingCutscene)
+		cutscene->Update();
 
 	// Update all entities
 	for (unsigned int i = 0; i < entities.size(); i++)

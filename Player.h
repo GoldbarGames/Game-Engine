@@ -13,9 +13,9 @@ class Player : public PhysicsEntity
 private:	
 	const float maxHorizontalSpeed = 0.5f;
 	Timer missileTimer;
-	Timer doorTimer;	
-	Timer cutsceneInputTimer;
+	Timer doorTimer;		
 public:
+	Game* game = nullptr;
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;
 	NPC* currentNPC = nullptr;

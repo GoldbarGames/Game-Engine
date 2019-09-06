@@ -5,7 +5,7 @@
 NPC::NPC(std::string n, Vector2 pos) : PhysicsEntity(pos)
 {
 	name = n;
-	etype = "NPC";
+	etype = "npc";
 	CreateCollider(27, 46, 0, 0, 0.75f, 0.9f);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 20;

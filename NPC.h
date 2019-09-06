@@ -5,7 +5,7 @@ class NPC : public PhysicsEntity
 {
 public:
 	std::string cutsceneLabel = "test1";
-
+	int spriteIndex = 0;
 	std::string name = "";
 	NPC(std::string n, Vector2 pos);
 	~NPC();

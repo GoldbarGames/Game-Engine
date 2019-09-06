@@ -58,6 +58,8 @@ private:
 	bool placingDoor = false;
 	bool placingLadder = false;
 
+	bool inspectionMode = false;
+
 	
 
 public:
@@ -87,6 +89,7 @@ public:
 	void ToggleTileset();
 	void ToggleObjectMode(std::string mode);
 	void ToggleSpriteMap();
+	void ToggleInspectionMode();
 	void LeftClick(Vector2 clickedPosition, int mouseX, int mouseY);
 	void RightClick(Vector2 clickedPosition);
 	void SetLayer(DrawingLayer layer);

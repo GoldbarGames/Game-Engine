@@ -13,7 +13,6 @@ Player::Player(Vector2 pos) : PhysicsEntity(pos)
 	//TODO: Pause all timers when game is paused
 	missileTimer.Start(1);
 	doorTimer.Start(1);	
-	cutsceneInputTimer.Start(1);
 }
 
 Player::~Player()
@@ -28,15 +27,19 @@ void Player::Update(Game& game)
 		//TODO: Get input for handling the textbox
 		animator->SetBool("holdingUp",  false);
 
-		if (cutsceneInputTimer.HasElapsed())
+		if (!game.cutscene->isReadingNextLine)
 		{
-			cutsceneInputTimer.Start(100);
 			const Uint8* input = SDL_GetKeyboardState(NULL);
 
 			if (input[SDL_SCANCODE_DOWN])
 			{
 				game.cutscene->ReadNextLine();
 			}
+		}
+		else
+		{
+			//TODO: If we press the button before the line has finished displaying,
+			// then instantly show all the text (maybe a different button)
 		}
 	}
 	else
@@ -67,7 +70,6 @@ void Player::UpdateNormally(Game& game)
 		if (currentNPC != nullptr)
 		{
 			game.cutscene->PlayCutscene(currentNPC->cutsceneLabel);
-			cutsceneInputTimer.Start(100);
 		}
 		else if (currentDoor != nullptr && doorTimer.HasElapsed())
 		{

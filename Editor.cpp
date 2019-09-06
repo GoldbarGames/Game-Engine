@@ -26,7 +26,7 @@ Editor::Editor(Game& g)
 	previewMap["ladder"] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
 
 	//TODO: Make the indexes different numbers for the names and sprite sheets?
-	previewMap["NPC"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
+	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 
 	game->entities.clear();
 }
@@ -77,7 +77,7 @@ void Editor::StartEdit()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "Tileset", "Layer", "Door", "Ladder", "NPC" };
+	std::vector<string> buttonNames = { "Tileset", "Inspect", "Layer", "Door", "Ladder", "NPC" };
 
 	for (unsigned int i = 0; i < buttonNames.size(); i++)
 	{
@@ -224,7 +224,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 			if (canPlaceObjectHere)
 			{
-				if (objectMode == "NPC")
+				if (objectMode == "npc")
 				{
 					currentNPC = game->SpawnNPC(npcNames[spriteMapIndex], Vector2(mouseX, mouseY), spriteMapIndex);
 					if (currentNPC != nullptr)
@@ -500,7 +500,11 @@ void Editor::ClickedButton(string buttonName)
 	}	
 	else if (buttonName == "NPC")
 	{
-		ToggleObjectMode("NPC");
+		ToggleObjectMode("npc");
+	}
+	else if (buttonName == "Inspect")
+	{
+		ToggleInspectionMode();
 	}
 }
 
@@ -525,13 +529,13 @@ void Editor::ToggleSpriteMap()
 		delete previewMap["ladder"];
 		previewMap["ladder"] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
 	}
-	else if (objectMode == "NPC")
+	else if (objectMode == "npc")
 	{
 		if (spriteMapIndex > 1)
 			spriteMapIndex = 0;
 
-		delete previewMap["NPC"];
-		previewMap["NPC"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
+		delete previewMap["npc"];
+		previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 	}
 
 	objectPreview = previewMap[objectMode];
@@ -576,7 +580,7 @@ void Editor::ToggleObjectMode(std::string mode)
 	}
 	else
 	{
-		if (mode == "NPC")
+		if (mode == "npc")
 			SetLayer(DrawingLayer::COLLISION);
 		else
 			SetLayer(DrawingLayer::OBJECT);
@@ -591,6 +595,11 @@ void Editor::ToggleGridSize()
 		GRID_SIZE = 12;
 	else
 		GRID_SIZE = 24;
+}
+
+void Editor::ToggleInspectionMode()
+{
+	inspectionMode = !inspectionMode;
 }
 
 void Editor::SetLayer(DrawingLayer layer)
@@ -762,6 +771,20 @@ void Editor::SaveLevel()
 				(pos.y / SCALE) << " " << ladder->GetAnimator()->currentState
 				<< " " << ladder->spriteIndex << "" << std::endl;
 		}
+		else if (game->entities[i]->etype == "npc")
+		{
+			NPC* npc = static_cast<NPC*>(game->entities[i]);
+			Vector2 pos = npc->GetPosition();
+
+			std::string npcLabel = npc->cutsceneLabel;
+			if (npcLabel == "")
+				npcLabel = "null";
+
+			fout << npc->etype << " " << (pos.x / SCALE) <<
+				" " << (pos.y / SCALE) << " " << npc->name << " " << npc->cutsceneLabel << 
+				" " << npc->spriteIndex << " " << npc->drawOrder <<
+				" " << npc->layer << " " << npc->impassable << std::endl;
+		}
 		else
 		{
 			fout << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
@@ -829,6 +852,18 @@ void Editor::LoadLevel(std::string levelName)
 		else if (etype == "player")
 		{			
 			game->player = game->SpawnPlayer(Vector2(positionX, positionY));
+		}
+		else if (etype == "npc")
+		{
+			std::string npcName = tokens[3];
+			std::string npcCutscene = tokens[4];
+			int spriteIndex = std::stoi(tokens[5]);
+			NPC* newNPC = game->SpawnNPC(npcName, Vector2(positionX, positionY), spriteIndex);
+			newNPC->cutsceneLabel = npcCutscene;
+
+			newNPC->drawOrder = std::stoi(tokens[6]);
+			newNPC->layer = (DrawingLayer)std::stoi(tokens[7]);
+			newNPC->impassable = std::stoi(tokens[8]);
 		}
 
 		fin.getline(line, 256);

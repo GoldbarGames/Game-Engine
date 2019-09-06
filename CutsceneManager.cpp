@@ -8,6 +8,8 @@ CutsceneManager::CutsceneManager(Game& g)
 	game = &g;
 	textbox = new Textbox(g.spriteManager, g.renderer);
 
+	nextLetterTimer.Start(1);
+
 	std::ifstream fin;
 	std::string directory = "data/" + language + "/cutscenes.txt";
 
@@ -160,21 +162,24 @@ SceneLabel* CutsceneManager::JumpToLabel(std::string newLabelName)
 
 void CutsceneManager::PlayCutscene(std::string labelName)
 {
-	game->watchingCutscene = true;
+	if (labelName != "" && labelName != "null")
+	{
+		game->watchingCutscene = true;
 
-	currentLabel = JumpToLabel(labelName);
+		currentLabel = JumpToLabel(labelName);
 
-	lineIndex = 0;
+		lineIndex = -1;
 
-	textbox->text->SetTextWrapped(currentLabel->lines[lineIndex]->text, textbox->boxWidth * SCALE);
-	textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker);
+		ReadNextLine();
+	}	
 }
 
 void CutsceneManager::ReadNextLine()
 {
 	if (currentLabel != nullptr)
 	{
-		lineIndex++;
+		lineIndex++;	
+		currentText = "";
 
 		if (lineIndex >= currentLabel->lines.size())
 		{
@@ -182,8 +187,40 @@ void CutsceneManager::ReadNextLine()
 		}
 		else
 		{
-			textbox->text->SetTextWrapped(currentLabel->lines[lineIndex]->text, textbox->boxWidth * SCALE);
+			letterIndex = 0;
+			isReadingNextLine = true;	
 			textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker);
 		}
 	}	
+}
+
+void CutsceneManager::Update()
+{
+	//int lettersPerFrame = 2;
+	float delay = 10.0f;
+
+	//nextLetterTimer.Start(lettersPerFrame * delay);
+
+	timer += game->dt;
+
+	while (timer > delay)
+	{
+		timer -= delay;
+		if (isReadingNextLine)
+		{
+			currentText += currentLabel->lines[lineIndex]->text[letterIndex];
+			textbox->text->SetTextWrapped(currentText, textbox->boxWidth * SCALE);
+
+			//nextLetterTimer.Start(lettersPerFrame * delay);
+			letterIndex++;
+
+			if (letterIndex >= currentLabel->lines[lineIndex]->text.length())
+			{
+				isReadingNextLine = false;
+				//game->player->cutsceneInputTimer.Start(100);
+				return;
+			}
+		}
+	}
+	
 }

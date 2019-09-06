@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "Timer.h"
 
 class Game;
 
@@ -47,11 +48,17 @@ class CutsceneManager
 	std::string language = "english";
 	std::string data = "";
 	int lineIndex = 0;
+	int letterIndex = 0;
+	std::string currentText = "";
 	SceneLabel * currentLabel = nullptr;
 public:
+	float timer = 0;
+	bool isReadingNextLine = false;
+	Timer nextLetterTimer;
 	CutsceneManager(Game& g);
 	void ParseScene();
 	std::string ParseWord(std::string text, char limit, int& index);
+	void Update();
 	void Render(Renderer * renderer);
 	SceneLabel * JumpToLabel(std::string newLabelName);
 	void PlayCutscene(std::string labelName);
