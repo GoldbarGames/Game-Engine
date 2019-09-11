@@ -53,5 +53,9 @@ public:
 	virtual void OnTriggerStay(Entity* other);
 	virtual void OnTriggerEnter(Entity* other);
 	virtual void OnTriggerExit(Entity* other);
+
+	virtual void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties);
+	void DeleteProperties(std::vector<Text*>& properties);
+	virtual void SetProperty(std::string prop, std::string newValue);
 };
 

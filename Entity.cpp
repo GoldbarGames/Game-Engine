@@ -133,3 +133,20 @@ void Entity::OnTriggerExit(Entity* other)
 
 }
 
+void Entity::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
+{
+
+}
+
+void Entity::DeleteProperties(std::vector<Text*>& properties)
+{
+	for (int i = 0; i < properties.size(); i++)
+		delete properties[i];
+
+	properties.clear();
+}	
+
+void Entity::SetProperty(std::string prop, std::string newValue)
+{
+
+}

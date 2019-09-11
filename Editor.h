@@ -34,6 +34,8 @@ private:
 	SDL_Rect selectedRect;
 	SDL_Rect hoveredTileRect;
 
+	SDL_Rect objectPropertiesRect;
+
 	int editorTileX = 0;
 	int editorTileY = 0;
 
@@ -60,7 +62,8 @@ private:
 
 	bool inspectionMode = false;
 
-	
+	Entity* selectedEntity = nullptr;
+	std::vector<Text*> properties;	
 
 public:
 	int GRID_SIZE = 24;
@@ -95,5 +98,10 @@ public:
 	void SetLayer(DrawingLayer layer);
 	void DestroyLadder(std::string startingState, Vector2 lastPosition);
 	void DrawGrid();
+
+	void PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY);
+	void PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY);
+	void InspectObject(int mouseX, int mouseY);
+	void SetPropertyPositions();
 };
 

@@ -19,6 +19,7 @@ public:
 	SDL_Rect textWindowRect;
 	SDL_Rect textTextureRect;
 	Text(Renderer* newRenderer, TTF_Font* newFont);
+	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt);
 	~Text();
 	void SetText(string text);
 	void SetTextWrapped(string text, Uint32 width);

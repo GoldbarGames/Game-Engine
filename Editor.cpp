@@ -15,6 +15,7 @@ Editor::Editor(Game& g)
 
 	game = &g;
 
+
 	currentEditModeLayer = new Text(game->renderer, theFont);
 	cursorPosition = new Text(game->renderer, theFont);
 	cursorPosition->SetPosition(0, 50);
@@ -56,6 +57,11 @@ void Editor::StartEdit()
 	toolboxWindowRect.y = 0;
 	toolboxWindowRect.w = toolboxTextureRect.w;
 	toolboxWindowRect.h = toolboxTextureRect.h;
+
+	objectPropertiesRect.w = 400;
+	objectPropertiesRect.h = 600;
+	objectPropertiesRect.x = screenWidth - objectPropertiesRect.w;
+	objectPropertiesRect.y = 0;
 
 	//SDL_SetWindowSize(toolbox, toolboxWindowRect.w, toolboxWindowRect.h);
 
@@ -178,171 +184,250 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 	{
 		clickedPosition += game->camera;
 
-		// if we are placing a tile...
-		if (objectMode == "tile")
+		if (inspectionMode)
 		{
-			bool canPlaceTileHere = true;
-			for (unsigned int i = 0; i < game->entities.size(); i++)
+			InspectObject(mouseX, mouseY);
+		}
+		else
+		{
+			// if we are placing a tile...
+			if (objectMode == "tile")
 			{
-				if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
-					game->entities[i]->layer == drawingLayer &&
-					game->entities[i]->etype == "tile")
-				{
-					canPlaceTileHere = false;
-					break;
-				}
+				PlaceTile(clickedPosition, mouseX, mouseY);
 			}
-
-			if (canPlaceTileHere)
+			else // when placing an object
 			{
-				int mod = (GRID_SIZE * SCALE);
+				PlaceObject(clickedPosition, mouseX, mouseY);
+			}
+		}
 
-				int afterModX = ((int)(mouseX) % mod);
-				int afterModY = ((int)(mouseY) % mod);
+		
+	}
+}
 
-				game->SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
-					Vector2(mouseX - afterModX, mouseY - afterModY), drawingLayer);
+
+void Editor::InspectObject(int mouseX, int mouseY)
+{
+	SDL_Point point;
+	point.x = mouseX;
+	point.y = mouseY;
+
+	if (SDL_PointInRect(&point, &objectPropertiesRect))
+	{
+		for (unsigned int i = 0; i < properties.size(); i++)
+		{
+			if (SDL_PointInRect(&point, &properties[i]->textWindowRect))
+			{
+				if (selectedEntity != nullptr)
+				{
+					selectedEntity->SetProperty(properties[i]->txt, "test2");
+					selectedEntity->GetProperties(game->renderer, theFont, properties);
+					SetPropertyPositions();
+				}
+				break;
+			}
+		}
+	}
+	else
+	{
+		// Find the selected entity
+		for (unsigned int i = 0; i < game->entities.size(); i++)
+		{
+			if (game->entities[i]->etype != "tile" &&
+				SDL_PointInRect(&point, game->entities[i]->GetBounds()))
+			{
+				selectedEntity = game->entities[i];
+				break;
+			}
+		}
+
+		// If selected entity was found, then generate text for all properties of it
+		if (selectedEntity != nullptr)
+		{
+			selectedEntity->GetProperties(game->renderer, theFont, properties);
+			SetPropertyPositions();
+		}
+	}
+
+
+}
+
+void Editor::SetPropertyPositions()
+{
+	// Set the text position of all properties
+	int propertyX = objectPropertiesRect.x + 10;
+	int propertyY = objectPropertiesRect.y + 10;
+
+	for (int i = 0; i < properties.size(); i++)
+	{
+		properties[i]->SetPosition(propertyX, propertyY);
+		propertyY += 50;
+	}
+}
+
+void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
+{
+	bool canPlaceObjectHere = true;
+
+	clickedPosition.x = (int)clickedPosition.x;
+	clickedPosition.y = (int)clickedPosition.y;
+
+	for (unsigned int i = 0; i < game->entities.size(); i++)
+	{
+		if (game->entities[i]->GetPosition() == clickedPosition &&
+			game->entities[i]->etype == objectMode)
+		{
+			canPlaceObjectHere = false;
+			break;
+		}
+	}
+
+	if (canPlaceObjectHere)
+	{
+		if (objectMode == "npc")
+		{
+			currentNPC = game->SpawnNPC(npcNames[spriteMapIndex], Vector2(mouseX, mouseY), spriteMapIndex);
+			if (currentNPC != nullptr)
+			{
 				game->SortEntities(game->entities);
 			}
 		}
-		else // when placing an object
+		else if (objectMode == "door")
 		{
-			bool canPlaceObjectHere = true;
-
-			clickedPosition.x = (int)clickedPosition.x;
-			clickedPosition.y = (int)clickedPosition.y;
-
-			for (unsigned int i = 0; i < game->entities.size(); i++)
+			if (!placingDoor)
 			{
-				if (game->entities[i]->GetPosition() == clickedPosition &&
-					game->entities[i]->etype == objectMode)
+				std::cout << "trying to spawn entrance" << std::endl;
+				currentDoor = game->SpawnDoor(Vector2(mouseX, mouseY), spriteMapIndex);
+				if (currentDoor != nullptr)
 				{
-					canPlaceObjectHere = false;
-					break;
+					std::cout << "placing door set true" << std::endl;
+					placingDoor = true;
+					game->SortEntities(game->entities);
+				}
+
+			}
+			else
+			{
+				std::cout << "trying to spawn destination" << std::endl;
+				Door* destination = game->SpawnDoor(Vector2(mouseX, mouseY), spriteMapIndex);
+				if (destination != nullptr)
+				{
+					std::cout << "placing door set false" << std::endl;
+					placingDoor = false;
+
+					currentDoor->SetDestination(destination->GetPosition());
+					destination->SetDestination(currentDoor->GetPosition());
+					currentDoor = nullptr;
+
+					game->SortEntities(game->entities);
 				}
 			}
 
-			if (canPlaceObjectHere)
+		}
+		else if (objectMode == "ladder")
+		{
+			if (!placingLadder)
 			{
-				if (objectMode == "npc")
+				std::cout << "trying to spawn ladder start" << std::endl;
+				currentLadder = game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
+				if (currentLadder != nullptr)
 				{
-					currentNPC = game->SpawnNPC(npcNames[spriteMapIndex], Vector2(mouseX, mouseY), spriteMapIndex);
-					if (currentNPC != nullptr)
-					{
-						game->SortEntities(game->entities);
-					}
+					std::cout << "placing ladder set true" << std::endl;
+					placingLadder = true;
+					game->SortEntities(game->entities);
 				}
-				else if (objectMode == "door")
+			}
+			else
+			{
+				Vector2 snappedPosition = game->SnapToGrid(Vector2(mouseX, mouseY));
+
+				// only spawn if the position we clicked at is on the same column as the ladder start
+				if (snappedPosition.x == currentLadder->GetPosition().x)
 				{
-					if (!placingDoor)
+					std::cout << "trying to spawn ladder end" << std::endl;
+					Ladder* ladderEnd = game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
+					if (ladderEnd != nullptr)
 					{
-						std::cout << "trying to spawn entrance" << std::endl;
-						currentDoor = game->SpawnDoor(Vector2(mouseX, mouseY), spriteMapIndex);
-						if (currentDoor != nullptr)
+						std::cout << "placing ladder set false" << std::endl;
+						placingLadder = false;
+
+						// Define which edges of the ladder are the top and bottom
+						bool ladderGoesUp = false;
+						if (ladderEnd->GetPosition().y > currentLadder->GetPosition().y)
 						{
-							std::cout << "placing door set true" << std::endl;
-							placingDoor = true;
-							game->SortEntities(game->entities);
+							ladderEnd->GetAnimator()->SetState("bottom");
+							currentLadder->GetAnimator()->SetState("top");
+						}
+						else
+						{
+							ladderEnd->GetAnimator()->SetState("top");
+							currentLadder->GetAnimator()->SetState("bottom");
+							ladderGoesUp = true;
 						}
 
-					}
-					else
-					{
-						std::cout << "trying to spawn destination" << std::endl;
-						Door* destination = game->SpawnDoor(Vector2(mouseX, mouseY), spriteMapIndex);
-						if (destination != nullptr)
+						if (ladderGoesUp)
 						{
-							std::cout << "placing door set false" << std::endl;
-							placingDoor = false;
+							// Connect the two edges by spawning the middle parts
+							mouseY += GRID_SIZE * SCALE;
 
-							currentDoor->SetDestination(destination->GetPosition());
-							destination->SetDestination(currentDoor->GetPosition());
-							currentDoor = nullptr;
+							int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
-							game->SortEntities(game->entities);
-						}
-					}
-
-				}
-				else if (objectMode == "ladder")
-				{
-					if (!placingLadder)
-					{
-						std::cout << "trying to spawn ladder start" << std::endl;
-						currentLadder = game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
-						if (currentLadder != nullptr)
-						{
-							std::cout << "placing ladder set true" << std::endl;
-							placingLadder = true;
-							game->SortEntities(game->entities);
-						}
-					}
-					else
-					{
-						Vector2 snappedPosition = game->SnapToGrid(Vector2(mouseX, mouseY));
-
-						// only spawn if the position we clicked at is on the same column as the ladder start
-						if (snappedPosition.x == currentLadder->GetPosition().x)
-						{
-							std::cout << "trying to spawn ladder end" << std::endl;
-							Ladder* ladderEnd = game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
-							if (ladderEnd != nullptr)
+							while (snappedY < currentLadder->GetPosition().y)
 							{
-								std::cout << "placing ladder set false" << std::endl;
-								placingLadder = false;
-
-								// Define which edges of the ladder are the top and bottom
-								bool ladderGoesUp = false;
-								if (ladderEnd->GetPosition().y > currentLadder->GetPosition().y)
-								{
-									ladderEnd->GetAnimator()->SetState("bottom");
-									currentLadder->GetAnimator()->SetState("top");
-								}
-								else
-								{
-									ladderEnd->GetAnimator()->SetState("top");
-									currentLadder->GetAnimator()->SetState("bottom");
-									ladderGoesUp = true;
-								}
-
-								if (ladderGoesUp)
-								{
-									// Connect the two edges by spawning the middle parts
-									mouseY += GRID_SIZE * SCALE;
-
-									int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
-
-									while (snappedY < currentLadder->GetPosition().y)
-									{
-										game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
-										mouseY += GRID_SIZE * SCALE;
-										snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
-									}
-								}
-								else
-								{
-									// Connect the two edges by spawning the middle parts
-									mouseY -= GRID_SIZE * SCALE;
-
-									int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
-
-									while (snappedY > currentLadder->GetPosition().y)
-									{
-										game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
-										mouseY -= GRID_SIZE * SCALE;
-										snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
-									}
-								}
-
-								currentLadder = nullptr;
-
-								game->SortEntities(game->entities);
+								game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
+								mouseY += GRID_SIZE * SCALE;
+								snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 							}
 						}
+						else
+						{
+							// Connect the two edges by spawning the middle parts
+							mouseY -= GRID_SIZE * SCALE;
+
+							int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
+
+							while (snappedY > currentLadder->GetPosition().y)
+							{
+								game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
+								mouseY -= GRID_SIZE * SCALE;
+								snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
+							}
+						}
+
+						currentLadder = nullptr;
+
+						game->SortEntities(game->entities);
 					}
 				}
 			}
 		}
+	}
+}
+
+void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
+{
+	bool canPlaceTileHere = true;
+	for (unsigned int i = 0; i < game->entities.size(); i++)
+	{
+		if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
+			game->entities[i]->layer == drawingLayer &&
+			game->entities[i]->etype == "tile")
+		{
+			canPlaceTileHere = false;
+			break;
+		}
+	}
+
+	if (canPlaceTileHere)
+	{
+		int mod = (GRID_SIZE * SCALE);
+
+		int afterModX = ((int)(mouseX) % mod);
+		int afterModY = ((int)(mouseY) % mod);
+
+		game->SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
+			Vector2(mouseX - afterModX, mouseY - afterModY), drawingLayer);
+		game->SortEntities(game->entities);
 	}
 }
 
@@ -599,6 +684,17 @@ void Editor::ToggleGridSize()
 
 void Editor::ToggleInspectionMode()
 {
+	//TODO: Is this a good idea?
+	SetLayer(DrawingLayer::BACK);
+	objectMode = "tile";
+
+	// If we already have an entity selected, deselect it
+	if (selectedEntity != nullptr)
+	{
+		selectedEntity->DeleteProperties(properties);
+		selectedEntity = nullptr;
+	}
+
 	inspectionMode = !inspectionMode;
 }
 
@@ -689,17 +785,43 @@ void Editor::Render(Renderer* renderer)
 	}
 	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 
-	
-	if (objectMode == "tile")
+	if (inspectionMode)
 	{
-		// Draw the tilesheet (only if we are placing a tile)
-		SDL_RenderCopy(renderer->renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
+		if (selectedEntity != nullptr)
+		{
+			// Draw a yellow rectangle around the currently selected object
+			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
+			SDL_RenderDrawRect(renderer->renderer, selectedEntity->GetBounds());
+		}
 
-		// Draw a yellow rectangle around the currently selected tileset tile
-		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
-		SDL_RenderDrawRect(renderer->renderer, &selectedRect);
+		// Draw the box that goes underneath all the properties
+		SDL_SetRenderDrawColor(renderer->renderer, 128, 128, 128, 255);
+		SDL_RenderFillRect(renderer->renderer, &objectPropertiesRect);
+		
+		// Draw the text for all the properties
+		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+		for (int i = 0; i < properties.size(); i++)
+		{
+			properties[i]->Render(renderer);
+		}
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+
 	}
+	else
+	{
+		if (objectMode == "tile")
+		{
+			// Draw the tilesheet (only if we are placing a tile)
+			SDL_RenderCopy(renderer->renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
+
+			// Draw a yellow rectangle around the currently selected tileset tile
+			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
+			SDL_RenderDrawRect(renderer->renderer, &selectedRect);
+			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+		}
+	}
+	
+	
 		
 
 	// Draw text

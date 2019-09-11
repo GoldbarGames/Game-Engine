@@ -2,13 +2,23 @@
 #include "Renderer.h"
 
 
-Text::Text(Renderer* newRenderer, TTF_Font * newFont)
+Text::Text(Renderer* newRenderer, TTF_Font* newFont)
 {
 	renderer = newRenderer;
 	font = newFont;
 	textTextureRect.x = 0;
 	textTextureRect.y = 0;
 	SetPosition(0, 0);
+}
+
+Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt)
+{
+	renderer = newRenderer;
+	font = newFont;
+	textTextureRect.x = 0;
+	textTextureRect.y = 0;
+	SetPosition(0, 0);
+	SetText(txt);
 }
 
 
