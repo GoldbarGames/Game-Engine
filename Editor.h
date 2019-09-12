@@ -35,6 +35,9 @@ private:
 	SDL_Rect hoveredTileRect;
 
 	SDL_Rect objectPropertiesRect;
+	SDL_Rect dialogRect;
+
+	Text* dialogText = nullptr;
 
 	int editorTileX = 0;
 	int editorTileY = 0;
@@ -75,12 +78,17 @@ public:
 
 	Entity * objectPreview = nullptr;
 
+
+	Text* dialogInput = nullptr;
+	bool showDialogPopup = false;
+
 	Editor(Game &g);
 	~Editor();
 	void StartEdit();
 	void StopEdit();
 	void HandleEdit();
-	void SaveLevel();
+	void NewLevel();
+	void SaveLevel(std::string levelName = "");
 	void LoadLevel(std::string levelName);
 	void Render(Renderer* renderer);
 	void SetText(string newText);
@@ -99,6 +107,9 @@ public:
 	void SetLayer(DrawingLayer layer);
 	void DestroyLadder(std::string startingState, Vector2 lastPosition);
 	void DrawGrid();
+
+	void DestroyDialog();
+	void CreateDialog(std::string txt);
 
 	void PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY);
 	void PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY);

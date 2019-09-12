@@ -63,6 +63,11 @@ void Editor::StartEdit()
 	objectPropertiesRect.x = screenWidth - objectPropertiesRect.w;
 	objectPropertiesRect.y = 0;
 
+	dialogRect.w = 400;
+	dialogRect.h = 200;
+	dialogRect.x = (screenWidth / 2) - (objectPropertiesRect.w / 2);
+	dialogRect.y = (screenHeight / 2) - (objectPropertiesRect.h / 2);
+
 	//SDL_SetWindowSize(toolbox, toolboxWindowRect.w, toolboxWindowRect.h);
 
 	selectedRect.x = toolboxWindowRect.x;
@@ -83,7 +88,7 @@ void Editor::StartEdit()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "Tileset", "Inspect", "Layer", "Door", "Ladder", "NPC" };
+	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Layer", "Door", "Ladder", "NPC" };
 
 	for (unsigned int i = 0; i < buttonNames.size(); i++)
 	{
@@ -598,6 +603,19 @@ void Editor::ClickedButton(string buttonName)
 	{
 		ToggleInspectionMode();
 	}
+	else if (buttonName == "NewLevel")
+	{
+		NewLevel();
+	}
+	else if (buttonName == "Load")
+	{
+		CreateDialog("Type in the name of the file to load:");
+		game->StartTextInput("load_file_as");
+	}
+	else if (buttonName == "Save")
+	{
+		SaveLevel();
+	}
 }
 
 void Editor::ToggleSpriteMap()
@@ -826,10 +844,7 @@ void Editor::Render(Renderer* renderer)
 			SDL_RenderDrawRect(renderer->renderer, &selectedRect);
 			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
-	}
-	
-	
-		
+	}	
 
 	// Draw text
 	currentEditModeLayer->Render(renderer);
@@ -852,6 +867,19 @@ void Editor::Render(Renderer* renderer)
 	{
 		layerVisibleButtons[i]->Render(renderer);
 	}
+
+	if (showDialogPopup)
+	{
+		// Draw the box that goes underneath the popup dialog
+		SDL_SetRenderDrawColor(renderer->renderer, 128, 128, 128, 255);
+		SDL_RenderFillRect(renderer->renderer, &dialogRect);
+
+		// Draw the text for the popup dialog
+		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+		dialogText->Render(renderer);
+		dialogInput->Render(renderer);
+		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+	}
 }
 
 void Editor::SetText(string newText)
@@ -865,8 +893,40 @@ void Editor::SetText(string newText)
 	currentEditModeLayer->SetText(newText);
 }
 
-void Editor::SaveLevel()
+void Editor::DestroyDialog()
 {
+	if (dialogText != nullptr)
+		delete dialogText;
+
+	if (dialogInput != nullptr)
+		delete dialogInput;
+}
+
+void Editor::CreateDialog(std::string txt)
+{
+	DestroyDialog();
+
+	dialogText = new Text(game->renderer, theFont, txt);
+	dialogInput = new Text(game->renderer, theFont, "");
+	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
+	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
+
+	showDialogPopup = true;
+}
+
+void Editor::NewLevel()
+{
+	// TODO: Clear the screen of all entities, etc.
+
+	CreateDialog("Type in the filename of the new level:");
+	game->StartTextInput("new_level");
+}
+
+void Editor::SaveLevel(std::string levelName)
+{
+	if (levelName == "")
+		game->currentLevel = levelName;
+
 	std::ofstream fout;
 	fout.open("data/" + game->currentLevel + ".wdk");
 

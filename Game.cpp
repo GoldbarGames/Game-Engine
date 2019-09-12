@@ -413,6 +413,21 @@ void Game::StopTextInput()
 {
 	getKeyboardInput = false;
 	SDL_StopTextInput();
+
+	if (inputType == "properties")
+	{
+		editor->SetPropertyText();
+	}
+	else if (inputType == "new_level")
+	{
+		editor->showDialogPopup = false;
+		editor->SaveLevel(inputText);
+	}
+	else if (inputType == "load_file_as")
+	{
+		editor->showDialogPopup = false;
+		editor->LoadLevel(inputText);
+	}
 }
 
 void Game::PlayLevel(string gameName, string levelName)
@@ -662,8 +677,8 @@ bool Game::HandleEvent(SDL_Event& event)
 			// Pressed enter, submit the input
 			else if (event.key.keysym.sym == SDLK_RETURN)
 			{
-				StopTextInput();
 				UpdateTextInput();
+				StopTextInput();				
 			}
 		}
 		else
@@ -726,11 +741,11 @@ bool Game::HandleEvent(SDL_Event& event)
 				if (GetModeEdit())
 					editor->ToggleSpriteMap();
 				break;
-			case SDLK_9:
+			case SDLK_8:
 				if (GetModeEdit())
 					editor->SaveLevel();
 				break;
-			case SDLK_l:
+			case SDLK_9:
 				if (GetModeEdit())
 					editor->LoadLevel("level");
 				break;
@@ -773,13 +788,13 @@ void Game::UpdateTextInput()
 	{
 		editor->SetPropertyText();
 	}
-	else if (inputType == "save_file_as")
+	else if (inputType == "new_level")
 	{
-
+		editor->dialogInput->SetText(inputText);
 	}
 	else if (inputType == "load_file_as")
 	{
-
+		editor->dialogInput->SetText(inputText);
 	}
 }
 
