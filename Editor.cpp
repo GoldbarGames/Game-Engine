@@ -220,9 +220,9 @@ void Editor::InspectObject(int mouseX, int mouseY)
 			{
 				if (selectedEntity != nullptr)
 				{
-					selectedEntity->SetProperty(properties[i]->txt, "test2");
-					selectedEntity->GetProperties(game->renderer, theFont, properties);
-					SetPropertyPositions();
+					propertyIndex = i;
+					game->StartTextInput("properties");
+					SetPropertyText();
 				}
 				break;
 			}
@@ -250,6 +250,13 @@ void Editor::InspectObject(int mouseX, int mouseY)
 	}
 
 
+}
+
+void Editor::SetPropertyText()
+{
+	selectedEntity->SetProperty(properties[propertyIndex]->txt, game->inputText);
+	selectedEntity->GetProperties(game->renderer, theFont, properties);
+	SetPropertyPositions();
 }
 
 void Editor::SetPropertyPositions()

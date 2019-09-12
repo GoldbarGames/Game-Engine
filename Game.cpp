@@ -81,6 +81,7 @@ void Game::InitSDL()
 	renderer->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
 
 	spriteManager = new SpriteManager(renderer);
+	
 }
 
 void Game::EndSDL()
@@ -400,6 +401,20 @@ void Game::DeleteEntity(int index)
 	entities.erase(entities.begin() + index);
 }
 
+void Game::StartTextInput(std::string reason)
+{
+	getKeyboardInput = true;
+	inputType = reason;
+	SDL_StartTextInput();
+	inputText = "";
+}
+
+void Game::StopTextInput()
+{
+	getKeyboardInput = false;
+	SDL_StopTextInput();
+}
+
 void Game::PlayLevel(string gameName, string levelName)
 {
 	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));
@@ -506,9 +521,13 @@ void Game::MainLoop()
 				k++;
 		}
 
+
 		if (GetModeEdit())
 		{
-			HandleEditMode();			
+			if (!getKeyboardInput)
+			{
+				HandleEditMode();
+			}
 		}
 		else if (openedMenus.size() > 0)
 		{
@@ -621,75 +640,105 @@ bool Game::HandleEvent(SDL_Event& event)
 
 	if (event.type == SDL_KEYDOWN)
 	{
-		switch (event.key.keysym.sym)
+		if (getKeyboardInput)
 		{
-		case SDLK_ESCAPE:
-			if (!GetModeEdit())
+			//Handle backspace
+			if (event.key.keysym.sym == SDLK_BACKSPACE && inputText.length() > 0)
 			{
-				openedMenus.emplace_back(allMenus["Pause"]);
-				Uint32 ticks = SDL_GetTicks();
-				for (unsigned int i = 0; i < entities.size(); i++)
-					entities[i]->Pause(ticks);
-			}				
-			break;
-		case SDLK_q:
-			quit = true;
-			break;
-		case SDLK_x:
-			pressedJumpButton = true;
-			break;
-		case SDLK_c:
-			pressedDebugButton = true;
-			break;
-		case SDLK_m:
-			if (Mix_PausedMusic())
-				Mix_ResumeMusic();
-			else
-				Mix_PauseMusic();
-			break;
-		case SDLK_r:
-			if (player != nullptr)
-				player->ResetPosition();
-			break;
-		case SDLK_1: // toggle Debug mode
-			SetModeDebug(!GetModeDebug());
-			break;
-		case SDLK_2: // toggle Editor mode
-			SetModeEdit(!GetModeEdit());
-			if (GetModeEdit())
-			{
-				camera.x = camera.x - ((int)camera.x % (editor->GRID_SIZE * SCALE));
-				camera.y = camera.y - ((int)camera.y % (editor->GRID_SIZE * SCALE));
-				editor->StartEdit();
+				inputText.pop_back();
+				UpdateTextInput();
 			}
-			else
+			//Handle copy
+			else if (event.key.keysym.sym == SDLK_c && SDL_GetModState() & KMOD_CTRL)
 			{
-				editor->StopEdit();
+				SDL_SetClipboardText(inputText.c_str());
 			}
-			break;
-		case SDLK_3: // toggle drawing layers
-			if (GetModeEdit())
-				editor->ToggleGridSize();
-			break;
-		case SDLK_4:
-			if (GetModeEdit())
-				editor->ToggleTileset();
-			break;
-		case SDLK_5:
-			if (GetModeEdit())
-				editor->ToggleSpriteMap();
-			break;
-		case SDLK_9:
-			if (GetModeEdit())
-				editor->SaveLevel();
-			break;
-		case SDLK_l:
-			if (GetModeEdit())
-				editor->LoadLevel("level");
-			break;
-		default:
-			break;
+			//Handle paste
+			else if (event.key.keysym.sym == SDLK_v && SDL_GetModState() & KMOD_CTRL)
+			{
+				inputText += SDL_GetClipboardText();
+				UpdateTextInput();
+			}
+			// Pressed enter, submit the input
+			else if (event.key.keysym.sym == SDLK_RETURN)
+			{
+				StopTextInput();
+				UpdateTextInput();
+			}
 		}
+		else
+		{
+			switch (event.key.keysym.sym)
+			{
+			case SDLK_ESCAPE:
+				if (!GetModeEdit())
+				{
+					openedMenus.emplace_back(allMenus["Pause"]);
+					Uint32 ticks = SDL_GetTicks();
+					for (unsigned int i = 0; i < entities.size(); i++)
+						entities[i]->Pause(ticks);
+				}
+				break;
+			case SDLK_q:
+				quit = true;
+				break;
+			case SDLK_x:
+				pressedJumpButton = true;
+				break;
+			case SDLK_c:
+				pressedDebugButton = true;
+				break;
+			case SDLK_m:
+				if (Mix_PausedMusic())
+					Mix_ResumeMusic();
+				else
+					Mix_PauseMusic();
+				break;
+			case SDLK_r:
+				if (player != nullptr)
+					player->ResetPosition();
+				break;
+			case SDLK_1: // toggle Debug mode
+				SetModeDebug(!GetModeDebug());
+				break;
+			case SDLK_2: // toggle Editor mode
+				SetModeEdit(!GetModeEdit());
+				if (GetModeEdit())
+				{
+					camera.x = camera.x - ((int)camera.x % (editor->GRID_SIZE * SCALE));
+					camera.y = camera.y - ((int)camera.y % (editor->GRID_SIZE * SCALE));
+					editor->StartEdit();
+				}
+				else
+				{
+					editor->StopEdit();
+				}
+				break;
+			case SDLK_3: // toggle drawing layers
+				if (GetModeEdit())
+					editor->ToggleGridSize();
+				break;
+			case SDLK_4:
+				if (GetModeEdit())
+					editor->ToggleTileset();
+				break;
+			case SDLK_5:
+				if (GetModeEdit())
+					editor->ToggleSpriteMap();
+				break;
+			case SDLK_9:
+				if (GetModeEdit())
+					editor->SaveLevel();
+				break;
+			case SDLK_l:
+				if (GetModeEdit())
+					editor->LoadLevel("level");
+				break;
+			default:
+				break;
+			}
+		}
+		
 	}
 	else if (event.type == SDL_KEYUP)
 	{
@@ -702,8 +751,36 @@ bool Game::HandleEvent(SDL_Event& event)
 			break;
 		}
 	}
+	//Special text input event
+	else if (event.type == SDL_TEXTINPUT)
+	{
+		//Not copy or pasting
+		if (!(SDL_GetModState() & KMOD_CTRL && (event.text.text[0] == 'c' || event.text.text[0] == 'C' || 
+			event.text.text[0] == 'v' || event.text.text[0] == 'V')))
+		{
+			//Append character
+			inputText += event.text.text;
+			UpdateTextInput();
+		}
+	}
 
 	return quit;
+}
+
+void Game::UpdateTextInput()
+{
+	if (inputType == "properties")
+	{
+		editor->SetPropertyText();
+	}
+	else if (inputType == "save_file_as")
+	{
+
+	}
+	else if (inputType == "load_file_as")
+	{
+
+	}
 }
 
 void Game::Update()

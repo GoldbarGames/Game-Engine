@@ -81,6 +81,10 @@ public:
 	bool quit = false;
 
 	bool watchingCutscene = false;
+	bool getKeyboardInput = false;
+
+	std::string inputText = "";
+	std::string inputType = "";
 
 	std::string currentLevel = "";
 
@@ -125,6 +129,10 @@ public:
 
 
 	Vector2 SnapToGrid(Vector2 position);
+
+	void UpdateTextInput();
+	void StartTextInput(std::string reason);
+	void StopTextInput();
 
 	//bool clickedMouse = false;
 };

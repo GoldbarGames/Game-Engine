@@ -168,6 +168,10 @@ void CutsceneManager::PlayCutscene(std::string labelName)
 
 		currentLabel = JumpToLabel(labelName);
 
+		// if failed to load label, exit cutscenes
+		if (currentLabel == nullptr)
+			game->watchingCutscene = false;
+
 		lineIndex = -1;
 
 		ReadNextLine();

@@ -64,6 +64,7 @@ private:
 
 	Entity* selectedEntity = nullptr;
 	std::vector<Text*> properties;	
+	int propertyIndex = 0;
 
 public:
 	int GRID_SIZE = 24;
@@ -103,5 +104,7 @@ public:
 	void PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY);
 	void InspectObject(int mouseX, int mouseY);
 	void SetPropertyPositions();
+
+	void SetPropertyText();
 };
 
