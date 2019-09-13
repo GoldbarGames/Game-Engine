@@ -16,6 +16,8 @@ public:
 	Text* text = nullptr;
 	Text* speaker = nullptr;
 
+	bool shouldRender = true;
+
 
 	const Uint32 boxWidth = 575;
 

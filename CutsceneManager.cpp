@@ -8,6 +8,8 @@ CutsceneManager::CutsceneManager(Game& g)
 	game = &g;
 	textbox = new Textbox(g.spriteManager, g.renderer);
 
+	commands.manager = this;
+
 	nextLetterTimer.Start(1);
 
 	std::ifstream fin;
@@ -191,8 +193,10 @@ void CutsceneManager::ReadNextLine()
 		}
 		else
 		{
+			commandIndex = 0;
 			letterIndex = 0;
-			isReadingNextLine = true;	
+			isCarryingOutCommands = true;
+			isReadingNextLine = true;
 			textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker);
 		}
 	}	
@@ -207,18 +211,33 @@ void CutsceneManager::Update()
 
 	timer += game->dt;
 
+	SceneLine* line = currentLabel->lines[lineIndex];
+
 	while (timer > delay)
 	{
 		timer -= delay;
-		if (isReadingNextLine)
+
+		if (isCarryingOutCommands)
 		{
-			currentText += currentLabel->lines[lineIndex]->text[letterIndex];
+			if (commandIndex >= 0 && commandIndex < line->commands.size())
+			{				
+				commands.ExecuteCommand(line->commands[commandIndex]);
+				commandIndex++;
+			}
+			else
+			{
+				isCarryingOutCommands = false;
+			}
+		}
+		else if (isReadingNextLine)
+		{
+			currentText += line->text[letterIndex];
 			textbox->text->SetTextWrapped(currentText, textbox->boxWidth * SCALE);
 
 			//nextLetterTimer.Start(lettersPerFrame * delay);
 			letterIndex++;
 
-			if (letterIndex >= currentLabel->lines[lineIndex]->text.length())
+			if (letterIndex >= line->text.length())
 			{
 				isReadingNextLine = false;
 				//game->player->cutsceneInputTimer.Start(100);

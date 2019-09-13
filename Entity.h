@@ -18,6 +18,10 @@ protected:
 
 public:
 	virtual ~Entity();
+
+
+	std::string name = "";
+
 	SDL_RendererFlip flip = SDL_FLIP_NONE;
 	Vector2 entityPivot = Vector2(0, 0);
 	bool shouldDelete = false;

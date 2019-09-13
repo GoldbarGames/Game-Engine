@@ -31,6 +31,7 @@ private:
 	SDL_Rect toolboxTextureRect;
 	SDL_Rect toolboxWindowRect;
 
+
 	SDL_Rect selectedRect;
 	SDL_Rect hoveredTileRect;
 
@@ -78,6 +79,7 @@ public:
 
 	Entity * objectPreview = nullptr;
 
+	SDL_Rect overlayRect;
 
 	Text* dialogInput = nullptr;
 	bool showDialogPopup = false;

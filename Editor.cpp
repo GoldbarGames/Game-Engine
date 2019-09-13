@@ -15,10 +15,14 @@ Editor::Editor(Game& g)
 
 	game = &g;
 
-
 	currentEditModeLayer = new Text(game->renderer, theFont);
 	cursorPosition = new Text(game->renderer, theFont);
 	cursorPosition->SetPosition(0, 50);
+
+	dialogText = new Text(game->renderer, theFont, "");
+	dialogInput = new Text(game->renderer, theFont, "");
+	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
+	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
 
 	npcNames = { "gramps", "the_man" };
 
@@ -44,6 +48,11 @@ void Editor::StartEdit()
 
 	// TILE SHEET FOR TOOLBOX
 
+	overlayRect.x = 0;
+	overlayRect.y = 0;
+	overlayRect.w = screenWidth;
+	overlayRect.h = screenHeight;
+
 	toolboxTexture = game->spriteManager->GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png");
 	toolboxTextureRect.x = 0;
 	toolboxTextureRect.y = 0;
@@ -67,6 +76,9 @@ void Editor::StartEdit()
 	dialogRect.h = 200;
 	dialogRect.x = (screenWidth / 2) - (objectPropertiesRect.w / 2);
 	dialogRect.y = (screenHeight / 2) - (objectPropertiesRect.h / 2);
+
+	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
+	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
 
 	//SDL_SetWindowSize(toolbox, toolboxWindowRect.w, toolboxWindowRect.h);
 
@@ -904,19 +916,23 @@ void Editor::DestroyDialog()
 
 void Editor::CreateDialog(std::string txt)
 {
-	DestroyDialog();
+	//DestroyDialog();
 
-	dialogText = new Text(game->renderer, theFont, txt);
-	dialogInput = new Text(game->renderer, theFont, "");
-	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
-	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
+	//TODO: There might be a small memory leak here, but it's not too bad right now.
+
+	dialogText->SetText(txt);
+	dialogInput->SetText("");
 
 	showDialogPopup = true;
 }
 
 void Editor::NewLevel()
 {
-	// TODO: Clear the screen of all entities, etc.
+	for (unsigned int i = 0; i < game->entities.size(); i++)
+		delete game->entities[i];
+	game->entities.clear();
+
+	game->player = game->SpawnPlayer(Vector2(0, 0));
 
 	CreateDialog("Type in the filename of the new level:");
 	game->StartTextInput("new_level");
@@ -924,7 +940,7 @@ void Editor::NewLevel()
 
 void Editor::SaveLevel(std::string levelName)
 {
-	if (levelName == "")
+	if (levelName != "")
 		game->currentLevel = levelName;
 
 	std::ofstream fout;

@@ -11,7 +11,6 @@ CutsceneTrigger::CutsceneTrigger(std::string label, Vector2 pos, float w, float 
 	triggerRect.h = h;
 }
 
-
 CutsceneTrigger::~CutsceneTrigger()
 {
 	

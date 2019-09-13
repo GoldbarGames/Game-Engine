@@ -12,6 +12,8 @@ Game::Game()
 {
 	InitSDL();
 
+
+
 	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager)
 	cutscene = new CutsceneManager(*this);
 	cutscene->ParseScene();
@@ -81,7 +83,6 @@ void Game::InitSDL()
 	renderer->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
 
 	spriteManager = new SpriteManager(renderer);
-	
 }
 
 void Game::EndSDL()
@@ -339,7 +340,9 @@ Background* Game::SpawnBackground(Vector2 pos)
 
 Player* Game::SpawnPlayer(Vector2 position)
 {
-	Player* player = new Player(position);
+	Vector2 snappedPosition = SnapToGrid(position);
+
+	Player* player = new Player(snappedPosition);
 	player->game = this;
 
 	Animator* anim1 = new Animator("kaneko", "idle");
@@ -367,8 +370,8 @@ Player* Game::SpawnPlayer(Vector2 position)
 	anim1->MapStateToSprite("debug_climb", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_climb.png", renderer, Vector2(25, 26)));
 
 	player->SetAnimator(anim1);
-	player->SetPosition(position);
-	player->startPosition = position;
+	player->SetPosition(snappedPosition);
+	player->startPosition = snappedPosition;
 
 	entities.emplace_back(player);
 
@@ -849,6 +852,11 @@ void Game::Render()
 
 	fpsText->Render(renderer);
 	timerText->Render(renderer);
+
+	// Draw the screen overlay
+	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 0);
+	SDL_RenderDrawRect(renderer->renderer, &editor->overlayRect);
+	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 
 	if (watchingCutscene)
 		cutscene->Render(renderer);

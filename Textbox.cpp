@@ -27,8 +27,11 @@ Textbox::~Textbox()
 
 void Textbox::Render(Renderer * renderer)
 {
-	//TODO: Make sure the position is in the center of the screen
-	boxSprite->Render(position, 0, -1, SDL_FLIP_NONE, renderer);
-	speaker->Render(renderer);
-	text->Render(renderer);
+	if (shouldRender)
+	{
+		//TODO: Make sure the position is in the center of the screen
+		boxSprite->Render(position, 0, -1, SDL_FLIP_NONE, renderer);
+		speaker->Render(renderer);
+		text->Render(renderer);
+	}	
 }

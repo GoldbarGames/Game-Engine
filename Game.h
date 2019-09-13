@@ -69,6 +69,9 @@ private:
 public:
 	CutsceneManager * cutscene;
 
+	//Color overlayColor;
+	//int red = 0;
+
 	Renderer * renderer = nullptr;
 	SpriteManager* spriteManager = nullptr;
 	TTF_Font* theFont = nullptr;
@@ -127,13 +130,11 @@ public:
 	void PlayLevel(string gameName, string levelName);
 	Vector2 CalcObjPos(Vector2 pos);
 
-
 	Vector2 SnapToGrid(Vector2 position);
 
 	void UpdateTextInput();
 	void StartTextInput(std::string reason);
 	void StopTextInput();
 
-	//bool clickedMouse = false;
 };
 

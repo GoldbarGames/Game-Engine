@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include "Timer.h"
+#include "CutsceneCommands.h"
 
 class Game;
 
@@ -42,17 +43,20 @@ public:
 
 class CutsceneManager
 {
-	Game* game = nullptr;
-	Textbox * textbox = nullptr;
 	std::vector<SceneLabel*> labels;
 	std::string language = "english";
 	std::string data = "";
 	int lineIndex = 0;
 	int letterIndex = 0;
+	int commandIndex = 0;
 	std::string currentText = "";
 	SceneLabel * currentLabel = nullptr;
+	CutsceneCommands commands;
 public:
+	Textbox * textbox = nullptr;
+	Game* game = nullptr;
 	float timer = 0;
+	bool isCarryingOutCommands = false;
 	bool isReadingNextLine = false;
 	Timer nextLetterTimer;
 	CutsceneManager(Game& g);
