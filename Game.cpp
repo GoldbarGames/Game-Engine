@@ -58,6 +58,8 @@ Game::Game()
 	allMenus["Pause"] = new MenuScreen("Pause", *this);
 	allMenus["Settings"] = new MenuScreen("Settings", *this);
 	allMenus["Spellbook"] = new MenuScreen("Spellbook", *this);
+
+	timerOverlayColor.Start(1);
 }
 
 Game::~Game()
@@ -806,11 +808,33 @@ void Game::UpdateTextInput()
 	}
 }
 
+void Game::UpdateOverlayColor(int& color, const int& target)
+{
+	if (color != target)
+	{
+		changingOverlayColor = true;
+		if (target > color)
+			color++;
+		else
+			color--;
+	}
+}
+
 void Game::Update()
 {
 	camera = player->GetCenter();
 	camera.x -= (screenWidth / 2.0f);  
 	camera.y -= (screenHeight / 2.0f);
+
+	if (changingOverlayColor && timerOverlayColor.HasElapsed())
+	{
+		timerOverlayColor.Start(1);
+		changingOverlayColor = false;
+		UpdateOverlayColor(overlayColor.r, targetColor.r);
+		UpdateOverlayColor(overlayColor.g, targetColor.g);
+		UpdateOverlayColor(overlayColor.b, targetColor.b);
+		UpdateOverlayColor(overlayColor.a, targetColor.a);
+	}
 
 	if (watchingCutscene)
 		cutscene->Update();

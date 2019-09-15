@@ -98,16 +98,18 @@ void CutsceneCommands::Textbox(const std::vector<std::string>& parameters)
 
 void CutsceneCommands::Fade(const std::vector<std::string>& parameters)
 {
+	manager->game->changingOverlayColor = true;
+
 	if (parameters[1] == "clear")
 	{
-		manager->game->overlayColor = Color { 0, 0, 0, 0 };
+		manager->game->targetColor = Color { 0, 0, 0, 0 };
 	}
 	else if (parameters[1] == "white")
 	{
-		manager->game->overlayColor = Color{ 255, 255, 255, 255 };
+		manager->game->targetColor = Color{ 255, 255, 255, 255 };
 	}
 	else if (parameters[1] == "black")
 	{
-		manager->game->overlayColor = Color{0, 0, 0, 255 };
+		manager->game->targetColor = Color{0, 0, 0, 255 };
 	}
 }

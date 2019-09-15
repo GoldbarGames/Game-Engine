@@ -73,6 +73,9 @@ public:
 
 	SDL_Rect overlayRect;
 	Color overlayColor { 0, 0, 0, 0 };
+	Color targetColor{ 0, 0, 0, 0 };
+	bool changingOverlayColor = false;
+	Timer timerOverlayColor;
 
 	Renderer * renderer = nullptr;
 	SpriteManager* spriteManager = nullptr;
@@ -137,6 +140,8 @@ public:
 	void UpdateTextInput();
 	void StartTextInput(std::string reason);
 	void StopTextInput();
+
+	void UpdateOverlayColor(int& color, const int& target);
 
 };
 
