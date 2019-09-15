@@ -13,9 +13,9 @@ public:
 
 	void ExecuteCommand(std::string command);
 	
-	void SetVelocity(const std::vector<std::string>& parameters);
-	void Wait(const std::vector<std::string>& parameters);
-	void Textbox(const std::vector<std::string>& parameters);
-	void Fade(const std::vector<std::string>& parameters);
+	int SetVelocity(const std::vector<std::string>& parameters);
+	int Wait(const std::vector<std::string>& parameters);
+	int Textbox(const std::vector<std::string>& parameters);
+	int Fade(const std::vector<std::string>& parameters);
 };
 

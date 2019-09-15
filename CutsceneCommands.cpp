@@ -5,6 +5,18 @@
 #include <iterator>
 #include <sstream>
 
+typedef int (CutsceneCommands::*FuncList)(const std::vector<std::string>& parameters);
+static struct FuncLUT {
+	char command[30];
+	FuncList method;
+	int size = 4;
+} cmd_lut[] = { 
+	{"wait", &CutsceneCommands::Wait },
+    {"set_velocity", &CutsceneCommands::SetVelocity },
+	{"textbox", &CutsceneCommands::Textbox },
+    {"fade", &CutsceneCommands::Fade }
+};
+
 //TODO: What's the best way to deal with the parameter counts?
 
 CutsceneCommands::CutsceneCommands()
@@ -32,23 +44,18 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 	{
 		std::string commandName = parameters[0];
 
-		if (commandName == "set_velocity")
+		bool commandFound = false;
+		for (unsigned int i = 0; i < cmd_lut->size; i++)
 		{
-			SetVelocity(parameters);
+			if (cmd_lut[i].command == commandName)
+			{
+				commandFound = true;
+				(this->*cmd_lut[i].method)(parameters);
+				break;
+			}
 		}
-		else if (commandName == "wait")
-		{
-			Wait(parameters);
-		}
-		else if (commandName == "textbox")
-		{
-			Textbox(parameters);
-		}
-		else if (commandName == "fade")
-		{
-			Fade(parameters);
-		}
-		else
+
+		if (!commandFound)
 		{
 			// if no commands fit, use the properties code (set properties)
 		}
@@ -57,7 +64,7 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 
 //TODO: Maybe put this code somewhere so it can be used
 // both by the cutscene system and the level editor properties?
-void CutsceneCommands::SetVelocity(const std::vector<std::string>& parameters)
+int CutsceneCommands::SetVelocity(const std::vector<std::string>& parameters)
 {
 	PhysicsEntity* entity = nullptr;
 
@@ -76,15 +83,19 @@ void CutsceneCommands::SetVelocity(const std::vector<std::string>& parameters)
 			break;
 		}
 	}
+
+	return 0;
 }
 
-void CutsceneCommands::Wait(const std::vector<std::string>& parameters)
+int CutsceneCommands::Wait(const std::vector<std::string>& parameters)
 {
 	int ms = std::stoi(parameters[1]);
 	manager->timer -= ms;
+
+	return 0;
 }
 
-void CutsceneCommands::Textbox(const std::vector<std::string>& parameters)
+int CutsceneCommands::Textbox(const std::vector<std::string>& parameters)
 {
 	if (parameters[1] == "on")
 	{
@@ -94,9 +105,11 @@ void CutsceneCommands::Textbox(const std::vector<std::string>& parameters)
 	{
 		manager->textbox->shouldRender = false;
 	}
+
+	return 0;
 }
 
-void CutsceneCommands::Fade(const std::vector<std::string>& parameters)
+int CutsceneCommands::Fade(const std::vector<std::string>& parameters)
 {
 	manager->game->changingOverlayColor = true;
 
@@ -112,4 +125,6 @@ void CutsceneCommands::Fade(const std::vector<std::string>& parameters)
 	{
 		manager->game->targetColor = Color{0, 0, 0, 255 };
 	}
+
+	return 0;
 }
