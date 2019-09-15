@@ -19,8 +19,6 @@ CutsceneCommands::~CutsceneCommands()
 
 void CutsceneCommands::ExecuteCommand(std::string command)
 {
-	std::cout << command << std::endl;
-
 	// Break up the command string into a vector of strings, one word each
 	//TODO: Is this the best way to do this?
 	std::stringstream ss(command);
@@ -63,7 +61,7 @@ void CutsceneCommands::SetVelocity(const std::vector<std::string>& parameters)
 {
 	PhysicsEntity* entity = nullptr;
 
-	for (int i = 0; i < manager->game->entities.size(); i++)
+	for (unsigned int i = 0; i < manager->game->entities.size(); i++)
 	{
 		if (manager->game->entities[i]->name == parameters[1])
 		{
@@ -100,5 +98,16 @@ void CutsceneCommands::Textbox(const std::vector<std::string>& parameters)
 
 void CutsceneCommands::Fade(const std::vector<std::string>& parameters)
 {
-
+	if (parameters[1] == "clear")
+	{
+		manager->game->overlayColor = Color { 0, 0, 0, 0 };
+	}
+	else if (parameters[1] == "white")
+	{
+		manager->game->overlayColor = Color{ 255, 255, 255, 255 };
+	}
+	else if (parameters[1] == "black")
+	{
+		manager->game->overlayColor = Color{0, 0, 0, 255 };
+	}
 }

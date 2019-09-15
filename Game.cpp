@@ -12,7 +12,12 @@ Game::Game()
 {
 	InitSDL();
 
+	overlayRect.x = 0;
+	overlayRect.y = 0;
+	overlayRect.w = screenWidth;
+	overlayRect.h = screenHeight;
 
+	spriteManager = new SpriteManager();
 
 	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager)
 	cutscene = new CutsceneManager(*this);
@@ -82,7 +87,7 @@ void Game::InitSDL()
 	renderer = new Renderer();
 	renderer->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
 
-	spriteManager = new SpriteManager(renderer);
+	
 }
 
 void Game::EndSDL()
@@ -290,8 +295,8 @@ bool Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 
 Vector2 Game::CalcObjPos(Vector2 pos)
 {
-	int newTileX = pos.x + (int)(camera.x);
-	int newTileY = pos.y + (int)(camera.y);
+	int newTileX = (int)pos.x + (int)(camera.x);
+	int newTileY = (int)pos.y + (int)(camera.y);
 
 	if (newTileX % 2 != 0)
 		newTileX++;
@@ -307,7 +312,7 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 	Vector2 newTilePos = CalcObjPos(position);
 
 	//Sprite* tileSprite = new Sprite(Vector2(newTileX, newTileY), spriteManager.GetImage(tilesheet), renderer);
-	Tile* tile = new Tile(newTilePos, frame, spriteManager->GetImage(tilesheet), renderer);
+	Tile* tile = new Tile(newTilePos, frame, spriteManager->GetImage(renderer, tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION;
@@ -854,9 +859,11 @@ void Game::Render()
 	timerText->Render(renderer);
 
 	// Draw the screen overlay
-	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 0);
-	SDL_RenderDrawRect(renderer->renderer, &editor->overlayRect);
+	SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawColor(renderer->renderer, overlayColor.r, overlayColor.g, overlayColor.b, overlayColor.a);
+	SDL_RenderFillRect(renderer->renderer, &overlayRect);
 	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+	SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
 
 	if (watchingCutscene)
 		cutscene->Render(renderer);

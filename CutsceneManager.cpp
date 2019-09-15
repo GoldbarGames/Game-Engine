@@ -29,11 +29,11 @@ CutsceneManager::CutsceneManager(Game& g)
 
 void CutsceneManager::ParseScene()
 {
-	for (int i = 0; i < labels.size(); i++)
+	for (unsigned int i = 0; i < labels.size(); i++)
 		delete labels[i];
 	labels.clear();
 
-	int index = 0;
+	unsigned int index = 0;
 
 	do
 	{
@@ -81,7 +81,7 @@ void CutsceneManager::ParseScene()
 
 				// add all commands for this line
 				SceneLine* tempLine = new SceneLine(newText, newName);
-				for (int i = 0; i < tempCommands.size(); i++)
+				for (unsigned int i = 0; i < tempCommands.size(); i++)
 				{
 					//std::cout << tempCommands[i] << std::endl;
 					tempLine->commands.emplace_back(tempCommands[i]);
@@ -122,7 +122,7 @@ void CutsceneManager::ParseScene()
 	} while (index < data.length());
 }
 
-std::string CutsceneManager::ParseWord(std::string text, char limit, int& index)
+std::string CutsceneManager::ParseWord(std::string text, char limit, unsigned int& index)
 {
 	std::string word = "";
 
@@ -152,7 +152,7 @@ void CutsceneManager::Render(Renderer * renderer)
 
 SceneLabel* CutsceneManager::JumpToLabel(std::string newLabelName)
 {
-	for (int i = 0; i < labels.size(); i++)
+	for (unsigned int i = 0; i < labels.size(); i++)
 	{
 		if (labels[i]->name == newLabelName)
 		{
@@ -209,7 +209,7 @@ void CutsceneManager::Update()
 
 	//nextLetterTimer.Start(lettersPerFrame * delay);
 
-	timer += game->dt;
+	timer += (float)game->dt;
 
 	SceneLine* line = currentLabel->lines[lineIndex];
 

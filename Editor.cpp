@@ -48,12 +48,8 @@ void Editor::StartEdit()
 
 	// TILE SHEET FOR TOOLBOX
 
-	overlayRect.x = 0;
-	overlayRect.y = 0;
-	overlayRect.w = screenWidth;
-	overlayRect.h = screenHeight;
 
-	toolboxTexture = game->spriteManager->GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png");
+	toolboxTexture = game->spriteManager->GetImage(game->renderer, "assets/tiles/" + tilesheets[tilesheetIndex] + ".png");
 	toolboxTextureRect.x = 0;
 	toolboxTextureRect.y = 0;
 
@@ -282,7 +278,7 @@ void Editor::SetPropertyPositions()
 	int propertyX = objectPropertiesRect.x + 10;
 	int propertyY = objectPropertiesRect.y + 10;
 
-	for (int i = 0; i < properties.size(); i++)
+	for (unsigned int i = 0; i < properties.size(); i++)
 	{
 		properties[i]->SetPosition(propertyX, propertyY);
 		propertyY += 50;
@@ -545,7 +541,7 @@ void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
 
 		exit = true;
 
-		for (int i = 0; i < game->entities.size(); i++)
+		for (unsigned int i = 0; i < game->entities.size(); i++)
 		{
 			if (game->entities[i]->GetPosition() == lastPosition &&
 				game->entities[i]->etype == "ladder")
@@ -837,7 +833,7 @@ void Editor::Render(Renderer* renderer)
 		
 		// Draw the text for all the properties
 		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-		for (int i = 0; i < properties.size(); i++)
+		for (unsigned int i = 0; i < properties.size(); i++)
 		{
 			properties[i]->Render(renderer);
 		}

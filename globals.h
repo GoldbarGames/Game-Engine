@@ -15,3 +15,10 @@ const int screenHeight = 720;
 enum DrawingLayer { BACK = 0, FRONT = 40, OBJECT = 20, COLLISION = 30, MIDDLE = 10 };
 
 std::string GetDrawingLayerName(DrawingLayer layer);
+
+struct Color {
+	int r = 0;
+	int g = 0;
+	int b = 0;
+	int a = 0;
+};

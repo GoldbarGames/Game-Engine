@@ -3,7 +3,7 @@
 
 EditorButton::EditorButton(std::string txt, ::string filename, Vector2 pos, Game& game, Vector2 size)
 {
-	buttonTexture = game.spriteManager->GetImage("assets/editor/btn" + filename + ".png");
+	buttonTexture = game.spriteManager->GetImage(game.renderer, "assets/editor/btn" + filename + ".png");
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
 

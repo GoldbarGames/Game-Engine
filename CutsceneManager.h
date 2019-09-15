@@ -32,7 +32,7 @@ public:
 
 	~SceneLabel()
 	{
-		for (int i = 0; i < lines.size(); i++)
+		for (unsigned int i = 0; i < lines.size(); i++)
 		{
 			delete lines[i];
 		}
@@ -46,9 +46,9 @@ class CutsceneManager
 	std::vector<SceneLabel*> labels;
 	std::string language = "english";
 	std::string data = "";
-	int lineIndex = 0;
-	int letterIndex = 0;
-	int commandIndex = 0;
+	unsigned int lineIndex = 0;
+	unsigned int letterIndex = 0;
+	unsigned int commandIndex = 0;
 	std::string currentText = "";
 	SceneLabel * currentLabel = nullptr;
 	CutsceneCommands commands;
@@ -61,7 +61,7 @@ public:
 	Timer nextLetterTimer;
 	CutsceneManager(Game& g);
 	void ParseScene();
-	std::string ParseWord(std::string text, char limit, int& index);
+	std::string ParseWord(std::string text, char limit, unsigned int& index);
 	void Update();
 	void Render(Renderer * renderer);
 	SceneLabel * JumpToLabel(std::string newLabelName);

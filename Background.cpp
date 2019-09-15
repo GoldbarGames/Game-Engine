@@ -14,7 +14,7 @@ Background::~Background()
 
 void Background::Render(Renderer * renderer, Vector2 cameraOffset)
 {
-	cameraOffset = Vector2(0.1f, 0);
+	cameraOffset = Vector2(0.1f, 0.0f);
 	for (unsigned int i = 0; i < layers.size(); i++)
 	{
 		layers[i]->Render(renderer, position);

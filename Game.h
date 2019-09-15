@@ -52,6 +52,8 @@ private:
 
 	bool limitFPS = false;
 
+	int test = 0;
+
 	std::unordered_map<std::string, MenuScreen*> allMenus;
 	std::unordered_map<int, std::string> spriteMapDoor;
 	std::unordered_map<int, std::string> spriteMapLadder;
@@ -69,8 +71,8 @@ private:
 public:
 	CutsceneManager * cutscene;
 
-	//Color overlayColor;
-	//int red = 0;
+	SDL_Rect overlayRect;
+	Color overlayColor { 0, 0, 0, 0 };
 
 	Renderer * renderer = nullptr;
 	SpriteManager* spriteManager = nullptr;

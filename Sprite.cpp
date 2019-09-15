@@ -27,7 +27,7 @@ Sprite::Sprite(Vector2 frame, SDL_Texture * image, Renderer * renderer)
 
 Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath, Renderer * renderer, Vector2 newPivot)
 {
-	texture = manager->GetImage(filepath);
+	texture = manager->GetImage(renderer, filepath);
 
 	pivot = newPivot;
 
@@ -59,7 +59,7 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath, Rend
 Sprite::Sprite(int start, int end, int numFrames, SpriteManager* manager, 
 	std::string filepath, Renderer * renderer, Vector2 newPivot, bool loop)
 {
-	texture = manager->GetImage(filepath);
+	texture = manager->GetImage(renderer, filepath);
 
 	pivot = newPivot;
 

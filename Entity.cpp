@@ -140,7 +140,7 @@ void Entity::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Tex
 
 void Entity::DeleteProperties(std::vector<Text*>& properties)
 {
-	for (int i = 0; i < properties.size(); i++)
+	for (unsigned int i = 0; i < properties.size(); i++)
 		delete properties[i];
 
 	properties.clear();

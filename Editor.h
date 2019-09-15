@@ -79,8 +79,6 @@ public:
 
 	Entity * objectPreview = nullptr;
 
-	SDL_Rect overlayRect;
-
 	Text* dialogInput = nullptr;
 	bool showDialogPopup = false;
 

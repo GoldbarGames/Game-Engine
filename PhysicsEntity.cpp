@@ -196,10 +196,10 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	// Now we go over the list
 	// If there was an entity in the collision list that we did not collide with this frame, then call OnTriggerExit
 	// (maybe have two lists? keep track of this frame and the previous one?)
-	for (int i = 0; i < prevFrameCollisions.size(); i++)
+	for (unsigned int i = 0; i < prevFrameCollisions.size(); i++)
 	{
 		bool triggerExit = true;
-		for (int k = 0; k < thisFrameCollisions.size(); k++)
+		for (unsigned int k = 0; k < thisFrameCollisions.size(); k++)
 		{
 			if (thisFrameCollisions[k] == prevFrameCollisions[i])
 			{
@@ -222,7 +222,7 @@ void PhysicsEntity::CheckCollisionTrigger(Entity* collidedEntity)
 	if (collidedEntity->trigger)
 	{
 		bool collisionStay = false;
-		for (int i = 0; i < thisFrameCollisions.size(); i++)
+		for (unsigned int i = 0; i < thisFrameCollisions.size(); i++)
 		{
 			if (thisFrameCollisions[i] == collidedEntity)
 			{

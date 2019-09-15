@@ -1,12 +1,12 @@
 #include "Renderer.h"
 #include "SpriteManager.h"
 
-SpriteManager::SpriteManager(Renderer* r)
+SpriteManager::SpriteManager()
 {
-	renderer = r;
+
 }
 
-SDL_Texture* SpriteManager::GetImage(std::string const& imagePath)
+SDL_Texture* SpriteManager::GetImage(Renderer* renderer, std::string const& imagePath)
 {
 	if (images[imagePath].get() == nullptr)
 	{
