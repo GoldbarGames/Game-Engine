@@ -37,20 +37,12 @@ private:
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;
 
-	void Update();
-	void Render();
-	bool SetOpenGLAttributes();
-	
-	void CalcDt();
 	
 	Mix_Music* currentBGM = nullptr;
 
 	std::vector<Background*> backgrounds;
 
-	Timer timer;
-	Timer fpsLimit;
 
-	bool limitFPS = false;
 
 	int test = 0;
 
@@ -59,16 +51,33 @@ private:
 	std::unordered_map<int, std::string> spriteMapLadder;
 	std::unordered_map<int, std::string> spriteMapNPCs;
 
-	Uint32 lastPressedKeyTicks = 0;
 
-	void MainLoop();
-	bool HandleEvent(SDL_Event& event);
-	bool HandleMenuEvent(SDL_Event& event);
-	void HandleEditMode();
+	
+
 	
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
 public:
+
+	void Update();
+	void Render();
+	bool SetOpenGLAttributes();
+
+	bool HandleEvent(SDL_Event& event);
+	bool HandleMenuEvent(SDL_Event& event);
+	void HandleEditMode();
+
+	void CalcDt();
+	bool CheckInputs();
+	void CheckDeleteEntities();
+
+	Timer timer;
+	Timer fpsLimit;
+	bool limitFPS = false;
+
+	Uint32 lastPressedKeyTicks = 0;
+
+
 	CutsceneManager * cutscene;
 
 	SDL_Rect overlayRect;
@@ -80,13 +89,12 @@ public:
 	Renderer * renderer = nullptr;
 	SpriteManager* spriteManager = nullptr;
 	TTF_Font* theFont = nullptr;
+	TTF_Font* headerFont = nullptr;
 	
 	Text* jumpsRemainingText = nullptr;
 	Text* fpsText = nullptr;
 	Text* timerText = nullptr;
 	std::vector<MenuScreen*> openedMenus;
-
-	bool quit = false;
 
 	bool watchingCutscene = false;
 	bool getKeyboardInput = false;
@@ -114,7 +122,6 @@ public:
 	Vector2 camera = Vector2(0, 0);
 	void InitSDL();
 	void EndSDL();
-	void Play(string gameName);
 	void SortEntities(std::vector<Entity*>& entityVector);
 	
 	// Spawn functions
@@ -132,7 +139,8 @@ public:
 	NPC* CreateNPC(std::string name, Vector2 position, int spriteIndex);
 	NPC* SpawnNPC(std::string name, Vector2 position, int spriteIndex = 0);
 	
-	void PlayLevel(string gameName, string levelName);
+	void LoadTitleScreen();
+	void PlayLevel(string levelName);
 	Vector2 CalcObjPos(Vector2 pos);
 
 	Vector2 SnapToGrid(Vector2 position);
@@ -142,6 +150,7 @@ public:
 	void StopTextInput();
 
 	void UpdateOverlayColor(int& color, const int& target);
+	void MainLoop();
 
 };
 

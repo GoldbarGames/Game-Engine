@@ -37,6 +37,7 @@ Game::Game()
 
 	// Initialize the font before all text
 	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
+	headerFont = TTF_OpenFont("assets/fonts/default.ttf", 32);
 
 	editor = new Editor(*this);
 
@@ -60,6 +61,15 @@ Game::Game()
 	allMenus["Spellbook"] = new MenuScreen("Spellbook", *this);
 
 	timerOverlayColor.Start(1);
+
+
+	// Set up OpenGL stuff
+	mainContext = SDL_GL_CreateContext(window);
+	SetOpenGLAttributes();
+	SDL_GL_SetSwapInterval(1);
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+	SDL_GL_SwapWindow(window);
 }
 
 Game::~Game()
@@ -89,7 +99,7 @@ void Game::InitSDL()
 	renderer = new Renderer();
 	renderer->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
 
-	
+	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));	
 }
 
 void Game::EndSDL()
@@ -440,154 +450,63 @@ void Game::StopTextInput()
 	}
 }
 
-void Game::PlayLevel(string gameName, string levelName)
+void Game::LoadTitleScreen()
 {
-	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));
-
-	currentLevel = levelName;
-	editor->LoadLevel(levelName);
-
-	MainLoop();
+	openedMenus.clear();
+	editor->LoadLevel("title");
+	openedMenus.emplace_back(allMenus["Title"]);
 }
 
-void Game::Play(string gameName)
+void Game::PlayLevel(string levelName)
 {
-	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));
-
-	entities.reserve(5);
-
-	player = SpawnPlayer(Vector2(220, 0));
-
-	//SpawnPerson(Vector2(400, 0));
-	//SpawnPerson(Vector2(0, 0));
-
-	//entities.emplace_back(bg);
-
-	//SpawnTile(Vector2(5, 3), "assets/tiles/housetiles5.png", Vector2(100, 180), false);
-	//SpawnTile(Vector2(6, 6), "assets/tiles/housetiles5.png", Vector2(300, 180), false);
-
-	MainLoop();
+	openedMenus.clear();
+	editor->LoadLevel(levelName);
 }
 
 void Game::MainLoop()
 {
-	//Mix_PlayMusic(currentBGM, -1);
 
-	// Set up OpenGL stuff
-	mainContext = SDL_GL_CreateContext(window);
-	SetOpenGLAttributes();
-	SDL_GL_SetSwapInterval(1);
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	SDL_GL_SwapWindow(window);
+}
 
-	// Create the backgrounds
-	const int NUM_BGS = 1;
-	const int BG_WIDTH = 636;
-	for (int i = 0; i < NUM_BGS; i++)
+bool Game::CheckInputs()
+{
+	// Reset all inputs here
+	pressedJumpButton = false;
+	pressedDebugButton = false;
+	//clickedMouse = false;
+
+	bool quit = false;
+
+	// Check for inputs
+	SDL_Event event;
+	while (SDL_PollEvent(&event))
 	{
-		SpawnBackground(Vector2(BG_WIDTH * SCALE * -i, 0));
-	}
+		//if (event.type == SDL_MOUSEBUTTONDOWN)
+		//	clickedMouse = true;
 
-	SortEntities(entities);
-
-	editor->currentEditModeLayer->SetText("Drawing on layer: " + GetDrawingLayerName(editor->drawingLayer));
-
-	//Start counting frames per second
-	int countedFrames = 0;
-	timer.Start();
-	
-	quit = false;
-	while (!quit)
-	{
-		fpsLimit.Start();
-
-		//Calculate and correct fps
-		float avgFPS = countedFrames / (timer.GetTicks() / 1000.f);
-		if (avgFPS > 2000000)
-		{
-			avgFPS = 0;
-		}
-
-		//fpsText->SetText("FPS: " + std::to_string(avgFPS));
-
-		// Reset all inputs here
-		pressedJumpButton = false;
-		pressedDebugButton = false;
-		//clickedMouse = false;
-
-		// Check for inputs
-		SDL_Event event;
-		while (SDL_PollEvent(&event))
-		{
-			//if (event.type == SDL_MOUSEBUTTONDOWN)
-			//	clickedMouse = true;
-
-			if (openedMenus.size() > 0)
-				quit = HandleMenuEvent(event);
-			else
-				quit = HandleEvent(event);
-
-			if (quit)
-				break;
-		}
-
-		CalcDt();
-
-		//timerText->SetText(std::to_string(timer.GetTicks()/1000.0f));
-
-		// Destroy entities before we update them
-		unsigned int k = 0;
-		while (k < entities.size())
-		{
-			if (entities[k]->shouldDelete)
-				DeleteEntity(k);
-			else
-				k++;
-		}
-
-
-		if (GetModeEdit())
-		{
-			if (!getKeyboardInput)
-			{
-				HandleEditMode();
-			}
-		}
-		else if (openedMenus.size() > 0)
-		{
-			Uint32 ticks = timer.GetTicks();
-			if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
-			{				
-				if (openedMenus[openedMenus.size() - 1]->Update() > 0)
-					lastPressedKeyTicks = ticks;				
-			}
-
-			if (lastPressedKeyTicks > 0)
-				int test = 0;
-		}
+		if (openedMenus.size() > 0)
+			quit = HandleMenuEvent(event);
 		else
-		{
-			Update();
-		}
-				
-		Render();
+			quit = HandleEvent(event);
 
-		countedFrames++;
-
-		//If frame finished early
-		/*
-		if (limitFPS)
-		{
-			int frameTicks = fpsLimit.GetTicks();
-			if (frameTicks < SCREEN_TICKS_PER_FRAME)
-			{
-				//Wait remaining time
-				//SDL_Delay(SCREEN_TICKS_PER_FRAME - frameTicks);
-			}
-		}*/
+		if (quit)
+			break;
 	}
 
+	return quit;
+}
+
+void Game::CheckDeleteEntities()
+{
+	// Destroy entities before we update them
+	unsigned int k = 0;
+	while (k < entities.size())
+	{
+		if (entities[k]->shouldDelete)
+			DeleteEntity(k);
+		else
+			k++;
+	}
 }
 
 void Game::HandleEditMode()
@@ -822,9 +741,17 @@ void Game::UpdateOverlayColor(int& color, const int& target)
 
 void Game::Update()
 {
-	camera = player->GetCenter();
-	camera.x -= (screenWidth / 2.0f);  
-	camera.y -= (screenHeight / 2.0f);
+	if (player != nullptr)
+	{
+		camera = player->GetCenter();
+		camera.x -= (screenWidth / 2.0f);
+		camera.y -= (screenHeight / 2.0f);
+	}
+	else // to handle the title screen (maybe change this later)
+	{
+		camera = Vector2(0, 0);
+	}
+
 
 	if (changingOverlayColor && timerOverlayColor.HasElapsed())
 	{
@@ -895,9 +822,14 @@ void Game::Render()
 	// Render all menu screens
 	if (openedMenus.size() > 0)
 	{
+		SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
+		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 128);
+		SDL_RenderFillRect(renderer->renderer, &overlayRect);
+		SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
 		openedMenus[openedMenus.size() - 1]->Render(renderer);
 	}
-		
+
+	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	SDL_RenderPresent(renderer->renderer);
 }
 

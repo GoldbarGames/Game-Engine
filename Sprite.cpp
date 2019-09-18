@@ -111,6 +111,11 @@ void Sprite::Animate(int msPerFrame, Uint32 time)
 	}
 }
 
+void Sprite::Render(Vector2 position, Renderer* renderer)
+{
+	Render(position, 0, -1, SDL_FLIP_NONE, renderer, 0);
+}
+
 void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, float angle)
 {
 	windowRect.x = position.x;

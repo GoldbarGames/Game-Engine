@@ -14,11 +14,11 @@ protected:
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
 
-	Entity(Vector2 pos);
+
 
 public:
 	virtual ~Entity();
-
+	Entity(Vector2 pos);
 
 	std::string name = "";
 

@@ -34,6 +34,8 @@ Editor::Editor(Game& g)
 	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 
 	game->entities.clear();
+
+	currentEditModeLayer->SetText("Drawing on layer: " + GetDrawingLayerName(drawingLayer));
 }
 
 Editor::~Editor()
@@ -1005,6 +1007,9 @@ void Editor::LoadLevel(std::string levelName)
 		delete game->entities[i];		
 	game->entities.clear();
 
+	if (levelName != "")
+		game->currentLevel = levelName;
+
 	std::ifstream fin;
 	fin.open("data/" + levelName + ".wdk");
 
@@ -1071,4 +1076,15 @@ void Editor::LoadLevel(std::string levelName)
 	}
 
 	fin.close();
+
+	// Create the backgrounds
+	//TODO: Move and fix the code
+	const int NUM_BGS = 1;
+	const int BG_WIDTH = 636;
+	for (int i = 0; i < NUM_BGS; i++)
+	{
+		game->SpawnBackground(Vector2(BG_WIDTH * SCALE * -i, 0));
+	}
+
+	game->SortEntities(game->entities);
 }

@@ -31,6 +31,7 @@ public:
 	SDL_Rect windowRect;
 	const SDL_Rect* GetRect();
 	void Animate(int msPerFrame, Uint32 time);
+	void Render(Vector2 position, Renderer* renderer);
 	void Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer* renderer, float angle=0);
 
 	Sprite(Vector2 frame, SDL_Texture * image, Renderer * renderer);
