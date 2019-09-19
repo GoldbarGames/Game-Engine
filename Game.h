@@ -2,7 +2,6 @@
 #include "SDL.h"
 #include <SDL_image.h>
 #include <SDL_ttf.h>
-#include <SDL_mixer.h>
 #include <GL/glew.h>
 #include <string>
 #include <iostream>
@@ -24,6 +23,7 @@
 #include "Renderer.h"
 #include "NPC.h"
 #include "CutsceneManager.h"
+#include "SoundManager.h"
 
 using std::string;
 
@@ -37,27 +37,19 @@ private:
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;
 
-	
-	Mix_Music* currentBGM = nullptr;
-
 	std::vector<Background*> backgrounds;
-
-
 
 	int test = 0;
 
-	std::unordered_map<std::string, MenuScreen*> allMenus;
+	
 	std::unordered_map<int, std::string> spriteMapDoor;
 	std::unordered_map<int, std::string> spriteMapLadder;
 	std::unordered_map<int, std::string> spriteMapNPCs;
 
-
-	
-
-	
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
 public:
+	std::unordered_map<std::string, MenuScreen*> allMenus;
 
 	void Update();
 	void Render();
@@ -88,6 +80,7 @@ public:
 
 	Renderer * renderer = nullptr;
 	SpriteManager* spriteManager = nullptr;
+	SoundManager* soundManager = nullptr;
 	TTF_Font* theFont = nullptr;
 	TTF_Font* headerFont = nullptr;
 	
@@ -150,7 +143,8 @@ public:
 	void StopTextInput();
 
 	void UpdateOverlayColor(int& color, const int& target);
-	void MainLoop();
+
+	void EscapeMenu();
 
 };
 

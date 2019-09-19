@@ -9,7 +9,7 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 	text->SetText(txt);
 	text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->textWindowRect.h/2));
 
-	functionName = function;
+	name = function;
 
 	//TODO: What if I want to scale the button to a particular width and height independent of the image?
 	//ANSWER: See the EditorButton
@@ -62,10 +62,37 @@ void MenuButton::Render(Renderer* renderer)
 	text->Render(renderer);
 }
 
-void MenuButton::SetButtonsUpDownLeftRight(MenuButton* up, MenuButton* down, MenuButton* left, MenuButton* right)
+
+BaseButton* MenuButton::Update(const Uint8* currentKeyStates)
 {
-	buttonPressedUp = up;
-	buttonPressedDown = down;
-	buttonPressedLeft = left;
-	buttonPressedRight = right;
+	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
+	{
+		if (buttonPressedUp != nullptr)
+		{
+			return buttonPressedUp;
+		}
+	}
+	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
+	{
+		if (buttonPressedDown != nullptr)
+		{
+			return buttonPressedDown;
+		}
+	}
+	else if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
+	{
+		if (buttonPressedLeft != nullptr)
+		{
+			return buttonPressedLeft;
+		}
+	}
+	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
+	{
+		if (buttonPressedRight != nullptr)
+		{
+			return buttonPressedRight;
+		}
+	}
+
+	return this;
 }

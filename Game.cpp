@@ -19,6 +19,8 @@ Game::Game()
 
 	spriteManager = new SpriteManager();
 
+	soundManager = new SoundManager();
+
 	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager)
 	cutscene = new CutsceneManager(*this);
 	cutscene->ParseScene();
@@ -56,12 +58,12 @@ Game::Game()
 
 	// Initialize all the menus
 	allMenus["Title"] = new MenuScreen("Title", *this);
+	allMenus["File Select"] = new MenuScreen("File Select", *this);
 	allMenus["Pause"] = new MenuScreen("Pause", *this);
 	allMenus["Settings"] = new MenuScreen("Settings", *this);
 	allMenus["Spellbook"] = new MenuScreen("Spellbook", *this);
 
 	timerOverlayColor.Start(1);
-
 
 	// Set up OpenGL stuff
 	mainContext = SDL_GL_CreateContext(window);
@@ -90,9 +92,6 @@ void Game::InitSDL()
 	SDL_Init(SDL_INIT_VIDEO);
 	TTF_Init();
 
-	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
-	currentBGM = Mix_LoadMUS("assets/bgm/Witchs_Waltz.ogg");
-	 
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
@@ -110,13 +109,9 @@ void Game::EndSDL()
 	SDL_DestroyRenderer(renderer->renderer);	
 	SDL_DestroyWindow(window);	
 	window = nullptr;
-
-	Mix_FreeMusic(currentBGM);
-	currentBGM = nullptr;
-
+	
 	TTF_CloseFont(theFont);
 	
-	Mix_Quit();
 	TTF_Quit();
 	SDL_Quit();
 	IMG_Quit();
@@ -455,17 +450,18 @@ void Game::LoadTitleScreen()
 	openedMenus.clear();
 	editor->LoadLevel("title");
 	openedMenus.emplace_back(allMenus["Title"]);
+
+	soundManager->PlayBGM("assets/bgm/Witchs_Waltz.ogg");
 }
 
 void Game::PlayLevel(string levelName)
 {
 	openedMenus.clear();
 	editor->LoadLevel(levelName);
-}
 
-void Game::MainLoop()
-{
+	//TODO: Load different music based on each level
 
+	soundManager->PlayBGM("assets/bgm/Forest.ogg");
 }
 
 bool Game::CheckInputs()
@@ -537,6 +533,28 @@ void Game::HandleEditMode()
 	editor->HandleEdit();
 }
 
+void Game::EscapeMenu()
+{
+	if (openedMenus.size() > 0)
+	{
+		MenuScreen* currentMenu = openedMenus.back();
+
+		//TODO: Maybe have a Screen base class with virtual OnPop, OnPush functions
+		//TOOD: Maybe instead, we limit the size to 1 and put a GUI in here
+		if (currentMenu->name == "Title")
+			return;
+
+		if (currentMenu->name == "Pause")
+		{
+			Uint32 ticks = SDL_GetTicks();
+			for (unsigned int i = 0; i < entities.size(); i++)
+				entities[i]->Unpause(ticks);
+		}
+
+		openedMenus.pop_back();
+	}
+}
+
 // PRE-CONDITION: openedMenus.size() > 0
 bool Game::HandleMenuEvent(SDL_Event& event)
 {
@@ -547,23 +565,20 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 
 	if (event.type == SDL_KEYDOWN)
 	{
-		Uint32 ticks = SDL_GetTicks();
+		
 		switch (event.key.keysym.sym)
 		{
-		case SDLK_ESCAPE:
-			openedMenus.pop_back();
-			
-			for (unsigned int i = 0; i < entities.size(); i++)
-				entities[i]->Unpause(ticks);
-			break;
-		case SDLK_q:
-			quit = true;
-			break;
-		case SDLK_RETURN:
-			quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
-			break;
-		default:
-			break;
+			case SDLK_ESCAPE:
+				EscapeMenu();
+				break;
+			case SDLK_q:
+				quit = true;
+				break;
+			case SDLK_RETURN:
+				quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
+				break;
+			default:
+				break;
 		}
 	}
 

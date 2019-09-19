@@ -64,9 +64,9 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		buttons.emplace_back(buttonSettings);
 		buttons.emplace_back(buttonExit);
 
-		Text* textTitle = new Text(game.renderer, game.headerFont, "Copyright 2019 Goldbar Games LLC");
-		textTitle->SetPosition(startWidth - (textTitle->textWindowRect.w / 2), 600);
-		texts.emplace_back(textTitle);
+		Text* textCopyright = new Text(game.renderer, game.headerFont, "Copyright 2019 Goldbar Games LLC");
+		textCopyright->SetPosition(startWidth - (textCopyright->textWindowRect.w / 2), 600);
+		texts.emplace_back(textCopyright);
 
 		Entity* titleCharacter = new Entity(Vector2(-200, -200));
 		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer, Vector2(222, 370), false));
@@ -78,11 +78,59 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	}
 	else if (name == "Settings")
 	{
-		buttons.emplace_back(new MenuButton("Back", "assets/gui/menu.png", "Back", Vector2(0, 0), game));
+		int startWidth = screenWidth / 2;
+		int startHeight = 200;
+		int distance = 120;
+
+		int buttonPosX = 1000;
+
+		MenuButton* buttonVolumeMusic = new MenuButton("Music Volume", "assets/gui/menu.png",
+			"Play Game", Vector2(buttonPosX, startHeight + (distance * 0)), game);
+
+		buttonVolumeMusic->SetButtonsUpDownLeftRight(buttonVolumeMusic, buttonVolumeMusic, buttonVolumeMusic, buttonVolumeMusic);
+
+		buttons.emplace_back(buttonVolumeMusic);
+
+
 	}
 	else if (name == "Spellbook")
 	{
-		buttons.emplace_back(new MenuButton("Back", "assets/gui/menu.png", "Back", Vector2(0, 0), game));
+
+	}
+	else if (name == "File Select")
+	{
+		int startWidth = screenWidth / 2;
+		int startHeight = 200;
+		int distance = 120;
+
+		int buttonPosX = (screenWidth / 2);
+
+		//TODO: Replace each text with 'New Game' or 'Load Game' depending on whether there is save data
+
+		std::string file1Function = "Load Game";
+		std::string file2Function = "Load Game";
+		std::string file3Function = "Load Game";
+
+		MenuButton* buttonFile1 = new MenuButton("File 1", "assets/gui/menu.png",
+			file1Function, Vector2(buttonPosX, startHeight + (distance * 0)), game);
+
+		MenuButton* buttonFile2 = new MenuButton("File 2", "assets/gui/menu.png",
+			file2Function, Vector2(buttonPosX, startHeight + (distance * 1)), game);
+
+		MenuButton* buttonFile3 = new MenuButton("File 3", "assets/gui/menu.png",
+			file3Function, Vector2(buttonPosX, startHeight + (distance * 2)), game);
+
+		buttonFile1->SetButtonsUpDownLeftRight(buttonFile3, buttonFile2, buttonFile3, buttonFile2);
+		buttonFile2->SetButtonsUpDownLeftRight(buttonFile1, buttonFile3, buttonFile1, buttonFile3);
+		buttonFile3->SetButtonsUpDownLeftRight(buttonFile2, buttonFile1, buttonFile2, buttonFile1);
+
+		buttons.emplace_back(buttonFile1);
+		buttons.emplace_back(buttonFile2);
+		buttons.emplace_back(buttonFile3);
+
+		Text* textHeader = new Text(game.renderer, game.headerFont, "Select a File");
+		textHeader->SetPosition(startWidth - (textHeader->textWindowRect.w / 2), 60);
+		texts.emplace_back(textHeader);
 	}
 	else
 	{
@@ -122,52 +170,17 @@ void MenuScreen::Render(Renderer* renderer)
 	}
 }
 
-int MenuScreen::Update()
+bool MenuScreen::Update()
 {
 	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 
-	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
-	{
-		if (selectedButton->buttonPressedUp != nullptr)
-		{
-			selectedButton->isSelected = false;
-			selectedButton = selectedButton->buttonPressedUp;
-			selectedButton->isSelected = true;
-			return 1;
-		}		
-	}
-	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
-	{
-		if (selectedButton->buttonPressedDown != nullptr)
-		{
-			selectedButton->isSelected = false;
-			selectedButton = selectedButton->buttonPressedDown;
-			selectedButton->isSelected = true;
-			return 1;
-		}		
-	}
-	else if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
-	{
-		if (selectedButton->buttonPressedLeft != nullptr)
-		{
-			selectedButton->isSelected = false;
-			selectedButton = selectedButton->buttonPressedLeft;
-			selectedButton->isSelected = true;
-			return 1;
-		}		
-	}
-	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
-	{
-		if (selectedButton->buttonPressedRight != nullptr)
-		{
-			selectedButton->isSelected = false;
-			selectedButton = selectedButton->buttonPressedRight;
-			selectedButton->isSelected = true;
-			return 1;
-		}		
-	}
+	BaseButton* lastButton = selectedButton;
 
-	return 0;
+	selectedButton->isSelected = false;
+	selectedButton = selectedButton->Update(currentKeyStates);
+	selectedButton->isSelected = true;
+
+	return (lastButton != selectedButton);
 }
 
 bool MenuScreen::PressSelectedButton(Game& game)
@@ -175,27 +188,32 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	if (selectedButton == nullptr)
 		return false;
 
-	if (selectedButton->functionName == "Resume Game")
+	if (selectedButton->name == "Resume Game")
 	{
 		game.openedMenus.pop_back();
 	}
-	else if (selectedButton->functionName == "Exit Game")
+	else if (selectedButton->name == "Exit Game")
 	{
 		return true;
 	}
-	else if (selectedButton->functionName == "Settings")
+	else if (selectedButton->name == "Settings")
 	{
 
 	}
-	else if (selectedButton->functionName == "Spellbook")
+	else if (selectedButton->name == "Spellbook")
 	{
 
 	}
-	else if (selectedButton->functionName == "Play Game")
+	else if (selectedButton->name == "Load Game")
 	{
 		game.PlayLevel("test");
 	}
-	else if (selectedButton->functionName == "Title Screen")
+	else if (selectedButton->name == "Play Game")
+	{
+		game.openedMenus.clear();
+		game.openedMenus.emplace_back(game.allMenus["File Select"]);
+	}
+	else if (selectedButton->name == "Title Screen")
 	{
 		game.LoadTitleScreen();
 	}

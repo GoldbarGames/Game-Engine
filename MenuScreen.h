@@ -8,19 +8,18 @@
 class Entity;
 
 class MenuScreen
-{
-private:
-	std::string name = "";
+{	
 public:	
-	MenuButton* selectedButton = nullptr;
-	std::vector<MenuButton*> buttons;
+	std::string name = "";
+	BaseButton* selectedButton = nullptr;
+	std::vector<BaseButton*> buttons;
 	std::vector<Text*> texts;
 	std::vector<Entity*> images;
 	int selectedButtonIndex = 0;
 	MenuScreen(std::string n, Game& game);
 	~MenuScreen();
 	void Render(Renderer* renderer);
-	int Update();
+	bool Update();
 	bool PressSelectedButton(Game& game);
 };
 

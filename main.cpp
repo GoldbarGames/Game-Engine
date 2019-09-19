@@ -8,9 +8,6 @@ int main(int argc, char *args[])
 	Game game;
 	game.LoadTitleScreen();
 
-	//TODO: Make a music / sound class
-	//Mix_PlayMusic(currentBGM, -1);
-
 	// game.SortEntities(entities);
 	//Start counting frames per second
 	int countedFrames = 0;
@@ -46,7 +43,7 @@ int main(int argc, char *args[])
 			Uint32 ticks = game.timer.GetTicks();
 			if (ticks > game.lastPressedKeyTicks + 100) //TODO: Check for overflow errors
 			{
-				if (game.openedMenus[game.openedMenus.size() - 1]->Update() > 0)
+				if (game.openedMenus[game.openedMenus.size() - 1]->Update())
 					game.lastPressedKeyTicks = ticks;
 			}
 		}
