@@ -31,7 +31,7 @@ void Text::SetFont(TTF_Font* newFont)
 	font = newFont;
 }
 
-void Text::SetText(string text)
+void Text::SetText(string text, Color color)
 {
 	if (textSurface != nullptr)
 		SDL_FreeSurface(textSurface);
@@ -39,8 +39,9 @@ void Text::SetText(string text)
 	if (textTexture != nullptr)
 		SDL_DestroyTexture(textTexture);
 
-	txt = text;
-	textSurface = TTF_RenderText_Solid(font, text.c_str(), { 255, 255, 255, 255 });
+	txt = text; // translate the text here
+	id = text;
+	textSurface = TTF_RenderText_Solid(font, text.c_str(), { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a });
 	textTexture = renderer->CreateTextureFromSurface(textSurface);
 	SDL_QueryTexture(textTexture, NULL, NULL, &textTextureRect.w, &textTextureRect.h);
 	textWindowRect.w = textTextureRect.w;

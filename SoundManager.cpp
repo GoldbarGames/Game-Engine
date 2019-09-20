@@ -5,8 +5,7 @@ SoundManager::SoundManager()
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 	currentBGM = Mix_LoadMUS("assets/bgm/Witchs_Waltz.ogg");
 
-	//TODO: Get the initial value by loading a settings file
-	SetVolumeBGM(volumeBGM);
+	volArray = { 0, 30, 60, 90, MIX_MAX_VOLUME };
 }
 
 SoundManager::~SoundManager()
@@ -62,14 +61,10 @@ void SoundManager::FadeOutBGM(Uint32 duration)
 	Mix_FadeOutMusic(duration);
 }
 
-void SoundManager::SetVolumeBGM(Uint32 vol)
+void SoundManager::SetVolumeBGM(int index)
 {
-	if (vol < 0)
-		vol = 0;
-
-	if (vol > MIX_MAX_VOLUME)
-		vol = MIX_MAX_VOLUME;
-
+	bgmVolumeIndex = index;
+	Uint32 vol = volArray[index];
 	Mix_VolumeMusic(vol);
 	volumeBGM = vol;
 }

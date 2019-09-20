@@ -146,5 +146,7 @@ public:
 
 	void EscapeMenu();
 
+	void SaveSettings();
+	void LoadSettings();
 };
 

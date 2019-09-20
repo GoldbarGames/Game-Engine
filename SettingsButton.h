@@ -16,10 +16,12 @@ public:
 	SettingsButton(std::string n, Vector2 pos, Game& game);
 	~SettingsButton();
 	void Render(Renderer* renderer);
-	SettingsButton* buttonPressedUp = nullptr;
-	SettingsButton* buttonPressedDown = nullptr;
 	std::vector<Text*> options;
+	Text* label;
 
-	BaseButton* Update(const Uint8* currentKeyStates);
+	BaseButton* Update(Game& game, const Uint8* currentKeyStates);
+	void ExecuteSelectedOption(Game& game);
+
+	void SetOptionColors(Color color);
 };
 

@@ -6,6 +6,9 @@
 int main(int argc, char *args[])
 {
 	Game game;
+
+	game.LoadSettings();
+
 	game.LoadTitleScreen();
 
 	// game.SortEntities(entities);
@@ -43,7 +46,8 @@ int main(int argc, char *args[])
 			Uint32 ticks = game.timer.GetTicks();
 			if (ticks > game.lastPressedKeyTicks + 100) //TODO: Check for overflow errors
 			{
-				if (game.openedMenus[game.openedMenus.size() - 1]->Update())
+				// If we have pressed any key on the menu, add a delay between presses
+				if (game.openedMenus[game.openedMenus.size() - 1]->Update(game))
 					game.lastPressedKeyTicks = ticks;
 			}
 		}

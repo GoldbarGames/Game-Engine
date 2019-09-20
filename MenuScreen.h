@@ -19,7 +19,7 @@ public:
 	MenuScreen(std::string n, Game& game);
 	~MenuScreen();
 	void Render(Renderer* renderer);
-	bool Update();
+	bool Update(Game& game);
 	bool PressSelectedButton(Game& game);
 };
 

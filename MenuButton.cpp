@@ -63,8 +63,10 @@ void MenuButton::Render(Renderer* renderer)
 }
 
 
-BaseButton* MenuButton::Update(const Uint8* currentKeyStates)
+BaseButton* MenuButton::Update(Game& game, const Uint8* currentKeyStates)
 {
+	pressedAnyKey = true;
+
 	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
 	{
 		if (buttonPressedUp != nullptr)
@@ -94,5 +96,12 @@ BaseButton* MenuButton::Update(const Uint8* currentKeyStates)
 		}
 	}
 
+	pressedAnyKey = false;
+
 	return this;
+}
+
+void MenuButton::SetOptionColors(Color color)
+{
+	text->SetText(text->txt, color);
 }

@@ -4,7 +4,10 @@
 #include "debug_state.h"
 #include "editor_state.h"
 #include "Tile.h"
+#include "SettingsButton.h"
 #include "globals.h"
+#include <sstream>
+#include <iterator>
 
 using std::string;
 
@@ -75,7 +78,7 @@ Game::Game()
 }
 
 Game::~Game()
-{
+{	
 	EndSDL();
 }
 
@@ -544,6 +547,7 @@ void Game::EscapeMenu()
 		if (currentMenu->name == "Title")
 			return;
 
+		// Resume time when unpausing
 		if (currentMenu->name == "Pause")
 		{
 			Uint32 ticks = SDL_GetTicks();
@@ -551,8 +555,55 @@ void Game::EscapeMenu()
 				entities[i]->Unpause(ticks);
 		}
 
+		// Close the current menu
 		openedMenus.pop_back();
+
+		// Open a menu after closing this one
+		if (currentMenu->name == "Settings" || currentMenu->name == "File Select")
+		{
+			openedMenus.emplace_back(allMenus["Title"]);
+		}
 	}
+}
+
+void Game::SaveSettings()
+{
+	std::ofstream fout;
+	fout.open("data/settings.config");
+
+	fout << "music_volume " << soundManager->bgmVolumeIndex << std::endl;
+	//fout << "screen_res " << 
+
+	fout.close();
+}
+
+void Game::LoadSettings()
+{
+	std::ifstream fin;
+	fin.open("data/settings.config");
+
+	char line[256];
+	fin.getline(line, 256);
+
+	while (fin.good())
+	{
+		std::istringstream buf(line);
+		std::istream_iterator<std::string> beg(buf), end;
+		std::vector<std::string> tokens(beg, end);
+
+		if (tokens[0] == "music_volume")
+		{
+			soundManager->SetVolumeBGM(std::stoi(tokens[1]));
+
+			//TODO: Refactor to avoid the dynamic cast
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[0]);
+			button->selectedOption = std::stoi(tokens[1]);
+		}
+
+		fin.getline(line, 256);
+	}
+
+	fin.close();
 }
 
 // PRE-CONDITION: openedMenus.size() > 0
@@ -565,7 +616,6 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 
 	if (event.type == SDL_KEYDOWN)
 	{
-		
 		switch (event.key.keysym.sym)
 		{
 			case SDLK_ESCAPE:

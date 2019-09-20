@@ -17,7 +17,7 @@ void BaseButton::Render(Renderer* renderer)
 
 }
 
-BaseButton* BaseButton::Update(const Uint8* currentKeyStates)
+BaseButton* BaseButton::Update(Game& game, const Uint8* currentKeyStates)
 {
 	return this;
 }
@@ -28,4 +28,9 @@ void BaseButton::SetButtonsUpDownLeftRight(BaseButton* up, BaseButton* down, Bas
 	buttonPressedDown = down;
 	buttonPressedLeft = left;
 	buttonPressedRight = right;
+}
+
+void BaseButton::SetOptionColors(Color color)
+{
+
 }

@@ -1,4 +1,5 @@
 #include "MenuScreen.h"
+#include "SettingsButton.h"
 #include "Game.h"
 #include "globals.h"
 
@@ -82,16 +83,23 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		int startHeight = 200;
 		int distance = 120;
 
-		int buttonPosX = 1000;
+		int buttonPosX = (screenWidth / 2);
 
-		MenuButton* buttonVolumeMusic = new MenuButton("Music Volume", "assets/gui/menu.png",
-			"Play Game", Vector2(buttonPosX, startHeight + (distance * 0)), game);
+		SettingsButton* buttonVolumeMusic = new SettingsButton("Music Volume", 
+			Vector2(buttonPosX, startHeight + (distance * 0)), game);
 
-		buttonVolumeMusic->SetButtonsUpDownLeftRight(buttonVolumeMusic, buttonVolumeMusic, buttonVolumeMusic, buttonVolumeMusic);
+		SettingsButton* buttonScreenRes = new SettingsButton("Screen Resolution",
+			Vector2(buttonPosX, startHeight + (distance * 1)), game);
+
+		buttonVolumeMusic->SetButtonsUpDownLeftRight(buttonScreenRes, buttonScreenRes, nullptr, nullptr);
+		buttonScreenRes->SetButtonsUpDownLeftRight(buttonVolumeMusic, buttonVolumeMusic, nullptr, nullptr);
 
 		buttons.emplace_back(buttonVolumeMusic);
+		buttons.emplace_back(buttonScreenRes);
 
-
+		// Highlight the selected option
+		//TODO: Is there a better way than hard-coding it?
+		buttonVolumeMusic->SetOptionColors({ 255, 255, 0, 255 });
 	}
 	else if (name == "Spellbook")
 	{
@@ -170,17 +178,17 @@ void MenuScreen::Render(Renderer* renderer)
 	}
 }
 
-bool MenuScreen::Update()
+bool MenuScreen::Update(Game& game)
 {
 	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 
 	BaseButton* lastButton = selectedButton;
 
 	selectedButton->isSelected = false;
-	selectedButton = selectedButton->Update(currentKeyStates);
+	selectedButton = selectedButton->Update(game, currentKeyStates);
 	selectedButton->isSelected = true;
 
-	return (lastButton != selectedButton);
+	return (lastButton->pressedAnyKey);
 }
 
 bool MenuScreen::PressSelectedButton(Game& game)
@@ -198,7 +206,8 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	}
 	else if (selectedButton->name == "Settings")
 	{
-
+		game.openedMenus.clear();
+		game.openedMenus.emplace_back(game.allMenus["Settings"]);
 	}
 	else if (selectedButton->name == "Spellbook")
 	{

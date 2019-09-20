@@ -22,5 +22,6 @@ public:
 	MenuButton(std::string txt, std::string filepath, std::string function, Vector2 pos, Game& game);
 	~MenuButton();
 	void Render(Renderer* renderer);
-	BaseButton* Update(const Uint8* currentKeyStates);
+	BaseButton* Update(Game& game, const Uint8* currentKeyStates);
+	void SetOptionColors(Color color);
 };
