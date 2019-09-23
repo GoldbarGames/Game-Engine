@@ -942,7 +942,7 @@ void Editor::SaveLevel(std::string levelName)
 		game->currentLevel = levelName;
 
 	std::ofstream fout;
-	fout.open("data/" + game->currentLevel + ".wdk");
+	fout.open("data/" + game->currentLevel + ".lvl");
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
@@ -1011,7 +1011,7 @@ void Editor::LoadLevel(std::string levelName)
 		game->currentLevel = levelName;
 
 	std::ifstream fin;
-	fin.open("data/" + levelName + ".wdk");
+	fin.open("data/" + levelName + ".lvl");
 
 	char line[256];
 

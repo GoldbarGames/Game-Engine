@@ -20,6 +20,7 @@
 bgm/
 fonts/
 *.zip
+*.wdk
 
 # Visual Studio 2015 cache directory
 /.vs/

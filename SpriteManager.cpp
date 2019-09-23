@@ -6,7 +6,7 @@ SpriteManager::SpriteManager()
 {
 	//Note: To link PHYSFS, use the static library
 	PHYSFS_init(NULL);
-	PHYSFS_addToSearchPath("assets.zip", 1);
+	PHYSFS_addToSearchPath("assets.wdk", 1);
 }
 
 SpriteManager::~SpriteManager()
