@@ -20,6 +20,10 @@ Game::Game()
 	overlayRect.w = screenWidth;
 	overlayRect.h = screenHeight;
 
+	// Initialize the font before all text
+	theFont = TTF_OpenFont("fonts/default.ttf", 20);
+	headerFont = TTF_OpenFont("fonts/default.ttf", 32);
+
 	spriteManager = new SpriteManager();
 
 	soundManager = new SoundManager();
@@ -40,9 +44,7 @@ Game::Game()
 	spriteMapNPCs[0] = "assets/sprites/npcs/gramps.png";
 	spriteMapNPCs[1] = "assets/sprites/npcs/the_man.png";
 
-	// Initialize the font before all text
-	theFont = TTF_OpenFont("assets/fonts/default.ttf", 20);
-	headerFont = TTF_OpenFont("assets/fonts/default.ttf", 32);
+
 
 	editor = new Editor(*this);
 
@@ -454,7 +456,7 @@ void Game::LoadTitleScreen()
 	editor->LoadLevel("title");
 	openedMenus.emplace_back(allMenus["Title"]);
 
-	soundManager->PlayBGM("assets/bgm/Witchs_Waltz.ogg");
+	soundManager->PlayBGM("Witchs_Waltz");
 }
 
 void Game::PlayLevel(string levelName)
@@ -464,7 +466,7 @@ void Game::PlayLevel(string levelName)
 
 	//TODO: Load different music based on each level
 
-	soundManager->PlayBGM("assets/bgm/Forest.ogg");
+	soundManager->PlayBGM("Forest");
 }
 
 bool Game::CheckInputs()

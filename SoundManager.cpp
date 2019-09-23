@@ -3,7 +3,7 @@
 SoundManager::SoundManager()
 {
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
-	currentBGM = Mix_LoadMUS("assets/bgm/Witchs_Waltz.ogg");
+	currentBGM = Mix_LoadMUS("bgm/Witchs_Waltz.ogg");
 
 	volArray = { 0, 30, 60, 90, MIX_MAX_VOLUME };
 }
@@ -21,6 +21,7 @@ void SoundManager::PlayBGM(std::string bgm, bool loop)
 	if (currentBGM != nullptr)
 		Mix_FreeMusic(currentBGM);
 
+	bgm = "bgm/" + bgm + ".ogg";
 	currentBGM = Mix_LoadMUS(bgm.c_str());
 
 	if (currentBGM != nullptr)
@@ -43,9 +44,8 @@ void SoundManager::FadeInBGM(std::string bgm, Uint32 duration, bool loop)
 	if (currentBGM != nullptr)
 		Mix_FreeMusic(currentBGM);
 
-	const char * music = bgm.c_str();
-
-	currentBGM = Mix_LoadMUS(music);
+	bgm = "bgm/" + bgm + ".ogg";
+	currentBGM = Mix_LoadMUS(bgm.c_str());
 
 	if (currentBGM != nullptr)
 	{

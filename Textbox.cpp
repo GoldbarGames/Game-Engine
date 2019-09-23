@@ -4,8 +4,8 @@
 Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 {
 	//TODO: Replace these with the real fonts
-	textFont = TTF_OpenFont("assets/fonts/default.ttf", 24);
-	speakerFont = TTF_OpenFont("assets/fonts/default.ttf", 24);
+	textFont = TTF_OpenFont("fonts/default.ttf", 24);
+	speakerFont = TTF_OpenFont("fonts/default.ttf", 24);
 
 	boxSprite = new Sprite(0, 0, 1, manager, "assets/gui/textbox.png", renderer, Vector2(0, 0));
 
