@@ -1,12 +1,9 @@
 #include "Renderer.h"
 
-int Renderer::SCALE = 1;
+int Renderer::SCALE = 2;
 
 Renderer::Renderer()
 {
-	SCALE = 1;
-
-
 	layersVisible["BACK"] = true;
 	layersVisible["MIDDLE"] = true;
 	layersVisible["OBJECT"] = true;
