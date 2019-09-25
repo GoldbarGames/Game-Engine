@@ -8,7 +8,10 @@ class Renderer
 {
 private:
 	std::unordered_map<std::string, bool> layersVisible;
+	static int SCALE;
 public:
+	static int GetScale();
+	static void SetScale(int s);
 	SDL_Renderer * renderer;
 	int RenderCopy(SDL_Texture* texture, const SDL_Rect* srcrect, const SDL_Rect* dstrect);
 

@@ -103,6 +103,8 @@ void Game::InitSDL()
 	renderer = new Renderer();
 	renderer->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
 
+	SDL_RenderSetLogicalSize(renderer->renderer, screenWidth, screenHeight);
+
 	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));	
 }
 
@@ -165,8 +167,8 @@ Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
 
 Vector2 Game::SnapToGrid(Vector2 position)
 {
-	int x = position.x + camera.x - ((int)(position.x) % (editor->GRID_SIZE * SCALE));
-	int y = position.y + camera.y - ((int)(position.y) % (editor->GRID_SIZE * SCALE));
+	int x = position.x + camera.x - ((int)(position.x) % (editor->GRID_SIZE * Renderer::GetScale()));
+	int y = position.y + camera.y - ((int)(position.y) % (editor->GRID_SIZE * Renderer::GetScale()));
 
 	if (x % 2 != 0)
 		x++;
@@ -518,21 +520,21 @@ void Game::HandleEditMode()
 
 	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
 	{
-		camera.y -= (editor->GRID_SIZE * SCALE);
+		camera.y -= (editor->GRID_SIZE * Renderer::GetScale());
 	}
 	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
 	{
-		camera.y += (editor->GRID_SIZE * SCALE);
+		camera.y += (editor->GRID_SIZE * Renderer::GetScale());
 	}
 
 	if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
 	{
-		camera.x -= (editor->GRID_SIZE * SCALE);
+		camera.x -= (editor->GRID_SIZE * Renderer::GetScale());
 
 	}
 	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
 	{
-		camera.x += (editor->GRID_SIZE * SCALE);
+		camera.x += (editor->GRID_SIZE * Renderer::GetScale());
 	}
 
 	editor->HandleEdit();
@@ -561,9 +563,15 @@ void Game::EscapeMenu()
 		openedMenus.pop_back();
 
 		// Open a menu after closing this one
-		if (currentMenu->name == "Settings" || currentMenu->name == "File Select")
+		if (currentMenu->name == "File Select")
 		{
 			openedMenus.emplace_back(allMenus["Title"]);
+		}
+
+		if (currentMenu->name == "Settings")
+		{
+			if (currentLevel == "title")
+				openedMenus.emplace_back(allMenus["Title"]);
 		}
 	}
 }
@@ -693,6 +701,12 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_q:
 				quit = true;
 				break;
+			case SDLK_7:
+				if (Renderer::GetScale() == 2)
+					Renderer::SetScale(1);
+				else
+					Renderer::SetScale(2);
+				break;
 			case SDLK_x:
 				pressedJumpButton = true;
 				break;
@@ -716,8 +730,8 @@ bool Game::HandleEvent(SDL_Event& event)
 				SetModeEdit(!GetModeEdit());
 				if (GetModeEdit())
 				{
-					camera.x = camera.x - ((int)camera.x % (editor->GRID_SIZE * SCALE));
-					camera.y = camera.y - ((int)camera.y % (editor->GRID_SIZE * SCALE));
+					camera.x = camera.x - ((int)camera.x % (editor->GRID_SIZE * Renderer::GetScale()));
+					camera.y = camera.y - ((int)camera.y % (editor->GRID_SIZE * Renderer::GetScale()));
 					editor->StartEdit();
 				}
 				else

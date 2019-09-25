@@ -68,7 +68,7 @@ void Missile::Render(Renderer * renderer, Vector2 cameraOffset)
 		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2));
 		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2));
 		Vector2 collisionCenter = Vector2(collisionCenterX, collisionCenterY);
-		Vector2 scaledPivot = Vector2(currentSprite->pivot.x * SCALE, currentSprite->pivot.y * SCALE);
+		Vector2 scaledPivot = Vector2(currentSprite->pivot.x * Renderer::GetScale(), currentSprite->pivot.y * Renderer::GetScale());
 		Vector2 pivotOffset = collisionCenter - scaledPivot;
 
 		Vector2 offset = pivotOffset;

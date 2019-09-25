@@ -18,7 +18,7 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 	image->windowRect.x = pos.x;
 	image->windowRect.y = pos.y;
 
-	int scaledThickness = thickness * SCALE;
+	int scaledThickness = thickness * Renderer::GetScale();
 
 	outlineHorizontal.x = image->GetRect()->x - scaledThickness;
 	outlineHorizontal.y = image->GetRect()->y;

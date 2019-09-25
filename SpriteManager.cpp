@@ -18,6 +18,7 @@ SDL_Texture* SpriteManager::GetImage(Renderer* renderer, std::string const& imag
 {
 	if (images[imagePath].get() == nullptr)
 	{
+		//TODO: Maybe add a way to toggle between loading from a file and loading from a folder?
 		PHYSFS_file* myfile = PHYSFS_openRead(imagePath.c_str());
 		PHYSFS_sint64  m_size = PHYSFS_fileLength(myfile);
 		uint8_t* m_data = new uint8_t[m_size];

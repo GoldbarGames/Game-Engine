@@ -1,6 +1,6 @@
 #include "Collider.h"
 #include "globals.h"
-
+#include "Renderer.h"
 
 Collider::Collider()
 {
@@ -35,16 +35,16 @@ void Collider::CreateCollider(float startX, float startY, float x, float y, floa
 	collisionBounds->w = 1;
 	collisionBounds->h = 1;
 
-	startSpriteSize.x = startX * SCALE;
-	startSpriteSize.y = startY * SCALE;
+	startSpriteSize.x = startX;
+	startSpriteSize.y = startY;
 }
 
 // Actually calculate the location of the collider in world space
 void Collider::CalculateCollider(Vector2 position, Vector2 cameraOffset)
 {
 	// scale the bounds of the sprite by a number to set the collider's width and height
-	collisionBounds->w = startSpriteSize.x * colliderWidth;
-	collisionBounds->h = startSpriteSize.y * colliderHeight;
+	collisionBounds->w = startSpriteSize.x * colliderWidth * Renderer::GetScale();
+	collisionBounds->h = startSpriteSize.y * colliderHeight * Renderer::GetScale();
 
 	// set the collision bounds position to where the player actually is
 	collisionBounds->x = position.x + collider->x - cameraOffset.x - (collisionBounds->w / 2);

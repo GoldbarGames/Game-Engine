@@ -12,5 +12,6 @@ public:
 	~Background();
 	void Render(Renderer * renderer, Vector2 cameraOffset);
 	void AddLayer(SpriteManager* spriteManager, Renderer* renderer, std::string filepath, int drawOrder);
+	void DeleteLayers(Game& game);
 };
 

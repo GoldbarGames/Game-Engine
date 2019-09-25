@@ -52,8 +52,8 @@ void PhysicsEntity::CreateCollider(float startX, float startY, float x, float y,
 	collisionBounds->w = 1;
 	collisionBounds->h = 1;
 
-	startSpriteSize.x = startX * SCALE;
-	startSpriteSize.y = startY * SCALE;
+	startSpriteSize.x = startX * Renderer::GetScale();
+	startSpriteSize.y = startY * Renderer::GetScale();
 }
 
 void PhysicsEntity::Pause(Uint32 ticks)
@@ -258,11 +258,11 @@ Vector2 PhysicsEntity::CalcScaledPivot()
 {
 	if (flip == SDL_FLIP_HORIZONTAL)
 	{
-		entityPivot.x = (currentSprite->windowRect.w / SCALE) - currentSprite->pivot.x;
+		entityPivot.x = (currentSprite->windowRect.w / Renderer::GetScale()) - currentSprite->pivot.x;
 	}
 
 	// scale the pivot and subtract it from the collision center
-	return Vector2(entityPivot.x * SCALE, currentSprite->pivot.y * SCALE);
+	return Vector2(entityPivot.x * Renderer::GetScale(), currentSprite->pivot.y * Renderer::GetScale());
 }
 
 void PhysicsEntity::Update(Game& game)

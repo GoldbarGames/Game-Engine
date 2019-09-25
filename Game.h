@@ -37,7 +37,7 @@ private:
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;
 
-	std::vector<Background*> backgrounds;
+	
 
 	int test = 0;
 
@@ -68,7 +68,7 @@ public:
 	bool limitFPS = false;
 
 	Uint32 lastPressedKeyTicks = 0;
-
+	std::vector<Background*> backgrounds;
 
 	CutsceneManager * cutscene;
 

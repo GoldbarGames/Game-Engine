@@ -1,5 +1,6 @@
 #include "Background.h"
 #include "BackgroundLayer.h"
+#include "Game.h"
 
 Background::Background(Vector2 pos)
 {
@@ -9,15 +10,18 @@ Background::Background(Vector2 pos)
 
 Background::~Background()
 {
-
+	for (unsigned int i = 0; i < layers.size(); i++)
+	{
+		delete layers[i];
+	}
 }
 
 void Background::Render(Renderer * renderer, Vector2 cameraOffset)
 {
-	cameraOffset = Vector2(0.1f, 0.0f);
+	//TODO: For parallax scrolling, manipulate the position
 	for (unsigned int i = 0; i < layers.size(); i++)
 	{
-		layers[i]->Render(renderer, position);
+		layers[i]->Render(renderer, cameraOffset);
 	}
 }
 
@@ -28,4 +32,12 @@ void Background::AddLayer(SpriteManager* spriteManager, Renderer* renderer, std:
 	bg->drawOrder = drawOrder;
 	bg->SetSprite(layer);
 	layers.emplace_back(bg);
+}
+
+void Background::DeleteLayers(Game& game)
+{
+	for (unsigned int i = 0; i < layers.size(); i++)
+	{
+		game.ShouldDeleteEntity(layers[i]);
+	}
 }

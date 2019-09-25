@@ -48,8 +48,8 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath, Rend
 	frameWidth = textureRect.w / numberFrames;
 	frameHeight = textureRect.h;
 	textureRect.w /= numberFrames;
-	windowRect.w = frameWidth * SCALE;
-	windowRect.h = frameHeight * SCALE;
+	windowRect.w = frameWidth * Renderer::GetScale();
+	windowRect.h = frameHeight * Renderer::GetScale();
 
 	startFrame = 0;
 	endFrame = numberFrames;
@@ -80,8 +80,8 @@ Sprite::Sprite(int start, int end, int numFrames, SpriteManager* manager,
 	frameWidth = textureRect.w / numberFrames;
 	frameHeight = textureRect.h;
 	textureRect.w /= numberFrames;
-	windowRect.w = frameWidth * SCALE;
-	windowRect.h = frameHeight * SCALE;
+	windowRect.w = frameWidth * Renderer::GetScale();
+	windowRect.h = frameHeight * Renderer::GetScale();
 
 	startFrame = start;
 	endFrame = end;
@@ -120,8 +120,8 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 {
 	windowRect.x = position.x;
 	windowRect.y = position.y;
-	windowRect.w = frameWidth * SCALE;
-	windowRect.h = frameHeight * SCALE;
+	windowRect.w = frameWidth * Renderer::GetScale();
+	windowRect.h = frameHeight * Renderer::GetScale();
 
 	if (windowRect.x < screenWidth && windowRect.y < screenHeight
 		&& windowRect.x > -windowRect.w && windowRect.y > -windowRect.h)

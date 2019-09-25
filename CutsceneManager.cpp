@@ -232,7 +232,7 @@ void CutsceneManager::Update()
 		else if (isReadingNextLine)
 		{
 			currentText += line->text[letterIndex];
-			textbox->text->SetTextWrapped(currentText, textbox->boxWidth * SCALE);
+			textbox->text->SetTextWrapped(currentText, textbox->boxWidth * Renderer::GetScale());
 
 			//nextLetterTimer.Start(lettersPerFrame * delay);
 			letterIndex++;

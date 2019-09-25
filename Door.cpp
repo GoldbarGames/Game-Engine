@@ -69,6 +69,8 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 		myBounds.y = spawnPosition.y;
 	}
 
+	int SCALE = Renderer::GetScale();
+
 	SDL_Rect tileBelowMyBoundsLeft = myBounds;
 	tileBelowMyBoundsLeft.y += myBounds.h;
 	tileBelowMyBoundsLeft.w = game.editor->GRID_SIZE * SCALE;

@@ -85,8 +85,8 @@ void Editor::StartEdit()
 	selectedRect.w = 24;
 	selectedRect.h = 24;
 
-	hoveredTileRect.w = 24 * SCALE;
-	hoveredTileRect.h = 24 * SCALE;
+	hoveredTileRect.w = 24 * Renderer::GetScale();
+	hoveredTileRect.h = 24 * Renderer::GetScale();
 
 	// Create all the buttons for the editor
 	for (unsigned int i = 0; i < buttons.size(); i++)
@@ -390,28 +390,28 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 						if (ladderGoesUp)
 						{
 							// Connect the two edges by spawning the middle parts
-							mouseY += GRID_SIZE * SCALE;
+							mouseY += GRID_SIZE * Renderer::GetScale();
 
 							int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
 							while (snappedY < currentLadder->GetPosition().y)
 							{
 								game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
-								mouseY += GRID_SIZE * SCALE;
+								mouseY += GRID_SIZE * Renderer::GetScale();
 								snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 							}
 						}
 						else
 						{
 							// Connect the two edges by spawning the middle parts
-							mouseY -= GRID_SIZE * SCALE;
+							mouseY -= GRID_SIZE * Renderer::GetScale();
 
 							int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
 							while (snappedY > currentLadder->GetPosition().y)
 							{
 								game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
-								mouseY -= GRID_SIZE * SCALE;
+								mouseY -= GRID_SIZE * Renderer::GetScale();
 								snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 							}
 						}
@@ -442,7 +442,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 
 	if (canPlaceTileHere)
 	{
-		int mod = (GRID_SIZE * SCALE);
+		int mod = (GRID_SIZE * Renderer::GetScale());
 
 		int afterModX = ((int)(mouseX) % mod);
 		int afterModY = ((int)(mouseY) % mod);
@@ -537,9 +537,9 @@ void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
 		// otherwise, we are done, and can exit the loop
 
 		if (startingState == "top")
-			lastPosition.y += GRID_SIZE * SCALE;
+			lastPosition.y += GRID_SIZE * Renderer::GetScale();
 		else if (startingState == "bottom")
-			lastPosition.y -= GRID_SIZE * SCALE;
+			lastPosition.y -= GRID_SIZE * Renderer::GetScale();
 
 		exit = true;
 
@@ -563,8 +563,8 @@ void Editor::HandleEdit()
 
 	const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
-	int clickedX = mouseX - ((int)mouseX % (GRID_SIZE * SCALE));
-	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE * SCALE));
+	int clickedX = mouseX - ((int)mouseX % (GRID_SIZE * Renderer::GetScale()));
+	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE * Renderer::GetScale()));
 
 	Vector2 clickedPosition(clickedX, clickedY);
 
@@ -755,8 +755,8 @@ void Editor::DrawGrid()
 		for (int y = 0; y < 100; y++)
 		{
 			SDL_Rect rect;
-			rect.x = x * GRID_SIZE * SCALE;
-			rect.y = y * GRID_SIZE * SCALE;
+			rect.x = x * GRID_SIZE * Renderer::GetScale();
+			rect.y = y * GRID_SIZE * Renderer::GetScale();
 			SDL_RenderDrawRect(game->renderer->renderer, &rect);
 		}
 	}
@@ -944,6 +944,8 @@ void Editor::SaveLevel(std::string levelName)
 	std::ofstream fout;
 	fout.open("data/" + game->currentLevel + ".lvl");
 
+	int SCALE = Renderer::GetScale();
+
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
 		if (game->entities[i]->etype == "tile")
@@ -984,7 +986,7 @@ void Editor::SaveLevel(std::string levelName)
 				npcLabel = "null";
 
 			fout << npc->etype << " " << (pos.x / SCALE) <<
-				" " << (pos.y / SCALE) << " " << npc->name << " " << npc->cutsceneLabel << 
+				" " << (pos.y / SCALE) << " " << npc->name << " " << npc->cutsceneLabel <<
 				" " << npc->spriteIndex << " " << npc->drawOrder <<
 				" " << npc->layer << " " << npc->impassable << std::endl;
 		}
@@ -1016,6 +1018,8 @@ void Editor::LoadLevel(std::string levelName)
 	char line[256];
 
 	fin.getline(line, 256);
+
+	int SCALE = Renderer::GetScale();
 
 	while (fin.good())
 	{
@@ -1077,13 +1081,22 @@ void Editor::LoadLevel(std::string levelName)
 
 	fin.close();
 
-	// Create the backgrounds
-	//TODO: Move and fix the code
-	const int NUM_BGS = 1;
-	const int BG_WIDTH = 636;
-	for (int i = 0; i < NUM_BGS; i++)
+	// Remove all backgrounds
+	for (unsigned int i = 0; i < game->backgrounds.size(); i++)
 	{
-		game->SpawnBackground(Vector2(BG_WIDTH * SCALE * -i, 0));
+		game->backgrounds[i]->DeleteLayers(*game);
+		delete game->backgrounds[i];
+	}
+
+	game->backgrounds.clear();
+		
+	// Create the backgrounds
+	const int NUM_BGS = 4;
+	const int BG_WIDTH = 636;
+	const int BG_OFFSET = (BG_WIDTH * 2);
+	for (unsigned int i = 0; i < NUM_BGS; i++)
+	{
+		game->SpawnBackground(Vector2( (BG_WIDTH * Renderer::GetScale() * i) - BG_OFFSET, 0));
 	}
 
 	game->SortEntities(game->entities);
