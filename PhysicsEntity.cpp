@@ -270,7 +270,7 @@ void PhysicsEntity::Update(Game& game)
 	const float GRAVITY = 0.002f; //TODO: Better way of handling gravity
 
 	if (velocity.y < 1)
-		velocity.y += GRAVITY;
+		velocity.y += GRAVITY * game.dt;
 
 	CheckCollisions(game);
 

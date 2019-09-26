@@ -2,6 +2,7 @@
 
 #include "Game.h"
 #include "Test.h"
+#include <deque>
 
 int main(int argc, char *args[])
 {
@@ -16,22 +17,51 @@ int main(int argc, char *args[])
 	int countedFrames = 0;
 	game.timer.Start();
 
+	float previousFPS = 0;
+
+	std::deque<float> framesPerSeconds;
+
+	const int FRAMES_SIZE = 100;
+	for (int i = 0; i < FRAMES_SIZE; i++)
+	{
+		framesPerSeconds.push_back(0);
+	}
+
 	bool quit = false;
 	while (!quit)
 	{
-		game.fpsLimit.Start();
+		game.CalcDt();		
 
-		//Calculate and correct fps
-		float avgFPS = countedFrames / (game.timer.GetTicks() / 1000.f);
-		if (avgFPS > 2000000)
+		if (game.showFPS)
 		{
-			avgFPS = 0;
+			//game.fpsLimit.Start();
+
+			float fps = (1.0f / game.dt) * 1000;
+
+			framesPerSeconds.push_back(fps);
+
+			if (framesPerSeconds.size() > FRAMES_SIZE)
+				framesPerSeconds.pop_front();			
+
+			float sum = 0;
+			for (int i = 0; i < framesPerSeconds.size(); i++)
+				sum += framesPerSeconds[i];
+			float averageFPS = sum / framesPerSeconds.size();
+
+			if (averageFPS != previousFPS)
+			{
+				game.fpsText->SetText("FPS: " + std::to_string(averageFPS));
+				previousFPS = averageFPS;
+			}
 		}
 
-		//fpsText->SetText("FPS: " + std::to_string(avgFPS));
+		if (game.showTimer)
+		{
+			game.timerText->SetText(std::to_string(game.timer.GetTicks() / 1000.0f));
+		}
+
 		quit = game.CheckInputs();
-		game.CalcDt();
-		//timerText->SetText(std::to_string(timer.GetTicks()/1000.0f));
+
 		game.CheckDeleteEntities();
 
 		if (GetModeEdit())

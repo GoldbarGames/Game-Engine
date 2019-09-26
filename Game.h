@@ -100,6 +100,10 @@ public:
 	Editor* editor = nullptr;
 	SDL_Window* window = nullptr;
 	Player* player = nullptr;
+
+	bool isFullscreen = false;
+	bool showFPS = false;
+	bool showTimer = false;
 	
 	//TODO: Make an input class maybe
 	bool pressedJumpButton;

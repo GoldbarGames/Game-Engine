@@ -151,6 +151,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 
 	if (game.SpawnMissile(missilePosition, missileVelocity, angle))
 	{
+		game.soundManager->PlaySound("shoot", 1);
 		animator->SetBool("isCastingDebug", true);
 		missileTimer.Start(1000);
 	}

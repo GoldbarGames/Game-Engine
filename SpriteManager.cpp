@@ -18,25 +18,36 @@ SDL_Texture* SpriteManager::GetImage(Renderer* renderer, std::string const& imag
 {
 	if (images[imagePath].get() == nullptr)
 	{
-		//TODO: Maybe add a way to toggle between loading from a file and loading from a folder?
-		PHYSFS_file* myfile = PHYSFS_openRead(imagePath.c_str());
-		PHYSFS_sint64  m_size = PHYSFS_fileLength(myfile);
-		uint8_t* m_data = new uint8_t[m_size];
+		bool loadFromFile = true;
 
-		int length_read = PHYSFS_read(myfile, m_data, 1, m_size);
+		SDL_Surface * surface;
 
-		if (length_read != (int)m_size)
+		if (loadFromFile)
 		{
-			delete[] m_data;
-			m_data = 0;
-			return false;
+			PHYSFS_file* myfile = PHYSFS_openRead(imagePath.c_str());
+			PHYSFS_sint64  m_size = PHYSFS_fileLength(myfile);
+			uint8_t* m_data = new uint8_t[m_size];
+
+			int length_read = PHYSFS_read(myfile, m_data, 1, m_size);
+
+			if (length_read != (int)m_size)
+			{
+				delete[] m_data;
+				m_data = 0;
+				return false;
+			}
+
+			PHYSFS_close(myfile);
+
+			SDL_RWops *rw = SDL_RWFromMem(m_data, m_size);
+
+			surface = IMG_Load_RW(rw, 0);
 		}
-
-		PHYSFS_close(myfile);
-
-		SDL_RWops *rw = SDL_RWFromMem(m_data, m_size);
-
-		SDL_Surface * surface = IMG_Load_RW(rw, 0);
+		else
+		{
+			surface = IMG_Load(imagePath.c_str());
+		}	
+		
 		SDL_Texture * texture = renderer->CreateTextureFromSurface(surface);
 		images[imagePath].reset(texture);
 		SDL_FreeSurface(surface);

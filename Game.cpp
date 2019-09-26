@@ -582,7 +582,11 @@ void Game::SaveSettings()
 	fout.open("data/settings.config");
 
 	fout << "music_volume " << soundManager->bgmVolumeIndex << std::endl;
-	//fout << "screen_res " << 
+	fout << "sound_volume " << soundManager->soundVolumeIndex << std::endl;
+	fout << "screen_resolution " << isFullscreen << std::endl;
+	fout << "display_fps " << showFPS << std::endl;
+	fout << "display_timer " << showTimer << std::endl;
+	//fout << "language " << soundManager->soundVolumeIndex << std::endl;
 
 	fout.close();
 }
@@ -606,7 +610,53 @@ void Game::LoadSettings()
 			soundManager->SetVolumeBGM(std::stoi(tokens[1]));
 
 			//TODO: Refactor to avoid the dynamic cast
+			//TODO: Also refactor maybe so that we don't use hard-coded numbers for the index
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[0]);
+			button->selectedOption = std::stoi(tokens[1]);
+		}
+		else if (tokens[0] == "sound_volume")
+		{
+			soundManager->SetVolumeSound(std::stoi(tokens[1]));
+
+			//TODO: Refactor to avoid the dynamic cast
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[1]);
+			button->selectedOption = std::stoi(tokens[1]);
+		}
+		else if (tokens[0] == "screen_resolution")
+		{
+			isFullscreen = std::stoi(tokens[1]);
+
+			if (isFullscreen)
+				SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+			else
+				SDL_SetWindowFullscreen(window, 0);				
+
+			//TODO: Refactor to avoid the dynamic cast
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[2]);
+			button->selectedOption = std::stoi(tokens[1]);
+		}
+		else if (tokens[0] == "display_fps")
+		{
+			showFPS = std::stoi(tokens[1]);
+
+			//TODO: Refactor to avoid the dynamic cast
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[3]);
+			button->selectedOption = std::stoi(tokens[1]);
+		}
+		else if (tokens[0] == "display_timer")
+		{
+			showTimer = std::stoi(tokens[1]);
+
+			//TODO: Refactor to avoid the dynamic cast
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[4]);
+			button->selectedOption = std::stoi(tokens[1]);
+		}
+		else if (tokens[0] == "language")
+		{
+			//TODO: Deal with this later
+
+			//TODO: Refactor to avoid the dynamic cast
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[5]);
 			button->selectedOption = std::stoi(tokens[1]);
 		}
 
@@ -887,8 +937,11 @@ void Game::Render()
 		//jumpsRemainingText->Render(renderer);
 	}
 
-	fpsText->Render(renderer);
-	timerText->Render(renderer);
+	if (showFPS)
+		fpsText->Render(renderer);
+	
+	if (showTimer)
+		timerText->Render(renderer);
 
 	// Draw the screen overlay
 	SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);

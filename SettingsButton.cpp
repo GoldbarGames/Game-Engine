@@ -10,27 +10,44 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	label = new Text(game.renderer, game.headerFont, name);
 	label->SetPosition(position.x - 400, position.y);
 
+	std::vector<std::string> optionNames;
+
+	// Create the options based on the name of the setting
 	if (name == "Music Volume")
 	{
-		std::vector<std::string> volumeOptions = { "Silent", "Quiet", "Medium", "Loud", "Max Volume" };
-
-		for (int i = 0; i < volumeOptions.size(); i++)
-		{
-			Text* text = new Text(game.renderer, game.headerFont, volumeOptions[i]);
-			text->SetPosition(position.x, position.y);
-			options.emplace_back(text);
-		}
+		optionNames = { "Silent", "Quiet", "Medium", "Loud", "Max Volume" };
 	}
 	else if (name == "Screen Resolution")
 	{
-		std::vector<std::string> screenOptions = { "Windowed", "Fullscreen" };
+		optionNames = { "Windowed", "Fullscreen" };
+	}
+	else if (name == "Vsync")
+	{
+		optionNames = { "None", "Synced", "Adaptive" };
+	}
+	else if (name == "Sound Volume")
+	{
+		optionNames = { "Silent", "Quiet", "Medium", "Loud", "Max Volume" };
+	}
+	else if (name == "Display FPS")
+	{
+		optionNames = { "Off", "On" };
+	}
+	else if (name == "Display Timer")
+	{
+		optionNames = { "Off", "On" };
+	}
+	else if (name == "Language")
+	{
+		optionNames = { "English", "Japanese" };
+	}
 
-		for (int i = 0; i < screenOptions.size(); i++)
-		{
-			Text* text = new Text(game.renderer, game.headerFont, screenOptions[i]);
-			text->SetPosition(position.x, position.y);
-			options.emplace_back(text);
-		}
+	// Actually create all of the text items for each option
+	for (int i = 0; i < optionNames.size(); i++)
+	{
+		Text* text = new Text(game.renderer, game.headerFont, optionNames[i]);
+		text->SetPosition(position.x, position.y);
+		options.emplace_back(text);
 	}
 }
 
@@ -111,6 +128,29 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 			SDL_SetWindowFullscreen(game.window, 0);
 		else
 			SDL_SetWindowFullscreen(game.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+
+		game.isFullscreen = selectedOption;
+	}
+	else if (name == "Vsync")
+	{ 
+		//TODO: This only works if we are using OpenGL for rendering!
+		//SDL_GL_SetSwapInterval(int interval)
+	}
+	else if (name == "Sound Volume")
+	{
+		game.soundManager->SetVolumeSound(selectedOption);
+	}
+	else if (name == "Display FPS")
+	{
+		game.showFPS = (selectedOption == 1);
+	}
+	else if (name == "Display Timer")
+	{
+		game.showTimer = (selectedOption == 1);
+	}
+	else if (name == "Language")
+	{
+		//TODO: Deal with this when we implement translations
 	}
 
 	game.SaveSettings();

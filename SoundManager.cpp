@@ -63,13 +63,40 @@ void SoundManager::FadeOutBGM(Uint32 duration)
 
 void SoundManager::SetVolumeBGM(int index)
 {
-	bgmVolumeIndex = index;
-	Uint32 vol = volArray[index];
-	Mix_VolumeMusic(vol);
-	volumeBGM = vol;
+	bgmVolumeIndex = index;	
+	volumeBGM = volArray[index];
+	Mix_VolumeMusic(volumeBGM);
 }
 
-Uint32 SoundManager::GetVolume()
+Uint32 SoundManager::GetVolumeBGM()
 {
 	return volumeBGM;
+}
+
+void SoundManager::PlaySound(std::string sound, int channel)
+{
+	// Don't do anything here, to avoid memory leaks
+	if (channel < 0)
+		return;
+
+	if (sounds[channel] != nullptr)
+	{
+		Mix_FreeChunk(sounds[channel]);
+	}
+
+	sound = "se/" + sound + ".wav";
+	sounds[channel] = Mix_LoadWAV(sound.c_str());
+	Mix_VolumeChunk(sounds[channel], volumeSound);
+	Mix_PlayChannel(channel, sounds[channel], 0);
+}
+
+void SoundManager::SetVolumeSound(int index)
+{
+	soundVolumeIndex = index;
+	volumeSound = volArray[index];
+}
+
+Uint32 SoundManager::GetVolumeSound()
+{
+	return volumeSound;
 }

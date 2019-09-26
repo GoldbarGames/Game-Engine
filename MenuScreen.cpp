@@ -80,22 +80,42 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	else if (name == "Settings")
 	{
 		int startWidth = screenWidth / 2;
-		int startHeight = 200;
-		int distance = 120;
+		int startHeight = 100;
+		int distance = 60;
 
 		int buttonPosX = (screenWidth / 2);
 
 		SettingsButton* buttonVolumeMusic = new SettingsButton("Music Volume", 
 			Vector2(buttonPosX, startHeight + (distance * 0)), game);
 
-		SettingsButton* buttonScreenRes = new SettingsButton("Screen Resolution",
+		SettingsButton* buttonVolumeSound = new SettingsButton("Sound Volume",
 			Vector2(buttonPosX, startHeight + (distance * 1)), game);
 
-		buttonVolumeMusic->SetButtonsUpDownLeftRight(buttonScreenRes, buttonScreenRes, nullptr, nullptr);
-		buttonScreenRes->SetButtonsUpDownLeftRight(buttonVolumeMusic, buttonVolumeMusic, nullptr, nullptr);
+		SettingsButton* buttonScreenRes = new SettingsButton("Screen Resolution",
+			Vector2(buttonPosX, startHeight + (distance * 2)), game);
+
+		SettingsButton* buttonFPS = new SettingsButton("Display FPS",
+			Vector2(buttonPosX, startHeight + (distance * 3)), game);
+
+		SettingsButton* buttonTimer = new SettingsButton("Display Timer",
+			Vector2(buttonPosX, startHeight + (distance * 4)), game);
+
+		SettingsButton* buttonLanguage = new SettingsButton("Language",
+			Vector2(buttonPosX, startHeight + (distance * 5)), game);
+
+		buttonVolumeMusic->SetButtonsUpDownLeftRight(buttonLanguage, buttonVolumeSound, nullptr, nullptr);
+		buttonVolumeSound->SetButtonsUpDownLeftRight(buttonVolumeMusic, buttonScreenRes, nullptr, nullptr);
+		buttonScreenRes->SetButtonsUpDownLeftRight(buttonVolumeSound, buttonFPS, nullptr, nullptr);
+		buttonFPS->SetButtonsUpDownLeftRight(buttonScreenRes, buttonTimer, nullptr, nullptr);
+		buttonTimer->SetButtonsUpDownLeftRight(buttonFPS, buttonLanguage, nullptr, nullptr);
+		buttonLanguage->SetButtonsUpDownLeftRight(buttonTimer, buttonVolumeMusic, nullptr, nullptr);
 
 		buttons.emplace_back(buttonVolumeMusic);
+		buttons.emplace_back(buttonVolumeSound);
 		buttons.emplace_back(buttonScreenRes);
+		buttons.emplace_back(buttonFPS);
+		buttons.emplace_back(buttonTimer);
+		buttons.emplace_back(buttonLanguage);
 
 		// Highlight the selected option
 		//TODO: Is there a better way than hard-coding it?
