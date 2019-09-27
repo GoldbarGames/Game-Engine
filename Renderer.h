@@ -23,6 +23,8 @@ public:
 	void ToggleVisibility(std::string layer);
 	bool IsVisible(DrawingLayer layer);
 
+	void CreateSDLRenderer(SDL_Window* window, bool vsync);
+
 	Renderer();
 	~Renderer();
 };

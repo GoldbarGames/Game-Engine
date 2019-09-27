@@ -77,6 +77,8 @@ Game::Game()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	SDL_GL_SwapWindow(window);
+
+	start_time = clock::now();
 }
 
 Game::~Game()
@@ -86,10 +88,8 @@ Game::~Game()
 
 void Game::CalcDt()
 {
-	timePrev = timeNow;
-	timeNow = SDL_GetPerformanceCounter();
-
-	dt = (double)((timeNow - timePrev) * 1000 / (double)SDL_GetPerformanceFrequency());
+	dt = std::chrono::duration<float, milliseconds::period>(clock::now() - start_time).count();
+	start_time = clock::now();
 }
 
 void Game::InitSDL()
@@ -100,12 +100,11 @@ void Game::InitSDL()
 	window = SDL_CreateWindow("Witch Doctor Kaneko",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
+	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));
+
 	renderer = new Renderer();
-	renderer->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED );
-
-	SDL_RenderSetLogicalSize(renderer->renderer, screenWidth, screenHeight);
-
-	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));	
+	renderer->CreateSDLRenderer(window, true);
+	
 }
 
 void Game::EndSDL()

@@ -2,6 +2,7 @@
 #include "Game.h"
 #include "debug_state.h"
 #include <string>
+#include "Physics.h"
 
 Player::Player(Vector2 pos) : PhysicsEntity(pos)
 {
@@ -247,10 +248,8 @@ void Player::CheckJumpButton(Game& game)
 
 void Player::UpdatePhysics(Game& game)
 {
-	const float GRAVITY = 0.002f; //TODO: Better way of handling gravity
-
 	if (velocity.y < 1)
-		velocity.y += GRAVITY;
+		velocity.y += Physics::GRAVITY * game.dt;
 	
 	CheckJumpButton(game);
 

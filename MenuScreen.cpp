@@ -100,21 +100,26 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		SettingsButton* buttonTimer = new SettingsButton("Display Timer",
 			Vector2(buttonPosX, startHeight + (distance * 4)), game);
 
-		SettingsButton* buttonLanguage = new SettingsButton("Language",
+		SettingsButton* buttonVsync = new SettingsButton("Vsync",
 			Vector2(buttonPosX, startHeight + (distance * 5)), game);
+
+		SettingsButton* buttonLanguage = new SettingsButton("Language",
+			Vector2(buttonPosX, startHeight + (distance * 6)), game);
 
 		buttonVolumeMusic->SetButtonsUpDownLeftRight(buttonLanguage, buttonVolumeSound, nullptr, nullptr);
 		buttonVolumeSound->SetButtonsUpDownLeftRight(buttonVolumeMusic, buttonScreenRes, nullptr, nullptr);
 		buttonScreenRes->SetButtonsUpDownLeftRight(buttonVolumeSound, buttonFPS, nullptr, nullptr);
 		buttonFPS->SetButtonsUpDownLeftRight(buttonScreenRes, buttonTimer, nullptr, nullptr);
-		buttonTimer->SetButtonsUpDownLeftRight(buttonFPS, buttonLanguage, nullptr, nullptr);
-		buttonLanguage->SetButtonsUpDownLeftRight(buttonTimer, buttonVolumeMusic, nullptr, nullptr);
+		buttonTimer->SetButtonsUpDownLeftRight(buttonFPS, buttonVsync, nullptr, nullptr);
+		buttonVsync->SetButtonsUpDownLeftRight(buttonTimer, buttonLanguage, nullptr, nullptr);
+		buttonLanguage->SetButtonsUpDownLeftRight(buttonVsync, buttonVolumeMusic, nullptr, nullptr);
 
 		buttons.emplace_back(buttonVolumeMusic);
 		buttons.emplace_back(buttonVolumeSound);
 		buttons.emplace_back(buttonScreenRes);
 		buttons.emplace_back(buttonFPS);
 		buttons.emplace_back(buttonTimer);
+		buttons.emplace_back(buttonVsync);
 		buttons.emplace_back(buttonLanguage);
 
 		// Highlight the selected option

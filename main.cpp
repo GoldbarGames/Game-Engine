@@ -2,7 +2,6 @@
 
 #include "Game.h"
 #include "Test.h"
-#include <deque>
 
 int main(int argc, char *args[])
 {
@@ -13,46 +12,32 @@ int main(int argc, char *args[])
 	game.LoadTitleScreen();
 
 	// game.SortEntities(entities);
-	//Start counting frames per second
-	int countedFrames = 0;
+
 	game.timer.Start();
 
-	float previousFPS = 0;
-
-	std::deque<float> framesPerSeconds;
-
-	const int FRAMES_SIZE = 100;
-	for (int i = 0; i < FRAMES_SIZE; i++)
-	{
-		framesPerSeconds.push_back(0);
-	}
+	float updateInterval = 500; // update fps every X ms
+	float fpsSum = 0.0f; // 
+	float timeLeft = updateInterval; // time left before updating
+	int frames = 0; // number of frames counted
 
 	bool quit = false;
+
 	while (!quit)
 	{
 		game.CalcDt();		
 
 		if (game.showFPS)
 		{
-			//game.fpsLimit.Start();
-
-			float fps = (1.0f / game.dt) * 1000;
-
-			framesPerSeconds.push_back(fps);
-
-			if (framesPerSeconds.size() > FRAMES_SIZE)
-				framesPerSeconds.pop_front();			
-
-			float sum = 0;
-			for (int i = 0; i < framesPerSeconds.size(); i++)
-				sum += framesPerSeconds[i];
-			float averageFPS = sum / framesPerSeconds.size();
-
-			if (averageFPS != previousFPS)
+			timeLeft -= game.dt;
+			fpsSum += 1000 / game.dt;
+			if (timeLeft <= 0)
 			{
-				game.fpsText->SetText("FPS: " + std::to_string(averageFPS));
-				previousFPS = averageFPS;
+				game.fpsText->SetText("FPS: " + std::to_string((int)(fpsSum / frames)));
+				timeLeft = updateInterval;
+				fpsSum = 0;
+				frames = 0;
 			}
+			frames++;
 		}
 
 		if (game.showTimer)
@@ -88,7 +73,6 @@ int main(int argc, char *args[])
 
 		game.Render();
 
-		countedFrames++;
 	}
 
 	return 0;

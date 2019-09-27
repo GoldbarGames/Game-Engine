@@ -23,7 +23,8 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	}
 	else if (name == "Vsync")
 	{
-		optionNames = { "None", "Synced", "Adaptive" };
+		optionNames = { "None", "Synced" };
+		//optionNames = { "None", "Synced", "Adaptive" };
 	}
 	else if (name == "Sound Volume")
 	{
@@ -133,6 +134,8 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	}
 	else if (name == "Vsync")
 	{ 
+		game.renderer->CreateSDLRenderer(game.window, selectedOption);
+
 		//TODO: This only works if we are using OpenGL for rendering!
 		//SDL_GL_SetSwapInterval(int interval)
 	}

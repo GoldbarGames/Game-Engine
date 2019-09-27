@@ -24,8 +24,9 @@
 #include "NPC.h"
 #include "CutsceneManager.h"
 #include "SoundManager.h"
+#include <chrono>
 
-using std::string;
+using std::string; 
 
 class Game
 {
@@ -37,11 +38,6 @@ private:
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;
 
-	
-
-	int test = 0;
-
-	
 	std::unordered_map<int, std::string> spriteMapDoor;
 	std::unordered_map<int, std::string> spriteMapLadder;
 	std::unordered_map<int, std::string> spriteMapNPCs;
@@ -49,6 +45,13 @@ private:
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
 public:
+
+	using clock = std::chrono::high_resolution_clock;
+	using seconds = std::chrono::seconds;
+	using milliseconds = std::chrono::milliseconds;
+
+	clock::time_point start_time;
+
 	std::unordered_map<std::string, MenuScreen*> allMenus;
 
 	void Update();

@@ -51,3 +51,20 @@ SDL_Texture* Renderer::CreateTextureFromSurface(SDL_Surface* surface)
 {
 	return SDL_CreateTextureFromSurface(renderer, surface);
 }
+
+void Renderer::CreateSDLRenderer(SDL_Window* window, bool vsync)
+{
+	//TODO: Destroying the renderer also destroys all textures rendered by it.
+	// Somehow we must re-create all textures with the new renderer
+	// Or, simply create two renderers at the start, and switch between them
+
+	if (renderer != nullptr)
+		SDL_DestroyRenderer(renderer);
+
+	if (vsync)
+		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	else
+		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+	SDL_RenderSetLogicalSize(renderer, screenWidth, screenHeight);
+}

@@ -1,6 +1,7 @@
 #include "PhysicsEntity.h"
 #include "Game.h"
 #include "debug_state.h"
+#include "Physics.h"
 
 PhysicsEntity::PhysicsEntity(Vector2 pos) : Entity(pos)
 {
@@ -267,10 +268,8 @@ Vector2 PhysicsEntity::CalcScaledPivot()
 
 void PhysicsEntity::Update(Game& game)
 {
-	const float GRAVITY = 0.002f; //TODO: Better way of handling gravity
-
 	if (velocity.y < 1)
-		velocity.y += GRAVITY * game.dt;
+		velocity.y += Physics::GRAVITY;
 
 	CheckCollisions(game);
 
