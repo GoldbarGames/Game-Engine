@@ -1088,8 +1088,11 @@ void Game::Render()
 	if (showTimer)
 		timerText->Render(renderer);
 
-	bugText->Render(renderer);
-	etherText->Render(renderer);
+	if (currentLevel != "title")
+	{
+		bugText->Render(renderer);
+		etherText->Render(renderer);
+	}	
 
 	// Draw the screen overlay
 	SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
