@@ -209,6 +209,7 @@ void CutsceneManager::Update()
 
 	//nextLetterTimer.Start(lettersPerFrame * delay);
 
+	//TODO: Fix this, it no longer works properly with the corrected dt
 	timer += (float)game->dt;
 
 	SceneLine* line = currentLabel->lines[lineIndex];

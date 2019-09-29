@@ -8,6 +8,8 @@ Missile::Missile(Vector2 pos) : PhysicsEntity(pos)
 
 	timeToLive.Start(2000);
 
+	etype = "missile";
+
 	//TODO: Is there a good way to do this from within the constructor?
 	//animator = new Animator("missile", "moving"); //TODO: Make these parameters?
 	//animator->SetBool("destroyed", false);
@@ -40,6 +42,13 @@ void Missile::Update(Game& game)
 		animator->Update(this);
 }
 
+void Missile::Destroy()
+{
+	destroyed = true;
+	animator->SetBool("destroyed", true);
+	velocity = Vector2(0, 0);
+}
+
 void Missile::UpdatePhysics(Game& game)
 {
 	// check for collisions, and destroy if it hits a wall or an enemy'
@@ -51,7 +60,7 @@ void Missile::UpdatePhysics(Game& game)
 		}
 		else
 		{
-			animator->SetBool("destroyed", true);
+			Destroy();
 		}
 	}
 	else
@@ -159,7 +168,7 @@ bool Missile::CheckCollisions(Game& game)
 	{
 		const SDL_Rect * theirBounds = game.entities[i]->GetBounds();
 
-		if (game.entities[i] != this && game.entities[i]->impassable)
+		if (game.entities[i]->impassable && game.entities[i] != this)
 		{
 			if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
 			{
@@ -169,6 +178,17 @@ bool Missile::CheckCollisions(Game& game)
 			if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
 			{
 				return true;
+			}
+		}
+		else if (game.entities[i]->trigger && game.entities[i] != this)
+		{
+			if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
+			{
+				CheckCollisionTrigger(game.entities[i], game);
+			}
+			else if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
+			{
+				CheckCollisionTrigger(game.entities[i], game);
 			}
 		}
 	}

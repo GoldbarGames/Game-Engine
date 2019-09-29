@@ -7,11 +7,12 @@
 class Door;
 class Ladder;
 class Renderer;
+class Goal;
 
 class Player : public PhysicsEntity
 {
 private:	
-	const float maxHorizontalSpeed = 0.5f;
+	
 	Timer missileTimer;
 	Timer doorTimer;		
 public:
@@ -19,6 +20,9 @@ public:
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;
 	NPC* currentNPC = nullptr;
+	Goal* currentGoal = nullptr;
+
+
 	Vector2 startPosition;
 	Player(Vector2 pos);
 	~Player();

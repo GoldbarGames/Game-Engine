@@ -72,6 +72,14 @@ void Player::UpdateNormally(Game& game)
 		{
 			game.cutscene->PlayCutscene(currentNPC->cutsceneLabel);
 		}
+		else if (currentGoal != nullptr)
+		{
+			if (currentGoal->isOpen)
+			{
+				game.goToNextLevel = true;
+				return;
+			}			
+		}
 		else if (currentDoor != nullptr && doorTimer.HasElapsed())
 		{
 			//TODO: Make this look better later
@@ -121,11 +129,14 @@ void Player::UpdateNormally(Game& game)
 
 void Player::CastSpellDebug(Game &game, const Uint8* input)
 {
+	if (game.currentEther <= 0)
+		return;
+
 	Vector2 missilePosition = this->position;
 	missilePosition.x += (this->currentSprite->GetRect()->w / 2);
 	missilePosition.y += (this->currentSprite->GetRect()->h / 2);
 
-	const float missileSpeed = 0.1f;
+	const float missileSpeed = maxHorizontalSpeed * 10;
 	Vector2 missileVelocity = Vector2(0, 0);
 
 	float angle = 0;
@@ -150,11 +161,16 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 		angle = 180;
 	}
 
-	if (game.SpawnMissile(missilePosition, missileVelocity, angle))
+	Missile* missile = game.SpawnMissile(missilePosition, missileVelocity, angle);
+	if (missile != nullptr)
 	{
+		game.currentEther--;
+		game.etherText->SetText("Ether: " + std::to_string(game.currentEther));
+
+		missile->etype = "debug_missile";
 		game.soundManager->PlaySound("shoot", 1);
 		animator->SetBool("isCastingDebug", true);
-		missileTimer.Start(1000);
+		missileTimer.Start(750);
 	}
 }
 

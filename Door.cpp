@@ -16,12 +16,12 @@ Door::~Door()
 
 }
 
-void Door::OnTriggerStay(Entity* other)
+void Door::OnTriggerStay(Entity* other, Game& game)
 {
 
 }
 
-void Door::OnTriggerEnter(Entity* other)
+void Door::OnTriggerEnter(Entity* other, Game& game)
 {
 	if (other->etype == "player")
 	{
@@ -30,7 +30,7 @@ void Door::OnTriggerEnter(Entity* other)
 	}
 }
 
-void Door::OnTriggerExit(Entity* other)
+void Door::OnTriggerExit(Entity* other, Game& game)
 {
 	if (other->etype == "player")
 	{

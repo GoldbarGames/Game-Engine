@@ -6,6 +6,7 @@ class Missile : public PhysicsEntity
 	Timer timeToLive;
 public:
 	float angle = 0;
+	bool destroyed = false;
 	Missile(Vector2 pos);
 	~Missile();
 	void Update(Game& game);
@@ -15,5 +16,6 @@ public:
 	void CalculateCollider(Vector2 cameraOffset);
 	void Pause(Uint32 ticks) override;
 	void Unpause(Uint32 ticks) override;
+	void Destroy();
 };
 

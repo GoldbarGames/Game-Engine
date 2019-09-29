@@ -240,7 +240,7 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	}
 	else if (selectedButton->name == "Load Game")
 	{
-		game.PlayLevel("test");
+		game.PlayLevel("test1");
 	}
 	else if (selectedButton->name == "Play Game")
 	{

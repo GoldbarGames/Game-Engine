@@ -30,6 +30,10 @@ Editor::Editor(Game& g)
 	previewMap["door"] = game->CreateDoor(Vector2(0,0), spriteMapIndex);
 	previewMap["ladder"] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
 
+	previewMap["goal"] = game->CreateGoal(Vector2(0, 0), spriteMapIndex);
+	previewMap["bug"] = game->CreateBug(Vector2(0, 0), spriteMapIndex);
+	previewMap["ether"] = game->CreateEther(Vector2(0, 0), spriteMapIndex);
+
 	//TODO: Make the indexes different numbers for the names and sprite sheets?
 	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 
@@ -98,7 +102,7 @@ void Editor::StartEdit()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Layer", "Door", "Ladder", "NPC" };
+	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Layer", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether" };
 
 	for (unsigned int i = 0; i < buttonNames.size(); i++)
 	{
@@ -313,6 +317,24 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			{
 				game->SortEntities(game->entities);
 			}
+		}
+		else if (objectMode == "goal")
+		{
+			Goal* currentGoal = game->SpawnGoal(Vector2(mouseX, mouseY), spriteMapIndex);
+			if (currentGoal != nullptr)
+				game->SortEntities(game->entities);
+		}
+		else if (objectMode == "bug")
+		{
+			Bug* currentBug = game->SpawnBug(Vector2(mouseX, mouseY), spriteMapIndex);
+			if (currentBug != nullptr)
+				game->SortEntities(game->entities);
+		}
+		else if (objectMode == "ether")
+		{
+			Ether* currentEther = game->SpawnEther(Vector2(mouseX, mouseY), spriteMapIndex);
+			if (currentEther != nullptr)
+				game->SortEntities(game->entities);
 		}
 		else if (objectMode == "door")
 		{
@@ -609,6 +631,18 @@ void Editor::ClickedButton(string buttonName)
 	{
 		ToggleObjectMode("npc");
 	}
+	else if (buttonName == "Goal")
+	{
+		ToggleObjectMode("goal");
+	}
+	else if (buttonName == "Bug")
+	{
+		ToggleObjectMode("bug");
+	}
+	else if (buttonName == "Ether")
+	{
+		ToggleObjectMode("ether");
+	}
 	else if (buttonName == "Inspect")
 	{
 		ToggleInspectionMode();
@@ -627,6 +661,9 @@ void Editor::ClickedButton(string buttonName)
 		SaveLevel();
 	}
 }
+
+//TODO: Refactor this
+
 
 void Editor::ToggleSpriteMap()
 {
@@ -656,6 +693,30 @@ void Editor::ToggleSpriteMap()
 
 		delete previewMap["npc"];
 		previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
+	}
+	else if (objectMode == "goal")
+	{
+		if (spriteMapIndex > 2)
+			spriteMapIndex = 0;
+
+		delete previewMap["goal"];
+		previewMap["goal"] = game->CreateGoal(Vector2(0, 0), spriteMapIndex);
+	}
+	else if (objectMode == "bug")
+	{
+		if (spriteMapIndex > 1)
+			spriteMapIndex = 0;
+
+		delete previewMap["bug"];
+		previewMap["bug"] = game->CreateBug(Vector2(0, 0), spriteMapIndex);
+	}
+	else if (objectMode == "ether")
+	{
+		if (spriteMapIndex > 0)
+			spriteMapIndex = 0;
+
+		delete previewMap["ether"];
+		previewMap["ether"] = game->CreateEther(Vector2(0, 0), spriteMapIndex);
 	}
 
 	objectPreview = previewMap[objectMode];
@@ -990,11 +1051,42 @@ void Editor::SaveLevel(std::string levelName)
 				" " << npc->spriteIndex << " " << npc->drawOrder <<
 				" " << npc->layer << " " << npc->impassable << std::endl;
 		}
+		else if (game->entities[i]->etype == "player")
+		{
+			Player* player = static_cast<Player*>(game->entities[i]);
+
+			fout << player->etype << " " << (player->startPosition.x) <<
+				" " << (player->startPosition.y) << " " << player->drawOrder <<
+				" " << player->layer << " " << player->impassable << std::endl;
+		}
+		else if (game->entities[i]->etype == "goal")
+		{
+			Goal* goal = static_cast<Goal*>(game->entities[i]);
+
+			fout << goal->etype << " " << (goal->GetPosition().x / SCALE) <<
+				" " << (goal->GetPosition().y / SCALE) << " " << goal->spriteIndex << std::endl;
+		}
+		else if (game->entities[i]->etype == "bug")
+		{
+			Bug* bug = static_cast<Bug*>(game->entities[i]);
+
+			fout << bug->etype << " " << (bug->GetPosition().x / SCALE) <<
+				" " << (bug->GetPosition().y / SCALE) << " " << bug->spriteIndex << std::endl;
+		}
+		else if (game->entities[i]->etype == "ether")
+		{
+			Ether* ether = static_cast<Ether*>(game->entities[i]);
+
+			fout << ether->etype << " " << (ether->GetPosition().x / SCALE) <<
+				" " << (ether->GetPosition().y / SCALE) << " " << ether->spriteIndex << std::endl;
+		}
 		else
 		{
-			fout << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
-				" " << (game->entities[i]->GetPosition().y / SCALE) << " " << game->entities[i]->drawOrder <<
-				" " << game->entities[i]->layer << " " << game->entities[i]->impassable << std::endl;
+			// Don't save anything else, because they are probably temp objects like missiles, etc.
+
+			//fout << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
+			//	" " << (game->entities[i]->GetPosition().y / SCALE) << " " << game->entities[i]->drawOrder <<
+			//	" " << game->entities[i]->layer << " " << game->entities[i]->impassable << std::endl;
 		}		
 	}
 
@@ -1007,10 +1099,12 @@ void Editor::LoadLevel(std::string levelName)
 	// Clear the old level
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 		delete game->entities[i];		
-	game->entities.clear();
+	game->entities.clear();	
 
 	if (levelName != "")
 		game->currentLevel = levelName;
+
+	game->currentEther = game->startingEther;
 
 	std::ifstream fin;
 	fin.open("data/" + levelName + ".lvl");
@@ -1075,6 +1169,21 @@ void Editor::LoadLevel(std::string levelName)
 			newNPC->layer = (DrawingLayer)std::stoi(tokens[7]);
 			newNPC->impassable = std::stoi(tokens[8]);
 		}
+		else if (etype == "goal")
+		{			
+			int spriteIndex = std::stoi(tokens[3]);
+			Goal* entity = game->SpawnGoal(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+		}
+		else if (etype == "bug")
+		{
+			int spriteIndex = std::stoi(tokens[3]);
+			Bug* entity = game->SpawnBug(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+		}
+		else if (etype == "ether")
+		{
+			int spriteIndex = std::stoi(tokens[3]);
+			Ether* entity = game->SpawnEther(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+		}
 
 		fin.getline(line, 256);
 	}
@@ -1100,4 +1209,14 @@ void Editor::LoadLevel(std::string levelName)
 	}
 
 	game->SortEntities(game->entities);
+
+	// Count all bugs
+	game->bugsRemaining = 0;
+	for (int i = 0; i < game->entities.size(); i++)
+	{
+		if (game->entities[i]->etype == "bug")
+			game->bugsRemaining++;
+	}
+
+	game->ResetText();
 }

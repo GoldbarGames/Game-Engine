@@ -13,8 +13,8 @@ public:
 	Vector2 GetDestination();
 	void SetDestination(Vector2 dest);
 
-	void OnTriggerStay(Entity* other);
-	void OnTriggerEnter(Entity* other);
-	void OnTriggerExit(Entity* other);
+	void OnTriggerStay(Entity* other, Game& game);
+	void OnTriggerEnter(Entity* other, Game& game);
+	void OnTriggerExit(Entity* other, Game& game);
 };
 

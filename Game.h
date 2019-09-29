@@ -22,6 +22,9 @@
 #include "Ladder.h"
 #include "Renderer.h"
 #include "NPC.h"
+#include "Bug.h"
+#include "Ether.h"
+#include "Goal.h"
 #include "CutsceneManager.h"
 #include "SoundManager.h"
 #include <chrono>
@@ -42,9 +45,21 @@ private:
 	std::unordered_map<int, std::string> spriteMapLadder;
 	std::unordered_map<int, std::string> spriteMapNPCs;
 
+	std::unordered_map<int, std::string> spriteMapGoal;
+	std::unordered_map<int, std::string> spriteMapBug;
+
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
+
+	
 public:
+
+	// Player / Level Info
+	int startingEther = 4;
+	int currentEther = 4;
+	int bugsDefeated = 0;
+	int bugsRemaining = 0;
+
 
 	using clock = std::chrono::high_resolution_clock;
 	using seconds = std::chrono::seconds;
@@ -66,9 +81,13 @@ public:
 	bool CheckInputs();
 	void CheckDeleteEntities();
 
+	void ResetText();
+
 	Timer timer;
 	Timer fpsLimit;
 	bool limitFPS = false;
+
+	bool goToNextLevel = false;
 
 	Uint32 lastPressedKeyTicks = 0;
 	std::vector<Background*> backgrounds;
@@ -87,10 +106,12 @@ public:
 	TTF_Font* theFont = nullptr;
 	TTF_Font* headerFont = nullptr;
 	
-	Text* jumpsRemainingText = nullptr;
 	Text* fpsText = nullptr;
 	Text* timerText = nullptr;
 	std::vector<MenuScreen*> openedMenus;
+
+	Text* bugText = nullptr;
+	Text* etherText = nullptr;
 
 	bool watchingCutscene = false;
 	bool getKeyboardInput = false;
@@ -99,6 +120,7 @@ public:
 	std::string inputType = "";
 
 	std::string currentLevel = "";
+	int levelNumber = 1;
 
 	Editor* editor = nullptr;
 	SDL_Window* window = nullptr;
@@ -128,7 +150,7 @@ public:
 	Tile* SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer);
 	Player* SpawnPlayer(Vector2 position);
 	Background* SpawnBackground(Vector2 pos);
-	bool SpawnMissile(Vector2 position, Vector2 velocity, float angle);
+	Missile* SpawnMissile(Vector2 position, Vector2 velocity, float angle);
 
 	Door* CreateDoor(Vector2 position, int spriteIndex); // returns the Door entity with default parameters
 	Door* SpawnDoor(Vector2 position, int spriteIndex=0); // only returns Door if it can be spawned succesfully in-game, else null
@@ -138,9 +160,20 @@ public:
 
 	NPC* CreateNPC(std::string name, Vector2 position, int spriteIndex);
 	NPC* SpawnNPC(std::string name, Vector2 position, int spriteIndex = 0);
-	
+
+	Bug* CreateBug(Vector2 position, int spriteIndex);
+	Bug* SpawnBug(Vector2 position, int spriteIndex = 0);
+
+	Ether* CreateEther(Vector2 position, int spriteIndex);
+	Ether* SpawnEther(Vector2 position, int spriteIndex = 0);
+
+	Goal* CreateGoal(Vector2 position, int spriteIndex);
+	Goal* SpawnGoal(Vector2 position, int spriteIndex = 0);
+
 	void LoadTitleScreen();
 	void PlayLevel(string levelName);
+	void LoadNextLevel();
+
 	Vector2 CalcObjPos(Vector2 pos);
 
 	Vector2 SnapToGrid(Vector2 position);
@@ -155,5 +188,7 @@ public:
 
 	void SaveSettings();
 	void LoadSettings();
+
+	
 };
 

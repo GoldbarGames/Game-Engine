@@ -18,12 +18,12 @@ Ladder::~Ladder()
 	
 }
 
-void Ladder::OnTriggerStay(Entity* other)
+void Ladder::OnTriggerStay(Entity* other, Game& game)
 {
 
 }
 
-void Ladder::OnTriggerEnter(Entity* other)
+void Ladder::OnTriggerEnter(Entity* other, Game& game)
 {
 	if (other->etype == "player")
 	{
@@ -32,7 +32,7 @@ void Ladder::OnTriggerEnter(Entity* other)
 	}
 }
 
-void Ladder::OnTriggerExit(Entity* other)
+void Ladder::OnTriggerExit(Entity* other, Game& game)
 {
 	if (other->etype == "player")
 	{

@@ -140,7 +140,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 				if (!verticalCollision && SDL_HasIntersection(&floorBounds, theirBounds))
 				{
 					verticalCollision = true;
-					CheckCollisionTrigger(game.entities[i]);
+					CheckCollisionTrigger(game.entities[i], game);
 
 					// if colliding with ground, set velocity.y to zero
 					if (velocity.y > 0)
@@ -160,18 +160,18 @@ void PhysicsEntity::CheckCollisions(Game& game)
 				if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
 				{
 					verticalCollision = true;
-					CheckCollisionTrigger(game.entities[i]);
+					CheckCollisionTrigger(game.entities[i], game);
 				}
 			}
 			else if (game.entities[i]->trigger)
 			{
 				if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
 				{
-					CheckCollisionTrigger(game.entities[i]);
+					CheckCollisionTrigger(game.entities[i], game);
 				}
 				else if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
 				{
-					CheckCollisionTrigger(game.entities[i]);
+					CheckCollisionTrigger(game.entities[i], game);
 				}
 			}
 
@@ -188,10 +188,23 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		if (game.pressedJumpButton && jumpsRemaining > 0)
 		{
 			jumpsRemaining--;
-			game.jumpsRemainingText->SetText("Jumps Remaining: " + std::to_string(jumpsRemaining));
 		}
 
 		position.y += (velocity.y * game.dt);
+	}
+
+	// Remove deleted objects from prevFrameCollisions
+	unsigned int k = 0;
+	while (k < prevFrameCollisions.size())
+	{
+		if (prevFrameCollisions[k]->shouldDelete)
+		{
+			prevFrameCollisions.erase(prevFrameCollisions.begin() + k);
+		}
+		else
+		{
+			k++;
+		}			
 	}
 
 	// Now we go over the list
@@ -210,11 +223,11 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		}
 
 		if (triggerExit && prevFrameCollisions[i] != nullptr)
-			prevFrameCollisions[i]->OnTriggerExit(this);
+			prevFrameCollisions[i]->OnTriggerExit(this, game);
 	}
 }
 
-void PhysicsEntity::CheckCollisionTrigger(Entity* collidedEntity)
+void PhysicsEntity::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 {
 	// Each frame, when we are in this function, we check to see if the collided entity is in a list.
 	// If it is not, then we do OnTriggerEnter and add it to the list
@@ -234,11 +247,11 @@ void PhysicsEntity::CheckCollisionTrigger(Entity* collidedEntity)
 
 		if (collisionStay)
 		{
-			collidedEntity->OnTriggerStay(this);
+			collidedEntity->OnTriggerStay(this, game);
 		}
 		else
 		{
-			collidedEntity->OnTriggerEnter(this);
+			collidedEntity->OnTriggerEnter(this, game);
 		}
 		thisFrameCollisions.emplace_back(collidedEntity);
 	}
@@ -268,8 +281,11 @@ Vector2 PhysicsEntity::CalcScaledPivot()
 
 void PhysicsEntity::Update(Game& game)
 {
-	if (velocity.y < 1)
-		velocity.y += Physics::GRAVITY;
+	if (usePhysics)
+	{
+		if (velocity.y < 1)
+			velocity.y += Physics::GRAVITY;
+	}	
 
 	CheckCollisions(game);
 

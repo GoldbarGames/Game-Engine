@@ -1,25 +1,20 @@
 #pragma once
 #include "Entity.h"
-#include "Collider.h"
 
-class Ladder : public Entity
+class Goal : public Entity
 {
 public:
-
 	int spriteIndex = 0;
-	
-	Collider collider;
+	bool isOpen = false;
 
-	void Render(Renderer * renderer, Vector2 cameraOffset);
 
-	Ladder(Vector2 pos);
-	~Ladder();
+	Goal(Vector2 pos);
+	~Goal();
 
-	const SDL_Rect* GetBounds();
+	void Update(Game& game);
 
 	void OnTriggerStay(Entity* other, Game& game);
 	void OnTriggerEnter(Entity* other, Game& game);
 	void OnTriggerExit(Entity* other, Game& game);
 };
-
 

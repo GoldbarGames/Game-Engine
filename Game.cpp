@@ -44,22 +44,16 @@ Game::Game()
 	spriteMapNPCs[0] = "assets/sprites/npcs/gramps.png";
 	spriteMapNPCs[1] = "assets/sprites/npcs/the_man.png";
 
+	spriteMapBug[0] = "assets/sprites/bugs/bug1.png";
+	spriteMapBug[1] = "assets/sprites/bugs/bug2.png";
 
+	spriteMapGoal[0] = "assets/sprites/objects/door1.png";
+	spriteMapGoal[1] = "assets/sprites/objects/door_house.png";
+	spriteMapGoal[2] = "assets/sprites/objects/door_house_outside.png";
 
 	editor = new Editor(*this);
 
-	// Initialize all text
-	jumpsRemainingText = new Text(renderer, theFont);
-	jumpsRemainingText->SetText("Jumps Remaining: 2");
-	jumpsRemainingText->SetPosition(0, 100);
-
-	fpsText = new Text(renderer, theFont);
-	fpsText->SetText("FPS:");
-	fpsText->SetPosition(0, 0);
-
-	timerText = new Text(renderer, theFont);
-	timerText->SetText("");
-	timerText->SetPosition(0, 100);
+	ResetText();
 
 	// Initialize all the menus
 	allMenus["Title"] = new MenuScreen("Title", *this);
@@ -84,6 +78,33 @@ Game::Game()
 Game::~Game()
 {	
 	EndSDL();
+}
+
+void Game::ResetText()
+{
+	if (fpsText == nullptr)
+		fpsText = new Text(renderer, theFont);
+
+	fpsText->SetText("FPS:");
+	fpsText->SetPosition(0, 0);
+
+	if (timerText == nullptr)
+		timerText = new Text(renderer, theFont);
+	
+	timerText->SetText("");
+	timerText->SetPosition(100, 0);
+
+	if (bugText == nullptr)
+		bugText = new Text(renderer, theFont);
+	
+	bugText->SetText("Bugs Remaining: " + std::to_string(bugsRemaining));
+	bugText->SetPosition(0, 100);
+
+	if (etherText == nullptr)
+		etherText = new Text(renderer, theFont);
+	
+	etherText->SetText("Ether: " + std::to_string(currentEther));
+	etherText->SetPosition(0, 150);
 }
 
 void Game::CalcDt()
@@ -215,7 +236,7 @@ Door* Game::CreateDoor(Vector2 position, int spriteIndex)
 	return newDoor;
 }
 
-Door* Game::SpawnDoor(Vector2 position, int spriteIndex) // maybe pass in the tileset number for the door?
+Door* Game::SpawnDoor(Vector2 position, int spriteIndex)
 {
 	Vector2 snappedPosition = SnapToGrid(position);
 
@@ -283,7 +304,115 @@ NPC* Game::SpawnNPC(std::string name, Vector2 position, int spriteIndex)
 	}
 }
 
-bool Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
+
+Goal* Game::CreateGoal(Vector2 position, int spriteIndex)
+{
+	Goal* newGoal = new Goal(position);
+	newGoal->spriteIndex = spriteIndex;
+
+	//TODO: How to make this work for doors that will be related to other tilesets?
+	Animator* anim = new Animator("door", "closed");
+
+	Vector2 pivotPoint = Vector2(0, 0);
+	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, spriteMapGoal[spriteIndex], renderer, pivotPoint));
+	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, spriteMapGoal[spriteIndex], renderer, pivotPoint));
+
+	newGoal->SetAnimator(anim);
+
+	return newGoal;
+}
+
+Goal* Game::SpawnGoal(Vector2 position, int spriteIndex)
+{
+	Vector2 snappedPosition = SnapToGrid(position);
+
+	Goal* newGoal = CreateGoal(snappedPosition, spriteIndex);
+
+	if (!newGoal->CanSpawnHere(snappedPosition, *this))
+	{
+		delete newGoal;
+		return nullptr;
+	}
+	else
+	{
+		entities.emplace_back(newGoal);
+		return newGoal;
+	}
+}
+
+
+Bug* Game::CreateBug(Vector2 position, int spriteIndex)
+{
+	Bug* newBug = new Bug(position);
+	newBug->spriteIndex = spriteIndex;
+
+	//TODO: How to make this work for doors that will be related to other tilesets?
+	Animator* anim = new Animator("bug", "idle");
+
+	Vector2 pivotPoint = Vector2(16, 16);
+	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, spriteMapBug[spriteIndex], renderer, pivotPoint));
+
+	newBug->SetAnimator(anim);
+
+	return newBug;
+}
+
+Bug* Game::SpawnBug(Vector2 position, int spriteIndex)
+{
+	Vector2 snappedPosition = SnapToGrid(position);
+
+	Bug* newBug = CreateBug(snappedPosition, spriteIndex);
+
+	if (!newBug->CanSpawnHere(snappedPosition, *this))
+	{
+		delete newBug;
+		return nullptr;
+	}
+	else
+	{
+		entities.emplace_back(newBug);
+		return newBug;
+	}
+}
+
+
+Ether* Game::CreateEther(Vector2 position, int spriteIndex)
+{
+	Ether* newEther = new Ether(position);
+	newEther->spriteIndex = spriteIndex;
+
+	//TODO: How to make this work for doors that will be related to other tilesets?
+	Animator* anim = new Animator("ether", "idle");
+
+	Vector2 pivotPoint = Vector2(0, 0);
+	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, "assets/sprites/spells/ether.png", renderer, pivotPoint));
+
+	newEther->SetAnimator(anim);
+
+	return newEther;
+}
+
+Ether* Game::SpawnEther(Vector2 position, int spriteIndex)
+{
+	Vector2 snappedPosition = SnapToGrid(position);
+
+	Ether* newEther = CreateEther(snappedPosition, spriteIndex);
+
+	if (!newEther->CanSpawnHere(snappedPosition, *this))
+	{
+		delete newEther;
+		return nullptr;
+	}
+	else
+	{
+		entities.emplace_back(newEther);
+		return newEther;
+	}
+}
+
+
+
+Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 {
 	//TODO: Make a way for this to return false
 
@@ -303,7 +432,7 @@ bool Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 
 	entities.emplace_back(missile);
 
-	return true;
+	return missile;
 }
 
 Vector2 Game::CalcObjPos(Vector2 pos)
@@ -458,6 +587,17 @@ void Game::LoadTitleScreen()
 	openedMenus.emplace_back(allMenus["Title"]);
 
 	soundManager->PlayBGM("Witchs_Waltz");
+}
+
+void Game::LoadNextLevel()
+{
+	//TODO: Make this better
+	//std::string nextLevel = currentLevel;
+
+	levelNumber++;
+	std::string nextLevel = "test" + std::to_string(levelNumber);
+
+	editor->LoadLevel(nextLevel);
 }
 
 void Game::PlayLevel(string levelName)
@@ -769,8 +909,9 @@ bool Game::HandleEvent(SDL_Event& event)
 					Mix_PauseMusic();
 				break;
 			case SDLK_r:
-				if (player != nullptr)
-					player->ResetPosition();
+				//if (player != nullptr)
+				//	player->ResetPosition();
+				editor->LoadLevel(currentLevel);
 				break;
 			case SDLK_1: // toggle Debug mode
 				SetModeDebug(!GetModeDebug());
@@ -871,17 +1012,21 @@ void Game::UpdateOverlayColor(int& color, const int& target)
 
 void Game::Update()
 {
+	// For non-moving camera, set offset based on tile size and scale
+	const int OFFSET = -1;
+	camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
+
 	if (player != nullptr)
 	{
-		camera = player->GetCenter();
-		camera.x -= (screenWidth / 2.0f);
-		camera.y -= (screenHeight / 2.0f);
+		// Update the camera
+		//camera = player->GetCenter();
+		//camera.x -= (screenWidth / 2.0f);
+		//camera.y -= (screenHeight / 2.0f);
 	}
 	else // to handle the title screen (maybe change this later)
 	{
 		camera = Vector2(0, 0);
 	}
-
 
 	if (changingOverlayColor && timerOverlayColor.HasElapsed())
 	{
@@ -891,6 +1036,7 @@ void Game::Update()
 		UpdateOverlayColor(overlayColor.g, targetColor.g);
 		UpdateOverlayColor(overlayColor.b, targetColor.b);
 		UpdateOverlayColor(overlayColor.a, targetColor.a);
+		std::cout << overlayColor.r << std::endl;
 	}
 
 	if (watchingCutscene)
@@ -941,6 +1087,9 @@ void Game::Render()
 	
 	if (showTimer)
 		timerText->Render(renderer);
+
+	bugText->Render(renderer);
+	etherText->Render(renderer);
 
 	// Draw the screen overlay
 	SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);

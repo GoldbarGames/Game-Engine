@@ -54,9 +54,9 @@ public:
 
 	virtual bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
 
-	virtual void OnTriggerStay(Entity* other);
-	virtual void OnTriggerEnter(Entity* other);
-	virtual void OnTriggerExit(Entity* other);
+	virtual void OnTriggerStay(Entity* other, Game& game);
+	virtual void OnTriggerEnter(Entity* other, Game& game);
+	virtual void OnTriggerExit(Entity* other, Game& game);
 
 	virtual void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties);
 	void DeleteProperties(std::vector<Text*>& properties);

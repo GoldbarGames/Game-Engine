@@ -118,17 +118,17 @@ bool Entity::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 	return true;
 }
 
-void Entity::OnTriggerStay(Entity* other)
+void Entity::OnTriggerStay(Entity* other, Game& game)
 {
 
 }
 
-void Entity::OnTriggerEnter(Entity* other)
+void Entity::OnTriggerEnter(Entity* other, Game& game)
 {
 
 }
 
-void Entity::OnTriggerExit(Entity* other)
+void Entity::OnTriggerExit(Entity* other, Game& game)
 {
 
 }

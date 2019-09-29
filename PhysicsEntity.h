@@ -6,11 +6,14 @@ class PhysicsEntity : public Entity
 protected:
 	Vector2 velocity = Vector2(0, 0);
 	Vector2 acceleration = Vector2(0, 0);
-	float horizontalSpeed = 0.001f;
+	const float maxHorizontalSpeed = 0.5f;
+	float horizontalSpeed = 0.05f;
 	std::vector<Entity*> thisFrameCollisions;
 	std::vector<Entity*> prevFrameCollisions;
 	int jumpsRemaining = 2;
 public:
+
+	bool usePhysics = true;
 
 	SDL_Rect* collider = nullptr;        // adjust the bounds this way
 	SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
@@ -34,7 +37,7 @@ public:
 
 	void CheckCollisions(Game& game);
 	void CalculateCollider(Vector2 cameraOffset);
-	void CheckCollisionTrigger(Entity* collidedEntity);
+	void CheckCollisionTrigger(Entity* collidedEntity, Game& game);
 
 	void Update(Game& game);
 	void Render(Renderer * renderer, Vector2 cameraOffset);

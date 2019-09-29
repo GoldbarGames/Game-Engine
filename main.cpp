@@ -45,6 +45,12 @@ int main(int argc, char *args[])
 			game.timerText->SetText(std::to_string(game.timer.GetTicks() / 1000.0f));
 		}
 
+		if (game.goToNextLevel)
+		{
+			game.LoadNextLevel();
+			game.goToNextLevel = false;
+		}
+
 		quit = game.CheckInputs();
 
 		game.CheckDeleteEntities();
