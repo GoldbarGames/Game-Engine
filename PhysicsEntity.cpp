@@ -96,6 +96,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	if (velocity.x > 0)
 	{
 		newBoundsVertical.x -= 1;
+		newBoundsHorizontal.x += 1;
 	}
 	else if (velocity.x < 0)
 	{
@@ -185,7 +186,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 	if (!verticalCollision || animator->GetBool("onLadder"))
 	{
-		if (game.pressedJumpButton && jumpsRemaining > 0)
+		if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0)
 		{
 			jumpsRemaining--;
 		}

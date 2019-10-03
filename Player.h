@@ -22,12 +22,13 @@ public:
 	NPC* currentNPC = nullptr;
 	Goal* currentGoal = nullptr;
 
+	
+	bool canJump = true;
 
 	Vector2 startPosition;
 	Player(Vector2 pos);
 	~Player();
 	void Update(Game& game);
-	void UpdatePhysics(Game& game);
 	void UpdateNormally(Game& game);
 
 	void ResetPosition();
@@ -37,6 +38,6 @@ public:
 	
 
 	void CastSpellDebug(Game &game, const Uint8* input);
-	void CheckJumpButton(Game& game);
+	void CheckJumpButton(const Uint8* input);
 };
 

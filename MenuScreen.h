@@ -21,5 +21,6 @@ public:
 	void Render(Renderer* renderer);
 	bool Update(Game& game);
 	bool PressSelectedButton(Game& game);
+	BaseButton* GetButtonByName(std::string buttonName);
 };
 

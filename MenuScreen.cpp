@@ -126,6 +126,36 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		//TODO: Is there a better way than hard-coding it?
 		buttonVolumeMusic->SetOptionColors({ 255, 255, 0, 255 });
 	}
+	else if (name == "EditorSettings")
+	{
+		int startWidth = screenWidth / 2;
+		int startHeight = 100;
+		int distance = 60;
+
+		int buttonPosX = (screenWidth / 2);
+
+		SettingsButton* buttonReplacing = new SettingsButton("Replacing",
+			Vector2(buttonPosX, startHeight + (distance * 0)), game);
+
+		SettingsButton* buttonDeleting = new SettingsButton("Deleting",
+			Vector2(buttonPosX, startHeight + (distance * 1)), game);
+
+		SettingsButton* buttonColor = new SettingsButton("Button Color",
+			Vector2(buttonPosX, startHeight + (distance * 2)), game);
+
+		buttonReplacing->SetButtonsUpDownLeftRight(buttonColor, buttonDeleting, nullptr, nullptr);
+		buttonDeleting->SetButtonsUpDownLeftRight(buttonReplacing, buttonColor, nullptr, nullptr);
+		buttonColor->SetButtonsUpDownLeftRight(buttonDeleting, buttonReplacing, nullptr, nullptr);
+		
+
+		buttons.emplace_back(buttonReplacing);
+		buttons.emplace_back(buttonDeleting);
+		buttons.emplace_back(buttonColor);
+
+		// Highlight the selected option
+		//TODO: Is there a better way than hard-coding it?
+		buttonReplacing->SetOptionColors({ 255, 255, 0, 255 });
+	}
 	else if (name == "Spellbook")
 	{
 
@@ -253,4 +283,16 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	}
 
 	return false;
+}
+
+
+BaseButton* MenuScreen::GetButtonByName(std::string buttonName)
+{
+	for (int i = 0; i < buttons.size(); i++)
+	{
+		if (buttons[i]->name == buttonName)
+			return buttons[i];
+	}
+
+	return nullptr;
 }

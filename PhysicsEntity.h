@@ -7,7 +7,7 @@ protected:
 	Vector2 velocity = Vector2(0, 0);
 	Vector2 acceleration = Vector2(0, 0);
 	const float maxHorizontalSpeed = 0.5f;
-	float horizontalSpeed = 0.05f;
+	float horizontalSpeed = 0.5f;
 	std::vector<Entity*> thisFrameCollisions;
 	std::vector<Entity*> prevFrameCollisions;
 	int jumpsRemaining = 2;
@@ -21,6 +21,11 @@ public:
 
 	float colliderWidth = 1;
 	float colliderHeight = 1;
+
+	//TODO: Can we make this so that only the player has this?
+	// OR does this mean that if other characters jump, we use this bool?
+	bool hadPressedJump;
+	bool pressingJumpButton;
 
 	PhysicsEntity(Vector2 pos);
 	~PhysicsEntity();

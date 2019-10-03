@@ -48,11 +48,13 @@ private:
 	std::unordered_map<int, std::string> spriteMapGoal;
 	std::unordered_map<int, std::string> spriteMapBug;
 
-	void DeleteEntity(Entity* entity);
-	void DeleteEntity(int index);
+	
 
 	
 public:
+
+	void DeleteEntity(Entity* entity);
+	void DeleteEntity(int index);
 
 	// Player / Level Info
 	int startingEther = 4;
@@ -76,6 +78,8 @@ public:
 	bool HandleEvent(SDL_Event& event);
 	bool HandleMenuEvent(SDL_Event& event);
 	void HandleEditMode();
+
+	void GetMenuInput();
 
 	void CalcDt();
 	bool CheckInputs();
@@ -131,7 +135,6 @@ public:
 	bool showTimer = false;
 	
 	//TODO: Make an input class maybe
-	bool pressedJumpButton;
 	bool pressedDebugButton;
 
 	std::vector<Entity*> entities;
@@ -189,6 +192,8 @@ public:
 	void SaveSettings();
 	void LoadSettings();
 
+	void SaveEditorSettings();
+	void LoadEditorSettings();
 	
 };
 

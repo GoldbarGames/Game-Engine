@@ -104,13 +104,12 @@ void Player::UpdateNormally(Game& game)
 		CastSpellDebug(game, input);
 	}
 
-
 	// If on the ladder, only move up or down
 	if (animator->GetBool("onLadder"))
 	{
 		GetLadderInput(input);
 
-		CheckJumpButton(game);
+		CheckJumpButton(input);
 
 		CheckCollisions(game);
 	}
@@ -123,7 +122,13 @@ void Player::UpdateNormally(Game& game)
 			GetMoveInput(input);
 		}
 
-		UpdatePhysics(game);
+		// Update Physics
+		if (velocity.y < 1)
+			velocity.y += Physics::GRAVITY * game.dt;
+
+		CheckJumpButton(input);
+
+		CheckCollisions(game);
 	}
 }
 
@@ -247,31 +252,24 @@ void Player::GetMoveInput(const Uint8* input)
 		velocity.x = -maxHorizontalSpeed;
 }
 
-void Player::CheckJumpButton(Game& game)
+void Player::CheckJumpButton(const Uint8* input)
 {
-	if (game.pressedJumpButton && jumpsRemaining > 0)
+	hadPressedJump = pressingJumpButton;
+	pressingJumpButton = input[SDL_SCANCODE_X];
+
+	if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0)
 	{
 		if (animator->GetBool("holdingUp") || animator->GetBool("holdingDown"))
 		{
-			game.pressedJumpButton = false;
+			canJump = false;
 		}
 		else
 		{
+			canJump = true;
 			velocity.y = -0.6f;
 		}
 	}
 }
-
-void Player::UpdatePhysics(Game& game)
-{
-	if (velocity.y < 1)
-		velocity.y += Physics::GRAVITY * game.dt;
-	
-	CheckJumpButton(game);
-
-	CheckCollisions(game);
-}
-
 
 
 void Player::ResetPosition()

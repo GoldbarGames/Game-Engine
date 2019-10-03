@@ -61,6 +61,7 @@ Game::Game()
 	allMenus["Pause"] = new MenuScreen("Pause", *this);
 	allMenus["Settings"] = new MenuScreen("Settings", *this);
 	allMenus["Spellbook"] = new MenuScreen("Spellbook", *this);
+	allMenus["EditorSettings"] = new MenuScreen("EditorSettings", *this);
 
 	timerOverlayColor.Start(1);
 
@@ -613,7 +614,6 @@ void Game::PlayLevel(string levelName)
 bool Game::CheckInputs()
 {
 	// Reset all inputs here
-	pressedJumpButton = false;
 	pressedDebugButton = false;
 	//clickedMouse = false;
 
@@ -715,6 +715,73 @@ void Game::EscapeMenu()
 	}
 }
 
+
+void Game::SaveEditorSettings()
+{
+	std::ofstream fout;
+	fout.open("data/editor.config");
+
+	// Autoreplace = When we click to place a tile, automatically replace the one that was there before it
+	// Or if this setting is off, then you must right-click to delete it first (can only place when empty)
+	fout << "replacing " << editor->replaceSettingIndex << std::endl;
+
+	// Autodelete = When we right click to delete, you do not need to be on the same layer,
+	// instead, it just deletes whatever is in the highest layer first
+	fout << "deleting " << editor->deleteSettingIndex << std::endl;
+
+	// Color palette for the buttons
+	fout << "colors " << editor->colorSettingIndex << std::endl;
+
+	//fout << "display_fps " << showFPS << std::endl;
+	//fout << "display_timer " << showTimer << std::endl;
+	//fout << "language " << soundManager->soundVolumeIndex << std::endl;
+
+	fout.close();
+}
+
+
+void Game::LoadEditorSettings()
+{
+	std::ifstream fin;
+	fin.open("data/editor.config");
+
+	char line[256];
+	fin.getline(line, 256);
+
+	while (fin.good())
+	{
+		std::istringstream buf(line);
+		std::istream_iterator<std::string> beg(buf), end;
+		std::vector<std::string> tokens(beg, end);
+
+		if (tokens[0] == "replacing")
+		{
+			editor->replaceSettingIndex = std::stoi(tokens[1]);
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["EditorSettings"]->
+				GetButtonByName("Replacing"));
+			button->selectedOption = editor->replaceSettingIndex;
+		}
+		else if (tokens[0] == "deleting")
+		{
+			editor->deleteSettingIndex = std::stoi(tokens[1]);
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["EditorSettings"]->
+				GetButtonByName("Deleting"));
+			button->selectedOption = editor->deleteSettingIndex;
+		}
+		else if (tokens[0] == "colors")
+		{
+			editor->colorSettingIndex = std::stoi(tokens[1]);
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["EditorSettings"]->
+				GetButtonByName("Button Color"));
+			button->selectedOption = editor->colorSettingIndex;
+		}
+
+		fin.getline(line, 256);
+	}
+
+	fin.close();
+}
+
 void Game::SaveSettings()
 {
 	std::ofstream fout;
@@ -749,8 +816,7 @@ void Game::LoadSettings()
 			soundManager->SetVolumeBGM(std::stoi(tokens[1]));
 
 			//TODO: Refactor to avoid the dynamic cast
-			//TODO: Also refactor maybe so that we don't use hard-coded numbers for the index
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[0]);
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Music Volume"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
 		else if (tokens[0] == "sound_volume")
@@ -758,7 +824,7 @@ void Game::LoadSettings()
 			soundManager->SetVolumeSound(std::stoi(tokens[1]));
 
 			//TODO: Refactor to avoid the dynamic cast
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[1]);
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Sound Volume"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
 		else if (tokens[0] == "screen_resolution")
@@ -771,7 +837,7 @@ void Game::LoadSettings()
 				SDL_SetWindowFullscreen(window, 0);				
 
 			//TODO: Refactor to avoid the dynamic cast
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[2]);
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Screen Resolution"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
 		else if (tokens[0] == "display_fps")
@@ -779,7 +845,7 @@ void Game::LoadSettings()
 			showFPS = std::stoi(tokens[1]);
 
 			//TODO: Refactor to avoid the dynamic cast
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[3]);
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Display FPS"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
 		else if (tokens[0] == "display_timer")
@@ -787,7 +853,7 @@ void Game::LoadSettings()
 			showTimer = std::stoi(tokens[1]);
 
 			//TODO: Refactor to avoid the dynamic cast
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[4]);
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Display Timer"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
 		else if (tokens[0] == "language")
@@ -795,7 +861,7 @@ void Game::LoadSettings()
 			//TODO: Deal with this later
 
 			//TODO: Refactor to avoid the dynamic cast
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->buttons[5]);
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Language"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
 
@@ -876,6 +942,7 @@ bool Game::HandleEvent(SDL_Event& event)
 		}
 		else
 		{
+			//TODO: Find a way to map these keys to customizable buttons and controllers
 			switch (event.key.keysym.sym)
 			{
 			case SDLK_ESCAPE:
@@ -887,26 +954,8 @@ bool Game::HandleEvent(SDL_Event& event)
 						entities[i]->Pause(ticks);
 				}
 				break;
-			case SDLK_q:
-				quit = true;
-				break;
-			case SDLK_7:
-				if (Renderer::GetScale() == 2)
-					Renderer::SetScale(1);
-				else
-					Renderer::SetScale(2);
-				break;
-			case SDLK_x:
-				pressedJumpButton = true;
-				break;
 			case SDLK_c:
 				pressedDebugButton = true;
-				break;
-			case SDLK_m:
-				if (Mix_PausedMusic())
-					Mix_ResumeMusic();
-				else
-					Mix_PauseMusic();
 				break;
 			case SDLK_r:
 				//if (player != nullptr)
@@ -929,42 +978,23 @@ bool Game::HandleEvent(SDL_Event& event)
 					editor->StopEdit();
 				}
 				break;
-			case SDLK_3: // toggle drawing layers
+			case SDLK_3: // toggle Editor settings
 				if (GetModeEdit())
-					editor->ToggleGridSize();
+				{
+					openedMenus.emplace_back(allMenus["EditorSettings"]);
+				}
 				break;
-			case SDLK_4:
-				if (GetModeEdit())
-					editor->ToggleTileset();
-				break;
-			case SDLK_5:
-				if (GetModeEdit())
-					editor->ToggleSpriteMap();
-				break;
-			case SDLK_8:
-				if (GetModeEdit())
-					editor->SaveLevel();
-				break;
-			case SDLK_9:
-				if (GetModeEdit())
-					editor->LoadLevel("level");
+			case SDLK_7: // TODO: Zoom camera button
+				if (Renderer::GetScale() == 2)
+					Renderer::SetScale(1);
+				else
+					Renderer::SetScale(2);
 				break;
 			default:
 				break;
 			}
 		}
 		
-	}
-	else if (event.type == SDL_KEYUP)
-	{
-		switch (event.key.keysym.sym)
-		{
-		case SDLK_x:
-			pressedJumpButton = false;
-			break;
-		default:
-			break;
-		}
 	}
 	//Special text input event
 	else if (event.type == SDL_TEXTINPUT)
@@ -980,6 +1010,17 @@ bool Game::HandleEvent(SDL_Event& event)
 	}
 
 	return quit;
+}
+
+void Game::GetMenuInput()
+{
+	Uint32 ticks = timer.GetTicks();
+	if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
+	{
+		// If we have pressed any key on the menu, add a delay between presses
+		if (openedMenus[openedMenus.size() - 1]->Update(*this))
+			lastPressedKeyTicks = ticks;
+	}
 }
 
 void Game::UpdateTextInput()

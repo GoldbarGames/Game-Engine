@@ -82,6 +82,12 @@ public:
 	Text* dialogInput = nullptr;
 	bool showDialogPopup = false;
 
+	// Settings
+	int replaceSettingIndex = 0;
+	int deleteSettingIndex = 0;
+	int colorSettingIndex = 0;
+
+
 	Editor(Game &g);
 	~Editor();
 	void StartEdit();
@@ -117,5 +123,7 @@ public:
 	void SetPropertyPositions();
 
 	void SetPropertyText();
+
+	void SetLayerButtonColor(Color color);
 };
 

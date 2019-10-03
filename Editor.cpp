@@ -37,9 +37,7 @@ Editor::Editor(Game& g)
 	//TODO: Make the indexes different numbers for the names and sprite sheets?
 	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 
-	game->entities.clear();
-
-	currentEditModeLayer->SetText("Drawing on layer: " + GetDrawingLayerName(drawingLayer));
+	game->entities.clear();	
 }
 
 Editor::~Editor()
@@ -52,8 +50,9 @@ void Editor::StartEdit()
 	//toolbox = SDL_CreateWindow("Toolbox", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 100, 100, SDL_WINDOW_OPENGL);
 	//rendererToolbox = SDL_CreateRenderer(toolbox, -1, SDL_RENDERER_ACCELERATED);
 
-	// TILE SHEET FOR TOOLBOX
+	game->LoadEditorSettings();
 
+	// TILE SHEET FOR TOOLBOX
 
 	toolboxTexture = game->spriteManager->GetImage(game->renderer, "assets/tiles/" + tilesheets[tilesheetIndex] + ".png");
 	toolboxTextureRect.x = 0;
@@ -102,7 +101,7 @@ void Editor::StartEdit()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Layer", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether" };
+	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether" };
 
 	for (unsigned int i = 0; i < buttonNames.size(); i++)
 	{
@@ -129,10 +128,13 @@ void Editor::StartEdit()
 
 	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
 	{
-		layerButtons.emplace_back(new EditorButton(layerButtonNames[i], "Layer", Vector2(0, buttonY), *game, Vector2(layerButtonWidth, 0)));
-		layerVisibleButtons.emplace_back(new EditorButton("", "Visible", Vector2(layerButtonWidth, buttonY), *game, Vector2(50, 0)));
+		layerButtons.emplace_back(new EditorButton(layerButtonNames[i], "Layer", Vector2(0, buttonY), *game, Vector2(layerButtonWidth, 50), { 128, 128, 128, 255 }));
+		layerVisibleButtons.emplace_back(new EditorButton("", "Visible", Vector2(layerButtonWidth, buttonY), *game, Vector2(50, 50)));
 		buttonY += layerButtonHeight + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
 	}
+
+	ClickedLayerButton("BACK");
+	currentEditModeLayer->SetText("Drawing on layer: " + GetDrawingLayerName(drawingLayer));
 }
 
 void Editor::StopEdit()
@@ -197,6 +199,18 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
 			game->renderer->ToggleVisibility(clickedLayerVisibleButton);
+
+			for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
+			{
+				if (layerButtons[i]->text->txt == clickedLayerVisibleButton)
+				{
+					// Toggle between white and black colors
+					if (layerVisibleButtons[i]->buttonColor.b == 255)
+						layerVisibleButtons[i]->buttonColor = { 0, 0, 0, 0 };
+					else
+						layerVisibleButtons[i]->buttonColor = { 255, 255, 255, 255 };
+				}
+			}
 		}
 	}
 	else // we clicked somewhere in the game world, so place a tile/object
@@ -457,7 +471,17 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 			game->entities[i]->layer == drawingLayer &&
 			game->entities[i]->etype == "tile")
 		{
-			canPlaceTileHere = false;
+
+			if (replaceSettingIndex == 0) //TODO: Can we replace these numbers with strings?
+			{
+				canPlaceTileHere = false;
+			}
+			else // overwrite
+			{
+				//TODO: Delete this tile, then break
+				game->DeleteEntity(i);
+			}
+
 			break;
 		}
 	}
@@ -487,15 +511,36 @@ void Editor::RightClick(Vector2 clickedPosition)
 		Vector2 entityPosition = game->entities[i]->GetPosition().RoundToInt();
 		Vector2 clickedInt = clickedPosition.RoundToInt();
 
-		//
-
-		//TODO: Is there a better way than this?
-		if (game->entities[i]->etype == objectMode &&
-			game->entities[i]->layer == drawingLayer &&
-			entityPosition.x >= clickedInt.x - 1 && 
+		bool shouldDeleteThis = false;
+		bool sameMode = game->entities[i]->etype == objectMode;
+		bool sameLayer = game->entities[i]->layer == drawingLayer;
+		bool samePosition = entityPosition.x >= clickedInt.x - 1 &&
 			entityPosition.x <= clickedInt.x + 1 &&
-			entityPosition.y >= clickedInt.y - 1 && 
-			entityPosition.y <= clickedInt.y + 1 )
+			entityPosition.y >= clickedInt.y - 1 &&
+			entityPosition.y <= clickedInt.y + 1;
+
+		if (deleteSettingIndex == 0) // TODO: Can we change this number to a string?
+		{
+			// Same layer, same mode
+			shouldDeleteThis = samePosition && sameLayer && sameMode;
+		}
+		else if (deleteSettingIndex == 1)
+		{
+			// Only same layer
+			shouldDeleteThis = samePosition && sameLayer;
+		}
+		else if (deleteSettingIndex == 2)
+		{
+			// Only same mode
+			shouldDeleteThis = samePosition && sameMode;
+		}
+		else if (deleteSettingIndex == 3)
+		{
+			// Can delete if at same position
+			shouldDeleteThis = samePosition;
+		}
+
+		if (shouldDeleteThis)
 		{
 			if (game->entities[i]->etype == "door")
 			{
@@ -546,6 +591,14 @@ void Editor::RightClick(Vector2 clickedPosition)
 			DestroyLadder("top", lastPosition);
 			DestroyLadder("bottom", lastPosition);
 		}
+	}
+}
+
+void Editor::SetLayerButtonColor(Color color)
+{
+	for (int i = 0; i < layerButtons.size(); i++)
+	{
+		layerButtons[i]->buttonColor = color;
 	}
 }
 
@@ -615,7 +668,12 @@ void Editor::ClickedButton(string buttonName)
 	{
 		ToggleTileset();
 	}
-	else if (buttonName == "Layer")
+	else if (buttonName == "Map")
+	{
+		//TODO: Maybe make this use the mouse wheel too?
+		ToggleSpriteMap();
+	}
+	else if (buttonName == "Grid")
 	{
 		ToggleGridSize();
 	}
@@ -725,6 +783,16 @@ void Editor::ToggleSpriteMap()
 
 void Editor::ClickedLayerButton(string buttonText)
 {
+	// Highlight the current layer, return all others to normal
+	for (unsigned int i = 0; i < layerButtons.size(); i++)
+	{		
+		layerButtons[i]->buttonColor = { 128, 128, 128, 255 };
+		if (layerButtons[i]->text->txt == buttonText)
+		{
+			layerButtons[i]->buttonColor = { 0, 0, 255, 255 };
+		}
+	}
+
 	DrawingLayer layer = DrawingLayer::BACK;
 
 	if (buttonText == "BACK")
@@ -901,12 +969,15 @@ void Editor::Render(Renderer* renderer)
 			properties[i]->Render(renderer);
 		}
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-
 	}
 	else
 	{
 		if (objectMode == "tile")
 		{
+			// Draw a white rectangle around the entire tilesheet
+			SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 255, 255);
+			SDL_RenderFillRect(renderer->renderer, &toolboxWindowRect);
+
 			// Draw the tilesheet (only if we are placing a tile)
 			SDL_RenderCopy(renderer->renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
 

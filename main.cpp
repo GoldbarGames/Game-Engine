@@ -57,20 +57,18 @@ int main(int argc, char *args[])
 
 		if (GetModeEdit())
 		{
-			if (!game.getKeyboardInput)
+			if (game.openedMenus.size() > 0)
+			{
+				game.GetMenuInput();
+			}
+			else if (!game.getKeyboardInput)
 			{
 				game.HandleEditMode();
 			}
 		}
 		else if (game.openedMenus.size() > 0)
 		{
-			Uint32 ticks = game.timer.GetTicks();
-			if (ticks > game.lastPressedKeyTicks + 100) //TODO: Check for overflow errors
-			{
-				// If we have pressed any key on the menu, add a delay between presses
-				if (game.openedMenus[game.openedMenus.size() - 1]->Update(game))
-					game.lastPressedKeyTicks = ticks;
-			}
+			game.GetMenuInput();
 		}
 		else
 		{

@@ -42,6 +42,18 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	{
 		optionNames = { "English", "Japanese" };
 	}
+	else if (name == "Replacing") // When placing a tile, should it overwrite the old one?
+	{
+		optionNames = { "Don't Overwrite", "Overwrite" };
+	}
+	else if (name == "Deleting") // When deleting, delete only on that layer, or from the front?
+	{
+		optionNames = { "Same Layer & Mode", "Only Same Layer", "Only Same Mode", "Anything" };
+	}
+	else if (name == "Button Color") // What is the default color for buttons?
+	{
+		optionNames = { "Gray", "Red", "Green", "Blue" };
+	}
 
 	// Actually create all of the text items for each option
 	for (int i = 0; i < optionNames.size(); i++)
@@ -155,6 +167,24 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	{
 		//TODO: Deal with this when we implement translations
 	}
+	else if (name == "Replacing")
+	{
+		game.editor->replaceSettingIndex = selectedOption;
+	}
+	else if (name == "Deleting")
+	{
+		game.editor->deleteSettingIndex = selectedOption;
+	}
+	else if (name == "Button Color")
+	{
+		game.editor->colorSettingIndex = selectedOption;
+
+		//TODO: Make sure this works properly with other languages
+		//TODO: Maybe use an unordered map to set the color
+		//TODO: Maybe use a color palette rather than coloring each button
+
+	}
 
 	game.SaveSettings();
+	game.SaveEditorSettings();
 }
