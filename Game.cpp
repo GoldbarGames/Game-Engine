@@ -568,6 +568,7 @@ void Game::StopTextInput()
 	if (inputType == "properties")
 	{
 		editor->SetPropertyText();
+		editor->DoAction();
 	}
 	else if (inputType == "new_level")
 	{
@@ -577,14 +578,14 @@ void Game::StopTextInput()
 	else if (inputType == "load_file_as")
 	{
 		editor->showDialogPopup = false;
-		editor->LoadLevel(inputText);
+		editor->InitLevelFromFile(inputText);
 	}
 }
 
 void Game::LoadTitleScreen()
 {
 	openedMenus.clear();
-	editor->LoadLevel("title");
+	editor->InitLevelFromFile("title");
 	openedMenus.emplace_back(allMenus["Title"]);
 
 	soundManager->PlayBGM("Witchs_Waltz");
@@ -598,13 +599,13 @@ void Game::LoadNextLevel()
 	levelNumber++;
 	std::string nextLevel = "test" + std::to_string(levelNumber);
 
-	editor->LoadLevel(nextLevel);
+	editor->InitLevelFromFile(nextLevel);
 }
 
 void Game::PlayLevel(string levelName)
 {
 	openedMenus.clear();
-	editor->LoadLevel(levelName);
+	editor->InitLevelFromFile(levelName);
 
 	//TODO: Load different music based on each level
 
@@ -960,7 +961,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_r:
 				//if (player != nullptr)
 				//	player->ResetPosition();
-				editor->LoadLevel(currentLevel);
+				editor->InitLevelFromFile(currentLevel);
 				break;
 			case SDLK_1: // toggle Debug mode
 				SetModeDebug(!GetModeDebug());
@@ -983,6 +984,12 @@ bool Game::HandleEvent(SDL_Event& event)
 				{
 					openedMenus.emplace_back(allMenus["EditorSettings"]);
 				}
+				break;
+			case SDLK_4: // Undo Button
+				editor->UndoAction();
+				break;
+			case SDLK_5: // Redo Button
+				editor->RedoAction();
 				break;
 			case SDLK_7: // TODO: Zoom camera button
 				if (Renderer::GetScale() == 2)

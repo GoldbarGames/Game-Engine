@@ -227,10 +227,12 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (objectMode == "tile")
 			{
 				PlaceTile(clickedPosition, mouseX, mouseY);
+				DoAction();
 			}
 			else // when placing an object
 			{
 				PlaceObject(clickedPosition, mouseX, mouseY);
+				DoAction();
 			}
 		}
 
@@ -281,8 +283,6 @@ void Editor::InspectObject(int mouseX, int mouseY)
 			SetPropertyPositions();
 		}
 	}
-
-
 }
 
 void Editor::SetPropertyText()
@@ -499,6 +499,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 	}
 }
 
+//TODO: Figure out how to structure this so we can add deleting stuff as an Action
 void Editor::RightClick(Vector2 clickedPosition)
 {
 	clickedPosition.x += (int)game->camera.x;
@@ -1068,13 +1069,9 @@ void Editor::NewLevel()
 	game->StartTextInput("new_level");
 }
 
-void Editor::SaveLevel(std::string levelName)
+std::string Editor::SaveLevelAsString()
 {
-	if (levelName != "")
-		game->currentLevel = levelName;
-
-	std::ofstream fout;
-	fout.open("data/" + game->currentLevel + ".lvl");
+	std::ostringstream level;
 
 	int SCALE = Renderer::GetScale();
 
@@ -1084,7 +1081,7 @@ void Editor::SaveLevel(std::string levelName)
 		{
 			float x = game->entities[i]->GetPosition().x / SCALE;
 			float y = game->entities[i]->GetPosition().y / SCALE;
-			fout << game->entities[i]->etype << " " << (x) <<
+			level << game->entities[i]->etype << " " << (x) <<
 				" " << (y) << " " << game->entities[i]->drawOrder <<
 				" " << game->entities[i]->layer << " " << game->entities[i]->impassable << 
 				" " << game->entities[i]->tilesheetIndex << " " << game->entities[i]->tileCoordinates.x << 
@@ -1095,7 +1092,7 @@ void Editor::SaveLevel(std::string levelName)
 			Door* door = static_cast<Door*>(game->entities[i]);
 			Vector2 pos = door->GetPosition();//game->CalcObjPos();
 
-			fout << door->etype << " " << (pos.x / SCALE) << " " <<
+			level << door->etype << " " << (pos.x / SCALE) << " " <<
 				(pos.y / SCALE) << " " << (door->GetDestination().x / SCALE) <<
 				" " << (door->GetDestination().y / SCALE) << " " << door->spriteIndex << "" << std::endl;
 		}
@@ -1104,7 +1101,7 @@ void Editor::SaveLevel(std::string levelName)
 			Ladder* ladder = static_cast<Ladder*>(game->entities[i]);
 			Vector2 pos = ladder->GetPosition();//game->CalcObjPos();
 
-			fout << ladder->etype << " "  << (pos.x / SCALE) << " " <<
+			level << ladder->etype << " "  << (pos.x / SCALE) << " " <<
 				(pos.y / SCALE) << " " << ladder->GetAnimator()->currentState
 				<< " " << ladder->spriteIndex << "" << std::endl;
 		}
@@ -1117,7 +1114,7 @@ void Editor::SaveLevel(std::string levelName)
 			if (npcLabel == "")
 				npcLabel = "null";
 
-			fout << npc->etype << " " << (pos.x / SCALE) <<
+			level << npc->etype << " " << (pos.x / SCALE) <<
 				" " << (pos.y / SCALE) << " " << npc->name << " " << npc->cutsceneLabel <<
 				" " << npc->spriteIndex << " " << npc->drawOrder <<
 				" " << npc->layer << " " << npc->impassable << std::endl;
@@ -1126,7 +1123,7 @@ void Editor::SaveLevel(std::string levelName)
 		{
 			Player* player = static_cast<Player*>(game->entities[i]);
 
-			fout << player->etype << " " << (player->startPosition.x) <<
+			level << player->etype << " " << (player->startPosition.x) <<
 				" " << (player->startPosition.y) << " " << player->drawOrder <<
 				" " << player->layer << " " << player->impassable << std::endl;
 		}
@@ -1134,21 +1131,21 @@ void Editor::SaveLevel(std::string levelName)
 		{
 			Goal* goal = static_cast<Goal*>(game->entities[i]);
 
-			fout << goal->etype << " " << (goal->GetPosition().x / SCALE) <<
+			level << goal->etype << " " << (goal->GetPosition().x / SCALE) <<
 				" " << (goal->GetPosition().y / SCALE) << " " << goal->spriteIndex << std::endl;
 		}
 		else if (game->entities[i]->etype == "bug")
 		{
 			Bug* bug = static_cast<Bug*>(game->entities[i]);
 
-			fout << bug->etype << " " << (bug->GetPosition().x / SCALE) <<
+			level << bug->etype << " " << (bug->GetPosition().x / SCALE) <<
 				" " << (bug->GetPosition().y / SCALE) << " " << bug->spriteIndex << std::endl;
 		}
 		else if (game->entities[i]->etype == "ether")
 		{
 			Ether* ether = static_cast<Ether*>(game->entities[i]);
 
-			fout << ether->etype << " " << (ether->GetPosition().x / SCALE) <<
+			level << ether->etype << " " << (ether->GetPosition().x / SCALE) <<
 				" " << (ether->GetPosition().y / SCALE) << " " << ether->spriteIndex << std::endl;
 		}
 		else
@@ -1158,37 +1155,88 @@ void Editor::SaveLevel(std::string levelName)
 			//fout << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
 			//	" " << (game->entities[i]->GetPosition().y / SCALE) << " " << game->entities[i]->drawOrder <<
 			//	" " << game->entities[i]->layer << " " << game->entities[i]->impassable << std::endl;
-		}		
+		}
 	}
+
+	return level.str();
+}
+
+void Editor::SaveLevel(std::string levelName)
+{
+	if (levelName != "")
+		game->currentLevel = levelName;
+
+	std::ofstream fout;
+	fout.open("data/" + game->currentLevel + ".lvl");
+
+	fout << levelStrings[levelStringIndex] << std::endl;
 
 	fout.close();
 }
 
-
-void Editor::LoadLevel(std::string levelName)
+void Editor::UndoAction()
 {
-	// Clear the old level
-	for (unsigned int i = 0; i < game->entities.size(); i++)
-		delete game->entities[i];		
-	game->entities.clear();	
+	std::string levelName = game->currentLevel;
+	
+	if (levelStringIndex > 0)
+	{
+		levelStringIndex--;
+		// Load the level here
+		ClearLevelEntities();
+		CreateLevelFromString(levelStrings[levelStringIndex]);
+	}
+}
 
-	if (levelName != "")
-		game->currentLevel = levelName;
+void Editor::RedoAction()
+{
+	if (levelStringIndex < levelStrings.size() - 1)
+	{
+		levelStringIndex++;
+		// Load the level here
+		ClearLevelEntities();
+		CreateLevelFromString(levelStrings[levelStringIndex]);
+	}
+}
 
-	game->currentEther = game->startingEther;
+void Editor::DoAction()
+{
+	levelStrings.push_back(SaveLevelAsString());
+	levelStringIndex++;
 
+	while (levelStrings.size() > 4 && levelStringIndex > 1)
+	{
+		levelStrings.pop_front();
+		levelStringIndex--;
+	}	
+}
+
+std::string Editor::ReadLevelFromFile(std::string levelName)
+{
 	std::ifstream fin;
 	fin.open("data/" + levelName + ".lvl");
 
-	char line[256];
-
-	fin.getline(line, 256);
-
-	int SCALE = Renderer::GetScale();
-
-	while (fin.good())
+	std::string level = "";
+	for (std::string line; std::getline(fin, line); )
 	{
-		std::istringstream buf(line);
+		level += line + "\n";
+	}
+
+	fin.close();
+
+	return level;
+}
+
+void Editor::CreateLevelFromString(std::string level)
+{
+	int SCALE = Renderer::GetScale();
+	std::stringstream ss{ level };
+
+	char lineChar[256];
+	ss.getline(lineChar, 256);
+
+	while (ss.good() && !ss.eof())
+	{
+		std::istringstream buf(lineChar);
 		std::istream_iterator<std::string> beg(buf), end;
 		std::vector<std::string> tokens(beg, end);
 
@@ -1204,7 +1252,7 @@ void Editor::LoadLevel(std::string levelName)
 			int tilesheet = std::stoi(tokens[6]);
 			int frameX = std::stoi(tokens[7]);
 			int frameY = std::stoi(tokens[8]);
-			
+
 			Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheets[tilesheet] + ".png",
 				Vector2(positionX * SCALE, positionY * SCALE), (DrawingLayer)layer);
 
@@ -1225,7 +1273,7 @@ void Editor::LoadLevel(std::string levelName)
 			newLadder->GetAnimator()->SetState(tokens[3]);
 		}
 		else if (etype == "player")
-		{			
+		{
 			game->player = game->SpawnPlayer(Vector2(positionX, positionY));
 		}
 		else if (etype == "npc")
@@ -1241,7 +1289,7 @@ void Editor::LoadLevel(std::string levelName)
 			newNPC->impassable = std::stoi(tokens[8]);
 		}
 		else if (etype == "goal")
-		{			
+		{
 			int spriteIndex = std::stoi(tokens[3]);
 			Goal* entity = game->SpawnGoal(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 		}
@@ -1256,10 +1304,36 @@ void Editor::LoadLevel(std::string levelName)
 			Ether* entity = game->SpawnEther(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 		}
 
-		fin.getline(line, 256);
+		ss.getline(lineChar, 256);
 	}
 
-	fin.close();
+}
+
+void Editor::ClearLevelEntities()
+{
+	for (unsigned int i = 0; i < game->entities.size(); i++)
+		delete game->entities[i];
+	game->entities.clear();
+}
+
+
+void Editor::InitLevelFromFile(std::string levelName)
+{
+	ClearLevelEntities();
+
+	if (levelName != "")
+		game->currentLevel = levelName;
+
+	game->currentEther = game->startingEther;
+
+	levelStrings.clear();
+	levelStringIndex = 0;
+
+	std::string level = ReadLevelFromFile(levelName);
+
+	DoAction();
+	
+	CreateLevelFromString(level);
 
 	// Remove all backgrounds
 	for (unsigned int i = 0; i < game->backgrounds.size(); i++)

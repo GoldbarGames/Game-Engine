@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <deque>
 
 #include "Text.h"
 #include "EditorButton.h"
@@ -87,6 +88,8 @@ public:
 	int deleteSettingIndex = 0;
 	int colorSettingIndex = 0;
 
+	std::deque<string> levelStrings;
+	int levelStringIndex = 0;
 
 	Editor(Game &g);
 	~Editor();
@@ -94,8 +97,9 @@ public:
 	void StopEdit();
 	void HandleEdit();
 	void NewLevel();
+	std::string SaveLevelAsString();
 	void SaveLevel(std::string levelName = "");
-	void LoadLevel(std::string levelName);
+	void InitLevelFromFile(std::string levelName);
 	void Render(Renderer* renderer);
 	void SetText(string newText);
 	DrawingLayer drawingLayer = BACK;
@@ -108,8 +112,11 @@ public:
 	void ToggleObjectMode(std::string mode);
 	void ToggleSpriteMap();
 	void ToggleInspectionMode();
+
+	//TODO: Make these return bools, and if true, DoAction()?
 	void LeftClick(Vector2 clickedPosition, int mouseX, int mouseY);
 	void RightClick(Vector2 clickedPosition);
+
 	void SetLayer(DrawingLayer layer);
 	void DestroyLadder(std::string startingState, Vector2 lastPosition);
 	void DrawGrid();
@@ -125,5 +132,14 @@ public:
 	void SetPropertyText();
 
 	void SetLayerButtonColor(Color color);
+
+	void UndoAction();
+	void RedoAction();
+	void DoAction();
+
+	void ClearLevelEntities();
+
+	std::string ReadLevelFromFile(std::string levelName);
+	void CreateLevelFromString(std::string level);
 };
 

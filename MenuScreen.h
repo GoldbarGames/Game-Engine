@@ -22,5 +22,6 @@ public:
 	bool Update(Game& game);
 	bool PressSelectedButton(Game& game);
 	BaseButton* GetButtonByName(std::string buttonName);
+	void AssignButtons();
 };
 

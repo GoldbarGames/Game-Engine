@@ -85,46 +85,26 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		int buttonPosX = (screenWidth / 2);
 
-		SettingsButton* buttonVolumeMusic = new SettingsButton("Music Volume", 
-			Vector2(buttonPosX, startHeight + (distance * 0)), game);
+		Text* header = new Text(game.renderer, game.headerFont, "Settings");
+		header->SetPosition(startWidth - (header->textWindowRect.w / 2), startHeight);
+		texts.emplace_back(header);
 
-		SettingsButton* buttonVolumeSound = new SettingsButton("Sound Volume",
-			Vector2(buttonPosX, startHeight + (distance * 1)), game);
+		std::vector<string> buttonNames = { "Music Volume", "Sound Volume", "Screen Resolution",
+		"Display FPS", "Display Timer", "Vsync", "Language" };
 
-		SettingsButton* buttonScreenRes = new SettingsButton("Screen Resolution",
-			Vector2(buttonPosX, startHeight + (distance * 2)), game);
+		for (unsigned int i = 0; i < buttonNames.size(); i++)
+		{
+			SettingsButton* button = new SettingsButton(buttonNames[i],
+				Vector2(buttonPosX, startHeight + (distance * (i+1))), game);
 
-		SettingsButton* buttonFPS = new SettingsButton("Display FPS",
-			Vector2(buttonPosX, startHeight + (distance * 3)), game);
+			buttons.emplace_back(button);
+		}
 
-		SettingsButton* buttonTimer = new SettingsButton("Display Timer",
-			Vector2(buttonPosX, startHeight + (distance * 4)), game);
-
-		SettingsButton* buttonVsync = new SettingsButton("Vsync",
-			Vector2(buttonPosX, startHeight + (distance * 5)), game);
-
-		SettingsButton* buttonLanguage = new SettingsButton("Language",
-			Vector2(buttonPosX, startHeight + (distance * 6)), game);
-
-		buttonVolumeMusic->SetButtonsUpDownLeftRight(buttonLanguage, buttonVolumeSound, nullptr, nullptr);
-		buttonVolumeSound->SetButtonsUpDownLeftRight(buttonVolumeMusic, buttonScreenRes, nullptr, nullptr);
-		buttonScreenRes->SetButtonsUpDownLeftRight(buttonVolumeSound, buttonFPS, nullptr, nullptr);
-		buttonFPS->SetButtonsUpDownLeftRight(buttonScreenRes, buttonTimer, nullptr, nullptr);
-		buttonTimer->SetButtonsUpDownLeftRight(buttonFPS, buttonVsync, nullptr, nullptr);
-		buttonVsync->SetButtonsUpDownLeftRight(buttonTimer, buttonLanguage, nullptr, nullptr);
-		buttonLanguage->SetButtonsUpDownLeftRight(buttonVsync, buttonVolumeMusic, nullptr, nullptr);
-
-		buttons.emplace_back(buttonVolumeMusic);
-		buttons.emplace_back(buttonVolumeSound);
-		buttons.emplace_back(buttonScreenRes);
-		buttons.emplace_back(buttonFPS);
-		buttons.emplace_back(buttonTimer);
-		buttons.emplace_back(buttonVsync);
-		buttons.emplace_back(buttonLanguage);
+		AssignButtons();
 
 		// Highlight the selected option
 		//TODO: Is there a better way than hard-coding it?
-		buttonVolumeMusic->SetOptionColors({ 255, 255, 0, 255 });
+		buttons[0]->SetOptionColors({ 255, 255, 0, 255 });
 	}
 	else if (name == "EditorSettings")
 	{
@@ -134,27 +114,25 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		int buttonPosX = (screenWidth / 2);
 
-		SettingsButton* buttonReplacing = new SettingsButton("Replacing",
-			Vector2(buttonPosX, startHeight + (distance * 0)), game);
+		Text* header = new Text(game.renderer, game.headerFont, "Settings");
+		header->SetPosition(startWidth - (header->textWindowRect.w / 2), startHeight);
+		texts.emplace_back(header);
 
-		SettingsButton* buttonDeleting = new SettingsButton("Deleting",
-			Vector2(buttonPosX, startHeight + (distance * 1)), game);
+		std::vector<string> buttonNames = { "Replacing", "Deleting", "Button Color" };
 
-		SettingsButton* buttonColor = new SettingsButton("Button Color",
-			Vector2(buttonPosX, startHeight + (distance * 2)), game);
+		for (unsigned int i = 0; i < buttonNames.size(); i++)
+		{
+			SettingsButton* button = new SettingsButton(buttonNames[i],
+				Vector2(buttonPosX, startHeight + (distance * (i + 1))), game);
 
-		buttonReplacing->SetButtonsUpDownLeftRight(buttonColor, buttonDeleting, nullptr, nullptr);
-		buttonDeleting->SetButtonsUpDownLeftRight(buttonReplacing, buttonColor, nullptr, nullptr);
-		buttonColor->SetButtonsUpDownLeftRight(buttonDeleting, buttonReplacing, nullptr, nullptr);
-		
+			buttons.emplace_back(button);
+		}
 
-		buttons.emplace_back(buttonReplacing);
-		buttons.emplace_back(buttonDeleting);
-		buttons.emplace_back(buttonColor);
+		AssignButtons();
 
 		// Highlight the selected option
 		//TODO: Is there a better way than hard-coding it?
-		buttonReplacing->SetOptionColors({ 255, 255, 0, 255 });
+		buttons[0]->SetOptionColors({ 255, 255, 0, 255 });
 	}
 	else if (name == "Spellbook")
 	{
@@ -207,6 +185,24 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		selectedButton = buttons[0];
 		selectedButton->isSelected = true;
 	}		
+}
+
+//TODO: Maybe rename this to a better name
+void MenuScreen::AssignButtons()
+{
+	for (unsigned int i = 0; i < buttons.size(); i++)
+	{
+		int prevIndex = i - 1;
+		int nextIndex = i + 1;
+
+		if (prevIndex < 0)
+			prevIndex = buttons.size() - 1;
+
+		if (nextIndex >= buttons.size())
+			nextIndex = 0;
+
+		buttons[i]->SetButtonsUpDownLeftRight(buttons[prevIndex], buttons[nextIndex], nullptr, nullptr);
+	}
 }
 
 
