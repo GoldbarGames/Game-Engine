@@ -51,6 +51,11 @@ void Missile::Destroy()
 
 void Missile::UpdatePhysics(Game& game)
 {
+	if (velocity.x > 0)
+		flip = SDL_FLIP_NONE;
+	else
+		flip = SDL_FLIP_HORIZONTAL;
+
 	// check for collisions, and destroy if it hits a wall or an enemy'
 	if (CheckCollisions(game))
 	{
@@ -66,45 +71,7 @@ void Missile::UpdatePhysics(Game& game)
 	else
 	{
 		// move the missile
-		SetPosition(Vector2(position.x + velocity.x, position.y + velocity.y));
-	}
-}
-
-void Missile::Render(Renderer * renderer, Vector2 cameraOffset)
-{
-	if (currentSprite != nullptr)
-	{
-		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2));
-		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2));
-		Vector2 collisionCenter = Vector2(collisionCenterX, collisionCenterY);
-		Vector2 scaledPivot = Vector2(currentSprite->pivot.x * Renderer::GetScale(), currentSprite->pivot.y * Renderer::GetScale());
-		Vector2 pivotOffset = collisionCenter - scaledPivot;
-
-		Vector2 offset = pivotOffset;
-
-		if (GetModeEdit())
-			offset -= cameraOffset;
-
-		if (animator != nullptr)
-			currentSprite->Render(offset, animator->speed, animator->animationTimer.GetAnimationTime(), flip, renderer, angle);
-		else
-			currentSprite->Render(offset, 0, -1, flip, renderer, angle);
-
-		if (GetModeDebug())
-		{
-			if (impassable)
-				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
-			else
-				SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 255);
-
-			SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
-
-			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-			CalculateCollider(cameraOffset); //TODO: better way than calculating this twice?
-
-			SDL_RenderDrawRect(renderer->renderer, collisionBounds);
-			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-		}
+		SetPosition(Vector2(position.x + (velocity.x * (float)game.dt), position.y + (velocity.y * (float)game.dt)));
 	}
 }
 

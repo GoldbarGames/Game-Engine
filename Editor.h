@@ -89,7 +89,7 @@ public:
 	int colorSettingIndex = 0;
 
 	std::deque<string> levelStrings;
-	int levelStringIndex = 0;
+	int levelStringIndex = -1;
 
 	Editor(Game &g);
 	~Editor();

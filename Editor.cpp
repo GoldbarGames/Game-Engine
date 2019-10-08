@@ -1169,7 +1169,7 @@ void Editor::SaveLevel(std::string levelName)
 	std::ofstream fout;
 	fout.open("data/" + game->currentLevel + ".lvl");
 
-	fout << levelStrings[levelStringIndex] << std::endl;
+	fout << SaveLevelAsString();
 
 	fout.close();
 }
@@ -1327,7 +1327,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 	game->currentEther = game->startingEther;
 
 	levelStrings.clear();
-	levelStringIndex = 0;
+	levelStringIndex = -1;
 
 	std::string level = ReadLevelFromFile(levelName);
 
