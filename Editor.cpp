@@ -101,7 +101,7 @@ void Editor::StartEdit()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether" };
+	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy" };
 
 	for (unsigned int i = 0; i < buttonNames.size(); i++)
 	{
@@ -168,7 +168,8 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 			clickedLayerVisibleButton = layerButtons[i]->text->txt;
 	}
 
-	if (objectMode == "tile" && clickedToolboxWindow)
+	// Allow the tile sheet to be clicked when in certain modes
+	if ( (objectMode == "tile" || objectMode == "replace" || objectMode == "copy") && clickedToolboxWindow)
 	{
 		int xOffset = (mouseX - toolboxWindowRect.x);
 		selectedRect.x = (xOffset - (xOffset % (TILE_SIZE * 1)));
@@ -229,11 +230,94 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 				PlaceTile(clickedPosition, mouseX, mouseY);
 				DoAction();
 			}
+			else if (objectMode == "replace")
+			{
+				bool foundTile = false;
+				Vector2 coordsToReplace = Vector2(0, 0);
+				Vector2 coordsToSet = Vector2(editorTileX, editorTileY);
+
+				for (unsigned int i = 0; i < game->entities.size(); i++)
+				{
+					if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
+						game->entities[i]->layer == drawingLayer &&
+						game->entities[i]->etype == "tile")
+					{
+						Tile* tile = static_cast<Tile*>(game->entities[i]);
+
+						// Save the index of the tile
+						coordsToReplace = tile->tileCoordinates;
+						foundTile = true;
+					}
+				}
+
+				if (foundTile)
+				{
+					// Replace the tile with the one selected in the sprite sheet
+					for (unsigned int i = 0; i < game->entities.size(); i++)
+					{
+						if (game->entities[i]->etype == "tile"
+							&& game->entities[i]->tileCoordinates == coordsToReplace)
+						{
+							Tile* tile = dynamic_cast<Tile*>(game->entities[i]);
+
+							// Set the index of the tile
+							tile->ChangeSprite(coordsToSet,
+								game->spriteManager->GetImage(game->renderer,
+									"assets/tiles/" + tilesheets[tilesheetIndex] + ".png"),
+								game->renderer);
+						}
+					}
+
+					DoAction();
+				}
+
+				
+
+			}
+			else if (objectMode == "copy")
+			{
+				// We want to set the active tilesheet to the copied tile's
+				// and we want to set the selected tile to the copied tile's
+				Vector2 coordsToCopy = Vector2(0, 0);
+				Tile* tile = nullptr;
+
+				for (unsigned int i = 0; i < game->entities.size(); i++)
+				{
+					if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
+						game->entities[i]->layer == drawingLayer &&
+						game->entities[i]->etype == "tile")
+					{
+						tile = static_cast<Tile*>(game->entities[i]);
+
+						// Save the index of the tile
+						coordsToCopy = tile->tileCoordinates;
+					}
+				}
+
+				if (tile != nullptr)
+				{
+					tilesheetIndex = tile->tilesheetIndex;
+
+					StartEdit();
+					objectMode = "tile";
+
+					selectedRect.x = (tile->tileCoordinates.x - 1) * TILE_SIZE;
+					selectedRect.y = (tile->tileCoordinates.y - 1) * TILE_SIZE;
+
+					editorTileX = tile->tileCoordinates.x;
+					editorTileY = tile->tileCoordinates.y;
+
+					selectedRect.x += toolboxWindowRect.x;
+				}
+
+			}
 			else // when placing an object
 			{
 				PlaceObject(clickedPosition, mouseX, mouseY);
 				DoAction();
 			}
+
+			
 		}
 
 		
@@ -719,6 +803,38 @@ void Editor::ClickedButton(string buttonName)
 	{
 		SaveLevel();
 	}
+	else if (buttonName == "Undo")
+	{
+		UndoAction();
+	}
+	else if (buttonName == "Redo")
+	{
+		RedoAction();
+	}
+	else if (buttonName == "Replace")
+	{
+		if (objectMode == "replace")
+		{
+			//SetLayer(DrawingLayer::BACK);
+			objectMode = "tile";
+		}
+		else
+		{
+			objectMode = "replace";
+		}
+	}
+	else if (buttonName == "Copy")
+	{
+		if (objectMode == "copy")
+		{
+			//SetLayer(DrawingLayer::BACK);
+			objectMode = "tile";
+		}
+		else
+		{
+			objectMode = "copy";
+		}
+	}
 }
 
 //TODO: Refactor this
@@ -973,7 +1089,7 @@ void Editor::Render(Renderer* renderer)
 	}
 	else
 	{
-		if (objectMode == "tile")
+		if (objectMode == "tile" || objectMode == "replace" || objectMode == "copy")
 		{
 			// Draw a white rectangle around the entire tilesheet
 			SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 255, 255);
@@ -1200,10 +1316,12 @@ void Editor::RedoAction()
 
 void Editor::DoAction()
 {
+	const int UNDO_LIMIT = 99;
+
 	levelStrings.push_back(SaveLevelAsString());
 	levelStringIndex++;
 
-	while (levelStrings.size() > 4 && levelStringIndex > 1)
+	while (levelStrings.size() > UNDO_LIMIT && levelStringIndex > 1)
 	{
 		levelStrings.pop_front();
 		levelStringIndex--;
@@ -1319,6 +1437,13 @@ void Editor::ClearLevelEntities()
 
 void Editor::InitLevelFromFile(std::string levelName)
 {
+	std::cout << game->camera.y << std::endl;
+
+	const int OFFSET = -1;
+	game->camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
+
+	std::cout << game->camera.y << std::endl;
+
 	ClearLevelEntities();
 
 	if (levelName != "")
@@ -1329,11 +1454,11 @@ void Editor::InitLevelFromFile(std::string levelName)
 	levelStrings.clear();
 	levelStringIndex = -1;
 
-	std::string level = ReadLevelFromFile(levelName);
-
-	DoAction();
+	std::string level = ReadLevelFromFile(levelName);	
 	
 	CreateLevelFromString(level);
+
+	DoAction();
 
 	// Remove all backgrounds
 	for (unsigned int i = 0; i < game->backgrounds.size(); i++)

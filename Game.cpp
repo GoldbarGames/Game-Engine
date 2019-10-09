@@ -459,8 +459,8 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION;
-	tile->etype = "tile";
-	tile->tileCoordinates = frame;
+	//tile->etype = "tile";
+	//tile->tileCoordinates = frame;
 	tile->tilesheetIndex = editor->tilesheetIndex;
 	entities.emplace_back(tile);
 	return tile;
@@ -1063,6 +1063,8 @@ void Game::Update()
 	// For non-moving camera, set offset based on tile size and scale
 	const int OFFSET = -1;
 	camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
+	//camera = Vector2(0, 0);
+	//std::cout << camera.y << std::endl;
 
 	if (player != nullptr)
 	{
@@ -1073,7 +1075,7 @@ void Game::Update()
 	}
 	else // to handle the title screen (maybe change this later)
 	{
-		camera = Vector2(0, 0);
+		//camera = Vector2(0, 0);
 	}
 
 	if (changingOverlayColor && timerOverlayColor.HasElapsed())

@@ -7,12 +7,22 @@ using std::string;
 
 Tile::Tile(Vector2 pos, Vector2 frame, SDL_Texture * image, Renderer * renderer) : Entity(pos)
 {
-	currentSprite = new Sprite(frame, image, renderer);
+	ChangeSprite(frame, image, renderer);
+	etype = "tile";
 }
 
 Tile::~Tile()
 {
 
+}
+
+void Tile::ChangeSprite(Vector2 frame, SDL_Texture * image, Renderer * renderer)
+{
+	if (currentSprite != nullptr)
+		delete currentSprite;
+	
+	tileCoordinates = frame;
+	currentSprite = new Sprite(frame, image, renderer);
 }
 
 void Tile::Animate()
