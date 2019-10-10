@@ -139,7 +139,9 @@ void Editor::StartEdit()
 
 void Editor::StopEdit()
 {
-
+	selectedEntity = nullptr;
+	inspectionMode = false;	
+	propertyIndex = -1;
 }
 
 void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
@@ -408,9 +410,10 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 
 	if (canPlaceObjectHere)
 	{
+		Vector2 snappedPosition = game->SnapToGrid(Vector2(mouseX, mouseY));
 		if (objectMode == "npc")
 		{
-			currentNPC = game->SpawnNPC(npcNames[spriteMapIndex], Vector2(mouseX, mouseY), spriteMapIndex);
+			currentNPC = game->SpawnNPC(npcNames[spriteMapIndex], snappedPosition, spriteMapIndex);
 			if (currentNPC != nullptr)
 			{
 				game->SortEntities(game->entities);
@@ -418,19 +421,19 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 		}
 		else if (objectMode == "goal")
 		{
-			Goal* currentGoal = game->SpawnGoal(Vector2(mouseX, mouseY), spriteMapIndex);
+			Goal* currentGoal = game->SpawnGoal(snappedPosition, spriteMapIndex);
 			if (currentGoal != nullptr)
 				game->SortEntities(game->entities);
 		}
 		else if (objectMode == "bug")
 		{
-			Bug* currentBug = game->SpawnBug(Vector2(mouseX, mouseY), spriteMapIndex);
+			Bug* currentBug = game->SpawnBug(snappedPosition, spriteMapIndex);
 			if (currentBug != nullptr)
 				game->SortEntities(game->entities);
 		}
 		else if (objectMode == "ether")
 		{
-			Ether* currentEther = game->SpawnEther(Vector2(mouseX, mouseY), spriteMapIndex);
+			Ether* currentEther = game->SpawnEther(snappedPosition, spriteMapIndex);
 			if (currentEther != nullptr)
 				game->SortEntities(game->entities);
 		}
@@ -439,7 +442,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (!placingDoor)
 			{
 				std::cout << "trying to spawn entrance" << std::endl;
-				currentDoor = game->SpawnDoor(Vector2(mouseX, mouseY), spriteMapIndex);
+				currentDoor = game->SpawnDoor(snappedPosition, spriteMapIndex);
 				if (currentDoor != nullptr)
 				{
 					std::cout << "placing door set true" << std::endl;
@@ -451,7 +454,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			else
 			{
 				std::cout << "trying to spawn destination" << std::endl;
-				Door* destination = game->SpawnDoor(Vector2(mouseX, mouseY), spriteMapIndex);
+				Door* destination = game->SpawnDoor(snappedPosition, spriteMapIndex);
 				if (destination != nullptr)
 				{
 					std::cout << "placing door set false" << std::endl;
@@ -471,7 +474,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (!placingLadder)
 			{
 				std::cout << "trying to spawn ladder start" << std::endl;
-				currentLadder = game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
+				currentLadder = game->SpawnLadder(snappedPosition, spriteMapIndex);
 				if (currentLadder != nullptr)
 				{
 					std::cout << "placing ladder set true" << std::endl;
@@ -481,13 +484,11 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			}
 			else
 			{
-				Vector2 snappedPosition = game->SnapToGrid(Vector2(mouseX, mouseY));
-
 				// only spawn if the position we clicked at is on the same column as the ladder start
 				if (snappedPosition.x == currentLadder->GetPosition().x)
 				{
 					std::cout << "trying to spawn ladder end" << std::endl;
-					Ladder* ladderEnd = game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
+					Ladder* ladderEnd = game->SpawnLadder(snappedPosition, spriteMapIndex);
 					if (ladderEnd != nullptr)
 					{
 						std::cout << "placing ladder set false" << std::endl;
@@ -511,7 +512,6 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 						{
 							// Connect the two edges by spawning the middle parts
 							mouseY += GRID_SIZE * Renderer::GetScale();
-
 							int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
 							while (snappedY < currentLadder->GetPosition().y)
@@ -525,7 +525,6 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 						{
 							// Connect the two edges by spawning the middle parts
 							mouseY -= GRID_SIZE * Renderer::GetScale();
-
 							int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
 							while (snappedY > currentLadder->GetPosition().y)
@@ -577,8 +576,10 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 		int afterModX = ((int)(mouseX) % mod);
 		int afterModY = ((int)(mouseY) % mod);
 
+		Vector2 spawnPos = game->CalcTileSpawnPos(Vector2(mouseX - afterModX, mouseY - afterModY));
+
 		game->SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
-			Vector2(mouseX - afterModX, mouseY - afterModY), drawingLayer);
+			spawnPos, drawingLayer);
 		game->SortEntities(game->entities);
 	}
 }
@@ -990,7 +991,8 @@ void Editor::ToggleTileset()
 	tilesheetIndex++;
 	if (tilesheetIndex > 1)
 		tilesheetIndex = 0;
-	StartEdit();
+	game->SaveEditorSettings();
+	StartEdit();	
 }
 
 void Editor::DrawGrid()
@@ -1066,14 +1068,11 @@ void Editor::Render(Renderer* renderer)
 	}
 	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 
-	if (inspectionMode)
+	if (inspectionMode && selectedEntity != nullptr)
 	{
-		if (selectedEntity != nullptr)
-		{
-			// Draw a yellow rectangle around the currently selected object
-			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
-			SDL_RenderDrawRect(renderer->renderer, selectedEntity->GetBounds());
-		}
+		// Draw a yellow rectangle around the currently selected object
+		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
+		SDL_RenderDrawRect(renderer->renderer, selectedEntity->GetBounds());
 
 		// Draw the box that goes underneath all the properties
 		SDL_SetRenderDrawColor(renderer->renderer, 128, 128, 128, 255);
@@ -1083,6 +1082,9 @@ void Editor::Render(Renderer* renderer)
 		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 		for (unsigned int i = 0; i < properties.size(); i++)
 		{
+			if (i == propertyIndex)
+				SDL_RenderDrawRect(renderer->renderer, &properties[i]->textWindowRect);
+
 			properties[i]->Render(renderer);
 		}
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);

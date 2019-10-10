@@ -114,7 +114,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		int buttonPosX = (screenWidth / 2);
 
-		Text* header = new Text(game.renderer, game.headerFont, "Settings");
+		Text* header = new Text(game.renderer, game.headerFont, "Editor Settings");
 		header->SetPosition(startWidth - (header->textWindowRect.w / 2), startHeight);
 		texts.emplace_back(header);
 

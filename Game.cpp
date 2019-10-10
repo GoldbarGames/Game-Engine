@@ -202,11 +202,9 @@ Vector2 Game::SnapToGrid(Vector2 position)
 
 Ladder* Game::SpawnLadder(Vector2 position, int spriteIndex)
 {
-	Vector2 snappedPosition = SnapToGrid(position);
+	Ladder* newLadder = CreateLadder(position, spriteIndex);
 
-	Ladder* newLadder = CreateLadder(snappedPosition, spriteIndex);	
-
-	if (!newLadder->CanSpawnHere(snappedPosition, *this))
+	if (!newLadder->CanSpawnHere(position, *this))
 	{
 		delete newLadder;
 		return nullptr;
@@ -239,11 +237,9 @@ Door* Game::CreateDoor(Vector2 position, int spriteIndex)
 
 Door* Game::SpawnDoor(Vector2 position, int spriteIndex)
 {
-	Vector2 snappedPosition = SnapToGrid(position);
+	Door* newDoor = CreateDoor(position, spriteIndex);
 
-	Door* newDoor = CreateDoor(snappedPosition, spriteIndex);
-
-	if (!newDoor->CanSpawnHere(snappedPosition, *this))
+	if (!newDoor->CanSpawnHere(position, *this))
 	{
 		delete newDoor;
 		return nullptr;
@@ -289,11 +285,9 @@ NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 
 NPC* Game::SpawnNPC(std::string name, Vector2 position, int spriteIndex)
 {
-	Vector2 snappedPosition = SnapToGrid(position);
+	NPC* newNPC = CreateNPC(name, position, spriteIndex);
 
-	NPC* newNPC = CreateNPC(name, snappedPosition, spriteIndex);
-
-	if (!newNPC->CanSpawnHere(snappedPosition, *this))
+	if (!newNPC->CanSpawnHere(position, *this))
 	{
 		delete newNPC;
 		return nullptr;
@@ -325,11 +319,9 @@ Goal* Game::CreateGoal(Vector2 position, int spriteIndex)
 
 Goal* Game::SpawnGoal(Vector2 position, int spriteIndex)
 {
-	Vector2 snappedPosition = SnapToGrid(position);
+	Goal* newGoal = CreateGoal(position, spriteIndex);
 
-	Goal* newGoal = CreateGoal(snappedPosition, spriteIndex);
-
-	if (!newGoal->CanSpawnHere(snappedPosition, *this))
+	if (!newGoal->CanSpawnHere(position, *this))
 	{
 		delete newGoal;
 		return nullptr;
@@ -360,11 +352,9 @@ Bug* Game::CreateBug(Vector2 position, int spriteIndex)
 
 Bug* Game::SpawnBug(Vector2 position, int spriteIndex)
 {
-	Vector2 snappedPosition = SnapToGrid(position);
+	Bug* newBug = CreateBug(position, spriteIndex);
 
-	Bug* newBug = CreateBug(snappedPosition, spriteIndex);
-
-	if (!newBug->CanSpawnHere(snappedPosition, *this))
+	if (!newBug->CanSpawnHere(position, *this))
 	{
 		delete newBug;
 		return nullptr;
@@ -395,11 +385,9 @@ Ether* Game::CreateEther(Vector2 position, int spriteIndex)
 
 Ether* Game::SpawnEther(Vector2 position, int spriteIndex)
 {
-	Vector2 snappedPosition = SnapToGrid(position);
+	Ether* newEther = CreateEther(position, spriteIndex);
 
-	Ether* newEther = CreateEther(snappedPosition, spriteIndex);
-
-	if (!newEther->CanSpawnHere(snappedPosition, *this))
+	if (!newEther->CanSpawnHere(position, *this))
 	{
 		delete newEther;
 		return nullptr;
@@ -436,7 +424,7 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 	return missile;
 }
 
-Vector2 Game::CalcObjPos(Vector2 pos)
+Vector2 Game::CalcTileSpawnPos(Vector2 pos)
 {
 	int newTileX = (int)pos.x + (int)(camera.x);
 	int newTileY = (int)pos.y + (int)(camera.y);
@@ -452,7 +440,7 @@ Vector2 Game::CalcObjPos(Vector2 pos)
 
 Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer)
 {
-	Vector2 newTilePos = CalcObjPos(position);
+	Vector2 newTilePos = position;// CalcObjPos(position);
 
 	//Sprite* tileSprite = new Sprite(Vector2(newTileX, newTileY), spriteManager.GetImage(tilesheet), renderer);
 	Tile* tile = new Tile(newTilePos, frame, spriteManager->GetImage(renderer, tilesheet), renderer);
@@ -488,9 +476,7 @@ Background* Game::SpawnBackground(Vector2 pos)
 
 Player* Game::SpawnPlayer(Vector2 position)
 {
-	Vector2 snappedPosition = SnapToGrid(position);
-
-	Player* player = new Player(snappedPosition);
+	Player* player = new Player(position);
 	player->game = this;
 
 	Animator* anim1 = new Animator("kaneko", "idle");
@@ -518,8 +504,8 @@ Player* Game::SpawnPlayer(Vector2 position)
 	anim1->MapStateToSprite("debug_climb", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_climb.png", renderer, Vector2(25, 26)));
 
 	player->SetAnimator(anim1);
-	player->SetPosition(snappedPosition);
-	player->startPosition = snappedPosition;
+	player->SetPosition(position);
+	player->startPosition = position;
 
 	entities.emplace_back(player);
 
@@ -593,13 +579,12 @@ void Game::LoadTitleScreen()
 
 void Game::LoadNextLevel()
 {
-	//TODO: Make this better
-	//std::string nextLevel = currentLevel;
+	levelNumber++; //TODO: What should we do with this number? Should we always increase it, or not?
 
-	levelNumber++;
-	std::string nextLevel = "test" + std::to_string(levelNumber);
-
-	editor->InitLevelFromFile(nextLevel);
+	if (nextLevel == "")
+		editor->InitLevelFromFile("test" + std::to_string(levelNumber));
+	else
+		editor->InitLevelFromFile(nextLevel);
 }
 
 void Game::PlayLevel(string levelName)
@@ -616,6 +601,9 @@ bool Game::CheckInputs()
 {
 	// Reset all inputs here
 	pressedDebugButton = false;
+	pressedSpellButton = false;
+	pressedLeftTrigger = false;
+	pressedRightTrigger = false;
 	//clickedMouse = false;
 
 	bool quit = false;
@@ -733,6 +721,9 @@ void Game::SaveEditorSettings()
 	// Color palette for the buttons
 	fout << "colors " << editor->colorSettingIndex << std::endl;
 
+	// The currently selected tilesheet
+	fout << "tilesheet " << editor->tilesheetIndex << std::endl;
+
 	//fout << "display_fps " << showFPS << std::endl;
 	//fout << "display_timer " << showTimer << std::endl;
 	//fout << "language " << soundManager->soundVolumeIndex << std::endl;
@@ -775,6 +766,10 @@ void Game::LoadEditorSettings()
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["EditorSettings"]->
 				GetButtonByName("Button Color"));
 			button->selectedOption = editor->colorSettingIndex;
+		}
+		else if (tokens[0] == "tilesheet")
+		{
+			editor->tilesheetIndex = std::stoi(tokens[1]);
 		}
 
 		fin.getline(line, 256);
@@ -958,6 +953,15 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_c:
 				pressedDebugButton = true;
 				break;
+			case SDLK_v:
+				pressedSpellButton = true;
+				break;
+			case SDLK_q:
+				pressedLeftTrigger = true;
+				break;
+			case SDLK_e:
+				pressedRightTrigger = true;
+				break;
 			case SDLK_r:
 				//if (player != nullptr)
 				//	player->ResetPosition();
@@ -1061,7 +1065,7 @@ void Game::UpdateOverlayColor(int& color, const int& target)
 void Game::Update()
 {
 	// For non-moving camera, set offset based on tile size and scale
-	const int OFFSET = -1;
+	const int OFFSET = -4;
 	camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
 	//camera = Vector2(0, 0);
 	//std::cout << camera.y << std::endl;

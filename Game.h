@@ -92,6 +92,7 @@ public:
 	bool limitFPS = false;
 
 	bool goToNextLevel = false;
+	std::string nextLevel = "";
 
 	Uint32 lastPressedKeyTicks = 0;
 	std::vector<Background*> backgrounds;
@@ -136,6 +137,9 @@ public:
 	
 	//TODO: Make an input class maybe
 	bool pressedDebugButton;
+	bool pressedSpellButton;
+	bool pressedLeftTrigger;
+	bool pressedRightTrigger;
 
 	std::vector<Entity*> entities;
 	void ShouldDeleteEntity(int index);
@@ -177,7 +181,7 @@ public:
 	void PlayLevel(string levelName);
 	void LoadNextLevel();
 
-	Vector2 CalcObjPos(Vector2 pos);
+	Vector2 CalcTileSpawnPos(Vector2 pos);
 
 	Vector2 SnapToGrid(Vector2 position);
 

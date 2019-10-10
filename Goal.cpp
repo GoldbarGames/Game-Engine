@@ -44,3 +44,29 @@ void Goal::OnTriggerExit(Entity* other, Game& game)
 		player->currentGoal = nullptr;
 	}
 }
+
+void Goal::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
+{
+	Entity::DeleteProperties(properties);
+
+	properties.emplace_back(new Text(renderer, font, "Next Level: " + nextLevelName));
+}
+
+void Goal::SetProperty(std::string prop, std::string newValue)
+{
+	// 1. Split the string into two (key and value)
+	std::string key = "";
+
+	int index = 0;
+	while (prop[index] != ':')
+	{
+		key += prop[index];
+		index++;
+	}
+
+	// 2. Based on the key, change its value
+	if (key == "Next Level")
+	{
+		nextLevelName = newValue;
+	}
+}

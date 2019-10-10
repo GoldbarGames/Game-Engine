@@ -6,7 +6,7 @@ class Goal : public Entity
 public:
 	int spriteIndex = 0;
 	bool isOpen = false;
-
+	std::string nextLevelName = "";
 
 	Goal(Vector2 pos);
 	~Goal();
@@ -16,5 +16,7 @@ public:
 	void OnTriggerStay(Entity* other, Game& game);
 	void OnTriggerEnter(Entity* other, Game& game);
 	void OnTriggerExit(Entity* other, Game& game);
+	void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties);
+	void SetProperty(std::string prop, std::string newValue);
 };
 

@@ -15,6 +15,7 @@ private:
 	
 	Timer missileTimer;
 	Timer doorTimer;		
+	Timer spellTimer;
 public:
 	Game* game = nullptr;
 	Door* currentDoor = nullptr;
@@ -24,14 +25,24 @@ public:
 
 	
 	bool canJump = true;
-
 	Vector2 startPosition;
+
+	//TODO: Make this more of a proper data structure
+	std::vector<std::string> spells = { "Push", "Pop", "Return" };
+	int spellIndex = 0;
+
+
+
 	Player(Vector2 pos);
 	~Player();
 	void Update(Game& game);
 	void UpdateNormally(Game& game);
 
 	void ResetPosition();
+
+	void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties);
+
+	void SetProperty(std::string prop, std::string newValue);
 
 	void GetMoveInput(const Uint8* input);
 	void GetLadderInput(const Uint8* input);

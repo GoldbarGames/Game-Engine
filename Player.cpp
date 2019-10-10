@@ -14,6 +14,7 @@ Player::Player(Vector2 pos) : PhysicsEntity(pos)
 	//TODO: Pause all timers when game is paused
 	missileTimer.Start(1);
 	doorTimer.Start(1);	
+	spellTimer.Start(1);
 }
 
 Player::~Player()
@@ -77,6 +78,7 @@ void Player::UpdateNormally(Game& game)
 			if (currentGoal->isOpen)
 			{
 				game.goToNextLevel = true;
+				game.nextLevel = currentGoal->nextLevelName;
 				return;
 			}			
 		}
@@ -102,6 +104,27 @@ void Player::UpdateNormally(Game& game)
 	if (game.pressedDebugButton && missileTimer.HasElapsed())
 	{
 		CastSpellDebug(game, input);
+	}
+	else if (game.pressedSpellButton && spellTimer.HasElapsed())
+	{
+		// TODO: Cast the spell at the current index
+		// spells[spellIndex].Cast(game);
+		// TODO: Maybe each spell is its own class, Spell.Cast(Game& game)?
+	}
+
+	//TODO: What should happen if multiple buttons are pressed at the same time?
+
+	if (game.pressedLeftTrigger)
+	{
+		spellIndex--;
+		if (spellIndex < 0)
+			spellIndex = 0;
+	}
+	else if (game.pressedRightTrigger)
+	{
+		spellIndex++;
+		if (spellIndex > spells.size() - 1)
+			spellIndex = spells.size() - 1;
 	}
 
 	// If on the ladder, only move up or down
@@ -277,6 +300,35 @@ void Player::ResetPosition()
 	position = startPosition;
 }
 
+void Player::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
+{
+	Entity::DeleteProperties(properties);
 
+	properties.emplace_back(new Text(renderer, font, "Start Pos X: " + std::to_string((int)startPosition.x)));
+	properties.emplace_back(new Text(renderer, font, "Start Pos Y: " + std::to_string((int)startPosition.y)));
+}
 
+void Player::SetProperty(std::string prop, std::string newValue)
+{
+	// 1. Split the string into two (key and value)
+	std::string key = "";
 
+	int index = 0;
+	while (prop[index] != ':')
+	{
+		key += prop[index];
+		index++;
+	}
+
+	// 2. Based on the key, change its value
+	if (key == "Start Pos X")
+	{
+		if (newValue != "")
+			startPosition.x = std::stof(newValue);
+	}
+	else if (key == "Start Pos Y")
+	{
+		if (newValue != "")
+			startPosition.y = std::stof(newValue);
+	}
+}

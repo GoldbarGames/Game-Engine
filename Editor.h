@@ -69,7 +69,7 @@ private:
 
 	Entity* selectedEntity = nullptr;
 	std::vector<Text*> properties;	
-	int propertyIndex = 0;
+	int propertyIndex = -1;
 
 public:
 	int GRID_SIZE = 24;
