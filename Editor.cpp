@@ -33,6 +33,7 @@ Editor::Editor(Game& g)
 	previewMap["goal"] = game->CreateGoal(Vector2(0, 0), spriteMapIndex);
 	previewMap["bug"] = game->CreateBug(Vector2(0, 0), spriteMapIndex);
 	previewMap["ether"] = game->CreateEther(Vector2(0, 0), spriteMapIndex);
+	previewMap["block"] = game->CreateBlock(Vector2(0, 0), spriteMapIndex);
 
 	//TODO: Make the indexes different numbers for the names and sprite sheets?
 	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
@@ -101,13 +102,26 @@ void Editor::StartEdit()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy" };
+	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy", "Block" };
 
-	for (unsigned int i = 0; i < buttonNames.size(); i++)
+	unsigned int BUTTON_CURRENT_PAGE = 0;
+	unsigned int BUTTONS_PER_PAGE = 18;
+
+	unsigned int BUTTON_LIST_START = 0;
+	unsigned int BUTTON_LIST_END = BUTTONS_PER_PAGE;
+
+	for (unsigned int i = BUTTON_LIST_START; i < BUTTON_LIST_END; i++)
 	{
+		if (i > buttonNames.size() - 1)
+			break;
+
 		buttons.emplace_back(new EditorButton("", buttonNames[i], Vector2(buttonX, screenHeight-buttonHeight), *game));
 		buttonX += buttonWidth + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
 	}
+
+	buttons.emplace_back(new EditorButton("", "PrevPage", Vector2(0, screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game));
+	buttons.emplace_back(new EditorButton("", "NextPage", Vector2((buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1), 
+		screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game));
 
 	// Create the layer buttons
 
@@ -435,6 +449,12 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 		{
 			Ether* currentEther = game->SpawnEther(snappedPosition, spriteMapIndex);
 			if (currentEther != nullptr)
+				game->SortEntities(game->entities);
+		}
+		else if (objectMode == "block")
+		{
+			Block* currentblock = game->SpawnBlock(snappedPosition, spriteMapIndex);
+			if (currentblock != nullptr)
 				game->SortEntities(game->entities);
 		}
 		else if (objectMode == "door")
@@ -786,6 +806,10 @@ void Editor::ClickedButton(string buttonName)
 	else if (buttonName == "Ether")
 	{
 		ToggleObjectMode("ether");
+	}
+	else if (buttonName == "Block")
+	{
+		ToggleObjectMode("block");
 	}
 	else if (buttonName == "Inspect")
 	{
@@ -1266,6 +1290,13 @@ std::string Editor::SaveLevelAsString()
 			level << ether->etype << " " << (ether->GetPosition().x / SCALE) <<
 				" " << (ether->GetPosition().y / SCALE) << " " << ether->spriteIndex << std::endl;
 		}
+		else if (game->entities[i]->etype == "block")
+		{
+			Block* block = static_cast<Block*>(game->entities[i]);
+
+			level << block->etype << " " << (block->GetPosition().x / SCALE) <<
+				" " << (block->GetPosition().y / SCALE) << " " << block->spriteIndex << std::endl;
+		}
 		else
 		{
 			// Don't save anything else, because they are probably temp objects like missiles, etc.
@@ -1422,6 +1453,11 @@ void Editor::CreateLevelFromString(std::string level)
 		{
 			int spriteIndex = std::stoi(tokens[3]);
 			Ether* entity = game->SpawnEther(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+		}
+		else if (etype == "block")
+		{
+			int spriteIndex = std::stoi(tokens[3]);
+			Block* block = game->SpawnBlock(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 		}
 
 		ss.getline(lineChar, 256);

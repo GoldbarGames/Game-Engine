@@ -25,6 +25,7 @@
 #include "Bug.h"
 #include "Ether.h"
 #include "Goal.h"
+#include "Block.h"
 #include "CutsceneManager.h"
 #include "SoundManager.h"
 #include <chrono>
@@ -70,6 +71,10 @@ public:
 	clock::time_point start_time;
 
 	std::unordered_map<std::string, MenuScreen*> allMenus;
+
+
+	std::vector<SDL_Rect*> debugRectangles;
+
 
 	void Update();
 	void Render();
@@ -176,6 +181,9 @@ public:
 
 	Goal* CreateGoal(Vector2 position, int spriteIndex);
 	Goal* SpawnGoal(Vector2 position, int spriteIndex = 0);
+
+	Block* CreateBlock(Vector2 position, int spriteIndex);
+	Block* SpawnBlock(Vector2 position, int spriteIndex = 0);
 
 	void LoadTitleScreen();
 	void PlayLevel(string levelName);

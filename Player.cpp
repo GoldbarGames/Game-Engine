@@ -3,6 +3,8 @@
 #include "debug_state.h"
 #include <string>
 #include "Physics.h"
+#include "SpellPush.h"
+#include "SpellPop.h"
 
 Player::Player(Vector2 pos) : PhysicsEntity(pos)
 {
@@ -10,6 +12,11 @@ Player::Player(Vector2 pos) : PhysicsEntity(pos)
 	CreateCollider(27, 46, 0, 0, 0.75f, 0.9f);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 99;
+
+	// Initialize the spells here
+	spells.clear();
+	spells.push_back(new SpellPush("PUSH"));
+	spells.push_back(new SpellPop("POP"));
 
 	//TODO: Pause all timers when game is paused
 	missileTimer.Start(1);
@@ -46,7 +53,8 @@ void Player::Update(Game& game)
 	}
 	else
 	{
-		UpdateNormally(game);
+		if (!animator->GetBool("isCastingSpell"))
+			UpdateNormally(game);
 	}
 	
 	if (animator != nullptr)
@@ -107,9 +115,9 @@ void Player::UpdateNormally(Game& game)
 	}
 	else if (game.pressedSpellButton && spellTimer.HasElapsed())
 	{
-		// TODO: Cast the spell at the current index
-		// spells[spellIndex].Cast(game);
-		// TODO: Maybe each spell is its own class, Spell.Cast(Game& game)?
+		if (!animator->GetBool("isCastingSpell"))
+			spells[spellIndex]->Cast(game);
+		// TODO: Reset the spell timer somehow
 	}
 
 	//TODO: What should happen if multiple buttons are pressed at the same time?

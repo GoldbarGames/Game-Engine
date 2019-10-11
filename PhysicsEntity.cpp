@@ -280,6 +280,11 @@ Vector2 PhysicsEntity::CalcScaledPivot()
 	return Vector2(entityPivot.x * Renderer::GetScale(), currentSprite->pivot.y * Renderer::GetScale());
 }
 
+void PhysicsEntity::Push(Vector2 pushVelocity)
+{
+	velocity = pushVelocity;
+}
+
 void PhysicsEntity::Update(Game& game)
 {
 	if (usePhysics)

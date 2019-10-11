@@ -236,6 +236,18 @@ void Animator::CheckStateKaneko()
 	{
 		StateKanekoDebugSpell();
 	}
+	else if (currentState == "PUSH")
+	{
+		if (animationTimer.HasElapsed())
+		{
+			SetBool("isCastingSpell", false);
+
+			if (GetBool("isGrounded"))
+				SetState("idle");
+			else
+				SetState("jump");
+		}
+	}
 }
 
 bool Animator::IsStateDebugSpell()

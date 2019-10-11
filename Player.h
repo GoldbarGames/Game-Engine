@@ -2,7 +2,7 @@
 #include "PhysicsEntity.h"
 #include "Vector2.h"
 #include "Timer.h"
-
+#include "Spell.h"
 
 class Door;
 class Ladder;
@@ -28,7 +28,7 @@ public:
 	Vector2 startPosition;
 
 	//TODO: Make this more of a proper data structure
-	std::vector<std::string> spells = { "Push", "Pop", "Return" };
+	std::vector<Spell*> spells;
 	int spellIndex = 0;
 
 

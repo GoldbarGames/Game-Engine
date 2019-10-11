@@ -14,6 +14,7 @@ protected:
 public:
 
 	bool usePhysics = true;
+	bool canBePushed = false;
 
 	SDL_Rect* collider = nullptr;        // adjust the bounds this way
 	SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
@@ -47,5 +48,7 @@ public:
 	void Update(Game& game);
 	void Render(Renderer * renderer, Vector2 cameraOffset);
 	Vector2 CalcScaledPivot();
+
+	virtual void Push(Vector2 pushVelocity);
 };
 

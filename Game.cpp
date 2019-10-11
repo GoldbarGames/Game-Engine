@@ -400,6 +400,38 @@ Ether* Game::SpawnEther(Vector2 position, int spriteIndex)
 }
 
 
+Block* Game::CreateBlock(Vector2 position, int spriteIndex)
+{
+	Block* newBlock = new Block(position);
+	//newBlock->spriteIndex = spriteIndex;
+
+	//TODO: How to make this work for doors that will be related to other tilesets?
+	Animator* anim = new Animator("ether", "idle");
+
+	Vector2 pivotPoint = Vector2(28, 32);
+	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/big_block.png", renderer, pivotPoint));
+
+	newBlock->SetAnimator(anim);
+
+	return newBlock;
+}
+
+Block* Game::SpawnBlock(Vector2 position, int spriteIndex)
+{
+	Block* newBlock = CreateBlock(position, spriteIndex);
+
+	if (!newBlock->CanSpawnHere(position, *this))
+	{
+		delete newBlock;
+		return nullptr;
+	}
+	else
+	{
+		entities.emplace_back(newBlock);
+		return newBlock;
+	}
+}
+
 
 Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 {
@@ -502,6 +534,10 @@ Player* Game::SpawnPlayer(Vector2 position)
 	anim1->MapStateToSprite("debug_air_up", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air_up.png", renderer, Vector2(28, 26)));
 	anim1->MapStateToSprite("debug_air_down", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air_down.png", renderer, Vector2(28, 26)));
 	anim1->MapStateToSprite("debug_climb", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_climb.png", renderer, Vector2(25, 26)));
+
+	// Spell animations
+	anim1->MapStateToSprite("PUSH", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_push.png", renderer, Vector2(21, 26)));
+
 
 	player->SetAnimator(anim1);
 	player->SetPosition(position);
@@ -1131,9 +1167,15 @@ void Game::Render()
 		editor->Render(renderer);
 	}
 
+	// Draw stuff for debugging purposes here
 	if (GetModeDebug())
 	{
-		//jumpsRemainingText->Render(renderer);
+		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
+		for (unsigned int i = 0; i < debugRectangles.size(); i++)
+		{
+			SDL_RenderDrawRect(renderer->renderer, debugRectangles[i]);
+		}
+		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 	}
 
 	if (showFPS)
