@@ -41,8 +41,8 @@ void PhysicsEntity::CreateCollider(float startX, float startY, float x, float y,
 	collider->w = 1;
 	collider->h = 1;
 
-	colliderWidth = w;
-	colliderHeight = h;
+	colliderWidth = w * Renderer::GetScale();
+	colliderHeight = h * Renderer::GetScale();
 
 	if (collisionBounds != nullptr)
 		delete collisionBounds;
@@ -53,8 +53,8 @@ void PhysicsEntity::CreateCollider(float startX, float startY, float x, float y,
 	collisionBounds->w = 1;
 	collisionBounds->h = 1;
 
-	startSpriteSize.x = startX * Renderer::GetScale();
-	startSpriteSize.y = startY * Renderer::GetScale();
+	//startSpriteSize.x = startX * Renderer::GetScale();
+	//startSpriteSize.y = startY * Renderer::GetScale();
 }
 
 void PhysicsEntity::Pause(Uint32 ticks)
@@ -90,7 +90,9 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
 
 	SDL_Rect floorBounds = newBoundsVertical;
-	floorBounds.h += 20; // (int)(newBoundsVertical.h * 0.25f);
+
+	if (etype == "player" || etype == "npc")
+		floorBounds.h += 20; // (int)(newBoundsVertical.h * 0.25f);
 
 	// this needs to be here so that it does not check for horizontal collision when moving vertically
 	if (velocity.x > 0)
@@ -261,8 +263,8 @@ void PhysicsEntity::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 void PhysicsEntity::CalculateCollider(Vector2 cameraOffset)
 {
 	// set the collision bounds position to where the player actually is
-	collisionBounds->x = position.x + collider->x - cameraOffset.x;
-	collisionBounds->y = position.y + collider->y - cameraOffset.y;
+	collisionBounds->x = position.x - cameraOffset.x + collider->x;
+	collisionBounds->y = position.y - cameraOffset.y + collider->y;
 
 	// scale the bounds of the sprite by a number to set the collider's width and height
 	collisionBounds->w = startSpriteSize.x * colliderWidth;
@@ -291,7 +293,7 @@ void PhysicsEntity::Update(Game& game)
 	{
 		if (velocity.y < 1)
 			velocity.y += Physics::GRAVITY;
-	}	
+	}
 
 	CheckCollisions(game);
 
@@ -308,7 +310,7 @@ void PhysicsEntity::Render(Renderer * renderer, Vector2 cameraOffset)
 		// Get center of the white collision box, and use it as a vector2
 		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2));
 		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2));
-		Vector2 collisionCenter = Vector2(collisionCenterX, collisionCenterY);
+		Vector2 collisionCenter = Vector2(collisionCenterX + collider->x, collisionCenterY + collider->y);
 
 		Vector2 scaledPivot = CalcScaledPivot();
 		Vector2 offset = collisionCenter - scaledPivot;

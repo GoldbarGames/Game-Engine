@@ -22,6 +22,8 @@ public:
 
 	std::string name = "";
 
+
+
 	SDL_RendererFlip flip = SDL_FLIP_NONE;
 	Vector2 entityPivot = Vector2(0, 0);
 	bool shouldDelete = false;
@@ -34,6 +36,8 @@ public:
 	int tilesheetIndex = 0;
 	Vector2 tileCoordinates = Vector2(0, 0);
 
+
+	SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
 	bool trigger = false;
 

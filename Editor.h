@@ -65,13 +65,12 @@ private:
 	bool placingDoor = false;
 	bool placingLadder = false;
 
-	bool inspectionMode = false;
-
 	Entity* selectedEntity = nullptr;
 	std::vector<Text*> properties;	
-	int propertyIndex = -1;
+	
 
 public:
+	int propertyIndex = -1;
 	int GRID_SIZE = 24;
 	Text* currentEditModeLayer = nullptr;
 	Text* cursorPosition = nullptr;

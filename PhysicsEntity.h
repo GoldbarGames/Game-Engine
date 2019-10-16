@@ -17,8 +17,7 @@ public:
 	bool canBePushed = false;
 
 	SDL_Rect* collider = nullptr;        // adjust the bounds this way
-	SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
-	Vector2 startSpriteSize = Vector2(0,0); // initialize to starting sprite rectangle
+	Vector2 startSpriteSize = Vector2(1,1); // initialize to starting sprite rectangle
 
 	float colliderWidth = 1;
 	float colliderHeight = 1;

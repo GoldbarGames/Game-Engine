@@ -56,7 +56,10 @@ Sprite* Entity::GetSprite()
 
 const SDL_Rect* Entity::GetBounds()
 {
-	return currentSprite->GetRect();
+	if (collisionBounds == nullptr)
+		return currentSprite->GetRect();
+	else
+		return collisionBounds;
 }
 
 Vector2 Entity::GetPosition()

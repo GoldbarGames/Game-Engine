@@ -148,13 +148,13 @@ void Editor::StartEdit()
 	}
 
 	ClickedLayerButton("BACK");
-	currentEditModeLayer->SetText("Drawing on layer: " + GetDrawingLayerName(drawingLayer));
+	//currentEditModeLayer->SetText("Active Mode: " + objectMode); // GetDrawingLayerName(drawingLayer));
 }
 
 void Editor::StopEdit()
 {
 	selectedEntity = nullptr;
-	inspectionMode = false;	
+	//inspectionMode = false;	
 	propertyIndex = -1;
 }
 
@@ -230,112 +230,107 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 			}
 		}
 	}
+	else if (objectMode == "inspect")
+	{
+		clickedPosition += game->camera;
+		InspectObject(mouseX, mouseY);
+	}
 	else // we clicked somewhere in the game world, so place a tile/object
 	{
 		clickedPosition += game->camera;
 
-		if (inspectionMode)
+		// if we are placing a tile...
+		if (objectMode == "tile")
 		{
-			InspectObject(mouseX, mouseY);
+			PlaceTile(clickedPosition, mouseX, mouseY);
+			DoAction();
 		}
-		else
+		else if (objectMode == "replace")
 		{
-			// if we are placing a tile...
-			if (objectMode == "tile")
-			{
-				PlaceTile(clickedPosition, mouseX, mouseY);
-				DoAction();
-			}
-			else if (objectMode == "replace")
-			{
-				bool foundTile = false;
-				Vector2 coordsToReplace = Vector2(0, 0);
-				Vector2 coordsToSet = Vector2(editorTileX, editorTileY);
+			bool foundTile = false;
+			Vector2 coordsToReplace = Vector2(0, 0);
+			Vector2 coordsToSet = Vector2(editorTileX, editorTileY);
 
+			for (unsigned int i = 0; i < game->entities.size(); i++)
+			{
+				if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
+					game->entities[i]->layer == drawingLayer &&
+					game->entities[i]->etype == "tile")
+				{
+					Tile* tile = static_cast<Tile*>(game->entities[i]);
+
+					// Save the index of the tile
+					coordsToReplace = tile->tileCoordinates;
+					foundTile = true;
+				}
+			}
+
+			if (foundTile)
+			{
+				// Replace the tile with the one selected in the sprite sheet
 				for (unsigned int i = 0; i < game->entities.size(); i++)
 				{
-					if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
-						game->entities[i]->layer == drawingLayer &&
-						game->entities[i]->etype == "tile")
+					if (game->entities[i]->etype == "tile"
+						&& game->entities[i]->tileCoordinates == coordsToReplace)
 					{
-						Tile* tile = static_cast<Tile*>(game->entities[i]);
+						Tile* tile = dynamic_cast<Tile*>(game->entities[i]);
 
-						// Save the index of the tile
-						coordsToReplace = tile->tileCoordinates;
-						foundTile = true;
+						// Set the index of the tile
+						tile->ChangeSprite(coordsToSet,
+							game->spriteManager->GetImage(game->renderer,
+								"assets/tiles/" + tilesheets[tilesheetIndex] + ".png"),
+							game->renderer);
 					}
 				}
 
-				if (foundTile)
-				{
-					// Replace the tile with the one selected in the sprite sheet
-					for (unsigned int i = 0; i < game->entities.size(); i++)
-					{
-						if (game->entities[i]->etype == "tile"
-							&& game->entities[i]->tileCoordinates == coordsToReplace)
-						{
-							Tile* tile = dynamic_cast<Tile*>(game->entities[i]);
-
-							// Set the index of the tile
-							tile->ChangeSprite(coordsToSet,
-								game->spriteManager->GetImage(game->renderer,
-									"assets/tiles/" + tilesheets[tilesheetIndex] + ".png"),
-								game->renderer);
-						}
-					}
-
-					DoAction();
-				}
-
-				
-
-			}
-			else if (objectMode == "copy")
-			{
-				// We want to set the active tilesheet to the copied tile's
-				// and we want to set the selected tile to the copied tile's
-				Vector2 coordsToCopy = Vector2(0, 0);
-				Tile* tile = nullptr;
-
-				for (unsigned int i = 0; i < game->entities.size(); i++)
-				{
-					if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
-						game->entities[i]->layer == drawingLayer &&
-						game->entities[i]->etype == "tile")
-					{
-						tile = static_cast<Tile*>(game->entities[i]);
-
-						// Save the index of the tile
-						coordsToCopy = tile->tileCoordinates;
-					}
-				}
-
-				if (tile != nullptr)
-				{
-					tilesheetIndex = tile->tilesheetIndex;
-
-					StartEdit();
-					objectMode = "tile";
-
-					selectedRect.x = (tile->tileCoordinates.x - 1) * TILE_SIZE;
-					selectedRect.y = (tile->tileCoordinates.y - 1) * TILE_SIZE;
-
-					editorTileX = tile->tileCoordinates.x;
-					editorTileY = tile->tileCoordinates.y;
-
-					selectedRect.x += toolboxWindowRect.x;
-				}
-
-			}
-			else // when placing an object
-			{
-				PlaceObject(clickedPosition, mouseX, mouseY);
 				DoAction();
 			}
 
-			
-		}
 
+
+		}
+		else if (objectMode == "copy")
+		{
+			// We want to set the active tilesheet to the copied tile's
+			// and we want to set the selected tile to the copied tile's
+			Vector2 coordsToCopy = Vector2(0, 0);
+			Tile* tile = nullptr;
+
+			for (unsigned int i = 0; i < game->entities.size(); i++)
+			{
+				if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
+					game->entities[i]->layer == drawingLayer &&
+					game->entities[i]->etype == "tile")
+				{
+					tile = static_cast<Tile*>(game->entities[i]);
+
+					// Save the index of the tile
+					coordsToCopy = tile->tileCoordinates;
+				}
+			}
+
+			if (tile != nullptr)
+			{
+				tilesheetIndex = tile->tilesheetIndex;
+
+				StartEdit();
+				objectMode = "tile";
+
+				selectedRect.x = (tile->tileCoordinates.x - 1) * TILE_SIZE;
+				selectedRect.y = (tile->tileCoordinates.y - 1) * TILE_SIZE;
+
+				editorTileX = tile->tileCoordinates.x;
+				editorTileY = tile->tileCoordinates.y;
+
+				selectedRect.x += toolboxWindowRect.x;
+			}
+
+		}
+		else // when placing an object
+		{
+			PlaceObject(clickedPosition, mouseX, mouseY);
+			DoAction();
+		}
 		
 	}
 }
@@ -346,6 +341,9 @@ void Editor::InspectObject(int mouseX, int mouseY)
 	SDL_Point point;
 	point.x = mouseX;
 	point.y = mouseY;
+
+	std::cout << "x: " + point.x << std::endl;
+	std::cout << "y:" + point.y << std::endl;
 
 	if (SDL_PointInRect(&point, &objectPropertiesRect))
 	{
@@ -386,7 +384,7 @@ void Editor::InspectObject(int mouseX, int mouseY)
 }
 
 void Editor::SetPropertyText()
-{
+{	
 	selectedEntity->SetProperty(properties[propertyIndex]->txt, game->inputText);
 	selectedEntity->GetProperties(game->renderer, theFont, properties);
 	SetPropertyPositions();
@@ -978,6 +976,8 @@ void Editor::ToggleObjectMode(std::string mode)
 
 		objectMode = mode;
 	}
+
+	currentEditModeLayer->SetText("Active Mode: " + objectMode);
 }
 
 void Editor::ToggleGridSize()
@@ -992,7 +992,11 @@ void Editor::ToggleInspectionMode()
 {
 	//TODO: Is this a good idea?
 	SetLayer(DrawingLayer::BACK);
-	objectMode = "tile";
+
+	if (objectMode != "inspect")
+		objectMode = "inspect";
+	else
+		objectMode = "tile";
 
 	// If we already have an entity selected, deselect it
 	if (selectedEntity != nullptr)
@@ -1001,7 +1005,8 @@ void Editor::ToggleInspectionMode()
 		selectedEntity = nullptr;
 	}
 
-	inspectionMode = !inspectionMode;
+	currentEditModeLayer->SetText("Active Mode: " + objectMode);
+	//inspectionMode = !inspectionMode;
 }
 
 void Editor::SetLayer(DrawingLayer layer)
@@ -1092,7 +1097,7 @@ void Editor::Render(Renderer* renderer)
 	}
 	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 
-	if (inspectionMode && selectedEntity != nullptr)
+	if (objectMode == "inspect" && selectedEntity != nullptr)
 	{
 		// Draw a yellow rectangle around the currently selected object
 		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
@@ -1104,13 +1109,18 @@ void Editor::Render(Renderer* renderer)
 		
 		// Draw the text for all the properties
 		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+
 		for (unsigned int i = 0; i < properties.size(); i++)
 		{
-			if (i == propertyIndex)
-				SDL_RenderDrawRect(renderer->renderer, &properties[i]->textWindowRect);
+			if (propertyIndex > -1)
+			{
+				if (i == propertyIndex)
+					SDL_RenderDrawRect(renderer->renderer, &properties[i]->textWindowRect);
+			}
 
 			properties[i]->Render(renderer);
 		}
+
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
 	else

@@ -8,4 +8,7 @@ public:
 	Block(Vector2 pos);
 	~Block();
 	//void Push(Vector2 direction, Game &game);
+	void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties);
+	void SetProperty(std::string prop, std::string newValue);
+	void Render(Renderer * renderer, Vector2 cameraOffset);
 };

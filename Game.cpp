@@ -406,9 +406,9 @@ Block* Game::CreateBlock(Vector2 position, int spriteIndex)
 	//newBlock->spriteIndex = spriteIndex;
 
 	//TODO: How to make this work for doors that will be related to other tilesets?
-	Animator* anim = new Animator("ether", "idle");
+	Animator* anim = new Animator("block", "idle");
 
-	Vector2 pivotPoint = Vector2(28, 32);
+	Vector2 pivotPoint = Vector2(24, 32);
 	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/big_block.png", renderer, pivotPoint));
 
 	newBlock->SetAnimator(anim);
@@ -588,8 +588,9 @@ void Game::StopTextInput()
 	SDL_StopTextInput();
 
 	if (inputType == "properties")
-	{
+	{		
 		editor->SetPropertyText();
+		editor->propertyIndex = -1;
 		editor->DoAction();
 	}
 	else if (inputType == "new_level")
@@ -969,7 +970,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			else if (event.key.keysym.sym == SDLK_RETURN)
 			{
 				UpdateTextInput();
-				StopTextInput();				
+				StopTextInput();
 			}
 		}
 		else
