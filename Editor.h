@@ -65,11 +65,18 @@ private:
 	bool placingDoor = false;
 	bool placingLadder = false;
 
+	// Variables for the Properties Inspector
 	Entity* selectedEntity = nullptr;
 	std::vector<Text*> properties;	
-	
+
+	// Variables for the Grab Button
+	Entity* grabbedEntity = nullptr;
+	Vector2 oldGrabbedPosition = Vector2(0, 0);
+
+	const unsigned int BUTTONS_PER_PAGE = 18;
 
 public:
+	unsigned int currentButtonPage = 0;
 	int propertyIndex = -1;
 	int GRID_SIZE = 24;
 	Text* currentEditModeLayer = nullptr;
@@ -111,6 +118,8 @@ public:
 	void ToggleObjectMode(std::string mode);
 	void ToggleSpriteMap();
 	void ToggleInspectionMode();
+
+	void CreateEditorButtons();
 
 	//TODO: Make these return bools, and if true, DoAction()?
 	void LeftClick(Vector2 clickedPosition, int mouseX, int mouseY);

@@ -46,6 +46,40 @@ Editor::~Editor()
 
 }
 
+void Editor::CreateEditorButtons()
+{
+	// Create all the buttons for the bottom of the editor
+	for (unsigned int i = 0; i < buttons.size(); i++)
+		delete buttons[i];
+	buttons.clear();
+
+	int buttonX = 0;
+	const int buttonWidth = 50;
+	const int buttonHeight = 50;
+	const int buttonSpacing = 20;
+
+	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy", "Block", "Grab" };
+
+	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
+	unsigned int BUTTON_LIST_END = BUTTON_LIST_START + BUTTONS_PER_PAGE;
+
+	if (BUTTON_LIST_END > buttonNames.size())
+		BUTTON_LIST_END = buttonNames.size();
+
+	for (unsigned int i = BUTTON_LIST_START; i < BUTTON_LIST_END; i++)
+	{
+		if (i > buttonNames.size() - 1)
+			break;
+
+		buttons.emplace_back(new EditorButton("", buttonNames[i], Vector2(buttonX, screenHeight - buttonHeight), *game));
+		buttonX += buttonWidth + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
+	}
+
+	buttons.emplace_back(new EditorButton("", "PrevPage", Vector2(0, screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game));
+	buttons.emplace_back(new EditorButton("", "NextPage", Vector2((buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1),
+		screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game));
+}
+
 void Editor::StartEdit()
 {
 	//toolbox = SDL_CreateWindow("Toolbox", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 100, 100, SDL_WINDOW_OPENGL);
@@ -92,36 +126,7 @@ void Editor::StartEdit()
 	hoveredTileRect.w = 24 * Renderer::GetScale();
 	hoveredTileRect.h = 24 * Renderer::GetScale();
 
-	// Create all the buttons for the editor
-	for (unsigned int i = 0; i < buttons.size(); i++)
-		delete buttons[i];
-	buttons.clear();
-
-	int buttonX = 0;
-	const int buttonWidth = 50;
-	const int buttonHeight = 50;
-	const int buttonSpacing = 20;
-
-	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy", "Block" };
-
-	unsigned int BUTTON_CURRENT_PAGE = 0;
-	unsigned int BUTTONS_PER_PAGE = 18;
-
-	unsigned int BUTTON_LIST_START = 0;
-	unsigned int BUTTON_LIST_END = BUTTONS_PER_PAGE;
-
-	for (unsigned int i = BUTTON_LIST_START; i < BUTTON_LIST_END; i++)
-	{
-		if (i > buttonNames.size() - 1)
-			break;
-
-		buttons.emplace_back(new EditorButton("", buttonNames[i], Vector2(buttonX, screenHeight-buttonHeight), *game));
-		buttonX += buttonWidth + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
-	}
-
-	buttons.emplace_back(new EditorButton("", "PrevPage", Vector2(0, screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game));
-	buttons.emplace_back(new EditorButton("", "NextPage", Vector2((buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1), 
-		screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game));
+	CreateEditorButtons();
 
 	// Create the layer buttons
 
@@ -144,7 +149,7 @@ void Editor::StartEdit()
 	{
 		layerButtons.emplace_back(new EditorButton(layerButtonNames[i], "Layer", Vector2(0, buttonY), *game, Vector2(layerButtonWidth, 50), { 128, 128, 128, 255 }));
 		layerVisibleButtons.emplace_back(new EditorButton("", "Visible", Vector2(layerButtonWidth, buttonY), *game, Vector2(50, 50)));
-		buttonY += layerButtonHeight + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
+		buttonY += layerButtonHeight + layerButtonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
 	}
 
 	ClickedLayerButton("BACK");
@@ -234,6 +239,44 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 	{
 		clickedPosition += game->camera;
 		InspectObject(mouseX, mouseY);
+	}
+	else if (objectMode == "grab")
+	{
+		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+		{
+			// Either grab a new entity, or place the currently grabbed one
+			if (grabbedEntity == nullptr)
+			{
+				SDL_Point point;
+				point.x = mouseX;
+				point.y = mouseY;
+
+				//std::cout << "x: " + point.x << std::endl;
+				//std::cout << "y:" + point.y << std::endl;
+
+				// Find the selected entity and grab it
+				for (unsigned int i = 0; i < game->entities.size(); i++)
+				{
+					if (game->entities[i]->etype != "tile" &&
+						SDL_PointInRect(&point, game->entities[i]->GetBounds()))
+					{
+						grabbedEntity = game->entities[i];
+						oldGrabbedPosition = grabbedEntity->GetPosition();
+						break;
+					}
+				}
+			}
+			else
+			{
+				// If the entity is allowed to spawn here, then place it there
+				if (grabbedEntity->CanSpawnHere(Vector2(mouseX, mouseY), *game, false))
+				{
+					grabbedEntity = nullptr;
+					DoAction();
+				}
+			}
+		}
+		
 	}
 	else // we clicked somewhere in the game world, so place a tile/object
 	{
@@ -342,8 +385,8 @@ void Editor::InspectObject(int mouseX, int mouseY)
 	point.x = mouseX;
 	point.y = mouseY;
 
-	std::cout << "x: " + point.x << std::endl;
-	std::cout << "y:" + point.y << std::endl;
+	//std::cout << "x: " + point.x << std::endl;
+	//std::cout << "y:" + point.y << std::endl;
 
 	if (SDL_PointInRect(&point, &objectPropertiesRect))
 	{
@@ -605,6 +648,14 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 //TODO: Figure out how to structure this so we can add deleting stuff as an Action
 void Editor::RightClick(Vector2 clickedPosition)
 {
+	// If we have grabbed an entity, return it to its old position and immediately exit
+	if (grabbedEntity != nullptr)
+	{
+		grabbedEntity->SetPosition(oldGrabbedPosition);
+		grabbedEntity = nullptr;
+		return;
+	}
+
 	clickedPosition.x += (int)game->camera.x;
 	clickedPosition.y += (int)game->camera.y;
 
@@ -762,6 +813,12 @@ void Editor::HandleEdit()
 		RightClick(clickedPosition);
 	}
 
+	if (grabbedEntity != nullptr)
+	{
+		Vector2 snappedPosition = game->SnapToGrid(Vector2(mouseX, mouseY));
+		grabbedEntity->SetPosition(snappedPosition);
+	}
+
 	previousMouseState = mouseState;
 }
 
@@ -857,6 +914,20 @@ void Editor::ClickedButton(string buttonName)
 		{
 			objectMode = "copy";
 		}
+	}
+	else if (buttonName == "Grab")
+	{
+		ToggleObjectMode("grab");
+	}
+	else if (buttonName == "PrevPage")
+	{
+		currentButtonPage--;
+		CreateEditorButtons();
+	}
+	else if (buttonName == "NextPage")
+	{
+		currentButtonPage++;
+		CreateEditorButtons();
 	}
 }
 
@@ -1148,6 +1219,18 @@ void Editor::Render(Renderer* renderer)
 	// Draw all buttons
 	for (unsigned int i = 0; i < buttons.size(); i++)
 	{
+		if (buttons[i]->name == "PrevPage")
+		{
+			if (currentButtonPage == 0)
+				continue;
+		}
+
+		if (buttons[i]->name == "NextPage")
+		{
+			if (currentButtonPage > (int)(currentButtonPage/BUTTONS_PER_PAGE))
+				continue;
+		}
+
 		buttons[i]->Render(renderer);
 	}
 

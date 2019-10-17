@@ -23,10 +23,45 @@ void SpellPush::Cast(Game& game)
 
 	// 3. Create a rectangle collider in front of the player (direction facing)
 	SDL_Rect* spellRange = new SDL_Rect;
-	spellRange->x = game.player->GetPosition().x + 20;
-	spellRange->y = game.player->GetPosition().y;
-	spellRange->w = 40;
-	spellRange->h = 52;
+
+	const int OFFSET = 0;
+
+	if (game.player->flip == SDL_FLIP_HORIZONTAL)
+		spellRange->x = game.player->GetCenter().x - (OFFSET);
+	else
+		spellRange->x = game.player->GetCenter().x + (OFFSET);
+
+	spellRange->y = game.player->GetCenter().y;
+	spellRange->w = 40 * Renderer::GetScale();
+	spellRange->h = 52 * Renderer::GetScale();
+
+
+
+
+
+	Vector2 entityPivot = game.player->GetSprite()->pivot;
+
+	// Get center of the yellow collision box, and use it as a vector2
+	float collisionCenterX = (spellRange->x + (spellRange->w / 2));
+	float collisionCenterY = (spellRange->y + (spellRange->h / 2));
+	Vector2 collisionCenter = Vector2(collisionCenterX + 0, collisionCenterY + 0);
+
+	if (game.player->flip == SDL_FLIP_HORIZONTAL)
+	{
+		entityPivot.x = (game.player->GetSprite()->windowRect.w / Renderer::GetScale())
+			- game.player->GetSprite()->pivot.x;
+	}
+		
+
+	// scale the pivot and subtract it from the collision center
+	Vector2 scaledPivot = Vector2(entityPivot.x * Renderer::GetScale(), 
+		game.player->GetSprite()->pivot.y * Renderer::GetScale());
+
+
+	Vector2 collision_offset = collisionCenter - scaledPivot;
+
+	spellRange->x = collision_offset.x;
+	spellRange->y = collision_offset.y;
 
 	std::cout << "Rect for push spell:" << std::endl;
 	std::cout << "(" << spellRange->x << "," << spellRange->y << "," <<
@@ -44,6 +79,12 @@ void SpellPush::Cast(Game& game)
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
 		const SDL_Rect * theirBounds = game.entities[i]->GetBounds();
+
+		if (game.entities[i]->etype == "block")
+		{
+			int test = 0;
+		}
+
 		if (SDL_HasIntersection(spellRange, theirBounds))
 		{
 			//TODO: Is there a better way to do this than to check the type?
