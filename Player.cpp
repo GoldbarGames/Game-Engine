@@ -29,6 +29,11 @@ Player::~Player()
 
 }
 
+void Player::Render(Renderer * renderer, Vector2 cameraOffset)
+{
+	PhysicsEntity::Render(renderer, cameraOffset);
+}
+
 void Player::Update(Game& game)
 {	
 	if (game.watchingCutscene)
@@ -57,6 +62,11 @@ void Player::Update(Game& game)
 			UpdateNormally(game);
 	}
 	
+	UpdateAnimator();
+}
+
+void Player::UpdateAnimator()
+{
 	if (animator != nullptr)
 		animator->Update(this);
 }

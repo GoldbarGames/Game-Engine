@@ -37,6 +37,9 @@ public:
 	~Player();
 	void Update(Game& game);
 	void UpdateNormally(Game& game);
+	void UpdateAnimator();
+
+	void Render(Renderer * renderer, Vector2 cameraOffset);
 
 	void ResetPosition();
 

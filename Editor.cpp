@@ -1570,6 +1570,8 @@ void Editor::InitLevelFromFile(std::string levelName)
 {
 	std::cout << game->camera.y << std::endl;
 
+	game->debugRectangles.clear();
+
 	const int OFFSET = -1;
 	game->camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
 

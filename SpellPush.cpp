@@ -21,53 +21,63 @@ void SpellPush::Cast(Game& game)
 	// 2. Prevent the player from pressing any other buttons during this time
 	game.player->GetAnimator()->SetBool("isCastingSpell", true);
 
+	// 3. Actually set the player's sprite to the PUSH casting sprite
+	game.player->UpdateAnimator();
+
 	// 3. Create a rectangle collider in front of the player (direction facing)
 	SDL_Rect* spellRange = new SDL_Rect;
 
-	const int OFFSET = 0;
-
-	if (game.player->flip == SDL_FLIP_HORIZONTAL)
-		spellRange->x = game.player->GetCenter().x - (OFFSET);
-	else
-		spellRange->x = game.player->GetCenter().x + (OFFSET);
-
+	spellRange->x = game.player->GetCenter().x;
 	spellRange->y = game.player->GetCenter().y;
 	spellRange->w = 40 * Renderer::GetScale();
 	spellRange->h = 52 * Renderer::GetScale();
 
+	// Begin to create a rectangle where the rectangle's center is at the player's center
 
-
-
-
-	Vector2 entityPivot = game.player->GetSprite()->pivot;
+	Sprite* sprite = game.player->GetSprite();
+	Vector2 playerPivot = game.player->GetSprite()->pivot;
 
 	// Get center of the yellow collision box, and use it as a vector2
-	float collisionCenterX = (spellRange->x + (spellRange->w / 2));
-	float collisionCenterY = (spellRange->y + (spellRange->h / 2));
-	Vector2 collisionCenter = Vector2(collisionCenterX + 0, collisionCenterY + 0);
+	float yellowBoxCenterX = (spellRange->x - game.camera.x + (spellRange->w / 2));
+	float yellowBoxCenterY = (spellRange->y - game.camera.y + (spellRange->h / 2));
+	Vector2 collisionCenter = Vector2(yellowBoxCenterX, yellowBoxCenterY);
+
+	// scale the pivot and subtract it from the collision center
+	Vector2 scaledPivot = Vector2(playerPivot.x * Renderer::GetScale(), playerPivot.y * Renderer::GetScale());
+	Vector2 yellowRectanglePosition = collisionCenter - scaledPivot;
+
+	// Set the final rectangle to be equal to this offset
+	spellRange->x = yellowRectanglePosition.x;
+	spellRange->y = yellowRectanglePosition.y;
+
+	int DISTANCE_FROM_CENTER_X = 21;
+	int DISTANCE_FROM_CENTER_Y = -26;
+
+	// Add distance to the center so that it covers the entire cloud of wind
 
 	if (game.player->flip == SDL_FLIP_HORIZONTAL)
 	{
-		entityPivot.x = (game.player->GetSprite()->windowRect.w / Renderer::GetScale())
-			- game.player->GetSprite()->pivot.x;
+		spellRange->w *= -1;
+		spellRange->x -= (DISTANCE_FROM_CENTER_X  * Renderer::GetScale());
+	}		
+	else
+	{
+		spellRange->x += (DISTANCE_FROM_CENTER_X  * Renderer::GetScale());
 	}
 		
+	spellRange->y += DISTANCE_FROM_CENTER_Y * Renderer::GetScale();
 
-	// scale the pivot and subtract it from the collision center
-	Vector2 scaledPivot = Vector2(entityPivot.x * Renderer::GetScale(), 
-		game.player->GetSprite()->pivot.y * Renderer::GetScale());
+	// This converts the rectangle into a positive one for the intersection code
+	if (spellRange->w < 0)
+	{		
+		spellRange->w *= -1;
+		spellRange->x -= spellRange->w;
+	}
 
-
-	Vector2 collision_offset = collisionCenter - scaledPivot;
-
-	spellRange->x = collision_offset.x;
-	spellRange->y = collision_offset.y;
-
-	std::cout << "Rect for push spell:" << std::endl;
-	std::cout << "(" << spellRange->x << "," << spellRange->y << "," <<
-		spellRange->w << "," << spellRange->h << ")" << std::endl;
-
-	game.debugRectangles.push_back(spellRange);
+	//std::cout << "Rect for push spell:" << std::endl;
+	//std::cout << "(" << spellRange->x << "," << spellRange->y << "," <<
+	//	spellRange->w << "," << spellRange->h << ")" << std::endl;
+	//game.debugRectangles.push_back(spellRange);
 
 	const float PUSH_SPEED = 0.5f;
 
@@ -80,11 +90,7 @@ void SpellPush::Cast(Game& game)
 	{
 		const SDL_Rect * theirBounds = game.entities[i]->GetBounds();
 
-		if (game.entities[i]->etype == "block")
-		{
-			int test = 0;
-		}
-
+		// IMPORTANT: SDL_HasIntersection only works on positive rectangles!
 		if (SDL_HasIntersection(spellRange, theirBounds))
 		{
 			//TODO: Is there a better way to do this than to check the type?
