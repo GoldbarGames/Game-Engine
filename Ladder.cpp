@@ -2,6 +2,7 @@
 #include "Player.h"
 #include "debug_state.h"
 #include "Renderer.h"
+#include "Game.h"
 
 Ladder::Ladder(Vector2 pos) : Entity(pos)
 {
@@ -68,3 +69,12 @@ const SDL_Rect* Ladder::GetBounds()
 	return collider.collisionBounds;
 }
 
+void Ladder::Save(std::ostringstream& level)
+{
+	int SCALE = Renderer::GetScale();
+	Vector2 pos = GetPosition();
+
+	level << etype << " " << (pos.x / SCALE) << " " <<
+		(pos.y / SCALE) << " " << GetAnimator()->currentState
+		<< " " << spriteIndex << "" << std::endl;
+}

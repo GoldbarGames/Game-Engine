@@ -54,3 +54,15 @@ bool Tile::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 
 	return true;
 }
+
+void Tile::Save(std::ostringstream& level)
+{
+	int SCALE = Renderer::GetScale();
+
+	float x = GetPosition().x / SCALE;
+	float y = GetPosition().y / SCALE;
+
+	level << etype << " " << x << " " << y << " " << drawOrder << " " << layer << " " 
+		<< impassable << " " << tilesheetIndex << " " << tileCoordinates.x <<
+		" " << tileCoordinates.y << "" << std::endl;
+}

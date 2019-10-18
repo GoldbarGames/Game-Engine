@@ -1308,96 +1308,9 @@ std::string Editor::SaveLevelAsString()
 {
 	std::ostringstream level;
 
-	int SCALE = Renderer::GetScale();
-
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
-		if (game->entities[i]->etype == "tile")
-		{
-			float x = game->entities[i]->GetPosition().x / SCALE;
-			float y = game->entities[i]->GetPosition().y / SCALE;
-			level << game->entities[i]->etype << " " << (x) <<
-				" " << (y) << " " << game->entities[i]->drawOrder <<
-				" " << game->entities[i]->layer << " " << game->entities[i]->impassable << 
-				" " << game->entities[i]->tilesheetIndex << " " << game->entities[i]->tileCoordinates.x << 
-				" " << game->entities[i]->tileCoordinates.y << "" << std::endl;
-		}
-		else if (game->entities[i]->etype == "door")
-		{
-			Door* door = static_cast<Door*>(game->entities[i]);
-			Vector2 pos = door->GetPosition();//game->CalcObjPos();
-
-			level << door->etype << " " << (pos.x / SCALE) << " " <<
-				(pos.y / SCALE) << " " << (door->GetDestination().x / SCALE) <<
-				" " << (door->GetDestination().y / SCALE) << " " << door->spriteIndex << "" << std::endl;
-		}
-		else if (game->entities[i]->etype == "ladder")
-		{
-			Ladder* ladder = static_cast<Ladder*>(game->entities[i]);
-			Vector2 pos = ladder->GetPosition();//game->CalcObjPos();
-
-			level << ladder->etype << " "  << (pos.x / SCALE) << " " <<
-				(pos.y / SCALE) << " " << ladder->GetAnimator()->currentState
-				<< " " << ladder->spriteIndex << "" << std::endl;
-		}
-		else if (game->entities[i]->etype == "npc")
-		{
-			NPC* npc = static_cast<NPC*>(game->entities[i]);
-			Vector2 pos = npc->GetPosition();
-
-			std::string npcLabel = npc->cutsceneLabel;
-			if (npcLabel == "")
-				npcLabel = "null";
-
-			level << npc->etype << " " << (pos.x / SCALE) <<
-				" " << (pos.y / SCALE) << " " << npc->name << " " << npc->cutsceneLabel <<
-				" " << npc->spriteIndex << " " << npc->drawOrder <<
-				" " << npc->layer << " " << npc->impassable << std::endl;
-		}
-		else if (game->entities[i]->etype == "player")
-		{
-			Player* player = static_cast<Player*>(game->entities[i]);
-
-			level << player->etype << " " << (player->startPosition.x) <<
-				" " << (player->startPosition.y) << " " << player->drawOrder <<
-				" " << player->layer << " " << player->impassable << std::endl;
-		}
-		else if (game->entities[i]->etype == "goal")
-		{
-			Goal* goal = static_cast<Goal*>(game->entities[i]);
-
-			level << goal->etype << " " << (goal->GetPosition().x / SCALE) <<
-				" " << (goal->GetPosition().y / SCALE) << " " << goal->spriteIndex << std::endl;
-		}
-		else if (game->entities[i]->etype == "bug")
-		{
-			Bug* bug = static_cast<Bug*>(game->entities[i]);
-
-			level << bug->etype << " " << (bug->GetPosition().x / SCALE) <<
-				" " << (bug->GetPosition().y / SCALE) << " " << bug->spriteIndex << std::endl;
-		}
-		else if (game->entities[i]->etype == "ether")
-		{
-			Ether* ether = static_cast<Ether*>(game->entities[i]);
-
-			level << ether->etype << " " << (ether->GetPosition().x / SCALE) <<
-				" " << (ether->GetPosition().y / SCALE) << " " << ether->spriteIndex << std::endl;
-		}
-		else if (game->entities[i]->etype == "block")
-		{
-			Block* block = static_cast<Block*>(game->entities[i]);
-
-			level << block->etype << " " << (block->GetPosition().x / SCALE) <<
-				" " << (block->GetPosition().y / SCALE) << " " << block->spriteIndex << std::endl;
-		}
-		else
-		{
-			// Don't save anything else, because they are probably temp objects like missiles, etc.
-
-			//fout << game->entities[i]->etype << " " << (game->entities[i]->GetPosition().x / SCALE) <<
-			//	" " << (game->entities[i]->GetPosition().y / SCALE) << " " << game->entities[i]->drawOrder <<
-			//	" " << game->entities[i]->layer << " " << game->entities[i]->impassable << std::endl;
-		}
+		game->entities[i]->Save(level);
 	}
 
 	return level.str();

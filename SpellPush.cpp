@@ -77,7 +77,7 @@ void SpellPush::Cast(Game& game)
 	//std::cout << "Rect for push spell:" << std::endl;
 	//std::cout << "(" << spellRange->x << "," << spellRange->y << "," <<
 	//	spellRange->w << "," << spellRange->h << ")" << std::endl;
-	//game.debugRectangles.push_back(spellRange);
+	game.debugRectangles.push_back(spellRange);
 
 	const float PUSH_SPEED = 0.5f;
 

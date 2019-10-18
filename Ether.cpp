@@ -35,3 +35,11 @@ void Ether::OnTriggerExit(Entity* other, Game& game)
 {
 
 }
+
+void Ether::Save(std::ostringstream& level)
+{
+	int SCALE = Renderer::GetScale();
+
+	level << etype << " " << (GetPosition().x / SCALE) <<
+		" " << (GetPosition().y / SCALE) << " " << spriteIndex << std::endl;
+}

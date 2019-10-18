@@ -22,4 +22,6 @@ public:
 	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
 	Tile(Vector2 pos, Vector2 frame, SDL_Texture * image, Renderer * renderer);
 	~Tile();
+
+	void Save(std::ostringstream& level);
 };

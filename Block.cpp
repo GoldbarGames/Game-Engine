@@ -1,5 +1,6 @@
 #include "Block.h"
 #include "Renderer.h"
+#include "Game.h"
 
 Block::Block(Vector2 pos) : PhysicsEntity(pos)
 {
@@ -64,4 +65,12 @@ void Block::SetProperty(std::string prop, std::string newValue)
 		if (newValue != "")
 			colliderHeight = std::stof(newValue) * Renderer::GetScale();
 	}
+}
+
+void Block::Save(std::ostringstream& level)
+{
+	int SCALE = Renderer::GetScale();
+	
+	level << etype << " " << (GetPosition().x / SCALE) <<
+		" " << (GetPosition().y / SCALE) << " " << spriteIndex << std::endl;
 }

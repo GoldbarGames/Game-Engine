@@ -18,5 +18,7 @@ public:
 	void OnTriggerExit(Entity* other, Game& game);
 	void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties);
 	void SetProperty(std::string prop, std::string newValue);
+
+	void Save(std::ostringstream& level);
 };
 

@@ -53,5 +53,7 @@ public:
 
 	void CastSpellDebug(Game &game, const Uint8* input);
 	void CheckJumpButton(const Uint8* input);
+
+	void Save(std::ostringstream& level);
 };
 

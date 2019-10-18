@@ -14,15 +14,11 @@ protected:
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
 
-
-
 public:
 	virtual ~Entity();
 	Entity(Vector2 pos);
 
 	std::string name = "";
-
-
 
 	SDL_RendererFlip flip = SDL_FLIP_NONE;
 	Vector2 entityPivot = Vector2(0, 0);
@@ -65,5 +61,8 @@ public:
 	virtual void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties);
 	void DeleteProperties(std::vector<Text*>& properties);
 	virtual void SetProperty(std::string prop, std::string newValue);
+
+	virtual void Save(std::ostringstream& level);
+
 };
 

@@ -350,3 +350,9 @@ void Player::SetProperty(std::string prop, std::string newValue)
 			startPosition.y = std::stof(newValue);
 	}
 }
+
+void Player::Save(std::ostringstream& level)
+{
+	level << etype << " " << startPosition.x << " " << startPosition.y << " " << drawOrder <<
+		" " << layer << " " << impassable << std::endl;
+}

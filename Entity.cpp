@@ -2,6 +2,7 @@
 #include "debug_state.h"
 #include <iostream>
 #include "Renderer.h"
+#include <sstream>
 
 unsigned int Entity::nextValidID = 0;
 
@@ -152,4 +153,9 @@ void Entity::DeleteProperties(std::vector<Text*>& properties)
 void Entity::SetProperty(std::string prop, std::string newValue)
 {
 
+}
+
+void Entity::Save(std::ostringstream& level)
+{
+	// By default, save nothing, because they are probably temp objects like missiles, etc.
 }
