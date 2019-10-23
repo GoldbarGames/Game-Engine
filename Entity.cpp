@@ -25,7 +25,7 @@ void Entity::Pause(Uint32 ticks)
 {
 	if (animator != nullptr)
 	{
-		std::cout << "-- pausing --" << std::endl;
+		//std::cout << "-- pausing --" << std::endl;
 		animator->animationTimer.Pause(ticks);
 	}	
 }
@@ -34,7 +34,7 @@ void Entity::Unpause(Uint32 ticks)
 {
 	if (animator != nullptr)
 	{
-		std::cout << "-- unpausing --" << std::endl;
+		//std::cout << "-- unpausing --" << std::endl;
 		animator->animationTimer.Unpause(ticks);
 	}
 }

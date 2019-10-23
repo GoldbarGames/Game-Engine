@@ -8,7 +8,7 @@ Bug::Bug(Vector2 pos) : PhysicsEntity(pos)
 	drawOrder = 90;
 	etype = "bug";
 	trigger = true;
-	usePhysics = false;
+	useGravity = false;
 	CreateCollider(24, 24, 0, 0, 1.0f, 1.0f);
 }
 

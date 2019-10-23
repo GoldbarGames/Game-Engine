@@ -33,23 +33,29 @@ Game::Game()
 	cutscene->ParseScene();
 
 	// Initialize the sprite map (do this BEFORE the editor)
-	spriteMapDoor[0] = "assets/sprites/objects/door1.png";
-	spriteMapDoor[1] = "assets/sprites/objects/door_house.png";
-	spriteMapDoor[2] = "assets/sprites/objects/door_house_outside.png";
+	//TODO: Can this be done automatically by grabbing all files in each folder?
+	//(hard-code an array of strings for folder names, then iterate each of them)
+	//(turn each spritemap(vector) into a dictionary entry (spritemap["door"])
 
-	spriteMapLadder[0] = "assets/sprites/objects/ladder1.png";
-	spriteMapLadder[1] = "assets/sprites/objects/ladder_house.png";
-	spriteMapLadder[2] = "assets/sprites/objects/ladder_b.png";
+	std::vector<std::string> mapNames = { "door", "ladder" };
 
-	spriteMapNPCs[0] = "assets/sprites/npcs/gramps.png";
-	spriteMapNPCs[1] = "assets/sprites/npcs/the_man.png";
+	spriteMap["door"].push_back("assets/sprites/objects/door1.png");
+	spriteMap["door"].push_back("assets/sprites/objects/door_house.png");
+	spriteMap["door"].push_back("assets/sprites/objects/door_house_outside.png");
 
-	spriteMapBug[0] = "assets/sprites/bugs/bug1.png";
-	spriteMapBug[1] = "assets/sprites/bugs/bug2.png";
+	spriteMap["ladder"].push_back("assets/sprites/objects/ladder1.png");
+	spriteMap["ladder"].push_back("assets/sprites/objects/ladder_house.png");
+	spriteMap["ladder"].push_back("assets/sprites/objects/ladder_b.png");
 
-	spriteMapGoal[0] = "assets/sprites/objects/door1.png";
-	spriteMapGoal[1] = "assets/sprites/objects/door_house.png";
-	spriteMapGoal[2] = "assets/sprites/objects/door_house_outside.png";
+	spriteMap["npc"].push_back("assets/sprites/npcs/gramps.png");
+	spriteMap["npc"].push_back("assets/sprites/npcs/the_man.png");
+
+	spriteMap["bug"].push_back("assets/sprites/bugs/bug1.png");
+	spriteMap["bug"].push_back("assets/sprites/bugs/bug2.png");
+
+	spriteMap["goal"].push_back("assets/sprites/objects/door1.png");
+	spriteMap["goal"].push_back("assets/sprites/objects/door_house.png");
+	spriteMap["goal"].push_back("assets/sprites/objects/door_house_outside.png");
 
 	editor = new Editor(*this);
 
@@ -172,13 +178,13 @@ Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
 	Animator* anim = new Animator("ladder", "middle");
 
 	anim->MapStateToSprite("middle", new Sprite(2, 2, 5, spriteManager, 
-		spriteMapLadder[spriteIndex], renderer, Vector2(0, 0)));
+		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0)));
 
 	anim->MapStateToSprite("bottom", new Sprite(4, 4, 5, spriteManager,
-		spriteMapLadder[spriteIndex], renderer, Vector2(0, 0)));
+		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0)));
 
 	anim->MapStateToSprite("top", new Sprite(0, 0, 5, spriteManager,
-		spriteMapLadder[spriteIndex], renderer, Vector2(0, 0)));
+		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0)));
 
 	anim->speed = 0;
 	newLadder->SetAnimator(anim);
@@ -227,8 +233,8 @@ Door* Game::CreateDoor(Vector2 position, int spriteIndex)
 	Animator* anim = new Animator("door", "closed");
 
 	Vector2 pivotPoint = Vector2(0, 0);
-	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, spriteMapDoor[spriteIndex], renderer, pivotPoint));
-	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, spriteMapDoor[spriteIndex], renderer, pivotPoint));
+	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, spriteMap["door"][spriteIndex], renderer, pivotPoint));
+	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, spriteMap["door"][spriteIndex], renderer, pivotPoint));
 
 	newDoor->SetAnimator(anim);
 
@@ -263,16 +269,16 @@ NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 	if (name == "gramps")
 	{
 		pivotPoint = Vector2(12, 28);
-		anim->MapStateToSprite("idle", new Sprite(0, 0, 3, spriteManager, spriteMapNPCs[spriteIndex], renderer, pivotPoint));
-		anim->MapStateToSprite("sad", new Sprite(1, 1, 3, spriteManager, spriteMapNPCs[spriteIndex], renderer, pivotPoint));
-		anim->MapStateToSprite("confused", new Sprite(2, 2, 3, spriteManager, spriteMapNPCs[spriteIndex], renderer, pivotPoint));
+		anim->MapStateToSprite("idle", new Sprite(0, 0, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint));
+		anim->MapStateToSprite("sad", new Sprite(1, 1, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint));
+		anim->MapStateToSprite("confused", new Sprite(2, 2, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint));
 		
 	}
 	else if (name == "the_man")
 	{
 		pivotPoint = Vector2(23, 36);
 		anim->speed = 200;
-		anim->MapStateToSprite("idle", new Sprite(0, 7, 8, spriteManager, spriteMapNPCs[spriteIndex], renderer, pivotPoint));
+		anim->MapStateToSprite("idle", new Sprite(0, 7, 8, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint));
 	}
 
 	newNPC->ChangeCollider(anim->GetCurrentSprite()->frameWidth, anim->GetCurrentSprite()->frameHeight);
@@ -309,8 +315,8 @@ Goal* Game::CreateGoal(Vector2 position, int spriteIndex)
 	Animator* anim = new Animator("door", "closed");
 
 	Vector2 pivotPoint = Vector2(0, 0);
-	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, spriteMapGoal[spriteIndex], renderer, pivotPoint));
-	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, spriteMapGoal[spriteIndex], renderer, pivotPoint));
+	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer, pivotPoint));
+	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer, pivotPoint));
 
 	newGoal->SetAnimator(anim);
 
@@ -343,7 +349,7 @@ Bug* Game::CreateBug(Vector2 position, int spriteIndex)
 	Animator* anim = new Animator("bug", "idle");
 
 	Vector2 pivotPoint = Vector2(16, 16);
-	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, spriteMapBug[spriteIndex], renderer, pivotPoint));
+	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, spriteMap["bug"][spriteIndex], renderer, pivotPoint));
 
 	newBug->SetAnimator(anim);
 
@@ -429,6 +435,40 @@ Block* Game::SpawnBlock(Vector2 position, int spriteIndex)
 	{
 		entities.emplace_back(newBlock);
 		return newBlock;
+	}
+}
+
+
+
+Platform* Game::CreatePlatform(Vector2 position, int spriteIndex)
+{
+	Platform* newPlatform = new Platform(position);
+	newPlatform->spriteIndex = spriteIndex;
+
+	//TODO: How to make this work for doors that will be related to other tilesets?
+	Animator* anim = new Animator("platform", "idle");
+
+	Vector2 pivotPoint = Vector2(36, 12);
+	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/platform.png", renderer, pivotPoint));
+
+	newPlatform->SetAnimator(anim);
+
+	return newPlatform;
+}
+
+Platform* Game::SpawnPlatform(Vector2 position, int spriteIndex)
+{
+	Platform* newPlatform = CreatePlatform(position, spriteIndex);
+
+	if (!newPlatform->CanSpawnHere(position, *this))
+	{
+		delete newPlatform;
+		return nullptr;
+	}
+	else
+	{
+		entities.emplace_back(newPlatform);
+		return newPlatform;
 	}
 }
 

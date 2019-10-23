@@ -289,7 +289,7 @@ void PhysicsEntity::Push(Vector2 pushVelocity)
 
 void PhysicsEntity::Update(Game& game)
 {
-	if (usePhysics)
+	if (useGravity)
 	{
 		if (velocity.y < 1)
 			velocity.y += Physics::GRAVITY;

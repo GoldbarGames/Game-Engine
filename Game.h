@@ -26,6 +26,7 @@
 #include "Ether.h"
 #include "Goal.h"
 #include "Block.h"
+#include "Platform.h"
 #include "CutsceneManager.h"
 #include "SoundManager.h"
 #include <chrono>
@@ -42,17 +43,14 @@ private:
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;
 
-	std::unordered_map<int, std::string> spriteMapDoor;
-	std::unordered_map<int, std::string> spriteMapLadder;
-	std::unordered_map<int, std::string> spriteMapNPCs;
 
-	std::unordered_map<int, std::string> spriteMapGoal;
-	std::unordered_map<int, std::string> spriteMapBug;
 
 	
 
 	
 public:
+
+	std::unordered_map<std::string, std::vector<std::string>> spriteMap;
 
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
@@ -165,7 +163,7 @@ public:
 	Missile* SpawnMissile(Vector2 position, Vector2 velocity, float angle);
 
 	Door* CreateDoor(Vector2 position, int spriteIndex); // returns the Door entity with default parameters
-	Door* SpawnDoor(Vector2 position, int spriteIndex=0); // only returns Door if it can be spawned succesfully in-game, else null
+	Door* SpawnDoor(Vector2 position, int spriteIndex=0); // only returns Door if it can be spawned successfully in-game, else null
 
 	Ladder* CreateLadder(Vector2 position, int spriteIndex);
 	Ladder* SpawnLadder(Vector2 position, int spriteIndex=0);
@@ -184,6 +182,9 @@ public:
 
 	Block* CreateBlock(Vector2 position, int spriteIndex);
 	Block* SpawnBlock(Vector2 position, int spriteIndex = 0);
+
+	Platform* CreatePlatform(Vector2 position, int spriteIndex);
+	Platform* SpawnPlatform(Vector2 position, int spriteIndex = 0);
 
 	void LoadTitleScreen();
 	void PlayLevel(string levelName);

@@ -13,7 +13,7 @@ protected:
 	int jumpsRemaining = 2;
 public:
 
-	bool usePhysics = true;
+	bool useGravity = true;
 	bool canBePushed = false;
 
 	SDL_Rect* collider = nullptr;        // adjust the bounds this way

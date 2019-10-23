@@ -34,9 +34,11 @@ Editor::Editor(Game& g)
 	previewMap["bug"] = game->CreateBug(Vector2(0, 0), spriteMapIndex);
 	previewMap["ether"] = game->CreateEther(Vector2(0, 0), spriteMapIndex);
 	previewMap["block"] = game->CreateBlock(Vector2(0, 0), spriteMapIndex);
+	previewMap["platform"] = game->CreatePlatform(Vector2(0, 0), spriteMapIndex);
 
 	//TODO: Make the indexes different numbers for the names and sprite sheets?
 	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
+	
 
 	game->entities.clear();	
 }
@@ -58,7 +60,7 @@ void Editor::CreateEditorButtons()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy", "Block", "Grab" };
+	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy", "Block", "Grab", "Platform" };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
 	unsigned int BUTTON_LIST_END = BUTTON_LIST_START + BUTTONS_PER_PAGE;
@@ -498,6 +500,12 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (currentblock != nullptr)
 				game->SortEntities(game->entities);
 		}
+		else if (objectMode == "platform")
+		{
+			Platform* currentPlatform = game->SpawnPlatform(snappedPosition, spriteMapIndex);
+			if (currentPlatform != nullptr)
+				game->SortEntities(game->entities);
+		}
 		else if (objectMode == "door")
 		{
 			if (!placingDoor)
@@ -929,63 +937,42 @@ void Editor::ClickedButton(string buttonName)
 		currentButtonPage++;
 		CreateEditorButtons();
 	}
+	else if (buttonName == "Platform")
+	{
+		ToggleObjectMode("platform");
+	}
 }
-
-//TODO: Refactor this
-
 
 void Editor::ToggleSpriteMap()
 {
-	spriteMapIndex++; //TODO: Make this better, how to get length of each map?
-		
+	spriteMapIndex++;
+
+	if (game->spriteMap.count(objectMode) > 0 && spriteMapIndex >= game->spriteMap[objectMode].size())
+		spriteMapIndex = 0;
+
+	if (previewMap.count(objectMode) > 0 && previewMap[objectMode] != nullptr)
+		delete previewMap[objectMode];
+
 	// Update the preview sprites accordingly
 	if (objectMode == "door")
 	{
-		if (spriteMapIndex > 2)
-			spriteMapIndex = 0;
-
-		delete previewMap["door"];
-		previewMap["door"] = game->CreateDoor(Vector2(0, 0), spriteMapIndex);		
+		previewMap[objectMode] = game->CreateDoor(Vector2(0, 0), spriteMapIndex);
 	}
 	else if (objectMode == "ladder")
 	{
-		if (spriteMapIndex > 2)
-			spriteMapIndex = 0;
-
-		delete previewMap["ladder"];
-		previewMap["ladder"] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
+		previewMap[objectMode] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
 	}
 	else if (objectMode == "npc")
 	{
-		if (spriteMapIndex > 1)
-			spriteMapIndex = 0;
-
-		delete previewMap["npc"];
-		previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
+		previewMap[objectMode] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 	}
 	else if (objectMode == "goal")
 	{
-		if (spriteMapIndex > 2)
-			spriteMapIndex = 0;
-
-		delete previewMap["goal"];
-		previewMap["goal"] = game->CreateGoal(Vector2(0, 0), spriteMapIndex);
+		previewMap[objectMode] = game->CreateGoal(Vector2(0, 0), spriteMapIndex);
 	}
 	else if (objectMode == "bug")
 	{
-		if (spriteMapIndex > 1)
-			spriteMapIndex = 0;
-
-		delete previewMap["bug"];
-		previewMap["bug"] = game->CreateBug(Vector2(0, 0), spriteMapIndex);
-	}
-	else if (objectMode == "ether")
-	{
-		if (spriteMapIndex > 0)
-			spriteMapIndex = 0;
-
-		delete previewMap["ether"];
-		previewMap["ether"] = game->CreateEther(Vector2(0, 0), spriteMapIndex);
+		previewMap[objectMode] = game->CreateBug(Vector2(0, 0), spriteMapIndex);
 	}
 
 	objectPreview = previewMap[objectMode];
@@ -1029,7 +1016,6 @@ void Editor::ClickedLayerButton(string buttonText)
 
 	SetLayer(layer);
 }
-
 
 void Editor::ToggleObjectMode(std::string mode)
 {
@@ -1464,6 +1450,18 @@ void Editor::CreateLevelFromString(std::string level)
 		{
 			int spriteIndex = std::stoi(tokens[3]);
 			Block* block = game->SpawnBlock(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+		}
+		else if (etype == "platform")
+		{
+			int spriteIndex = std::stoi(tokens[3]);
+			Platform* platform = game->SpawnPlatform(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+
+			platform->platformType = tokens[4];
+			platform->startVelocity = Vector2(std::stof(tokens[5]), std::stof(tokens[6]));
+			platform->tilesToMove = std::stoi(tokens[7]);
+			platform->shouldLoop = std::stoi(tokens[8]);
+
+			platform->SetVelocity(platform->startVelocity);
 		}
 
 		ss.getline(lineChar, 256);
