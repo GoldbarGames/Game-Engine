@@ -2,6 +2,29 @@
 #include "Renderer.h"
 #include "Game.h"
 
+// In order to make a platform move along a path:
+
+// * 0a. Display ID as read-only property for every entity
+// * we need to save IDs for every entity
+// * we need to calculate the next ID when we load the level (by finding the highest one)
+
+// 0b. Create a Path class and a way to spawn Path objects in the level using the editor
+// * Click a button to start drawing a path. Each left-click will place a path node on a tile.
+// * Right-clicking will remove nodes from the path
+// * Clicking on the path button will save the path
+// * Can toggle the property of the path to make it a closed loop or not
+// ? Can you move nodes in the path? Can you insert nodes into the middle?
+
+// 1. Click on platform, set its type property to Move-Path (select via up/down arrows)
+// 2. After its type is set, properties for speed and Path ID will be displayed
+// 3. Make the platform save its path ID when we save the platform to the level
+// 4. When the level starts, make the platform get the path from the ID
+// - iterate through every entity in the level until we find the one with the ID
+// - store that entity as a reference in the platform object
+// 5. Keep track of which node the platform is heading towards, and move toward it
+// 6. Define behavior when the end of the path is reached, and take that action
+
+
 Platform::Platform(Vector2 pos) : PhysicsEntity(pos)
 {
 	startPosition = position;
@@ -62,7 +85,7 @@ void Platform::Render(Renderer * renderer, Vector2 cameraOffset)
 
 void Platform::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
 {
-	Entity::DeleteProperties(properties);
+	Entity::GetProperties(renderer, font, properties);
 	
 	properties.emplace_back(new Text(renderer, font, "Platform Type: " + platformType));
 
@@ -77,6 +100,12 @@ void Platform::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<T
 		properties.emplace_back(new Text(renderer, font, "Velocity Y: " + std::to_string(startVelocity.y)));
 		properties.emplace_back(new Text(renderer, font, "Distance: " + std::to_string(tilesToMove)));
 		properties.emplace_back(new Text(renderer, font, "Loop: " + std::to_string(shouldLoop)));
+	}
+	else if (platformType == "Move-Path")
+	{
+		properties.emplace_back(new Text(renderer, font, "Path ID : " + std::to_string(pathID)));
+		properties.emplace_back(new Text(renderer, font, "Speed: " + std::to_string(pathSpeed)));
+		properties.emplace_back(new Text(renderer, font, "End Behavior: " + endPathBehavior));
 	}
 	else if (platformType == "Idle")
 	{
@@ -127,6 +156,21 @@ void Platform::SetProperty(std::string prop, std::string newValue)
 		if (newValue != "")
 			platformType = newValue;
 	}
+	else if (key == "Path ID")
+	{
+		if (newValue != "")
+			pathID = std::stoi(newValue);
+	}
+	else if (key == "Speed")
+	{
+		if (newValue != "")
+			pathSpeed = std::stof(newValue);
+	}
+	else if (key == "End Behavior")
+	{
+		if (newValue != "")
+			endPathBehavior = newValue;
+	}
 }
 
 void Platform::Save(std::ostringstream& level)
@@ -134,6 +178,15 @@ void Platform::Save(std::ostringstream& level)
 	int SCALE = Renderer::GetScale();
 	Vector2 pos = GetPosition();
 
-	level << etype << " " << (pos.x / SCALE) << " " << (pos.y / SCALE) << " " << spriteIndex <<	" " << platformType
-	<< " " << startVelocity.x << " " << startVelocity.y << " " << tilesToMove << " " << shouldLoop << std::endl;
+	if (platformType == "Move-Path")
+	{
+		level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " << (pos.y / SCALE) << " " << spriteIndex << " " << platformType
+			<< " " << pathID << " " << pathSpeed << " " << endPathBehavior << std::endl;
+	}
+	else
+	{
+		level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " << (pos.y / SCALE) << " " << spriteIndex << " " << platformType
+			<< " " << startVelocity.x << " " << startVelocity.y << " " << tilesToMove << " " << shouldLoop << std::endl;
+	}
+	
 }

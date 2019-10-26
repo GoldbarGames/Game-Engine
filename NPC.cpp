@@ -53,7 +53,7 @@ void NPC::OnTriggerExit(Entity* other)
 
 void NPC::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
 {
-	Entity::DeleteProperties(properties);
+	Entity::GetProperties(renderer, font, properties);
 
 	properties.emplace_back(new Text(renderer, font, "Name: " + name));
 	properties.emplace_back(new Text(renderer, font, "Label: " + cutsceneLabel));
@@ -91,7 +91,7 @@ void NPC::Save(std::ostringstream& level)
 	if (npcLabel == "")
 		npcLabel = "null";
 
-	level << etype << " " << (pos.x / SCALE) << " " << (pos.y / SCALE) << " " << name << 
+	level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " << (pos.y / SCALE) << " " << name <<
 		" " << cutsceneLabel << " " << spriteIndex << " " << drawOrder <<
 		" " << layer << " " << impassable << std::endl;
 }

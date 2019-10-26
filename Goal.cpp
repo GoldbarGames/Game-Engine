@@ -47,7 +47,7 @@ void Goal::OnTriggerExit(Entity* other, Game& game)
 
 void Goal::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
 {
-	Entity::DeleteProperties(properties);
+	Entity::GetProperties(renderer, font, properties);
 
 	properties.emplace_back(new Text(renderer, font, "Next Level: " + nextLevelName));
 }
@@ -75,6 +75,6 @@ void Goal::Save(std::ostringstream& level)
 {
 	int SCALE = Renderer::GetScale();
 
-	level << etype << " " << (GetPosition().x / SCALE) <<
+	level << std::to_string(id) << " " << etype << " " << (GetPosition().x / SCALE) <<
 		" " << (GetPosition().y / SCALE) << " " << spriteIndex << std::endl;
 }

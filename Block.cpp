@@ -24,7 +24,7 @@ void Block::Render(Renderer * renderer, Vector2 cameraOffset)
 
 void Block::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
 {
-	Entity::DeleteProperties(properties);
+	Entity::GetProperties(renderer, font, properties);
 
 	properties.emplace_back(new Text(renderer, font, "Collider Pos X: " + std::to_string((int)collider->x)));
 	properties.emplace_back(new Text(renderer, font, "Collider Pos Y: " + std::to_string((int)collider->y)));
@@ -71,6 +71,6 @@ void Block::Save(std::ostringstream& level)
 {
 	int SCALE = Renderer::GetScale();
 	
-	level << etype << " " << (GetPosition().x / SCALE) <<
+	level << std::to_string(id) << " " << etype << " " << (GetPosition().x / SCALE) <<
 		" " << (GetPosition().y / SCALE) << " " << spriteIndex << std::endl;
 }

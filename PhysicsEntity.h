@@ -27,6 +27,8 @@ public:
 	bool hadPressedJump;
 	bool pressingJumpButton;
 
+	PhysicsEntity* parent = nullptr;
+
 	PhysicsEntity(Vector2 pos);
 	~PhysicsEntity();
 
@@ -34,6 +36,8 @@ public:
 
 	void CreateCollider(float startX, float startY, float x, float y, float w, float h);
 	const SDL_Rect* GetColliderBounds();
+
+	void PreviousFrameCollisions(Game& game);
 
 	void SetVelocity(Vector2 newVelocity);
 

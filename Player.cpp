@@ -320,7 +320,7 @@ void Player::ResetPosition()
 
 void Player::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
 {
-	Entity::DeleteProperties(properties);
+	Entity::GetProperties(renderer, font, properties);
 
 	properties.emplace_back(new Text(renderer, font, "Start Pos X: " + std::to_string((int)startPosition.x)));
 	properties.emplace_back(new Text(renderer, font, "Start Pos Y: " + std::to_string((int)startPosition.y)));
@@ -353,6 +353,6 @@ void Player::SetProperty(std::string prop, std::string newValue)
 
 void Player::Save(std::ostringstream& level)
 {
-	level << etype << " " << startPosition.x << " " << startPosition.y << " " << drawOrder <<
+	level << std::to_string(id) << " " << etype << " " << startPosition.x << " " << startPosition.y << " " << drawOrder <<
 		" " << layer << " " << impassable << std::endl;
 }

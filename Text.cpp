@@ -1,6 +1,7 @@
 #include "Text.h"
 #include "Renderer.h"
 
+//TODO: Refactor these constructors a little bit
 
 Text::Text(Renderer* newRenderer, TTF_Font* newFont)
 {
@@ -21,9 +22,19 @@ Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt)
 	SetText(txt);
 }
 
+Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color)
+{
+	renderer = newRenderer;
+	font = newFont;
+	textTextureRect.x = 0;
+	textTextureRect.y = 0;
+	SetPosition(0, 0);
+	SetText(txt, color);
+}
 
 Text::~Text()
 {
+
 }
 
 void Text::SetFont(TTF_Font* newFont)
@@ -39,6 +50,7 @@ void Text::SetText(string text, Color color)
 	if (textTexture != nullptr)
 		SDL_DestroyTexture(textTexture);
 
+	textColor = color;
 	txt = text; // translate the text here
 	id = text;
 	textSurface = TTF_RenderText_Solid(font, text.c_str(), { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a });

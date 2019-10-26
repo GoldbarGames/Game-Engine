@@ -1,4 +1,5 @@
 #pragma once
+#include "Path.h"
 #include "PhysicsEntity.h"
 class Platform : public PhysicsEntity
 {
@@ -9,6 +10,12 @@ public:
 	bool shouldLoop = true;
 	Vector2 startVelocity = Vector2(0, 0);
 	Vector2 startPosition = Vector2(0, 0);
+
+	// Path variables
+	Path* currentPath = nullptr;
+	int pathID = 0;
+	float pathSpeed = 0;
+	std::string endPathBehavior = "";
 
 	Platform(Vector2 pos);
 	~Platform();

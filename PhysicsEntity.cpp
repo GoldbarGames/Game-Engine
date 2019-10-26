@@ -6,6 +6,7 @@
 PhysicsEntity::PhysicsEntity(Vector2 pos) : Entity(pos)
 {
 	CreateCollider(0, 0, 0, 0, 1, 1);
+	isPhysicsEntity = true;
 }
 
 PhysicsEntity::~PhysicsEntity()
@@ -77,6 +78,36 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 	CalculateCollider(game.camera);
 
+	PhysicsEntity* prevParent = parent;
+	parent = nullptr;
+
+	if (prevParent != nullptr)
+	{
+		// If parent is moving and we are not, then make us move with parent
+		// Otherwise, just move according to our own speed
+		if (prevParent->velocity.x != 0 && velocity.x == 0)
+		{
+			velocity.x = prevParent->velocity.x;
+		}
+
+		if (prevParent->velocity.y != 0)
+		{
+			velocity.y = prevParent->velocity.y;
+		}
+	}
+
+	animator->SetBool("isGrounded", false);
+
+	if (prevParent != nullptr && prevParent->velocity.y != 0)
+	{
+		animator->SetBool("isGrounded", true);
+
+		if (prevParent->velocity.y > 0)
+		{
+			velocity.y = prevParent->velocity.y;
+		}
+	}
+
 	bool horizontalCollision = false;
 	bool verticalCollision = false;
 
@@ -88,11 +119,6 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 	SDL_Rect newBoundsVertical = myBounds;
 	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
-
-	SDL_Rect floorBounds = newBoundsVertical;
-
-	if (etype == "player" || etype == "npc")
-		floorBounds.h += 20; // (int)(newBoundsVertical.h * 0.25f);
 
 	// this needs to be here so that it does not check for horizontal collision when moving vertically
 	if (velocity.x > 0)
@@ -120,7 +146,14 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		newBoundsHorizontal.y += 1;
 	}
 
-	animator->SetBool("isGrounded", false);
+	SDL_Rect floorBounds = newBoundsVertical;
+
+	newBoundsVertical.y -= 1;
+
+	if (etype == "player" || etype == "npc")
+		floorBounds.h += 20; // (int)(newBoundsVertical.h * 0.25f);
+
+
 
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
@@ -145,25 +178,56 @@ void PhysicsEntity::CheckCollisions(Game& game)
 					verticalCollision = true;
 					CheckCollisionTrigger(game.entities[i], game);
 
-					// if colliding with ground, set velocity.y to zero
-					if (velocity.y > 0)
+					animator->SetBool("isGrounded", true);
+
+					// Move vertically with the parent if there was one (keep this outside of the if)
+					// WARNING: Do not place a vertically moving platform next to a ceiling
+					// or Kaneko will go through the ceiling and get stuck there!
+					// TODO: Can we think of a good way around this?
+					if (prevParent == game.entities[i] && prevParent->velocity.y != 0)
+					{
+						position.y -= floorBounds.y + floorBounds.h - theirBounds->y + 1;
+					}						
+
+					// if colliding with ground, set velocity.y to zero (we need this if statement!)				
+					if (velocity.y > -0.01f)
 					{
 						animator->SetBool("isGrounded", true);
+						
 						jumpsRemaining = 2;
 
 						// this needs to be here to fix the collision with the ground
 						if (position.y + myBounds.h > theirBounds->y + theirBounds->h + 1)
+						{
 							position.y -= floorBounds.y + floorBounds.h - theirBounds->y - 1;
+						}
+
+						//TODO: Can we do this without casting?
+						if (game.entities[i]->isPhysicsEntity)
+							parent = static_cast<PhysicsEntity*>(game.entities[i]);
 
 						velocity.y = 0;
 					}
+
+					// push Kaneko out of a ceiling just in case she gets stuck there
+					// TODO: Make it so that we don't need to do this!
+					if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
+					{
+						velocity.y = 60 * Physics::GRAVITY;
+						CheckCollisionTrigger(game.entities[i], game);
+						position.y += (velocity.y * game.dt);
+					}
 				}
 
-				// checks the ceiling
+				// checks the ceiling (don't know how necessary this realy is)			
 				if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
 				{
 					verticalCollision = true;
+					velocity.y = 20 * Physics::GRAVITY;
 					CheckCollisionTrigger(game.entities[i], game);
+					position.y += (velocity.y * game.dt);
+					// The reason we add to the position here is because we will not move
+					// at all due to verticalCollision being true, so we have to move her down here
 				}
 			}
 			else if (game.entities[i]->trigger)
@@ -196,6 +260,11 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		position.y += (velocity.y * game.dt);
 	}
 
+	PreviousFrameCollisions(game);
+}
+
+void PhysicsEntity::PreviousFrameCollisions(Game& game)
+{
 	// Remove deleted objects from prevFrameCollisions
 	unsigned int k = 0;
 	while (k < prevFrameCollisions.size())
@@ -207,7 +276,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		else
 		{
 			k++;
-		}			
+		}
 	}
 
 	// Now we go over the list
@@ -291,8 +360,7 @@ void PhysicsEntity::Update(Game& game)
 {
 	if (useGravity)
 	{
-		if (velocity.y < 1)
-			velocity.y += Physics::GRAVITY;
+		velocity.y += Physics::GRAVITY;
 	}
 
 	CheckCollisions(game);

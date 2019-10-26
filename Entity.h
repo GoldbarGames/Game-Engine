@@ -8,15 +8,17 @@ class Game;
 
 class Entity
 {
-protected:
-	static unsigned int nextValidID;
+protected:	
 	Vector2 position = Vector2(0, 0);
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
-
 public:
+	static unsigned int nextValidID;
 	virtual ~Entity();
 	Entity(Vector2 pos);
+
+	
+	bool isPhysicsEntity = false;
 
 	std::string name = "";
 
@@ -35,7 +37,7 @@ public:
 
 	SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
-	bool trigger = false;
+	bool trigger = false;	
 
 	Sprite* GetSprite();
 	Animator* GetAnimator();

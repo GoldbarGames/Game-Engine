@@ -60,7 +60,7 @@ void Editor::CreateEditorButtons()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy", "Block", "Grab", "Platform" };
+	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy", "Block", "Grab", "Platform", "Path" };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
 	unsigned int BUTTON_LIST_END = BUTTON_LIST_START + BUTTONS_PER_PAGE;
@@ -398,9 +398,13 @@ void Editor::InspectObject(int mouseX, int mouseY)
 			{
 				if (selectedEntity != nullptr)
 				{
-					propertyIndex = i;
-					game->StartTextInput("properties");
-					SetPropertyText();
+					Color red = { 255, 0, 0, 255 };
+					if (properties[i]->textColor != red)
+					{
+						propertyIndex = i;
+						game->StartTextInput("properties");
+						SetPropertyText();
+					}					
 				}
 				break;
 			}
@@ -505,6 +509,20 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			Platform* currentPlatform = game->SpawnPlatform(snappedPosition, spriteMapIndex);
 			if (currentPlatform != nullptr)
 				game->SortEntities(game->entities);
+		}
+		else if (objectMode == "path")
+		{
+			// If we do not have a path, create a new one
+			if (currentPath == nullptr)
+			{
+				currentPath = new Path(snappedPosition);
+				game->entities.push_back(currentPath);
+				game->SortEntities(game->entities);
+			}
+			else // otherwise, add to the current path
+			{
+				currentPath->AddPointToPath(snappedPosition);
+			}
 		}
 		else if (objectMode == "door")
 		{
@@ -701,6 +719,26 @@ void Editor::RightClick(Vector2 clickedPosition)
 		{
 			// Can delete if at same position
 			shouldDeleteThis = samePosition;
+		}
+
+		// If this entity is a path, check all points in the path
+		// (This must be dealt with outside of the shouldDelete section
+		// because each path contains multiple points that must each be
+		// deleted individually if any of them have been clicked on)
+		if (game->entities[i]->etype == "path")
+		{
+			Path* path = dynamic_cast<Path*>(game->entities[i]);
+			if (path->IsPointInPath(clickedInt))
+			{
+				path->RemovePointFromPath(clickedInt);
+
+				// Only if there are no points in the path do we remove the path
+				if (path->nodes.size() == 0)
+				{
+					game->ShouldDeleteEntity(i);
+					return;
+				}
+			}
 		}
 
 		if (shouldDeleteThis)
@@ -940,6 +978,15 @@ void Editor::ClickedButton(string buttonName)
 	else if (buttonName == "Platform")
 	{
 		ToggleObjectMode("platform");
+	}
+	else if (buttonName == "Path")
+	{
+		if (currentPath != nullptr)
+		{
+			currentPath = nullptr;
+		}
+
+		ToggleObjectMode("path");
 	}
 }
 
@@ -1383,18 +1430,23 @@ void Editor::CreateLevelFromString(std::string level)
 		std::istream_iterator<std::string> beg(buf), end;
 		std::vector<std::string> tokens(beg, end);
 
-		const std::string etype = tokens[0];
+		int index = 0;
+		const int id = std::stoi(tokens[index++]);
+		Entity::nextValidID = id;
 
-		int positionX = std::stoi(tokens[1]);
-		int positionY = std::stoi(tokens[2]);
+		const std::string etype = tokens[index++];
+
+		int positionX = std::stoi(tokens[index++]);
+		int positionY = std::stoi(tokens[index++]);
 
 		if (etype == "tile")
 		{
-			int layer = std::stoi(tokens[4]);
-			int impassable = std::stoi(tokens[5]);
-			int tilesheet = std::stoi(tokens[6]);
-			int frameX = std::stoi(tokens[7]);
-			int frameY = std::stoi(tokens[8]);
+			index++;
+			int layer = std::stoi(tokens[index++]);
+			int impassable = std::stoi(tokens[index++]);
+			int tilesheet = std::stoi(tokens[index++]);
+			int frameX = std::stoi(tokens[index++]);
+			int frameY = std::stoi(tokens[index++]);
 
 			Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheets[tilesheet] + ".png",
 				Vector2(positionX * SCALE, positionY * SCALE), (DrawingLayer)layer);
@@ -1403,17 +1455,18 @@ void Editor::CreateLevelFromString(std::string level)
 		}
 		else if (etype == "door")
 		{
-			int spriteIndex = std::stoi(tokens[5]);
-			Door* newDoor = game->SpawnDoor(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
-			int destX = std::stoi(tokens[3]);
-			int destY = std::stoi(tokens[4]);
+			int destX = std::stoi(tokens[index++]);
+			int destY = std::stoi(tokens[index++]);
+			int spriteIndex = std::stoi(tokens[index++]);
+			Door* newDoor = game->SpawnDoor(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);			
 			newDoor->SetDestination(Vector2(destX * SCALE, destY * SCALE));
 		}
 		else if (etype == "ladder")
 		{
-			int spriteIndex = std::stoi(tokens[4]);
+			std::string ladderState = tokens[index++];
+			int spriteIndex = std::stoi(tokens[index++]);
 			Ladder* newLadder = game->SpawnLadder(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
-			newLadder->GetAnimator()->SetState(tokens[3]);
+			newLadder->GetAnimator()->SetState(ladderState);
 		}
 		else if (etype == "player")
 		{
@@ -1421,45 +1474,47 @@ void Editor::CreateLevelFromString(std::string level)
 		}
 		else if (etype == "npc")
 		{
-			std::string npcName = tokens[3];
-			std::string npcCutscene = tokens[4];
-			int spriteIndex = std::stoi(tokens[5]);
+			std::string npcName = tokens[index++];
+			std::string npcCutscene = tokens[index++];
+			int spriteIndex = std::stoi(tokens[index++]);
 			NPC* newNPC = game->SpawnNPC(npcName, Vector2(positionX, positionY), spriteIndex);
 			newNPC->cutsceneLabel = npcCutscene;
 
-			newNPC->drawOrder = std::stoi(tokens[6]);
-			newNPC->layer = (DrawingLayer)std::stoi(tokens[7]);
-			newNPC->impassable = std::stoi(tokens[8]);
+			newNPC->drawOrder = std::stoi(tokens[index++]);
+			newNPC->layer = (DrawingLayer)std::stoi(tokens[index++]);
+			newNPC->impassable = std::stoi(tokens[index++]);
 		}
 		else if (etype == "goal")
 		{
-			int spriteIndex = std::stoi(tokens[3]);
+			int spriteIndex = std::stoi(tokens[index++]);
 			Goal* entity = game->SpawnGoal(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 		}
 		else if (etype == "bug")
 		{
-			int spriteIndex = std::stoi(tokens[3]);
+			int spriteIndex = std::stoi(tokens[index++]);
 			Bug* entity = game->SpawnBug(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 		}
 		else if (etype == "ether")
 		{
-			int spriteIndex = std::stoi(tokens[3]);
+			int spriteIndex = std::stoi(tokens[index++]);
 			Ether* entity = game->SpawnEther(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 		}
 		else if (etype == "block")
 		{
-			int spriteIndex = std::stoi(tokens[3]);
+			int spriteIndex = std::stoi(tokens[index++]);
 			Block* block = game->SpawnBlock(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 		}
 		else if (etype == "platform")
 		{
-			int spriteIndex = std::stoi(tokens[3]);
+			int spriteIndex = std::stoi(tokens[index++]);
 			Platform* platform = game->SpawnPlatform(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 
-			platform->platformType = tokens[4];
-			platform->startVelocity = Vector2(std::stof(tokens[5]), std::stof(tokens[6]));
-			platform->tilesToMove = std::stoi(tokens[7]);
-			platform->shouldLoop = std::stoi(tokens[8]);
+			platform->platformType = tokens[index++];
+			float vx = std::stof(tokens[index++]);
+			float vy = std::stof(tokens[index++]);
+			platform->startVelocity = Vector2(vx,vy);
+			platform->tilesToMove = std::stoi(tokens[index++]);
+			platform->shouldLoop = std::stoi(tokens[index++]);
 
 			platform->SetVelocity(platform->startVelocity);
 		}

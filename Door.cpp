@@ -130,7 +130,7 @@ void Door::Save(std::ostringstream& level)
 	int SCALE = Renderer::GetScale();
 	Vector2 pos = GetPosition();
 
-	level << etype << " " << (pos.x / SCALE) << " " <<
+	level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " <<
 		(pos.y / SCALE) << " " << (GetDestination().x / SCALE) <<
 		" " << (GetDestination().y / SCALE) << " " << spriteIndex << "" << std::endl;
 }

@@ -62,7 +62,7 @@ void Tile::Save(std::ostringstream& level)
 	float x = GetPosition().x / SCALE;
 	float y = GetPosition().y / SCALE;
 
-	level << etype << " " << x << " " << y << " " << drawOrder << " " << layer << " " 
+	level << std::to_string(id) << " " << etype << " " << x << " " << y << " " << drawOrder << " " << layer << " " 
 		<< impassable << " " << tilesheetIndex << " " << tileCoordinates.x <<
 		" " << tileCoordinates.y << "" << std::endl;
 }

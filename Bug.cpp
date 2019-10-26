@@ -47,6 +47,6 @@ void Bug::Save(std::ostringstream& level)
 {
 	int SCALE = Renderer::GetScale();
 
-	level << etype << " " << (GetPosition().x / SCALE) <<
+	level << std::to_string(id) << " " << etype << " " << (GetPosition().x / SCALE) <<
 		" " << (GetPosition().y / SCALE) << " " << spriteIndex << std::endl;
 }

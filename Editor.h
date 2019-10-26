@@ -13,6 +13,7 @@
 #include "Text.h"
 #include "EditorButton.h"
 
+
 using std::string;
 
 class Door;
@@ -20,6 +21,7 @@ class Entity;
 class Ladder;
 class Renderer;
 class NPC;
+class Path;
 
 class Editor
 {
@@ -57,6 +59,7 @@ private:
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;
 	NPC* currentNPC = nullptr;
+	Path* currentPath = nullptr;
 
 	int spriteMapIndex = 0;
 
