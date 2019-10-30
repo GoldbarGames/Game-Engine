@@ -1012,6 +1012,24 @@ bool Game::HandleEvent(SDL_Event& event)
 				inputText += SDL_GetClipboardText();
 				UpdateTextInput();
 			}
+			else if (event.key.keysym.sym == SDLK_DOWN)
+			{
+				std::string optionString = editor->GetCurrentPropertyOptionString(1);
+				if (optionString != "")
+				{
+					inputText = optionString;
+					UpdateTextInput();
+				}
+			}
+			else if (event.key.keysym.sym == SDLK_UP)
+			{
+				std::string optionString = editor->GetCurrentPropertyOptionString(-1);
+				if (optionString != "")
+				{
+					inputText = optionString;
+					UpdateTextInput();
+				}
+			}
 			// Pressed enter, submit the input
 			else if (event.key.keysym.sym == SDLK_RETURN)
 			{

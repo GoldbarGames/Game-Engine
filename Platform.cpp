@@ -15,12 +15,10 @@
 // * Can toggle the property of the path to make it a closed loop or not
 // ? Can you move nodes in the path? Can you insert nodes into the middle?
 
-// 1. Click on platform, set its type property to Move-Path (select via up/down arrows)
-// 2. After its type is set, properties for speed and Path ID will be displayed
-// 3. Make the platform save its path ID when we save the platform to the level
-// 4. When the level starts, make the platform get the path from the ID
-// - iterate through every entity in the level until we find the one with the ID
-// - store that entity as a reference in the platform object
+// *1. Click on platform, set its type property to Move-Path (select via up/down arrows)
+// *2. After its type is set, properties for speed and Path ID will be displayed
+// *3. Make the platform save its path ID when we save the platform to the level (and save the path itself too)
+// *4. When the level starts, make the platform get the path from the ID
 // 5. Keep track of which node the platform is heading towards, and move toward it
 // 6. Define behavior when the end of the path is reached, and take that action
 
@@ -83,29 +81,30 @@ void Platform::Render(Renderer * renderer, Vector2 cameraOffset)
 	PhysicsEntity::Render(renderer, cameraOffset);
 }
 
-void Platform::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
+void Platform::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 	
-	properties.emplace_back(new Text(renderer, font, "Platform Type: " + platformType));
+	const std::vector<std::string> platformTypes = { "Idle", "Move-Horizontal", "Move-Vertical", "Move-Path" };
+	properties.emplace_back(new Property(new Text(renderer, font, "Platform Type: " + platformType), platformTypes));
 
 	if (platformType == "Move-Horizontal")
 	{
-		properties.emplace_back(new Text(renderer, font, "Velocity X: " + std::to_string(startVelocity.x)));
-		properties.emplace_back(new Text(renderer, font, "Distance: " + std::to_string(tilesToMove)));
-		properties.emplace_back(new Text(renderer, font, "Loop: " + std::to_string(shouldLoop)));
+		properties.emplace_back(new Property(new Text(renderer, font, "Velocity X: " + std::to_string(startVelocity.x))));
+		properties.emplace_back(new Property(new Text(renderer, font, "Distance: " + std::to_string(tilesToMove))));
+		properties.emplace_back(new Property(new Text(renderer, font, "Loop: " + std::to_string(shouldLoop))));
 	}
 	else if (platformType == "Move-Vertical")
 	{
-		properties.emplace_back(new Text(renderer, font, "Velocity Y: " + std::to_string(startVelocity.y)));
-		properties.emplace_back(new Text(renderer, font, "Distance: " + std::to_string(tilesToMove)));
-		properties.emplace_back(new Text(renderer, font, "Loop: " + std::to_string(shouldLoop)));
+		properties.emplace_back(new Property(new Text(renderer, font, "Velocity Y: " + std::to_string(startVelocity.y))));
+		properties.emplace_back(new Property(new Text(renderer, font, "Distance: " + std::to_string(tilesToMove))));
+		properties.emplace_back(new Property(new Text(renderer, font, "Loop: " + std::to_string(shouldLoop))));
 	}
 	else if (platformType == "Move-Path")
 	{
-		properties.emplace_back(new Text(renderer, font, "Path ID : " + std::to_string(pathID)));
-		properties.emplace_back(new Text(renderer, font, "Speed: " + std::to_string(pathSpeed)));
-		properties.emplace_back(new Text(renderer, font, "End Behavior: " + endPathBehavior));
+		properties.emplace_back(new Property(new Text(renderer, font, "Path ID: " + std::to_string(pathID))));
+		properties.emplace_back(new Property(new Text(renderer, font, "Speed: " + std::to_string(pathSpeed))));
+		properties.emplace_back(new Property(new Text(renderer, font, "End Behavior: " + endPathBehavior)));
 	}
 	else if (platformType == "Idle")
 	{
@@ -148,13 +147,11 @@ void Platform::SetProperty(std::string prop, std::string newValue)
 	}
 	else if (key == "Loop")
 	{
-		if (newValue != "")
-			shouldLoop = (newValue == "True" ) ? true : false;
+		shouldLoop = (newValue == "True" ) ? true : false;
 	}
 	else if (key == "Platform Type")
 	{
-		if (newValue != "")
-			platformType = newValue;
+		platformType = newValue;
 	}
 	else if (key == "Path ID")
 	{
@@ -180,8 +177,12 @@ void Platform::Save(std::ostringstream& level)
 
 	if (platformType == "Move-Path")
 	{
+		std::string endBehavior = endPathBehavior;
+		if (endBehavior == "")
+			endBehavior = "None";
+
 		level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " << (pos.y / SCALE) << " " << spriteIndex << " " << platformType
-			<< " " << pathID << " " << pathSpeed << " " << endPathBehavior << std::endl;
+			<< " " << pathID << " " << pathSpeed << " " << endBehavior << std::endl;
 	}
 	else
 	{

@@ -4,6 +4,8 @@
 #include "Animator.h"
 #include "Editor.h"
 
+#include "Property.h"
+
 class Game;
 
 class Entity
@@ -60,8 +62,8 @@ public:
 	virtual void OnTriggerEnter(Entity* other, Game& game);
 	virtual void OnTriggerExit(Entity* other, Game& game);
 
-	virtual void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties);
-	void DeleteProperties(std::vector<Text*>& properties);
+	virtual void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties);
+	void DeleteProperties(std::vector<Property*>& properties);
 	virtual void SetProperty(std::string prop, std::string newValue);
 
 	virtual void Save(std::ostringstream& level);

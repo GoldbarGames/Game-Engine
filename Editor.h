@@ -13,6 +13,7 @@
 #include "Text.h"
 #include "EditorButton.h"
 
+#include "Property.h"
 
 using std::string;
 
@@ -22,6 +23,7 @@ class Ladder;
 class Renderer;
 class NPC;
 class Path;
+
 
 class Editor
 {
@@ -33,7 +35,6 @@ private:
 	SDL_Texture * toolboxTexture = nullptr;
 	SDL_Rect toolboxTextureRect;
 	SDL_Rect toolboxWindowRect;
-
 
 	SDL_Rect selectedRect;
 	SDL_Rect hoveredTileRect;
@@ -70,7 +71,8 @@ private:
 
 	// Variables for the Properties Inspector
 	Entity* selectedEntity = nullptr;
-	std::vector<Text*> properties;	
+	std::vector<Property*> properties;	
+	int propertyOptionIndex = 0;
 
 	// Variables for the Grab Button
 	Entity* grabbedEntity = nullptr;
@@ -143,6 +145,8 @@ public:
 	void SetPropertyText();
 
 	void SetLayerButtonColor(Color color);
+
+	std::string GetCurrentPropertyOptionString(int diff);
 
 	void UndoAction();
 	void RedoAction();

@@ -1,10 +1,10 @@
 #include "Path.h"
 #include "Renderer.h"
+#include "Game.h"
 
-Path::Path(Vector2 startPoint) : Entity(startPoint)
+Path::Path(Vector2 pos) : Entity(pos)
 {
 	etype = "path";
-	nodes.push_back(new PathNode(startPoint));
 }
 
 Path::~Path()
@@ -79,12 +79,12 @@ void Path::Render(Renderer * renderer, Vector2 cameraOffset)
 	}
 }
 
-void Path::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
+void Path::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 
 	std::string loopString = shouldLoop ? "True" : "False";
-	properties.emplace_back(new Text(renderer, font, "Should Loop: " + name));
+	properties.emplace_back(new Property(new Text(renderer, font, "Should Loop: " + name)));
 }
 
 void Path::SetProperty(std::string prop, std::string newValue)
@@ -108,18 +108,18 @@ void Path::SetProperty(std::string prop, std::string newValue)
 
 void Path::Save(std::ostringstream& level)
 {
-	/*
 	int SCALE = Renderer::GetScale();
 	Vector2 pos = GetPosition();
 
-	std::string npcLabel = cutsceneLabel;
-	if (npcLabel == "")
-		npcLabel = "null";
+	level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " <<
+		(pos.y / SCALE) << " " << shouldLoop << " " << nodes.size();
 
-	level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " << (pos.y / SCALE) << " " << name <<
-		" " << cutsceneLabel << " " << spriteIndex << " " << drawOrder <<
-		" " << layer << " " << impassable << std::endl;
-		*/
+	for (int i = 0; i < nodes.size(); i++)
+	{
+		level << " " << nodes[i]->point.x << " " << nodes[i]->point.y;
+	}
+
+	level << std::endl;		
 }
 
 const SDL_Rect* Path::GetBounds()

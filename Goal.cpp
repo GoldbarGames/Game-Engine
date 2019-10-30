@@ -45,11 +45,11 @@ void Goal::OnTriggerExit(Entity* other, Game& game)
 	}
 }
 
-void Goal::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
+void Goal::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 
-	properties.emplace_back(new Text(renderer, font, "Next Level: " + nextLevelName));
+	properties.emplace_back(new Property(new Text(renderer, font, "Next Level: " + nextLevelName)) );
 }
 
 void Goal::SetProperty(std::string prop, std::string newValue)

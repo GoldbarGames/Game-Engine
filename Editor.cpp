@@ -394,12 +394,12 @@ void Editor::InspectObject(int mouseX, int mouseY)
 	{
 		for (unsigned int i = 0; i < properties.size(); i++)
 		{
-			if (SDL_PointInRect(&point, &properties[i]->textWindowRect))
+			if (SDL_PointInRect(&point, &properties[i]->text->textWindowRect))
 			{
 				if (selectedEntity != nullptr)
 				{
 					Color red = { 255, 0, 0, 255 };
-					if (properties[i]->textColor != red)
+					if (properties[i]->text->textColor != red)
 					{
 						propertyIndex = i;
 						game->StartTextInput("properties");
@@ -432,9 +432,27 @@ void Editor::InspectObject(int mouseX, int mouseY)
 	}
 }
 
+std::string Editor::GetCurrentPropertyOptionString(int diff)
+{
+	// Either increment or decrement the index
+	propertyOptionIndex += diff;
+
+	// Keep the index inside the bounds
+	if (propertyOptionIndex < 0)
+		propertyOptionIndex = properties[propertyIndex]->options.size() - 1;
+	else if (propertyOptionIndex >= properties[propertyIndex]->options.size())
+		propertyOptionIndex = 0;
+
+	// Return the name of the property option
+	if (properties[propertyIndex]->options.size() == 0)
+		return "";
+	else
+		return properties[propertyIndex]->options[propertyOptionIndex];
+}
+
 void Editor::SetPropertyText()
 {	
-	selectedEntity->SetProperty(properties[propertyIndex]->txt, game->inputText);
+	selectedEntity->SetProperty(properties[propertyIndex]->text->txt, game->inputText);
 	selectedEntity->GetProperties(game->renderer, theFont, properties);
 	SetPropertyPositions();
 }
@@ -447,7 +465,7 @@ void Editor::SetPropertyPositions()
 
 	for (unsigned int i = 0; i < properties.size(); i++)
 	{
-		properties[i]->SetPosition(propertyX, propertyY);
+		properties[i]->text->SetPosition(propertyX, propertyY);
 		propertyY += 50;
 	}
 }
@@ -516,6 +534,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (currentPath == nullptr)
 			{
 				currentPath = new Path(snappedPosition);
+				currentPath->AddPointToPath(snappedPosition);
 				game->entities.push_back(currentPath);
 				game->SortEntities(game->entities);
 			}
@@ -1219,10 +1238,10 @@ void Editor::Render(Renderer* renderer)
 			if (propertyIndex > -1)
 			{
 				if (i == propertyIndex)
-					SDL_RenderDrawRect(renderer->renderer, &properties[i]->textWindowRect);
+					SDL_RenderDrawRect(renderer->renderer, &properties[i]->text->textWindowRect);
 			}
 
-			properties[i]->Render(renderer);
+			properties[i]->text->Render(renderer);
 		}
 
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
@@ -1418,6 +1437,10 @@ std::string Editor::ReadLevelFromFile(std::string levelName)
 
 void Editor::CreateLevelFromString(std::string level)
 {
+	std::vector<Path*> paths;
+	std::vector<Platform*> movingPlatforms;
+
+
 	int SCALE = Renderer::GetScale();
 	std::stringstream ss{ level };
 
@@ -1504,22 +1527,64 @@ void Editor::CreateLevelFromString(std::string level)
 			int spriteIndex = std::stoi(tokens[index++]);
 			Block* block = game->SpawnBlock(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 		}
+		else if (etype == "path")
+		{
+			bool shouldLoop = std::stoi(tokens[index++]);
+			int nodeCount = std::stoi(tokens[index++]);
+
+			Path* path = new Path(Vector2(positionX, positionY));
+
+			for (int i = 0; i < nodeCount; i++)
+			{
+				int pointX = std::stoi(tokens[index++]);
+				int pointY = std::stoi(tokens[index++]);
+				path->AddPointToPath(Vector2(pointX, pointY));
+			}
+
+			game->entities.emplace_back(path);
+			paths.emplace_back(path);
+		}
 		else if (etype == "platform")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
 			Platform* platform = game->SpawnPlatform(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 
 			platform->platformType = tokens[index++];
-			float vx = std::stof(tokens[index++]);
-			float vy = std::stof(tokens[index++]);
-			platform->startVelocity = Vector2(vx,vy);
-			platform->tilesToMove = std::stoi(tokens[index++]);
-			platform->shouldLoop = std::stoi(tokens[index++]);
 
-			platform->SetVelocity(platform->startVelocity);
+			if (platform->platformType == "Move-Path")
+			{				
+				platform->pathID = std::stoi(tokens[index++]);
+				platform->pathSpeed = std::stof(tokens[index++]);
+				platform->endPathBehavior = tokens[index++];
+				movingPlatforms.emplace_back(platform);
+			}
+			else
+			{
+				float vx = std::stof(tokens[index++]);
+				float vy = std::stof(tokens[index++]);
+				platform->startVelocity = Vector2(vx, vy);
+				platform->tilesToMove = std::stoi(tokens[index++]);
+				platform->shouldLoop = std::stoi(tokens[index++]);
+				platform->SetVelocity(platform->startVelocity);
+			}
+
+			
 		}
 
 		ss.getline(lineChar, 256);
+	}
+
+	// Match all platforms moving on paths with their assigned path
+	for (int i = 0; i < movingPlatforms.size(); i++)
+	{
+		for (int k = 0; k < paths.size(); k++)
+		{
+			if (movingPlatforms[i]->pathID == paths[k]->id)
+			{
+				movingPlatforms[i]->currentPath = paths[k];
+				break;
+			}
+		}
 	}
 
 }

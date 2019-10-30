@@ -13,7 +13,7 @@ public:
 	void OnTriggerEnter(Entity* other);
 	void OnTriggerExit(Entity* other);
 	void ChangeCollider(float x, float y, float w = 0.75f, float h = 0.9f);
-	void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties);
+	void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties);
 	void SetProperty(std::string prop, std::string newValue);
 	void Save(std::ostringstream& level);
 };

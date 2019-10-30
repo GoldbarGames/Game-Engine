@@ -318,12 +318,12 @@ void Player::ResetPosition()
 	position = startPosition;
 }
 
-void Player::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Text*>& properties)
+void Player::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 
-	properties.emplace_back(new Text(renderer, font, "Start Pos X: " + std::to_string((int)startPosition.x)));
-	properties.emplace_back(new Text(renderer, font, "Start Pos Y: " + std::to_string((int)startPosition.y)));
+	properties.emplace_back(new Property(new Text(renderer, font, "Start Pos X: " + std::to_string((int)startPosition.x))));
+	properties.emplace_back(new Property(new Text(renderer, font, "Start Pos Y: " + std::to_string((int)startPosition.y))));
 }
 
 void Player::SetProperty(std::string prop, std::string newValue)
