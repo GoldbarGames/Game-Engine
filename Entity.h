@@ -7,11 +7,12 @@
 #include "Property.h"
 
 class Game;
+class PhysicsEntity;
 
 class Entity
 {
 protected:	
-	Vector2 position = Vector2(0, 0);
+	Vector2 position = Vector2(0, 0);	
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
 public:
@@ -67,6 +68,9 @@ public:
 	virtual void SetProperty(std::string prop, std::string newValue);
 
 	virtual void Save(std::ostringstream& level);
+
+	virtual bool IsEntityPushingOther(PhysicsEntity* other, bool x);
+	virtual float CalcCollisionVelocity(PhysicsEntity* other, bool x);
 
 };
 

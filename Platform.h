@@ -14,8 +14,12 @@ public:
 	// Path variables
 	Path* currentPath = nullptr;
 	int pathID = 0;
+	int pathNodeID = 0;
 	float pathSpeed = 0;
+	bool traversePathForward = true;
 	std::string endPathBehavior = "";
+	std::string directionX = "none";
+	std::string directionY = "none";
 
 	Platform(Vector2 pos);
 	~Platform();
@@ -25,5 +29,7 @@ public:
 	void Update(Game& game);
 
 	void Save(std::ostringstream& level);
+
+	std::string CalcDirection(bool x);
 };
 

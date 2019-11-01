@@ -5,6 +5,7 @@
 
 PhysicsEntity::PhysicsEntity(Vector2 pos) : Entity(pos)
 {
+	startPosition = pos;
 	CreateCollider(0, 0, 0, 0, 1, 1);
 	isPhysicsEntity = true;
 }
@@ -69,6 +70,44 @@ void PhysicsEntity::Unpause(Uint32 ticks)
 	if (animator != nullptr)
 		animator->animationTimer.Unpause(ticks);
 }
+
+float PhysicsEntity::CalcCollisionVelocity(PhysicsEntity* other, bool x)
+{
+	if (x)
+	{
+		if (mass > other->mass)
+			return velocity.x;
+		else if (mass == other->mass)
+			return 0;
+		else
+			return other->velocity.x;
+	}
+	else
+	{
+		if (mass > other->mass)
+			return velocity.y;
+		else if (mass == other->mass)
+			return 0;
+		else
+			return other->velocity.y;
+	}
+	
+}
+
+bool PhysicsEntity::IsEntityPushingOther(PhysicsEntity* other, bool x)
+{
+	if (x)
+	{
+		float diffPosX = other->GetPosition().x - position.x;
+		return (velocity.x > 0 && diffPosX > 0) || (velocity.x < 0 && diffPosX < 0);
+	}
+	else
+	{
+		return 0; //TODO: Do we even need this here at all?
+	}
+	
+}
+
 
 void PhysicsEntity::CheckCollisions(Game& game)
 {
@@ -167,9 +206,19 @@ void PhysicsEntity::CheckCollisions(Game& game)
 			if (game.entities[i]->impassable)
 			{
 				if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
-				{
-					horizontalCollision = true;
-					velocity.x = 0;
+				{										
+					// if one entity is moving in the direction of the other entity...
+					if ( game.entities[i]->IsEntityPushingOther(this, true) )
+					{
+						velocity.x = game.entities[i]->CalcCollisionVelocity(this, true);
+						horizontalCollision = (velocity.x == 0);
+					}
+					else
+					{
+						velocity.x = 0;
+						horizontalCollision = true;
+					}
+					
 				}
 
 				// checks the ground (using a rect that is a little bit larger
@@ -354,6 +403,8 @@ Vector2 PhysicsEntity::CalcScaledPivot()
 void PhysicsEntity::Push(Vector2 pushVelocity)
 {
 	velocity = pushVelocity;
+	hitByPushSpell = true;
+	totalDistancePushed = 0;
 }
 
 void PhysicsEntity::Update(Game& game)
@@ -364,6 +415,18 @@ void PhysicsEntity::Update(Game& game)
 	}
 
 	CheckCollisions(game);
+
+	if (hitByPushSpell)
+	{
+		const int NUM_TILES = 2;
+		totalDistancePushed += abs(velocity.x * game.dt);
+		if (totalDistancePushed > NUM_TILES * TILE_SIZE * Renderer::GetScale())
+		{
+			hitByPushSpell = false;
+			velocity.x = 0;
+		}
+		
+	}
 
 	if (animator != nullptr)
 		animator->Update(this);

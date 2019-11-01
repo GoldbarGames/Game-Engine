@@ -1,4 +1,5 @@
 #include "Entity.h"
+#include "PhysicsEntity.h"
 #include "debug_state.h"
 #include <iostream>
 #include "Renderer.h"
@@ -6,6 +7,8 @@
 
 unsigned int Entity::nextValidID = 0;
 
+//TODO: Figure out what to do with the background layers
+// since they will offset the next valid ID every time we save the level
 Entity::Entity(Vector2 pos)
 {
 	position = pos;
@@ -70,7 +73,7 @@ Vector2 Entity::GetPosition()
 
 Vector2 Entity::GetCenter()
 {
-	return Vector2(currentSprite->windowRect.w/2, currentSprite->windowRect.h / 2);
+	return Vector2(currentSprite->windowRect.w / 2, currentSprite->windowRect.h / 2);
 }
 
 void Entity::SetPosition(Vector2 newPosition)
@@ -120,6 +123,16 @@ void Entity::SetSprite(Sprite* sprite)
 bool Entity::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 {
 	return true;
+}
+
+float Entity::CalcCollisionVelocity(PhysicsEntity* other, bool x)
+{
+	return 0;
+}
+
+bool Entity::IsEntityPushingOther(PhysicsEntity* other, bool x)
+{
+	return false;
 }
 
 void Entity::OnTriggerStay(Entity* other, Game& game)

@@ -10,6 +10,7 @@ Block::Block(Vector2 pos) : PhysicsEntity(pos)
 	drawOrder = 10;
 	canBePushed = true;
 	impassable = true;
+	mass = 10;
 }
 
 Block::~Block()
@@ -71,6 +72,6 @@ void Block::Save(std::ostringstream& level)
 {
 	int SCALE = Renderer::GetScale();
 	
-	level << std::to_string(id) << " " << etype << " " << (GetPosition().x / SCALE) <<
-		" " << (GetPosition().y / SCALE) << " " << spriteIndex << std::endl;
+	level << std::to_string(id) << " " << etype << " " << (startPosition.x / SCALE) <<
+		" " << (startPosition.y / SCALE) << " " << spriteIndex << std::endl;
 }

@@ -4,6 +4,7 @@
 class PhysicsEntity : public Entity
 {
 protected:
+	Vector2 startPosition = Vector2(0, 0);
 	Vector2 velocity = Vector2(0, 0);
 	Vector2 acceleration = Vector2(0, 0);
 	const float maxHorizontalSpeed = 0.5f;
@@ -12,6 +13,11 @@ protected:
 	std::vector<Entity*> prevFrameCollisions;
 	int jumpsRemaining = 2;
 public:
+
+	unsigned int mass = 1;
+
+	bool hitByPushSpell = false;
+	float totalDistancePushed = 0;	
 
 	bool useGravity = true;
 	bool canBePushed = false;
@@ -53,5 +59,8 @@ public:
 	Vector2 CalcScaledPivot();
 
 	virtual void Push(Vector2 pushVelocity);
+
+	float CalcCollisionVelocity(PhysicsEntity* other, bool x);
+	bool IsEntityPushingOther(PhysicsEntity* other, bool x);
 };
 

@@ -85,13 +85,12 @@ void NPC::SetProperty(std::string prop, std::string newValue)
 void NPC::Save(std::ostringstream& level)
 {
 	int SCALE = Renderer::GetScale();
-	Vector2 pos = GetPosition();
 
 	std::string npcLabel = cutsceneLabel;
 	if (npcLabel == "")
 		npcLabel = "null";
 
-	level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " << (pos.y / SCALE) << " " << name <<
+	level << std::to_string(id) << " " << etype << " " << (startPosition.x / SCALE) << " " << (startPosition.y / SCALE) << " " << name <<
 		" " << cutsceneLabel << " " << spriteIndex << " " << drawOrder <<
 		" " << layer << " " << impassable << std::endl;
 }

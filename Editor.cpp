@@ -1551,7 +1551,7 @@ void Editor::CreateLevelFromString(std::string level)
 
 			platform->platformType = tokens[index++];
 
-			if (platform->platformType == "Move-Path")
+			if (platform->platformType == "Path")
 			{				
 				platform->pathID = std::stoi(tokens[index++]);
 				platform->pathSpeed = std::stof(tokens[index++]);
@@ -1566,13 +1566,13 @@ void Editor::CreateLevelFromString(std::string level)
 				platform->tilesToMove = std::stoi(tokens[index++]);
 				platform->shouldLoop = std::stoi(tokens[index++]);
 				platform->SetVelocity(platform->startVelocity);
-			}
-
-			
+			}	
 		}
 
 		ss.getline(lineChar, 256);
 	}
+
+	int id2 = Entity::nextValidID;
 
 	// Match all platforms moving on paths with their assigned path
 	for (int i = 0; i < movingPlatforms.size(); i++)
@@ -1582,6 +1582,7 @@ void Editor::CreateLevelFromString(std::string level)
 			if (movingPlatforms[i]->pathID == paths[k]->id)
 			{
 				movingPlatforms[i]->currentPath = paths[k];
+				movingPlatforms[i]->SetPosition(paths[k]->nodes[0]->point);
 				break;
 			}
 		}

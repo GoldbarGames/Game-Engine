@@ -2,27 +2,6 @@
 #include "Renderer.h"
 #include "Game.h"
 
-// In order to make a platform move along a path:
-
-// * 0a. Display ID as read-only property for every entity
-// * we need to save IDs for every entity
-// * we need to calculate the next ID when we load the level (by finding the highest one)
-
-// 0b. Create a Path class and a way to spawn Path objects in the level using the editor
-// * Click a button to start drawing a path. Each left-click will place a path node on a tile.
-// * Right-clicking will remove nodes from the path
-// * Clicking on the path button will save the path
-// * Can toggle the property of the path to make it a closed loop or not
-// ? Can you move nodes in the path? Can you insert nodes into the middle?
-
-// *1. Click on platform, set its type property to Move-Path (select via up/down arrows)
-// *2. After its type is set, properties for speed and Path ID will be displayed
-// *3. Make the platform save its path ID when we save the platform to the level (and save the path itself too)
-// *4. When the level starts, make the platform get the path from the ID
-// 5. Keep track of which node the platform is heading towards, and move toward it
-// 6. Define behavior when the end of the path is reached, and take that action
-
-
 Platform::Platform(Vector2 pos) : PhysicsEntity(pos)
 {
 	startPosition = position;
@@ -33,6 +12,7 @@ Platform::Platform(Vector2 pos) : PhysicsEntity(pos)
 	canBePushed = true;
 	impassable = true;
 	useGravity = false;
+	mass = 10;
 }
 
 
@@ -41,9 +21,49 @@ Platform::~Platform()
 
 }
 
+std::string Platform::CalcDirection(bool x)
+{
+	Vector2 nextPos = position + velocity;
+
+	if (x)
+	{
+		// if we need to go to the right...
+		if (nextPos.x < currentPath->nodes[pathNodeID]->point.x)
+		{
+			return "right";
+		}
+		// if we need to go to the left...
+		else if (nextPos.x > currentPath->nodes[pathNodeID]->point.x)
+		{
+			return "left";
+		}
+		else // not moving horizontally at all
+		{
+			return "none";
+		}
+	}
+	else
+	{
+		// if we need to go down...
+		if (nextPos.y < currentPath->nodes[pathNodeID]->point.y)
+		{
+			return "down";
+		}
+		// if we need to go up...
+		else if (nextPos.y > currentPath->nodes[pathNodeID]->point.y)
+		{
+			return "up";
+		}
+		else // not moving vertically at all
+		{
+			return "none";
+		}
+	}
+}
+
 void Platform::Update(Game& game)
 {
-	if (platformType == "Move-Horizontal")
+	if (platformType == "Move")
 	{
 		if (shouldLoop)
 		{
@@ -54,14 +74,7 @@ void Platform::Update(Game& game)
 				//TODO: Add a delay between moving the opposite direction
 				velocity.x *= -1;
 			}
-		}
-		
-	}
-	else if (platformType == "Move-Vertical")
-	{
-		if (shouldLoop)
-		{
-			int distance = (tilesToMove * TILE_SIZE * Renderer::GetScale());
+
 			if (velocity.y > 0 && position.y >= startPosition.y + distance
 				|| velocity.y < 0 && position.y <= startPosition.y - distance)
 			{
@@ -70,10 +83,85 @@ void Platform::Update(Game& game)
 			}
 		}
 	}
+	else if (platformType == "Path" && currentPath != nullptr && pathNodeID < currentPath->nodes.size() - 1)
+	{
+		// Move towards the next point in the path at the specified speed
+		float dx = currentPath->nodes[pathNodeID]->point.x - position.x;
+		float dy = currentPath->nodes[pathNodeID]->point.y - position.y;
+
+		float length = sqrtf(dx*dx + dy * dy);
+
+		// Normalize the vector
+		dx /= length;
+		dy /= length;
+
+		dx *= pathSpeed;
+		dy *= pathSpeed;
+
+		velocity.x = dx;
+		velocity.y = dy;
+
+
+		std::string currentDirectionX = CalcDirection(true);
+		std::string currentDirectionY = CalcDirection(false);
+
+		bool wrongDirection = false;
+		if (currentDirectionX != directionX || currentDirectionY != directionY)
+		{
+			wrongDirection = true;
+		}
+
+		// If we are at the point, then set the destination to the next point
+
+		if (wrongDirection || position.RoundToInt() == currentPath->nodes[pathNodeID]->point.RoundToInt())
+		{
+			velocity.x = 0;
+			velocity.y = 0;
+
+			if (traversePathForward)
+				pathNodeID++;
+			else
+				pathNodeID--;
+
+			if (pathNodeID < currentPath->nodes.size() - 1)
+			{
+				directionX = CalcDirection(true);
+				directionY = CalcDirection(false);
+			}
+			else // we have reached the end, so carry out end behavior
+			{
+				if (endPathBehavior == "Stop")
+				{
+					// Do nothing, because this is the default behavior!
+				}
+				else if (endPathBehavior == "Reverse")
+				{
+					// Reverse the direction of our index
+					traversePathForward = !traversePathForward;
+					if (traversePathForward)
+						pathNodeID++;
+					else
+						pathNodeID--;
+				}
+				else if (endPathBehavior == "Selfdestruct")
+				{
+					// Destroy this entity
+					shouldDelete = true;
+				}
+			}
+		}
+	}
+	else
+	{
+		velocity.x = 0;
+		velocity.y = 0;
+	}
 
 	
 
 	PhysicsEntity::Update(game);
+
+
 }
 
 void Platform::Render(Renderer * renderer, Vector2 cameraOffset)
@@ -85,26 +173,22 @@ void Platform::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<P
 {
 	Entity::GetProperties(renderer, font, properties);
 	
-	const std::vector<std::string> platformTypes = { "Idle", "Move-Horizontal", "Move-Vertical", "Move-Path" };
+	const std::vector<std::string> platformTypes = { "Idle", "Move", "Path" };
 	properties.emplace_back(new Property(new Text(renderer, font, "Platform Type: " + platformType), platformTypes));
 
-	if (platformType == "Move-Horizontal")
+	if (platformType == "Move" || platformType == "Move")
 	{
 		properties.emplace_back(new Property(new Text(renderer, font, "Velocity X: " + std::to_string(startVelocity.x))));
-		properties.emplace_back(new Property(new Text(renderer, font, "Distance: " + std::to_string(tilesToMove))));
-		properties.emplace_back(new Property(new Text(renderer, font, "Loop: " + std::to_string(shouldLoop))));
-	}
-	else if (platformType == "Move-Vertical")
-	{
 		properties.emplace_back(new Property(new Text(renderer, font, "Velocity Y: " + std::to_string(startVelocity.y))));
 		properties.emplace_back(new Property(new Text(renderer, font, "Distance: " + std::to_string(tilesToMove))));
 		properties.emplace_back(new Property(new Text(renderer, font, "Loop: " + std::to_string(shouldLoop))));
 	}
-	else if (platformType == "Move-Path")
+	else if (platformType == "Path")
 	{
+		const std::vector<std::string> behaviorOptions = { "Stop", "Reverse", "Selfdestruct" };
 		properties.emplace_back(new Property(new Text(renderer, font, "Path ID: " + std::to_string(pathID))));
 		properties.emplace_back(new Property(new Text(renderer, font, "Speed: " + std::to_string(pathSpeed))));
-		properties.emplace_back(new Property(new Text(renderer, font, "End Behavior: " + endPathBehavior)));
+		properties.emplace_back(new Property(new Text(renderer, font, "End Behavior: " + endPathBehavior), behaviorOptions));
 	}
 	else if (platformType == "Idle")
 	{
@@ -173,20 +257,19 @@ void Platform::SetProperty(std::string prop, std::string newValue)
 void Platform::Save(std::ostringstream& level)
 {
 	int SCALE = Renderer::GetScale();
-	Vector2 pos = GetPosition();
 
-	if (platformType == "Move-Path")
+	if (platformType == "Path")
 	{
 		std::string endBehavior = endPathBehavior;
 		if (endBehavior == "")
 			endBehavior = "None";
 
-		level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " << (pos.y / SCALE) << " " << spriteIndex << " " << platformType
+		level << std::to_string(id) << " " << etype << " " << (startPosition.x / SCALE) << " " << (startPosition.y / SCALE) << " " << spriteIndex << " " << platformType
 			<< " " << pathID << " " << pathSpeed << " " << endBehavior << std::endl;
 	}
 	else
 	{
-		level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " << (pos.y / SCALE) << " " << spriteIndex << " " << platformType
+		level << std::to_string(id) << " " << etype << " " << (startPosition.x / SCALE) << " " << (startPosition.y / SCALE) << " " << spriteIndex << " " << platformType
 			<< " " << startVelocity.x << " " << startVelocity.y << " " << tilesToMove << " " << shouldLoop << std::endl;
 	}
 	
