@@ -9,9 +9,12 @@
 Player::Player(Vector2 pos) : PhysicsEntity(pos)
 {
 	etype = "player";
+	standAboveGround = true;
 	CreateCollider(27, 46, 0, 0, 20.25f, 41.40f);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 99;
+
+	trigger = false;
 
 	// Initialize the spells here
 	spells.clear();
@@ -307,7 +310,6 @@ void Player::CheckJumpButton(const Uint8* input)
 		else
 		{
 			canJump = true;
-			velocity.y = -0.6f;
 		}
 	}
 }

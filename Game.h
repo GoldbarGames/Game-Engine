@@ -27,6 +27,9 @@
 #include "Goal.h"
 #include "Block.h"
 #include "Platform.h"
+#include "Shroom.h"
+
+
 #include "CutsceneManager.h"
 #include "SoundManager.h"
 #include <chrono>
@@ -185,6 +188,9 @@ public:
 
 	Platform* CreatePlatform(Vector2 position, int spriteIndex);
 	Platform* SpawnPlatform(Vector2 position, int spriteIndex = 0);
+
+	Shroom* CreateShroom(Vector2 position, int spriteIndex);
+	Shroom* SpawnShroom(Vector2 position, int spriteIndex = 0);
 
 	void LoadTitleScreen();
 	void PlayLevel(string levelName);

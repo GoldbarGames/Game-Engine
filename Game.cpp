@@ -57,6 +57,9 @@ Game::Game()
 	spriteMap["goal"].push_back("assets/sprites/objects/door_house.png");
 	spriteMap["goal"].push_back("assets/sprites/objects/door_house_outside.png");
 
+	spriteMap["shroom"].push_back("assets/sprites/objects/shroom.png");
+	spriteMap["shroom"].push_back("assets/sprites/objects/shroom_potted.png");
+
 	editor = new Editor(*this);
 
 	ResetText();
@@ -287,7 +290,9 @@ NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 		anim->MapStateToSprite("idle", new Sprite(0, 7, 8, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint));
 	}
 
-	newNPC->ChangeCollider(anim->GetCurrentSprite()->frameWidth, anim->GetCurrentSprite()->frameHeight);
+	float w = anim->GetCurrentSprite()->frameWidth;
+	float h = anim->GetCurrentSprite()->frameHeight;
+	newNPC->ChangeCollider(0, 0, w, h);
 
 	newNPC->SetAnimator(anim);
 	newNPC->trigger = true;
@@ -477,6 +482,43 @@ Platform* Game::SpawnPlatform(Vector2 position, int spriteIndex)
 		return newPlatform;
 	}
 }
+
+
+
+
+
+Shroom* Game::CreateShroom(Vector2 position, int spriteIndex)
+{
+	Shroom* newObject = new Shroom(position);
+	newObject->spriteIndex = spriteIndex;
+
+	Animator* anim = new Animator("shroom", "idle");
+
+	Vector2 pivotPoint = Vector2(15, 30);
+	anim->MapStateToSprite("idle", new Sprite(0, 3, 9, spriteManager, spriteMap["shroom"][spriteIndex], renderer, pivotPoint));
+
+	newObject->SetAnimator(anim);
+
+	return newObject;
+}
+
+Shroom* Game::SpawnShroom(Vector2 position, int spriteIndex)
+{
+	Shroom* newObject = CreateShroom(position, spriteIndex);
+
+	if (!newObject->CanSpawnHere(position, *this))
+	{
+		delete newObject;
+		return nullptr;
+	}
+	else
+	{
+		entities.emplace_back(newObject);
+		return newObject;
+	}
+}
+
+
 
 
 Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)

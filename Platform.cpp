@@ -9,7 +9,9 @@ Platform::Platform(Vector2 pos) : PhysicsEntity(pos)
 	CreateCollider(0, 0, 0, 0, 72, 24);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 10;
-	canBePushed = true;
+	
+	canBePushed = false; // TODO: Is there some potential here?
+
 	impassable = true;
 	useGravity = false;
 	mass = 10;
@@ -65,6 +67,8 @@ void Platform::Update(Game& game)
 {
 	if (platformType == "Move")
 	{
+		SetVelocity(startVelocity);
+
 		if (shouldLoop)
 		{
 			int distance = (tilesToMove * TILE_SIZE * Renderer::GetScale());
@@ -72,24 +76,28 @@ void Platform::Update(Game& game)
 				|| velocity.x < 0 && position.x <= startPosition.x - distance)
 			{
 				//TODO: Add a delay between moving the opposite direction
-				velocity.x *= -1;
+				startVelocity.x *= -1;
 			}
 
 			if (velocity.y > 0 && position.y >= startPosition.y + distance
 				|| velocity.y < 0 && position.y <= startPosition.y - distance)
 			{
 				//TODO: Add a delay between moving the opposite direction
-				velocity.y *= -1;
+				startVelocity.y *= -1;
 			}
 		}
 	}
 	else if (platformType == "Path" && currentPath != nullptr && pathNodeID < currentPath->nodes.size() - 1)
 	{
+		//float posCenterX = position.x + (GetSprite()->frameWidth / 2);
+		//float posCenterY = position.x + (GetSprite()->frameHeight / 2);
+		//Vector2 posCenter = Vector2(posCenterX, posCenterY);
+
 		// Move towards the next point in the path at the specified speed
 		float dx = currentPath->nodes[pathNodeID]->point.x - position.x;
 		float dy = currentPath->nodes[pathNodeID]->point.y - position.y;
 
-		float length = sqrtf(dx*dx + dy * dy);
+		float length = sqrtf(dx*dx + dy*dy);
 
 		// Normalize the vector
 		dx /= length;
@@ -100,7 +108,6 @@ void Platform::Update(Game& game)
 
 		velocity.x = dx;
 		velocity.y = dy;
-
 
 		std::string currentDirectionX = CalcDirection(true);
 		std::string currentDirectionY = CalcDirection(false);
@@ -148,10 +155,18 @@ void Platform::Update(Game& game)
 					// Destroy this entity
 					shouldDelete = true;
 				}
+				else if (endPathBehavior == "Fall")
+				{
+					// Detach from the path and fall downward due to gravity
+					useGravity = true;					
+					startVelocity = Vector2(0, 0);
+					velocity = startVelocity;
+					platformType = "";
+				}
 			}
 		}
 	}
-	else
+	else if (platformType == "Idle")
 	{
 		velocity.x = 0;
 		velocity.y = 0;
@@ -185,7 +200,7 @@ void Platform::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<P
 	}
 	else if (platformType == "Path")
 	{
-		const std::vector<std::string> behaviorOptions = { "Stop", "Reverse", "Selfdestruct" };
+		const std::vector<std::string> behaviorOptions = { "Stop", "Reverse", "Selfdestruct", "Fall" };
 		properties.emplace_back(new Property(new Text(renderer, font, "Path ID: " + std::to_string(pathID))));
 		properties.emplace_back(new Property(new Text(renderer, font, "Speed: " + std::to_string(pathSpeed))));
 		properties.emplace_back(new Property(new Text(renderer, font, "End Behavior: " + endPathBehavior), behaviorOptions));

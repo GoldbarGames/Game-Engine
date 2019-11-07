@@ -35,7 +35,7 @@ Editor::Editor(Game& g)
 	previewMap["ether"] = game->CreateEther(Vector2(0, 0), spriteMapIndex);
 	previewMap["block"] = game->CreateBlock(Vector2(0, 0), spriteMapIndex);
 	previewMap["platform"] = game->CreatePlatform(Vector2(0, 0), spriteMapIndex);
-
+	previewMap["shroom"] = game->CreateShroom(Vector2(0, 0), spriteMapIndex);
 	//TODO: Make the indexes different numbers for the names and sprite sheets?
 	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 	
@@ -60,7 +60,7 @@ void Editor::CreateEditorButtons()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy", "Block", "Grab", "Platform", "Path" };
+	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy", "Block", "Grab", "Platform", "Path", "Shroom" };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
 	unsigned int BUTTON_LIST_END = BUTTON_LIST_START + BUTTONS_PER_PAGE;
@@ -526,6 +526,12 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 		{
 			Platform* currentPlatform = game->SpawnPlatform(snappedPosition, spriteMapIndex);
 			if (currentPlatform != nullptr)
+				game->SortEntities(game->entities);
+		}
+		else if (objectMode == "shroom")
+		{
+			Shroom* currentShroom = game->SpawnShroom(snappedPosition, spriteMapIndex);
+			if (currentShroom != nullptr)
 				game->SortEntities(game->entities);
 		}
 		else if (objectMode == "path")
@@ -1007,6 +1013,10 @@ void Editor::ClickedButton(string buttonName)
 
 		ToggleObjectMode("path");
 	}
+	else if (buttonName == "Shroom")
+	{
+		ToggleObjectMode("shroom");
+	}
 }
 
 void Editor::ToggleSpriteMap()
@@ -1039,6 +1049,10 @@ void Editor::ToggleSpriteMap()
 	else if (objectMode == "bug")
 	{
 		previewMap[objectMode] = game->CreateBug(Vector2(0, 0), spriteMapIndex);
+	}
+	else if (objectMode == "shroom")
+	{
+		previewMap[objectMode] = game->CreateShroom(Vector2(0, 0), spriteMapIndex);
 	}
 
 	objectPreview = previewMap[objectMode];

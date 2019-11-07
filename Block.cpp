@@ -10,7 +10,7 @@ Block::Block(Vector2 pos) : PhysicsEntity(pos)
 	drawOrder = 10;
 	canBePushed = true;
 	impassable = true;
-	mass = 10;
+	mass = 5;
 }
 
 Block::~Block()

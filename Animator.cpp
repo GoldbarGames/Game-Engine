@@ -195,7 +195,7 @@ void Animator::CheckStateKaneko()
 		if (GetBool("walking"))
 			SetState("walk");
 
-		if (!GetBool("isGrounded"))
+		if (!GetBool("isGrounded") && !GetBool("hasParent"))
 			SetState("jump");
 
 		if (GetBool("isCastingDebug"))
@@ -219,7 +219,7 @@ void Animator::CheckStateKaneko()
 			}
 		}
 
-		if (GetBool("isGrounded"))
+		if (GetBool("isGrounded") || GetBool("hasParent"))
 			SetState("idle");
 
 		if (GetBool("isCastingDebug"))

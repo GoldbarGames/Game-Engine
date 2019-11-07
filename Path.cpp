@@ -53,15 +53,19 @@ void Path::Render(Renderer * renderer, Vector2 cameraOffset)
 	{
 		// Draw a red square in the center of the point
 		const SDL_Rect* pointRect = nodes[i]->CalcRenderRect(cameraOffset);
-		
-		if (i == 0)
-			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
-		else if (i == nodes.size() - 1)
-			SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 255, 255);
-		else
-			SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
 
-		SDL_RenderFillRect(renderer->renderer, pointRect);
+		// Only show the points in the editor
+		if (GetModeEdit())
+		{		
+			if (i == 0)
+				SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
+			else if (i == nodes.size() - 1)
+				SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 255, 255);
+			else
+				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
+
+			SDL_RenderFillRect(renderer->renderer, pointRect);
+		}
 
 		// Draw a white line connecting to the next point
 		int nextIndex = i + 1;

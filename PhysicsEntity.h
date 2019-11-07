@@ -5,7 +5,7 @@ class PhysicsEntity : public Entity
 {
 protected:
 	Vector2 startPosition = Vector2(0, 0);
-	Vector2 velocity = Vector2(0, 0);
+	
 	Vector2 acceleration = Vector2(0, 0);
 	const float maxHorizontalSpeed = 0.5f;
 	float horizontalSpeed = 0.5f;
@@ -14,6 +14,8 @@ protected:
 	int jumpsRemaining = 2;
 public:
 
+	Vector2 velocity = Vector2(0, 0);
+
 	unsigned int mass = 1;
 
 	bool hitByPushSpell = false;
@@ -21,6 +23,7 @@ public:
 
 	bool useGravity = true;
 	bool canBePushed = false;
+	bool standAboveGround = false;
 
 	SDL_Rect* collider = nullptr;        // adjust the bounds this way
 	Vector2 startSpriteSize = Vector2(1,1); // initialize to starting sprite rectangle

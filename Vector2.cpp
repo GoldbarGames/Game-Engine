@@ -86,3 +86,5 @@ Vector2 Vector2::RoundToInt()
 	int ry = (int)y;
 	return Vector2(rx, ry);
 }
+
+//TODO: Distance function? Other calculations?

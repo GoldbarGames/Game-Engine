@@ -6,9 +6,10 @@ NPC::NPC(std::string n, Vector2 pos) : PhysicsEntity(pos)
 {
 	name = n;
 	etype = "npc";
-	CreateCollider(27, 46, 0, 0, 0.75f, 0.9f);
+	CreateCollider(0, 0, 0, 0, 0, 0);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 20;
+	standAboveGround = true;
 }
 
 
@@ -19,7 +20,7 @@ NPC::~NPC()
 
 void NPC::ChangeCollider(float x, float y, float w, float h)
 {
-	CreateCollider(x, y, 0, 0, w, h);
+	CreateCollider(0, 0, x, y, w, h);
 }
 
 
@@ -28,12 +29,12 @@ bool NPC::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 	return true; //TODO: Deal with this later. NPCs could have different sizes!
 }
 
-void NPC::OnTriggerStay(Entity* other)
+void NPC::OnTriggerStay(Entity* other, Game& game)
 {
 
 }
 
-void NPC::OnTriggerEnter(Entity* other)
+void NPC::OnTriggerEnter(Entity* other, Game& game)
 {
 	if (other->etype == "player")
 	{
@@ -42,7 +43,7 @@ void NPC::OnTriggerEnter(Entity* other)
 	}
 }
 
-void NPC::OnTriggerExit(Entity* other)
+void NPC::OnTriggerExit(Entity* other, Game& game)
 {
 	if (other->etype == "player")
 	{

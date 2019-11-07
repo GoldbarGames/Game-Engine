@@ -117,6 +117,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 	CalculateCollider(game.camera);
 
+	animator->SetBool("hasParent", false);
 	PhysicsEntity* prevParent = parent;
 	parent = nullptr;
 
@@ -134,6 +135,16 @@ void PhysicsEntity::CheckCollisions(Game& game)
 			velocity.y = prevParent->velocity.y;
 		}
 	}
+
+	const float JUMP_SPEED = -0.6f;
+
+	// if we were on the ground last frame, and the player wants to jump, then jump
+	bool wasGrounded = animator->GetBool("isGrounded");
+	if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0 && wasGrounded)
+	{
+		velocity.y = JUMP_SPEED;
+	}
+
 
 	animator->SetBool("isGrounded", false);
 
@@ -189,10 +200,9 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 	newBoundsVertical.y -= 1;
 
-	if (etype == "player" || etype == "npc")
+	//if (etype == "player" || etype == "npc")
+	if (standAboveGround)
 		floorBounds.h += 20; // (int)(newBoundsVertical.h * 0.25f);
-
-
 
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
@@ -217,8 +227,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 					{
 						velocity.x = 0;
 						horizontalCollision = true;
-					}
-					
+					}					
 				}
 
 				// checks the ground (using a rect that is a little bit larger
@@ -229,14 +238,28 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 					animator->SetBool("isGrounded", true);
 
+					bool jumped = false;
+
 					// Move vertically with the parent if there was one (keep this outside of the if)
 					// WARNING: Do not place a vertically moving platform next to a ceiling
 					// or Kaneko will go through the ceiling and get stuck there!
 					// TODO: Can we think of a good way around this?
-					if (prevParent == game.entities[i] && prevParent->velocity.y != 0)
-					{
-						position.y -= floorBounds.y + floorBounds.h - theirBounds->y + 1;
-					}						
+					if (useGravity && prevParent == game.entities[i] && prevParent->velocity.y != 0)
+					{				
+						velocity.y = 0;
+
+						if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0)
+						{
+							jumped = true;
+							jumpsRemaining--;
+							position.y += (JUMP_SPEED * game.dt);
+						}
+						else
+						{
+							position.y = myBounds.y + game.camera.y;
+							position.y += game.entities[i]->CalcCollisionVelocity(this, false) * game.dt;
+						}
+					}			
 
 					// if colliding with ground, set velocity.y to zero (we need this if statement!)				
 					if (velocity.y > -0.01f)
@@ -252,10 +275,18 @@ void PhysicsEntity::CheckCollisions(Game& game)
 						}
 
 						//TODO: Can we do this without casting?
-						if (game.entities[i]->isPhysicsEntity)
+						if (game.entities[i]->isPhysicsEntity && !jumped)
+						{
+							//std::cout << "set parent!" << std::endl;
 							parent = static_cast<PhysicsEntity*>(game.entities[i]);
-
-						velocity.y = 0;
+							animator->SetBool("hasParent", true);
+						}
+						
+						//if (jumped)
+						//	velocity.y = JUMP_SPEED;
+						//else
+						if (useGravity)
+							velocity.y = 0;
 					}
 
 					// push Kaneko out of a ceiling just in case she gets stuck there
@@ -268,13 +299,19 @@ void PhysicsEntity::CheckCollisions(Game& game)
 					}
 				}
 
-				// checks the ceiling (don't know how necessary this realy is)			
+				// checks the ceiling (don't know how necessary this really is)			
 				if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
 				{
 					verticalCollision = true;
-					velocity.y = 20 * Physics::GRAVITY;
+					
 					CheckCollisionTrigger(game.entities[i], game);
-					position.y += (velocity.y * game.dt);
+
+					if (etype == "player")
+					{
+						velocity.y = 20 * Physics::GRAVITY;
+						position.y += (velocity.y * game.dt);
+					}
+
 					// The reason we add to the position here is because we will not move
 					// at all due to verticalCollision being true, so we have to move her down here
 				}
@@ -294,6 +331,11 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		}
 	}
 
+	if (prevParent != nullptr && parent == nullptr)
+	{
+		//std::cout << "lost parent!" << std::endl;
+	}
+
 	if (!horizontalCollision)
 	{
 		position.x += (velocity.x * game.dt);
@@ -304,9 +346,18 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0)
 		{
 			jumpsRemaining--;
+			position.y += JUMP_SPEED * game.dt;
+			//std::cout << "JUMPED" << std::endl;
+		}
+		else
+		{
+			position.y += (velocity.y * game.dt);
 		}
 
-		position.y += (velocity.y * game.dt);
+		//if (etype == "player")
+		//	std::cout << "v: " << velocity.y << std::endl;
+
+		
 	}
 
 	PreviousFrameCollisions(game);
@@ -374,6 +425,7 @@ void PhysicsEntity::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 		{
 			collidedEntity->OnTriggerEnter(this, game);
 		}
+
 		thisFrameCollisions.emplace_back(collidedEntity);
 	}
 }
