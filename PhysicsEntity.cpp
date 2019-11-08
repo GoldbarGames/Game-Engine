@@ -501,14 +501,14 @@ void PhysicsEntity::Render(Renderer * renderer, Vector2 cameraOffset)
 		if (GetModeEdit())
 		{
 			if (animator != nullptr)
-				currentSprite->Render(position - cameraOffset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
+				currentSprite->Render(position - cameraOffset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer);
 			else
 				currentSprite->Render(position - cameraOffset, 0, -1, flip, renderer);
 		}
 		else
 		{
 			if (animator != nullptr)
-				currentSprite->Render(offset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
+				currentSprite->Render(offset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer);
 			else
 				currentSprite->Render(offset, 0, -1, flip, renderer);
 		}

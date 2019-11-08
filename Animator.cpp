@@ -7,14 +7,41 @@ Animator::Animator(std::vector<Sprite*> sprites)
 
 }
 
-// PRE-CONDITION: Initialize all anim parameters
-Animator::Animator(std::string animType, std::string initialState)
+// PRE-CONDITION: The list of states is not empty
+Animator::Animator(std::string animType, std::vector<AnimState*> states, std::string initialState)
 {
-	// Set the initial state
 	animatorType = animType;
-	currentState = initialState;
+
+	// Save the vector of states as a map
+	for (int i = 0; i < states.size(); i++)
+	{
+		MapStateNameToState(states[i]->name, states[i]);
+	}
+
+	// Set the initial state
+	if (initialState != "")
+	{
+		bool found = false;
+		for (int i = 0; i < states.size(); i++)
+		{
+			if (states[i]->name == initialState)
+			{
+				found = true;
+				SetState(states[i]->name);
+				break;
+			}
+		}
+
+		if (!found)
+			SetState(states[0]->name);
+	}
+	else
+	{
+		SetState(states[0]->name);
+	}
+
 	previousState = currentState;
-	beforePreviousState = previousState;	
+	beforePreviousState = previousState;
 }
 
 Animator::Animator(SpriteManager * spriteManager, SDL_Renderer * renderer)
@@ -27,22 +54,22 @@ Animator::~Animator()
 
 }
 
-void Animator::MapStateToSprite(std::string state, Sprite* sprite)
+void Animator::MapStateNameToState(std::string name, AnimState* state)
 {
-	mapStateToSprite[state] = sprite;
+	mapNamesToStates[name] = state;
 }
 
-void Animator::OnEnter(std::string state)
+void Animator::OnEnter(AnimState state)
 {
 
 }
 
 void Animator::DoState(Entity* entity)
 {
-	entity->SetSprite(mapStateToSprite[currentState]);
+	entity->SetSprite(GetCurrentSprite());
 }
 
-void Animator::OnExit(std::string state)
+void Animator::OnExit(AnimState state)
 {
 
 }
@@ -60,7 +87,7 @@ void Animator::Update(Entity* entity)
 	}
 	else if (animatorType == "debug_missile")
 	{
-		if (currentState == "moving")
+		if (currentState->name == "moving")
 		{
 			if (GetBool("destroyed"))
 				SetState("destroyed");
@@ -68,7 +95,7 @@ void Animator::Update(Entity* entity)
 	}
 	else if (animatorType == "door")
 	{
-		if (currentState == "closed")
+		if (currentState->name == "closed")
 		{
 			if (GetBool("opened"))
 				SetState("opened");
@@ -81,7 +108,7 @@ void Animator::Update(Entity* entity)
 
 void Animator::CheckStateKaneko()
 {
-	if (currentState == "look_up")
+	if (currentState->name == "look_up")
 	{
 		if (!GetBool("holdingUp"))
 		{
@@ -92,7 +119,7 @@ void Animator::CheckStateKaneko()
 			SetState("debug_air_up");
 		}
 	}
-	else if (currentState == "look_down")
+	else if (currentState->name == "look_down")
 	{
 		if (!GetBool("holdingDown"))
 		{
@@ -104,7 +131,7 @@ void Animator::CheckStateKaneko()
 		}
 	}
 
-	if (currentState == "walk")
+	if (currentState->name == "walk")
 	{
 		if (!GetBool("walking"))
 			SetState("idle");
@@ -122,7 +149,7 @@ void Animator::CheckStateKaneko()
 				SetState("debug");
 		}
 	}
-	else if (currentState == "blink")
+	else if (currentState->name == "blink")
 	{
 		if (GetBool("walking"))
 			SetState("walk");
@@ -140,7 +167,7 @@ void Animator::CheckStateKaneko()
 				SetState("debug");
 		}
 	}
-	else if (currentState == "ladder_idle")
+	else if (currentState->name == "ladder_idle")
 	{
 		if (!GetBool("onLadder"))
 		{
@@ -157,7 +184,7 @@ void Animator::CheckStateKaneko()
 			}
 		}
 	}
-	else if (currentState == "ladder_climbing")
+	else if (currentState->name == "ladder_climbing")
 	{
 		if (!GetBool("onLadder"))
 		{
@@ -174,7 +201,7 @@ void Animator::CheckStateKaneko()
 			}
 		}
 	}
-	else if (currentState == "idle")
+	else if (currentState->name == "idle")
 	{
 		if (GetBool("holdingUp"))
 		{
@@ -208,7 +235,7 @@ void Animator::CheckStateKaneko()
 				SetState("debug");
 		}
 	}
-	else if (currentState == "jump")
+	else if (currentState->name == "jump")
 	{
 		if (GetBool("holdingUp"))
 		{
@@ -236,7 +263,7 @@ void Animator::CheckStateKaneko()
 	{
 		StateKanekoDebugSpell();
 	}
-	else if (currentState == "PUSH")
+	else if (currentState->name == "PUSH")
 	{
 		if (animationTimer.HasElapsed())
 		{
@@ -252,8 +279,9 @@ void Animator::CheckStateKaneko()
 
 bool Animator::IsStateDebugSpell()
 {
-	return (currentState == "debug" || currentState == "debug_up" || currentState == "debug_down" ||
-		currentState == "debug_air" || currentState == "debug_air_up" || currentState == "debug_air_down");
+	return (currentState->name == "debug" || currentState->name == "debug_up" ||
+		currentState->name == "debug_down" || currentState->name == "debug_air" ||
+		currentState->name == "debug_air_up" || currentState->name == "debug_air_down");
 }
 
 void Animator::StateKanekoDebugSpell()
@@ -272,24 +300,25 @@ void Animator::StateKanekoDebugSpell()
 void Animator::StartTimer()
 {
 	// set duration of the animation based on the playback speed and number of frames
-	animationTimer.Start(speed * mapStateToSprite[currentState]->endFrame, mapStateToSprite[currentState]->shouldLoop);
+	animationTimer.Start(currentState->speed * GetCurrentSprite()->endFrame,
+		GetCurrentSprite()->shouldLoop);
 }
 
 Sprite* Animator::GetCurrentSprite()
 {
-	return mapStateToSprite[currentState];
+	return currentState->sprite;
+}
+
+int Animator::GetSpeed()
+{
+	return currentState->speed;
 }
 
 void Animator::SetState(std::string state)
 {
 	beforePreviousState = previousState;
 	previousState = currentState;	
-	currentState = state;
-
-	if (IsStateDebugSpell())
-		speed = 50;
-	else
-		speed = 100;
+	currentState = mapNamesToStates[state];
 
 	StartTimer();
 }

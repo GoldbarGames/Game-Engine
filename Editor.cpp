@@ -804,7 +804,7 @@ void Editor::RightClick(Vector2 clickedPosition)
 
 	if (ladderIndex >= 0 && !placingLadder)
 	{
-		std::string startingState = game->entities[ladderIndex]->GetAnimator()->currentState;
+		std::string startingState = game->entities[ladderIndex]->GetAnimator()->currentState->name;
 		Vector2 lastPosition = game->entities[ladderIndex]->GetPosition();
 		game->ShouldDeleteEntity(ladderIndex);
 
@@ -1453,7 +1453,6 @@ void Editor::CreateLevelFromString(std::string level)
 {
 	std::vector<Path*> paths;
 	std::vector<Platform*> movingPlatforms;
-
 
 	int SCALE = Renderer::GetScale();
 	std::stringstream ss{ level };

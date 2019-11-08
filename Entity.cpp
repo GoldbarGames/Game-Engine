@@ -107,7 +107,7 @@ void Entity::Render(Renderer * renderer, Vector2 cameraOffset)
 	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite->Render(position - cameraOffset, animator->speed, animator->animationTimer.GetTicks(), flip, renderer);
+			currentSprite->Render(position - cameraOffset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer);
 		else
 			currentSprite->Render(position - cameraOffset, 0, -1, flip, renderer);
 

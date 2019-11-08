@@ -112,7 +112,7 @@ void Player::UpdateNormally(Game& game)
 		else if (currentLadder != nullptr)
 		{
 			// TODO: What if there is a door and a ladder at the same spot?
-			if (currentLadder->GetAnimator()->currentState != "top")
+			if (currentLadder->GetAnimator()->currentState->name != "top")
 			{
 				velocity.y = 0;
 				animator->SetBool("onLadder", true);

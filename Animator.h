@@ -7,40 +7,60 @@
 
 class Entity;
 
+struct AnimState {
+	std::string name = "";
+	int speed = 100;
+	Sprite* sprite;
+
+	AnimState()
+	{
+
+	}
+
+	AnimState(std::string n, int s, Sprite* p)
+	{
+		name = n;
+		speed = s;
+		sprite = p;
+	}
+};
+
 class Animator
 {
 private:
-	std::unordered_map<std::string, Sprite*> mapStateToSprite;
+	//std::unordered_map<std::string, Sprite*> mapStateToSprite;
 
 	// parameters for triggering transitions between states
 	std::unordered_map<std::string, bool> mapParamsBool;
 	std::unordered_map<std::string, float> mapParamsFloat;
 	std::unordered_map<std::string, int> mapParamsInt;
 
+	std::unordered_map<std::string, AnimState*> mapNamesToStates;
 	
 public:
 	Sprite* GetCurrentSprite();
 	Timer animationTimer;
 	std::string animatorType = "";
-	std::string currentState = "";
-	std::string previousState = "";
-	std::string beforePreviousState = "";
-	int speed = 100;
+	AnimState* currentState;
+	AnimState* previousState;
+	AnimState* beforePreviousState;
 	void SetState(std::string state);
-	void OnEnter(std::string state);
+	void OnEnter(AnimState state);
 	void DoState(Entity* entity);
-	void OnExit(std::string state);
+	void OnExit(AnimState state);
 	void Update(Entity* entity);
 	void SetBool(std::string param, bool value);
 	void SetFloat(std::string param, float value);
 	void SetInt(std::string param, int value);
 	bool GetBool(std::string param);
 	void StartTimer();
-	void MapStateToSprite(std::string state, Sprite* sprite);
+	void MapStateNameToState(std::string name, AnimState* state);
 	Animator(std::vector<Sprite*> sprites);
-	Animator(std::string animType, std::string initialState);
+	Animator(std::string animType, std::vector<AnimState*> states, std::string initialState = "");
 	Animator(SpriteManager * spriteManager, SDL_Renderer * renderer);
 	~Animator();
+
+	int GetSpeed();
 
 	void CheckStateKaneko();
 	void StateKanekoDebugSpell();

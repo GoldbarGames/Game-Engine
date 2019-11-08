@@ -75,6 +75,6 @@ void Ladder::Save(std::ostringstream& level)
 	Vector2 pos = GetPosition();
 
 	level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " <<
-		(pos.y / SCALE) << " " << GetAnimator()->currentState
+		(pos.y / SCALE) << " " << GetAnimator()->currentState->name
 		<< " " << spriteIndex << "" << std::endl;
 }

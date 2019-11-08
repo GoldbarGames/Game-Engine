@@ -184,18 +184,18 @@ Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
 	Ladder* newLadder = new Ladder(position);
 	newLadder->spriteIndex = spriteIndex;
 
-	Animator* anim = new Animator("ladder", "middle");
+	std::vector<AnimState*> animStates;
 
-	anim->MapStateToSprite("middle", new Sprite(2, 2, 5, spriteManager, 
-		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0)));
+	animStates.push_back(new AnimState("middle", 0, new Sprite(2, 2, 5, spriteManager,
+		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0))));
 
-	anim->MapStateToSprite("bottom", new Sprite(4, 4, 5, spriteManager,
-		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0)));
+	animStates.push_back(new AnimState("bottom", 0, new Sprite(4, 4, 5, spriteManager,
+		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0))));
 
-	anim->MapStateToSprite("top", new Sprite(0, 0, 5, spriteManager,
-		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0)));
+	animStates.push_back(new AnimState("top", 0, new Sprite(0, 0, 5, spriteManager,
+		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0))));
 
-	anim->speed = 0;
+	Animator* anim = new Animator("ladder", animStates, "middle");
 	newLadder->SetAnimator(anim);
 
 	return newLadder;
@@ -238,13 +238,14 @@ Door* Game::CreateDoor(Vector2 position, int spriteIndex)
 	Door* newDoor = new Door(position, Vector2(0, 0));
 	newDoor->spriteIndex = spriteIndex;
 
-	//TODO: How to make this work for doors that will be related to other tilesets?
-	Animator* anim = new Animator("door", "closed");
-
 	Vector2 pivotPoint = Vector2(0, 0);
-	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, spriteMap["door"][spriteIndex], renderer, pivotPoint));
-	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, spriteMap["door"][spriteIndex], renderer, pivotPoint));
+	std::vector<AnimState*> animStates;
 
+	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 2, spriteManager, spriteMap["door"][spriteIndex], renderer, pivotPoint)));
+	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 2, spriteManager, spriteMap["door"][spriteIndex], renderer, pivotPoint)));
+	
+	//TODO: How to make this work for doors that will be related to other tilesets?
+	Animator* anim = new Animator("door", animStates, "closed");
 	newDoor->SetAnimator(anim);
 
 	return newDoor;
@@ -271,31 +272,30 @@ NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 	NPC* newNPC = new NPC(name, position);
 	newNPC->spriteIndex = spriteIndex;
 
-	Animator* anim = new Animator(name, "idle");
-
 	Vector2 pivotPoint = Vector2(0, 0);
+	std::vector<AnimState*> animStates;
 
 	if (name == "gramps")
 	{
 		pivotPoint = Vector2(12, 28);
-		anim->MapStateToSprite("idle", new Sprite(0, 0, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint));
-		anim->MapStateToSprite("sad", new Sprite(1, 1, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint));
-		anim->MapStateToSprite("confused", new Sprite(2, 2, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint));
+		animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
+		animStates.push_back(new AnimState("sad", 100, new Sprite(1, 1, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
+		animStates.push_back(new AnimState("confused", 100, new Sprite(2, 2, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
 		
 	}
 	else if (name == "the_man")
 	{
 		pivotPoint = Vector2(23, 36);
-		anim->speed = 200;
-		anim->MapStateToSprite("idle", new Sprite(0, 7, 8, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint));
+		animStates.push_back(new AnimState("idle", 200, new Sprite(0, 7, 8, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
 	}
+
+	Animator* anim = new Animator(name, animStates, "idle");
+	newNPC->SetAnimator(anim);
+	newNPC->trigger = true;
 
 	float w = anim->GetCurrentSprite()->frameWidth;
 	float h = anim->GetCurrentSprite()->frameHeight;
 	newNPC->ChangeCollider(0, 0, w, h);
-
-	newNPC->SetAnimator(anim);
-	newNPC->trigger = true;
 
 	return newNPC;
 }
@@ -322,13 +322,13 @@ Goal* Game::CreateGoal(Vector2 position, int spriteIndex)
 	Goal* newGoal = new Goal(position);
 	newGoal->spriteIndex = spriteIndex;
 
-	//TODO: How to make this work for doors that will be related to other tilesets?
-	Animator* anim = new Animator("door", "closed");
-
 	Vector2 pivotPoint = Vector2(0, 0);
-	anim->MapStateToSprite("closed", new Sprite(0, 0, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer, pivotPoint));
-	anim->MapStateToSprite("opened", new Sprite(1, 1, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer, pivotPoint));
+	std::vector<AnimState*> animStates;
 
+	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer, pivotPoint)));
+	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer, pivotPoint)));
+	
+	Animator* anim = new Animator("door", animStates, "closed");
 	newGoal->SetAnimator(anim);
 
 	return newGoal;
@@ -356,12 +356,11 @@ Bug* Game::CreateBug(Vector2 position, int spriteIndex)
 	Bug* newBug = new Bug(position);
 	newBug->spriteIndex = spriteIndex;
 
-	//TODO: How to make this work for doors that will be related to other tilesets?
-	Animator* anim = new Animator("bug", "idle");
-
 	Vector2 pivotPoint = Vector2(16, 16);
-	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, spriteMap["bug"][spriteIndex], renderer, pivotPoint));
+	std::vector<AnimState*> animStates;
 
+	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, spriteMap["bug"][spriteIndex], renderer, pivotPoint)));
+	Animator* anim = new Animator("bug", animStates, "idle");
 	newBug->SetAnimator(anim);
 
 	return newBug;
@@ -390,11 +389,14 @@ Ether* Game::CreateEther(Vector2 position, int spriteIndex)
 	newEther->spriteIndex = spriteIndex;
 
 	//TODO: How to make this work for doors that will be related to other tilesets?
-	Animator* anim = new Animator("ether", "idle");
+	
 
 	Vector2 pivotPoint = Vector2(0, 0);
-	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, "assets/sprites/spells/ether.png", renderer, pivotPoint));
+	std::vector<AnimState*> animStates;
 
+	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/spells/ether.png", renderer, pivotPoint)));
+
+	Animator* anim = new Animator("ether", animStates, "idle");
 	newEther->SetAnimator(anim);
 
 	return newEther;
@@ -423,11 +425,14 @@ Block* Game::CreateBlock(Vector2 position, int spriteIndex)
 	//newBlock->spriteIndex = spriteIndex;
 
 	//TODO: How to make this work for doors that will be related to other tilesets?
-	Animator* anim = new Animator("block", "idle");
+	
 
 	Vector2 pivotPoint = Vector2(24, 32);
-	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/big_block.png", renderer, pivotPoint));
+	std::vector<AnimState*> animStates;
 
+	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/big_block.png", renderer, pivotPoint)));
+	
+	Animator* anim = new Animator("block", animStates, "idle");
 	newBlock->SetAnimator(anim);
 
 	return newBlock;
@@ -457,11 +462,14 @@ Platform* Game::CreatePlatform(Vector2 position, int spriteIndex)
 	newPlatform->spriteIndex = spriteIndex;
 
 	//TODO: How to make this work for doors that will be related to other tilesets?
-	Animator* anim = new Animator("platform", "idle");
+	
 
 	Vector2 pivotPoint = Vector2(36, 12);
-	anim->MapStateToSprite("idle", new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/platform.png", renderer, pivotPoint));
+	std::vector<AnimState*> animStates;
 
+	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/platform.png", renderer, pivotPoint)));
+
+	Animator* anim = new Animator("platform", animStates, "idle");
 	newPlatform->SetAnimator(anim);
 
 	return newPlatform;
@@ -483,21 +491,19 @@ Platform* Game::SpawnPlatform(Vector2 position, int spriteIndex)
 	}
 }
 
-
-
-
-
 Shroom* Game::CreateShroom(Vector2 position, int spriteIndex)
 {
 	Shroom* newObject = new Shroom(position);
 	newObject->spriteIndex = spriteIndex;
-
-	Animator* anim = new Animator("shroom", "idle");
-
+	
 	Vector2 pivotPoint = Vector2(15, 30);
-	anim->MapStateToSprite("idle", new Sprite(0, 3, 9, spriteManager, spriteMap["shroom"][spriteIndex], renderer, pivotPoint));
 
-	newObject->SetAnimator(anim);
+	std::vector<AnimState*> animStates;
+	animStates.push_back(new AnimState("idle", 200, new Sprite(0, 3, 9, spriteManager, 
+		spriteMap["shroom"][spriteIndex], renderer, pivotPoint)));
+
+	newObject->SetAnimator(new Animator("shroom", animStates));
+	newObject->canBePushed = (spriteIndex == 1); // can push if it is in the pot
 
 	return newObject;
 }
@@ -525,14 +531,16 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 {
 	//TODO: Make a way for this to return false
 
-	Animator* anim = new Animator("debug_missile", "moving");
-	anim->SetBool("destroyed", false);
-
 	Vector2 pivotPoint = Vector2(14, 7);
-	anim->MapStateToSprite("moving", new Sprite(0, 3, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint));
-	anim->MapStateToSprite("destroyed", new Sprite(4, 7, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint, false));
+
+	std::vector<AnimState*> animStates;
+	animStates.push_back(new AnimState("moving", 100, new Sprite(0, 3, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint)));
+	animStates.push_back(new AnimState("destroyed", 100, new Sprite(4, 7, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint, false)));
 
 	Missile* missile = new Missile(position - pivotPoint);
+
+	Animator* anim = new Animator("debug_missile", animStates, "moving");
+	anim->SetBool("destroyed", false);
 
 	missile->SetAnimator(anim);
 	missile->SetVelocity(velocity);
@@ -594,39 +602,62 @@ Background* Game::SpawnBackground(Vector2 pos)
 	return background;
 }
 
+void Game::ReadAnimData(std::string dataFilePath, std::vector<AnimState*> & animStates)
+{
+	// Get anim data from the file
+	std::ifstream fin;
+	fin.open(dataFilePath);
+
+	std::string animData = "";
+	for (std::string line; std::getline(fin, line); )
+	{
+		animData += line + "\n";
+	}
+
+	fin.close();
+
+	// Go through the data and add all states
+
+	std::stringstream ss{ animData };
+
+	char lineChar[256];
+	ss.getline(lineChar, 256);
+
+	while (ss.good() && !ss.eof())
+	{
+		std::istringstream buf(lineChar);
+		std::istream_iterator<std::string> beg(buf), end;
+		std::vector<std::string> tokens(beg, end);
+
+		int index = 0;
+		std::string stateName = tokens[index++];
+		int stateSpeed = std::stoi(tokens[index++]);
+		int spriteStartFrame = std::stoi(tokens[index++]);
+		int spriteEndFrame = std::stoi(tokens[index++]);
+		int spriteNumberTotalFrames = std::stoi(tokens[index++]);
+		std::string spriteFilePath = tokens[index++];
+		int spritePivotX = std::stoi(tokens[index++]);
+		int spritePivotY = std::stoi(tokens[index++]);
+
+		animStates.push_back(new AnimState(stateName, stateSpeed,
+			new Sprite(spriteStartFrame, spriteEndFrame, spriteNumberTotalFrames,
+				spriteManager, spriteFilePath, renderer, Vector2(spritePivotX, spritePivotY))));
+
+		ss.getline(lineChar, 256);
+	}
+}
+
 Player* Game::SpawnPlayer(Vector2 position)
 {
 	Player* player = new Player(position);
 	player->game = this;
 
-	Animator* anim1 = new Animator("kaneko", "idle");
+	std::vector<AnimState*> animStates;
 
+	ReadAnimData("data/player.anim", animStates);
+
+	Animator* anim1 = new Animator("kaneko", animStates, "idle");
 	anim1->SetBool("isGrounded", true);
-
-	anim1->MapStateToSprite("walk", new Sprite(6, spriteManager, "assets/sprites/kaneko/wdk_walk.png", renderer, Vector2(16,24)));
-	anim1->MapStateToSprite("blink", new Sprite(5, spriteManager, "assets/sprites/kaneko/wdk_blink.png", renderer, Vector2(16, 24)));
-	anim1->MapStateToSprite("idle", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_idle.png", renderer, Vector2(16, 24)));
-	anim1->MapStateToSprite("jump", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_jump.png", renderer, Vector2(24, 24)));
-	
-	anim1->MapStateToSprite("look_up", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_lookup.png", renderer, Vector2(16, 24)));
-	anim1->MapStateToSprite("look_down", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_lookdown.png", renderer, Vector2(16, 24)));
-
-	anim1->MapStateToSprite("ladder_idle", new Sprite(3, 3, 8, spriteManager, "assets/sprites/kaneko/wdk_ladder_climb.png", renderer, Vector2(15, 26)));
-	anim1->MapStateToSprite("ladder_climbing", new Sprite(0, 7, 8, spriteManager, "assets/sprites/kaneko/wdk_ladder_climb.png", renderer, Vector2(15, 26)));
-
-	//TODO: Make states for debug in air, up, down, on ladder, etc. (FIX PIVOT POINTS)
-	anim1->MapStateToSprite("debug", new Sprite(10, spriteManager, "assets/sprites/kaneko/wdk_debug.png", renderer, Vector2(25, 26)));
-	anim1->MapStateToSprite("debug_up", new Sprite(10, spriteManager, "assets/sprites/kaneko/wdk_debug_up.png", renderer, Vector2(25, 26)));
-	anim1->MapStateToSprite("debug_down", new Sprite(10, spriteManager, "assets/sprites/kaneko/wdk_debug_down.png", renderer, Vector2(25, 26)));
-	anim1->MapStateToSprite("debug_air", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air.png", renderer, Vector2(28, 26)));
-	anim1->MapStateToSprite("debug_air_up", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air_up.png", renderer, Vector2(28, 26)));
-	anim1->MapStateToSprite("debug_air_down", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_debug_air_down.png", renderer, Vector2(28, 26)));
-	anim1->MapStateToSprite("debug_climb", new Sprite(2, spriteManager, "assets/sprites/kaneko/wdk_debug_climb.png", renderer, Vector2(25, 26)));
-
-	// Spell animations
-	anim1->MapStateToSprite("PUSH", new Sprite(7, spriteManager, "assets/sprites/kaneko/wdk_push.png", renderer, Vector2(21, 26)));
-
-
 	player->SetAnimator(anim1);
 	player->SetPosition(position);
 	player->startPosition = position;

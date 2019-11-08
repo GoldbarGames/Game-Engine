@@ -213,6 +213,8 @@ public:
 
 	void SaveEditorSettings();
 	void LoadEditorSettings();
+
+	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*> & animStates);
 	
 };
 
