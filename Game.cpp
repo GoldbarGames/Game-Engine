@@ -9,6 +9,9 @@
 #include <sstream>
 #include <iterator>
 
+#include <stdio.h>
+#include <time.h>
+
 using std::string;
 
 Game::Game()
@@ -186,6 +189,8 @@ Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
 
 	std::vector<AnimState*> animStates;
 
+	//ReadAnimData("data/animations/ladder.anim", animStates);
+
 	animStates.push_back(new AnimState("middle", 0, new Sprite(2, 2, 5, spriteManager,
 		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0))));
 
@@ -240,7 +245,7 @@ Door* Game::CreateDoor(Vector2 position, int spriteIndex)
 
 	Vector2 pivotPoint = Vector2(0, 0);
 	std::vector<AnimState*> animStates;
-
+	//ReadAnimData("data/animations/door.anim", animStates);
 	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 2, spriteManager, spriteMap["door"][spriteIndex], renderer, pivotPoint)));
 	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 2, spriteManager, spriteMap["door"][spriteIndex], renderer, pivotPoint)));
 	
@@ -277,6 +282,7 @@ NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 
 	if (name == "gramps")
 	{
+		//ReadAnimData("data/animations/gramps.anim", animStates);
 		pivotPoint = Vector2(12, 28);
 		animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
 		animStates.push_back(new AnimState("sad", 100, new Sprite(1, 1, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
@@ -285,6 +291,7 @@ NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 	}
 	else if (name == "the_man")
 	{
+		//ReadAnimData("data/animations/the_man.anim", animStates);
 		pivotPoint = Vector2(23, 36);
 		animStates.push_back(new AnimState("idle", 200, new Sprite(0, 7, 8, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
 	}
@@ -324,7 +331,7 @@ Goal* Game::CreateGoal(Vector2 position, int spriteIndex)
 
 	Vector2 pivotPoint = Vector2(0, 0);
 	std::vector<AnimState*> animStates;
-
+	//ReadAnimData("data/animations/goal.anim", animStates);
 	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer, pivotPoint)));
 	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer, pivotPoint)));
 	
@@ -358,7 +365,7 @@ Bug* Game::CreateBug(Vector2 position, int spriteIndex)
 
 	Vector2 pivotPoint = Vector2(16, 16);
 	std::vector<AnimState*> animStates;
-
+	//ReadAnimData("data/animations/bug.anim", animStates);
 	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, spriteMap["bug"][spriteIndex], renderer, pivotPoint)));
 	Animator* anim = new Animator("bug", animStates, "idle");
 	newBug->SetAnimator(anim);
@@ -388,12 +395,9 @@ Ether* Game::CreateEther(Vector2 position, int spriteIndex)
 	Ether* newEther = new Ether(position);
 	newEther->spriteIndex = spriteIndex;
 
-	//TODO: How to make this work for doors that will be related to other tilesets?
-	
-
 	Vector2 pivotPoint = Vector2(0, 0);
 	std::vector<AnimState*> animStates;
-
+	//ReadAnimData("data/animations/ether.anim", animStates);
 	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/spells/ether.png", renderer, pivotPoint)));
 
 	Animator* anim = new Animator("ether", animStates, "idle");
@@ -424,12 +428,9 @@ Block* Game::CreateBlock(Vector2 position, int spriteIndex)
 	Block* newBlock = new Block(position);
 	//newBlock->spriteIndex = spriteIndex;
 
-	//TODO: How to make this work for doors that will be related to other tilesets?
-	
-
 	Vector2 pivotPoint = Vector2(24, 32);
 	std::vector<AnimState*> animStates;
-
+	//ReadAnimData("data/animations/block.anim", animStates);
 	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/big_block.png", renderer, pivotPoint)));
 	
 	Animator* anim = new Animator("block", animStates, "idle");
@@ -466,7 +467,7 @@ Platform* Game::CreatePlatform(Vector2 position, int spriteIndex)
 
 	Vector2 pivotPoint = Vector2(36, 12);
 	std::vector<AnimState*> animStates;
-
+	//ReadAnimData("data/animations/platform.anim", animStates);
 	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/platform.png", renderer, pivotPoint)));
 
 	Animator* anim = new Animator("platform", animStates, "idle");
@@ -499,6 +500,7 @@ Shroom* Game::CreateShroom(Vector2 position, int spriteIndex)
 	Vector2 pivotPoint = Vector2(15, 30);
 
 	std::vector<AnimState*> animStates;
+	//ReadAnimData("data/animations/shroom.anim", animStates);
 	animStates.push_back(new AnimState("idle", 200, new Sprite(0, 3, 9, spriteManager, 
 		spriteMap["shroom"][spriteIndex], renderer, pivotPoint)));
 
@@ -534,6 +536,7 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 	Vector2 pivotPoint = Vector2(14, 7);
 
 	std::vector<AnimState*> animStates;
+	//ReadAnimData("data/animations/missile.anim", animStates);
 	animStates.push_back(new AnimState("moving", 100, new Sprite(0, 3, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint)));
 	animStates.push_back(new AnimState("destroyed", 100, new Sprite(4, 7, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint, false)));
 
@@ -602,6 +605,7 @@ Background* Game::SpawnBackground(Vector2 pos)
 	return background;
 }
 
+//TODO: Only read this data once at the beginning and then store it for lookup later
 void Game::ReadAnimData(std::string dataFilePath, std::vector<AnimState*> & animStates)
 {
 	// Get anim data from the file
@@ -653,8 +657,7 @@ Player* Game::SpawnPlayer(Vector2 position)
 	player->game = this;
 
 	std::vector<AnimState*> animStates;
-
-	ReadAnimData("data/player.anim", animStates);
+	ReadAnimData("data/animations/player.anim", animStates);
 
 	Animator* anim1 = new Animator("kaneko", animStates, "idle");
 	anim1->SetBool("isGrounded", true);
@@ -1169,6 +1172,9 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_5: // Redo Button
 				editor->RedoAction();
 				break;
+			case SDLK_6: // Screenshot Button
+				SaveScreenshot();
+				break;
 			case SDLK_7: // TODO: Zoom camera button
 				if (Renderer::GetScale() == 2)
 					Renderer::SetScale(1);
@@ -1195,6 +1201,30 @@ bool Game::HandleEvent(SDL_Event& event)
 	}
 
 	return quit;
+}
+
+void Game::SaveScreenshot()
+{
+	const std::string counterfilepath = "screenshots/counter.txt";
+
+	std::ifstream fin;
+	fin.open(counterfilepath);
+	std::string timestamp = "";
+	fin >> timestamp;
+	fin.close();
+
+	std::ofstream fout;
+	fout.open(counterfilepath);
+	fout << (std::stoi(timestamp) + 1) << std::endl;
+	fout.close();
+	
+	//TODO: Can we get this working based on a date time?
+
+	std::string filepath = "screenshots/screenshot-" + timestamp + ".bmp";
+	SDL_Surface * screenshot = SDL_CreateRGBSurface(0, screenWidth, screenHeight, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+	SDL_RenderReadPixels(renderer->renderer, NULL, SDL_PIXELFORMAT_ARGB8888, screenshot->pixels, screenshot->pitch);
+	SDL_SaveBMP(screenshot, filepath.c_str());
+	SDL_FreeSurface(screenshot);
 }
 
 void Game::GetMenuInput()

@@ -300,7 +300,12 @@ void Player::CheckJumpButton(const Uint8* input)
 {
 	hadPressedJump = pressingJumpButton;
 	pressingJumpButton = input[SDL_SCANCODE_X];
+	//if (pressingJumpButton)
+	//	std::cout << "!!!!" << std::endl;
 
+	canJump = ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0);
+
+	/*
 	if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0)
 	{
 		if (animator->GetBool("holdingUp") || animator->GetBool("holdingDown"))
@@ -311,7 +316,7 @@ void Player::CheckJumpButton(const Uint8* input)
 		{
 			canJump = true;
 		}
-	}
+	}*/
 }
 
 

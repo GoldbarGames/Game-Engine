@@ -215,6 +215,6 @@ public:
 	void LoadEditorSettings();
 
 	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*> & animStates);
-	
+	void SaveScreenshot();
 };
 

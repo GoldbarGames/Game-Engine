@@ -24,7 +24,7 @@ public:
 	Goal* currentGoal = nullptr;
 
 	
-	bool canJump = true;
+	
 	Vector2 startPosition;
 
 	//TODO: Make this more of a proper data structure

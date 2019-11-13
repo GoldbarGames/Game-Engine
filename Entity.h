@@ -41,6 +41,7 @@ public:
 	SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
 	bool trigger = false;	
+	bool jumpThru = false;
 
 	Sprite* GetSprite();
 	Animator* GetAnimator();

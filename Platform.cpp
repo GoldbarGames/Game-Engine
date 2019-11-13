@@ -11,7 +11,7 @@ Platform::Platform(Vector2 pos) : PhysicsEntity(pos)
 	drawOrder = 10;
 	
 	canBePushed = false; // TODO: Is there some potential here?
-
+	jumpThru = true;
 	impassable = true;
 	useGravity = false;
 	mass = 10;

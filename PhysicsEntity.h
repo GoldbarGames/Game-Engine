@@ -31,10 +31,15 @@ public:
 	float colliderWidth = 1;
 	float colliderHeight = 1;
 
+	const float JUMP_SPEED = -0.7f;
+
+	PhysicsEntity* prevParent = nullptr;
+
 	//TODO: Can we make this so that only the player has this?
 	// OR does this mean that if other characters jump, we use this bool?
-	bool hadPressedJump;
-	bool pressingJumpButton;
+	bool hadPressedJump = false;
+	bool pressingJumpButton = false;
+	bool canJump = true;
 
 	PhysicsEntity* parent = nullptr;
 
@@ -65,5 +70,11 @@ public:
 
 	float CalcCollisionVelocity(PhysicsEntity* other, bool x);
 	bool IsEntityPushingOther(PhysicsEntity* other, bool x);
+
+	PhysicsEntity* CheckPrevParent();
+
+	bool CheckCollisionHorizontal(Entity* entity, Game& game);
+
+	bool CheckCollisionVertical(Entity* entity, Game& game, SDL_Rect floorBounds);
 };
 
