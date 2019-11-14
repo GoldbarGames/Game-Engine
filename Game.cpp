@@ -578,6 +578,8 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION;
+
+
 	//tile->etype = "tile";
 	//tile->tileCoordinates = frame;
 	tile->tilesheetIndex = editor->tilesheetIndex;

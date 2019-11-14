@@ -129,6 +129,7 @@ public:
 	//TODO: Make these return bools, and if true, DoAction()?
 	void LeftClick(Vector2 clickedPosition, int mouseX, int mouseY);
 	void RightClick(Vector2 clickedPosition);
+	void MiddleClick(Vector2 clickedPosition);
 
 	void SetLayer(DrawingLayer layer);
 	void DestroyLadder(std::string startingState, Vector2 lastPosition);

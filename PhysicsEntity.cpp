@@ -211,7 +211,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 		if (game.entities[i] != this)
 		{
-			if (game.entities[i]->impassable)
+			if (game.entities[i]->impassable || game.entities[i]->jumpThru)
 			{	
 				if (game.entities[i]->jumpThru)
 				{

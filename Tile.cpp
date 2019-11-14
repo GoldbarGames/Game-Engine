@@ -62,7 +62,13 @@ void Tile::Save(std::ostringstream& level)
 	float x = GetPosition().x / SCALE;
 	float y = GetPosition().y / SCALE;
 
+	int passableState = 0;
+	if (impassable)
+		passableState = 1;
+	if (jumpThru)
+		passableState = 2;
+
 	level << std::to_string(id) << " " << etype << " " << x << " " << y << " " << drawOrder << " " << layer << " " 
-		<< impassable << " " << tilesheetIndex << " " << tileCoordinates.x <<
+		<< passableState << " " << tilesheetIndex << " " << tileCoordinates.x <<
 		" " << tileCoordinates.y << "" << std::endl;
 }

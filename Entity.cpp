@@ -92,7 +92,9 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 {
 	if (GetModeDebug() && currentSprite != nullptr)
 	{
-		if (impassable)
+		if (jumpThru)
+			SDL_SetRenderDrawColor(renderer->renderer, 255, 165, 0, 255);
+		else if (impassable)
 			SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
 		else
 			SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 255);

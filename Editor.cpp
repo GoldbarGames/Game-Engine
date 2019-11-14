@@ -624,26 +624,22 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 						{
 							// Connect the two edges by spawning the middle parts
 							mouseY += GRID_SIZE * Renderer::GetScale();
-							int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
-							while (snappedY < currentLadder->GetPosition().y)
+							while (snappedPosition.y < currentLadder->GetPosition().y)
 							{
-								game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
-								mouseY += GRID_SIZE * Renderer::GetScale();
-								snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
+								game->SpawnLadder(snappedPosition, spriteMapIndex);
+								snappedPosition.y += GRID_SIZE * Renderer::GetScale();
 							}
 						}
 						else
 						{
 							// Connect the two edges by spawning the middle parts
 							mouseY -= GRID_SIZE * Renderer::GetScale();
-							int snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
 
-							while (snappedY > currentLadder->GetPosition().y)
+							while (snappedPosition.y > currentLadder->GetPosition().y)
 							{
-								game->SpawnLadder(Vector2(mouseX, mouseY), spriteMapIndex);
-								mouseY -= GRID_SIZE * Renderer::GetScale();
-								snappedY = game->SnapToGrid(Vector2(mouseY, mouseY)).y;
+								game->SpawnLadder(snappedPosition, spriteMapIndex);
+								snappedPosition.y -= GRID_SIZE * Renderer::GetScale();
 							}
 						}
 
@@ -696,6 +692,36 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 	}
 }
 
+// Toggle special properties of the selected entity
+void Editor::MiddleClick(Vector2 clickedPosition)
+{
+	if (previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE))
+		return;
+
+	clickedPosition.x += (int)game->camera.x;
+	clickedPosition.y += (int)game->camera.y;
+
+	for (int i = game->entities.size() - 1; i >= 0; i--)
+	{
+		Vector2 entityPosition = game->entities[i]->GetPosition().RoundToInt();
+		Vector2 clickedInt = clickedPosition.RoundToInt();
+
+		bool samePosition = entityPosition.x >= clickedInt.x - 1 &&
+			entityPosition.x <= clickedInt.x + 1 &&
+			entityPosition.y >= clickedInt.y - 1 &&
+			entityPosition.y <= clickedInt.y + 1;
+
+		if (samePosition)
+		{
+			// Toggle the jump thru property of tiles
+			if (game->entities[i]->etype == "tile")
+			{
+				game->entities[i]->jumpThru = !game->entities[i]->jumpThru;
+			}
+		}
+	}
+}
+
 //TODO: Figure out how to structure this so we can add deleting stuff as an Action
 void Editor::RightClick(Vector2 clickedPosition)
 {
@@ -712,6 +738,7 @@ void Editor::RightClick(Vector2 clickedPosition)
 
 	int ladderIndex = -1;
 
+	// Iterate backwards so that we prioritize objects that are rendered closest to the camera
 	for (int i = game->entities.size() - 1; i >= 0; i--)
 	{
 		Vector2 entityPosition = game->entities[i]->GetPosition().RoundToInt();
@@ -846,13 +873,16 @@ void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
 
 		for (unsigned int i = 0; i < game->entities.size(); i++)
 		{
-			if (game->entities[i]->GetPosition() == lastPosition &&
-				game->entities[i]->etype == "ladder")
+			if (game->entities[i]->etype == "ladder")
 			{
-				game->ShouldDeleteEntity(i);
-				exit = false;
-				break;
+				if (game->entities[i]->GetPosition().RoundToInt() == lastPosition.RoundToInt())
+				{
+					game->ShouldDeleteEntity(i);
+					exit = false;
+					break;
+				}
 			}
+			
 		}
 	}
 }
@@ -882,6 +912,10 @@ void Editor::HandleEdit()
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{
 		RightClick(clickedPosition);
+	}
+	else if (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE)) // toggles special properties
+	{
+		MiddleClick(clickedPosition);
 	}
 
 	if (grabbedEntity != nullptr)
@@ -1479,13 +1513,18 @@ void Editor::CreateLevelFromString(std::string level)
 		{
 			index++;
 			int layer = std::stoi(tokens[index++]);
-			int impassable = std::stoi(tokens[index++]);
+
+			int passableState = std::stoi(tokens[index++]);
+
 			int tilesheet = std::stoi(tokens[index++]);
 			int frameX = std::stoi(tokens[index++]);
 			int frameY = std::stoi(tokens[index++]);
 
 			Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheets[tilesheet] + ".png",
 				Vector2(positionX * SCALE, positionY * SCALE), (DrawingLayer)layer);
+
+			if (passableState == 2)
+				newTile->jumpThru = true;
 
 			newTile->tilesheetIndex = tilesheet;
 		}

@@ -6,7 +6,7 @@ Platform::Platform(Vector2 pos) : PhysicsEntity(pos)
 {
 	startPosition = position;
 	etype = "platform";
-	CreateCollider(0, 0, 0, 0, 72, 24);
+	CreateCollider(0, 0, 0, -48, 72, 24);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 10;
 	
