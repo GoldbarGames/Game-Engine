@@ -45,11 +45,6 @@ private:
 
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;
-
-
-
-	
-
 	
 public:
 
@@ -59,8 +54,8 @@ public:
 	void DeleteEntity(int index);
 
 	// Player / Level Info
-	int startingEther = 4;
-	int currentEther = 4;
+	int startingEther = 40;
+	int currentEther = 40;
 	int bugsDefeated = 0;
 	int bugsRemaining = 0;
 

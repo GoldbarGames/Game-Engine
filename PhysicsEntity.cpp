@@ -107,18 +107,10 @@ bool PhysicsEntity::IsEntityPushingOther(PhysicsEntity* other, bool x)
 	}	
 }
 
-
-void PhysicsEntity::CheckCollisions(Game& game)
+PhysicsEntity* PhysicsEntity::CheckPrevParent()
 {
-	// copy this frame into previous frame list (could be done at beginning or end)
-	prevFrameCollisions = thisFrameCollisions;
-	thisFrameCollisions.clear();
-
-	CalculateCollider(game.camera);
-
-
-
 	animator->SetBool("hasParent", false);
+
 	PhysicsEntity* prevParent = parent;
 	parent = nullptr;
 
@@ -137,13 +129,6 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		}
 	}
 
-	const float JUMP_SPEED = -0.7f;
-
-	// if we were on the ground last frame, and the player wants to jump, then jump
-	bool wasGrounded = animator->GetBool("isGrounded");
-
-	animator->SetBool("isGrounded", false);
-
 	if (prevParent != nullptr && prevParent->velocity.y != 0)
 	{
 		animator->SetBool("isGrounded", true);
@@ -154,6 +139,107 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		}
 	}
 
+	return prevParent;
+}
+
+bool PhysicsEntity::CheckCollisionHorizontal(Entity* entity, Game& game)
+{
+	// if one entity is moving in the direction of the other entity...
+	if (entity->IsEntityPushingOther(this, true))
+	{
+		velocity.x = entity->CalcCollisionVelocity(this, true);
+		return (velocity.x == 0);
+	}
+	else
+	{
+		velocity.x = 0;
+		return true;
+	}
+
+	return false;
+}
+
+bool PhysicsEntity::CheckVerticalJumpThru(Entity* entity, Game& game)
+{
+	// TODO: If we don't have NPCs using this, put it in the player script
+	if (etype == "player" && entity->jumpThru)
+	{
+		bool holdingDown = animator->GetBool("holdingDown");
+
+		if (holdingDown)
+		{
+			if ((!hadPressedJump && pressingJumpButton))
+			{
+				jumpsRemaining--;
+				position.y -= JUMP_SPEED * game.dt;
+				PreviousFrameCollisions(game);
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
+bool PhysicsEntity::MoveVerticallyWithParent(Entity* entity, Game& game)
+{
+	// Move vertically with the parent if there was one (keep this outside of the if)
+	// WARNING: Do not place a vertically moving platform next to a ceiling
+	// or Kaneko will go through the ceiling and get stuck there!
+	// TODO: Can we think of a good way around this?
+	if (useGravity && prevParent == entity && prevParent->velocity.y != 0)
+	{
+		velocity.y = 0;
+
+		if (canJump)
+		{			
+			jumpsRemaining--;
+			position.y += (JUMP_SPEED * game.dt);
+			return true;
+		}
+		else
+		{
+			position.y = GetColliderBounds()->y + game.camera.y;
+			position.y += entity->CalcCollisionVelocity(this, false) * game.dt;
+		}
+	}
+
+	return false;
+}
+
+bool PhysicsEntity::CheckCollisionCeiling(Entity* entity, Game& game)
+{
+	CheckCollisionTrigger(entity, game);
+
+	if (etype == "player")
+	{
+		velocity.y = 20 * Physics::GRAVITY;
+		position.y += (velocity.y * game.dt);
+	}
+
+	// The reason we add to the position here is because we will not move
+	// at all due to verticalCollision being true, so we have to move her down here
+
+	return true;
+}
+
+
+void PhysicsEntity::CheckCollisions(Game& game)
+{
+	// copy this frame into previous frame list (could be done at beginning or end)
+	prevFrameCollisions = thisFrameCollisions;
+	thisFrameCollisions.clear();
+
+	CalculateCollider(game.camera);
+
+	PhysicsEntity* prevParent = CheckPrevParent();	
+
+	// if we were on the ground last frame, and the player wants to jump, then jump
+	bool wasGrounded = animator->GetBool("isGrounded");
+
+	animator->SetBool("isGrounded", false);
+
+	
 	bool horizontalCollision = false;
 	bool verticalCollision = false;
 
@@ -207,162 +293,104 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		//if (horizontalCollision && verticalCollision)
 		//	break;
 
-		const SDL_Rect * theirBounds = game.entities[i]->GetBounds();
+		Entity* entity = game.entities[i];
 
-		if (game.entities[i] != this)
-		{
-			if (game.entities[i]->impassable || game.entities[i]->jumpThru)
-			{	
-				if (game.entities[i]->jumpThru)
-				{
-					// Check to see if we are on top of the platform
-					// (our bottom edge is above the other's top edge)
-					// If so, we deal with collision as normal
-					// Else, we ignore the collider
+		const SDL_Rect * theirBounds = entity->GetBounds();
 
-					bool onTopOfPlatform = myBounds.y + myBounds.h < theirBounds->y;
-					if (!onTopOfPlatform)
-					{
-						continue;
-					}
-				}
+		if (entity == this)
+			continue;
 
-
-				if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
-				{										
-					// if one entity is moving in the direction of the other entity...
-					if ( game.entities[i]->IsEntityPushingOther(this, true) )
-					{
-						velocity.x = game.entities[i]->CalcCollisionVelocity(this, true);
-						horizontalCollision = (velocity.x == 0);
-					}
-					else
-					{
-						velocity.x = 0;
-						horizontalCollision = true;
-					}					
-				}
-
-				// checks the ground (using a rect that is a little bit larger
-				if (!verticalCollision && SDL_HasIntersection(&floorBounds, theirBounds))
-				{
-					verticalCollision = true;
-					CheckCollisionTrigger(game.entities[i], game);
-
-					animator->SetBool("isGrounded", true);
-
-					// TODO: If we don't have NPCs using this, put it in the player script
-					if (etype == "player" && game.entities[i]->jumpThru)
-					{
-						bool holdingDown = animator->GetBool("holdingDown");
-
-						if (holdingDown)
-						{
-							if ((!hadPressedJump && pressingJumpButton))
-							{
-								jumpsRemaining--;
-								position.y -= JUMP_SPEED * game.dt;
-								PreviousFrameCollisions(game);
-								return;
-							}
-						}
-					}
-
-					bool jumped = false;
-
-					// Move vertically with the parent if there was one (keep this outside of the if)
-					// WARNING: Do not place a vertically moving platform next to a ceiling
-					// or Kaneko will go through the ceiling and get stuck there!
-					// TODO: Can we think of a good way around this?
-					if (useGravity && prevParent == game.entities[i] && prevParent->velocity.y != 0)
-					{				
-						velocity.y = 0;
-
-						if (canJump)
-						{
-							jumped = true;
-							jumpsRemaining--;
-							position.y += (JUMP_SPEED * game.dt);
-						}
-						else
-						{
-							position.y = myBounds.y + game.camera.y;
-							position.y += game.entities[i]->CalcCollisionVelocity(this, false) * game.dt;
-						}
-					}			
-
-					// if colliding with ground, set velocity.y to zero (we need this if statement!)				
-					if (velocity.y > -0.01f)
-					{
-						//animator->SetBool("isGrounded", true);
-						
-						jumpsRemaining = 2;
-
-						// this needs to be here to fix the collision with the ground
-						if (position.y + myBounds.h > theirBounds->y + theirBounds->h + 1)
-						{
-							position.y -= floorBounds.y + floorBounds.h - theirBounds->y - 1;
-						}
-
-						//TODO: Can we do this without casting?
-						if (game.entities[i]->isPhysicsEntity && !jumped)
-						{
-							//std::cout << "set parent!" << std::endl;
-							if (velocity.y >= 0)
-							{
-								parent = static_cast<PhysicsEntity*>(game.entities[i]);
-								animator->SetBool("hasParent", true);
-							}							
-						}
-						
-						//if (jumped)
-						//	velocity.y = JUMP_SPEED;
-						//else
-						if (useGravity)
-							velocity.y = 0;
-					}
-
-					// push Kaneko out of a ceiling just in case she gets stuck there
-					// TODO: Make it so that we don't need to do this!
-					if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
-					{
-						velocity.y = 60 * Physics::GRAVITY;
-						CheckCollisionTrigger(game.entities[i], game);
-						position.y += (velocity.y * game.dt);
-					}
-				}
-
-				// checks the ceiling (don't know how necessary this really is)			
-				if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
-				{
-					verticalCollision = true;
-					
-					CheckCollisionTrigger(game.entities[i], game);
-
-					if (etype == "player")
-					{
-						velocity.y = 20 * Physics::GRAVITY;
-						position.y += (velocity.y * game.dt);
-					}
-
-					// The reason we add to the position here is because we will not move
-					// at all due to verticalCollision being true, so we have to move her down here
-				}
-			}
-			else if (game.entities[i]->trigger)
+		if (entity->impassable || entity->jumpThru)
+		{	
+			if (entity->jumpThru)
 			{
-				if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
+				// Check to see if we are on top of the platform
+				// (our bottom edge is above the other's top edge)
+				// If so, we deal with collision as normal
+				// Else, we ignore the collider
+
+				bool onTopOfPlatform = myBounds.y + myBounds.h < theirBounds->y;
+				if (!onTopOfPlatform)
 				{
-					CheckCollisionTrigger(game.entities[i], game);
-				}
-				else if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
-				{
-					CheckCollisionTrigger(game.entities[i], game);
+					continue;
 				}
 			}
 
+			if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
+			{							
+				horizontalCollision = CheckCollisionHorizontal(entity, game);
+			}
+
+			// checks the ground (using a rect that is a little bit larger
+			if (!verticalCollision && SDL_HasIntersection(&floorBounds, theirBounds))
+			{
+				verticalCollision = true;
+				CheckCollisionTrigger(entity, game);
+
+				animator->SetBool("isGrounded", true);
+
+				if (CheckVerticalJumpThru(entity, game))
+					return;
+
+				bool jumped = MoveVerticallyWithParent(entity, game);
+
+				// if colliding with ground, set velocity.y to zero (we need this if statement!)				
+				if (velocity.y > -0.01f)
+				{
+					animator->SetBool("isGrounded", true);
+						
+					// this needs to be here to fix the collision with the ground
+					//if (position.y + 20 > theirBounds->y)
+					//{
+					//	position.y -= (position.y + floorBounds.h - theirBounds->y);
+					//}
+
+					//TODO: Can we do this without casting?
+					// Sets the parent object that the player is standing on, if there is one, if we have not jumped
+					if (entity->isPhysicsEntity && !jumped)
+					{
+						//std::cout << "set parent!" << std::endl;
+						parent = static_cast<PhysicsEntity*>(entity);
+						animator->SetBool("hasParent", true);
+					}
+
+					jumpsRemaining = 2;
+					if (useGravity)
+						velocity.y = 0;
+				}
+
+				// push Kaneko out of a ceiling just in case she gets stuck there
+				// TODO: Make it so that we don't need to do this!
+				if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
+				{
+					velocity.y = 60 * Physics::GRAVITY;
+					CheckCollisionTrigger(entity, game);
+					position.y += (velocity.y * game.dt);
+				}
+			}
+
+			// checks the ceiling (don't know how necessary this really is)			
+			if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
+			{
+				verticalCollision = CheckCollisionCeiling(entity, game);										
+			}
+		}
+		else if (entity->trigger)
+		{
+			if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
+			{
+				CheckCollisionTrigger(entity, game);
+			}
+			else if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
+			{
+				CheckCollisionTrigger(entity, game);
+			}
 		}
 	}
+
+
+
+
 
 	if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0 && wasGrounded)
 	{

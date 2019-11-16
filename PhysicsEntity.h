@@ -31,7 +31,7 @@ public:
 	float colliderWidth = 1;
 	float colliderHeight = 1;
 
-	const float JUMP_SPEED = -0.7f;
+	const float JUMP_SPEED = -0.75f;
 
 	PhysicsEntity* prevParent = nullptr;
 
@@ -76,5 +76,11 @@ public:
 	bool CheckCollisionHorizontal(Entity* entity, Game& game);
 
 	bool CheckCollisionVertical(Entity* entity, Game& game, SDL_Rect floorBounds);
+
+	bool CheckCollisionCeiling(Entity* entity, Game& game);
+
+	bool CheckVerticalJumpThru(Entity* entity, Game& game);
+
+	bool MoveVerticallyWithParent(Entity* entity, Game& game);
 };
 

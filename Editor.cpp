@@ -1579,6 +1579,11 @@ void Editor::CreateLevelFromString(std::string level)
 			int spriteIndex = std::stoi(tokens[index++]);
 			Block* block = game->SpawnBlock(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
 		}
+		else if (etype == "shroom")
+		{
+			int spriteIndex = std::stoi(tokens[index++]);
+			Shroom* entity = game->SpawnShroom(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+		}
 		else if (etype == "path")
 		{
 			bool shouldLoop = std::stoi(tokens[index++]);
@@ -1692,7 +1697,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 	const int BG_OFFSET = (BG_WIDTH * 2);
 	for (unsigned int i = 0; i < NUM_BGS; i++)
 	{
-		game->SpawnBackground(Vector2( (BG_WIDTH * Renderer::GetScale() * i) - BG_OFFSET, 0));
+		//game->SpawnBackground(Vector2( (BG_WIDTH * Renderer::GetScale() * i) - BG_OFFSET, 0));
 	}
 
 	game->SortEntities(game->entities);

@@ -160,10 +160,13 @@ void Player::UpdateNormally(Game& game)
 	else
 	{
 		// Don't move if we are casting debug, or looking up/down
-		if (!animator->GetBool("isCastingDebug") && !animator->GetBool("holdingUp")
-			&& !animator->GetBool("holdingDown"))
+		if (!animator->GetBool("holdingUp") && !animator->GetBool("holdingDown"))
 		{
 			GetMoveInput(input);
+		}
+		else if (animator->GetBool("isGrounded"))
+		{
+			velocity.x = 0;
 		}
 
 		// Update Physics

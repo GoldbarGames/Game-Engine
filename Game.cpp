@@ -125,7 +125,7 @@ void Game::CalcDt()
 	dt = std::chrono::duration<float, milliseconds::period>(clock::now() - start_time).count();
 	start_time = clock::now();
 
-	// When we are debugging and hit a breakpoint in an IDE, the timer continues running./
+	// When we are debugging and hit a breakpoint in an IDE, the timer continues running.
 	// This causes the dt to become huge and throw everything around like crazy.
 	// So reset the dt if it becomes too big so that we can debug properly.
 	if (dt > 100)
@@ -1145,6 +1145,9 @@ bool Game::HandleEvent(SDL_Event& event)
 				//if (player != nullptr)
 				//	player->ResetPosition();
 				editor->InitLevelFromFile(currentLevel);
+				break;
+			case SDLK_t:
+				LoadNextLevel();
 				break;
 			case SDLK_1: // toggle Debug mode
 				SetModeDebug(!GetModeDebug());
