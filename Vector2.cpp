@@ -80,6 +80,11 @@ bool Vector2::operator!=(const Vector2 & rhs)
 	return (x != rhs.x || y != rhs.y);
 }
 
+std::ostream& operator<<(std::ostream& output, Vector2 value)
+{
+	return output << value.x << ", " << value.y;
+}
+
 Vector2 Vector2::RoundToInt()
 {
 	int rx = (int)x;

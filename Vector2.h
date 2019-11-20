@@ -1,4 +1,6 @@
 #pragma once
+#include <iostream>
+
 class Vector2
 {
 public:
@@ -16,6 +18,10 @@ public:
 	Vector2 operator/(const Vector2& rhs);
 	bool operator==(const Vector2& rhs);
 	bool operator!=(const Vector2 & rhs);
+	
 	Vector2 RoundToInt();
 };
+
+std::ostream& operator<<(std::ostream& output, Vector2 value);
+
 

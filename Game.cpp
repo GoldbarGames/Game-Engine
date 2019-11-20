@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <time.h>
 
+#include <glm.hpp>
+
 using std::string;
 
 Game::Game()

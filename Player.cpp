@@ -64,6 +64,8 @@ void Player::Update(Game& game)
 		if (!animator->GetBool("isCastingSpell"))
 			UpdateNormally(game);
 	}
+
+	//std::cout << GetPosition() << std::endl;
 	
 	UpdateAnimator();
 }

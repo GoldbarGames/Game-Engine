@@ -238,7 +238,6 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	bool wasGrounded = animator->GetBool("isGrounded");
 
 	animator->SetBool("isGrounded", false);
-
 	
 	bool horizontalCollision = false;
 	bool verticalCollision = false;
@@ -283,10 +282,20 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	newBoundsVertical.y -= 1;
 
 	//if (etype == "player" || etype == "npc")
+
+	// 2.5D look
+	const int FLOOR_SIZE = 20;
+
 	if (standAboveGround)
-		floorBounds.h += 20; // (int)(newBoundsVertical.h * 0.25f);
+		floorBounds.h += FLOOR_SIZE; // (int)(newBoundsVertical.h * 0.25f);
 
 	bool fallThru = false;
+
+
+	if (etype == "player")
+	{
+		int test = 0;
+	}
 
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
@@ -319,6 +328,12 @@ void PhysicsEntity::CheckCollisions(Game& game)
 			if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
 			{							
 				horizontalCollision = CheckCollisionHorizontal(entity, game);
+			}
+
+			// checks the ceiling (don't know how necessary this really is)			
+			if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
+			{
+				verticalCollision = CheckCollisionCeiling(entity, game);
 			}
 
 			// checks the ground (using a rect that is a little bit larger
@@ -355,25 +370,31 @@ void PhysicsEntity::CheckCollisions(Game& game)
 					}
 
 					jumpsRemaining = 2;
+
 					if (useGravity)
+					{
 						velocity.y = 0;
+						//position.y = theirBounds->y - myBounds.h - 1;
+					}						
 				}
-
-				// push Kaneko out of a ceiling just in case she gets stuck there
-				// TODO: Make it so that we don't need to do this!
-				if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
+				else
 				{
-					velocity.y = 60 * Physics::GRAVITY;
-					CheckCollisionTrigger(entity, game);
-					position.y += (velocity.y * game.dt);
+					// push Kaneko out of a ceiling just in case she gets stuck there
+					// TODO: Make it so that we don't need to do this!
+					/*
+					if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
+					{
+						velocity.y = 60 * Physics::GRAVITY;
+						CheckCollisionTrigger(entity, game);
+						position.y += (velocity.y * game.dt);
+					}
+					*/
 				}
+
+				
 			}
 
-			// checks the ceiling (don't know how necessary this really is)			
-			if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
-			{
-				verticalCollision = CheckCollisionCeiling(entity, game);										
-			}
+
 		}
 		else if (entity->trigger)
 		{
@@ -387,10 +408,6 @@ void PhysicsEntity::CheckCollisions(Game& game)
 			}
 		}
 	}
-
-
-
-
 
 	if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0 && wasGrounded)
 	{
@@ -543,7 +560,6 @@ void PhysicsEntity::Update(Game& game)
 			hitByPushSpell = false;
 			velocity.x = 0;
 		}
-		
 	}
 
 	if (animator != nullptr)
