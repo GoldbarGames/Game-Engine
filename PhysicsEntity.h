@@ -41,6 +41,8 @@ public:
 	bool pressingJumpButton = false;
 	bool canJump = true;
 
+	bool shouldStickToGround = false;
+
 	PhysicsEntity* parent = nullptr;
 
 	PhysicsEntity(Vector2 pos);

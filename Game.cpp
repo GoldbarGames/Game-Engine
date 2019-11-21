@@ -1274,7 +1274,7 @@ void Game::UpdateOverlayColor(int& color, const int& target)
 void Game::Update()
 {
 	// For non-moving camera, set offset based on tile size and scale
-	const int OFFSET = -4;
+	const int OFFSET = 0;
 	camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
 	//camera = Vector2(0, 0);
 	//std::cout << camera.y << std::endl;

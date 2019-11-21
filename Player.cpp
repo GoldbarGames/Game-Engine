@@ -39,6 +39,8 @@ void Player::Render(Renderer * renderer, Vector2 cameraOffset)
 
 void Player::Update(Game& game)
 {	
+	static unsigned int count = 0;
+
 	if (game.watchingCutscene)
 	{
 		//TODO: Get input for handling the textbox
@@ -65,7 +67,10 @@ void Player::Update(Game& game)
 			UpdateNormally(game);
 	}
 
+	std::cout << "--" << count << "--" << std::endl;
 	std::cout << GetPosition() << std::endl;
+
+	count++;
 	
 	UpdateAnimator();
 }

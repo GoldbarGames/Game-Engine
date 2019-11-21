@@ -226,6 +226,8 @@ bool PhysicsEntity::CheckCollisionCeiling(Entity* entity, Game& game)
 
 void PhysicsEntity::CheckCollisions(Game& game)
 {
+	shouldStickToGround = false;
+
 	// copy this frame into previous frame list (could be done at beginning or end)
 	prevFrameCollisions = thisFrameCollisions;
 	thisFrameCollisions.clear();
@@ -251,37 +253,13 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	SDL_Rect newBoundsVertical = myBounds;
 	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
 
-	// this needs to be here so that it does not check for horizontal collision when moving vertically
-	if (velocity.x > 0)
-	{
-		newBoundsVertical.x -= 1;
-		newBoundsHorizontal.x += 1;
-	}
-	else if (velocity.x < 0)
-	{
-		newBoundsVertical.x += 1;
-		newBoundsHorizontal.x -= 1;
-	}
-	else
-	{
-		newBoundsVertical.x -= 1;
-	}
-
-	// this needs to be here so that it does not check for vertical collision when moving horizontally
-	if (velocity.y > 0)
-	{
-		newBoundsHorizontal.y -= 1;
-	}
-	else if (velocity.y < 0)
-	{
-		newBoundsHorizontal.y += 1;
-	}
+	// THIS NEEDS TO BE HERE BECAUSE OTHERWISE THE INTERSECTION CODE WILL NOT WORK
+	// SDL's intersection code returns false if our y + h = their y, but we want it to return true!
+	newBoundsVertical.y += 1;
 
 	SDL_Rect floorBounds = newBoundsVertical;
 
-	newBoundsVertical.y -= 1;
-
-	//if (etype == "player" || etype == "npc")
+	//floorBounds.y += 1;
 
 	// 2.5D look
 	const int FLOOR_SIZE = 20;
@@ -291,17 +269,8 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 	bool fallThru = false;
 
-
-	if (etype == "player")
-	{
-		int test = 0;
-	}
-
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
-		//if (horizontalCollision && verticalCollision)
-		//	break;
-
 		Entity* entity = game.entities[i];
 
 		const SDL_Rect * theirBounds = entity->GetBounds();
@@ -330,11 +299,16 @@ void PhysicsEntity::CheckCollisions(Game& game)
 				horizontalCollision = CheckCollisionHorizontal(entity, game);
 			}
 
-			// checks the ceiling (don't know how necessary this really is)			
+			// checks the ceiling (don't know how necessary this really is)	
+			//TODO: To check for ceiling collisions, use a collider that is closer to the top rather than the bottom
+			newBoundsVertical.h -= 4;
 			if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
 			{
 				verticalCollision = CheckCollisionCeiling(entity, game);
+				if (verticalCollision && etype == "player")
+					std::cout << "ceiling collision!" << std::endl;
 			}
+			newBoundsVertical.h += 4;
 
 			// checks the ground (using a rect that is a little bit larger
 			if (!verticalCollision && SDL_HasIntersection(&floorBounds, theirBounds))
@@ -350,15 +324,9 @@ void PhysicsEntity::CheckCollisions(Game& game)
 				bool jumped = MoveVerticallyWithParent(entity, game);
 
 				// if colliding with ground, set velocity.y to zero (we need this if statement!)				
-				if (velocity.y > -0.01f)
+				if (velocity.y >= 0)
 				{
 					animator->SetBool("isGrounded", true);
-						
-					// this needs to be here to fix the collision with the ground
-					//if (position.y + 20 > theirBounds->y)
-					//{
-					//	position.y -= (position.y + floorBounds.h - theirBounds->y);
-					//}
 
 					//TODO: Can we do this without casting?
 					// Sets the parent object that the player is standing on, if there is one, if we have not jumped
@@ -374,7 +342,11 @@ void PhysicsEntity::CheckCollisions(Game& game)
 					if (useGravity)
 					{
 						velocity.y = 0;
-						//position.y = theirBounds->y - myBounds.h - 1;
+						if (standAboveGround)
+							position.y = theirBounds->y - myBounds.h - FLOOR_SIZE - collider->y;
+						else
+							position.y = theirBounds->y - myBounds.h - collider->y;
+						shouldStickToGround = true;
 					}						
 				}
 				else
@@ -432,8 +404,11 @@ void PhysicsEntity::CheckCollisions(Game& game)
 			position.y += JUMP_SPEED * game.dt;
 			
 		}
-		else
+		else if (!shouldStickToGround)
 		{
+			//if (etype == "player")
+			//	std::cout << "position.y += " << velocity.y << " * " << game.dt << std::endl;
+
 			position.y += (velocity.y * game.dt);
 		}
 
