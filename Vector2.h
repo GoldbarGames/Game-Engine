@@ -1,6 +1,19 @@
 #pragma once
 #include <iostream>
 
+#include <glm/vec2.hpp>
+
+using Vector2 = glm::vec2;
+
+inline glm::vec2 RoundToInt(glm::vec2 vector)
+{
+	glm::vec2 newVector;
+	newVector.x = static_cast<int>(vector.x);
+	newVector.y = static_cast<int>(vector.y);
+	return newVector;
+}
+
+/*
 class Vector2
 {
 public:
@@ -22,6 +35,11 @@ public:
 	Vector2 RoundToInt();
 };
 
-std::ostream& operator<<(std::ostream& output, Vector2 value);
+*/
+
+inline std::ostream& operator<<(std::ostream& output, Vector2 value)
+{
+	return output << value.x << "," << value.y;
+}
 
 

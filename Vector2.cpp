@@ -1,5 +1,6 @@
 #include "Vector2.h"
 
+/*
 Vector2::Vector2(float x2, float y2)
 {
 	x = x2;
@@ -91,5 +92,6 @@ Vector2 Vector2::RoundToInt()
 	int ry = (int)y;
 	return Vector2(rx, ry);
 }
+*/
 
 //TODO: Distance function? Other calculations?

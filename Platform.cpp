@@ -120,7 +120,7 @@ void Platform::Update(Game& game)
 
 		// If we are at the point, then set the destination to the next point
 
-		if (wrongDirection || position.RoundToInt() == currentPath->nodes[pathNodeID]->point.RoundToInt())
+		if (wrongDirection || RoundToInt(position) == RoundToInt(currentPath->nodes[pathNodeID]->point))
 		{
 			velocity.x = 0;
 			velocity.y = 0;

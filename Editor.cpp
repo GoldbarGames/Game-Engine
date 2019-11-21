@@ -298,7 +298,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 			for (unsigned int i = 0; i < game->entities.size(); i++)
 			{
-				if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
+				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedPosition) &&
 					game->entities[i]->layer == drawingLayer &&
 					game->entities[i]->etype == "tile")
 				{
@@ -343,7 +343,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 			for (unsigned int i = 0; i < game->entities.size(); i++)
 			{
-				if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
+				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedPosition) &&
 					game->entities[i]->layer == drawingLayer &&
 					game->entities[i]->etype == "tile")
 				{
@@ -658,7 +658,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 	bool canPlaceTileHere = true;
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
-		if (game->entities[i]->GetPosition().RoundToInt() == clickedPosition.RoundToInt() &&
+		if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedPosition) &&
 			game->entities[i]->layer == drawingLayer &&
 			game->entities[i]->etype == "tile")
 		{
@@ -703,8 +703,8 @@ void Editor::MiddleClick(Vector2 clickedPosition)
 
 	for (int i = game->entities.size() - 1; i >= 0; i--)
 	{
-		Vector2 entityPosition = game->entities[i]->GetPosition().RoundToInt();
-		Vector2 clickedInt = clickedPosition.RoundToInt();
+		Vector2 entityPosition = RoundToInt(game->entities[i]->GetPosition());
+		Vector2 clickedInt = RoundToInt(clickedPosition);
 
 		bool samePosition = entityPosition.x >= clickedInt.x - 1 &&
 			entityPosition.x <= clickedInt.x + 1 &&
@@ -741,8 +741,8 @@ void Editor::RightClick(Vector2 clickedPosition)
 	// Iterate backwards so that we prioritize objects that are rendered closest to the camera
 	for (int i = game->entities.size() - 1; i >= 0; i--)
 	{
-		Vector2 entityPosition = game->entities[i]->GetPosition().RoundToInt();
-		Vector2 clickedInt = clickedPosition.RoundToInt();
+		Vector2 entityPosition = RoundToInt(game->entities[i]->GetPosition());
+		Vector2 clickedInt = RoundToInt(clickedPosition);
 
 		bool shouldDeleteThis = false;
 		bool sameMode = game->entities[i]->etype == objectMode;
@@ -875,7 +875,7 @@ void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
 		{
 			if (game->entities[i]->etype == "ladder")
 			{
-				if (game->entities[i]->GetPosition().RoundToInt() == lastPosition.RoundToInt())
+				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(lastPosition))
 				{
 					game->ShouldDeleteEntity(i);
 					exit = false;

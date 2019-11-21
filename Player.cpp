@@ -65,7 +65,7 @@ void Player::Update(Game& game)
 			UpdateNormally(game);
 	}
 
-	//std::cout << GetPosition() << std::endl;
+	std::cout << GetPosition() << std::endl;
 	
 	UpdateAnimator();
 }
