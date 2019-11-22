@@ -83,8 +83,8 @@ void Missile::CalculateCollider(Vector2 cameraOffset)
 	collisionBounds->y = position.y + collider->y - cameraOffset.y;
 
 	// scale the bounds of the sprite by a number to set the collider's width and height
-	collisionBounds->w = startSpriteSize.x * colliderWidth;
-	collisionBounds->h = startSpriteSize.y * colliderHeight;
+	collisionBounds->w = colliderWidth;
+	collisionBounds->h = colliderHeight;
 }
 
 bool Missile::CheckCollisions(Game& game)

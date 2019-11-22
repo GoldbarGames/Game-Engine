@@ -25,12 +25,6 @@ public:
 	bool canBePushed = false;
 	bool standAboveGround = false;
 
-	SDL_Rect* collider = nullptr;        // adjust the bounds this way
-	Vector2 startSpriteSize = Vector2(1,1); // initialize to starting sprite rectangle
-
-	float colliderWidth = 1;
-	float colliderHeight = 1;
-
 	const float JUMP_SPEED = -0.75f;
 
 	PhysicsEntity* prevParent = nullptr;
@@ -50,7 +44,7 @@ public:
 
 	Vector2 GetCenter();
 
-	void CreateCollider(float startX, float startY, float x, float y, float w, float h);
+	
 	const SDL_Rect* GetColliderBounds();
 
 	void PreviousFrameCollisions(Game& game);
@@ -61,7 +55,7 @@ public:
 	void Unpause(Uint32 ticks) override;
 
 	void CheckCollisions(Game& game);
-	void CalculateCollider(Vector2 cameraOffset);
+	//void CalculateCollider(Vector2 cameraOffset);
 	void CheckCollisionTrigger(Entity* collidedEntity, Game& game);
 
 	void Update(Game& game);

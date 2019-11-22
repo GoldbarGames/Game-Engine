@@ -32,33 +32,6 @@ Vector2 PhysicsEntity::GetCenter()
 	return Vector2(x, y);
 }
 
-void PhysicsEntity::CreateCollider(float startX, float startY, float x, float y, float w, float h)
-{
-	if (collider != nullptr)
-		delete collider;
-
-	collider = new SDL_Rect();
-	collider->x = x;
-	collider->y = y;
-	collider->w = 1;
-	collider->h = 1;
-
-	colliderWidth = w * Renderer::GetScale();
-	colliderHeight = h * Renderer::GetScale();
-
-	if (collisionBounds != nullptr)
-		delete collisionBounds;
-
-	collisionBounds = new SDL_Rect();
-	collisionBounds->x = x;
-	collisionBounds->y = y;
-	collisionBounds->w = 1;
-	collisionBounds->h = 1;
-
-	//startSpriteSize.x = startX * Renderer::GetScale();
-	//startSpriteSize.y = startY * Renderer::GetScale();
-}
-
 void PhysicsEntity::Pause(Uint32 ticks)
 {
 	if (animator != nullptr)
@@ -244,11 +217,13 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	bool horizontalCollision = false;
 	bool verticalCollision = false;
 
+	const int TARGET_FPS = 30;
+
 	// Get bounds assuming the move is valid
 	SDL_Rect myBounds = *GetColliderBounds();
 
 	SDL_Rect newBoundsHorizontal = myBounds;
-	newBoundsHorizontal.x = myBounds.x + (velocity.x * game.dt);
+	newBoundsHorizontal.x = myBounds.x + (velocity.x * TARGET_FPS);
 
 	SDL_Rect newBoundsVertical = myBounds;
 	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
@@ -296,7 +271,13 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 			if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
 			{							
+				float v = velocity.x;
 				horizontalCollision = CheckCollisionHorizontal(entity, game);
+
+				if (v > 0)
+					position.x = theirBounds->x - myBounds.w - collider->x + game.camera.x;
+				else if (v < 0)
+					position.x = theirBounds->x + theirBounds->w + collider->x + game.camera.x;
 			}
 
 			// checks the ceiling (don't know how necessary this really is)	
@@ -337,15 +318,15 @@ void PhysicsEntity::CheckCollisions(Game& game)
 						animator->SetBool("hasParent", true);
 					}
 
-					jumpsRemaining = 2;
+					jumpsRemaining = 1;
 
 					if (useGravity)
 					{
 						velocity.y = 0;
 						if (standAboveGround)
-							position.y = theirBounds->y - myBounds.h - FLOOR_SIZE - collider->y;
+							position.y = theirBounds->y - myBounds.h - FLOOR_SIZE - collider->y + game.camera.y;
 						else
-							position.y = theirBounds->y - myBounds.h - collider->y;
+							position.y = theirBounds->y - myBounds.h - collider->y + game.camera.y;
 						shouldStickToGround = true;
 					}						
 				}
@@ -365,8 +346,6 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 				
 			}
-
-
 		}
 		else if (entity->trigger)
 		{
@@ -383,6 +362,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 	if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0 && wasGrounded)
 	{
+		jumpsRemaining--;
 		velocity.y = JUMP_SPEED;
 	}
 
@@ -488,17 +468,6 @@ void PhysicsEntity::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 	}
 }
 
-void PhysicsEntity::CalculateCollider(Vector2 cameraOffset)
-{
-	// set the collision bounds position to where the player actually is
-	collisionBounds->x = position.x - cameraOffset.x + collider->x;
-	collisionBounds->y = position.y - cameraOffset.y + collider->y;
-
-	// scale the bounds of the sprite by a number to set the collider's width and height
-	collisionBounds->w = startSpriteSize.x * colliderWidth;
-	collisionBounds->h = startSpriteSize.y * colliderHeight;
-}
-
 Vector2 PhysicsEntity::CalcScaledPivot()
 {
 	if (flip == SDL_FLIP_HORIZONTAL)
@@ -580,7 +549,6 @@ void PhysicsEntity::Render(Renderer * renderer, Vector2 cameraOffset)
 			SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
 
 			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-			CalculateCollider(cameraOffset); //TODO: better way than calculating this twice?
 
 			SDL_RenderDrawRect(renderer->renderer, collisionBounds);
 			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);

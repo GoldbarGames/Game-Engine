@@ -8,8 +8,8 @@ using Vector2 = glm::vec2;
 inline glm::vec2 RoundToInt(glm::vec2 vector)
 {
 	glm::vec2 newVector;
-	newVector.x = static_cast<int>(vector.x);
-	newVector.y = static_cast<int>(vector.y);
+	newVector.x = static_cast<float>(static_cast<int>(vector.x));
+	newVector.y = static_cast<float>(static_cast<int>(vector.y));
 	return newVector;
 }
 

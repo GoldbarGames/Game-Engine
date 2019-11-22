@@ -15,6 +15,8 @@ protected:
 	Vector2 position = Vector2(0, 0);	
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
+	float colliderWidth = 1;
+	float colliderHeight = 1;
 public:
 	static unsigned int nextValidID;
 	virtual ~Entity();
@@ -37,7 +39,7 @@ public:
 	int tilesheetIndex = 0;
 	Vector2 tileCoordinates = Vector2(0, 0);
 
-
+	SDL_Rect* collider = nullptr;        // adjust the bounds this way
 	SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
 	bool trigger = false;	
@@ -54,6 +56,9 @@ public:
 	virtual void Update(Game& game);
 	virtual void Render(Renderer * renderer, Vector2 cameraOffset);
 	void RenderDebug(Renderer * renderer, Vector2 cameraOffset);
+
+	void CreateCollider(float startX, float startY, float x, float y, float w, float h);
+	void CalculateCollider(Vector2 cameraOffset);
 
 	virtual void Pause(Uint32 ticks);
 	virtual void Unpause(Uint32 ticks);

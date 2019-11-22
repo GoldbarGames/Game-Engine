@@ -4,6 +4,7 @@
 #include <iostream>
 #include "Renderer.h"
 #include <sstream>
+#include "Game.h"
 
 unsigned int Entity::nextValidID = 0;
 
@@ -14,6 +15,7 @@ Entity::Entity(Vector2 pos)
 	position = pos;
 	id = nextValidID;
 	nextValidID++;
+	CreateCollider(TILE_SIZE, TILE_SIZE, 0, 0, TILE_SIZE, TILE_SIZE);
 }
 
 Entity::~Entity()
@@ -22,7 +24,50 @@ Entity::~Entity()
 		delete animator;
 	if (currentSprite != nullptr)
 		delete currentSprite;
+	if (collisionBounds != nullptr)
+		delete collisionBounds;
+	if (collider != nullptr)
+		delete collider;
 }
+
+void Entity::CreateCollider(float startX, float startY, float x, float y, float w, float h)
+{
+	if (collider != nullptr)
+		delete collider;
+
+	collider = new SDL_Rect();
+	collider->x = x;
+	collider->y = y;
+	collider->w = 1;
+	collider->h = 1;
+
+	colliderWidth = w * Renderer::GetScale();
+	colliderHeight = h * Renderer::GetScale();
+
+	if (collisionBounds != nullptr)
+		delete collisionBounds;
+
+	collisionBounds = new SDL_Rect();
+	collisionBounds->x = x;
+	collisionBounds->y = y;
+	collisionBounds->w = 1;
+	collisionBounds->h = 1;
+
+	//startSpriteSize.x = startX * Renderer::GetScale();
+	//startSpriteSize.y = startY * Renderer::GetScale();
+}
+
+void Entity::CalculateCollider(Vector2 cameraOffset)
+{
+	// set the collision bounds position to where the player actually is
+	collisionBounds->x = position.x + collider->x - cameraOffset.x;
+	collisionBounds->y = position.y + collider->y - cameraOffset.y;
+
+	// scale the bounds of the sprite by a number to set the collider's width and height
+	collisionBounds->w = colliderWidth;
+	collisionBounds->h = colliderHeight;
+}
+
 
 void Entity::Pause(Uint32 ticks)
 {
@@ -44,6 +89,7 @@ void Entity::Unpause(Uint32 ticks)
 
 void Entity::Update(Game& game)
 {
+	CalculateCollider(game.camera);
 	if (animator != nullptr)
 		animator->Update(this);
 }
