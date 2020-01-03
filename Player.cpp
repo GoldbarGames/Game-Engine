@@ -67,10 +67,10 @@ void Player::Update(Game& game)
 			UpdateNormally(game);
 	}
 
-	std::cout << "--" << count << "--" << std::endl;
-	std::cout << GetPosition() << std::endl;
+	//std::cout << "--" << count << "--" << std::endl;
+	//std::cout << GetPosition() << std::endl;
 
-	count++;
+	//count++;
 	
 	UpdateAnimator();
 }

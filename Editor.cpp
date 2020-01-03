@@ -1657,14 +1657,14 @@ void Editor::ClearLevelEntities()
 
 void Editor::InitLevelFromFile(std::string levelName)
 {
-	std::cout << game->camera.y << std::endl;
+	//std::cout << game->camera.y << std::endl;
 
 	game->debugRectangles.clear();
 
 	//const int OFFSET = -4;
 	//game->camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
 
-	std::cout << game->camera.y << std::endl;
+	//std::cout << game->camera.y << std::endl;
 
 	ClearLevelEntities();
 
@@ -1695,9 +1695,16 @@ void Editor::InitLevelFromFile(std::string levelName)
 	const int NUM_BGS = 4;
 	const int BG_WIDTH = 636;
 	const int BG_OFFSET = (BG_WIDTH * 2);
+
+	int Y_OFFSET = -4 * TILE_SIZE * Renderer::GetScale();
+	if (levelName == "title")
+		Y_OFFSET = 0;
+
+	game->camera = Vector2(0, 0);
+
 	for (unsigned int i = 0; i < NUM_BGS; i++)
 	{
-		//game->SpawnBackground(Vector2( (BG_WIDTH * Renderer::GetScale() * i) - BG_OFFSET, 0));
+		game->SpawnBackground(Vector2( (BG_WIDTH * Renderer::GetScale() * i) - BG_OFFSET, Y_OFFSET));
 	}
 
 	game->SortEntities(game->entities);
