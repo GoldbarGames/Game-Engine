@@ -91,11 +91,11 @@ void Editor::StartEdit()
 
 	// TILE SHEET FOR TOOLBOX
 
-	toolboxTexture = game->spriteManager->GetImage(game->renderer, "assets/tiles/" + tilesheets[tilesheetIndex] + ".png");
+	toolboxTexture = game->spriteManager->GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png");
 	toolboxTextureRect.x = 0;
 	toolboxTextureRect.y = 0;
 
-	SDL_QueryTexture(toolboxTexture, NULL, NULL, &toolboxTextureRect.w, &toolboxTextureRect.h);
+	//SDL_QueryTexture(toolboxTexture, NULL, NULL, &toolboxTextureRect.w, &toolboxTextureRect.h);
 
 	toolboxTextureRect.w *= 1;
 	toolboxTextureRect.h *= 1;
@@ -239,7 +239,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 	}
 	else if (objectMode == "inspect")
 	{
-		clickedPosition += game->camera;
+		//clickedPosition += game->camera;
 		InspectObject(mouseX, mouseY);
 	}
 	else if (objectMode == "grab")
@@ -282,7 +282,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 	}
 	else // we clicked somewhere in the game world, so place a tile/object
 	{
-		clickedPosition += game->camera;
+		//clickedPosition += game->camera;
 
 		// if we are placing a tile...
 		if (objectMode == "tile")
@@ -322,8 +322,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 						// Set the index of the tile
 						tile->ChangeSprite(coordsToSet,
-							game->spriteManager->GetImage(game->renderer,
-								"assets/tiles/" + tilesheets[tilesheetIndex] + ".png"),
+							game->spriteManager->GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png"),
 							game->renderer);
 					}
 				}
@@ -698,8 +697,8 @@ void Editor::MiddleClick(Vector2 clickedPosition)
 	if (previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE))
 		return;
 
-	clickedPosition.x += (int)game->camera.x;
-	clickedPosition.y += (int)game->camera.y;
+	//clickedPosition.x += (int)game->camera.x;
+	//clickedPosition.y += (int)game->camera.y;
 
 	for (int i = game->entities.size() - 1; i >= 0; i--)
 	{
@@ -733,8 +732,8 @@ void Editor::RightClick(Vector2 clickedPosition)
 		return;
 	}
 
-	clickedPosition.x += (int)game->camera.x;
-	clickedPosition.y += (int)game->camera.y;
+	//clickedPosition.x += (int)game->camera.x;
+	//clickedPosition.y += (int)game->camera.y;
 
 	int ladderIndex = -1;
 
@@ -902,7 +901,7 @@ void Editor::HandleEdit()
 	hoveredTileRect.x = clickedX;
 	hoveredTileRect.y = clickedY;
 
-	std::string clickedText = std::to_string(clickedX + (int)game->camera.x) + " " + std::to_string(clickedY + (int)game->camera.y);
+	std::string clickedText = std::to_string(clickedX) + " " + std::to_string(clickedY);
 	cursorPosition->SetText("Position: " + clickedText);
 
 	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
@@ -1211,7 +1210,7 @@ void Editor::DrawGrid()
 	SDL_SetRenderDrawColor(game->renderer->renderer, 0, 0, 0, 255);
 }
 
-void Editor::Render(Renderer* renderer)
+void Editor::Render(Renderer* renderer, GLuint uniformModel)
 {
 	// Draw a white rectangle around the currently highlighted grid tile
 	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
@@ -1242,7 +1241,7 @@ void Editor::Render(Renderer* renderer)
 			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 
 			Vector2 doorCenter = currentDoor->GetCenter();
-			Vector2 doorPos = currentDoor->GetPosition() + doorCenter - game->camera;
+			Vector2 doorPos = currentDoor->GetPosition() + doorCenter;
 			SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, hoveredTileRect.x + doorCenter.x, hoveredTileRect.y + doorCenter.y);
 
 			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
@@ -1259,9 +1258,9 @@ void Editor::Render(Renderer* renderer)
 			Vector2 destPos = door->GetDestination();
 			if (destPos.x != 0 && destPos.y != 0)
 			{
-				destPos = destPos - game->camera;
+				destPos = destPos;
 				Vector2 doorCenter = door->GetCenter();
-				Vector2 doorPos = door->GetPosition() + doorCenter - game->camera;
+				Vector2 doorPos = door->GetPosition() + doorCenter;
 				SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, destPos.x + doorCenter.x, destPos.y + doorCenter.y);
 			}	
 		}
@@ -1289,7 +1288,7 @@ void Editor::Render(Renderer* renderer)
 					SDL_RenderDrawRect(renderer->renderer, &properties[i]->text->textWindowRect);
 			}
 
-			properties[i]->text->Render(renderer);
+			properties[i]->text->Render(renderer, uniformModel);
 		}
 
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
@@ -1303,7 +1302,7 @@ void Editor::Render(Renderer* renderer)
 			SDL_RenderFillRect(renderer->renderer, &toolboxWindowRect);
 
 			// Draw the tilesheet (only if we are placing a tile)
-			SDL_RenderCopy(renderer->renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
+			//SDL_RenderCopy(renderer->renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
 
 			// Draw a yellow rectangle around the currently selected tileset tile
 			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
@@ -1313,8 +1312,8 @@ void Editor::Render(Renderer* renderer)
 	}	
 
 	// Draw text
-	currentEditModeLayer->Render(renderer);
-	cursorPosition->Render(renderer);
+	currentEditModeLayer->Render(renderer, uniformModel);
+	cursorPosition->Render(renderer, uniformModel);
 
 	// Draw all buttons
 	for (unsigned int i = 0; i < buttons.size(); i++)
@@ -1331,19 +1330,19 @@ void Editor::Render(Renderer* renderer)
 				continue;
 		}
 
-		buttons[i]->Render(renderer);
+		buttons[i]->Render(renderer, uniformModel);
 	}
 
 	// Draw all layer buttons
 	for (unsigned int i = 0; i < layerButtons.size(); i++)
 	{
-		layerButtons[i]->Render(renderer);
+		layerButtons[i]->Render(renderer, uniformModel);
 	}
 
 	// Draw all layer visible buttons
 	for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
 	{
-		layerVisibleButtons[i]->Render(renderer);
+		layerVisibleButtons[i]->Render(renderer, uniformModel);
 	}
 
 	if (showDialogPopup)
@@ -1354,8 +1353,8 @@ void Editor::Render(Renderer* renderer)
 
 		// Draw the text for the popup dialog
 		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-		dialogText->Render(renderer);
-		dialogInput->Render(renderer);
+		dialogText->Render(renderer, uniformModel);
+		dialogInput->Render(renderer, uniformModel);
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
 }
@@ -1692,19 +1691,17 @@ void Editor::InitLevelFromFile(std::string levelName)
 	game->backgrounds.clear();
 		
 	// Create the backgrounds
-	const int NUM_BGS = 4;
-	const int BG_WIDTH = 636;
-	const int BG_OFFSET = (BG_WIDTH * 2);
+	const unsigned int NUM_BGS = 4;
+	const unsigned int BG_WIDTH = 636;
+	const unsigned int BG_OFFSET = 0;  (BG_WIDTH * 2);
 
-	int Y_OFFSET = -4 * TILE_SIZE * Renderer::GetScale();
+	unsigned int Y_OFFSET = 0; // -4 * TILE_SIZE * Renderer::GetScale();
 	if (levelName == "title")
 		Y_OFFSET = 0;
 
-	game->camera = Vector2(0, 0);
-
 	for (unsigned int i = 0; i < NUM_BGS; i++)
 	{
-		game->SpawnBackground(Vector2( (BG_WIDTH * Renderer::GetScale() * i) - BG_OFFSET, Y_OFFSET));
+		game->SpawnBackground(Vector2( (BG_WIDTH * i) + BG_OFFSET, Y_OFFSET));
 	}
 
 	game->SortEntities(game->entities);

@@ -1,8 +1,29 @@
 #pragma once
+
 #include "SDL.h"
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <GL/glew.h>
+
+
+#include <stdio.h>
+#include <GL/glew.h>
+
+#include <cmath>
+#include <vector>
+#include <unordered_map>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include "Mesh.h"
+#include "Shader.h"
+#include "Window.h"
+#include "Camera.h"
+#include "Texture.h"
+
+
 #include <string>
 #include <iostream>
 #include <vector>
@@ -45,6 +66,15 @@ private:
 
 	Uint64 timeNow = SDL_GetPerformanceCounter();
 	Uint64 timePrev = 0;
+
+	float currentAngle = 0.0f;
+	const float toRadians = 3.14159265f / 180.0f;
+
+	float now = 0;
+
+	
+	std::unordered_map<std::string, Mesh*> meshes;
+
 	
 public:
 
@@ -60,10 +90,11 @@ public:
 	int bugsRemaining = 0;
 
 
-	using clock = std::chrono::high_resolution_clock;
+	using clock = std::chrono::steady_clock;
 	using seconds = std::chrono::seconds;
 	using milliseconds = std::chrono::milliseconds;
 
+	clock::time_point startOfGame;
 	clock::time_point start_time;
 
 	std::unordered_map<std::string, MenuScreen*> allMenus;
@@ -71,9 +102,14 @@ public:
 
 	std::vector<SDL_Rect*> debugRectangles;
 
+	void InitOpenGL();
+	void CreateShaders();
+	void CreateTextures();
+	void CreateMeshes();
+	void CreateObjects();
 
 	void Update();
-	void Render();
+	void Render(glm::mat4 projection);
 	bool SetOpenGLAttributes();
 
 	bool HandleEvent(SDL_Event& event);
@@ -142,6 +178,10 @@ public:
 	bool pressedLeftTrigger;
 	bool pressedRightTrigger;
 
+	GLuint uniformProjection = 0;
+	GLuint uniformModel = 0;
+	GLuint uniformView = 0;
+
 	std::vector<Entity*> entities;
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
@@ -149,7 +189,7 @@ public:
 	Game();
 	~Game();
 	double dt = 0;
-	Vector2 camera = Vector2(0, 0);
+	Camera camera;
 	void InitSDL();
 	void EndSDL();
 	void SortEntities(std::vector<Entity*>& entityVector);
@@ -211,5 +251,7 @@ public:
 
 	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*> & animStates);
 	void SaveScreenshot();
+
+	void RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEntities);
 };
 

@@ -1,6 +1,6 @@
 #include "Renderer.h"
 
-int Renderer::SCALE = 2;
+int Renderer::SCALE = 1;
 
 Renderer::Renderer()
 {

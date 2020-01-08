@@ -7,15 +7,17 @@
 #include "ImageDeleter.h"
 #include "Vector2.h"
 
+#include "Texture.h"
+
 class Renderer;
 
 class SpriteManager
 {
 private:
-	std::unordered_map<std::string, std::unique_ptr<SDL_Texture, ImageDeleter>> images;
+	std::unordered_map<std::string, std::unique_ptr<Texture, ImageDeleter>> images;
 	std::unordered_map<std::string, Vector2> pivotPoints;
 public:
-	SDL_Texture* GetImage(Renderer* renderer, std::string const& imagePath);
+	Texture* GetImage(std::string const& imagePath);
 	Vector2 GetPivotPoint(std::string const& filename);
 	SpriteManager();
 	~SpriteManager();

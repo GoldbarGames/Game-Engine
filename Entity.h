@@ -6,6 +6,14 @@
 
 #include "Property.h"
 
+#include "Mesh.h"
+#include "Texture.h"
+#include "Shader.h"
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 class Game;
 class PhysicsEntity;
 
@@ -17,11 +25,15 @@ protected:
 	Sprite* currentSprite = nullptr;
 	float colliderWidth = 1;
 	float colliderHeight = 1;
+
 public:
+
+
+
 	static unsigned int nextValidID;
 	virtual ~Entity();
 	Entity(Vector2 pos);
-
+	Entity(Vector2 pos, Sprite* sprite);
 	
 	bool isPhysicsEntity = false;
 
@@ -54,7 +66,7 @@ public:
 	void SetAnimator(Animator* anim);
 	void SetSprite(Sprite* sprite);
 	virtual void Update(Game& game);
-	virtual void Render(Renderer * renderer, Vector2 cameraOffset);
+	virtual void Render(Renderer * renderer, GLuint uniformModel);
 	void RenderDebug(Renderer * renderer, Vector2 cameraOffset);
 
 	void CreateCollider(float startX, float startY, float x, float y, float w, float h);

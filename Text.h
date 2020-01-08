@@ -3,6 +3,7 @@
 #include <SDL_ttf.h>
 #include <string>
 #include "globals.h"
+#include "GL/glew.h"
 
 using std::string;
 
@@ -27,7 +28,7 @@ public:
 	~Text();
 	void SetText(string text, Color color = { 255, 255, 255, 255 });
 	void SetTextWrapped(string text, Uint32 width);
-	void Render(Renderer* renderer);
+	void Render(Renderer* renderer, GLuint uniformModel);
 	void SetPosition(float x, float y);
 	void SetFont(TTF_Font* newFont);
 };

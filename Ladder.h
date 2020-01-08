@@ -10,7 +10,7 @@ public:
 	
 	Collider collider;
 
-	void Render(Renderer * renderer, Vector2 cameraOffset);
+	void Render(Renderer * renderer, GLuint uniformModel);
 
 	Ladder(Vector2 pos);
 	~Ladder();

@@ -14,7 +14,7 @@ SpriteManager::~SpriteManager()
 	PHYSFS_deinit();
 }
 
-SDL_Texture* SpriteManager::GetImage(Renderer* renderer, std::string const& imagePath)
+Texture* SpriteManager::GetImage(std::string const& imagePath)
 {
 	if (images[imagePath].get() == nullptr)
 	{
@@ -47,9 +47,15 @@ SDL_Texture* SpriteManager::GetImage(Renderer* renderer, std::string const& imag
 		{
 			surface = IMG_Load(imagePath.c_str());
 		}	
-		
-		SDL_Texture * texture = renderer->CreateTextureFromSurface(surface);
-		images[imagePath].reset(texture);
+
+		Texture* newTexture = new Texture(imagePath.c_str());
+
+		if (imagePath == "assets/bg/forest/forest_ground.png")
+			int test = 0;
+
+		newTexture->LoadTexture(surface);
+		images[imagePath].reset(newTexture);
+
 		SDL_FreeSurface(surface);
 	}
 		

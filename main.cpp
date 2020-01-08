@@ -7,11 +7,16 @@ int main(int argc, char *args[])
 {
 	Game game;
 
+	// Load settings
 	game.LoadSettings();
 
 	game.LoadTitleScreen();
 
 	// game.SortEntities(entities);
+
+
+
+	//game.CreateObjects();
 
 	game.timer.Start();
 
@@ -21,6 +26,21 @@ int main(int argc, char *args[])
 	int frames = 0; // number of frames counted
 
 	bool quit = false;
+
+	const float orthoSize = 2.0f;
+	bool useOrthoCamera = true;
+	glm::mat4 projection(1.0f);
+
+	if (useOrthoCamera)
+	{
+		projection = glm::ortho(0.0f, (GLfloat)screenWidth * orthoSize,
+			(GLfloat)screenHeight * orthoSize, 0.0f, -1.0f, 10.0f);
+	}
+	else
+	{
+		GLfloat aspectRatio = (GLfloat)screenWidth / (GLfloat)screenHeight;
+		projection = glm::perspective(45.0f, aspectRatio, 0.1f, 100.0f);
+	}
 
 	while (!quit)
 	{
@@ -75,7 +95,7 @@ int main(int argc, char *args[])
 			game.Update();
 		}
 
-		game.Render();
+		game.Render(projection);
 
 	}
 

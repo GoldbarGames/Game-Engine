@@ -15,7 +15,7 @@ public:
 
 	SettingsButton(std::string n, Vector2 pos, Game& game);
 	~SettingsButton();
-	void Render(Renderer* renderer);
+	void Render(Renderer* renderer, GLuint uniformModel);
 	std::vector<Text*> options;
 	Text* label;
 

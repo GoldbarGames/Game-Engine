@@ -18,6 +18,15 @@ Entity::Entity(Vector2 pos)
 	CreateCollider(TILE_SIZE, TILE_SIZE, 0, 0, TILE_SIZE, TILE_SIZE);
 }
 
+Entity::Entity(Vector2 pos, Sprite* sprite)
+{
+	position = pos;
+	id = nextValidID;
+	nextValidID++;
+	CreateCollider(TILE_SIZE, TILE_SIZE, 0, 0, TILE_SIZE, TILE_SIZE);
+	currentSprite = sprite;
+}
+
 Entity::~Entity()
 {
 	if (animator != nullptr)
@@ -60,8 +69,8 @@ void Entity::CreateCollider(float startX, float startY, float x, float y, float 
 void Entity::CalculateCollider(Vector2 cameraOffset)
 {
 	// set the collision bounds position to where the player actually is
-	collisionBounds->x = position.x + collider->x - cameraOffset.x;
-	collisionBounds->y = position.y + collider->y - cameraOffset.y;
+	collisionBounds->x = position.x + collider->x;
+	collisionBounds->y = position.y + collider->y;
 
 	// scale the bounds of the sprite by a number to set the collider's width and height
 	collisionBounds->w = colliderWidth;
@@ -89,7 +98,7 @@ void Entity::Unpause(Uint32 ticks)
 
 void Entity::Update(Game& game)
 {
-	CalculateCollider(game.camera);
+	CalculateCollider(Vector2(0,0));
 	if (animator != nullptr)
 		animator->Update(this);
 }
@@ -150,16 +159,16 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 	}
 }
 
-void Entity::Render(Renderer * renderer, Vector2 cameraOffset)
+void Entity::Render(Renderer * renderer, GLuint uniformModel)
 {
 	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite->Render(position - cameraOffset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer);
+			currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, uniformModel, 0);
 		else
-			currentSprite->Render(position - cameraOffset, 0, -1, flip, renderer);
+			currentSprite->Render(position, 0, -1, flip, renderer, uniformModel, 0);
 
-		RenderDebug(renderer, cameraOffset);
+		RenderDebug(renderer, Vector2(0,0));
 	}
 }
 

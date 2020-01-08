@@ -45,14 +45,14 @@ bool Path::IsPointInPath(Vector2 point)
 	return false;
 }
 
-void Path::Render(Renderer * renderer, Vector2 cameraOffset)
+void Path::Render(Renderer * renderer, GLuint uniformModel)
 {
 	// Draw a red square for every point in the path
 	
 	for (unsigned int i = 0; i < nodes.size(); i++)
 	{
 		// Draw a red square in the center of the point
-		const SDL_Rect* pointRect = nodes[i]->CalcRenderRect(cameraOffset);
+		const SDL_Rect* pointRect = nodes[i]->CalcRenderRect(Vector2(0,0));
 
 		// Only show the points in the editor
 		if (GetModeEdit())
@@ -77,7 +77,7 @@ void Path::Render(Renderer * renderer, Vector2 cameraOffset)
 				continue;
 		}
 
-		const SDL_Rect* nextRect = nodes[nextIndex]->CalcRenderRect(cameraOffset);
+		const SDL_Rect* nextRect = nodes[nextIndex]->CalcRenderRect(Vector2(0,0));
 		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 		SDL_RenderDrawLine(renderer->renderer, pointRect->x, pointRect->y, nextRect->x, nextRect->y);
 	}

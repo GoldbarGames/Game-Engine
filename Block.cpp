@@ -18,9 +18,9 @@ Block::~Block()
 
 }
 
-void Block::Render(Renderer * renderer, Vector2 cameraOffset)
+void Block::Render(Renderer * renderer, GLuint uniformModel)
 {
-	PhysicsEntity::Render(renderer, cameraOffset);
+	PhysicsEntity::Render(renderer, uniformModel);
 }
 
 void Block::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)

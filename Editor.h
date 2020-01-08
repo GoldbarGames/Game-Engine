@@ -15,6 +15,8 @@
 
 #include "Property.h"
 
+#include "Texture.h"
+
 using std::string;
 
 class Door;
@@ -32,7 +34,7 @@ private:
 
 	Game* game = nullptr;
 
-	SDL_Texture * toolboxTexture = nullptr;
+	Texture * toolboxTexture = nullptr;
 	SDL_Rect toolboxTextureRect;
 	SDL_Rect toolboxWindowRect;
 
@@ -111,7 +113,7 @@ public:
 	std::string SaveLevelAsString();
 	void SaveLevel(std::string levelName = "");
 	void InitLevelFromFile(std::string levelName);
-	void Render(Renderer* renderer);
+	void Render(Renderer* renderer, GLuint uniformModel);
 	void SetText(string newText);
 	DrawingLayer drawingLayer = BACK;
 	int tilesheetIndex = 0;

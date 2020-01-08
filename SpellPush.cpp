@@ -38,8 +38,8 @@ void SpellPush::Cast(Game& game)
 	Vector2 playerPivot = game.player->GetSprite()->pivot;
 
 	// Get center of the yellow collision box, and use it as a vector2
-	float yellowBoxCenterX = (spellRange->x - game.camera.x + (spellRange->w / 2));
-	float yellowBoxCenterY = (spellRange->y - game.camera.y + (spellRange->h / 2));
+	float yellowBoxCenterX = (spellRange->x + (spellRange->w / 2));
+	float yellowBoxCenterY = (spellRange->y + (spellRange->h / 2));
 	Vector2 collisionCenter = Vector2(yellowBoxCenterX, yellowBoxCenterY);
 
 	// scale the pivot and subtract it from the collision center

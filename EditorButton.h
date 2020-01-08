@@ -5,6 +5,9 @@
 
 #include "Vector2.h"
 #include "globals.h"
+#include "Texture.h"
+
+#include "Text.h"
 
 class Game;
 class Text;
@@ -13,7 +16,7 @@ class Renderer;
 class EditorButton
 {
 public:
-	SDL_Texture * buttonTexture = nullptr;
+	Texture * buttonTexture = nullptr;
 	SDL_Rect buttonTextureRect;
 	SDL_Rect buttonWindowRect;
 
@@ -32,7 +35,7 @@ public:
 
 	void SetColors(Color c1, Color c2);
 
-	void Render(Renderer* renderer);
+	void Render(Renderer* renderer, GLuint uniformModel);
 
 	bool IsClicked(const int& x, const int& y);
 };

@@ -3,6 +3,7 @@
 #include "SDL_image.h"
 #include <unordered_map>
 #include "globals.h"
+#include "Shader.h"
 
 class Renderer
 {
@@ -10,6 +11,7 @@ private:
 	std::unordered_map<std::string, bool> layersVisible;
 	static int SCALE;
 public:
+	std::unordered_map<std::string, Shader*> shaders;
 	static int GetScale();
 	static void SetScale(int s);
 	SDL_Renderer * renderer;

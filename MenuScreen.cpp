@@ -69,12 +69,12 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		textCopyright->SetPosition(startWidth - (textCopyright->textWindowRect.w / 2), 600);
 		texts.emplace_back(textCopyright);
 
-		Entity* titleCharacter = new Entity(Vector2(-200, -200));
-		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer, Vector2(222, 370), false));
+		Entity* titleCharacter = new Entity(Vector2(200, 200));
+		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders["default"], Vector2(222, 370), false));
 		images.emplace_back(titleCharacter);
 
-		Entity* titleLogo = new Entity(Vector2(startWidth - 320, 100));
-		titleLogo->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png", game.renderer, Vector2(320, 137), false));
+		Entity* titleLogo = new Entity(Vector2(320, 100));
+		titleLogo->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png", game.renderer->shaders["default"], Vector2(320, 137), false));
 		images.emplace_back(titleLogo);
 	}
 	else if (name == "Settings")
@@ -211,21 +211,21 @@ MenuScreen::~MenuScreen()
 
 }
 
-void MenuScreen::Render(Renderer* renderer)
+void MenuScreen::Render(Renderer* renderer, GLuint uniformModel)
 {
 	for (unsigned int i = 0; i < buttons.size(); i++)
 	{
-		buttons[i]->Render(renderer);
+		buttons[i]->Render(renderer, uniformModel);
 	}
 
 	for (unsigned int i = 0; i < images.size(); i++)
 	{
-		images[i]->Render(renderer, Vector2(0,0));
+		images[i]->Render(renderer, uniformModel);
 	}
 
 	for (unsigned int i = 0; i < texts.size(); i++)
 	{
-		texts[i]->Render(renderer);
+		texts[i]->Render(renderer, uniformModel);
 	}
 }
 

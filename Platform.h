@@ -25,7 +25,7 @@ public:
 	~Platform();
 	void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties);
 	void SetProperty(std::string prop, std::string newValue);
-	void Render(Renderer * renderer, Vector2 cameraOffset);
+	void Render(Renderer* renderer, GLuint uniformModel);
 	void Update(Game& game);
 
 	void Save(std::ostringstream& level);

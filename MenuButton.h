@@ -3,7 +3,6 @@
 #include <SDL.h>
 #include <string>
 #include "Sprite.h"
-#include "Text.h"
 #include "BaseButton.h"
 
 class Game;
@@ -16,12 +15,11 @@ private:
 	SDL_Rect outlineVertical;
 	SDL_Rect outlineCorners;
 	Sprite* image = nullptr;
-	Text* text;
 	Vector2 position = Vector2(0, 0);	
 public:
 	MenuButton(std::string txt, std::string filepath, std::string function, Vector2 pos, Game& game);
 	~MenuButton();
-	void Render(Renderer* renderer);
+	void Render(Renderer* renderer, GLuint uniformModel);
 	BaseButton* Update(Game& game, const Uint8* currentKeyStates);
 	void SetOptionColors(Color color);
 };

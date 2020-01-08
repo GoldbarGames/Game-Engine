@@ -145,9 +145,9 @@ std::string CutsceneManager::ParseWord(std::string text, char limit, unsigned in
 	return word;
 }
 
-void CutsceneManager::Render(Renderer * renderer)
+void CutsceneManager::Render(Renderer * renderer, GLuint uniformModel)
 {
-	textbox->Render(renderer);
+	textbox->Render(renderer, uniformModel);
 }
 
 SceneLabel* CutsceneManager::JumpToLabel(std::string newLabelName)

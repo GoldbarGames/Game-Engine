@@ -70,10 +70,10 @@ SettingsButton::~SettingsButton()
 
 }
 
-void SettingsButton::Render(Renderer* renderer)
+void SettingsButton::Render(Renderer* renderer, GLuint uniformModel)
 {
-	label->Render(renderer);
-	options[selectedOption]->Render(renderer);	
+	label->Render(renderer, uniformModel);
+	options[selectedOption]->Render(renderer, uniformModel);
 }
 
 void SettingsButton::SetOptionColors(Color color)

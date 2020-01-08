@@ -93,7 +93,7 @@ bool Missile::CheckCollisions(Game& game)
 		animator->DoState(this);
 
 	entityPivot = currentSprite->pivot;
-	CalculateCollider(game.camera);
+	CalculateCollider(Vector2(0,0));
 
 	bool horizontalCollision = false;
 	bool verticalCollision = false;

@@ -46,10 +46,10 @@ void Ladder::OnTriggerExit(Entity* other, Game& game)
 	}
 }
 
-void Ladder::Render(Renderer * renderer, Vector2 cameraOffset)
+void Ladder::Render(Renderer * renderer, GLuint uniformModel)
 {
-	Entity::Render(renderer, cameraOffset);
-	collider.CalculateCollider(position, cameraOffset); // calculate here for next update frame
+	Entity::Render(renderer, uniformModel);
+	collider.CalculateCollider(position, Vector2(0,0)); // calculate here for next update frame
 
 	if (GetModeDebug())
 	{
@@ -57,7 +57,7 @@ void Ladder::Render(Renderer * renderer, Vector2 cameraOffset)
 		SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
 
 		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-		collider.CalculateCollider(position, cameraOffset); //TODO: better way than calculating this twice?
+		collider.CalculateCollider(position, Vector2(0,0)); //TODO: better way than calculating this twice?
 
 		SDL_RenderDrawRect(renderer->renderer, collider.collisionBounds);
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);

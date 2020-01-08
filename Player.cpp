@@ -32,9 +32,9 @@ Player::~Player()
 
 }
 
-void Player::Render(Renderer * renderer, Vector2 cameraOffset)
+void Player::Render(Renderer * renderer, GLuint uniformModel)
 {
-	PhysicsEntity::Render(renderer, cameraOffset);
+	PhysicsEntity::Render(renderer, uniformModel);
 }
 
 void Player::Update(Game& game)

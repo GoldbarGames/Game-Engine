@@ -7,7 +7,7 @@ Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 	textFont = TTF_OpenFont("fonts/default.ttf", 24);
 	speakerFont = TTF_OpenFont("fonts/default.ttf", 24);
 
-	boxSprite = new Sprite(0, 0, 1, manager, "assets/gui/textbox.png", renderer, Vector2(0, 0));
+	boxSprite = new Sprite(0, 0, 1, manager, "assets/gui/textbox.png", renderer->shaders["default"], Vector2(0, 0));
 
 	text = new Text(renderer, textFont);
 	speaker = new Text(renderer, speakerFont);	
@@ -25,13 +25,13 @@ Textbox::~Textbox()
 
 }
 
-void Textbox::Render(Renderer * renderer)
+void Textbox::Render(Renderer * renderer, GLuint uniformModel)
 {
 	if (shouldRender)
 	{
 		//TODO: Make sure the position is in the center of the screen
-		boxSprite->Render(position, 0, -1, SDL_FLIP_NONE, renderer);
-		speaker->Render(renderer);
-		text->Render(renderer);
+		boxSprite->Render(position, 0, -1, SDL_FLIP_NONE, renderer, uniformModel, 0);
+		speaker->Render(renderer, uniformModel);
+		text->Render(renderer, uniformModel);
 	}	
 }

@@ -16,24 +16,33 @@ using std::string;
 
 Game::Game()
 {
+	startOfGame = std::chrono::steady_clock::now();
+
 	InitSDL();
 
-	overlayRect.x = 0;
-	overlayRect.y = 0;
-	overlayRect.w = screenWidth;
-	overlayRect.h = screenHeight;
+	spriteManager = new SpriteManager();
+
+	InitOpenGL();
+
+	// THESE THREE LINES MUST BE IMMEDIATELY AFTER INIT OPENGL
+	CreateShaders();
+	CreateTextures();
+	CreateMeshes();
 
 	// Initialize the font before all text
 	theFont = TTF_OpenFont("fonts/default.ttf", 20);
 	headerFont = TTF_OpenFont("fonts/default.ttf", 32);
-
-	spriteManager = new SpriteManager();
 
 	soundManager = new SoundManager();
 
 	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager)
 	cutscene = new CutsceneManager(*this);
 	cutscene->ParseScene();
+
+	overlayRect.x = 0;
+	overlayRect.y = 0;
+	overlayRect.w = screenWidth;
+	overlayRect.h = screenHeight;
 
 	// Initialize the sprite map (do this BEFORE the editor)
 	//TODO: Can this be done automatically by grabbing all files in each folder?
@@ -77,14 +86,6 @@ Game::Game()
 
 	timerOverlayColor.Start(1);
 
-	// Set up OpenGL stuff
-	mainContext = SDL_GL_CreateContext(window);
-	SetOpenGLAttributes();
-	SDL_GL_SetSwapInterval(1);
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	SDL_GL_SwapWindow(window);
-
 	start_time = clock::now();
 }
 
@@ -125,11 +126,111 @@ void Game::CalcDt()
 	dt = std::chrono::duration<float, milliseconds::period>(clock::now() - start_time).count();
 	start_time = clock::now();
 
+	now = std::chrono::duration<float, milliseconds::period>(start_time - startOfGame).count();
+
 	// When we are debugging and hit a breakpoint in an IDE, the timer continues running.
 	// This causes the dt to become huge and throw everything around like crazy.
 	// So reset the dt if it becomes too big so that we can debug properly.
 	if (dt > 100)
 		dt = 33;
+}
+
+void Game::CreateTextures()
+{
+	/*
+	Texture* butler1 = new Texture("Textures/but_defa1.png", true);
+	butler1->LoadTexture();
+	textures["but_defa1"] = butler1;
+
+	Texture* butler2 = new Texture("Textures/but_defa2.png", true);
+	butler2->LoadTexture();
+	textures["but_defa2"] = butler2;
+
+	Texture* bgTexture = new Texture("Textures/street_1a.jpg", false);
+	bgTexture->LoadTexture();
+	textures["bg"] = bgTexture;
+
+	Texture* wdkTexture = new Texture("Textures/wdk_walk.png", true);
+	wdkTexture->LoadTexture();
+	textures["wdk_walk"] = wdkTexture;
+	*/
+}
+
+void Game::CreateMeshes()
+{
+
+
+}
+
+
+void Game::CreateObjects()
+{
+	Sprite* spr1 = new Sprite(0, 1, 1, spriteManager, "Textures/but_defa1.png", renderer->shaders["special"], Vector2(0,0), true);
+	Sprite* spr2 = new Sprite(0, 1, 1, spriteManager, "Textures/street_1a.jpg", renderer->shaders["default"], Vector2(0,0), false);
+	Sprite* spr3 = new Sprite(0, 5, 6, spriteManager, "Textures/wdk_walk.png", renderer->shaders["default"], Vector2(0,0), true);
+
+
+	Entity* butler = new Entity(Vector2(0, 0), spr1);
+	Entity* bg = new Entity(Vector2(0, 0), spr2);
+	Entity* kaneko = new Entity(Vector2(0, 0), spr3);
+
+	kaneko->GetSprite()->animFrames = 6;
+
+	entities.push_back(bg);
+	entities.push_back(butler);	
+	entities.push_back(kaneko);
+	//entities.push_back(cube);
+}
+
+void Game::CreateShaders()
+{
+	Shader* shader0 = new Shader();
+	shader0->CreateFromFiles("Shaders/shader0.vert", "Shaders/shader0.frag");
+	renderer->shaders["default"] = shader0;
+
+	Shader* shader1 = new Shader();
+	shader1->CreateFromFiles("Shaders/shader1.vert", "Shaders/shader1.frag");
+	renderer->shaders["special"] = shader1;
+}
+
+void Game::InitOpenGL()
+{
+	
+	// Set up OpenGL stuff
+	mainContext = SDL_GL_CreateContext(window);
+
+	// Set our OpenGL version.
+	// SDL_GL_CONTEXT_CORE gives us only the newer version, deprecated functions are disabled
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+
+	// Turn on double buffering with a 24bit Z buffer.
+	// You may need to change this to 16 or 32 for your system
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+	// 0 = no vsync, 1 = vsync
+	SDL_GL_SetSwapInterval(1);
+
+	glewExperimental = GL_TRUE;
+	glewInit();
+
+	glDisable(GL_DEPTH_TEST);
+	//glDepthFunc(GL_LESS);
+
+	// Enable blending for transparent textures
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// Set up viewport size 
+	// TODO: Don't hardcode these numbers
+	glViewport(0, 0, 1280, 720);
+
+	SDL_GL_SwapWindow(window);
+
+	camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 1.0f, 0.5f);
 }
 
 void Game::InitSDL()
@@ -144,7 +245,11 @@ void Game::InitSDL()
 
 	renderer = new Renderer();
 	renderer->CreateSDLRenderer(window, true);
+
 	
+
+
+
 }
 
 void Game::EndSDL()
@@ -165,21 +270,7 @@ void Game::EndSDL()
 
 bool Game::SetOpenGLAttributes()
 {
-	int success = 0;	
-
-	// Set our OpenGL version.
-	// SDL_GL_CONTEXT_CORE gives us only the newer version, deprecated functions are disabled
-	success += SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
-	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
-	success +=  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	success +=  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-
-	// Turn on double buffering with a 24bit Z buffer.
-	// You may need to change this to 16 or 32 for your system
-	success +=  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
-	return success == 0;
+	return true;
 }
 
 Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
@@ -192,13 +283,13 @@ Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
 	//ReadAnimData("data/animations/ladder.anim", animStates);
 
 	animStates.push_back(new AnimState("middle", 0, new Sprite(2, 2, 5, spriteManager,
-		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0))));
+		spriteMap["ladder"][spriteIndex], renderer->shaders["default"], Vector2(0, 0))));
 
 	animStates.push_back(new AnimState("bottom", 0, new Sprite(4, 4, 5, spriteManager,
-		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0))));
+		spriteMap["ladder"][spriteIndex], renderer->shaders["default"], Vector2(0, 0))));
 
 	animStates.push_back(new AnimState("top", 0, new Sprite(0, 0, 5, spriteManager,
-		spriteMap["ladder"][spriteIndex], renderer, Vector2(0, 0))));
+		spriteMap["ladder"][spriteIndex], renderer->shaders["default"], Vector2(0, 0))));
 
 	Animator* anim = new Animator("ladder", animStates, "middle");
 	newLadder->SetAnimator(anim);
@@ -208,8 +299,8 @@ Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
 
 Vector2 Game::SnapToGrid(Vector2 position)
 {
-	int x = position.x + camera.x - ((int)(position.x) % (editor->GRID_SIZE * Renderer::GetScale()));
-	int y = position.y + camera.y - ((int)(position.y) % (editor->GRID_SIZE * Renderer::GetScale()));
+	int x = position.x - ((int)(position.x) % (editor->GRID_SIZE * Renderer::GetScale()));
+	int y = position.y - ((int)(position.y) % (editor->GRID_SIZE * Renderer::GetScale()));
 
 	if (x % 2 != 0)
 		x++;
@@ -246,8 +337,8 @@ Door* Game::CreateDoor(Vector2 position, int spriteIndex)
 	Vector2 pivotPoint = Vector2(0, 0);
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/door.anim", animStates);
-	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 2, spriteManager, spriteMap["door"][spriteIndex], renderer, pivotPoint)));
-	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 2, spriteManager, spriteMap["door"][spriteIndex], renderer, pivotPoint)));
+	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 2, spriteManager, spriteMap["door"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 2, spriteManager, spriteMap["door"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 	
 	//TODO: How to make this work for doors that will be related to other tilesets?
 	Animator* anim = new Animator("door", animStates, "closed");
@@ -284,16 +375,16 @@ NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 	{
 		//ReadAnimData("data/animations/gramps.anim", animStates);
 		pivotPoint = Vector2(12, 28);
-		animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
-		animStates.push_back(new AnimState("sad", 100, new Sprite(1, 1, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
-		animStates.push_back(new AnimState("confused", 100, new Sprite(2, 2, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
+		animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+		animStates.push_back(new AnimState("sad", 100, new Sprite(1, 1, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+		animStates.push_back(new AnimState("confused", 100, new Sprite(2, 2, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 		
 	}
 	else if (name == "the_man")
 	{
 		//ReadAnimData("data/animations/the_man.anim", animStates);
 		pivotPoint = Vector2(23, 36);
-		animStates.push_back(new AnimState("idle", 200, new Sprite(0, 7, 8, spriteManager, spriteMap["npc"][spriteIndex], renderer, pivotPoint)));
+		animStates.push_back(new AnimState("idle", 200, new Sprite(0, 7, 8, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 	}
 
 	Animator* anim = new Animator(name, animStates, "idle");
@@ -332,8 +423,8 @@ Goal* Game::CreateGoal(Vector2 position, int spriteIndex)
 	Vector2 pivotPoint = Vector2(0, 0);
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/goal.anim", animStates);
-	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer, pivotPoint)));
-	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer, pivotPoint)));
+	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 	
 	Animator* anim = new Animator("door", animStates, "closed");
 	newGoal->SetAnimator(anim);
@@ -366,7 +457,7 @@ Bug* Game::CreateBug(Vector2 position, int spriteIndex)
 	Vector2 pivotPoint = Vector2(16, 16);
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/bug.anim", animStates);
-	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, spriteMap["bug"][spriteIndex], renderer, pivotPoint)));
+	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, spriteMap["bug"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 	Animator* anim = new Animator("bug", animStates, "idle");
 	newBug->SetAnimator(anim);
 
@@ -398,7 +489,7 @@ Ether* Game::CreateEther(Vector2 position, int spriteIndex)
 	Vector2 pivotPoint = Vector2(0, 0);
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/ether.anim", animStates);
-	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/spells/ether.png", renderer, pivotPoint)));
+	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/spells/ether.png", renderer->shaders["default"], pivotPoint)));
 
 	Animator* anim = new Animator("ether", animStates, "idle");
 	newEther->SetAnimator(anim);
@@ -431,7 +522,7 @@ Block* Game::CreateBlock(Vector2 position, int spriteIndex)
 	Vector2 pivotPoint = Vector2(24, 32);
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/block.anim", animStates);
-	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/big_block.png", renderer, pivotPoint)));
+	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/big_block.png", renderer->shaders["default"], pivotPoint)));
 	
 	Animator* anim = new Animator("block", animStates, "idle");
 	newBlock->SetAnimator(anim);
@@ -468,7 +559,7 @@ Platform* Game::CreatePlatform(Vector2 position, int spriteIndex)
 	Vector2 pivotPoint = Vector2(36, 12);
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/platform.anim", animStates);
-	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/platform.png", renderer, pivotPoint)));
+	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/platform.png", renderer->shaders["default"], pivotPoint)));
 
 	Animator* anim = new Animator("platform", animStates, "idle");
 	newPlatform->SetAnimator(anim);
@@ -502,7 +593,7 @@ Shroom* Game::CreateShroom(Vector2 position, int spriteIndex)
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/shroom.anim", animStates);
 	animStates.push_back(new AnimState("idle", 200, new Sprite(0, 3, 9, spriteManager, 
-		spriteMap["shroom"][spriteIndex], renderer, pivotPoint)));
+		spriteMap["shroom"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 
 	newObject->SetAnimator(new Animator("shroom", animStates));
 	newObject->canBePushed = (spriteIndex == 1); // can push if it is in the pot
@@ -537,8 +628,8 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/missile.anim", animStates);
-	animStates.push_back(new AnimState("moving", 100, new Sprite(0, 3, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint)));
-	animStates.push_back(new AnimState("destroyed", 100, new Sprite(4, 7, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer, pivotPoint, false)));
+	animStates.push_back(new AnimState("moving", 100, new Sprite(0, 3, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer->shaders["default"], pivotPoint)));
+	animStates.push_back(new AnimState("destroyed", 100, new Sprite(4, 7, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer->shaders["default"], pivotPoint, false)));
 
 	Missile* missile = new Missile(position - pivotPoint);
 
@@ -557,8 +648,8 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 
 Vector2 Game::CalcTileSpawnPos(Vector2 pos)
 {
-	int newTileX = (int)pos.x + (int)(camera.x);
-	int newTileY = (int)pos.y + (int)(camera.y);
+	int newTileX = (int)pos.x;
+	int newTileY = (int)pos.y;
 
 	if (newTileX % 2 != 0)
 		newTileX++;
@@ -574,7 +665,7 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 	Vector2 newTilePos = position;// CalcObjPos(position);
 
 	//Sprite* tileSprite = new Sprite(Vector2(newTileX, newTileY), spriteManager.GetImage(tilesheet), renderer);
-	Tile* tile = new Tile(newTilePos, frame, spriteManager->GetImage(renderer, tilesheet), renderer);
+	Tile* tile = new Tile(newTilePos, frame, spriteManager->GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION;
@@ -647,7 +738,7 @@ void Game::ReadAnimData(std::string dataFilePath, std::vector<AnimState*> & anim
 
 		animStates.push_back(new AnimState(stateName, stateSpeed,
 			new Sprite(spriteStartFrame, spriteEndFrame, spriteNumberTotalFrames,
-				spriteManager, spriteFilePath, renderer, Vector2(spritePivotX, spritePivotY))));
+				spriteManager, spriteFilePath, renderer->shaders["default"], Vector2(spritePivotX, spritePivotY))));
 
 		ss.getline(lineChar, 256);
 	}
@@ -809,21 +900,21 @@ void Game::HandleEditMode()
 
 	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
 	{
-		camera.y -= (editor->GRID_SIZE * Renderer::GetScale());
+		//camera.y -= (editor->GRID_SIZE * Renderer::GetScale());
 	}
 	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
 	{
-		camera.y += (editor->GRID_SIZE * Renderer::GetScale());
+		//camera.y += (editor->GRID_SIZE * Renderer::GetScale());
 	}
 
 	if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
 	{
-		camera.x -= (editor->GRID_SIZE * Renderer::GetScale());
+		//camera.x -= (editor->GRID_SIZE * Renderer::GetScale());
 
 	}
 	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
 	{
-		camera.x += (editor->GRID_SIZE * Renderer::GetScale());
+		//camera.x += (editor->GRID_SIZE * Renderer::GetScale());
 	}
 
 	editor->HandleEdit();
@@ -1156,8 +1247,8 @@ bool Game::HandleEvent(SDL_Event& event)
 				SetModeEdit(!GetModeEdit());
 				if (GetModeEdit())
 				{
-					camera.x = camera.x - ((int)camera.x % (editor->GRID_SIZE * Renderer::GetScale()));
-					camera.y = camera.y - ((int)camera.y % (editor->GRID_SIZE * Renderer::GetScale()));
+					//camera.x = camera.x - ((int)camera.x % (editor->GRID_SIZE * Renderer::GetScale()));
+					//camera.y = camera.y - ((int)camera.y % (editor->GRID_SIZE * Renderer::GetScale()));
 					editor->StartEdit();
 				}
 				else
@@ -1234,6 +1325,9 @@ void Game::SaveScreenshot()
 
 void Game::GetMenuInput()
 {
+	const Uint8* input = SDL_GetKeyboardState(NULL);
+	camera.KeyControl(input, dt);
+
 	Uint32 ticks = timer.GetTicks();
 	if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
 	{
@@ -1273,9 +1367,12 @@ void Game::UpdateOverlayColor(int& color, const int& target)
 
 void Game::Update()
 {
+	const Uint8* input = SDL_GetKeyboardState(NULL);
+	camera.KeyControl(input, dt);
+
 	// For non-moving camera, set offset based on tile size and scale
 	const int OFFSET = -4;
-	camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
+	//camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
 	//camera = Vector2(0, 0);
 	//std::cout << camera.y << std::endl;
 
@@ -1312,32 +1409,92 @@ void Game::Update()
 	}
 }
 
-void Game::Render()
+void Game::RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEntities)
 {
-	SDL_RenderClear(renderer->renderer);
-
-	// Render all backgrounds and their layers
-	for (unsigned int i = 0; i < backgrounds.size(); i++)
+	for (unsigned int i = 0; i < renderedEntities.size(); i++)
 	{
-		backgrounds[i]->Render(renderer, camera);
+		// Modify the entity's mesh to show the current animation frame
+		renderedEntities[i]->GetSprite()->AnimateMesh(now);
+
+		renderedEntities[i]->GetSprite()->GetShader()->UseShader();
+		uniformModel = renderedEntities[i]->GetSprite()->GetShader()->GetModelLocation();
+		uniformProjection = renderedEntities[i]->GetSprite()->GetShader()->GetProjectionLocation();
+		uniformView = renderedEntities[i]->GetSprite()->GetShader()->GetViewLocation();
+
+		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.CalculateViewMatrix()));
+
+		renderedEntities[i]->Render(renderer, uniformModel);
 	}
+}
+
+void Game::Render(glm::mat4 projection)
+{
+	/*
 
 	// Render editor grid
 	if (GetModeEdit())
 	{
 		editor->DrawGrid();
 	}
+	*/
+
+	// Clear window
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Render all backgrounds and their layers
+	for (int i = 0; i < backgrounds.size(); i++)
+	{
+		RenderEntities(projection, backgrounds[i]->layers);
+	}	
 
 	// Render all entities
-	for (unsigned int i = 0; i < entities.size(); i++)
+	RenderEntities(projection, entities);
+
+
+
+	// LAST THING
+	// Render all menu screens
+	if (openedMenus.size() > 0)
 	{
-		entities[i]->Render(renderer, camera);
+		MenuScreen* menu = openedMenus[openedMenus.size() - 1];
+
+		RenderEntities(projection, menu->images);
+
+		//TODO: The buttons are rendered as solid colors
+		// Either render solid colors or give them textures?
+		// In addition, buttons have text
+		/*
+		for (int i = 0; i < menu->buttons.size(); i++)
+		{
+			for (int k = 0; k < menu->buttons[i]->.size(); i++)
+			{
+				// Render the button's texture
+
+				// Render the button's text
+			}
+		}
+		*/
+
+		//TODO: How to render text in general?
+		for (int i = 0; i < menu->texts.size(); i++)
+		{
+
+		}
+
+
+
+
 	}
+
+	/*
+	
 
 	// Render editor toolbox
 	if (GetModeEdit())
 	{
-		editor->Render(renderer);
+		editor->Render(renderer, uniformModel);
 	}
 
 	// Draw stuff for debugging purposes here
@@ -1352,15 +1509,15 @@ void Game::Render()
 	}
 
 	if (showFPS)
-		fpsText->Render(renderer);
+		fpsText->Render(renderer, uniformModel);
 	
 	if (showTimer)
-		timerText->Render(renderer);
+		timerText->Render(renderer, uniformModel);
 
 	if (currentLevel != "title")
 	{
-		bugText->Render(renderer);
-		etherText->Render(renderer);
+		bugText->Render(renderer, uniformModel);
+		etherText->Render(renderer, uniformModel);
 	}	
 
 	// Draw the screen overlay
@@ -1373,18 +1530,15 @@ void Game::Render()
 	if (watchingCutscene)
 		cutscene->Render(renderer);
 
-	// Render all menu screens
-	if (openedMenus.size() > 0)
-	{
-		SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
-		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 128);
-		SDL_RenderFillRect(renderer->renderer, &overlayRect);
-		SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
-		openedMenus[openedMenus.size() - 1]->Render(renderer);
-	}
 
-	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-	SDL_RenderPresent(renderer->renderer);
+
+		*/
+
+	//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+	//SDL_RenderPresent(renderer->renderer);
+
+	glUseProgram(0);
+	SDL_GL_SwapWindow(window);
 }
 
 // Implementation of insertion sort:

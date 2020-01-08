@@ -5,7 +5,7 @@
 
 using std::string;
 
-Tile::Tile(Vector2 pos, Vector2 frame, SDL_Texture * image, Renderer * renderer) : Entity(pos)
+Tile::Tile(Vector2 pos, Vector2 frame, Texture * image, Renderer * renderer) : Entity(pos)
 {
 	ChangeSprite(frame, image, renderer);
 	etype = "tile";
@@ -16,13 +16,13 @@ Tile::~Tile()
 
 }
 
-void Tile::ChangeSprite(Vector2 frame, SDL_Texture * image, Renderer * renderer)
+void Tile::ChangeSprite(Vector2 frame, Texture * image, Renderer * renderer)
 {
 	if (currentSprite != nullptr)
 		delete currentSprite;
 	
 	tileCoordinates = frame;
-	currentSprite = new Sprite(frame, image, renderer);
+	currentSprite = new Sprite(frame, image, renderer->shaders["default"]);
 }
 
 void Tile::Animate()

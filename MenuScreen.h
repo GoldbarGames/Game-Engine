@@ -18,7 +18,7 @@ public:
 	int selectedButtonIndex = 0;
 	MenuScreen(std::string n, Game& game);
 	~MenuScreen();
-	void Render(Renderer* renderer);
+	void Render(Renderer* renderer, GLuint uniformModel);
 	bool Update(Game& game);
 	bool PressSelectedButton(Game& game);
 	BaseButton* GetButtonByName(std::string buttonName);

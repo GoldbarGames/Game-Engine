@@ -60,8 +60,8 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 	SDL_Rect myBounds = *(GetBounds());
 	if (useCamera)
 	{
-		myBounds.x = spawnPosition.x - game.camera.x;
-		myBounds.y = spawnPosition.y - game.camera.y;
+		myBounds.x = spawnPosition.x;
+		myBounds.y = spawnPosition.y;
 	}
 	else
 	{

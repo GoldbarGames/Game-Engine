@@ -3,7 +3,7 @@
 
 MenuButton::MenuButton(std::string txt, std::string filepath, std::string function, Vector2 pos, Game& game)
 {
-	image = new Sprite(1, game.spriteManager, filepath, game.renderer, Vector2(0,0));
+	image = new Sprite(1, game.spriteManager, filepath, game.renderer->shaders["default"], Vector2(0,0));
 
 	text = new Text(game.renderer, game.theFont);
 	text->SetText(txt);
@@ -42,7 +42,7 @@ MenuButton::~MenuButton()
 
 }
 
-void MenuButton::Render(Renderer* renderer)
+void MenuButton::Render(Renderer* renderer, GLuint uniformModel)
 {
 	// Draw the outline
 	if (isSelected)
@@ -57,9 +57,9 @@ void MenuButton::Render(Renderer* renderer)
 	// Draw the button image
 	//TODO: What should the color be here? Dunno if this is right
 	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-	image->Render(position, 0, -1, SDL_FLIP_NONE, renderer);
+	image->Render(position, 0, -1, SDL_FLIP_NONE, renderer, uniformModel, 0);
 
-	text->Render(renderer);
+	text->Render(renderer, uniformModel);
 }
 
 

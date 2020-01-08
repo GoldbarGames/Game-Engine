@@ -76,7 +76,7 @@ void Text::SetTextWrapped(string text, Uint32 width)
 	textWindowRect.h = textTextureRect.h;
 }
 
-void Text::Render(Renderer* renderer)
+void Text::Render(Renderer* renderer, GLuint uniformModel)
 {
 	renderer->RenderCopy(textTexture, &textTextureRect, &textWindowRect);
 }

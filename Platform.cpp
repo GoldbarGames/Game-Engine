@@ -179,9 +179,9 @@ void Platform::Update(Game& game)
 
 }
 
-void Platform::Render(Renderer * renderer, Vector2 cameraOffset)
+void Platform::Render(Renderer * renderer, GLuint uniformModel)
 {
-	PhysicsEntity::Render(renderer, cameraOffset);
+	PhysicsEntity::Render(renderer, uniformModel);
 }
 
 void Platform::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)

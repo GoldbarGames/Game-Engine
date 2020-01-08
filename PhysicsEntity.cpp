@@ -172,7 +172,7 @@ bool PhysicsEntity::MoveVerticallyWithParent(Entity* entity, Game& game)
 		}
 		else
 		{
-			position.y = GetColliderBounds()->y + game.camera.y;
+			position.y = GetColliderBounds()->y;
 			position.y += entity->CalcCollisionVelocity(this, false) * game.dt;
 		}
 	}
@@ -205,7 +205,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	prevFrameCollisions = thisFrameCollisions;
 	thisFrameCollisions.clear();
 
-	CalculateCollider(game.camera);
+	CalculateCollider(Vector2(0,0));
 
 	PhysicsEntity* prevParent = CheckPrevParent();	
 
@@ -275,9 +275,9 @@ void PhysicsEntity::CheckCollisions(Game& game)
 				horizontalCollision = CheckCollisionHorizontal(entity, game);
 
 				if (v > 0)
-					position.x = theirBounds->x - myBounds.w - collider->x + game.camera.x;
+					position.x = theirBounds->x - myBounds.w - collider->x;
 				else if (v < 0)
-					position.x = theirBounds->x + theirBounds->w + collider->x + game.camera.x;
+					position.x = theirBounds->x + theirBounds->w + collider->x;
 			}
 
 			// checks the ceiling (don't know how necessary this really is)	
@@ -324,9 +324,9 @@ void PhysicsEntity::CheckCollisions(Game& game)
 					{
 						velocity.y = 0;
 						if (standAboveGround)
-							position.y = theirBounds->y - myBounds.h - FLOOR_SIZE - collider->y + game.camera.y;
+							position.y = theirBounds->y - myBounds.h - FLOOR_SIZE - collider->y;
 						else
-							position.y = theirBounds->y - myBounds.h - collider->y + game.camera.y;
+							position.y = theirBounds->y - myBounds.h - collider->y;
 						shouldStickToGround = true;
 					}						
 				}
@@ -510,7 +510,7 @@ void PhysicsEntity::Update(Game& game)
 		animator->Update(this);
 }
 
-void PhysicsEntity::Render(Renderer * renderer, Vector2 cameraOffset)
+void PhysicsEntity::Render(Renderer * renderer, GLuint uniformModel)
 {
 	if (currentSprite != nullptr)
 	{
@@ -527,16 +527,16 @@ void PhysicsEntity::Render(Renderer * renderer, Vector2 cameraOffset)
 		if (GetModeEdit())
 		{
 			if (animator != nullptr)
-				currentSprite->Render(position - cameraOffset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer);
+				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, uniformModel, 0);
 			else
-				currentSprite->Render(position - cameraOffset, 0, -1, flip, renderer);
+				currentSprite->Render(position, 0, -1, flip, renderer, uniformModel, 0);
 		}
 		else
 		{
 			if (animator != nullptr)
-				currentSprite->Render(offset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer);
+				currentSprite->Render(offset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, uniformModel, 0);
 			else
-				currentSprite->Render(offset, 0, -1, flip, renderer);
+				currentSprite->Render(offset, 0, -1, flip, renderer, uniformModel, 0);
 		}
 
 		if (GetModeDebug())

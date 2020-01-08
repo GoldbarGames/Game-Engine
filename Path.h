@@ -14,7 +14,7 @@ public:
 	void RemovePointFromPath(Vector2 point);	
 	bool IsPointInPath(Vector2 point);
 
-	void Render(Renderer * renderer, Vector2 cameraOffset);
+	void Render(Renderer * renderer, GLuint uniformModel);
 	const SDL_Rect* GetBounds();
 
 	void Save(std::ostringstream& level);
