@@ -113,7 +113,7 @@ public:
 	std::string SaveLevelAsString();
 	void SaveLevel(std::string levelName = "");
 	void InitLevelFromFile(std::string levelName);
-	void Render(Renderer* renderer, GLuint uniformModel);
+	void Render(Renderer* renderer);
 	void SetText(string newText);
 	DrawingLayer drawingLayer = BACK;
 	int tilesheetIndex = 0;

@@ -7,11 +7,11 @@
 
 #include <GL/glew.h>
 
-class Shader
+class ShaderProgram
 {
 public:
-	Shader();
-	~Shader();
+	ShaderProgram();
+	~ShaderProgram();
 
 	void CreateFromString(const char* vertexCode, const char* fragmentCode);
 	void CreateFromFiles(const char* vertexFilePath, const char* fragmentFilePath);
@@ -21,12 +21,15 @@ public:
 	GLuint GetProjectionLocation();
 	GLuint GetModelLocation();
 	GLuint GetViewLocation();
+	GLuint GetViewTextureLocation();
 
 	void UseShader();
 	void ClearShader();
 
+	GLuint GetID() { return programID; }
+
 private:
-	GLuint shaderID, uniformProjection, uniformModel, uniformView;
+	GLuint programID, uniformProjection, uniformModel, uniformView, uniformViewTexture;
 
 	void CompileShader(const char* vertexCode, const char* fragmentCode);
 	void AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType);

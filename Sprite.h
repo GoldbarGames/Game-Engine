@@ -26,28 +26,32 @@ private:
 	//Vector2 scale = Vector2(1, 1);
 	
 public:	
-	void SetShader(Shader* s) { shader = s; }
-	Shader* GetShader() { return shader; }
+	void SetShader(ShaderProgram* s) { shader = s; }
+	ShaderProgram* GetShader() { return shader; }
 
 	void SetTexture(Texture* t) { texture = t; }
 
-	void AnimateMesh(GLfloat time);
+	void AnimateMesh(float time);
 
-	GLuint currentFrame = 0;
+	unsigned int currentFrame = 0;
 
-	GLuint animFrames = 1;
-	Shader* shader;
+	unsigned int animFrames = 1;
+
+	ShaderProgram* shader;
 	Mesh* mesh;
 	Texture* texture;
-	GLfloat animLow = 0;
-	GLfloat animHigh = 0;
-	GLfloat lastAnimTime = -1;
+
+	float animLow = 0;
+	float animHigh = 0;
+	float lastAnimTime = -1;
 	//unsigned int * quadIndices;
 	//GLfloat* quadVertices;
 	float animSpeed = 0.1f;
 
 	int frameWidth = 0;
 	int frameHeight = 0;
+
+	Vector2 scale = Vector2(1, 1);
 
 	bool shouldLoop = true;
 	int startFrame = 0;
@@ -58,14 +62,15 @@ public:
 	SDL_Rect windowRect;
 	const SDL_Rect* GetRect();
 	void Animate(int msPerFrame, Uint32 time);
-	void Render(Vector2 position, Renderer* renderer, GLuint uniformModel);
-	void Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer* renderer, GLuint uniformModel, float angle = 0);
-	
+	void Render(Vector2 position, Renderer* renderer);
+	void Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer* renderer, float angle = 0);
+	void SetScale(Vector2 s);
+	bool ShouldAnimate(float time);
 	void CreateMesh();
-	Sprite(Texture* t, Shader* s);
-	Sprite(Vector2 frame, Texture* image, Shader * shader);
-	Sprite(int numFrames, SpriteManager* manager, std::string filepath, Shader* shader, Vector2 newPivot);
-	Sprite(int start, int end, int numFrames, SpriteManager* manager, std::string filepath, Shader* s, Vector2 newPivot, bool loop = true);
+	Sprite(Texture* t, ShaderProgram* s);
+	Sprite(Vector2 frame, Texture* image, ShaderProgram* shader);
+	Sprite(int numFrames, SpriteManager* manager, std::string filepath, ShaderProgram* shader, Vector2 newPivot);
+	Sprite(int start, int end, int numFrames, SpriteManager* manager, std::string filepath, ShaderProgram* s, Vector2 newPivot, bool loop = true);
 	~Sprite();
 };
 

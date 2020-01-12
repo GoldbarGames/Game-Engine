@@ -48,8 +48,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	{
 		buttonWindowRect.h = buttonTextureRect.h;
 	}
-
-	text->SetPosition(pos.x, pos.y + (buttonWindowRect.h / 2) - (text->textWindowRect.h / 2));
+	text->SetPosition(pos.x, pos.y + (buttonWindowRect.h / 2) - (text->GetTextHeight() / 2));
 }
 
 EditorButton::~EditorButton()
@@ -57,7 +56,7 @@ EditorButton::~EditorButton()
 
 }
 
-void EditorButton::Render(Renderer* renderer, GLuint  uniformModel)
+void EditorButton::Render(Renderer* renderer)
 {
 	buttonWindowRect.x = position.x;
 	buttonWindowRect.y = position.y;
@@ -73,7 +72,7 @@ void EditorButton::Render(Renderer* renderer, GLuint  uniformModel)
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
 
-	text->Render(renderer, uniformModel);
+	text->Render(renderer);
 }
 
 bool EditorButton::IsClicked(const int& x, const int& y)

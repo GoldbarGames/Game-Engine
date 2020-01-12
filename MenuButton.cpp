@@ -7,7 +7,7 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 
 	text = new Text(game.renderer, game.theFont);
 	text->SetText(txt);
-	text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->textWindowRect.h/2));
+	text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->GetTextHeight()/2));
 
 	name = function;
 
@@ -42,9 +42,10 @@ MenuButton::~MenuButton()
 
 }
 
-void MenuButton::Render(Renderer* renderer, GLuint uniformModel)
+void MenuButton::Render(Renderer* renderer)
 {
 	// Draw the outline
+	/*
 	if (isSelected)
 	{
 		// TODO: Make this a color type that we can swap out
@@ -53,13 +54,13 @@ void MenuButton::Render(Renderer* renderer, GLuint uniformModel)
 		SDL_RenderFillRect(renderer->renderer, &outlineVertical);
 		SDL_RenderFillRect(renderer->renderer, &outlineCorners);
 	}
+	*/
 
 	// Draw the button image
 	//TODO: What should the color be here? Dunno if this is right
-	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-	image->Render(position, 0, -1, SDL_FLIP_NONE, renderer, uniformModel, 0);
-
-	text->Render(renderer, uniformModel);
+	//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+	image->Render(position, 0, -1, SDL_FLIP_NONE, renderer, 0);
+	text->Render(renderer);
 }
 
 

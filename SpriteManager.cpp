@@ -50,9 +50,6 @@ Texture* SpriteManager::GetImage(std::string const& imagePath)
 
 		Texture* newTexture = new Texture(imagePath.c_str());
 
-		if (imagePath == "assets/bg/forest/forest_ground.png")
-			int test = 0;
-
 		newTexture->LoadTexture(surface);
 		images[imagePath].reset(newTexture);
 

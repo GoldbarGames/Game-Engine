@@ -65,16 +65,18 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		buttons.emplace_back(buttonSettings);
 		buttons.emplace_back(buttonExit);
 
-		Text* textCopyright = new Text(game.renderer, game.headerFont, "Copyright 2019 Goldbar Games LLC");
-		textCopyright->SetPosition(startWidth - (textCopyright->textWindowRect.w / 2), 600);
+		Text* textCopyright = new Text(game.renderer, game.headerFont, "Copyright 2020 Goldbar Games LLC");
+		textCopyright->SetPosition(startWidth - (textCopyright->GetTextWidth() / 2), 600);
 		texts.emplace_back(textCopyright);
 
 		Entity* titleCharacter = new Entity(Vector2(200, 200));
 		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders["default"], Vector2(222, 370), false));
+		titleCharacter->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = new Entity(Vector2(320, 100));
 		titleLogo->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png", game.renderer->shaders["default"], Vector2(320, 137), false));
+		titleLogo->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 		images.emplace_back(titleLogo);
 	}
 	else if (name == "Settings")
@@ -86,7 +88,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		int buttonPosX = (screenWidth / 2);
 
 		Text* header = new Text(game.renderer, game.headerFont, "Settings");
-		header->SetPosition(startWidth - (header->textWindowRect.w / 2), startHeight);
+		header->SetPosition(startWidth - (header->GetTextWidth() / 2), startHeight);
 		texts.emplace_back(header);
 
 		std::vector<string> buttonNames = { "Music Volume", "Sound Volume", "Screen Resolution",
@@ -115,7 +117,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		int buttonPosX = (screenWidth / 2);
 
 		Text* header = new Text(game.renderer, game.headerFont, "Editor Settings");
-		header->SetPosition(startWidth - (header->textWindowRect.w / 2), startHeight);
+		header->SetPosition(startWidth - (header->GetTextWidth() / 2), startHeight);
 		texts.emplace_back(header);
 
 		std::vector<string> buttonNames = { "Replacing", "Deleting", "Button Color" };
@@ -170,7 +172,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		buttons.emplace_back(buttonFile3);
 
 		Text* textHeader = new Text(game.renderer, game.headerFont, "Select a File");
-		textHeader->SetPosition(startWidth - (textHeader->textWindowRect.w / 2), 60);
+		textHeader->SetPosition(startWidth - (textHeader->GetTextWidth() / 2), 60);
 		texts.emplace_back(textHeader);
 	}
 	else
@@ -211,21 +213,21 @@ MenuScreen::~MenuScreen()
 
 }
 
-void MenuScreen::Render(Renderer* renderer, GLuint uniformModel)
+void MenuScreen::Render(Renderer* renderer)
 {
 	for (unsigned int i = 0; i < buttons.size(); i++)
 	{
-		buttons[i]->Render(renderer, uniformModel);
+		buttons[i]->Render(renderer);
 	}
 
 	for (unsigned int i = 0; i < images.size(); i++)
 	{
-		images[i]->Render(renderer, uniformModel);
+		images[i]->Render(renderer);
 	}
 
 	for (unsigned int i = 0; i < texts.size(); i++)
 	{
-		texts[i]->Render(renderer, uniformModel);
+		texts[i]->Render(renderer);
 	}
 }
 

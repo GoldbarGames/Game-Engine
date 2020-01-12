@@ -179,9 +179,9 @@ void Platform::Update(Game& game)
 
 }
 
-void Platform::Render(Renderer * renderer, GLuint uniformModel)
+void Platform::Render(Renderer * renderer)
 {
-	PhysicsEntity::Render(renderer, uniformModel);
+	PhysicsEntity::Render(renderer);
 }
 
 void Platform::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)

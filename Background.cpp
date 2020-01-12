@@ -21,7 +21,7 @@ void Background::Render(Renderer * renderer, GLuint uniformModel)
 	//TODO: For parallax scrolling, manipulate the position
 	for (unsigned int i = 0; i < layers.size(); i++)
 	{
-		layers[i]->Render(renderer, uniformModel);
+		layers[i]->Render(renderer);
 	}
 }
 

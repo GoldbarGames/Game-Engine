@@ -24,7 +24,7 @@ public:
 	BaseButton* buttonPressedRight = nullptr;
 	BaseButton();
 	~BaseButton();
-	virtual void Render(Renderer* renderer, GLuint uniformModel);
+	virtual void Render(Renderer* renderer);
 	virtual BaseButton* Update(Game& game, const Uint8* currentKeyStates);
 
 	void SetButtonsUpDownLeftRight(BaseButton* up = nullptr, BaseButton* down = nullptr, BaseButton* left = nullptr, BaseButton* right = nullptr);

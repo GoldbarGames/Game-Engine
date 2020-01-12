@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include "globals.h"
 #include "Shader.h"
+#include "Camera.h"
 
 class Renderer
 {
@@ -11,7 +12,15 @@ private:
 	std::unordered_map<std::string, bool> layersVisible;
 	static int SCALE;
 public:
-	std::unordered_map<std::string, Shader*> shaders;
+	Camera camera;
+	GLuint uniformProjection = 0;
+	GLuint uniformModel = 0;
+	GLuint uniformView = 0;
+	GLuint uniformMultiplyColor = 0;
+	GLuint uniformViewTexture = 0;
+	float now = 0;
+
+	std::unordered_map<std::string, ShaderProgram*> shaders;
 	static int GetScale();
 	static void SetScale(int s);
 	SDL_Renderer * renderer;

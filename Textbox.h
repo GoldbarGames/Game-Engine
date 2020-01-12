@@ -21,7 +21,7 @@ public:
 
 	const Uint32 boxWidth = 575;
 
-	void Render(Renderer * renderer, GLuint uniformModel);
+	void Render(Renderer * renderer);
 
 	Textbox(SpriteManager * manager, Renderer * renderer);
 	~Textbox();

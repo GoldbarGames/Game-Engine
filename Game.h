@@ -109,7 +109,7 @@ public:
 	void CreateObjects();
 
 	void Update();
-	void Render(glm::mat4 projection);
+	void Render();
 	bool SetOpenGLAttributes();
 
 	bool HandleEvent(SDL_Event& event);
@@ -178,9 +178,7 @@ public:
 	bool pressedLeftTrigger;
 	bool pressedRightTrigger;
 
-	GLuint uniformProjection = 0;
-	GLuint uniformModel = 0;
-	GLuint uniformView = 0;
+
 
 	std::vector<Entity*> entities;
 	void ShouldDeleteEntity(int index);
@@ -189,7 +187,8 @@ public:
 	Game();
 	~Game();
 	double dt = 0;
-	Camera camera;
+
+
 	void InitSDL();
 	void EndSDL();
 	void SortEntities(std::vector<Entity*>& entityVector);

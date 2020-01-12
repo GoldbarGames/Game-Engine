@@ -32,9 +32,9 @@ Player::~Player()
 
 }
 
-void Player::Render(Renderer * renderer, GLuint uniformModel)
+void Player::Render(Renderer * renderer)
 {
-	PhysicsEntity::Render(renderer, uniformModel);
+	PhysicsEntity::Render(renderer);
 }
 
 void Player::Update(Game& game)

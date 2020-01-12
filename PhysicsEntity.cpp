@@ -510,7 +510,7 @@ void PhysicsEntity::Update(Game& game)
 		animator->Update(this);
 }
 
-void PhysicsEntity::Render(Renderer * renderer, GLuint uniformModel)
+void PhysicsEntity::Render(Renderer * renderer)
 {
 	if (currentSprite != nullptr)
 	{
@@ -527,16 +527,16 @@ void PhysicsEntity::Render(Renderer * renderer, GLuint uniformModel)
 		if (GetModeEdit())
 		{
 			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, uniformModel, 0);
+				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
 			else
-				currentSprite->Render(position, 0, -1, flip, renderer, uniformModel, 0);
+				currentSprite->Render(position, 0, -1, flip, renderer, 0);
 		}
 		else
 		{
 			if (animator != nullptr)
-				currentSprite->Render(offset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, uniformModel, 0);
+				currentSprite->Render(offset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
 			else
-				currentSprite->Render(offset, 0, -1, flip, renderer, uniformModel, 0);
+				currentSprite->Render(offset, 0, -1, flip, renderer, 0);
 		}
 
 		if (GetModeDebug())

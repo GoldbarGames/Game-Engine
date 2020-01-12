@@ -35,7 +35,7 @@ public:
 
 	void SetColors(Color c1, Color c2);
 
-	void Render(Renderer* renderer, GLuint uniformModel);
+	void Render(Renderer* renderer);
 
 	bool IsClicked(const int& x, const int& y);
 };

@@ -59,7 +59,7 @@ public:
 	void CheckCollisionTrigger(Entity* collidedEntity, Game& game);
 
 	void Update(Game& game);
-	void Render(Renderer * renderer, GLuint uniformModel);
+	void Render(Renderer * renderer);
 	Vector2 CalcScaledPivot();
 
 	virtual void Push(Vector2 pushVelocity);

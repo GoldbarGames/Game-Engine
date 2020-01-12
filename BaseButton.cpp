@@ -12,7 +12,7 @@ BaseButton::~BaseButton()
 }
 
 
-void BaseButton::Render(Renderer* renderer, GLuint uniformModel)
+void BaseButton::Render(Renderer* renderer)
 {
 
 }

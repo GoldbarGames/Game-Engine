@@ -1,7 +1,10 @@
 #include "Camera.h"
 #include <SDL_scancode.h>
 
-Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, GLfloat startYaw, GLfloat startPitch, GLfloat startMovementSpeed, GLfloat startTurnSpeed)
+Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, 
+	GLfloat startYaw, GLfloat startPitch, 
+	GLfloat startMovementSpeed, GLfloat startTurnSpeed,
+	GLfloat startZoom)
 {
 	position = startPosition;
 	worldUp = startUp;
@@ -12,12 +15,20 @@ Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, GLfloat startYaw, GLf
 	movementSpeed = startMovementSpeed;
 	turnSpeed = startTurnSpeed;
 
+	projection = glm::mat4(1.0f);
+	orthoZoom = startZoom;
+
+	float screenWidth = 1280.0f;
+	float screenHeight = 720.0f;
+
+	Zoom(0.0f, screenWidth, screenHeight);
+
 	Update();
 }
 
 Camera::Camera()
 {
-
+	
 }
 
 Camera::~Camera()
@@ -73,6 +84,32 @@ void Camera::KeyControl(const Uint8* input, GLfloat dt)
 	if (input[SDL_SCANCODE_L])
 	{
 		position += right * velocity;
+	}
+
+	if (input[SDL_SCANCODE_N])
+	{
+		Zoom(-0.1f, 1280.0f, 720.0f);
+	}
+
+	if (input[SDL_SCANCODE_M])
+	{
+		Zoom(0.1f, 1280.0f, 720.0f);
+	}
+}
+
+void Camera::Zoom(float amount, float screenWidth, float screenHeight)
+{
+	orthoZoom += amount;
+
+	if (useOrthoCamera)
+	{
+		projection = glm::ortho(0.0f, (GLfloat)screenWidth * orthoZoom,
+			(GLfloat)screenHeight * orthoZoom, 0.0f, -1.0f, 10.0f);
+	}
+	else
+	{
+		GLfloat aspectRatio = (GLfloat)screenWidth / (GLfloat)screenHeight;
+		projection = glm::perspective(45.0f, aspectRatio, 0.1f, 100.0f);
 	}
 }
 

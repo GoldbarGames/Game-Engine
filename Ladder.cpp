@@ -48,7 +48,7 @@ void Ladder::OnTriggerExit(Entity* other, Game& game)
 
 void Ladder::Render(Renderer * renderer, GLuint uniformModel)
 {
-	Entity::Render(renderer, uniformModel);
+	Entity::Render(renderer);
 	collider.CalculateCollider(position, Vector2(0,0)); // calculate here for next update frame
 
 	if (GetModeDebug())

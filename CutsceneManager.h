@@ -63,7 +63,7 @@ public:
 	void ParseScene();
 	std::string ParseWord(std::string text, char limit, unsigned int& index);
 	void Update();
-	void Render(Renderer * renderer, GLuint uniformModel);
+	void Render(Renderer * renderer);
 	SceneLabel * JumpToLabel(std::string newLabelName);
 	void PlayCutscene(std::string labelName);
 	void ReadNextLine();

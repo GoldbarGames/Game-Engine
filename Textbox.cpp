@@ -16,8 +16,8 @@ Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 	text->SetPosition(70, 530);
 
 	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?
-	speaker->SetText("");
-	text->SetTextWrapped("", 575 * Renderer::GetScale());
+	speaker->SetText(" ");
+	text->SetTextWrapped(" ", 575 * Renderer::GetScale());
 }
 
 Textbox::~Textbox()
@@ -25,13 +25,13 @@ Textbox::~Textbox()
 
 }
 
-void Textbox::Render(Renderer * renderer, GLuint uniformModel)
+void Textbox::Render(Renderer * renderer)
 {
 	if (shouldRender)
 	{
 		//TODO: Make sure the position is in the center of the screen
-		boxSprite->Render(position, 0, -1, SDL_FLIP_NONE, renderer, uniformModel, 0);
-		speaker->Render(renderer, uniformModel);
-		text->Render(renderer, uniformModel);
+		boxSprite->Render(position, 0, -1, SDL_FLIP_NONE, renderer, 0);
+		speaker->Render(renderer);
+		text->Render(renderer);
 	}	
 }

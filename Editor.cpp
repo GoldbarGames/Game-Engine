@@ -393,6 +393,8 @@ void Editor::InspectObject(int mouseX, int mouseY)
 	{
 		for (unsigned int i = 0; i < properties.size(); i++)
 		{
+			//TODO: Fix for OpenGL
+			/*
 			if (SDL_PointInRect(&point, &properties[i]->text->textWindowRect))
 			{
 				if (selectedEntity != nullptr)
@@ -407,6 +409,7 @@ void Editor::InspectObject(int mouseX, int mouseY)
 				}
 				break;
 			}
+			*/
 		}
 	}
 	else
@@ -1210,7 +1213,7 @@ void Editor::DrawGrid()
 	SDL_SetRenderDrawColor(game->renderer->renderer, 0, 0, 0, 255);
 }
 
-void Editor::Render(Renderer* renderer, GLuint uniformModel)
+void Editor::Render(Renderer* renderer)
 {
 	// Draw a white rectangle around the currently highlighted grid tile
 	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
@@ -1284,11 +1287,12 @@ void Editor::Render(Renderer* renderer, GLuint uniformModel)
 		{
 			if (propertyIndex > -1)
 			{
-				if (i == propertyIndex)
-					SDL_RenderDrawRect(renderer->renderer, &properties[i]->text->textWindowRect);
+				//TODO: Fix for OpenGL
+				//if (i == propertyIndex)
+				//	SDL_RenderDrawRect(renderer->renderer, &properties[i]->text->);
 			}
 
-			properties[i]->text->Render(renderer, uniformModel);
+			properties[i]->text->Render(renderer);
 		}
 
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
@@ -1312,8 +1316,8 @@ void Editor::Render(Renderer* renderer, GLuint uniformModel)
 	}	
 
 	// Draw text
-	currentEditModeLayer->Render(renderer, uniformModel);
-	cursorPosition->Render(renderer, uniformModel);
+	currentEditModeLayer->Render(renderer);
+	cursorPosition->Render(renderer);
 
 	// Draw all buttons
 	for (unsigned int i = 0; i < buttons.size(); i++)
@@ -1330,19 +1334,19 @@ void Editor::Render(Renderer* renderer, GLuint uniformModel)
 				continue;
 		}
 
-		buttons[i]->Render(renderer, uniformModel);
+		buttons[i]->Render(renderer);
 	}
 
 	// Draw all layer buttons
 	for (unsigned int i = 0; i < layerButtons.size(); i++)
 	{
-		layerButtons[i]->Render(renderer, uniformModel);
+		layerButtons[i]->Render(renderer);
 	}
 
 	// Draw all layer visible buttons
 	for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
 	{
-		layerVisibleButtons[i]->Render(renderer, uniformModel);
+		layerVisibleButtons[i]->Render(renderer);
 	}
 
 	if (showDialogPopup)
@@ -1353,8 +1357,8 @@ void Editor::Render(Renderer* renderer, GLuint uniformModel)
 
 		// Draw the text for the popup dialog
 		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-		dialogText->Render(renderer, uniformModel);
-		dialogInput->Render(renderer, uniformModel);
+		dialogText->Render(renderer);
+		dialogInput->Render(renderer);
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
 }

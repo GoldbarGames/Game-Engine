@@ -39,7 +39,7 @@ public:
 	void UpdateNormally(Game& game);
 	void UpdateAnimator();
 
-	void Render(Renderer* renderer, GLuint uniformModel);
+	void Render(Renderer* renderer);
 
 	void ResetPosition();
 

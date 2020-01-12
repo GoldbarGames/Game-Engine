@@ -18,9 +18,9 @@ Block::~Block()
 
 }
 
-void Block::Render(Renderer * renderer, GLuint uniformModel)
+void Block::Render(Renderer * renderer)
 {
-	PhysicsEntity::Render(renderer, uniformModel);
+	PhysicsEntity::Render(renderer);
 }
 
 void Block::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)

@@ -73,6 +73,7 @@ Game::Game()
 	spriteMap["shroom"].push_back("assets/sprites/objects/shroom_potted.png");
 
 	editor = new Editor(*this);
+	entities.clear();
 
 	ResetText();
 
@@ -184,13 +185,17 @@ void Game::CreateObjects()
 
 void Game::CreateShaders()
 {
-	Shader* shader0 = new Shader();
+	ShaderProgram* shader0 = new ShaderProgram();
 	shader0->CreateFromFiles("Shaders/shader0.vert", "Shaders/shader0.frag");
 	renderer->shaders["default"] = shader0;
 
-	Shader* shader1 = new Shader();
+	ShaderProgram* shader1 = new ShaderProgram();
 	shader1->CreateFromFiles("Shaders/shader1.vert", "Shaders/shader1.frag");
 	renderer->shaders["special"] = shader1;
+
+	ShaderProgram* shader2 = new ShaderProgram();
+	shader2->CreateFromFiles("Shaders/multiply.vert", "Shaders/multiply.frag");
+	renderer->shaders["multiply"] = shader2;
 }
 
 void Game::InitOpenGL()
@@ -230,7 +235,7 @@ void Game::InitOpenGL()
 
 	SDL_GL_SwapWindow(window);
 
-	camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 1.0f, 0.5f);
+	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 1.0f, 0.5f, 4.0f);
 }
 
 void Game::InitSDL()
@@ -245,11 +250,6 @@ void Game::InitSDL()
 
 	renderer = new Renderer();
 	renderer->CreateSDLRenderer(window, true);
-
-	
-
-
-
 }
 
 void Game::EndSDL()
@@ -1326,7 +1326,7 @@ void Game::SaveScreenshot()
 void Game::GetMenuInput()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
-	camera.KeyControl(input, dt);
+	renderer->camera.KeyControl(input, dt);
 
 	Uint32 ticks = timer.GetTicks();
 	if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
@@ -1368,7 +1368,7 @@ void Game::UpdateOverlayColor(int& color, const int& target)
 void Game::Update()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
-	camera.KeyControl(input, dt);
+	renderer->camera.KeyControl(input, dt);
 
 	// For non-moving camera, set offset based on tile size and scale
 	const int OFFSET = -4;
@@ -1411,24 +1411,10 @@ void Game::Update()
 
 void Game::RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEntities)
 {
-	for (unsigned int i = 0; i < renderedEntities.size(); i++)
-	{
-		// Modify the entity's mesh to show the current animation frame
-		renderedEntities[i]->GetSprite()->AnimateMesh(now);
-
-		renderedEntities[i]->GetSprite()->GetShader()->UseShader();
-		uniformModel = renderedEntities[i]->GetSprite()->GetShader()->GetModelLocation();
-		uniformProjection = renderedEntities[i]->GetSprite()->GetShader()->GetProjectionLocation();
-		uniformView = renderedEntities[i]->GetSprite()->GetShader()->GetViewLocation();
-
-		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
-		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.CalculateViewMatrix()));
-
-		renderedEntities[i]->Render(renderer, uniformModel);
-	}
+	
 }
 
-void Game::Render(glm::mat4 projection)
+void Game::Render()
 {
 	/*
 
@@ -1440,52 +1426,29 @@ void Game::Render(glm::mat4 projection)
 	*/
 
 	// Clear window
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Render all backgrounds and their layers
 	for (int i = 0; i < backgrounds.size(); i++)
 	{
-		RenderEntities(projection, backgrounds[i]->layers);
+		for (unsigned int k = 0; k < backgrounds[i]->layers.size(); k++)
+		{
+			backgrounds[i]->layers[k]->Render(renderer);
+		}
 	}	
 
 	// Render all entities
-	RenderEntities(projection, entities);
-
-
+	for (unsigned int i = 0; i < entities.size(); i++)
+	{
+		entities[i]->Render(renderer);
+	}
 
 	// LAST THING
 	// Render all menu screens
 	if (openedMenus.size() > 0)
 	{
-		MenuScreen* menu = openedMenus[openedMenus.size() - 1];
-
-		RenderEntities(projection, menu->images);
-
-		//TODO: The buttons are rendered as solid colors
-		// Either render solid colors or give them textures?
-		// In addition, buttons have text
-		/*
-		for (int i = 0; i < menu->buttons.size(); i++)
-		{
-			for (int k = 0; k < menu->buttons[i]->.size(); i++)
-			{
-				// Render the button's texture
-
-				// Render the button's text
-			}
-		}
-		*/
-
-		//TODO: How to render text in general?
-		for (int i = 0; i < menu->texts.size(); i++)
-		{
-
-		}
-
-
-
-
+		openedMenus[openedMenus.size() - 1]->Render(renderer);
 	}
 
 	/*
@@ -1533,9 +1496,6 @@ void Game::Render(glm::mat4 projection)
 
 
 		*/
-
-	//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-	//SDL_RenderPresent(renderer->renderer);
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);

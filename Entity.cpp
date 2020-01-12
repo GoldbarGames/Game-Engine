@@ -159,14 +159,14 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 	}
 }
 
-void Entity::Render(Renderer * renderer, GLuint uniformModel)
+void Entity::Render(Renderer * renderer)
 {
 	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, uniformModel, 0);
+			currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
 		else
-			currentSprite->Render(position, 0, -1, flip, renderer, uniformModel, 0);
+			currentSprite->Render(position, 0, -1, flip, renderer, 0);
 
 		RenderDebug(renderer, Vector2(0,0));
 	}

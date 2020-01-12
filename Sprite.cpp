@@ -2,6 +2,10 @@
 #include "globals.h"
 #include "Renderer.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 using std::string;
 
 void Sprite::CreateMesh()
@@ -24,20 +28,22 @@ void Sprite::CreateMesh()
 	mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
 }
 
-Sprite::Sprite(Texture* t, Shader* s)
+Sprite::Sprite(Texture* t, ShaderProgram* s)
 {
-	CreateMesh();
-
 	texture = t;
 	shader = s;
+
+	animFrames = 1;
+
+	CreateMesh();
+
 	animLow = 0;
 	animHigh = 0;
-	animFrames = 1;
 	currentFrame = 0;
 }
 
 // constructor for tiles from tilesheets
-Sprite::Sprite(Vector2 frame, Texture * image, Shader * s)
+Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
 {
 	texture = image;
 	shader = s;
@@ -53,15 +59,10 @@ Sprite::Sprite(Vector2 frame, Texture * image, Shader * s)
 
 	frameWidth = TILE_SIZE;
 	frameHeight = TILE_SIZE;
-
-	//textureRect.x = currentFrame.x;
-	//textureRect.y = currentFrame.y;
-	//textureRect.w = TILE_SIZE;
-	//textureRect.h = TILE_SIZE;
 }
 
 Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath, 
-	Shader * s, Vector2 newPivot)
+	ShaderProgram * s, Vector2 newPivot)
 {
 	texture = manager->GetImage(filepath);
 	shader = s;
@@ -70,22 +71,9 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath,
 
 	pivot = newPivot;
 
-	// Set start position
 	windowRect.x = 0;
 	windowRect.y = 0;
 
-	//'textureRect' defines the dimensions of the rendering sprite on texture	
-	//textureRect.x = 0;
-	//textureRect.y = 0;
-	//textureRect.w = texture->GetWidth();
-	//textureRect.h = texture->GetHeight();
-
-	//SDL_QueryTexture() method gets the width and height of the texture
-	//SDL_QueryTexture(texture, NULL, NULL, &textureRect.w, &textureRect.h);
-
-	//Now, textureRect.w and textureRect.h are filled with respective dimensions of the image/texture
-
-	//As there are 8 frames with same width, we simply get the width of a frame by dividing with 8
 	numberFrames = numFrames;
 	frameWidth = texture->GetWidth() / numberFrames;
 	frameHeight = texture->GetHeight();
@@ -99,7 +87,7 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath,
 }
 
 Sprite::Sprite(int start, int end, int numFrames, SpriteManager* manager, 
-	std::string filepath, Shader* s, Vector2 newPivot, bool loop)
+	std::string filepath, ShaderProgram* s, Vector2 newPivot, bool loop)
 {
 	texture = manager->GetImage(filepath);
 	shader = s;
@@ -108,22 +96,9 @@ Sprite::Sprite(int start, int end, int numFrames, SpriteManager* manager,
 
 	pivot = newPivot;
 
-	// Set start position
 	windowRect.x = 0;
 	windowRect.y = 0;
 
-	//'textureRect' defines the dimensions of the rendering sprite on texture	
-	/*
-	textureRect.x = 0;
-	textureRect.y = 0;
-
-	textureRect.w = texture->GetWidth();
-	textureRect.h = texture->GetHeight();
-	*/
-
-	//Now, textureRect.w and textureRect.h are filled with respective dimensions of the image/texture
-
-	//As there are 8 frames with same width, we simply get the width of a frame by dividing with 8
 	numberFrames = numFrames;
 
 	frameWidth = texture->GetWidth() / numberFrames;
@@ -140,6 +115,11 @@ Sprite::Sprite(int start, int end, int numFrames, SpriteManager* manager,
 
 Sprite::~Sprite()
 {
+	if (texture != nullptr)
+	{
+		//TODO: Should we clear the texture here?
+		//texture->ClearTexture();
+	}		
 }
 
 void Sprite::Animate(int msPerFrame, Uint32 time)
@@ -160,14 +140,19 @@ void Sprite::Animate(int msPerFrame, Uint32 time)
 	}
 }
 
-void Sprite::Render(Vector2 position, Renderer* renderer, GLuint uniformModel)
+void Sprite::Render(Vector2 position, Renderer* renderer)
 {
-	Render(position, 0, -1, SDL_FLIP_NONE, renderer, uniformModel, 0);
+	Render(position, 0, -1, SDL_FLIP_NONE, renderer, 0);
 }
 
-void Sprite::AnimateMesh(GLfloat time)
+bool Sprite::ShouldAnimate(float time)
 {
-	//if (animFrames <= 1
+	return animFrames > 1 && time > lastAnimTime + animSpeed;
+}
+
+void Sprite::AnimateMesh(float time)
+{
+	//if (animFrames <= 1)
 	//    return;
 
 	if (time < lastAnimTime + animSpeed)
@@ -213,44 +198,82 @@ void Sprite::AnimateMesh(GLfloat time)
 	}
 }
 
-void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, GLuint uniformModel, float angle)
+void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, float angle)
 {
+	GLfloat multiplyColor[] = { 0.0f, 1.0f, 0.0f, 1.0f };
+
+	ShaderProgram* shader = GetShader();
+
+	shader->UseShader();
+
+	renderer->uniformModel = shader->GetModelLocation();
+	renderer->uniformProjection = shader->GetProjectionLocation();
+	renderer->uniformView = shader->GetViewLocation();
+	renderer->uniformViewTexture = shader->GetViewTextureLocation();
+
+	//uniformMultiplyColor = glGetUniformLocation(shader->GetID(), "multiplyColor");
+
+	glUniformMatrix4fv(renderer->uniformProjection, 1, GL_FALSE,
+		glm::value_ptr(renderer->camera.projection));
+
+	glUniformMatrix4fv(renderer->uniformView, 1, GL_FALSE,
+		glm::value_ptr(renderer->camera.CalculateViewMatrix()));
+
+	//you have a view matrix
+	//and you have a view matrix for the texture
+	//then multiply by texture view matrix to get the offset for the desired sprite in the larger texture
+	//you'll basically just use glm::translate
+
+	GLfloat totalFrames = animFrames;
+
+	// Texture scaling
+	glm::mat4 textureScaleMatrix(1.0f);
+	textureScaleMatrix = glm::scale(textureScaleMatrix,
+		glm::vec3(1.0f / totalFrames, 1.0f, 1.0f));
+
+	// Texture translation
+	glm::mat4 textureTranslateMatrix(1.0f);
+
+	if (ShouldAnimate(renderer->now))
+	{
+		GLfloat xTranslate = (1.0f / totalFrames) * currentFrame;
+		textureTranslateMatrix = glm::translate(textureTranslateMatrix,
+			glm::vec3(xTranslate, 0.0f, 0.0f));
+
+		// Get it ready for the next iteration
+		lastAnimTime = renderer->now;
+		currentFrame += 1;
+	}
+
+	glm::mat4 textureMatrixMultiplied = textureTranslateMatrix * textureScaleMatrix;
+
+	glUniformMatrix4fv(renderer->uniformViewTexture, 1, GL_FALSE,
+		glm::value_ptr(textureMatrixMultiplied));
 
 	glm::mat4 model(1.0f);
 
 	// Translate, Rotate, Scale
 	model = glm::translate(model, glm::vec3(position.x, position.y, 2.0f));
 	//model = glm::rotate(model, currentAngle * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(texture->GetWidth() / (animFrames), texture->GetHeight(), 1.0f));
+	model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (animFrames), scale.y * texture->GetHeight(), 1.0f));
 
 	// Set uniform variables
-	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(renderer->uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+	//TODO: Set uniform variable for the current frame of sprite animation
 
 	// Use Texture
 	texture->UseTexture();
 
 	// Render Mesh
 	mesh->RenderMesh();
-
-	/*
-	windowRect.x = position.x;
-	windowRect.y = position.y;
-	windowRect.w = frameWidth * Renderer::GetScale();
-	windowRect.h = frameHeight * Renderer::GetScale();
-
-	if (windowRect.x < screenWidth && windowRect.y < screenHeight
-		&& windowRect.x > -windowRect.w && windowRect.y > -windowRect.h)
-	{
-		Animate(speed, time);
-
-		const SDL_Point point = SDL_Point{ (int)pivot.x, (int)pivot.y };
-
-		renderer->RenderCopyEx(texture, &textureRect, &windowRect, angle, &point, flip);
-	}
-	*/
 }
 
 const SDL_Rect* Sprite::GetRect()
 {
 	return &windowRect;
+}
+
+void Sprite::SetScale(Vector2 s)
+{
+	scale = s;
 }

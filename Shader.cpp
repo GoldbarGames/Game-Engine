@@ -1,79 +1,85 @@
 #include "Shader.h"
 
-Shader::Shader()
+ShaderProgram::ShaderProgram()
 {
-    shaderID = 0;
+    programID = 0;
     uniformModel = 0;
     uniformProjection = 0;
 }
 
-Shader::~Shader()
+ShaderProgram::~ShaderProgram()
 {
     ClearShader();
 }
 
-void Shader::CreateFromString(const char* vertexCode, const char* fragmentCode)
+void ShaderProgram::CreateFromString(const char* vertexCode, const char* fragmentCode)
 {
     CompileShader(vertexCode, fragmentCode);
 }
 
-void Shader::CompileShader(const char* vertexCode, const char* fragmentCode)
+void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCode)
 {
-    shaderID = glCreateProgram();
+    programID = glCreateProgram();
 
-    if (!shaderID)
+    if (!programID)
     {
         printf("Error creating shader program!\n");
         return;
     }
 
-    AddShader(shaderID, vertexCode, GL_VERTEX_SHADER);
-    AddShader(shaderID, fragmentCode, GL_FRAGMENT_SHADER);
+    AddShader(programID, vertexCode, GL_VERTEX_SHADER);
+    AddShader(programID, fragmentCode, GL_FRAGMENT_SHADER);
 
     GLint result = 0;
     GLchar eLog[1024] = { 0 };
 
-    glLinkProgram(shaderID);
-    glGetProgramiv(shaderID, GL_LINK_STATUS, &result);
+    glLinkProgram(programID);
+    glGetProgramiv(programID, GL_LINK_STATUS, &result);
 
     if (!result)
     {
-        glGetProgramInfoLog(shaderID, sizeof(eLog), NULL, eLog);
+        glGetProgramInfoLog(programID, sizeof(eLog), NULL, eLog);
         printf("Error linking program: '%s'%\n", eLog);
         return;
     }
 
-    glValidateProgram(shaderID);
-    glGetProgramiv(shaderID, GL_VALIDATE_STATUS, &result);
+    glValidateProgram(programID);
+    glGetProgramiv(programID, GL_VALIDATE_STATUS, &result);
 
     if (!result)
     {
-        glGetProgramInfoLog(shaderID, sizeof(eLog), NULL, eLog);
+        glGetProgramInfoLog(programID, sizeof(eLog), NULL, eLog);
         printf("Error validating program: '%s'%\n", eLog);
         return;
     }
 
-    uniformModel = glGetUniformLocation(shaderID, "model");
-    uniformProjection = glGetUniformLocation(shaderID, "projection");
-    uniformView = glGetUniformLocation(shaderID, "view");
+    uniformModel = glGetUniformLocation(programID, "model");
+    uniformProjection = glGetUniformLocation(programID, "projection");
+    uniformView = glGetUniformLocation(programID, "view");
+    uniformViewTexture = glGetUniformLocation(programID, "texView");
 }
 
-GLuint Shader::GetProjectionLocation()
+GLuint ShaderProgram::GetProjectionLocation()
 {
     return uniformProjection;
 }
 
-GLuint Shader::GetModelLocation()
+GLuint ShaderProgram::GetModelLocation()
 {
     return uniformModel;
 }
 
-GLuint Shader::GetViewLocation()
+GLuint ShaderProgram::GetViewLocation()
 {
     return uniformView;
 }
 
-void Shader::CreateFromFiles(const char* vertexFilePath, const char* fragmentFilePath)
+GLuint ShaderProgram::GetViewTextureLocation()
+{
+    return uniformViewTexture;
+}
+
+void ShaderProgram::CreateFromFiles(const char* vertexFilePath, const char* fragmentFilePath)
 {
     std::string vertexString = ReadFile(vertexFilePath);
     std::string fragmentString = ReadFile(fragmentFilePath);
@@ -84,7 +90,7 @@ void Shader::CreateFromFiles(const char* vertexFilePath, const char* fragmentFil
     CompileShader(vertexCode, fragmentCode);
 }
 
-std::string Shader::ReadFile(const char* filePath)
+std::string ShaderProgram::ReadFile(const char* filePath)
 {
     std::string content;
     std::ifstream fileStream(filePath, std::ios::in);
@@ -107,24 +113,24 @@ std::string Shader::ReadFile(const char* filePath)
     return content;
 }
 
-void Shader::UseShader()
+void ShaderProgram::UseShader()
 {
-    glUseProgram(shaderID);
+    glUseProgram(programID);
 }
 
-void Shader::ClearShader()
+void ShaderProgram::ClearShader()
 {
-    if (shaderID != 0)
+    if (programID != 0)
     {
-        glDeleteProgram(shaderID);
-        shaderID = 0;
+        glDeleteProgram(programID);
+        programID = 0;
     }
 
     uniformModel = 0;
     uniformProjection = 0;
 }
 
-void Shader::AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType)
+void ShaderProgram::AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType)
 {
     GLuint theShader = glCreateShader(shaderType);
 
