@@ -35,8 +35,6 @@ public:
 
 	unsigned int currentFrame = 0;
 
-	unsigned int animFrames = 1;
-
 	ShaderProgram* shader;
 	Mesh* mesh;
 	Texture* texture;
@@ -46,7 +44,7 @@ public:
 	float lastAnimTime = -1;
 	//unsigned int * quadIndices;
 	//GLfloat* quadVertices;
-	float animSpeed = 0.1f;
+	float animSpeed = 1.0f;
 
 	int frameWidth = 0;
 	int frameHeight = 0;
@@ -56,7 +54,7 @@ public:
 	bool shouldLoop = true;
 	int startFrame = 0;
 	int endFrame = 0;
-	int numberFrames = 1;
+	unsigned int numberFrames = 1;
 	Vector2 pivot = Vector2(0, 0);
 	std::string filename = "";
 	SDL_Rect windowRect;

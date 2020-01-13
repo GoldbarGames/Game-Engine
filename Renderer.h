@@ -18,6 +18,8 @@ public:
 	GLuint uniformView = 0;
 	GLuint uniformMultiplyColor = 0;
 	GLuint uniformViewTexture = 0;
+	GLuint uniformOffsetTexture = 0;
+
 	float now = 0;
 
 	std::unordered_map<std::string, ShaderProgram*> shaders;

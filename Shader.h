@@ -22,6 +22,7 @@ public:
 	GLuint GetModelLocation();
 	GLuint GetViewLocation();
 	GLuint GetViewTextureLocation();
+	GLuint GetOffsetTextureLocation();
 
 	void UseShader();
 	void ClearShader();
@@ -29,7 +30,7 @@ public:
 	GLuint GetID() { return programID; }
 
 private:
-	GLuint programID, uniformProjection, uniformModel, uniformView, uniformViewTexture;
+	GLuint programID, uniformProjection, uniformModel, uniformView, uniformViewTexture, uniformOffsetTexture;
 
 	void CompileShader(const char* vertexCode, const char* fragmentCode);
 	void AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType);

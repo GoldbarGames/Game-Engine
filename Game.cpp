@@ -128,6 +128,7 @@ void Game::CalcDt()
 	start_time = clock::now();
 
 	now = std::chrono::duration<float, milliseconds::period>(start_time - startOfGame).count();
+	renderer->now = now;
 
 	// When we are debugging and hit a breakpoint in an IDE, the timer continues running.
 	// This causes the dt to become huge and throw everything around like crazy.
@@ -175,7 +176,7 @@ void Game::CreateObjects()
 	Entity* bg = new Entity(Vector2(0, 0), spr2);
 	Entity* kaneko = new Entity(Vector2(0, 0), spr3);
 
-	kaneko->GetSprite()->animFrames = 6;
+	kaneko->GetSprite()->numberFrames = 6;
 
 	entities.push_back(bg);
 	entities.push_back(butler);	

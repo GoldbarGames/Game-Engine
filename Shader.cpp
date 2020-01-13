@@ -56,7 +56,8 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     uniformModel = glGetUniformLocation(programID, "model");
     uniformProjection = glGetUniformLocation(programID, "projection");
     uniformView = glGetUniformLocation(programID, "view");
-    uniformViewTexture = glGetUniformLocation(programID, "texView");
+    uniformViewTexture = glGetUniformLocation(programID, "texFrame");
+    uniformOffsetTexture = glGetUniformLocation(programID, "texOffset");
 }
 
 GLuint ShaderProgram::GetProjectionLocation()
@@ -77,6 +78,11 @@ GLuint ShaderProgram::GetViewLocation()
 GLuint ShaderProgram::GetViewTextureLocation()
 {
     return uniformViewTexture;
+}
+
+GLuint ShaderProgram::GetOffsetTextureLocation()
+{
+    return uniformOffsetTexture;
 }
 
 void ShaderProgram::CreateFromFiles(const char* vertexFilePath, const char* fragmentFilePath)

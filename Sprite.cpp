@@ -33,7 +33,7 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 	texture = t;
 	shader = s;
 
-	animFrames = 1;
+	numberFrames = 1;
 
 	CreateMesh();
 
@@ -52,6 +52,9 @@ Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
 
 	// this converts from human coords to pixel coords
 	Vector2 currentFrame = Vector2((frame.x - 1) * TILE_SIZE, (frame.y - 1) * TILE_SIZE);
+
+
+
 
 	// Set start position
 	windowRect.x = 0;
@@ -78,8 +81,8 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath,
 	frameWidth = texture->GetWidth() / numberFrames;
 	frameHeight = texture->GetHeight();
 
-	windowRect.w = frameWidth * Renderer::GetScale();
-	windowRect.h = frameHeight * Renderer::GetScale();
+	windowRect.w = frameWidth;
+	windowRect.h = frameHeight;
 
 	startFrame = 0;
 	endFrame = numberFrames;
@@ -147,55 +150,12 @@ void Sprite::Render(Vector2 position, Renderer* renderer)
 
 bool Sprite::ShouldAnimate(float time)
 {
-	return animFrames > 1 && time > lastAnimTime + animSpeed;
+	return numberFrames > 1 && time > lastAnimTime + 1000.0f;
 }
 
 void Sprite::AnimateMesh(float time)
 {
-	//if (animFrames <= 1)
-	//    return;
-
-	if (time < lastAnimTime + animSpeed)
-		return;
-
-	lastAnimTime = time;
-
-	mesh->ClearMesh();
-
-	// Set coordinates
-
-	unsigned int* quadIndices = new unsigned int[12]{
-	0, 3, 1,
-	1, 3, 2,
-	2, 3, 0,
-	0, 1, 2
-	};
-
-	GLfloat* quadVertices = new GLfloat[20]{
-		-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
-		-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
-		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
-	};
-
-	animLow = animHigh;
-	animHigh += (1.0f) / ((GLfloat)animFrames);
-
-	quadVertices[3] = animHigh;
-	quadVertices[8] = animLow;
-	quadVertices[13] = animHigh;
-	quadVertices[18] = animLow;
-
-	mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
-
-	currentFrame++;
-
-	if (currentFrame >= animFrames)
-	{
-		animLow = 0.0f;
-		animHigh = 0.0f;
-		currentFrame = 0;
-	}
+	
 }
 
 void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, float angle)
@@ -210,7 +170,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	renderer->uniformProjection = shader->GetProjectionLocation();
 	renderer->uniformView = shader->GetViewLocation();
 	renderer->uniformViewTexture = shader->GetViewTextureLocation();
-
+	renderer->uniformOffsetTexture = shader->GetOffsetTextureLocation();
 	//uniformMultiplyColor = glGetUniformLocation(shader->GetID(), "multiplyColor");
 
 	glUniformMatrix4fv(renderer->uniformProjection, 1, GL_FALSE,
@@ -224,7 +184,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	//then multiply by texture view matrix to get the offset for the desired sprite in the larger texture
 	//you'll basically just use glm::translate
 
-	GLfloat totalFrames = animFrames;
+	GLfloat totalFrames = numberFrames;
 
 	// Texture scaling
 	glm::mat4 textureScaleMatrix(1.0f);
@@ -234,28 +194,33 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	// Texture translation
 	glm::mat4 textureTranslateMatrix(1.0f);
 
-	if (ShouldAnimate(renderer->now))
-	{
-		GLfloat xTranslate = (1.0f / totalFrames) * currentFrame;
-		textureTranslateMatrix = glm::translate(textureTranslateMatrix,
-			glm::vec3(xTranslate, 0.0f, 0.0f));
+	glm::vec2 texFrame = glm::vec2((1.0f / totalFrames), 1.0f);
+	glm::vec2 texOffset = glm::vec2(0.5f, 0.0f);
 
-		// Get it ready for the next iteration
+	// Only go to the next frame when enough time has passed
+	if (numberFrames > 1 && renderer->now > lastAnimTime + 100)
+	{
+		currentFrame++;
+		if (currentFrame > numberFrames)
+			currentFrame = 0;
+
 		lastAnimTime = renderer->now;
-		currentFrame += 1;
+		//std::cout << currentFrame << std::endl;
 	}
 
-	glm::mat4 textureMatrixMultiplied = textureTranslateMatrix * textureScaleMatrix;
+	// Set the texture offset based on the current frame
+	texOffset.x = (1.0f / totalFrames) * currentFrame;
 
-	glUniformMatrix4fv(renderer->uniformViewTexture, 1, GL_FALSE,
-		glm::value_ptr(textureMatrixMultiplied));
+	// Send the info to the shader
+	glUniform2fv(renderer->uniformViewTexture, 1, glm::value_ptr(texFrame));
+	glUniform2fv(renderer->uniformOffsetTexture, 1, glm::value_ptr(texOffset));
 
 	glm::mat4 model(1.0f);
 
 	// Translate, Rotate, Scale
 	model = glm::translate(model, glm::vec3(position.x, position.y, 2.0f));
 	//model = glm::rotate(model, currentAngle * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (animFrames), scale.y * texture->GetHeight(), 1.0f));
+	model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (GLfloat)(numberFrames), scale.y * texture->GetHeight(), 1.0f));
 
 	// Set uniform variables
 	glUniformMatrix4fv(renderer->uniformModel, 1, GL_FALSE, glm::value_ptr(model));
