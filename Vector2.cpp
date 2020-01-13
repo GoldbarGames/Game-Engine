@@ -1,6 +1,5 @@
 #include "Vector2.h"
 
-/*
 Vector2::Vector2(float x2, float y2)
 {
 	x = x2;
@@ -8,6 +7,24 @@ Vector2::Vector2(float x2, float y2)
 }
 
 Vector2::Vector2(int x2, int y2)
+{
+	x = (int)x2;
+	y = (int)y2;
+}
+
+Vector2::Vector2(unsigned int x2, unsigned int y2)
+{
+	x = (int)x2;
+	y = (int)y2;
+}
+
+Vector2::Vector2(int x2, unsigned int y2)
+{
+	x = (int)x2;
+	y = (int)y2;
+}
+
+Vector2::Vector2(unsigned int x2, int y2)
 {
 	x = (int)x2;
 	y = (int)y2;
@@ -81,17 +98,11 @@ bool Vector2::operator!=(const Vector2 & rhs)
 	return (x != rhs.x || y != rhs.y);
 }
 
-std::ostream& operator<<(std::ostream& output, Vector2 value)
-{
-	return output << value.x << ", " << value.y;
-}
-
 Vector2 Vector2::RoundToInt()
 {
 	int rx = (int)x;
 	int ry = (int)y;
 	return Vector2(rx, ry);
 }
-*/
 
 //TODO: Distance function? Other calculations?

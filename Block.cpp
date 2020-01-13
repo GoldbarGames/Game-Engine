@@ -49,12 +49,12 @@ void Block::SetProperty(std::string prop, std::string newValue)
 	if (key == "Collider Pos X")
 	{
 		if (newValue != "")
-			collider->x = std::stof(newValue);
+			collider->x = std::stoi(newValue);
 	}
 	else if (key == "Collider Pos Y")
 	{
 		if (newValue != "")
-			collider->y = std::stof(newValue);
+			collider->y = std::stoi(newValue);
 	}
 	else if (key == "Collider Width")
 	{

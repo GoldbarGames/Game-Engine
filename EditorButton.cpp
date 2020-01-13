@@ -25,7 +25,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 
 	if (size.x != 0)
 	{
-		buttonWindowRect.w = size.x;
+		buttonWindowRect.w = (int)size.x;
 	}
 	else if (buttonTexture == nullptr)
 	{
@@ -38,7 +38,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 
 	if (size.y != 0)
 	{
-		buttonWindowRect.h = size.y;
+		buttonWindowRect.h = (int)size.y;
 	}
 	else if (buttonTexture == nullptr)
 	{
@@ -58,8 +58,8 @@ EditorButton::~EditorButton()
 
 void EditorButton::Render(Renderer* renderer)
 {
-	buttonWindowRect.x = position.x;
-	buttonWindowRect.y = position.y;
+	buttonWindowRect.x = (int)position.x;
+	buttonWindowRect.y = (int)position.y;
 
 	if (buttonTexture != nullptr)
 	{

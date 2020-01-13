@@ -45,10 +45,10 @@ void Entity::CreateCollider(float startX, float startY, float x, float y, float 
 		delete collider;
 
 	collider = new SDL_Rect();
-	collider->x = x;
-	collider->y = y;
-	collider->w = 1;
-	collider->h = 1;
+	collider->x = (int)x;
+	collider->y = (int)y;
+	collider->w = (int)1;
+	collider->h = (int)1;
 
 	colliderWidth = w * Renderer::GetScale();
 	colliderHeight = h * Renderer::GetScale();
@@ -57,8 +57,8 @@ void Entity::CreateCollider(float startX, float startY, float x, float y, float 
 		delete collisionBounds;
 
 	collisionBounds = new SDL_Rect();
-	collisionBounds->x = x;
-	collisionBounds->y = y;
+	collisionBounds->x = (int)x;
+	collisionBounds->y = (int)y;
 	collisionBounds->w = 1;
 	collisionBounds->h = 1;
 
@@ -69,12 +69,12 @@ void Entity::CreateCollider(float startX, float startY, float x, float y, float 
 void Entity::CalculateCollider(Vector2 cameraOffset)
 {
 	// set the collision bounds position to where the player actually is
-	collisionBounds->x = position.x + collider->x;
-	collisionBounds->y = position.y + collider->y;
+	collisionBounds->x = (int)(position.x + collider->x);
+	collisionBounds->y = (int)(position.y + collider->y);
 
 	// scale the bounds of the sprite by a number to set the collider's width and height
-	collisionBounds->w = colliderWidth;
-	collisionBounds->h = colliderHeight;
+	collisionBounds->w = (int)colliderWidth;
+	collisionBounds->h = (int)colliderHeight;
 }
 
 

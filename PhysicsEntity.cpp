@@ -172,7 +172,7 @@ bool PhysicsEntity::MoveVerticallyWithParent(Entity* entity, Game& game)
 		}
 		else
 		{
-			position.y = GetColliderBounds()->y;
+			position.y = (float)GetColliderBounds()->y;
 			position.y += entity->CalcCollisionVelocity(this, false) * game.dt;
 		}
 	}
@@ -223,10 +223,10 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	SDL_Rect myBounds = *GetColliderBounds();
 
 	SDL_Rect newBoundsHorizontal = myBounds;
-	newBoundsHorizontal.x = myBounds.x + (velocity.x * TARGET_FPS);
+	newBoundsHorizontal.x = (int)(myBounds.x + (velocity.x * TARGET_FPS));
 
 	SDL_Rect newBoundsVertical = myBounds;
-	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
+	newBoundsVertical.y = (int)(myBounds.y + (velocity.y * game.dt));
 
 	// THIS NEEDS TO BE HERE BECAUSE OTHERWISE THE INTERSECTION CODE WILL NOT WORK
 	// SDL's intersection code returns false if our y + h = their y, but we want it to return true!
@@ -275,9 +275,9 @@ void PhysicsEntity::CheckCollisions(Game& game)
 				horizontalCollision = CheckCollisionHorizontal(entity, game);
 
 				if (v > 0)
-					position.x = theirBounds->x - myBounds.w - collider->x;
+					position.x = (float)(theirBounds->x - myBounds.w - collider->x);
 				else if (v < 0)
-					position.x = theirBounds->x + theirBounds->w + collider->x;
+					position.x = (float)(theirBounds->x + theirBounds->w + collider->x);
 			}
 
 			// checks the ceiling (don't know how necessary this really is)	
@@ -324,9 +324,9 @@ void PhysicsEntity::CheckCollisions(Game& game)
 					{
 						velocity.y = 0;
 						if (standAboveGround)
-							position.y = theirBounds->y - myBounds.h - FLOOR_SIZE - collider->y;
+							position.y = (float)(theirBounds->y - myBounds.h - FLOOR_SIZE - collider->y);
 						else
-							position.y = theirBounds->y - myBounds.h - collider->y;
+							position.y = (float)(theirBounds->y - myBounds.h - collider->y);
 						shouldStickToGround = true;
 					}						
 				}

@@ -27,10 +27,10 @@ void SpellPush::Cast(Game& game)
 	// 3. Create a rectangle collider in front of the player (direction facing)
 	SDL_Rect* spellRange = new SDL_Rect;
 
-	spellRange->x = game.player->GetCenter().x;
-	spellRange->y = game.player->GetCenter().y;
-	spellRange->w = 40 * Renderer::GetScale();
-	spellRange->h = 52 * Renderer::GetScale();
+	spellRange->x = (int)game.player->GetCenter().x;
+	spellRange->y = (int)game.player->GetCenter().y;
+	spellRange->w = 40;
+	spellRange->h = 52;
 
 	// Begin to create a rectangle where the rectangle's center is at the player's center
 
@@ -47,8 +47,8 @@ void SpellPush::Cast(Game& game)
 	Vector2 yellowRectanglePosition = collisionCenter - scaledPivot;
 
 	// Set the final rectangle to be equal to this offset
-	spellRange->x = yellowRectanglePosition.x;
-	spellRange->y = yellowRectanglePosition.y;
+	spellRange->x = (int)yellowRectanglePosition.x;
+	spellRange->y = (int)yellowRectanglePosition.y;
 
 	int DISTANCE_FROM_CENTER_X = 21;
 	int DISTANCE_FROM_CENTER_Y = -26;

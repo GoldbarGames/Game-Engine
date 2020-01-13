@@ -186,7 +186,7 @@ public:
 
 	Game();
 	~Game();
-	double dt = 0;
+	float dt = 0;
 
 
 	void InitSDL();

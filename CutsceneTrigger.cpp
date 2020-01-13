@@ -5,10 +5,10 @@
 CutsceneTrigger::CutsceneTrigger(std::string label, Vector2 pos, float w, float h) : Entity(pos)
 {
 	cutsceneLabel = label;
-	triggerRect.x = pos.x;
-	triggerRect.y = pos.y;
-	triggerRect.w = w;
-	triggerRect.h = h;
+	triggerRect.x = (int)pos.x;
+	triggerRect.y = (int)pos.y;
+	triggerRect.w = (int)w;
+	triggerRect.h = (int)h;
 }
 
 CutsceneTrigger::~CutsceneTrigger()

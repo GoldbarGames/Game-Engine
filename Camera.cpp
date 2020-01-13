@@ -88,12 +88,12 @@ void Camera::KeyControl(const Uint8* input, GLfloat dt)
 
 	if (input[SDL_SCANCODE_N])
 	{
-		Zoom(-0.1f, 1280.0f, 720.0f);
+		Zoom(-0.05f, 1280.0f, 720.0f);
 	}
 
 	if (input[SDL_SCANCODE_M])
 	{
-		Zoom(0.1f, 1280.0f, 720.0f);
+		Zoom(0.05f, 1280.0f, 720.0f);
 	}
 }
 

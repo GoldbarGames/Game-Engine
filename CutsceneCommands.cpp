@@ -45,7 +45,7 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 		std::string commandName = parameters[0];
 
 		bool commandFound = false;
-		for (unsigned int i = 0; i < cmd_lut->size; i++)
+		for (int i = 0; i < cmd_lut->size; i++)
 		{
 			if (cmd_lut[i].command == commandName)
 			{

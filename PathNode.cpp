@@ -5,15 +5,15 @@ PathNode::PathNode(Vector2 pos)
 {
 	point = pos;
 
-	rect.x = pos.x;
-	rect.y = pos.y;
-	rect.w = (TILE_SIZE / 2) * Renderer::GetScale();
-	rect.h = (TILE_SIZE / 2) * Renderer::GetScale();
+	rect.x = (int)pos.x;
+	rect.y = (int)pos.y;
+	rect.w = (TILE_SIZE / 2);
+	rect.h = (TILE_SIZE / 2);
 
-	renderRect.x = pos.x;
-	renderRect.y = pos.y;
-	renderRect.w = (TILE_SIZE / 2) * Renderer::GetScale();
-	renderRect.h = (TILE_SIZE / 2) * Renderer::GetScale();
+	renderRect.x = (int)pos.x;
+	renderRect.y = (int)pos.y;
+	renderRect.w = (TILE_SIZE / 2);
+	renderRect.h = (TILE_SIZE / 2);
 }
 
 PathNode::~PathNode()
@@ -33,9 +33,9 @@ const SDL_Rect* PathNode::GetRenderRect()
 
 const SDL_Rect* PathNode::CalcRenderRect(Vector2 cameraOffset)
 {
-	renderRect.x = rect.x - cameraOffset.x;
-	renderRect.y = rect.y - cameraOffset.y;
-	renderRect.w = (TILE_SIZE / 2) * Renderer::GetScale();
-	renderRect.h = (TILE_SIZE / 2) * Renderer::GetScale();
+	renderRect.x = (int)(rect.x - cameraOffset.x);
+	renderRect.y = (int)(rect.y - cameraOffset.y);
+	renderRect.w = (int)(TILE_SIZE / 2);
+	renderRect.h = (int)(TILE_SIZE / 2);
 	return &renderRect;
 }

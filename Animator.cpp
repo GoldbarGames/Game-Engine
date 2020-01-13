@@ -13,7 +13,7 @@ Animator::Animator(std::string animType, std::vector<AnimState*> states, std::st
 	animatorType = animType;
 
 	// Save the vector of states as a map
-	for (int i = 0; i < states.size(); i++)
+	for (unsigned int i = 0; i < states.size(); i++)
 	{
 		MapStateNameToState(states[i]->name, states[i]);
 	}
@@ -22,7 +22,7 @@ Animator::Animator(std::string animType, std::vector<AnimState*> states, std::st
 	if (initialState != "")
 	{
 		bool found = false;
-		for (int i = 0; i < states.size(); i++)
+		for (unsigned int i = 0; i < states.size(); i++)
 		{
 			if (states[i]->name == initialState)
 			{

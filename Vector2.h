@@ -3,17 +3,10 @@
 
 #include <glm/vec2.hpp>
 
-using Vector2 = glm::vec2;
+//using Vector2 = glm::vec2;
 
-inline glm::vec2 RoundToInt(glm::vec2 vector)
-{
-	glm::vec2 newVector;
-	newVector.x = static_cast<float>(static_cast<int>(vector.x));
-	newVector.y = static_cast<float>(static_cast<int>(vector.y));
-	return newVector;
-}
 
-/*
+
 class Vector2
 {
 public:
@@ -21,6 +14,9 @@ public:
 	float y = 0.0f;
 	Vector2(float x2, float y2);
 	Vector2(int x2, int y2);
+	Vector2(unsigned int x2, unsigned int y2);
+	Vector2(int x2, unsigned int y2);
+	Vector2(unsigned int x2, int y2);
 	Vector2();
 	~Vector2();
 	Vector2& operator+=(const Vector2& rhs);
@@ -35,7 +31,13 @@ public:
 	Vector2 RoundToInt();
 };
 
-*/
+inline Vector2 RoundToInt(Vector2 vector)
+{
+	Vector2 newVector;
+	newVector.x = static_cast<float>(static_cast<int>(vector.x));
+	newVector.y = static_cast<float>(static_cast<int>(vector.y));
+	return newVector;
+}
 
 inline std::ostream& operator<<(std::ostream& output, Vector2 value)
 {

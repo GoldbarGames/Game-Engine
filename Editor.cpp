@@ -360,11 +360,11 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 				StartEdit();
 				objectMode = "tile";
 
-				selectedRect.x = (tile->tileCoordinates.x - 1) * TILE_SIZE;
-				selectedRect.y = (tile->tileCoordinates.y - 1) * TILE_SIZE;
+				selectedRect.x = (int)((tile->tileCoordinates.x - 1) * TILE_SIZE);
+				selectedRect.y = (int)((tile->tileCoordinates.y - 1) * TILE_SIZE);
 
-				editorTileX = tile->tileCoordinates.x;
-				editorTileY = tile->tileCoordinates.y;
+				editorTileX = (int)tile->tileCoordinates.x;
+				editorTileY = (int)tile->tileCoordinates.y;
 
 				selectedRect.x += toolboxWindowRect.x;
 			}
@@ -476,8 +476,8 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 {
 	bool canPlaceObjectHere = true;
 
-	clickedPosition.x = (int)clickedPosition.x;
-	clickedPosition.y = (int)clickedPosition.y;
+	clickedPosition.x = (float)clickedPosition.x;
+	clickedPosition.y = (float)clickedPosition.y;
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
@@ -1245,7 +1245,7 @@ void Editor::Render(Renderer* renderer)
 
 			Vector2 doorCenter = currentDoor->GetCenter();
 			Vector2 doorPos = currentDoor->GetPosition() + doorCenter;
-			SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, hoveredTileRect.x + doorCenter.x, hoveredTileRect.y + doorCenter.y);
+			//SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, hoveredTileRect.x + doorCenter.x, hoveredTileRect.y + doorCenter.y);
 
 			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
@@ -1264,7 +1264,7 @@ void Editor::Render(Renderer* renderer)
 				destPos = destPos;
 				Vector2 doorCenter = door->GetCenter();
 				Vector2 doorPos = door->GetPosition() + doorCenter;
-				SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, destPos.x + doorCenter.x, destPos.y + doorCenter.y);
+				//SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, destPos.x + doorCenter.x, destPos.y + doorCenter.y);
 			}	
 		}
 	}
@@ -1635,9 +1635,9 @@ void Editor::CreateLevelFromString(std::string level)
 	int id2 = Entity::nextValidID;
 
 	// Match all platforms moving on paths with their assigned path
-	for (int i = 0; i < movingPlatforms.size(); i++)
+	for (unsigned int i = 0; i < movingPlatforms.size(); i++)
 	{
-		for (int k = 0; k < paths.size(); k++)
+		for (unsigned int k = 0; k < paths.size(); k++)
 		{
 			if (movingPlatforms[i]->pathID == paths[k]->id)
 			{
@@ -1712,7 +1712,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 
 	// Count all bugs
 	game->bugsRemaining = 0;
-	for (int i = 0; i < game->entities.size(); i++)
+	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
 		if (game->entities[i]->etype == "bug")
 			game->bugsRemaining++;

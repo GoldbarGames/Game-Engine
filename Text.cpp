@@ -113,3 +113,9 @@ void Text::SetPosition(float x, float y)
 	position.x = x;
 	position.y = y;
 }
+
+void Text::SetPosition(int x, int y)
+{
+	position.x = (float)x;
+	position.y = (float)y;
+}

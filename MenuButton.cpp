@@ -15,8 +15,8 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 	//ANSWER: See the EditorButton
 
 	position = pos;
-	image->windowRect.x = pos.x;
-	image->windowRect.y = pos.y;
+	image->windowRect.x = (int)pos.x;
+	image->windowRect.y = (int)pos.y;
 
 	int scaledThickness = thickness * Renderer::GetScale();
 
