@@ -34,6 +34,7 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 	shader = s;
 
 	numberFrames = 1;
+	framesPerRow = numberFrames;
 
 	CreateMesh();
 
@@ -78,8 +79,10 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath,
 	windowRect.y = 0;
 
 	numberFrames = numFrames;
+	framesPerRow = numberFrames;
+
 	frameWidth = texture->GetWidth() / numberFrames;
-	frameHeight = texture->GetHeight();
+	frameHeight = texture->GetHeight() / (numberFrames/framesPerRow);
 
 	windowRect.w = frameWidth;
 	windowRect.h = frameHeight;
@@ -186,41 +189,48 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 	GLfloat totalFrames = numberFrames;
 
-	// Texture scaling
-	glm::mat4 textureScaleMatrix(1.0f);
-	textureScaleMatrix = glm::scale(textureScaleMatrix,
-		glm::vec3(1.0f / totalFrames, 1.0f, 1.0f));
-
-	// Texture translation
-	glm::mat4 textureTranslateMatrix(1.0f);
-
-	glm::vec2 texFrame = glm::vec2((1.0f / totalFrames), 1.0f);
+	glm::vec2 texFrame = glm::vec2((1.0f / framesPerRow), frameHeight/(GLfloat)texture->GetHeight());
 	glm::vec2 texOffset = glm::vec2(0.5f, 0.0f);
 
 	// Only go to the next frame when enough time has passed
 	if (numberFrames > 1 && renderer->now > lastAnimTime + 100)
 	{
 		currentFrame++;
+
+		if (currentFrame > ((currentRow + 1) * framesPerRow))
+			currentRow++;
+
 		if (currentFrame > numberFrames)
+		{
 			currentFrame = 0;
+			currentRow = 0;
+		}
+			
 
 		lastAnimTime = renderer->now;
 		//std::cout << currentFrame << std::endl;
 	}
 
+	
+
 	// Set the texture offset based on the current frame
-	texOffset.x = (1.0f / totalFrames) * currentFrame;
+	unsigned int currentFrameOnRow = (currentFrame % framesPerRow);
+	texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow;
+	texOffset.y = (frameHeight * (currentRow + 1)) / (GLfloat)texture->GetHeight();
 
 	// Send the info to the shader
 	glUniform2fv(renderer->uniformViewTexture, 1, glm::value_ptr(texFrame));
 	glUniform2fv(renderer->uniformOffsetTexture, 1, glm::value_ptr(texOffset));
+
+
+	unsigned int numberRows = numberFrames / framesPerRow;
 
 	glm::mat4 model(1.0f);
 
 	// Translate, Rotate, Scale
 	model = glm::translate(model, glm::vec3(position.x, position.y, 2.0f));
 	//model = glm::rotate(model, currentAngle * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (GLfloat)(numberFrames), scale.y * texture->GetHeight(), 1.0f));
+	model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (GLfloat)(framesPerRow), scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
 
 	// Set uniform variables
 	glUniformMatrix4fv(renderer->uniformModel, 1, GL_FALSE, glm::value_ptr(model));

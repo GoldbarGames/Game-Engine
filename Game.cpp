@@ -176,10 +176,12 @@ void Game::CreateObjects()
 	Entity* bg = new Entity(Vector2(0, 0), spr2);
 	Entity* kaneko = new Entity(Vector2(0, 0), spr3);
 
-	kaneko->GetSprite()->numberFrames = 6;
+	kaneko->GetSprite()->numberFrames = 12;
+	kaneko->GetSprite()->framesPerRow = 6;
+	kaneko->GetSprite()->frameHeight = kaneko->GetSprite()->texture->GetHeight() / (kaneko->GetSprite()->numberFrames / kaneko->GetSprite()->framesPerRow);
 
-	entities.push_back(bg);
-	entities.push_back(butler);	
+	//entities.push_back(bg);
+	//entities.push_back(butler);	
 	entities.push_back(kaneko);
 	//entities.push_back(cube);
 }

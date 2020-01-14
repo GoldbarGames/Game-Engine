@@ -34,6 +34,7 @@ public:
 	void AnimateMesh(float time);
 
 	unsigned int currentFrame = 0;
+	unsigned int currentRow = 0;
 
 	ShaderProgram* shader;
 	Mesh* mesh;
@@ -55,6 +56,8 @@ public:
 	int startFrame = 0;
 	int endFrame = 0;
 	unsigned int numberFrames = 1;
+	unsigned int framesPerRow = numberFrames;
+
 	Vector2 pivot = Vector2(0, 0);
 	std::string filename = "";
 	SDL_Rect windowRect;
