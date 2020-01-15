@@ -57,6 +57,7 @@ public:
 	int endFrame = 0;
 	unsigned int numberFrames = 1;
 	unsigned int framesPerRow = numberFrames;
+	unsigned int numberRows = 1;
 
 	Vector2 pivot = Vector2(0, 0);
 	std::string filename = "";
@@ -71,6 +72,12 @@ public:
 	Sprite(Texture* t, ShaderProgram* s);
 	Sprite(Vector2 frame, Texture* image, ShaderProgram* shader);
 	Sprite(int numFrames, SpriteManager* manager, std::string filepath, ShaderProgram* shader, Vector2 newPivot);
+	
+	//TODO: What should we do here?
+	// start = first frame of animation
+	// end = last frame of animation
+	// numFrames = the number of frames in the whole sheet, regardless of the animation
+	// so the total number is used to derive the width and height of a single frame
 	Sprite(int start, int end, int numFrames, SpriteManager* manager, std::string filepath, ShaderProgram* s, Vector2 newPivot, bool loop = true);
 	~Sprite();
 };

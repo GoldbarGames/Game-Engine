@@ -238,7 +238,7 @@ void Game::InitOpenGL()
 
 	SDL_GL_SwapWindow(window);
 
-	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 1.0f, 0.5f, 4.0f);
+	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 1.0f, 0.5f, 1.0f);
 }
 
 void Game::InitSDL()
@@ -1320,10 +1320,21 @@ void Game::SaveScreenshot()
 	//TODO: Can we get this working based on a date time?
 
 	std::string filepath = "screenshots/screenshot-" + timestamp + ".bmp";
-	SDL_Surface * screenshot = SDL_CreateRGBSurface(0, screenWidth, screenHeight, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-	SDL_RenderReadPixels(renderer->renderer, NULL, SDL_PIXELFORMAT_ARGB8888, screenshot->pixels, screenshot->pitch);
+
+	const unsigned int bytesPerPixel = 3;
+
+	unsigned char* pixels = new unsigned char[screenWidth * screenHeight * bytesPerPixel]; // 4 bytes for RGBA
+	glReadPixels(0, 0, screenHeight, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+	SDL_Surface* screenshot = SDL_CreateRGBSurfaceFrom(pixels, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
+
+	//SDL_Surface * screenshot = SDL_CreateRGBSurface(0, screenWidth, screenHeight, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+	//SDL_RenderReadPixels(renderer->renderer, NULL, SDL_PIXELFORMAT_ARGB8888, screenshot->pixels, screenshot->pitch);
+	
 	SDL_SaveBMP(screenshot, filepath.c_str());
 	SDL_FreeSurface(screenshot);
+
+	delete[] pixels;
 }
 
 void Game::GetMenuInput()

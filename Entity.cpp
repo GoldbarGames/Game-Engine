@@ -161,6 +161,9 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 
 void Entity::Render(Renderer * renderer)
 {
+	if (id == 54)
+		int test3 = 0;
+
 	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)

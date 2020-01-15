@@ -41,6 +41,9 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 	animLow = 0;
 	animHigh = 0;
 	currentFrame = 0;
+
+	frameWidth = texture->GetWidth() / numberFrames;
+	frameHeight = texture->GetHeight() / numberFrames;
 }
 
 // constructor for tiles from tilesheets
@@ -51,18 +54,31 @@ Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
 
 	CreateMesh();
 
-	// this converts from human coords to pixel coords
-	Vector2 currentFrame = Vector2((frame.x - 1) * TILE_SIZE, (frame.y - 1) * TILE_SIZE);
-
-
-
-
 	// Set start position
 	windowRect.x = 0;
 	windowRect.y = 0;
 
+	// don't animate the tiles!
+	animSpeed = 0.0f;
+
 	frameWidth = TILE_SIZE;
 	frameHeight = TILE_SIZE;
+
+	framesPerRow = texture->GetWidth() / frameWidth;
+	numberRows = texture->GetHeight() / frameHeight;
+
+	numberFrames = framesPerRow * numberRows;
+
+	// this converts from human coords to pixel coords
+	//Vector2 frameVec2 = Vector2((frame.x - 1) * TILE_SIZE, (frame.y - 1) * TILE_SIZE);
+
+	// The lowest number input would be (0,0) so we subtract 1 from each
+	currentFrame = (frame.y * framesPerRow) + (frame.x);
+
+	currentRow = currentFrame / framesPerRow;
+	currentRow--;
+
+	currentFrame--;
 }
 
 Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath, 
@@ -193,7 +209,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	glm::vec2 texOffset = glm::vec2(0.5f, 0.0f);
 
 	// Only go to the next frame when enough time has passed
-	if (numberFrames > 1 && renderer->now > lastAnimTime + 100)
+	if (numberFrames > 1 && animSpeed > 0 && renderer->now > lastAnimTime + 100)
 	{
 		currentFrame++;
 
@@ -205,25 +221,21 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 			currentFrame = 0;
 			currentRow = 0;
 		}
-			
 
 		lastAnimTime = renderer->now;
 		//std::cout << currentFrame << std::endl;
-	}
-
-	
+	}	
 
 	// Set the texture offset based on the current frame
 	unsigned int currentFrameOnRow = (currentFrame % framesPerRow);
 	texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow;
-	texOffset.y = (frameHeight * (currentRow + 1)) / (GLfloat)texture->GetHeight();
+	texOffset.y = (frameHeight * (currentRow)) / (GLfloat)texture->GetHeight();
 
 	// Send the info to the shader
 	glUniform2fv(renderer->uniformViewTexture, 1, glm::value_ptr(texFrame));
 	glUniform2fv(renderer->uniformOffsetTexture, 1, glm::value_ptr(texOffset));
 
-
-	unsigned int numberRows = numberFrames / framesPerRow;
+	numberRows = numberFrames / framesPerRow;
 
 	glm::mat4 model(1.0f);
 

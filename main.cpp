@@ -10,11 +10,11 @@ int main(int argc, char *args[])
 	// Load settings
 	game.LoadSettings();
 
-	//game.LoadTitleScreen();
+	game.LoadTitleScreen();
 
 	game.SortEntities(game.entities);
 
-	game.CreateObjects();
+	//game.CreateObjects();
 
 	game.timer.Start();
 
