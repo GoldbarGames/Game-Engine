@@ -104,8 +104,6 @@ public:
 
 	void InitOpenGL();
 	void CreateShaders();
-	void CreateTextures();
-	void CreateMeshes();
 	void CreateObjects();
 
 	void Update();

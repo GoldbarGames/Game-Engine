@@ -33,8 +33,10 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 	texture = t;
 	shader = s;
 
-	numberFrames = 1;
-	framesPerRow = numberFrames;
+	numberFramesInTexture = 1;
+	framesPerRow = numberFramesInTexture;
+	startFrame = 0;
+	endFrame = numberFramesInTexture;
 
 	CreateMesh();
 
@@ -42,8 +44,8 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 	animHigh = 0;
 	currentFrame = 0;
 
-	frameWidth = texture->GetWidth() / numberFrames;
-	frameHeight = texture->GetHeight() / numberFrames;
+	frameWidth = texture->GetWidth() / numberFramesInTexture;
+	frameHeight = texture->GetHeight() / numberFramesInTexture;
 }
 
 // constructor for tiles from tilesheets
@@ -67,7 +69,9 @@ Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
 	framesPerRow = texture->GetWidth() / frameWidth;
 	numberRows = texture->GetHeight() / frameHeight;
 
-	numberFrames = framesPerRow * numberRows;
+	numberFramesInTexture = framesPerRow * numberRows;
+	startFrame = 0;
+	endFrame = numberFramesInTexture;
 
 	// this converts from human coords to pixel coords
 	//Vector2 frameVec2 = Vector2((frame.x - 1) * TILE_SIZE, (frame.y - 1) * TILE_SIZE);
@@ -94,21 +98,21 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath,
 	windowRect.x = 0;
 	windowRect.y = 0;
 
-	numberFrames = numFrames;
-	framesPerRow = numberFrames;
+	numberFramesInTexture = numFrames;
+	framesPerRow = numberFramesInTexture;
 
-	frameWidth = texture->GetWidth() / numberFrames;
-	frameHeight = texture->GetHeight() / (numberFrames/framesPerRow);
+	frameWidth = texture->GetWidth() / numberFramesInTexture;
+	frameHeight = texture->GetHeight() / (numberFramesInTexture/framesPerRow);
 
 	windowRect.w = frameWidth;
 	windowRect.h = frameHeight;
 
 	startFrame = 0;
-	endFrame = numberFrames;
+	endFrame = numberFramesInTexture;
 	//textureRect.x = startFrame * textureRect.w;
 }
 
-Sprite::Sprite(int start, int end, int numFrames, SpriteManager* manager, 
+Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager,
 	std::string filepath, ShaderProgram* s, Vector2 newPivot, bool loop)
 {
 	texture = manager->GetImage(filepath);
@@ -121,22 +125,51 @@ Sprite::Sprite(int start, int end, int numFrames, SpriteManager* manager,
 	windowRect.x = 0;
 	windowRect.y = 0;
 
-	numberFrames = numFrames;
+	startFrame = start;
+	endFrame = end;	
 
-	frameWidth = texture->GetWidth() / numberFrames;
-	frameHeight = texture->GetHeight();
-	//textureRect.w /= numberFrames;
-	//windowRect.w = frameWidth * Renderer::GetScale();
-	//windowRect.h = frameHeight * Renderer::GetScale();
+	frameWidth = width;
+	frameHeight = height;
+
+	//TODO: This only works if there is only one row, but that is okay for now
+	numberFramesInTexture = texture->GetWidth() / frameWidth;
+	framesPerRow = numberFramesInTexture;
+
+	shouldLoop = loop;
+}
+
+Sprite::Sprite(int start, int end, int numframes, SpriteManager* manager, 
+	std::string filepath, ShaderProgram* s, Vector2 newPivot, bool loop)
+{
+	texture = manager->GetImage(filepath);
+	shader = s;
+
+	CreateMesh();
+
+	pivot = newPivot;
+
+	windowRect.x = 0;
+	windowRect.y = 0;
 
 	startFrame = start;
 	endFrame = end;
+
+	numberFramesInTexture = end - start + 1;
+
+	frameWidth = texture->GetWidth() / numberFramesInTexture;
+	frameHeight = texture->GetHeight();
+
+
 	shouldLoop = loop;
-	//textureRect.x = startFrame * textureRect.w;
 }
 
 Sprite::~Sprite()
 {
+	if (mesh != nullptr)
+	{
+		mesh->ClearMesh();
+	}
+
 	if (texture != nullptr)
 	{
 		//TODO: Should we clear the texture here?
@@ -169,7 +202,7 @@ void Sprite::Render(Vector2 position, Renderer* renderer)
 
 bool Sprite::ShouldAnimate(float time)
 {
-	return numberFrames > 1 && time > lastAnimTime + 1000.0f;
+	return numberFramesInTexture > 1 && time > lastAnimTime + 1000.0f;
 }
 
 void Sprite::AnimateMesh(float time)
@@ -203,50 +236,80 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	//then multiply by texture view matrix to get the offset for the desired sprite in the larger texture
 	//you'll basically just use glm::translate
 
-	GLfloat totalFrames = numberFrames;
+	GLfloat totalFrames = (endFrame - startFrame) + 1;
 
 	glm::vec2 texFrame = glm::vec2((1.0f / framesPerRow), frameHeight/(GLfloat)texture->GetHeight());
 	glm::vec2 texOffset = glm::vec2(0.5f, 0.0f);
 
-	// Only go to the next frame when enough time has passed
-	if (numberFrames > 1 && animSpeed > 0 && renderer->now > lastAnimTime + 100)
+	numberRows = texture->GetHeight() / frameHeight;
+
+	if (numberRows > 1) // this is mainly the code for the tilesheets
 	{
-		currentFrame++;
-
-		if (currentFrame > ((currentRow + 1) * framesPerRow))
-			currentRow++;
-
-		if (currentFrame > numberFrames)
+		// Only go to the next frame when enough time has passed
+		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + 100)
 		{
-			currentFrame = 0;
-			currentRow = 0;
+			currentFrame++;
+
+			if (currentFrame > ((currentRow + 1) * framesPerRow))
+				currentRow++;
+
+			if (currentFrame > numberFramesInTexture)
+			{
+				currentFrame = 0;
+				currentRow = 0;
+			}
+
+			lastAnimTime = renderer->now;
+			//std::cout << currentFrame << std::endl;
 		}
 
-		lastAnimTime = renderer->now;
-		//std::cout << currentFrame << std::endl;
-	}	
+		// Set the texture offset based on the current frame
+		unsigned int currentFrameOnRow = (currentFrame % framesPerRow);
+		texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow;
+		texOffset.y = (frameHeight * (currentRow)) / (GLfloat)texture->GetHeight();
+	}
+	else
+	{
+		// 0, 1, 2, 3, 4, 5
+		// animation is frames 2, 3 and 4
+		// start frame = 2
+		// end frame = 4
+		// number of frames in animation = 3 (a difference of 2 from the start)
 
-	// Set the texture offset based on the current frame
-	unsigned int currentFrameOnRow = (currentFrame % framesPerRow);
-	texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow;
-	texOffset.y = (frameHeight * (currentRow)) / (GLfloat)texture->GetHeight();
+		// Only go to the next frame when enough time has passed
+		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + 100)
+		{
+			currentFrame++;
+
+			if (currentFrame > endFrame)
+			{
+				currentFrame = startFrame;
+			}
+
+			lastAnimTime = renderer->now;
+			//std::cout << currentFrame << std::endl;
+		}
+
+		texOffset.x = (1.0f / framesPerRow) * currentFrame;
+		texOffset.y = 0;
+	}
 
 	// Send the info to the shader
 	glUniform2fv(renderer->uniformViewTexture, 1, glm::value_ptr(texFrame));
 	glUniform2fv(renderer->uniformOffsetTexture, 1, glm::value_ptr(texOffset));
 
-	numberRows = numberFrames / framesPerRow;
+	
 
 	glm::mat4 model(1.0f);
 
 	// Translate, Rotate, Scale
-	model = glm::translate(model, glm::vec3(position.x, position.y, 2.0f));
+	model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
 	//model = glm::rotate(model, currentAngle * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (GLfloat)(framesPerRow), scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
+	model = glm::scale(model, glm::vec3(-1 * scale.x * texture->GetWidth() / (GLfloat)(framesPerRow), 
+		scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
 
 	// Set uniform variables
 	glUniformMatrix4fv(renderer->uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-	//TODO: Set uniform variable for the current frame of sprite animation
 
 	// Use Texture
 	texture->UseTexture();

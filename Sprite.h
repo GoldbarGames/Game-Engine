@@ -50,13 +50,14 @@ public:
 	int frameWidth = 0;
 	int frameHeight = 0;
 
+	//TODO: Maybe fix this so that the scale doesn't have to be negative by default
 	Vector2 scale = Vector2(1, 1);
 
 	bool shouldLoop = true;
 	int startFrame = 0;
 	int endFrame = 0;
-	unsigned int numberFrames = 1;
-	unsigned int framesPerRow = numberFrames;
+	unsigned int numberFramesInTexture = 1;
+	unsigned int framesPerRow = numberFramesInTexture;
 	unsigned int numberRows = 1;
 
 	Vector2 pivot = Vector2(0, 0);
@@ -79,6 +80,7 @@ public:
 	// numFrames = the number of frames in the whole sheet, regardless of the animation
 	// so the total number is used to derive the width and height of a single frame
 	Sprite(int start, int end, int numFrames, SpriteManager* manager, std::string filepath, ShaderProgram* s, Vector2 newPivot, bool loop = true);
+	Sprite(int start, int end, int width, int height, SpriteManager* manager, std::string filepath, ShaderProgram* s, Vector2 newPivot, bool loop = true);
 	~Sprite();
 };
 

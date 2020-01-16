@@ -24,11 +24,6 @@ Game::Game()
 
 	InitOpenGL();
 
-	// THESE THREE LINES MUST BE IMMEDIATELY AFTER INIT OPENGL
-	CreateShaders();
-	CreateTextures();
-	CreateMeshes();
-
 	// Initialize the font before all text
 	theFont = TTF_OpenFont("fonts/default.ttf", 20);
 	headerFont = TTF_OpenFont("fonts/default.ttf", 32);
@@ -137,34 +132,6 @@ void Game::CalcDt()
 		dt = 33;
 }
 
-void Game::CreateTextures()
-{
-	/*
-	Texture* butler1 = new Texture("Textures/but_defa1.png", true);
-	butler1->LoadTexture();
-	textures["but_defa1"] = butler1;
-
-	Texture* butler2 = new Texture("Textures/but_defa2.png", true);
-	butler2->LoadTexture();
-	textures["but_defa2"] = butler2;
-
-	Texture* bgTexture = new Texture("Textures/street_1a.jpg", false);
-	bgTexture->LoadTexture();
-	textures["bg"] = bgTexture;
-
-	Texture* wdkTexture = new Texture("Textures/wdk_walk.png", true);
-	wdkTexture->LoadTexture();
-	textures["wdk_walk"] = wdkTexture;
-	*/
-}
-
-void Game::CreateMeshes()
-{
-
-
-}
-
-
 void Game::CreateObjects()
 {
 	Sprite* spr1 = new Sprite(0, 1, 1, spriteManager, "Textures/but_defa1.png", renderer->shaders["special"], Vector2(0,0), true);
@@ -176,9 +143,9 @@ void Game::CreateObjects()
 	Entity* bg = new Entity(Vector2(0, 0), spr2);
 	Entity* kaneko = new Entity(Vector2(0, 0), spr3);
 
-	kaneko->GetSprite()->numberFrames = 12;
+	kaneko->GetSprite()->numberFramesInTexture = 12;
 	kaneko->GetSprite()->framesPerRow = 6;
-	kaneko->GetSprite()->frameHeight = kaneko->GetSprite()->texture->GetHeight() / (kaneko->GetSprite()->numberFrames / kaneko->GetSprite()->framesPerRow);
+	kaneko->GetSprite()->frameHeight = kaneko->GetSprite()->texture->GetHeight() / (kaneko->GetSprite()->numberFramesInTexture / kaneko->GetSprite()->framesPerRow);
 
 	//entities.push_back(bg);
 	//entities.push_back(butler);	
@@ -238,7 +205,10 @@ void Game::InitOpenGL()
 
 	SDL_GL_SwapWindow(window);
 
-	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), 
+		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+
+	CreateShaders(); // we must create the shaders at this point
 }
 
 void Game::InitSDL()
@@ -734,13 +704,14 @@ void Game::ReadAnimData(std::string dataFilePath, std::vector<AnimState*> & anim
 		int stateSpeed = std::stoi(tokens[index++]);
 		int spriteStartFrame = std::stoi(tokens[index++]);
 		int spriteEndFrame = std::stoi(tokens[index++]);
-		int spriteNumberTotalFrames = std::stoi(tokens[index++]);
+		int spriteFrameWidth = std::stoi(tokens[index++]);
+		int spriteFrameHeight = std::stoi(tokens[index++]);
 		std::string spriteFilePath = tokens[index++];
 		int spritePivotX = std::stoi(tokens[index++]);
 		int spritePivotY = std::stoi(tokens[index++]);
 
 		animStates.push_back(new AnimState(stateName, stateSpeed,
-			new Sprite(spriteStartFrame, spriteEndFrame, spriteNumberTotalFrames,
+			new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
 				spriteManager, spriteFilePath, renderer->shaders["default"], Vector2(spritePivotX, spritePivotY))));
 
 		ss.getline(lineChar, 256);
