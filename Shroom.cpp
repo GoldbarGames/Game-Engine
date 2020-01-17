@@ -33,8 +33,6 @@ void Shroom::OnTriggerEnter(Entity* other, Game& game)
 
 void Shroom::Save(std::ostringstream& level)
 {
-	int SCALE = Renderer::GetScale();
-
-	level << std::to_string(id) << " " << etype << " " << (startPosition.x / SCALE) <<
-		" " << (startPosition.y / SCALE) << " " << spriteIndex << std::endl;
+	level << std::to_string(id) << " " << etype << " " << startPosition.x <<
+		" " << startPosition.y << " " << spriteIndex << std::endl;
 }

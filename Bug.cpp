@@ -45,8 +45,6 @@ void Bug::OnTriggerExit(Entity* other, Game& game)
 
 void Bug::Save(std::ostringstream& level)
 {
-	int SCALE = Renderer::GetScale();
-
-	level << std::to_string(id) << " " << etype << " " << (startPosition.x / SCALE) <<
-		" " << (startPosition.y / SCALE) << " " << spriteIndex << std::endl;
+	level << std::to_string(id) << " " << etype << " " << startPosition.x <<
+		" " << startPosition.y << " " << spriteIndex << std::endl;
 }

@@ -125,8 +125,8 @@ void Editor::StartEdit()
 	selectedRect.w = 24;
 	selectedRect.h = 24;
 
-	hoveredTileRect.w = 24 * Renderer::GetScale();
-	hoveredTileRect.h = 24 * Renderer::GetScale();
+	hoveredTileRect.w = 24;
+	hoveredTileRect.h = 24;
 
 	CreateEditorButtons();
 
@@ -625,23 +625,23 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 						if (ladderGoesUp)
 						{
 							// Connect the two edges by spawning the middle parts
-							mouseY += GRID_SIZE * Renderer::GetScale();
+							mouseY += GRID_SIZE;
 
 							while (snappedPosition.y < currentLadder->GetPosition().y)
 							{
 								game->SpawnLadder(snappedPosition, spriteMapIndex);
-								snappedPosition.y += GRID_SIZE * Renderer::GetScale();
+								snappedPosition.y += GRID_SIZE;
 							}
 						}
 						else
 						{
 							// Connect the two edges by spawning the middle parts
-							mouseY -= GRID_SIZE * Renderer::GetScale();
+							mouseY -= GRID_SIZE;
 
 							while (snappedPosition.y > currentLadder->GetPosition().y)
 							{
 								game->SpawnLadder(snappedPosition, spriteMapIndex);
-								snappedPosition.y -= GRID_SIZE * Renderer::GetScale();
+								snappedPosition.y -= GRID_SIZE;
 							}
 						}
 
@@ -681,10 +681,8 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 
 	if (canPlaceTileHere)
 	{
-		int mod = (GRID_SIZE * Renderer::GetScale());
-
-		int afterModX = ((int)(mouseX) % mod);
-		int afterModY = ((int)(mouseY) % mod);
+		int afterModX = ((int)(mouseX) % GRID_SIZE);
+		int afterModY = ((int)(mouseY) % GRID_SIZE);
 
 		Vector2 spawnPos = game->CalcTileSpawnPos(Vector2(mouseX - afterModX, mouseY - afterModY));
 
@@ -867,9 +865,9 @@ void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
 		// otherwise, we are done, and can exit the loop
 
 		if (startingState == "top")
-			lastPosition.y += GRID_SIZE * Renderer::GetScale();
+			lastPosition.y += GRID_SIZE;
 		else if (startingState == "bottom")
-			lastPosition.y -= GRID_SIZE * Renderer::GetScale();
+			lastPosition.y -= GRID_SIZE;
 
 		exit = true;
 
@@ -896,8 +894,8 @@ void Editor::HandleEdit()
 
 	const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
-	int clickedX = mouseX - ((int)mouseX % (GRID_SIZE * Renderer::GetScale()));
-	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE * Renderer::GetScale()));
+	int clickedX = mouseX - ((int)mouseX % (GRID_SIZE));
+	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE));
 
 	Vector2 clickedPosition(clickedX, clickedY);
 
@@ -1200,16 +1198,18 @@ void Editor::ToggleTileset()
 void Editor::DrawGrid()
 {
 	SDL_SetRenderDrawColor(game->renderer->renderer, 64, 64, 64, 64);
+
 	for (int x = 0; x < 100; x++)
 	{
 		for (int y = 0; y < 100; y++)
 		{
 			SDL_Rect rect;
-			rect.x = x * GRID_SIZE * Renderer::GetScale();
-			rect.y = y * GRID_SIZE * Renderer::GetScale();
+			rect.x = x * GRID_SIZE;
+			rect.y = y * GRID_SIZE;
 			SDL_RenderDrawRect(game->renderer->renderer, &rect);
 		}
 	}
+
 	SDL_SetRenderDrawColor(game->renderer->renderer, 0, 0, 0, 255);
 }
 
@@ -1491,7 +1491,6 @@ void Editor::CreateLevelFromString(std::string level)
 	std::vector<Path*> paths;
 	std::vector<Platform*> movingPlatforms;
 
-	int SCALE = Renderer::GetScale();
 	std::stringstream ss{ level };
 
 	char lineChar[256];
@@ -1524,7 +1523,7 @@ void Editor::CreateLevelFromString(std::string level)
 			int frameY = std::stoi(tokens[index++]);
 
 			Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheets[tilesheet] + ".png",
-				Vector2(positionX * SCALE, positionY * SCALE), (DrawingLayer)layer);
+				Vector2(positionX, positionY), (DrawingLayer)layer);
 
 			if (passableState == 2)
 				newTile->jumpThru = true;
@@ -1536,14 +1535,14 @@ void Editor::CreateLevelFromString(std::string level)
 			int destX = std::stoi(tokens[index++]);
 			int destY = std::stoi(tokens[index++]);
 			int spriteIndex = std::stoi(tokens[index++]);
-			Door* newDoor = game->SpawnDoor(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);			
-			newDoor->SetDestination(Vector2(destX * SCALE, destY * SCALE));
+			Door* newDoor = game->SpawnDoor(Vector2(positionX, positionY), spriteIndex);			
+			newDoor->SetDestination(Vector2(destX, destY));
 		}
 		else if (etype == "ladder")
 		{
 			std::string ladderState = tokens[index++];
 			int spriteIndex = std::stoi(tokens[index++]);
-			Ladder* newLadder = game->SpawnLadder(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+			Ladder* newLadder = game->SpawnLadder(Vector2(positionX, positionY), spriteIndex);
 			newLadder->GetAnimator()->SetState(ladderState);
 		}
 		else if (etype == "player")
@@ -1565,27 +1564,27 @@ void Editor::CreateLevelFromString(std::string level)
 		else if (etype == "goal")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Goal* entity = game->SpawnGoal(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+			Goal* entity = game->SpawnGoal(Vector2(positionX, positionY), spriteIndex);
 		}
 		else if (etype == "bug")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Bug* entity = game->SpawnBug(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+			Bug* entity = game->SpawnBug(Vector2(positionX, positionY), spriteIndex);
 		}
 		else if (etype == "ether")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Ether* entity = game->SpawnEther(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+			Ether* entity = game->SpawnEther(Vector2(positionX, positionY), spriteIndex);
 		}
 		else if (etype == "block")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Block* block = game->SpawnBlock(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+			Block* block = game->SpawnBlock(Vector2(positionX, positionY), spriteIndex);
 		}
 		else if (etype == "shroom")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Shroom* entity = game->SpawnShroom(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+			Shroom* entity = game->SpawnShroom(Vector2(positionX, positionY), spriteIndex);
 		}
 		else if (etype == "path")
 		{
@@ -1607,7 +1606,7 @@ void Editor::CreateLevelFromString(std::string level)
 		else if (etype == "platform")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Platform* platform = game->SpawnPlatform(Vector2(positionX * SCALE, positionY * SCALE), spriteIndex);
+			Platform* platform = game->SpawnPlatform(Vector2(positionX, positionY), spriteIndex);
 
 			platform->platformType = tokens[index++];
 

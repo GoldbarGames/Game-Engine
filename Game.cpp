@@ -255,13 +255,13 @@ Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
 
 	//ReadAnimData("data/animations/ladder.anim", animStates);
 
-	animStates.push_back(new AnimState("middle", 0, new Sprite(2, 2, 5, spriteManager,
+	animStates.push_back(new AnimState("middle", 0, new Sprite(2, 2, 24, 24, spriteManager,
 		spriteMap["ladder"][spriteIndex], renderer->shaders["default"], Vector2(0, 0))));
 
-	animStates.push_back(new AnimState("bottom", 0, new Sprite(4, 4, 5, spriteManager,
+	animStates.push_back(new AnimState("bottom", 0, new Sprite(4, 4, 24, 24, spriteManager,
 		spriteMap["ladder"][spriteIndex], renderer->shaders["default"], Vector2(0, 0))));
 
-	animStates.push_back(new AnimState("top", 0, new Sprite(0, 0, 5, spriteManager,
+	animStates.push_back(new AnimState("top", 0, new Sprite(0, 0, 24, 24, spriteManager,
 		spriteMap["ladder"][spriteIndex], renderer->shaders["default"], Vector2(0, 0))));
 
 	Animator* anim = new Animator("ladder", animStates, "middle");
@@ -272,8 +272,8 @@ Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
 
 Vector2 Game::SnapToGrid(Vector2 position)
 {
-	int x = position.x - ((int)(position.x) % (editor->GRID_SIZE * Renderer::GetScale()));
-	int y = position.y - ((int)(position.y) % (editor->GRID_SIZE * Renderer::GetScale()));
+	int x = position.x - ((int)(position.x) % (editor->GRID_SIZE));
+	int y = position.y - ((int)(position.y) % (editor->GRID_SIZE));
 
 	if (x % 2 != 0)
 		x++;
@@ -310,8 +310,8 @@ Door* Game::CreateDoor(Vector2 position, int spriteIndex)
 	Vector2 pivotPoint = Vector2(0, 0);
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/door.anim", animStates);
-	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 2, spriteManager, spriteMap["door"][spriteIndex], renderer->shaders["default"], pivotPoint)));
-	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 2, spriteManager, spriteMap["door"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 48, 96, spriteManager, spriteMap["door"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 48, 96, spriteManager, spriteMap["door"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 	
 	//TODO: How to make this work for doors that will be related to other tilesets?
 	Animator* anim = new Animator("door", animStates, "closed");
@@ -348,16 +348,16 @@ NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 	{
 		//ReadAnimData("data/animations/gramps.anim", animStates);
 		pivotPoint = Vector2(12, 28);
-		animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
-		animStates.push_back(new AnimState("sad", 100, new Sprite(1, 1, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
-		animStates.push_back(new AnimState("confused", 100, new Sprite(2, 2, 3, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+		animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 27, 46, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+		animStates.push_back(new AnimState("sad", 100, new Sprite(1, 1, 27, 46, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+		animStates.push_back(new AnimState("confused", 100, new Sprite(2, 2, 27, 46, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 		
 	}
 	else if (name == "the_man")
 	{
 		//ReadAnimData("data/animations/the_man.anim", animStates);
 		pivotPoint = Vector2(23, 36);
-		animStates.push_back(new AnimState("idle", 200, new Sprite(0, 7, 8, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+		animStates.push_back(new AnimState("idle", 200, new Sprite(0, 7, 50, 70, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 	}
 
 	Animator* anim = new Animator(name, animStates, "idle");
@@ -396,8 +396,8 @@ Goal* Game::CreateGoal(Vector2 position, int spriteIndex)
 	Vector2 pivotPoint = Vector2(0, 0);
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/goal.anim", animStates);
-	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer->shaders["default"], pivotPoint)));
-	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 2, spriteManager, spriteMap["goal"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 48, 96, spriteManager, spriteMap["goal"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 48, 96, spriteManager, spriteMap["goal"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 	
 	Animator* anim = new Animator("door", animStates, "closed");
 	newGoal->SetAnimator(anim);
@@ -430,7 +430,7 @@ Bug* Game::CreateBug(Vector2 position, int spriteIndex)
 	Vector2 pivotPoint = Vector2(16, 16);
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/bug.anim", animStates);
-	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, spriteMap["bug"][spriteIndex], renderer->shaders["default"], pivotPoint)));
+	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 32, 32, spriteManager, spriteMap["bug"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 	Animator* anim = new Animator("bug", animStates, "idle");
 	newBug->SetAnimator(anim);
 
@@ -565,7 +565,7 @@ Shroom* Game::CreateShroom(Vector2 position, int spriteIndex)
 
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/shroom.anim", animStates);
-	animStates.push_back(new AnimState("idle", 200, new Sprite(0, 3, 9, spriteManager, 
+	animStates.push_back(new AnimState("idle", 200, new Sprite(0, 3, 32, 48, spriteManager, 
 		spriteMap["shroom"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 
 	newObject->SetAnimator(new Animator("shroom", animStates));
@@ -590,9 +590,6 @@ Shroom* Game::SpawnShroom(Vector2 position, int spriteIndex)
 	}
 }
 
-
-
-
 Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 {
 	//TODO: Make a way for this to return false
@@ -601,8 +598,8 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/missile.anim", animStates);
-	animStates.push_back(new AnimState("moving", 100, new Sprite(0, 3, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer->shaders["default"], pivotPoint)));
-	animStates.push_back(new AnimState("destroyed", 100, new Sprite(4, 7, 8, spriteManager, "assets/sprites/spells/debug_missile.png", renderer->shaders["default"], pivotPoint, false)));
+	animStates.push_back(new AnimState("moving", 100, new Sprite(0, 3, 23, 16, spriteManager, "assets/sprites/spells/debug_missile.png", renderer->shaders["default"], pivotPoint)));
+	animStates.push_back(new AnimState("destroyed", 100, new Sprite(4, 7, 23, 16, spriteManager, "assets/sprites/spells/debug_missile.png", renderer->shaders["default"], pivotPoint, false)));
 
 	Missile* missile = new Missile(position - pivotPoint);
 
@@ -1245,12 +1242,6 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_6: // Screenshot Button
 				SaveScreenshot();
 				break;
-			case SDLK_7: // TODO: Zoom camera button
-				if (Renderer::GetScale() == 2)
-					Renderer::SetScale(1);
-				else
-					Renderer::SetScale(2);
-				break;
 			default:
 				break;
 			}
@@ -1401,18 +1392,15 @@ void Game::RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEnt
 
 void Game::Render()
 {
-	/*
+	// Clear window
+	glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Render editor grid
 	if (GetModeEdit())
 	{
-		editor->DrawGrid();
+		//editor->DrawGrid();
 	}
-	*/
-
-	// Clear window
-	glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Render all backgrounds and their layers
 	for (int i = 0; i < backgrounds.size(); i++)

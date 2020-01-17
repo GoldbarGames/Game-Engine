@@ -43,7 +43,7 @@ void SpellPush::Cast(Game& game)
 	Vector2 collisionCenter = Vector2(yellowBoxCenterX, yellowBoxCenterY);
 
 	// scale the pivot and subtract it from the collision center
-	Vector2 scaledPivot = Vector2(playerPivot.x * Renderer::GetScale(), playerPivot.y * Renderer::GetScale());
+	Vector2 scaledPivot = Vector2(playerPivot.x, playerPivot.y);
 	Vector2 yellowRectanglePosition = collisionCenter - scaledPivot;
 
 	// Set the final rectangle to be equal to this offset
@@ -58,14 +58,14 @@ void SpellPush::Cast(Game& game)
 	if (game.player->flip == SDL_FLIP_HORIZONTAL)
 	{
 		spellRange->w *= -1;
-		spellRange->x -= (DISTANCE_FROM_CENTER_X  * Renderer::GetScale());
+		spellRange->x -= DISTANCE_FROM_CENTER_X;
 	}		
 	else
 	{
-		spellRange->x += (DISTANCE_FROM_CENTER_X  * Renderer::GetScale());
+		spellRange->x += DISTANCE_FROM_CENTER_X;
 	}
 		
-	spellRange->y += DISTANCE_FROM_CENTER_Y * Renderer::GetScale();
+	spellRange->y += DISTANCE_FROM_CENTER_Y;
 
 	// This converts the rectangle into a positive one for the intersection code
 	if (spellRange->w < 0)

@@ -59,19 +59,17 @@ void Block::SetProperty(std::string prop, std::string newValue)
 	else if (key == "Collider Width")
 	{
 		if (newValue != "")
-			colliderWidth = std::stof(newValue) * Renderer::GetScale();
+			colliderWidth = std::stof(newValue);
 	}
 	else if (key == "Collider Height")
 	{
 		if (newValue != "")
-			colliderHeight = std::stof(newValue) * Renderer::GetScale();
+			colliderHeight = std::stof(newValue);
 	}
 }
 
 void Block::Save(std::ostringstream& level)
 {
-	int SCALE = Renderer::GetScale();
-	
-	level << std::to_string(id) << " " << etype << " " << (startPosition.x / SCALE) <<
-		" " << (startPosition.y / SCALE) << " " << spriteIndex << std::endl;
+	level << std::to_string(id) << " " << etype << " " << startPosition.x <<
+		" " << startPosition.y << " " << spriteIndex << std::endl;
 }

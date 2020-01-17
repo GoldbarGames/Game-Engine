@@ -472,11 +472,11 @@ Vector2 PhysicsEntity::CalcScaledPivot()
 {
 	if (flip == SDL_FLIP_HORIZONTAL)
 	{
-		entityPivot.x = (currentSprite->windowRect.w / Renderer::GetScale()) - currentSprite->pivot.x;
+		entityPivot.x = (currentSprite->windowRect.w) - currentSprite->pivot.x;
 	}
 
 	// scale the pivot and subtract it from the collision center
-	return Vector2(entityPivot.x * Renderer::GetScale(), currentSprite->pivot.y * Renderer::GetScale());
+	return Vector2(entityPivot.x, currentSprite->pivot.y);
 }
 
 void PhysicsEntity::Push(Vector2 pushVelocity)
@@ -499,7 +499,7 @@ void PhysicsEntity::Update(Game& game)
 	{
 		const int NUM_TILES = 2;
 		totalDistancePushed += abs(velocity.x * game.dt);
-		if (totalDistancePushed > NUM_TILES * TILE_SIZE * Renderer::GetScale())
+		if (totalDistancePushed > NUM_TILES * TILE_SIZE)
 		{
 			hitByPushSpell = false;
 			velocity.x = 0;

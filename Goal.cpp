@@ -73,8 +73,6 @@ void Goal::SetProperty(std::string prop, std::string newValue)
 
 void Goal::Save(std::ostringstream& level)
 {
-	int SCALE = Renderer::GetScale();
-
-	level << std::to_string(id) << " " << etype << " " << (GetPosition().x / SCALE) <<
-		" " << (GetPosition().y / SCALE) << " " << spriteIndex << std::endl;
+	level << std::to_string(id) << " " << etype << " " << GetPosition().x <<
+		" " << GetPosition().y << " " << spriteIndex << std::endl;
 }

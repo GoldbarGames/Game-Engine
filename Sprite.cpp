@@ -316,6 +316,35 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 	// Render Mesh
 	mesh->RenderMesh();
+
+	// Update this rectangle for calculating physics
+	windowRect.x = position.x;
+	windowRect.y = position.y;
+	windowRect.w = frameWidth;
+	windowRect.h = frameHeight;
+
+	//TODO: Draw a rectangle around the sprite's bounds
+
+
+
+	/*
+
+
+	glLineWidth(10);
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	glBegin(GL_POLYGON);
+	glVertex2i(windowRect.x, windowRect.y);
+	glVertex2i(windowRect.x + windowRect.w, windowRect.y);
+	glVertex2i(windowRect.x + windowRect.w, windowRect.y + windowRect.h);
+	glVertex2i(windowRect.x, windowRect.y + windowRect.h);
+	glEnd();
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	//glFlush();
+	*/
 }
 
 const SDL_Rect* Sprite::GetRect()

@@ -58,10 +58,8 @@ bool Tile::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 
 void Tile::Save(std::ostringstream& level)
 {
-	int SCALE = Renderer::GetScale();
-
-	float x = GetPosition().x / SCALE;
-	float y = GetPosition().y / SCALE;
+	float x = GetPosition().x;
+	float y = GetPosition().y;
 
 	int passableState = 0;
 	if (impassable)

@@ -71,7 +71,7 @@ void Platform::Update(Game& game)
 
 		if (shouldLoop)
 		{
-			int distance = (tilesToMove * TILE_SIZE * Renderer::GetScale());
+			int distance = (tilesToMove * TILE_SIZE);
 			if (velocity.x > 0 && position.x >= startPosition.x + distance
 				|| velocity.x < 0 && position.x <= startPosition.x - distance)
 			{
@@ -242,7 +242,7 @@ void Platform::SetProperty(std::string prop, std::string newValue)
 	else if (key == "Distance")
 	{
 		if (newValue != "")
-			tilesToMove = std::stoi(newValue) * Renderer::GetScale();
+			tilesToMove = std::stoi(newValue);
 	}
 	else if (key == "Loop")
 	{
@@ -271,20 +271,18 @@ void Platform::SetProperty(std::string prop, std::string newValue)
 
 void Platform::Save(std::ostringstream& level)
 {
-	int SCALE = Renderer::GetScale();
-
 	if (platformType == "Path")
 	{
 		std::string endBehavior = endPathBehavior;
 		if (endBehavior == "")
 			endBehavior = "None";
 
-		level << std::to_string(id) << " " << etype << " " << (startPosition.x / SCALE) << " " << (startPosition.y / SCALE) << " " << spriteIndex << " " << platformType
+		level << std::to_string(id) << " " << etype << " " << startPosition.x << " " << startPosition.y << " " << spriteIndex << " " << platformType
 			<< " " << pathID << " " << pathSpeed << " " << endBehavior << std::endl;
 	}
 	else
 	{
-		level << std::to_string(id) << " " << etype << " " << (startPosition.x / SCALE) << " " << (startPosition.y / SCALE) << " " << spriteIndex << " " << platformType
+		level << std::to_string(id) << " " << etype << " " << startPosition.x << " " << startPosition.y << " " << spriteIndex << " " << platformType
 			<< " " << startVelocity.x << " " << startVelocity.y << " " << tilesToMove << " " << shouldLoop << std::endl;
 	}
 	

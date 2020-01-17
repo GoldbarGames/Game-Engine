@@ -11,7 +11,7 @@ Ladder::Ladder(Vector2 pos) : Entity(pos)
 	drawOrder = 90;
 	trigger = true;
 	collider.CreateCollider(TILE_SIZE, TILE_SIZE,
-		(TILE_SIZE / 2) * Renderer::GetScale(), 0, 0.35f, 1);
+		(TILE_SIZE / 2), 0, 0.35f, 1);
 }
 
 Ladder::~Ladder()
@@ -71,10 +71,9 @@ const SDL_Rect* Ladder::GetBounds()
 
 void Ladder::Save(std::ostringstream& level)
 {
-	int SCALE = Renderer::GetScale();
 	Vector2 pos = GetPosition();
 
-	level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " <<
-		(pos.y / SCALE) << " " << GetAnimator()->currentState->name
+	level << std::to_string(id) << " " << etype << " " << pos.x << " " <<
+		pos.y << " " << GetAnimator()->currentState->name
 		<< " " << spriteIndex << "" << std::endl;
 }

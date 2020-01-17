@@ -17,7 +17,7 @@ Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 
 	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?
 	speaker->SetText(" ");
-	text->SetTextWrapped(" ", 575 * Renderer::GetScale());
+	text->SetTextWrapped(" ", 575);
 }
 
 Textbox::~Textbox()

@@ -112,11 +112,10 @@ void Path::SetProperty(std::string prop, std::string newValue)
 
 void Path::Save(std::ostringstream& level)
 {
-	int SCALE = Renderer::GetScale();
 	Vector2 pos = GetPosition();
 
-	level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " <<
-		(pos.y / SCALE) << " " << shouldLoop << " " << nodes.size();
+	level << std::to_string(id) << " " << etype << " " << pos.x << " " <<
+		pos.y << " " << shouldLoop << " " << nodes.size();
 
 	for (int i = 0; i < nodes.size(); i++)
 	{

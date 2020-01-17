@@ -1,7 +1,5 @@
 #include "Renderer.h"
 
-int Renderer::SCALE = 1;
-
 Renderer::Renderer()
 {
 	layersVisible["BACK"] = true;
@@ -14,16 +12,6 @@ Renderer::Renderer()
 Renderer::~Renderer()
 {
 
-}
-
-int Renderer::GetScale()
-{
-	return SCALE;
-}
-
-void Renderer::SetScale(int s)
-{
-	SCALE = s;
 }
 
 bool Renderer::IsVisible(DrawingLayer layer)

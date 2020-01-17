@@ -25,32 +25,7 @@ Texture::~Texture()
 
 void Texture::LoadTexture()
 {
-	/*
-	unsigned char* textureData = stbi_load(filePath, &width, &height, &bitDepth, 0);
-
-	if (!textureData)
-	{
-		printf("Failed to find %s\n", filePath);
-		return;
-	}
-
-	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_2D, textureID);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	if (rgba)
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
-	else
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
-
-	glGenerateMipmap(GL_TEXTURE_2D);
-
-	stbi_image_free(textureData);
-	*/
+	
 }
 
 void Texture::LoadTexture(SDL_Surface* surface)

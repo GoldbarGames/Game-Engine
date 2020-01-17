@@ -50,8 +50,8 @@ void Entity::CreateCollider(float startX, float startY, float x, float y, float 
 	collider->w = (int)1;
 	collider->h = (int)1;
 
-	colliderWidth = w * Renderer::GetScale();
-	colliderHeight = h * Renderer::GetScale();
+	colliderWidth = w;
+	colliderHeight = h;
 
 	if (collisionBounds != nullptr)
 		delete collisionBounds;
@@ -128,7 +128,7 @@ Vector2 Entity::GetPosition()
 
 Vector2 Entity::GetCenter()
 {
-	return Vector2(currentSprite->windowRect.w / 2, currentSprite->windowRect.h / 2);
+	return Vector2(currentSprite->frameWidth / 2, currentSprite->frameHeight / 2);
 }
 
 void Entity::SetPosition(Vector2 newPosition)
@@ -161,9 +161,6 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 
 void Entity::Render(Renderer * renderer)
 {
-	if (id == 54)
-		int test3 = 0;
-
 	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)

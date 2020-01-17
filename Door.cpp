@@ -69,18 +69,16 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 		myBounds.y = (int)spawnPosition.y;
 	}
 
-	int SCALE = Renderer::GetScale();
-
 	SDL_Rect tileBelowMyBoundsLeft = myBounds;
 	tileBelowMyBoundsLeft.y += myBounds.h;
-	tileBelowMyBoundsLeft.w = game.editor->GRID_SIZE * SCALE;
-	tileBelowMyBoundsLeft.h = game.editor->GRID_SIZE * SCALE;
+	tileBelowMyBoundsLeft.w = game.editor->GRID_SIZE;
+	tileBelowMyBoundsLeft.h = game.editor->GRID_SIZE;
 
 	SDL_Rect tileBelowMyBoundsRight = myBounds;
-	tileBelowMyBoundsRight.x += game.editor->GRID_SIZE * SCALE;
+	tileBelowMyBoundsRight.x += game.editor->GRID_SIZE;
 	tileBelowMyBoundsRight.y += myBounds.h;
-	tileBelowMyBoundsRight.w = game.editor->GRID_SIZE * SCALE;
-	tileBelowMyBoundsRight.h = game.editor->GRID_SIZE * SCALE;
+	tileBelowMyBoundsRight.w = game.editor->GRID_SIZE;
+	tileBelowMyBoundsRight.h = game.editor->GRID_SIZE;
 
 	bool hasGroundLeft = false;
 	bool hasGroundRight = false;
@@ -127,10 +125,9 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 
 void Door::Save(std::ostringstream& level)
 {
-	int SCALE = Renderer::GetScale();
 	Vector2 pos = GetPosition();
 
-	level << std::to_string(id) << " " << etype << " " << (pos.x / SCALE) << " " <<
-		(pos.y / SCALE) << " " << (GetDestination().x / SCALE) <<
-		" " << (GetDestination().y / SCALE) << " " << spriteIndex << "" << std::endl;
+	level << std::to_string(id) << " " << etype << " " << pos.x << " " <<
+		pos.y << " " << GetDestination().x << " " << GetDestination().y 
+		<< " " << spriteIndex << "" << std::endl;
 }
