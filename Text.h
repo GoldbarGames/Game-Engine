@@ -41,6 +41,7 @@ public:
 	void SetText(string text, Color color = { 255, 255, 255, 255 });
 	void SetTextWrapped(string text, Uint32 width);
 	void Render(Renderer* renderer);
+	void Render(Renderer* renderer, Vector2 offset);
 	void SetPosition(float x, float y);
 	void SetPosition(int x, int y);
 	void SetFont(TTF_Font* newFont);

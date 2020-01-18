@@ -3,13 +3,15 @@
 
 EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, Game& game, Vector2 size, Color color)
 {
-	buttonTexture = game.spriteManager->GetImage("assets/editor/btn" + filename + ".png");
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
 
 	buttonColor = color;
 
-	position = pos;
+	image = new Sprite(1, game.spriteManager, "assets/editor/btn" + filename + ".png", 
+		game.renderer->shaders["default"], Vector2(0, 0));
+
+	position = Vector2(pos.x * 2, pos.y * 2);
 	name = filename;
 
 	//SDL_QueryTexture(buttonTexture, NULL, NULL, &buttonTextureRect.w, &buttonTextureRect.h);
@@ -27,7 +29,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	{
 		buttonWindowRect.w = (int)size.x;
 	}
-	else if (buttonTexture == nullptr)
+	else if (image == nullptr)
 	{
 		buttonWindowRect.w = 50;
 	}
@@ -40,7 +42,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	{
 		buttonWindowRect.h = (int)size.y;
 	}
-	else if (buttonTexture == nullptr)
+	else if (image == nullptr)
 	{
 		buttonWindowRect.h = 50;
 	}
@@ -61,18 +63,10 @@ void EditorButton::Render(Renderer* renderer)
 	buttonWindowRect.x = (int)position.x;
 	buttonWindowRect.y = (int)position.y;
 
-	if (buttonTexture != nullptr)
-	{
-		//renderer->RenderCopy(buttonTexture, &buttonTextureRect, &buttonWindowRect);
-	}		
-	else
-	{
-		SDL_SetRenderDrawColor(renderer->renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
-		SDL_RenderFillRect(renderer->renderer, &buttonWindowRect);
-		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-	}
+	Vector2 pos = Vector2(renderer->camera.position.x, renderer->camera.position.y);
 
-	text->Render(renderer);
+	image->Render(position + pos, renderer);
+	text->Render(renderer, pos);
 }
 
 bool EditorButton::IsClicked(const int& x, const int& y)

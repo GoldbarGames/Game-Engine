@@ -16,10 +16,10 @@ class Renderer;
 class EditorButton
 {
 public:
-	Texture * buttonTexture = nullptr;
 	SDL_Rect buttonTextureRect;
 	SDL_Rect buttonWindowRect;
 
+	Sprite* image = nullptr;
 	Text* text;
 	Color buttonColor;
 

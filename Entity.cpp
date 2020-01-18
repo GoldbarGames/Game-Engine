@@ -12,7 +12,8 @@ unsigned int Entity::nextValidID = 0;
 // since they will offset the next valid ID every time we save the level
 Entity::Entity(Vector2 pos)
 {
-	position = pos;
+	position = Vector2(pos.x * 2, pos.y * 2);
+	//position = pos;
 	id = nextValidID;
 	nextValidID++;
 	CreateCollider(TILE_SIZE, TILE_SIZE, 0, 0, TILE_SIZE, TILE_SIZE);
@@ -169,6 +170,34 @@ void Entity::Render(Renderer * renderer)
 			currentSprite->Render(position, 0, -1, flip, renderer, 0);
 
 		RenderDebug(renderer, Vector2(0,0));
+	}
+}
+
+void Entity::Render(Renderer* renderer, Vector2 offset)
+{
+	if (currentSprite != nullptr && renderer->IsVisible(layer))
+	{
+		if (animator != nullptr)
+			currentSprite->Render(position + offset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+		else
+			currentSprite->Render(position + offset, 0, -1, flip, renderer, 0);
+
+		RenderDebug(renderer, Vector2(0, 0));
+	}
+}
+
+void Entity::RenderParallax(Renderer* renderer, float p)
+{
+	Vector2 renderPosition = Vector2(position.x + (renderer->camera.position.x * p), position.y);
+
+	if (currentSprite != nullptr && renderer->IsVisible(layer))
+	{
+		if (animator != nullptr)
+			currentSprite->Render(renderPosition, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+		else
+			currentSprite->Render(renderPosition, 0, -1, flip, renderer, 0);
+
+		RenderDebug(renderer, Vector2(0, 0));
 	}
 }
 

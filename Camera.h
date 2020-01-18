@@ -20,8 +20,11 @@ public:
 	glm::mat4 projection;
 	glm::mat4 CalculateViewMatrix();
 	void Zoom(float amount, float screenWidth, float screenHeight);
-private:
+
 	glm::vec3 position;
+
+private:
+	
 	glm::vec3 front;
 	glm::vec3 up;
 	glm::vec3 right;

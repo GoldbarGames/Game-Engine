@@ -1215,6 +1215,8 @@ void Editor::DrawGrid()
 
 void Editor::Render(Renderer* renderer)
 {
+	Vector2 cameraOffset = Vector2(renderer->camera.position.x, renderer->camera.position.y);
+
 	// Draw a white rectangle around the currently highlighted grid tile
 	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 	SDL_RenderDrawRect(renderer->renderer, &hoveredTileRect);

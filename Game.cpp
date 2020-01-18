@@ -654,12 +654,13 @@ Background* Game::SpawnBackground(Vector2 pos)
 {
 	Background* background = new Background(pos);
 
-	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_ground.png", -90);
-	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_sky1.png", -99);
-	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_front.png", -10);
-	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_front_curved.png", -11);
-	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_back.png", -20);
-	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_back_curved.png", -21);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_sky1.png", -99, 1.0f);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_ground.png", -90, 1.0f);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_back_curved.png", -21, 0.7f);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_back.png", -20, 0.6f);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_front_curved.png", -11, 0.5f);
+	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_front.png", -10, 0.4f);
+
 
 	SortEntities(background->layers);
 
@@ -865,28 +866,8 @@ void Game::CheckDeleteEntities()
 
 void Game::HandleEditMode()
 {
-	//TODO: Make this a function
-	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-	float cameraSpeed = 1.0f;
-
-	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
-	{
-		//camera.y -= (editor->GRID_SIZE * Renderer::GetScale());
-	}
-	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
-	{
-		//camera.y += (editor->GRID_SIZE * Renderer::GetScale());
-	}
-
-	if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
-	{
-		//camera.x -= (editor->GRID_SIZE * Renderer::GetScale());
-
-	}
-	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
-	{
-		//camera.x += (editor->GRID_SIZE * Renderer::GetScale());
-	}
+	const Uint8* input = SDL_GetKeyboardState(NULL);
+	renderer->camera.KeyControl(input, dt);
 
 	editor->HandleEdit();
 }
@@ -1424,13 +1405,13 @@ void Game::Render()
 		openedMenus[openedMenus.size() - 1]->Render(renderer);
 	}
 
-	/*
+	
 	
 
 	// Render editor toolbox
 	if (GetModeEdit())
 	{
-		editor->Render(renderer, uniformModel);
+		editor->Render(renderer);
 	}
 
 	// Draw stuff for debugging purposes here
@@ -1445,30 +1426,26 @@ void Game::Render()
 	}
 
 	if (showFPS)
-		fpsText->Render(renderer, uniformModel);
+		fpsText->Render(renderer);
 	
 	if (showTimer)
-		timerText->Render(renderer, uniformModel);
+		timerText->Render(renderer);
 
 	if (currentLevel != "title")
 	{
-		bugText->Render(renderer, uniformModel);
-		etherText->Render(renderer, uniformModel);
+		bugText->Render(renderer);
+		etherText->Render(renderer);
 	}	
 
 	// Draw the screen overlay
-	SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
-	SDL_SetRenderDrawColor(renderer->renderer, overlayColor.r, overlayColor.g, overlayColor.b, overlayColor.a);
-	SDL_RenderFillRect(renderer->renderer, &overlayRect);
-	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-	SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
+	//SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
+	//SDL_SetRenderDrawColor(renderer->renderer, overlayColor.r, overlayColor.g, overlayColor.b, overlayColor.a);
+	//SDL_RenderFillRect(renderer->renderer, &overlayRect);
+	//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+	//SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
 
 	if (watchingCutscene)
 		cutscene->Render(renderer);
-
-
-
-		*/
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);

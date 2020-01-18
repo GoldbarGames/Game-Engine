@@ -18,17 +18,19 @@ Background::~Background()
 
 void Background::Render(Renderer * renderer, GLuint uniformModel)
 {
+	Vector2 offset = Vector2(10, 0);
+
 	//TODO: For parallax scrolling, manipulate the position
 	for (unsigned int i = 0; i < layers.size(); i++)
 	{
-		layers[i]->Render(renderer);
+		layers[i]->RenderParallax(renderer, 0.5f);
 	}
 }
 
-void Background::AddLayer(SpriteManager* spriteManager, Renderer* renderer, std::string filepath, int drawOrder)
+void Background::AddLayer(SpriteManager* spriteManager, Renderer* renderer, std::string filepath, int drawOrder, float parallax)
 {
 	Sprite* layer = new Sprite(1, spriteManager, filepath, renderer->shaders["default"], Vector2(0, 0));
-	Entity* bg = new BackgroundLayer(position);
+	Entity* bg = new BackgroundLayer(position, parallax);
 	bg->drawOrder = drawOrder;
 	bg->SetSprite(layer);
 	layers.emplace_back(bg);

@@ -6,8 +6,7 @@
 using std::string;
 
 Tile::Tile(Vector2 pos, Vector2 frame, Texture * image, Renderer * renderer) : Entity(pos)
-{
-	position = Vector2(pos.x * 2, pos.y * 2);
+{	
 	ChangeSprite(frame, image, renderer);
 	etype = "tile";
 }

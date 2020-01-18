@@ -108,6 +108,14 @@ void Text::Render(Renderer* renderer)
 	}
 }
 
+void Text::Render(Renderer* renderer, Vector2 offset)
+{
+	if (textSprite != nullptr)
+	{
+		textSprite->Render(position + offset, renderer);
+	}
+}
+
 void Text::SetPosition(float x, float y)
 {
 	position.x = x;
