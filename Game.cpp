@@ -199,12 +199,6 @@ void Game::InitOpenGL()
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	// Set up viewport size 
-	// TODO: Don't hardcode these numbers
-
-	float screenWidth = 1280;
-	float screenHeight = 720;
-
 	glViewport(0, 0, screenWidth, screenHeight);
 
 	SDL_GL_SwapWindow(window);

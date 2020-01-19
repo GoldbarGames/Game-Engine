@@ -19,7 +19,6 @@
 
 #include "Mesh.h"
 #include "Shader.h"
-#include "Window.h"
 #include "Camera.h"
 #include "Texture.h"
 
