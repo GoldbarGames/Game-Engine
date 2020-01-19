@@ -1,10 +1,11 @@
 #include "Camera.h"
+#include "Entity.h"
 #include <SDL_scancode.h>
 
 Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, 
 	GLfloat startYaw, GLfloat startPitch, 
 	GLfloat startMovementSpeed, GLfloat startTurnSpeed,
-	GLfloat startZoom)
+	GLfloat startZoom, float width, float height)
 {
 	position = startPosition;
 	worldUp = startUp;
@@ -18,8 +19,8 @@ Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp,
 	projection = glm::mat4(1.0f);
 	orthoZoom = startZoom;
 
-	float screenWidth = 1280.0f;
-	float screenHeight = 720.0f;
+	screenWidth = 1280.0f;
+	screenHeight = 720.0f;
 
 	Zoom(0.0f, screenWidth, screenHeight);
 
@@ -34,6 +35,15 @@ Camera::Camera()
 Camera::~Camera()
 {
 
+}
+
+void Camera::FollowTarget()
+{
+	if (target != nullptr)
+	{
+		position = glm::vec3(target->GetPosition().x - (screenWidth * 0.5f), 
+			target->GetPosition().y - (screenHeight * 0.5f), position.z);
+	}
 }
 
 glm::mat4 Camera::CalculateViewMatrix()

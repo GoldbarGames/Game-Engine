@@ -53,6 +53,7 @@ void Ladder::Render(Renderer * renderer, GLuint uniformModel)
 
 	if (GetModeDebug())
 	{
+		/*
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 255);
 		SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
 
@@ -61,6 +62,7 @@ void Ladder::Render(Renderer * renderer, GLuint uniformModel)
 
 		SDL_RenderDrawRect(renderer->renderer, collider.collisionBounds);
 		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+		*/
 	}
 }
 

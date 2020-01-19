@@ -1197,7 +1197,7 @@ void Editor::ToggleTileset()
 
 void Editor::DrawGrid()
 {
-	SDL_SetRenderDrawColor(game->renderer->renderer, 64, 64, 64, 64);
+	//SDL_SetRenderDrawColor(game->renderer->renderer, 64, 64, 64, 64);
 
 	for (int x = 0; x < 100; x++)
 	{
@@ -1206,11 +1206,11 @@ void Editor::DrawGrid()
 			SDL_Rect rect;
 			rect.x = x * GRID_SIZE;
 			rect.y = y * GRID_SIZE;
-			SDL_RenderDrawRect(game->renderer->renderer, &rect);
+			//SDL_RenderDrawRect(game->renderer->renderer, &rect);
 		}
 	}
 
-	SDL_SetRenderDrawColor(game->renderer->renderer, 0, 0, 0, 255);
+	//SDL_SetRenderDrawColor(game->renderer->renderer, 0, 0, 0, 255);
 }
 
 void Editor::Render(Renderer* renderer)
@@ -1218,24 +1218,27 @@ void Editor::Render(Renderer* renderer)
 	Vector2 cameraOffset = Vector2(renderer->camera.position.x, renderer->camera.position.y);
 
 	// Draw a white rectangle around the currently highlighted grid tile
-	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-	SDL_RenderDrawRect(renderer->renderer, &hoveredTileRect);
-	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+	//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+	//SDL_RenderDrawRect(renderer->renderer, &hoveredTileRect);
+	//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 
 	// Draw the object or tile that will be placed here, if any
 	if (objectPreview != nullptr && objectPreview->GetSprite() != nullptr)
 	{	
 		if (GetModeDebug())
 		{
-			SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
+			//SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
+			
+			/*
 			if (!objectPreview->CanSpawnHere(Vector2(hoveredTileRect.x, hoveredTileRect.y), *game, false))
 				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 128);
 			else
 				SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 128);
+				*/
 
-			SDL_RenderFillRect(renderer->renderer, objectPreview->GetSprite()->GetRect());
-			SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
-			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+			//SDL_RenderFillRect(renderer->renderer, objectPreview->GetSprite()->GetRect());
+			//SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
+			//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
 
 		objectPreview->GetSprite()->Render(Vector2(hoveredTileRect.x, hoveredTileRect.y),
@@ -1243,17 +1246,18 @@ void Editor::Render(Renderer* renderer)
 
 		if (placingDoor && currentDoor != nullptr)
 		{
-			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+			//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 
 			Vector2 doorCenter = currentDoor->GetCenter();
 			Vector2 doorPos = currentDoor->GetPosition() + doorCenter;
 			//SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, hoveredTileRect.x + doorCenter.x, hoveredTileRect.y + doorCenter.y);
 
-			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+			//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
 	}
 
-	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+	//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
 		if (game->entities[i]->etype == "door")
@@ -1270,20 +1274,21 @@ void Editor::Render(Renderer* renderer)
 			}	
 		}
 	}
-	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+	
+	//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 
 	if (objectMode == "inspect" && selectedEntity != nullptr)
 	{
 		// Draw a yellow rectangle around the currently selected object
-		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
-		SDL_RenderDrawRect(renderer->renderer, selectedEntity->GetBounds());
+		//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
+		//SDL_RenderDrawRect(renderer->renderer, selectedEntity->GetBounds());
 
 		// Draw the box that goes underneath all the properties
-		SDL_SetRenderDrawColor(renderer->renderer, 128, 128, 128, 255);
-		SDL_RenderFillRect(renderer->renderer, &objectPropertiesRect);
+		//SDL_SetRenderDrawColor(renderer->renderer, 128, 128, 128, 255);
+		//SDL_RenderFillRect(renderer->renderer, &objectPropertiesRect);
 		
 		// Draw the text for all the properties
-		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+		//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 
 		for (unsigned int i = 0; i < properties.size(); i++)
 		{
@@ -1297,23 +1302,23 @@ void Editor::Render(Renderer* renderer)
 			properties[i]->text->Render(renderer);
 		}
 
-		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+		//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
 	else
 	{
 		if (objectMode == "tile" || objectMode == "replace" || objectMode == "copy")
 		{
 			// Draw a white rectangle around the entire tilesheet
-			SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 255, 255);
-			SDL_RenderFillRect(renderer->renderer, &toolboxWindowRect);
+			//SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 255, 255);
+			//SDL_RenderFillRect(renderer->renderer, &toolboxWindowRect);
 
 			// Draw the tilesheet (only if we are placing a tile)
 			//SDL_RenderCopy(renderer->renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
 
 			// Draw a yellow rectangle around the currently selected tileset tile
-			SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
-			SDL_RenderDrawRect(renderer->renderer, &selectedRect);
-			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+			//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
+			//SDL_RenderDrawRect(renderer->renderer, &selectedRect);
+			//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
 	}	
 
@@ -1354,14 +1359,14 @@ void Editor::Render(Renderer* renderer)
 	if (showDialogPopup)
 	{
 		// Draw the box that goes underneath the popup dialog
-		SDL_SetRenderDrawColor(renderer->renderer, 128, 128, 128, 255);
-		SDL_RenderFillRect(renderer->renderer, &dialogRect);
+		//SDL_SetRenderDrawColor(renderer->renderer, 128, 128, 128, 255);
+		//SDL_RenderFillRect(renderer->renderer, &dialogRect);
 
 		// Draw the text for the popup dialog
-		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+		//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 		dialogText->Render(renderer);
 		dialogInput->Render(renderer);
-		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+		//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
 }
 

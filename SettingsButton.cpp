@@ -146,10 +146,7 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	}
 	else if (name == "Vsync")
 	{ 
-		game.renderer->CreateSDLRenderer(game.window, selectedOption);
-
-		//TODO: This only works if we are using OpenGL for rendering!
-		//SDL_GL_SetSwapInterval(int interval)
+		SDL_GL_SetSwapInterval(selectedOption);
 	}
 	else if (name == "Sound Volume")
 	{

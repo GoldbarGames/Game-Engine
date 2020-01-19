@@ -7,12 +7,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 //#include <GLFW/glfw3.h>
 
+class Entity;
+
 class Camera
 {
 public:
 	Camera();
 	Camera(glm::vec3 startPosition, glm::vec3 startUp, GLfloat startYaw, GLfloat startPitch,
-		GLfloat startMovementSpeed, GLfloat startTurnSpeed, GLfloat startZoom);
+		GLfloat startMovementSpeed, GLfloat startTurnSpeed, GLfloat startZoom, float width, float height);
 	~Camera();
 
 	void KeyControl(const Uint8* input, GLfloat dt);
@@ -23,6 +25,10 @@ public:
 
 	glm::vec3 position;
 
+	Entity* target = nullptr;
+
+	void FollowTarget();
+
 private:
 	
 	glm::vec3 front;
@@ -32,6 +38,9 @@ private:
 
 	float orthoZoom = 4.0f;
 	bool useOrthoCamera = true;
+
+	float screenWidth = 1280;
+	float screenHeight = 720;
 	
 
 	GLfloat yaw;

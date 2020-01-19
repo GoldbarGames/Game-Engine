@@ -22,18 +22,9 @@ public:
 	float now = 0;
 
 	std::unordered_map<std::string, ShaderProgram*> shaders;
-	SDL_Renderer * renderer;
-	int RenderCopy(SDL_Texture* texture, const SDL_Rect* srcrect, const SDL_Rect* dstrect);
-
-	int RenderCopyEx(SDL_Texture* texture, const SDL_Rect* srcrect, const SDL_Rect* dstrect,
-		const double angle, const SDL_Point* center, const SDL_RendererFlip flip);
-
-	SDL_Texture* CreateTextureFromSurface(SDL_Surface* surface);
 
 	void ToggleVisibility(std::string layer);
 	bool IsVisible(DrawingLayer layer);
-
-	void CreateSDLRenderer(SDL_Window* window, bool vsync);
 
 	Renderer();
 	~Renderer();

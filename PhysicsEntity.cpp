@@ -541,6 +541,7 @@ void PhysicsEntity::Render(Renderer * renderer)
 
 		if (GetModeDebug())
 		{
+			/*
 			if (impassable)
 				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
 			else
@@ -552,6 +553,7 @@ void PhysicsEntity::Render(Renderer * renderer)
 
 			SDL_RenderDrawRect(renderer->renderer, collisionBounds);
 			SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+			*/
 		}
 	}
 

@@ -201,12 +201,16 @@ void Game::InitOpenGL()
 
 	// Set up viewport size 
 	// TODO: Don't hardcode these numbers
-	glViewport(0, 0, 1280, 720);
+
+	float screenWidth = 1280;
+	float screenHeight = 720;
+
+	glViewport(0, 0, screenWidth, screenHeight);
 
 	SDL_GL_SwapWindow(window);
 
 	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), 
-		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f, screenWidth, screenHeight);
 
 	CreateShaders(); // we must create the shaders at this point
 }
@@ -222,7 +226,6 @@ void Game::InitSDL()
 	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));
 
 	renderer = new Renderer();
-	renderer->CreateSDLRenderer(window, true);
 }
 
 void Game::EndSDL()
@@ -230,7 +233,7 @@ void Game::EndSDL()
 	// Delete our OpengL context
 	SDL_GL_DeleteContext(mainContext);
 
-	SDL_DestroyRenderer(renderer->renderer);	
+	//SDL_DestroyRenderer(renderer->renderer);	
 	SDL_DestroyWindow(window);	
 	window = nullptr;
 	
@@ -732,6 +735,8 @@ Player* Game::SpawnPlayer(Vector2 position)
 
 	entities.emplace_back(player);
 
+	renderer->camera.target = player;
+
 	return player;
 }
 
@@ -1199,8 +1204,6 @@ bool Game::HandleEvent(SDL_Event& event)
 				SetModeEdit(!GetModeEdit());
 				if (GetModeEdit())
 				{
-					//camera.x = camera.x - ((int)camera.x % (editor->GRID_SIZE * Renderer::GetScale()));
-					//camera.y = camera.y - ((int)camera.y % (editor->GRID_SIZE * Renderer::GetScale()));
 					editor->StartEdit();
 				}
 				else
@@ -1325,13 +1328,10 @@ void Game::UpdateOverlayColor(int& color, const int& target)
 void Game::Update()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
-	renderer->camera.KeyControl(input, dt);
+	//renderer->camera.KeyControl(input, dt);
 
-	// For non-moving camera, set offset based on tile size and scale
-	const int OFFSET = -4;
-	//camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
-	//camera = Vector2(0, 0);
-	//std::cout << camera.y << std::endl;
+
+
 
 	if (player != nullptr)
 	{
@@ -1364,6 +1364,9 @@ void Game::Update()
 	{		
 		entities[i]->Update(*this);
 	}
+
+	// Update the camera last
+	renderer->camera.FollowTarget();
 }
 
 void Game::RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEntities)
@@ -1417,12 +1420,14 @@ void Game::Render()
 	// Draw stuff for debugging purposes here
 	if (GetModeDebug())
 	{
+		/*
 		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
 		for (unsigned int i = 0; i < debugRectangles.size(); i++)
 		{
 			SDL_RenderDrawRect(renderer->renderer, debugRectangles[i]);
 		}
 		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+		*/
 	}
 
 	if (showFPS)

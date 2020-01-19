@@ -57,6 +57,7 @@ void Path::Render(Renderer * renderer, GLuint uniformModel)
 		// Only show the points in the editor
 		if (GetModeEdit())
 		{		
+			/*
 			if (i == 0)
 				SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
 			else if (i == nodes.size() - 1)
@@ -65,6 +66,7 @@ void Path::Render(Renderer * renderer, GLuint uniformModel)
 				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
 
 			SDL_RenderFillRect(renderer->renderer, pointRect);
+			*/
 		}
 
 		// Draw a white line connecting to the next point
@@ -78,8 +80,8 @@ void Path::Render(Renderer * renderer, GLuint uniformModel)
 		}
 
 		const SDL_Rect* nextRect = nodes[nextIndex]->CalcRenderRect(Vector2(0,0));
-		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-		SDL_RenderDrawLine(renderer->renderer, pointRect->x, pointRect->y, nextRect->x, nextRect->y);
+		//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+		//SDL_RenderDrawLine(renderer->renderer, pointRect->x, pointRect->y, nextRect->x, nextRect->y);
 	}
 }
 
