@@ -305,8 +305,19 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	// Translate, Rotate, Scale
 	model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
 	//model = glm::rotate(model, currentAngle * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(-1 * scale.x * texture->GetWidth() / (GLfloat)(framesPerRow), 
-		scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
+
+	if (flip != SDL_FLIP_HORIZONTAL)
+	{
+		model = glm::scale(model, glm::vec3(-1 * scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
+			scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
+	}
+	else
+	{
+		model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
+			scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
+	}
+
+	
 
 	// Set uniform variables
 	glUniformMatrix4fv(renderer->uniformModel, 1, GL_FALSE, glm::value_ptr(model));
