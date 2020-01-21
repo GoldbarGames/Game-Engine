@@ -18,5 +18,6 @@ public:
 private:
 	GLuint VAO, VBO, IBO;
 	GLsizei indexCount;
+	GLenum mode = GL_TRIANGLES;
 };
 

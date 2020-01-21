@@ -303,7 +303,18 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	glm::mat4 model(1.0f);
 
 	// Translate, Rotate, Scale
-	model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
+	
+	if (renderRelativeToCamera)
+	{
+		model = glm::translate(model, glm::vec3(position.x + renderer->camera.position.x, 
+			position.y + renderer->camera.position.y, -2.0f));
+	}
+	else
+	{
+		model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
+	}
+
+
 	//model = glm::rotate(model, currentAngle * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
 
 	if (flip != SDL_FLIP_HORIZONTAL)
@@ -327,6 +338,8 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 	// Render Mesh
 	mesh->RenderMesh();
+
+
 
 	// Update this rectangle for calculating physics
 	windowRect.x = position.x;

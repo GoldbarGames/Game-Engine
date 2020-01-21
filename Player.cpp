@@ -45,21 +45,6 @@ void Player::Update(Game& game)
 	{
 		//TODO: Get input for handling the textbox
 		animator->SetBool("holdingUp",  false);
-
-		if (!game.cutscene->isReadingNextLine)
-		{
-			const Uint8* input = SDL_GetKeyboardState(NULL);
-
-			if (input[SDL_SCANCODE_DOWN])
-			{
-				game.cutscene->ReadNextLine();
-			}
-		}
-		else
-		{
-			//TODO: If we press the button before the line has finished displaying,
-			// then instantly show all the text (maybe a different button)
-		}
 	}
 	else
 	{

@@ -1351,7 +1351,25 @@ void Game::Update()
 	}
 
 	if (watchingCutscene)
+	{
 		cutscene->Update();
+		
+		if (!cutscene->isReadingNextLine)
+		{
+			const Uint8* input = SDL_GetKeyboardState(NULL);
+
+			if (input[SDL_SCANCODE_DOWN])
+			{
+				cutscene->ReadNextLine();
+			}
+		}
+		else
+		{
+			//TODO: If we press the button before the line has finished displaying,
+			// then instantly show all the text (maybe a different button)
+		}
+	}
+		
 
 	// Update all entities
 	for (unsigned int i = 0; i < entities.size(); i++)

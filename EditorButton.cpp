@@ -50,6 +50,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	{
 		buttonWindowRect.h = buttonTextureRect.h;
 	}
+
 	text->SetPosition(pos.x, pos.y + (buttonWindowRect.h / 2) - (text->GetTextHeight() / 2));
 }
 

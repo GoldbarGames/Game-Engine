@@ -40,6 +40,8 @@ public:
 	Mesh* mesh;
 	Texture* texture;
 
+	bool renderRelativeToCamera = false;
+
 	float animLow = 0;
 	float animHigh = 0;
 	float lastAnimTime = -1;

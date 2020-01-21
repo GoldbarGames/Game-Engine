@@ -98,12 +98,12 @@ void Camera::KeyControl(const Uint8* input, GLfloat dt)
 
 	if (input[SDL_SCANCODE_N])
 	{
-		Zoom(-0.025f, 1280.0f, 720.0f);
+		Zoom(-0.025f, screenWidth, screenHeight);
 	}
 
 	if (input[SDL_SCANCODE_M])
 	{
-		Zoom(0.025f, 1280.0f, 720.0f);
+		Zoom(0.025f, screenWidth, screenHeight);
 	}
 }
 
@@ -113,8 +113,10 @@ void Camera::Zoom(float amount, float screenWidth, float screenHeight)
 
 	if (useOrthoCamera)
 	{
-		projection = glm::ortho(0.0f, (GLfloat)screenWidth * orthoZoom,
-			(GLfloat)screenHeight * orthoZoom, 0.0f, -1.0f, 10.0f);
+		GLfloat zoomX = ((GLfloat)screenWidth * orthoZoom);
+		GLfloat zoomY = ((GLfloat)screenHeight * orthoZoom);
+
+		projection = glm::ortho(0.0f, zoomX, zoomY, 0.0f, -1.0f, 10.0f);
 	}
 	else
 	{

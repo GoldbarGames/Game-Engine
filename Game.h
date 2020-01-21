@@ -88,6 +88,9 @@ public:
 	int bugsDefeated = 0;
 	int bugsRemaining = 0;
 
+	// play this cutscene on level start
+	std::string levelStartCutscene = "";
+
 
 	using clock = std::chrono::steady_clock;
 	using seconds = std::chrono::seconds;

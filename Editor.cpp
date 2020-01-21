@@ -6,6 +6,7 @@
 #include <iterator>
 #include "Tile.h"
 #include "debug_state.h"
+#include "CutsceneTrigger.h"
 
 using std::string;
 
@@ -1593,6 +1594,19 @@ void Editor::CreateLevelFromString(std::string level)
 			int spriteIndex = std::stoi(tokens[index++]);
 			Shroom* entity = game->SpawnShroom(Vector2(positionX, positionY), spriteIndex);
 		}
+		else if (etype == "cutscene-trigger")
+		{
+			const std::string label = tokens[index++];
+			int w = std::stoi(tokens[index++]);
+			int h = std::stoi(tokens[index++]);
+			CutsceneTrigger* entity = new CutsceneTrigger(label, Vector2(positionX, positionY), w, h);
+			game->entities.push_back(entity);
+		}
+		else if (etype == "cutscene-start")
+		{
+			const std::string label = tokens[index++];
+			game->levelStartCutscene = label;
+		}
 		else if (etype == "path")
 		{
 			bool shouldLoop = std::stoi(tokens[index++]);
@@ -1653,7 +1667,6 @@ void Editor::CreateLevelFromString(std::string level)
 			}
 		}
 	}
-
 }
 
 void Editor::ClearLevelEntities()
@@ -1662,7 +1675,6 @@ void Editor::ClearLevelEntities()
 		delete game->entities[i];
 	game->entities.clear();
 }
-
 
 void Editor::InitLevelFromFile(std::string levelName)
 {
@@ -1674,6 +1686,8 @@ void Editor::InitLevelFromFile(std::string levelName)
 	//game->camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
 
 	//std::cout << game->camera.y << std::endl;
+
+	game->levelStartCutscene = "";
 
 	ClearLevelEntities();
 
@@ -1707,7 +1721,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 
 	unsigned int Y_OFFSET = 0; // -4 * TILE_SIZE * Renderer::GetScale();
 	if (levelName == "title")
-		Y_OFFSET = 0;
+		Y_OFFSET = 180;
 
 	for (unsigned int i = 0; i < NUM_BGS; i++)
 	{
@@ -1725,4 +1739,9 @@ void Editor::InitLevelFromFile(std::string levelName)
 	}
 
 	game->ResetText();
+
+	if (game->levelStartCutscene != "")
+	{
+		game->cutscene->PlayCutscene(game->levelStartCutscene);
+	}
 }

@@ -30,6 +30,16 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		buttonSettings->SetButtonsUpDownLeftRight(buttonSpellbook, buttonExit, buttonSpellbook, buttonExit);
 		buttonExit->SetButtonsUpDownLeftRight(buttonSettings, buttonResume, buttonSettings, buttonResume);
 
+		buttonResume->text->GetSprite()->renderRelativeToCamera = true;
+		buttonSpellbook->text->GetSprite()->renderRelativeToCamera = true;
+		buttonSettings->text->GetSprite()->renderRelativeToCamera = true;
+		buttonExit->text->GetSprite()->renderRelativeToCamera = true;
+
+		buttonResume->image->renderRelativeToCamera = true;
+		buttonSpellbook->image->renderRelativeToCamera = true;
+		buttonSettings->image->renderRelativeToCamera = true;
+		buttonExit->image->renderRelativeToCamera = true;
+
 		buttons.emplace_back(buttonResume);		
 		buttons.emplace_back(buttonSpellbook);		
 		buttons.emplace_back(buttonSettings);		
@@ -37,11 +47,13 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	}
 	else if (name == "Title")
 	{
+
+
 		int startWidth = screenWidth / 2;
 		int startHeight = 200;
 		int distance = 120;
 
-		int buttonPosX = 1000;
+		int buttonPosX = 640;
 
 		//TODO: The only way to center the button is to do startWidth - windowRect.w / 2,
 		// but I can't get windowRect.x here because the rect has not been created yet!
@@ -61,22 +73,34 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		buttonSettings->SetButtonsUpDownLeftRight(buttonPlay, buttonExit, buttonPlay, buttonExit);
 		buttonExit->SetButtonsUpDownLeftRight(buttonSettings, buttonPlay, buttonSettings, buttonPlay);
 
+		buttonPlay->text->GetSprite()->renderRelativeToCamera = true;
+		buttonSettings->text->GetSprite()->renderRelativeToCamera = true;
+		buttonExit->text->GetSprite()->renderRelativeToCamera = true;
+
+		buttonPlay->image->renderRelativeToCamera = true;
+		buttonSettings->image->renderRelativeToCamera = true;
+		buttonExit->image->renderRelativeToCamera = true;
+
 		buttons.emplace_back(buttonPlay);
 		buttons.emplace_back(buttonSettings);
 		buttons.emplace_back(buttonExit);
 
 		Text* textCopyright = new Text(game.renderer, game.headerFont, "Copyright 2020 Goldbar Games LLC");
 		textCopyright->SetPosition(startWidth - (textCopyright->GetTextWidth() / 2), 600);
+		textCopyright->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+		textCopyright->GetSprite()->renderRelativeToCamera = true;
 		texts.emplace_back(textCopyright);
 
-		Entity* titleCharacter = new Entity(Vector2(200, 200));
+		Entity* titleCharacter = new Entity(Vector2(200, 150));
 		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders["default"], Vector2(222, 370), false));
-		titleCharacter->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+		titleCharacter->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
+		titleCharacter->GetSprite()->renderRelativeToCamera = true;
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = new Entity(Vector2(320, 100));
 		titleLogo->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png", game.renderer->shaders["default"], Vector2(320, 137), false));
-		titleLogo->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+		titleLogo->GetSprite()->SetScale(Vector2(0.125f, 0.125f));
+		titleLogo->GetSprite()->renderRelativeToCamera = true;
 		images.emplace_back(titleLogo);
 	}
 	else if (name == "Settings")
@@ -215,14 +239,14 @@ MenuScreen::~MenuScreen()
 
 void MenuScreen::Render(Renderer* renderer)
 {
-	for (unsigned int i = 0; i < buttons.size(); i++)
-	{
-		buttons[i]->Render(renderer);
-	}
-
 	for (unsigned int i = 0; i < images.size(); i++)
 	{
 		images[i]->Render(renderer);
+	}
+
+	for (unsigned int i = 0; i < buttons.size(); i++)
+	{
+		buttons[i]->Render(renderer);
 	}
 
 	for (unsigned int i = 0; i < texts.size(); i++)
@@ -268,7 +292,8 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	}
 	else if (selectedButton->name == "Load Game")
 	{
-		game.PlayLevel("test1");
+		//TODO: Make this different when loading a save file with actual data in it
+		game.PlayLevel("test-vn");
 	}
 	else if (selectedButton->name == "Play Game")
 	{
