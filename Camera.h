@@ -20,6 +20,7 @@ public:
 	void KeyControl(const Uint8* input, GLfloat dt);
 	void MouseControl(GLfloat xChange, GLfloat yChange);
 	glm::mat4 projection;
+	glm::mat4 guiProjection;
 	glm::mat4 CalculateViewMatrix();
 	void Zoom(float amount, float screenWidth, float screenHeight);
 

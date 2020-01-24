@@ -52,8 +52,8 @@ class CutsceneManager
 	std::string currentText = "";
 	SceneLabel * currentLabel = nullptr;
 	CutsceneCommands commands;
-public:
-	Textbox * textbox = nullptr;
+public:	 
+	Textbox* textbox = nullptr;
 	Game* game = nullptr;
 	float timer = 0;
 	bool isCarryingOutCommands = false;

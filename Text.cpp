@@ -12,7 +12,6 @@ int Text::GetTextHeight()
 }
 
 //TODO: Refactor these constructors a little bit
-
 Text::Text(Renderer* newRenderer, TTF_Font* newFont)
 {
 	renderer = newRenderer;
@@ -53,6 +52,7 @@ void Text::SetFont(TTF_Font* newFont)
 	font = newFont;
 }
 
+//TODO: Maybe modify this or make another function to pass in a shader?
 void Text::SetText(string text, Color color)
 {
 	// empty string generates a null pointer
@@ -60,8 +60,13 @@ void Text::SetText(string text, Color color)
 	if (text == "")
 		text = " ";
 
+	bool keepScaleRelative = false;
+
 	if (textSprite != nullptr)
+	{
+		keepScaleRelative = textSprite->keepScaleRelativeToCamera;
 		delete textSprite;
+	}		
 
 	textColor = color;
 	txt = text; // translate the text here
@@ -73,6 +78,7 @@ void Text::SetText(string text, Color color)
 	textTexture->LoadTexture(textSurface);
 
 	textSprite = new Sprite(textTexture, renderer->shaders["default"]);
+	textSprite->keepScaleRelativeToCamera = keepScaleRelative;
 
 	if (textSurface != nullptr)
 		SDL_FreeSurface(textSurface);

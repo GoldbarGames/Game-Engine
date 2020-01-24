@@ -10,8 +10,9 @@ public:
 	std::vector<Entity*> layers;
 	Background(Vector2 pos);
 	~Background();
-	void Render(Renderer * renderer, GLuint uniformModel);
-	void AddLayer(SpriteManager* spriteManager, Renderer* renderer, std::string filepath, int drawOrder, float parallax);
+	void Render(Renderer * renderer);
+	void AddLayer(SpriteManager* spriteManager, Renderer* renderer, 
+		std::string filepath, int drawOrder, float parallax);
 	void DeleteLayers(Game& game);
 };
 

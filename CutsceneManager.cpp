@@ -234,6 +234,7 @@ void CutsceneManager::Update()
 		{
 			currentText += line->text[letterIndex];
 			textbox->text->SetTextWrapped(currentText, textbox->boxWidth);
+			textbox->text->GetSprite()->keepScaleRelativeToCamera = true;
 
 			//nextLetterTimer.Start(lettersPerFrame * delay);
 			letterIndex++;

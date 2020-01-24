@@ -225,16 +225,12 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	renderer->uniformOffsetTexture = shader->GetOffsetTextureLocation();
 	//uniformMultiplyColor = glGetUniformLocation(shader->GetID(), "multiplyColor");
 
-	glUniformMatrix4fv(renderer->uniformProjection, 1, GL_FALSE,
-		glm::value_ptr(renderer->camera.projection));
+	
+
+	
 
 	glUniformMatrix4fv(renderer->uniformView, 1, GL_FALSE,
 		glm::value_ptr(renderer->camera.CalculateViewMatrix()));
-
-	//you have a view matrix
-	//and you have a view matrix for the texture
-	//then multiply by texture view matrix to get the offset for the desired sprite in the larger texture
-	//you'll basically just use glm::translate
 
 	GLfloat totalFrames = (endFrame - startFrame) + 1;
 
@@ -314,6 +310,16 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
 	}
 
+	if (keepScaleRelativeToCamera)
+	{
+		glUniformMatrix4fv(renderer->uniformProjection, 1, GL_FALSE,
+			glm::value_ptr(renderer->camera.guiProjection));
+	}
+	else
+	{
+		glUniformMatrix4fv(renderer->uniformProjection, 1, GL_FALSE,
+			glm::value_ptr(renderer->camera.projection));
+	}
 
 	//model = glm::rotate(model, currentAngle * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
 

@@ -17,6 +17,7 @@ Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp,
 	turnSpeed = startTurnSpeed;
 
 	projection = glm::mat4(1.0f);
+	guiProjection = glm::ortho(0.0f, screenWidth * 2, screenHeight * 2, 0.0f, -1.0f, 10.0f);
 	orthoZoom = startZoom;
 
 	screenWidth = 1280.0f;

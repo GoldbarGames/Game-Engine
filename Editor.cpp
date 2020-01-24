@@ -42,6 +42,8 @@ Editor::Editor(Game& g)
 	
 
 	game->entities.clear();	
+
+	SetLayer(DrawingLayer::BACK);
 }
 
 Editor::~Editor()
@@ -74,13 +76,21 @@ void Editor::CreateEditorButtons()
 		if (i > buttonNames.size() - 1)
 			break;
 
-		buttons.emplace_back(new EditorButton("", buttonNames[i], Vector2(buttonX, screenHeight - buttonHeight), *game));
+		EditorButton* editorButton = new EditorButton("", buttonNames[i], Vector2(buttonX, screenHeight - buttonHeight), *game);
+		editorButton->image->keepScaleRelativeToCamera = true;
+		buttons.emplace_back(editorButton);
+
 		buttonX += buttonWidth + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
 	}
 
-	buttons.emplace_back(new EditorButton("", "PrevPage", Vector2(0, screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game));
-	buttons.emplace_back(new EditorButton("", "NextPage", Vector2((buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1),
-		screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game));
+	EditorButton* previousButton = new EditorButton("", "PrevPage", Vector2(0, screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
+	previousButton->image->keepScaleRelativeToCamera = true;
+	buttons.emplace_back(previousButton);
+	
+	EditorButton* nextButton = new EditorButton("", "NextPage", Vector2((buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1),
+		screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
+	nextButton->image->keepScaleRelativeToCamera = true;
+	buttons.emplace_back(nextButton);
 }
 
 void Editor::StartEdit()
@@ -150,8 +160,16 @@ void Editor::StartEdit()
 
 	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
 	{
-		layerButtons.emplace_back(new EditorButton(layerButtonNames[i], "Layer", Vector2(0, buttonY), *game, Vector2(layerButtonWidth, 50), { 128, 128, 128, 255 }));
-		layerVisibleButtons.emplace_back(new EditorButton("", "Visible", Vector2(layerButtonWidth, buttonY), *game, Vector2(50, 50)));
+		EditorButton* layerButton = new EditorButton(layerButtonNames[i], "Layer", Vector2(0, buttonY), *game, Vector2(layerButtonWidth, 50), { 128, 128, 128, 255 });
+		layerButton->image->keepScaleRelativeToCamera = true;
+		layerButton->text->GetSprite()->keepScaleRelativeToCamera = true;
+		layerButtons.emplace_back(layerButton);
+		
+		EditorButton* layerVisibleButton = new EditorButton("", "Visible", Vector2(layerButtonWidth, buttonY), *game, Vector2(50, 50));
+		layerVisibleButton->image->keepScaleRelativeToCamera = true;
+		layerVisibleButton->text->GetSprite()->keepScaleRelativeToCamera = true;
+		layerVisibleButtons.emplace_back(layerVisibleButton);
+
 		buttonY += layerButtonHeight + layerButtonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
 	}
 
@@ -905,6 +923,7 @@ void Editor::HandleEdit()
 
 	std::string clickedText = std::to_string(clickedX) + " " + std::to_string(clickedY);
 	cursorPosition->SetText("Position: " + clickedText);
+	cursorPosition->GetSprite()->keepScaleRelativeToCamera = true;
 
 	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 	{
@@ -1150,6 +1169,7 @@ void Editor::ToggleObjectMode(std::string mode)
 	}
 
 	currentEditModeLayer->SetText("Active Mode: " + objectMode);
+	currentEditModeLayer->GetSprite()->keepScaleRelativeToCamera = true;
 }
 
 void Editor::ToggleGridSize()
@@ -1185,6 +1205,7 @@ void Editor::SetLayer(DrawingLayer layer)
 {
 	drawingLayer = layer;
 	currentEditModeLayer->SetText("Drawing on layer: " + GetDrawingLayerName(drawingLayer));
+	currentEditModeLayer->GetSprite()->keepScaleRelativeToCamera = true;
 }
 
 void Editor::ToggleTileset()

@@ -41,6 +41,7 @@ public:
 	Texture* texture;
 
 	bool renderRelativeToCamera = false;
+	bool keepScaleRelativeToCamera = false;
 
 	float animLow = 0;
 	float animHigh = 0;

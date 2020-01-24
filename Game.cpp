@@ -166,6 +166,10 @@ void Game::CreateShaders()
 	ShaderProgram* shader2 = new ShaderProgram();
 	shader2->CreateFromFiles("Shaders/multiply.vert", "Shaders/multiply.frag");
 	renderer->shaders["multiply"] = shader2;
+
+	ShaderProgram* shader3 = new ShaderProgram();
+	shader3->CreateFromFiles("Shaders/textbox-default.vert", "Shaders/textbox-default.frag");
+	renderer->shaders["textbox-default"] = shader3;
 }
 
 void Game::InitOpenGL()
@@ -1401,10 +1405,7 @@ void Game::Render()
 	// Render all backgrounds and their layers
 	for (int i = 0; i < backgrounds.size(); i++)
 	{
-		for (unsigned int k = 0; k < backgrounds[i]->layers.size(); k++)
-		{
-			backgrounds[i]->layers[k]->Render(renderer);
-		}
+		backgrounds[i]->Render(renderer);		
 	}	
 
 	// Render all entities
@@ -1423,11 +1424,7 @@ void Game::Render()
 	
 	
 
-	// Render editor toolbox
-	if (GetModeEdit())
-	{
-		editor->Render(renderer);
-	}
+
 
 	// Draw stuff for debugging purposes here
 	if (GetModeDebug())
@@ -1448,7 +1445,7 @@ void Game::Render()
 	if (showTimer)
 		timerText->Render(renderer);
 
-	if (currentLevel != "title")
+	if (currentLevel != "title" && !watchingCutscene)
 	{
 		bugText->Render(renderer);
 		etherText->Render(renderer);
@@ -1463,6 +1460,12 @@ void Game::Render()
 
 	if (watchingCutscene)
 		cutscene->Render(renderer);
+
+	// Render editor toolbox
+	if (GetModeEdit())
+	{
+		editor->Render(renderer);
+	}
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);

@@ -3,10 +3,12 @@
 #include "Sprite.h"
 #include "Text.h"
 
+
 class Textbox
 {
 private:
 	Vector2 position = Vector2(0, 0);
+	Vector2 offset = Vector2(0, 0);
 public:
 	Animator* animator = nullptr;
 	Sprite* boxSprite = nullptr;
@@ -19,7 +21,7 @@ public:
 	bool shouldRender = true;
 
 
-	const Uint32 boxWidth = 575;
+	const Uint32 boxWidth = 1210;
 
 	void Render(Renderer * renderer);
 

@@ -16,14 +16,14 @@ Background::~Background()
 	}
 }
 
-void Background::Render(Renderer * renderer, GLuint uniformModel)
+void Background::Render(Renderer * renderer)
 {
 	Vector2 offset = Vector2(10, 0);
 
 	//TODO: For parallax scrolling, manipulate the position
 	for (unsigned int i = 0; i < layers.size(); i++)
 	{
-		layers[i]->RenderParallax(renderer, 0.5f);
+		layers[i]->Render(renderer);
 	}
 }
 
