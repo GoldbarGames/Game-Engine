@@ -12,12 +12,6 @@ private:
 	std::unordered_map<std::string, bool> layersVisible;
 public:
 	Camera camera;
-	GLuint uniformProjection = 0;
-	GLuint uniformModel = 0;
-	GLuint uniformView = 0;
-	GLuint uniformMultiplyColor = 0;
-	GLuint uniformViewTexture = 0;
-	GLuint uniformOffsetTexture = 0;
 
 	float now = 0;
 
@@ -25,6 +19,8 @@ public:
 
 	void ToggleVisibility(std::string layer);
 	bool IsVisible(DrawingLayer layer);
+
+	void CreateShader(const char* shaderName, const char* vertexFilePath, const char* fragmentFilePath);
 
 	Renderer();
 	~Renderer();

@@ -155,26 +155,18 @@ void Game::CreateObjects()
 
 void Game::CreateShaders()
 {
-	ShaderProgram* shader0 = new ShaderProgram();
-	shader0->CreateFromFiles("Shaders/shader0.vert", "Shaders/shader0.frag");
-	renderer->shaders["default"] = shader0;
-
-	ShaderProgram* shader1 = new ShaderProgram();
-	shader1->CreateFromFiles("Shaders/shader1.vert", "Shaders/shader1.frag");
-	renderer->shaders["special"] = shader1;
-
-	ShaderProgram* shader2 = new ShaderProgram();
-	shader2->CreateFromFiles("Shaders/multiply.vert", "Shaders/multiply.frag");
-	renderer->shaders["multiply"] = shader2;
-
-	ShaderProgram* shader3 = new ShaderProgram();
-	shader3->CreateFromFiles("Shaders/textbox-default.vert", "Shaders/textbox-default.frag");
-	renderer->shaders["textbox-default"] = shader3;
+	renderer->CreateShader("default", "Shaders/shader0.vert", "Shaders/shader0.frag");
+	renderer->CreateShader("special", "Shaders/shader1.vert", "Shaders/shader1.frag");
+	renderer->CreateShader("multiply", "Shaders/color-multiply.vert", "Shaders/color-multiply.frag");
+	renderer->CreateShader("add", "Shaders/color-add.vert", "Shaders/color-add.frag");
+	renderer->CreateShader("hue-shift", "Shaders/color-hue-shift.vert", "Shaders/color-hue-shift.frag");
+	renderer->CreateShader("fade-in-out", "Shaders/fade-in-out.vert", "Shaders/fade-in-out.frag");
+	renderer->CreateShader("color-glow", "Shaders/color-glow.vert", "Shaders/color-glow.frag");
+	renderer->CreateShader("textbox-default", "Shaders/textbox-default.vert", "Shaders/textbox-default.frag");
 }
 
 void Game::InitOpenGL()
 {
-	
 	// Set up OpenGL stuff
 	mainContext = SDL_GL_CreateContext(window);
 

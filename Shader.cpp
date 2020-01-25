@@ -1,10 +1,14 @@
 #include "Shader.h"
+#include "Renderer.h"
 
-ShaderProgram::ShaderProgram()
+ShaderProgram::ShaderProgram(const char* n, const char* vertexFilePath, const char* fragmentFilePath)
 {
+    name = n;
     programID = 0;
-    uniformModel = 0;
-    uniformProjection = 0;
+    uniformVariables["model"] = 0;
+    uniformVariables["projection"] = 0;
+
+    CreateFromFiles(vertexFilePath, fragmentFilePath);
 }
 
 ShaderProgram::~ShaderProgram()
@@ -53,36 +57,20 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
         return;
     }
 
-    uniformModel = glGetUniformLocation(programID, "model");
-    uniformProjection = glGetUniformLocation(programID, "projection");
-    uniformView = glGetUniformLocation(programID, "view");
-    uniformViewTexture = glGetUniformLocation(programID, "texFrame");
-    uniformOffsetTexture = glGetUniformLocation(programID, "texOffset");
+    uniformVariables["model"] = glGetUniformLocation(programID, "model");
+    uniformVariables["projection"] = glGetUniformLocation(programID, "projection");
+    uniformVariables["view"] = glGetUniformLocation(programID, "view");
+    uniformVariables["texFrame"] = glGetUniformLocation(programID, "texFrame");
+    uniformVariables["texOffset"] = glGetUniformLocation(programID, "texOffset");
+
+    //TODO: What is a good way for us to define variables for specific shaders?
+    uniformVariables["fadeColor"] = glGetUniformLocation(programID, "fadeColor");
+    uniformVariables["currentTime"] = glGetUniformLocation(programID, "currentTime");
 }
 
-GLuint ShaderProgram::GetProjectionLocation()
+GLuint ShaderProgram::GetUniformVariable(const std::string& variable)
 {
-    return uniformProjection;
-}
-
-GLuint ShaderProgram::GetModelLocation()
-{
-    return uniformModel;
-}
-
-GLuint ShaderProgram::GetViewLocation()
-{
-    return uniformView;
-}
-
-GLuint ShaderProgram::GetViewTextureLocation()
-{
-    return uniformViewTexture;
-}
-
-GLuint ShaderProgram::GetOffsetTextureLocation()
-{
-    return uniformOffsetTexture;
+    return uniformVariables[variable];
 }
 
 void ShaderProgram::CreateFromFiles(const char* vertexFilePath, const char* fragmentFilePath)
@@ -132,8 +120,8 @@ void ShaderProgram::ClearShader()
         programID = 0;
     }
 
-    uniformModel = 0;
-    uniformProjection = 0;
+    uniformVariables["model"] = 0;
+    uniformVariables["projection"] = 0;
 }
 
 void ShaderProgram::AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType)

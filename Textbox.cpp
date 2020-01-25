@@ -4,7 +4,7 @@
 Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 {
 	//TODO: Replace these with the real fonts
-	textFont = TTF_OpenFont("fonts/default.ttf", 40);
+	textFont = TTF_OpenFont("fonts/default.ttf", 24);
 	speakerFont = TTF_OpenFont("fonts/default.ttf", 24);
 
 	position = Vector2(1280, 720);
@@ -21,7 +21,7 @@ Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 	if (speaker->GetSprite() != nullptr)
 		speaker->GetSprite()->keepScaleRelativeToCamera = true;
 	
-	text->SetPosition(200, 720 + 300);
+	text->SetPosition(150, 720 + 320);
 	speaker->SetPosition(640, 480);
 
 	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?

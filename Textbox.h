@@ -21,7 +21,7 @@ public:
 	bool shouldRender = true;
 
 
-	const Uint32 boxWidth = 1210;
+	const Uint32 boxWidth = 1160;
 
 	void Render(Renderer * renderer);
 

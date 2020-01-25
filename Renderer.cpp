@@ -14,6 +14,14 @@ Renderer::~Renderer()
 
 }
 
+void Renderer::CreateShader(const char* shaderName, const char* vertexFilePath, const char* fragmentFilePath)
+{
+	if (shaders[shaderName] != nullptr)
+		delete shaders[shaderName];
+
+	shaders[shaderName] = new ShaderProgram(shaderName, vertexFilePath, fragmentFilePath);
+}
+
 bool Renderer::IsVisible(DrawingLayer layer)
 {
 	return layersVisible[GetDrawingLayerName(layer)];

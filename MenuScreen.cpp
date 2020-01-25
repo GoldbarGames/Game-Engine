@@ -47,8 +47,6 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	}
 	else if (name == "Title")
 	{
-
-
 		int startWidth = screenWidth / 2;
 		int startHeight = 200;
 		int distance = 120;
@@ -95,6 +93,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders["default"], Vector2(222, 370), false));
 		titleCharacter->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
 		titleCharacter->GetSprite()->renderRelativeToCamera = true;
+		titleCharacter->GetSprite()->SetShader(game.renderer->shaders["color-glow"]);
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = new Entity(Vector2(320, 100));
