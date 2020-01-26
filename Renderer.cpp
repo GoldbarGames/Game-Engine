@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include "Sprite.h"
 
 Renderer::Renderer()
 {

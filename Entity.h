@@ -36,6 +36,7 @@ public:
 	Entity(Vector2 pos, Sprite* sprite);
 	
 	bool isPhysicsEntity = false;
+	bool drawDebugRect = true;
 
 	std::string name = "";
 

@@ -60,6 +60,8 @@ public:
 
 	void Update(Game& game);
 	void Render(Renderer * renderer);
+	void RenderDebug(Renderer* renderer);
+
 	Vector2 CalcScaledPivot();
 
 	virtual void Push(Vector2 pushVelocity);

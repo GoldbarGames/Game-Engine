@@ -77,6 +77,7 @@ private:
 	Mesh* CreateSpriteMesh();
 public:
 
+	
 	std::unordered_map<std::string, std::vector<std::string>> spriteMap;
 
 	void DeleteEntity(Entity* entity);

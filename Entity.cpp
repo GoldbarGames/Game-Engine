@@ -146,8 +146,21 @@ void Entity::SetAnimator(Animator * anim)
 
 void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 {
-	if (GetModeDebug() && currentSprite != nullptr)
+	if (GetModeDebug() && drawDebugRect)
 	{
+		if (renderer->debugSprite != nullptr && renderer->IsVisible(layer))
+		{
+			float rWidth = renderer->debugSprite->texture->GetWidth();
+			float rHeight = renderer->debugSprite->texture->GetHeight();
+
+			float targetWidth = GetSprite()->frameWidth;
+			float targetHeight = GetSprite()->frameHeight;
+
+			renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+			renderer->debugSprite->Render(position, 0, -1, flip, renderer, 0);
+		}
+
+
 		/*
 		if (jumpThru)
 			SDL_SetRenderDrawColor(renderer->renderer, 255, 165, 0, 255);

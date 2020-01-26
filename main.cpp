@@ -25,8 +25,12 @@ int main(int argc, char *args[])
 
 	bool quit = false;
 
+	int drawCallsLastFrame = 0;
+
 	while (!quit)
 	{
+		game.renderer->drawCallsPerFrame = 0;
+
 		game.CalcDt();		
 
 		if (game.showFPS)
@@ -79,6 +83,12 @@ int main(int argc, char *args[])
 		}
 
 		game.Render();
+
+		if (game.renderer->drawCallsPerFrame != drawCallsLastFrame)
+		{
+			drawCallsLastFrame = game.renderer->drawCallsPerFrame;
+			//std::cout << "Draw calls: " << game.renderer->drawCallsPerFrame << std::endl;
+		}	
 
 	}
 

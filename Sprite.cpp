@@ -217,6 +217,8 @@ void Sprite::AnimateMesh(float time)
 
 void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, float angle)
 {
+	renderer->drawCallsPerFrame++;
+
 	GLfloat multiplyColor[] = { 0.0f, 1.0f, 0.0f, 1.0f };
 
 	ShaderProgram* shader = GetShader();

@@ -6,12 +6,16 @@
 #include "Shader.h"
 #include "Camera.h"
 
+class Sprite;
+
 class Renderer
 {
 private:
 	std::unordered_map<std::string, bool> layersVisible;
 public:
 	Camera camera;
+	Sprite* debugSprite = nullptr;
+	int drawCallsPerFrame = 0;
 
 	float now = 0;
 

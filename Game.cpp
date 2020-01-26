@@ -58,6 +58,10 @@ Game::Game()
 	cutscene = new CutsceneManager(*this);
 	cutscene->ParseScene();
 
+	// Initialize debug stuff
+	renderer->debugSprite = new Sprite(0, 0, 24, 24, spriteManager,
+		"assets/editor/rect-outline.png", renderer->shaders["default"], Vector2(0, 0));
+
 	overlayRect.x = 0;
 	overlayRect.y = 0;
 	overlayRect.w = screenWidth;
@@ -1440,11 +1444,6 @@ void Game::Render()
 	{
 		openedMenus[openedMenus.size() - 1]->Render(renderer);
 	}
-
-	
-	
-
-
 
 	// Draw stuff for debugging purposes here
 	if (GetModeDebug())
