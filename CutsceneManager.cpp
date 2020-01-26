@@ -233,10 +233,7 @@ void CutsceneManager::Update()
 		else if (isReadingNextLine)
 		{
 			currentText += line->text[letterIndex];
-			textbox->text->SetTextWrapped(currentText, textbox->boxWidth);
-			textbox->text->GetSprite()->keepScaleRelativeToCamera = true;
-			//TODO: If we want to modify the textbox's text shader, do so here
-			//textbox->text->GetSprite()->SetShader(game->renderer->shaders["fade-in-out"]);
+			textbox->UpdateText(currentText);
 
 			//nextLetterTimer.Start(lettersPerFrame * delay);
 			letterIndex++;

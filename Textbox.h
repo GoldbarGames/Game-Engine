@@ -20,9 +20,10 @@ public:
 
 	bool shouldRender = true;
 
-
+	Color textColor = { 255, 255, 255, 255 };
 	const Uint32 boxWidth = 1160;
 
+	void UpdateText(std::string newText);
 	void Render(Renderer * renderer);
 
 	Textbox(SpriteManager * manager, Renderer * renderer);

@@ -93,7 +93,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders["default"], Vector2(222, 370), false));
 		titleCharacter->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
 		titleCharacter->GetSprite()->renderRelativeToCamera = true;
-		titleCharacter->GetSprite()->SetShader(game.renderer->shaders["color-glow"]);
+		titleCharacter->GetSprite()->SetShader(game.renderer->shaders["fade-in-out"]);
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = new Entity(Vector2(320, 100));

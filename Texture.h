@@ -6,12 +6,11 @@
 class Texture
 {
 public:
-	Texture();
-	Texture(const char* path, bool alpha = true);
+	Texture(const char* path);
 	~Texture();
 
 	void LoadTexture();
-	void LoadTexture(SDL_Surface* surface);
+	void LoadTexture(SDL_Surface* surface, bool reset=false);
 	void UseTexture();
 	void ClearTexture();
 	int GetWidth() { return width; }

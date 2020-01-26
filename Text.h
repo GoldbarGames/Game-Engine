@@ -26,8 +26,7 @@ public:
 	std::string id = ""; // this will always be english
 	std::string txt = ""; // this might get translated
 	Color textColor;
-	//Texture* textTexture = nullptr;
-	//SDL_Surface* textSurface = nullptr;
+
 	Sprite* textSprite = nullptr;
 
 	int GetTextWidth();
@@ -39,8 +38,7 @@ public:
 	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt);
 	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color);
 	~Text();
-	void SetText(string text, Color color = { 255, 255, 255, 255 });
-	void SetTextWrapped(string text, Uint32 width);
+	void SetText(string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth=0);
 	void Render(Renderer* renderer);
 	void Render(Renderer* renderer, Vector2 offset);
 	void SetPosition(float x, float y);

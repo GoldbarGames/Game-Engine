@@ -8,24 +8,29 @@
 
 using std::string;
 
+Mesh* Sprite::mesh = nullptr;
+
 void Sprite::CreateMesh()
 {
-	unsigned int quadIndices[] = {
-	0, 3, 1,
-	1, 3, 2,
-	2, 3, 0,
-	0, 1, 2
-	};
+	if (mesh == nullptr)
+	{
+		unsigned int quadIndices[] = {
+		0, 3, 1,
+		1, 3, 2,
+		2, 3, 0,
+		0, 1, 2
+			};
 
-	GLfloat quadVertices[] = {
-		-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
-		-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
-		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
-	};
+		GLfloat quadVertices[] = {
+			-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+			1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
+			-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
+			1.0f, 1.0f, 0.0f,    0.0f, 1.0f
+		};
 
-	mesh = new Mesh();
-	mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
+		mesh = new Mesh();
+		mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
+	}
 }
 
 Sprite::Sprite(Texture* t, ShaderProgram* s)
@@ -167,7 +172,7 @@ Sprite::~Sprite()
 {
 	if (mesh != nullptr)
 	{
-		mesh->ClearMesh();
+		//delete mesh;
 	}
 
 	if (texture != nullptr)
@@ -255,12 +260,6 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	}
 	else
 	{
-		// 0, 1, 2, 3, 4, 5
-		// animation is frames 2, 3 and 4
-		// start frame = 2
-		// end frame = 4
-		// number of frames in animation = 3 (a difference of 2 from the start)
-
 		// Only go to the next frame when enough time has passed
 		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + 100)
 		{
@@ -291,7 +290,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)
 
-		std::string selectedColor = "red";
+		std::string selectedColor = "clear";
 
 		if (selectedColor == "red")
 		{
@@ -330,7 +329,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)
 
-		std::string selectedColor = "red";
+		std::string selectedColor = "green";
 
 		if (selectedColor == "red")
 		{

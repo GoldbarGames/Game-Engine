@@ -1,21 +1,12 @@
 #include "Texture.h"
 
-Texture::Texture()
-{
-	textureID = 0;
-	width = 0;
-	height = 0;
-	bitDepth = 0;
-}
-
-Texture::Texture(const char* path, bool alpha)
+Texture::Texture(const char* path)
 {
 	textureID = 0;
 	width = 0;
 	height = 0;
 	bitDepth = 0;
 	filePath = path;
-	rgba = alpha;
 }
 
 Texture::~Texture()
@@ -28,9 +19,12 @@ void Texture::LoadTexture()
 	
 }
 
-void Texture::LoadTexture(SDL_Surface* surface)
+void Texture::LoadTexture(SDL_Surface* surface, bool reset)
 {
-	glGenTextures(1, &textureID);
+	if (reset)
+		glDeleteTextures(1, &textureID);
+	
+	glGenTextures(1, &textureID);	
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
 	int Mode = GL_RGB;

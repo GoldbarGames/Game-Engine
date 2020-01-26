@@ -26,12 +26,20 @@ Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 
 	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?
 	speaker->SetText(" ");
-	text->SetTextWrapped(" ", boxWidth);
+	text->SetText(" ", textColor, boxWidth);
 }
 
 Textbox::~Textbox()
 {
 
+}
+
+void Textbox::UpdateText(std::string newText)
+{
+	text->SetText(newText, textColor, boxWidth);
+	text->GetSprite()->keepScaleRelativeToCamera = true;
+	//TODO: If we want to modify the textbox's text shader, do so here
+	//textbox->text->GetSprite()->SetShader(game->renderer->shaders["fade-in-out"]);
 }
 
 void Textbox::Render(Renderer * renderer)
@@ -82,6 +90,8 @@ void Textbox::Render(Renderer * renderer)
 		//TODO: Make sure the position is in the center of the screen
 		boxSprite->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
 		speaker->Render(renderer, cameraPosition);
-		text->Render(renderer, cameraPosition);
+
+		if (text != nullptr)
+			text->Render(renderer, cameraPosition);
 	}	
 }

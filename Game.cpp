@@ -14,6 +14,28 @@
 
 using std::string;
 
+Mesh* Game::CreateSpriteMesh()
+{
+	unsigned int quadIndices[] = {
+		0, 3, 1,
+		1, 3, 2,
+		2, 3, 0,
+		0, 1, 2
+	};
+
+	GLfloat quadVertices[] = {
+		-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
+		-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
+		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
+	};
+
+	Mesh* mesh = new Mesh();
+	mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
+
+	return mesh;
+}
+
 Game::Game()
 {
 	startOfGame = std::chrono::steady_clock::now();
@@ -23,6 +45,8 @@ Game::Game()
 	spriteManager = new SpriteManager();
 
 	InitOpenGL();
+
+	Sprite::mesh = CreateSpriteMesh();
 
 	// Initialize the font before all text
 	theFont = TTF_OpenFont("fonts/default.ttf", 20);
@@ -1357,6 +1381,10 @@ void Game::Update()
 			if (input[SDL_SCANCODE_DOWN])
 			{
 				cutscene->ReadNextLine();
+			}
+			else if (input[SDL_SCANCODE_UP])
+			{
+				//cutscene->textbox->Test();
 			}
 		}
 		else

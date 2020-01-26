@@ -26,6 +26,8 @@ private:
 	//Vector2 scale = Vector2(1, 1);
 	
 public:	
+
+
 	void SetShader(ShaderProgram* s) { shader = s; }
 	ShaderProgram* GetShader() { return shader; }
 
@@ -35,9 +37,9 @@ public:
 
 	unsigned int currentFrame = 0;
 	unsigned int currentRow = 0;
-
-	ShaderProgram* shader;
-	Mesh* mesh;
+	
+	static Mesh* mesh;
+	ShaderProgram* shader;	
 	Texture* texture;
 
 	bool renderRelativeToCamera = false;

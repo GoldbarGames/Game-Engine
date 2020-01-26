@@ -74,7 +74,7 @@ private:
 	
 	std::unordered_map<std::string, Mesh*> meshes;
 
-	
+	Mesh* CreateSpriteMesh();
 public:
 
 	std::unordered_map<std::string, std::vector<std::string>> spriteMap;
