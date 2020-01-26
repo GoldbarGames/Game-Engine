@@ -58,7 +58,9 @@ void Editor::CreateEditorButtons()
 		delete buttons[i];
 	buttons.clear();
 
-	int buttonX = 0;
+	const int buttonStartX = 50;
+
+	int buttonX = buttonStartX;
 	const int buttonWidth = 50;
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
@@ -83,12 +85,16 @@ void Editor::CreateEditorButtons()
 		buttonX += buttonWidth + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
 	}
 
-	EditorButton* previousButton = new EditorButton("", "PrevPage", Vector2(0, screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
+	EditorButton* previousButton = new EditorButton("", "PrevPage", 
+		Vector2(buttonStartX, screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
+	
 	previousButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(previousButton);
 	
-	EditorButton* nextButton = new EditorButton("", "NextPage", Vector2((buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1),
+	EditorButton* nextButton = new EditorButton("", "NextPage", 
+		Vector2(buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1),
 		screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
+	
 	nextButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(nextButton);
 }
@@ -129,8 +135,6 @@ void Editor::StartEdit()
 	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
 	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
 
-	//SDL_SetWindowSize(toolbox, toolboxWindowRect.w, toolboxWindowRect.h);
-
 	selectedRect.x = toolboxWindowRect.x;
 	selectedRect.y = 0;
 	selectedRect.w = 24;
@@ -151,6 +155,7 @@ void Editor::StartEdit()
 		delete layerVisibleButtons[i];
 	layerVisibleButtons.clear();
 
+	int buttonX = 200;
 	int buttonY = 200;
 	const int layerButtonWidth = 100;
 	const int layerButtonHeight = 50;
@@ -160,12 +165,12 @@ void Editor::StartEdit()
 
 	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
 	{
-		EditorButton* layerButton = new EditorButton(layerButtonNames[i], "Layer", Vector2(0, buttonY), *game, Vector2(layerButtonWidth, 50), { 128, 128, 128, 255 });
+		EditorButton* layerButton = new EditorButton(layerButtonNames[i], "Layer", Vector2(buttonX, buttonY), *game, Vector2(layerButtonWidth, 50), { 128, 128, 128, 255 });
 		layerButton->image->keepScaleRelativeToCamera = true;
 		layerButton->text->GetSprite()->keepScaleRelativeToCamera = true;
 		layerButtons.emplace_back(layerButton);
 		
-		EditorButton* layerVisibleButton = new EditorButton("", "Visible", Vector2(layerButtonWidth, buttonY), *game, Vector2(50, 50));
+		EditorButton* layerVisibleButton = new EditorButton("", "Visible", Vector2(buttonX + layerButtonWidth, buttonY), *game, Vector2(50, 50));
 		layerVisibleButton->image->keepScaleRelativeToCamera = true;
 		layerVisibleButton->text->GetSprite()->keepScaleRelativeToCamera = true;
 		layerVisibleButtons.emplace_back(layerVisibleButton);

@@ -5,6 +5,8 @@
 #include <SDL_image.h>
 #include <GL/glew.h>
 
+#include "globals.h"
+
 #include "Vector2.h"
 #include "SpriteManager.h"
 
@@ -41,6 +43,8 @@ public:
 	static Mesh* mesh;
 	ShaderProgram* shader;	
 	Texture* texture;
+
+	Color color { 255, 255, 255, 255 };
 
 	bool renderRelativeToCamera = false;
 	bool keepScaleRelativeToCamera = false;

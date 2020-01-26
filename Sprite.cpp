@@ -93,6 +93,7 @@ Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
 Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath, 
 	ShaderProgram * s, Vector2 newPivot)
 {
+	filename = filepath;
 	texture = manager->GetImage(filepath);
 	shader = s;
 
@@ -354,6 +355,11 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 			fadeColor = glm::vec4(1, 1, 1, 1);
 		}
 
+		glUniform4fv(shader->GetUniformVariable("fadeColor"), 1, glm::value_ptr(fadeColor));
+	}
+	else
+	{
+		glm::vec4 fadeColor = glm::vec4(color.r/255.0f, color.g/255.0f, color.b/255.0f, color.a/255.0f);
 		glUniform4fv(shader->GetUniformVariable("fadeColor"), 1, glm::value_ptr(fadeColor));
 	}
 

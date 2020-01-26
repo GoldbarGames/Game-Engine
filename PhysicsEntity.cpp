@@ -522,6 +522,11 @@ void PhysicsEntity::RenderDebug(Renderer* renderer)
 			float targetWidth = GetSprite()->frameWidth;
 			float targetHeight = GetSprite()->frameHeight;
 
+			if (impassable)
+				renderer->debugSprite->color = { 255, 0, 0, 255 };
+			else
+				renderer->debugSprite->color = { 0, 255, 0, 255 };
+
 			renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 			renderer->debugSprite->Render(position, 0, -1, flip, renderer, 0);
 		}
@@ -529,13 +534,6 @@ void PhysicsEntity::RenderDebug(Renderer* renderer)
 
 
 	/*
-	if (impassable)
-		SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
-	else
-		SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 255);
-
-	SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
-
 	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 
 	SDL_RenderDrawRect(renderer->renderer, collisionBounds);

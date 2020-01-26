@@ -139,7 +139,7 @@ public:
 
 	SDL_Rect overlayRect;
 	Color overlayColor { 0, 0, 0, 0 };
-	Color targetColor{ 0, 0, 0, 0 };
+	Color targetColor { 0, 0, 0, 0 };
 	bool changingOverlayColor = false;
 	Timer timerOverlayColor;
 
