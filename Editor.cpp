@@ -921,7 +921,8 @@ void Editor::HandleEdit()
 	int clickedX = mouseX - ((int)mouseX % (GRID_SIZE));
 	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE));
 
-	Vector2 clickedPosition(clickedX, clickedY);
+	// snapped position in screen space (0,0) to (1280,720)
+	Vector2 clickedPosition(clickedX, clickedY); 
 
 	hoveredTileRect.x = clickedX;
 	hoveredTileRect.y = clickedY;
@@ -932,7 +933,7 @@ void Editor::HandleEdit()
 
 	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 	{
-		LeftClick(clickedPosition, mouseX, mouseY);
+		LeftClick(clickedPosition, mouseX*2, mouseY*2);
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{

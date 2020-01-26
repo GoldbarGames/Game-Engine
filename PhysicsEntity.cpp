@@ -527,6 +527,7 @@ void PhysicsEntity::RenderDebug(Renderer* renderer)
 			else
 				renderer->debugSprite->color = { 0, 255, 0, 255 };
 
+			renderer->debugSprite->pivot = GetSprite()->pivot;
 			renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 			renderer->debugSprite->Render(position, 0, -1, flip, renderer, 0);
 		}

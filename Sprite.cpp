@@ -374,7 +374,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	}
 	else
 	{
-		model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
+		model = glm::translate(model, glm::vec3(position.x - pivot.x, position.y - pivot.y, -2.0f));
 	}
 
 	if (keepScaleRelativeToCamera)

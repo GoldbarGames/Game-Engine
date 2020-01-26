@@ -63,6 +63,8 @@ void EditorButton::Render(Renderer* renderer)
 {
 	buttonWindowRect.x = (int)position.x;
 	buttonWindowRect.y = (int)position.y;
+	buttonWindowRect.w = 50;
+	buttonWindowRect.h = 50;
 
 	Vector2 pos = Vector2(renderer->camera.position.x, renderer->camera.position.y);
 
