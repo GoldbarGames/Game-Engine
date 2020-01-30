@@ -16,6 +16,7 @@ Tile::~Tile()
 
 }
 
+
 void Tile::ChangeSprite(Vector2 frame, Texture * image, Renderer * renderer)
 {
 	if (currentSprite != nullptr)
@@ -32,7 +33,8 @@ void Tile::Animate()
 
 const SDL_Rect* Tile::GetBounds()
 {
-	return currentSprite->GetRect();
+	return collisionBounds;
+	//return currentSprite->GetRect();
 }
 
 void Tile::Destroy()

@@ -13,7 +13,7 @@ Player::Player(Vector2 pos) : PhysicsEntity(pos)
 	CreateCollider(27, 46, 0, 0, 20.25f, 41.40f);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 99;
-
+	
 	trigger = false;
 
 	// Initialize the spells here
@@ -177,8 +177,8 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 		return;
 
 	Vector2 missilePosition = this->position;
-	missilePosition.x += (this->currentSprite->GetRect()->w / 2);
-	missilePosition.y += (this->currentSprite->GetRect()->h / 2);
+	//missilePosition.x += (this->currentSprite->GetRect()->w / 2);
+	//missilePosition.y += (this->currentSprite->GetRect()->h / 2);
 
 	const float missileSpeed = maxHorizontalSpeed;
 	Vector2 missileVelocity = Vector2(0, 0);

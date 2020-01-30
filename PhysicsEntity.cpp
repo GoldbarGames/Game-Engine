@@ -27,9 +27,7 @@ void PhysicsEntity::SetVelocity(Vector2 newVelocity)
 
 Vector2 PhysicsEntity::GetCenter()
 {
-	float x = position.x + (collisionBounds->w / 2.0f);
-	float y = position.y + (collisionBounds->h / 2.0f);
-	return Vector2(x, y);
+	return Vector2(position.x, position.y);
 }
 
 void PhysicsEntity::Pause(Uint32 ticks)
@@ -199,13 +197,16 @@ bool PhysicsEntity::CheckCollisionCeiling(Entity* entity, Game& game)
 
 void PhysicsEntity::CheckCollisions(Game& game)
 {
+	if (etype == "player")
+		int test = 0;
+
 	shouldStickToGround = false;
 
 	// copy this frame into previous frame list (could be done at beginning or end)
 	prevFrameCollisions = thisFrameCollisions;
 	thisFrameCollisions.clear();
 
-	CalculateCollider(Vector2(0,0));
+	CalculateCollider();
 
 	PhysicsEntity* prevParent = CheckPrevParent();	
 
@@ -217,13 +218,15 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	bool horizontalCollision = false;
 	bool verticalCollision = false;
 
-	const int TARGET_FPS = 30;
+	//const int TARGET_FPS = 30;
 
 	// Get bounds assuming the move is valid
 	SDL_Rect myBounds = *GetColliderBounds();
+	myBounds.x -= (myBounds.w / 2);
+	myBounds.y += (myBounds.h / 2);
 
 	SDL_Rect newBoundsHorizontal = myBounds;
-	newBoundsHorizontal.x = (int)(myBounds.x + (velocity.x * TARGET_FPS));
+	newBoundsHorizontal.x = (int)(myBounds.x + (velocity.x * game.dt));
 
 	SDL_Rect newBoundsVertical = myBounds;
 	newBoundsVertical.y = (int)(myBounds.y + (velocity.y * game.dt));
@@ -233,11 +236,10 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	newBoundsVertical.y += 1;
 
 	SDL_Rect floorBounds = newBoundsVertical;
-
 	//floorBounds.y += 1;
 
 	// 2.5D look
-	const int FLOOR_SIZE = 20;
+	const int FLOOR_SIZE = 0;
 
 	if (standAboveGround)
 		floorBounds.h += FLOOR_SIZE; // (int)(newBoundsVertical.h * 0.25f);
@@ -248,7 +250,9 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	{
 		Entity* entity = game.entities[i];
 
-		const SDL_Rect * theirBounds = entity->GetBounds();
+		SDL_Rect theirBounds = *(entity->GetBounds());
+		theirBounds.w *= 2;
+		theirBounds.x -= (theirBounds.w/2);
 
 		if (entity == this)
 			continue;
@@ -262,26 +266,32 @@ void PhysicsEntity::CheckCollisions(Game& game)
 				// If so, we deal with collision as normal
 				// Else, we ignore the collider
 
-				bool onTopOfPlatform = myBounds.y + myBounds.h < theirBounds->y;
+				bool onTopOfPlatform = myBounds.y + myBounds.h < theirBounds.y;
 				if (!onTopOfPlatform)
 				{
 					continue;
 				}
 			}
 
-			if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
-			{							
-				float v = velocity.x;
+
+			if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, &theirBounds))
+			{		
+
+				if (etype == "player")
+					int test = 0;
+
 				horizontalCollision = CheckCollisionHorizontal(entity, game);
 
-				if (v > 0)
-					position.x = (float)(theirBounds->x - myBounds.w - collider->x);
-				else if (v < 0)
-					position.x = (float)(theirBounds->x + theirBounds->w + collider->x);
+				if (velocity.x > 0)
+					position.x = (float)(theirBounds.x - myBounds.w - colliderOffset.x);
+				else if (velocity.x < 0)
+					position.x = (float)(theirBounds.x + theirBounds.w + colliderOffset.x);
 			}
 
-			// checks the ceiling (don't know how necessary this really is)	
+			// checks the ceiling
 			//TODO: To check for ceiling collisions, use a collider that is closer to the top rather than the bottom
+			
+			/*
 			newBoundsVertical.h -= 4;
 			if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
 			{
@@ -290,9 +300,10 @@ void PhysicsEntity::CheckCollisions(Game& game)
 					std::cout << "ceiling collision!" << std::endl;
 			}
 			newBoundsVertical.h += 4;
+			*/
 
 			// checks the ground (using a rect that is a little bit larger
-			if (!verticalCollision && SDL_HasIntersection(&floorBounds, theirBounds))
+			if (!verticalCollision && SDL_HasIntersection(&floorBounds, &theirBounds))
 			{
 				verticalCollision = true;
 				CheckCollisionTrigger(entity, game);
@@ -323,10 +334,10 @@ void PhysicsEntity::CheckCollisions(Game& game)
 					if (useGravity)
 					{
 						velocity.y = 0;
-						if (standAboveGround)
-							position.y = (float)(theirBounds->y - myBounds.h - FLOOR_SIZE - collider->y);
-						else
-							position.y = (float)(theirBounds->y - myBounds.h - collider->y);
+						//if (standAboveGround)
+						//	position.y = (float)(theirBounds->y - myBounds.h - FLOOR_SIZE - colliderOffset.y);
+						//else
+						//	position.y = (float)(theirBounds->y - myBounds.h - colliderOffset.y);
 						shouldStickToGround = true;
 					}						
 				}
@@ -342,18 +353,26 @@ void PhysicsEntity::CheckCollisions(Game& game)
 						position.y += (velocity.y * game.dt);
 					}
 					*/
-				}
-
-				
+				}		
+			}
+			else if (!verticalCollision)
+			{
+				if (etype == "player")
+					int test = 0;
+			}
+			else
+			{
+				if (etype == "player")
+					int test = 0;
 			}
 		}
 		else if (entity->trigger)
 		{
-			if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
+			if (SDL_HasIntersection(&newBoundsHorizontal, &theirBounds))
 			{
 				CheckCollisionTrigger(entity, game);
 			}
-			else if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
+			else if (SDL_HasIntersection(&newBoundsVertical, &theirBounds))
 			{
 				CheckCollisionTrigger(entity, game);
 			}
@@ -395,7 +414,6 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		//if (etype == "player")
 		//	std::cout << "v: " << velocity.y << std::endl;
 
-		
 	}
 
 	PreviousFrameCollisions(game);
@@ -472,7 +490,7 @@ Vector2 PhysicsEntity::CalcScaledPivot()
 {
 	if (flip == SDL_FLIP_HORIZONTAL)
 	{
-		entityPivot.x = (currentSprite->windowRect.w) - currentSprite->pivot.x;
+		//entityPivot.x = (currentSprite->windowRect.w) - currentSprite->pivot.x;
 	}
 
 	// scale the pivot and subtract it from the collision center
@@ -530,9 +548,22 @@ void PhysicsEntity::RenderDebug(Renderer* renderer)
 			renderer->debugSprite->pivot = GetSprite()->pivot;
 			renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 			renderer->debugSprite->Render(position, 0, -1, flip, renderer, 0);
+
+			if (etype == "player")
+				int test = 0;
+
+			// draw collider
+			targetWidth = collisionBounds->w;
+			targetHeight = collisionBounds->h;
+
+			renderer->debugSprite->color = { 255, 255, 255, 255 };
+			renderer->debugSprite->pivot = GetSprite()->pivot;
+			renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+
+			Vector2 colliderPosition = Vector2(position.x + colliderOffset.x, position.y + colliderOffset.y);
+			renderer->debugSprite->Render(colliderPosition, 0, -1, flip, renderer, 0);
 		}
 	}
-
 
 	/*
 	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
@@ -546,12 +577,14 @@ void PhysicsEntity::Render(Renderer* renderer)
 {
 	if (currentSprite != nullptr)
 	{
+		//TODO: What is all of this code for? Why do we need this offset?
+		// Is it so that when you turn around, the collision box always stays centered?
 		entityPivot = currentSprite->pivot;
 
 		// Get center of the white collision box, and use it as a vector2
-		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2));
-		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2));
-		Vector2 collisionCenter = Vector2(collisionCenterX + collider->x, collisionCenterY + collider->y);
+		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2.0f));
+		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2.0f));
+		Vector2 collisionCenter = Vector2(collisionCenterX + colliderOffset.x, collisionCenterY + colliderOffset.y);
 
 		Vector2 scaledPivot = CalcScaledPivot();
 		Vector2 offset = collisionCenter - scaledPivot;
@@ -563,12 +596,12 @@ void PhysicsEntity::Render(Renderer* renderer)
 			else
 				currentSprite->Render(position, 0, -1, flip, renderer, 0);
 		}
-		else
+		else // use offset here?
 		{
 			if (animator != nullptr)
-				currentSprite->Render(offset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
 			else
-				currentSprite->Render(offset, 0, -1, flip, renderer, 0);
+				currentSprite->Render(position, 0, -1, flip, renderer, 0);
 		}
 
 		if (GetModeDebug())

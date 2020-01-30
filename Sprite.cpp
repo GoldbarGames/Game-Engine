@@ -10,6 +10,41 @@ using std::string;
 
 Mesh* Sprite::mesh = nullptr;
 
+unsigned int Sprite::Size()
+{
+	unsigned int totalSize = 0;
+
+	if (shader != nullptr)
+		totalSize += sizeof(shader);
+
+	if (mesh != nullptr)
+		totalSize += sizeof(mesh);
+
+	if (texture != nullptr)
+		totalSize += sizeof(texture);
+
+	totalSize += sizeof(color);
+	totalSize += sizeof(renderRelativeToCamera);
+	totalSize += sizeof(keepScaleRelativeToCamera);
+	totalSize += sizeof(lastAnimTime);
+	totalSize += sizeof(animSpeed);
+	totalSize += sizeof(frameWidth);
+	totalSize += sizeof(frameHeight);
+	totalSize += sizeof(scale);
+	totalSize += sizeof(shouldLoop);
+	totalSize += sizeof(startFrame);
+	totalSize += sizeof(endFrame);
+	totalSize += sizeof(numberFramesInTexture);
+	totalSize += sizeof(framesPerRow);
+	totalSize += sizeof(numberRows);
+	totalSize += sizeof(pivot);
+	totalSize += sizeof(filename);
+	//totalSize += sizeof(windowRect);
+
+	return totalSize;
+}
+
+
 void Sprite::CreateMesh()
 {
 	if (mesh == nullptr)
@@ -44,9 +79,6 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 	endFrame = numberFramesInTexture;
 
 	CreateMesh();
-
-	animLow = 0;
-	animHigh = 0;
 	currentFrame = 0;
 
 	frameWidth = texture->GetWidth() / numberFramesInTexture;
@@ -60,10 +92,6 @@ Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
 	shader = s;
 
 	CreateMesh();
-
-	// Set start position
-	windowRect.x = 0;
-	windowRect.y = 0;
 
 	// don't animate the tiles!
 	animSpeed = 0.0f;
@@ -101,17 +129,14 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath,
 
 	pivot = newPivot;
 
-	windowRect.x = 0;
-	windowRect.y = 0;
-
 	numberFramesInTexture = numFrames;
 	framesPerRow = numberFramesInTexture;
 
 	frameWidth = texture->GetWidth() / numberFramesInTexture;
 	frameHeight = texture->GetHeight() / (numberFramesInTexture/framesPerRow);
 
-	windowRect.w = frameWidth;
-	windowRect.h = frameHeight;
+	//windowRect.w = frameWidth;
+	//windowRect.h = frameHeight;	
 
 	startFrame = 0;
 	endFrame = numberFramesInTexture;
@@ -127,9 +152,6 @@ Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager
 	CreateMesh();
 
 	pivot = newPivot;
-
-	windowRect.x = 0;
-	windowRect.y = 0;
 
 	startFrame = start;
 	endFrame = end;	
@@ -153,9 +175,6 @@ Sprite::Sprite(int start, int end, int numframes, SpriteManager* manager,
 	CreateMesh();
 
 	pivot = newPivot;
-
-	windowRect.x = 0;
-	windowRect.y = 0;
 
 	startFrame = start;
 	endFrame = end;
@@ -366,6 +385,8 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	glm::mat4 model(1.0f);
 
 	// Translate, Rotate, Scale
+	//TODO: Translate based on pivot point: (center - pivot)
+	// this will make the sprites look more centered
 	
 	if (renderRelativeToCamera)
 	{
@@ -374,7 +395,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	}
 	else
 	{
-		model = glm::translate(model, glm::vec3(position.x - pivot.x, position.y - pivot.y, -2.0f));
+		model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
 	}
 
 	if (keepScaleRelativeToCamera)
@@ -415,10 +436,10 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 
 	// Update this rectangle for calculating physics
-	windowRect.x = position.x;
-	windowRect.y = position.y;
-	windowRect.w = frameWidth;
-	windowRect.h = frameHeight;
+	//windowRect.x = position.x;
+	//windowRect.y = position.y;
+	//windowRect.w = frameWidth;
+	//windowRect.h = frameHeight;
 
 	//TODO: Draw a rectangle around the sprite's bounds
 

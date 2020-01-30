@@ -666,6 +666,9 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 	//tile->tileCoordinates = frame;
 	tile->tilesheetIndex = editor->tilesheetIndex;
 	entities.emplace_back(tile);
+
+	//std::cout << tile->Size() << std::endl;
+
 	return tile;
 }
 
@@ -676,12 +679,14 @@ Background* Game::SpawnBackground(Vector2 pos)
 	Background* background = new Background(pos);
 
 	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_sky1.png", -99, 1.0f);
+	//background->layers[0]->GetSprite()->renderRelativeToCamera = true;
+	//background->layers[0]->GetSprite()->keepScaleRelativeToCamera = true;
+
 	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_ground.png", -90, 1.0f);
 	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_back_curved.png", -21, 0.7f);
 	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_back.png", -20, 0.6f);
 	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_front_curved.png", -11, 0.5f);
 	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_front.png", -10, 0.4f);
-
 
 	SortEntities(background->layers);
 
@@ -1466,8 +1471,8 @@ void Game::Render()
 
 	if (currentLevel != "title" && !watchingCutscene)
 	{
-		bugText->Render(renderer);
-		etherText->Render(renderer);
+		//bugText->Render(renderer);
+		//etherText->Render(renderer);
 	}	
 
 	// Draw the screen overlay

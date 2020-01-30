@@ -23,12 +23,10 @@ class Renderer;
 class Sprite
 {
 private:
-	//SDL_Rect textureRect;
-	
-	//Vector2 scale = Vector2(1, 1);
-	
+
 public:	
 
+	unsigned int Size();
 
 	void SetShader(ShaderProgram* s) { shader = s; }
 	ShaderProgram* GetShader() { return shader; }
@@ -49,17 +47,11 @@ public:
 	bool renderRelativeToCamera = false;
 	bool keepScaleRelativeToCamera = false;
 
-	float animLow = 0;
-	float animHigh = 0;
 	float lastAnimTime = -1;
-	//unsigned int * quadIndices;
-	//GLfloat* quadVertices;
 	float animSpeed = 1.0f;
 
 	int frameWidth = 0;
 	int frameHeight = 0;
-
-	//TODO: Maybe fix this so that the scale doesn't have to be negative by default
 	Vector2 scale = Vector2(1, 1);
 
 	bool shouldLoop = true;
@@ -72,6 +64,9 @@ public:
 	Vector2 pivot = Vector2(0, 0);
 	std::string filename = "";
 	SDL_Rect windowRect;
+
+
+
 	const SDL_Rect* GetRect();
 	void Animate(int msPerFrame, Uint32 time);
 	void Render(Vector2 position, Renderer* renderer);

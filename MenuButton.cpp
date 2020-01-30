@@ -7,7 +7,8 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 
 	text = new Text(game.renderer, game.theFont);
 	text->SetText(txt);
-	text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->GetTextHeight()/2));
+	//text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->GetTextHeight()/2));
+	text->SetPosition(pos.x, pos.y - (text->GetTextHeight() / 2));
 
 	name = function;
 
@@ -15,10 +16,12 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 	//ANSWER: See the EditorButton
 
 	position = pos;
-	image->windowRect.x = (int)pos.x;
-	image->windowRect.y = (int)pos.y;
+	//image->windowRect.x = (int)pos.x;
+	//image->windowRect.y = (int)pos.y;
 
 	int scaledThickness = thickness;
+
+	/*
 
 	outlineHorizontal.x = image->GetRect()->x - scaledThickness;
 	outlineHorizontal.y = image->GetRect()->y;
@@ -34,6 +37,7 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 	outlineCorners.y = image->GetRect()->y - (scaledThickness /2);
 	outlineCorners.w = image->GetRect()->w + scaledThickness;
 	outlineCorners.h = image->GetRect()->h + scaledThickness;
+	*/
 }
 
 

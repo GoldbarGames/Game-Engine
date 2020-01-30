@@ -1742,9 +1742,9 @@ void Editor::InitLevelFromFile(std::string levelName)
 	game->backgrounds.clear();
 		
 	// Create the backgrounds
-	const unsigned int NUM_BGS = 4;
-	const unsigned int BG_WIDTH = 636;
-	const unsigned int BG_OFFSET = 0;  (BG_WIDTH * 2);
+	const unsigned int NUM_BGS = 1;
+	const unsigned int BG_WIDTH = 636 * 2;
+	const unsigned int BG_OFFSET = (BG_WIDTH/2);
 
 	unsigned int Y_OFFSET = 0; // -4 * TILE_SIZE * Renderer::GetScale();
 	if (levelName == "title")

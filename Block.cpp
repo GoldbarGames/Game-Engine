@@ -27,10 +27,10 @@ void Block::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Prop
 {
 	Entity::GetProperties(renderer, font, properties);
 
-	properties.emplace_back(new Property(new Text(renderer, font, "Collider Pos X: " + std::to_string((int)collider->x))));
-	properties.emplace_back(new Property(new Text(renderer, font, "Collider Pos Y: " + std::to_string((int)collider->y))));
-	properties.emplace_back(new Property(new Text(renderer, font, "Collider Width: " + std::to_string(colliderWidth))));
-	properties.emplace_back(new Property(new Text(renderer, font, "Collider Height: " + std::to_string(colliderHeight))));
+	properties.emplace_back(new Property(new Text(renderer, font, "Collider Pos X: " + std::to_string((int)colliderOffset.x))));
+	properties.emplace_back(new Property(new Text(renderer, font, "Collider Pos Y: " + std::to_string((int)colliderOffset.y))));
+	//properties.emplace_back(new Property(new Text(renderer, font, "Collider Width: " + std::to_string(colliderWidth))));
+	//properties.emplace_back(new Property(new Text(renderer, font, "Collider Height: " + std::to_string(colliderHeight))));
 }
 
 void Block::SetProperty(std::string prop, std::string newValue)
@@ -49,22 +49,22 @@ void Block::SetProperty(std::string prop, std::string newValue)
 	if (key == "Collider Pos X")
 	{
 		if (newValue != "")
-			collider->x = std::stoi(newValue);
+			colliderOffset.x = std::stoi(newValue);
 	}
 	else if (key == "Collider Pos Y")
 	{
 		if (newValue != "")
-			collider->y = std::stoi(newValue);
+			colliderOffset.y = std::stoi(newValue);
 	}
 	else if (key == "Collider Width")
 	{
-		if (newValue != "")
-			colliderWidth = std::stof(newValue);
+		//if (newValue != "")
+		//	colliderWidth = std::stof(newValue);
 	}
 	else if (key == "Collider Height")
 	{
-		if (newValue != "")
-			colliderHeight = std::stof(newValue);
+		//if (newValue != "")
+		//	colliderHeight = std::stof(newValue);
 	}
 }
 

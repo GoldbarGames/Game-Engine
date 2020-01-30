@@ -8,11 +8,51 @@
 
 unsigned int Entity::nextValidID = 0;
 
+unsigned int Entity::Size()
+{
+	unsigned int totalSize = 0;
+	totalSize += sizeof(position);
+
+	if (animator != nullptr)
+		totalSize += sizeof(*animator);
+
+	if (currentSprite != nullptr)
+		totalSize += currentSprite->Size();
+
+	//totalSize += sizeof(colliderWidth);
+	//totalSize += sizeof(colliderHeight);
+	totalSize += sizeof(nextValidID);
+	totalSize += sizeof(isPhysicsEntity);
+	totalSize += sizeof(drawDebugRect);
+	totalSize += sizeof(name);
+	totalSize += sizeof(flip);
+	totalSize += sizeof(entityPivot);
+	totalSize += sizeof(shouldDelete);
+	totalSize += sizeof(etype);
+	totalSize += sizeof(id);
+	totalSize += sizeof(drawOrder);
+	totalSize += sizeof(layer);
+	totalSize += sizeof(tilesheetIndex);
+	totalSize += sizeof(tileCoordinates);
+	totalSize += sizeof(impassable);
+	totalSize += sizeof(trigger);
+	totalSize += sizeof(jumpThru);
+
+	//if (collider != nullptr)
+	//	totalSize += sizeof(*collider);
+
+	//if (collisionBounds != nullptr)
+	//	totalSize += sizeof(*collisionBounds);
+
+	return totalSize;
+}
+
+
 //TODO: Figure out what to do with the background layers
 // since they will offset the next valid ID every time we save the level
 Entity::Entity(Vector2 pos)
 {
-	position = Vector2(pos.x * 2, pos.y * 2);
+	position = Vector2(pos.x, pos.y);
 	//position = pos;
 	id = nextValidID;
 	nextValidID++;
@@ -36,46 +76,42 @@ Entity::~Entity()
 		delete currentSprite;
 	if (collisionBounds != nullptr)
 		delete collisionBounds;
-	if (collider != nullptr)
-		delete collider;
 }
 
 void Entity::CreateCollider(float startX, float startY, float x, float y, float w, float h)
 {
-	if (collider != nullptr)
-		delete collider;
-
-	collider = new SDL_Rect();
-	collider->x = (int)x;
-	collider->y = (int)y;
-	collider->w = (int)1;
-	collider->h = (int)1;
-
-	colliderWidth = w;
-	colliderHeight = h;
-
 	if (collisionBounds != nullptr)
 		delete collisionBounds;
 
 	collisionBounds = new SDL_Rect();
 	collisionBounds->x = (int)x;
 	collisionBounds->y = (int)y;
-	collisionBounds->w = 1;
-	collisionBounds->h = 1;
+	collisionBounds->w = w;
+	collisionBounds->h = h;
+
+	colliderScale.x = w;
+	colliderScale.y = h;
 
 	//startSpriteSize.x = startX * Renderer::GetScale();
 	//startSpriteSize.y = startY * Renderer::GetScale();
 }
 
-void Entity::CalculateCollider(Vector2 cameraOffset)
+void Entity::CalculateCollider()
 {
-	// set the collision bounds position to where the player actually is
-	collisionBounds->x = (int)(position.x + collider->x);
-	collisionBounds->y = (int)(position.y + collider->y);
+	if (currentSprite != nullptr)
+	{
+		collisionBounds->w = colliderScale.x; //currentSprite->frameWidth;
+		collisionBounds->h = colliderScale.y; //currentSprite->frameHeight;
+	}
+	else
+	{
+		collisionBounds->w = 1;
+		collisionBounds->h = 1;
+	}
 
-	// scale the bounds of the sprite by a number to set the collider's width and height
-	collisionBounds->w = (int)colliderWidth;
-	collisionBounds->h = (int)colliderHeight;
+	// set the collision bounds position to where the player actually is
+	collisionBounds->x = (int)(position.x - (collisionBounds->w /2) + colliderOffset.x);
+	collisionBounds->y = (int)(position.y - (collisionBounds->h /2) + colliderOffset.y);
 }
 
 
@@ -99,7 +135,7 @@ void Entity::Unpause(Uint32 ticks)
 
 void Entity::Update(Game& game)
 {
-	CalculateCollider(Vector2(0,0));
+	CalculateCollider();
 	if (animator != nullptr)
 		animator->Update(this);
 }
@@ -116,10 +152,10 @@ Sprite* Entity::GetSprite()
 
 const SDL_Rect* Entity::GetBounds()
 {
-	if (collisionBounds == nullptr)
-		return currentSprite->GetRect();
-	else
-		return collisionBounds;
+	//if (collisionBounds == nullptr)
+	//	return currentSprite->GetRect();
+	//else
+	return collisionBounds;
 }
 
 Vector2 Entity::GetPosition()

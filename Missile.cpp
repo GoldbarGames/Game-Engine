@@ -76,24 +76,13 @@ void Missile::UpdatePhysics(Game& game)
 	}
 }
 
-void Missile::CalculateCollider(Vector2 cameraOffset)
-{
-	// set the collision bounds position to where the entity actually is
-	collisionBounds->x = (int)(position.x + collider->x - cameraOffset.x);
-	collisionBounds->y = (int)(position.y + collider->y - cameraOffset.y);
-
-	// scale the bounds of the sprite by a number to set the collider's width and height
-	collisionBounds->w = colliderWidth;
-	collisionBounds->h = colliderHeight;
-}
-
 bool Missile::CheckCollisions(Game& game)
 {
 	if (currentSprite == nullptr && animator != nullptr)
 		animator->DoState(this);
 
 	entityPivot = currentSprite->pivot;
-	CalculateCollider(Vector2(0,0));
+	CalculateCollider();
 
 	bool horizontalCollision = false;
 	bool verticalCollision = false;

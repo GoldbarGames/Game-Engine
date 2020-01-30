@@ -33,8 +33,7 @@ public:
 	std::string GetName() { return name; }
 
 private:
-	GLuint programID; // uniformProjection, uniformModel, uniformView, uniformViewTexture, uniformOffsetTexture;
-
+	GLuint programID;
 	std::string name = "";
 	std::unordered_map<std::string, GLuint> uniformVariables;
 

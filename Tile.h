@@ -11,9 +11,6 @@
 
 class Tile : public Entity
 {
-private:
-	int animationFrames = 0; // how many frames to the right is the animation? (is there a better way?)
-
 public:
 	void Destroy();
 	const SDL_Rect* GetBounds();

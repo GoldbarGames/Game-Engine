@@ -12,7 +12,6 @@ public:
 	void Update(Game& game);
 	void UpdatePhysics(Game& game);
 	bool CheckCollisions(Game& game);
-	void CalculateCollider(Vector2 cameraOffset);
 	void Pause(Uint32 ticks) override;
 	void Unpause(Uint32 ticks) override;
 	void Destroy();
