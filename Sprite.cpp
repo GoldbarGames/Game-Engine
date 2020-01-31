@@ -135,12 +135,8 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath,
 	frameWidth = texture->GetWidth() / numberFramesInTexture;
 	frameHeight = texture->GetHeight() / (numberFramesInTexture/framesPerRow);
 
-	//windowRect.w = frameWidth;
-	//windowRect.h = frameHeight;	
-
 	startFrame = 0;
 	endFrame = numberFramesInTexture;
-	//textureRect.x = startFrame * textureRect.w;
 }
 
 Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager,

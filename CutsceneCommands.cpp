@@ -9,12 +9,14 @@ typedef int (CutsceneCommands::*FuncList)(const std::vector<std::string>& parame
 static struct FuncLUT {
 	char command[30];
 	FuncList method;
-	int size = 4;
-} cmd_lut[] = { 
+	int size = 6;
+} cmd_lut[] = {
 	{"wait", &CutsceneCommands::Wait },
-    {"set_velocity", &CutsceneCommands::SetVelocity },
+	{"set_velocity", &CutsceneCommands::SetVelocity },
 	{"textbox", &CutsceneCommands::Textbox },
-    {"fade", &CutsceneCommands::Fade }
+	{"fade", &CutsceneCommands::Fade },
+	{"ld", &CutsceneCommands::LoadSprite },
+    {"sprite", &CutsceneCommands::SetSpriteProperty }
 };
 
 //TODO: What's the best way to deal with the parameter counts?
@@ -60,6 +62,91 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 			// if no commands fit, use the properties code (set properties)
 		}
 	}
+}
+
+int CutsceneCommands::LoadSprite(const std::vector<std::string>& parameters)
+{
+	std::string location = parameters[1];
+	std::string filepath = parameters[2];
+
+	if (location == "l")
+	{
+		if (manager->textbox->leftSprite != nullptr)
+			delete manager->textbox->leftSprite;
+
+		manager->textbox->leftSprite = new Sprite(1, manager->game->spriteManager,
+			filepath, manager->game->renderer->shaders["default"], Vector2(0, 0));
+
+		manager->textbox->leftSprite->renderRelativeToCamera = true;
+		manager->textbox->leftSprite->keepScaleRelativeToCamera = true;
+
+	}
+	else if (location == "c")
+	{
+		if (manager->textbox->centerSprite != nullptr)
+			delete manager->textbox->centerSprite;
+
+		manager->textbox->centerSprite = new Sprite(1, manager->game->spriteManager,
+			filepath, manager->game->renderer->shaders["default"], Vector2(0, 0));
+
+		manager->textbox->centerSprite->renderRelativeToCamera = true;
+		manager->textbox->centerSprite->keepScaleRelativeToCamera = true;
+	}
+	else if (location == "r")
+	{
+		if (manager->textbox->rightSprite != nullptr)
+			delete manager->textbox->rightSprite;
+
+		manager->textbox->rightSprite = new Sprite(1, manager->game->spriteManager,
+			filepath, manager->game->renderer->shaders["default"], Vector2(0, 0));
+
+		manager->textbox->rightSprite->renderRelativeToCamera = true;
+		manager->textbox->rightSprite->keepScaleRelativeToCamera = true;
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::SetSpriteProperty(const std::vector<std::string>& parameters)
+{
+	std::string location = parameters[1];
+	std::string spriteProperty = parameters[2];
+
+	if (spriteProperty == "color")
+	{
+		Color color = { std::stoi(parameters[3]), std::stoi(parameters[4]), 
+			std::stoi(parameters[5]), std::stoi(parameters[6]) };
+
+		if (location == "l")
+		{
+			manager->textbox->leftSprite->color = color;
+		}
+		else if (location == "c")
+		{
+			manager->textbox->centerSprite->color = color;
+		}
+		else if (location == "r")
+		{
+			manager->textbox->rightSprite->color = color;
+		}
+	}
+	else if (spriteProperty == "shader")
+	{	
+		if (location == "l")
+		{
+			manager->textbox->leftSprite->shader = manager->game->renderer->shaders[parameters[3]];
+		}
+		else if (location == "c")
+		{
+			manager->textbox->centerSprite->shader = manager->game->renderer->shaders[parameters[3]];
+		}
+		else if (location == "r")
+		{
+			manager->textbox->rightSprite->shader = manager->game->renderer->shaders[parameters[3]];
+		}
+	}
+
+	return 0;
 }
 
 //TODO: Maybe put this code somewhere so it can be used

@@ -51,6 +51,37 @@ void Textbox::Render(Renderer * renderer)
 		// This code is just so that it does not go outside the bounds of the textbox
 		// and is drawn in an order that looks good
 
+		int spriteX = (screenWidth / 5) * 3;
+		int spriteY = 0;
+
+		if (leftSprite != nullptr)
+		{
+			Vector2 renderPosition = Vector2( (spriteX * 0) + renderer->camera.position.x,
+				spriteY + renderer->camera.position.y);
+
+			//TODO: Make sure the position is in the center of the screen
+			leftSprite->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);			
+		}
+
+		if (centerSprite != nullptr)
+		{
+			Vector2 renderPosition = Vector2( (spriteX * 1) + renderer->camera.position.x,
+				spriteY + renderer->camera.position.y);
+
+			//TODO: Make sure the position is in the center of the screen
+			centerSprite->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
+		}
+
+		if (rightSprite != nullptr)
+		{
+			Vector2 renderPosition = Vector2( (spriteX * 2) + renderer->camera.position.x,
+				spriteY + renderer->camera.position.y);
+
+			//TODO: Make sure the position is in the center of the screen
+			rightSprite->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
+		}
+
+
 		string alignmentX = "LEFT";
 		string alignmentY = "TOP";
 

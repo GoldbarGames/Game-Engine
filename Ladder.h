@@ -1,14 +1,11 @@
 #pragma once
 #include "Entity.h"
-#include "Collider.h"
 
 class Ladder : public Entity
 {
 public:
 
 	int spriteIndex = 0;
-	
-	Collider collider;
 
 	void Render(Renderer * renderer, GLuint uniformModel);
 

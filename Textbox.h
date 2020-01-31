@@ -13,6 +13,10 @@ public:
 	Animator* animator = nullptr;
 	Sprite* boxSprite = nullptr;
 
+	Sprite* leftSprite = nullptr;
+	Sprite* centerSprite = nullptr;
+	Sprite* rightSprite = nullptr;
+
 	TTF_Font* textFont = nullptr;
 	TTF_Font* speakerFont = nullptr;
 	Text* text = nullptr;

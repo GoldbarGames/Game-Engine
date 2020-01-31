@@ -58,10 +58,6 @@ void Text::SetFont(TTF_Font* newFont)
 //TODO: Maybe modify this or make another function to pass in a shader?
 void Text::SetText(string text, Color color, Uint32 wrapWidth)
 {
-	// empty string generates a null pointer
-	// so a blank space guarantees that the surface pointer will not be null
-	if (text == "")
-		text = " ";
 
 	bool keepScaleRelative = false;
 
@@ -76,26 +72,37 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 	txt = text; // translate the text here
 	id = text;
 
+    // empty string generates a null pointer
+	// so a blank space guarantees that the surface pointer will not be null
+	if (txt == "")
+		txt = " ";
+
+
 	SDL_Surface* textSurface = nullptr;
 	SDL_Color textColor = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
 	
 	if (wrapWidth > 0)
 	{
-		textSurface = TTF_RenderText_Blended_Wrapped(font, text.c_str(), textColor, wrapWidth);
+		textSurface = TTF_RenderText_Blended_Wrapped(font, txt.c_str(), textColor, wrapWidth);
 	}
 	else
 	{
-		textSurface = TTF_RenderText_Blended(font, text.c_str(), textColor);
+		textSurface = TTF_RenderText_Blended(font, txt.c_str(), textColor);
 	}
 
-	Texture* textTexture = new Texture(text.c_str());
-	textTexture->LoadTexture(textSurface);
-
-	textSprite = new Sprite(textTexture, renderer->shaders["default"]);
-	textSprite->keepScaleRelativeToCamera = keepScaleRelative;
-
 	if (textSurface != nullptr)
-		SDL_FreeSurface(textSurface);
+	{
+		Texture* textTexture = new Texture(txt.c_str());
+		textTexture->LoadTexture(textSurface);
+
+		textSprite = new Sprite(textTexture, renderer->shaders["default"]);
+		textSprite->keepScaleRelativeToCamera = keepScaleRelative;
+
+		if (textSurface != nullptr)
+			SDL_FreeSurface(textSurface);
+	}
+
+	
 }
 
 void Text::Render(Renderer* renderer)

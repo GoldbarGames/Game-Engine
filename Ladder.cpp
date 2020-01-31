@@ -10,8 +10,7 @@ Ladder::Ladder(Vector2 pos) : Entity(pos)
 	layer = DrawingLayer::OBJECT;
 	drawOrder = 90;
 	trigger = true;
-	collider.CreateCollider(TILE_SIZE, TILE_SIZE,
-		(TILE_SIZE / 2), 0, 0.35f, 1);
+	//collider.CreateCollider(TILE_SIZE, TILE_SIZE, 0, 0, TILE_SIZE, TILE_SIZE);
 }
 
 Ladder::~Ladder()
@@ -49,7 +48,7 @@ void Ladder::OnTriggerExit(Entity* other, Game& game)
 void Ladder::Render(Renderer * renderer, GLuint uniformModel)
 {
 	Entity::Render(renderer);
-	collider.CalculateCollider(position, Vector2(0,0)); // calculate here for next update frame
+	//collider.CalculateCollider(position, Vector2(0,0)); // calculate here for next update frame
 
 	if (GetModeDebug())
 	{
@@ -68,7 +67,7 @@ void Ladder::Render(Renderer * renderer, GLuint uniformModel)
 
 const SDL_Rect* Ladder::GetBounds()
 {
-	return collider.collisionBounds;
+	return collisionBounds;
 }
 
 void Ladder::Save(std::ostringstream& level)

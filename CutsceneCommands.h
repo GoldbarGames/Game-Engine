@@ -13,6 +13,10 @@ public:
 
 	void ExecuteCommand(std::string command);
 	
+	int LoadSprite(const std::vector<std::string>& parameters);
+	int SetSpriteProperty(const std::vector<std::string>& parameters);
+	
+	
 	int SetVelocity(const std::vector<std::string>& parameters);
 	int Wait(const std::vector<std::string>& parameters);
 	int Textbox(const std::vector<std::string>& parameters);

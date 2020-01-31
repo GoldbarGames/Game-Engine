@@ -368,6 +368,10 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		}
 		else if (entity->trigger)
 		{
+
+			if (etype == "player")
+				int test = 0;
+
 			if (SDL_HasIntersection(&newBoundsHorizontal, &theirBounds))
 			{
 				CheckCollisionTrigger(entity, game);
