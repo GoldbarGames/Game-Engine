@@ -1,7 +1,7 @@
 #pragma once
 #include "PhysicsEntity.h"
 
-class Missile : public PhysicsEntity
+class Missile : public Entity
 {
 	Timer timeToLive;
 public:
@@ -12,8 +12,6 @@ public:
 	void Update(Game& game);
 	void UpdatePhysics(Game& game);
 	bool CheckCollisions(Game& game);
-	void Pause(Uint32 ticks) override;
-	void Unpause(Uint32 ticks) override;
 	void Destroy();
 };
 

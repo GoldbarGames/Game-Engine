@@ -6,15 +6,18 @@
 #include "SpellPush.h"
 #include "SpellPop.h"
 
-Player::Player(Vector2 pos) : PhysicsEntity(pos)
+Player::Player(Vector2 pos) : Entity(pos)
 {
 	etype = "player";
-	standAboveGround = true;
+	
 	CreateCollider(27, 46, 0, 0, 20.25f, 41.40f);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 99;
 	
 	trigger = false;
+
+	physics = new PhysicsEntity(this);
+	physics->standAboveGround = true;
 
 	// Initialize the spells here
 	spells.clear();
@@ -34,7 +37,7 @@ Player::~Player()
 
 void Player::Render(Renderer * renderer)
 {
-	PhysicsEntity::Render(renderer);
+	Entity::Render(renderer);
 }
 
 void Player::Update(Game& game)
@@ -98,7 +101,7 @@ void Player::UpdateNormally(Game& game)
 		else if (currentDoor != nullptr && doorTimer.HasElapsed())
 		{
 			//TODO: Make this look better later
-			SetPosition(currentDoor->GetDestination() + CalcScaledPivot());
+			SetPosition(currentDoor->GetDestination() + physics->CalcScaledPivot());
 			doorTimer.Start(500);
 		}
 		else if (currentLadder != nullptr)
@@ -106,7 +109,7 @@ void Player::UpdateNormally(Game& game)
 			// TODO: What if there is a door and a ladder at the same spot?
 			if (currentLadder->GetAnimator()->currentState->name != "top")
 			{
-				velocity.y = 0;
+				physics->velocity.y = 0;
 				animator->SetBool("onLadder", true);
 			}
 		}
@@ -147,7 +150,7 @@ void Player::UpdateNormally(Game& game)
 
 		CheckJumpButton(input);
 
-		CheckCollisions(game);
+		physics->CheckCollisions(game);
 	}
 	else
 	{
@@ -158,16 +161,16 @@ void Player::UpdateNormally(Game& game)
 		}
 		else if (animator->GetBool("isGrounded"))
 		{
-			velocity.x = 0;
+			physics->velocity.x = 0;
 		}
 
 		// Update Physics
-		if (velocity.y < 1)
-			velocity.y += Physics::GRAVITY * game.dt;
+		if (physics->velocity.y < 1)
+			physics->velocity.y += Physics::GRAVITY * game.dt;
 
 		CheckJumpButton(input);
 
-		CheckCollisions(game);
+		physics->CheckCollisions(game);
 	}
 }
 
@@ -180,7 +183,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 	//missilePosition.x += (this->currentSprite->GetRect()->w / 2);
 	//missilePosition.y += (this->currentSprite->GetRect()->h / 2);
 
-	const float missileSpeed = maxHorizontalSpeed;
+	const float missileSpeed = physics->maxHorizontalSpeed;
 	Vector2 missileVelocity = Vector2(0, 0);
 
 	float angle = 0;
@@ -225,44 +228,44 @@ void Player::GetLadderInput(const Uint8* input)
 	if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
 	{
 		animator->SetBool("climbing", true);
-		velocity.y -= horizontalSpeed;
+		physics->velocity.y -= physics->horizontalSpeed;
 	}
 	else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
 	{
 		animator->SetBool("climbing", true);
-		velocity.y += horizontalSpeed;
+		physics->velocity.y += physics->horizontalSpeed;
 	}
 	else
 	{
-		velocity.y = 0;
+		physics->velocity.y = 0;
 	}
 
 	if (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A])
 	{
 		animator->SetBool("climbing", true);
-		velocity.x -= horizontalSpeed;
+		physics->velocity.x -= physics->horizontalSpeed;
 		flip = SDL_FLIP_HORIZONTAL;
 	}
 	else if (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D])
 	{
 		animator->SetBool("climbing", true);
-		velocity.x += horizontalSpeed;
+		physics->velocity.x += physics->horizontalSpeed;
 		flip = SDL_FLIP_NONE;
 	}
 	else
 	{
-		velocity.x = 0;
+		physics->velocity.x = 0;
 	}
 
-	if (velocity.y > maxHorizontalSpeed)
-		velocity.y = maxHorizontalSpeed;
-	else if (velocity.y < -maxHorizontalSpeed)
-		velocity.y = -maxHorizontalSpeed;
+	if (physics->velocity.y > physics->maxHorizontalSpeed)
+		physics->velocity.y = physics->maxHorizontalSpeed;
+	else if (physics->velocity.y < -physics->maxHorizontalSpeed)
+		physics->velocity.y = -physics->maxHorizontalSpeed;
 
-	if (velocity.x > maxHorizontalSpeed)
-		velocity.x = maxHorizontalSpeed;
-	else if (velocity.x < -maxHorizontalSpeed)
-		velocity.x = -maxHorizontalSpeed;
+	if (physics->velocity.x > physics->maxHorizontalSpeed)
+		physics->velocity.x = physics->maxHorizontalSpeed;
+	else if (physics->velocity.x < -physics->maxHorizontalSpeed)
+		physics->velocity.x = -physics->maxHorizontalSpeed;
 }
 
 void Player::GetMoveInput(const Uint8* input)
@@ -270,35 +273,35 @@ void Player::GetMoveInput(const Uint8* input)
 	if (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A])
 	{
 		animator->SetBool("walking", true);
-		velocity.x -= horizontalSpeed;
+		physics->velocity.x -= physics->horizontalSpeed;
 		flip = SDL_FLIP_HORIZONTAL;
 	}
 	else if (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D])
 	{
 		animator->SetBool("walking", true);
-		velocity.x += horizontalSpeed;
+		physics->velocity.x += physics->horizontalSpeed;
 		flip = SDL_FLIP_NONE;
 	}
 	else
 	{
 		//TODO: Add friction
-		velocity.x = 0;
+		physics->velocity.x = 0;
 	}
 
-	if (velocity.x > maxHorizontalSpeed)
-		velocity.x = maxHorizontalSpeed;
-	else if (velocity.x < -maxHorizontalSpeed)
-		velocity.x = -maxHorizontalSpeed;
+	if (physics->velocity.x > physics->maxHorizontalSpeed)
+		physics->velocity.x = physics->maxHorizontalSpeed;
+	else if (physics->velocity.x < -physics->maxHorizontalSpeed)
+		physics->velocity.x = -physics->maxHorizontalSpeed;
 }
 
 void Player::CheckJumpButton(const Uint8* input)
 {
-	hadPressedJump = pressingJumpButton;
-	pressingJumpButton = input[SDL_SCANCODE_X];
+	physics->hadPressedJump = physics->pressingJumpButton;
+	physics->pressingJumpButton = input[SDL_SCANCODE_X];
 	//if (pressingJumpButton)
 	//	std::cout << "!!!!" << std::endl;
 
-	canJump = ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0);
+	physics->canJump = ((!physics->hadPressedJump && physics->pressingJumpButton) && physics->jumpsRemaining > 0);
 
 	/*
 	if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0)

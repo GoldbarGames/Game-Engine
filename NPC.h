@@ -1,7 +1,7 @@
 #pragma once
 #include "PhysicsEntity.h"
 
-class NPC : public PhysicsEntity
+class NPC : public Entity
 {
 public:
 	std::string cutsceneLabel = "test1";

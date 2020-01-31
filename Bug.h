@@ -1,7 +1,7 @@
 #pragma once
 #include "PhysicsEntity.h"
 
-class Bug : public PhysicsEntity
+class Bug : public Entity
 {
 public:
 	int spriteIndex = 0;

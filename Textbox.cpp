@@ -46,13 +46,8 @@ void Textbox::Render(Renderer * renderer)
 {
 	if (shouldRender)
 	{
-		//TODO: X-alignment is not really correct
-		// The only way to align it horizontally is to draw the texture differently
-		// This code is just so that it does not go outside the bounds of the textbox
-		// and is drawn in an order that looks good
-
 		int spriteX = (screenWidth / 5) * 3;
-		int spriteY = 0;
+		int spriteY = screenHeight / 2;
 
 		if (leftSprite != nullptr)
 		{
@@ -81,6 +76,11 @@ void Textbox::Render(Renderer * renderer)
 			rightSprite->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
 		}
 
+
+		//TODO: X-alignment is not really correct
+		// The only way to align it horizontally is to draw the texture differently
+		// This code is just so that it does not go outside the bounds of the textbox
+		// and is drawn in an order that looks good
 
 		string alignmentX = "LEFT";
 		string alignmentY = "TOP";

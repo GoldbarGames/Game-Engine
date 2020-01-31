@@ -2,14 +2,17 @@
 #include "Game.h"
 
 
-NPC::NPC(std::string n, Vector2 pos) : PhysicsEntity(pos)
+NPC::NPC(std::string n, Vector2 pos) : Entity(pos)
 {
 	name = n;
 	etype = "npc";
 	CreateCollider(0, 0, 0, 0, 0, 0);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 20;
-	standAboveGround = true;
+	
+
+	physics = new PhysicsEntity(this);
+	physics->standAboveGround = true;
 }
 
 
@@ -89,7 +92,7 @@ void NPC::Save(std::ostringstream& level)
 	if (npcLabel == "")
 		npcLabel = "null";
 
-	level << std::to_string(id) << " " << etype << " " << startPosition.x << " " << startPosition.y << " " << name <<
+	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << name <<
 		" " << cutsceneLabel << " " << spriteIndex << " " << drawOrder <<
 		" " << layer << " " << impassable << std::endl;
 }

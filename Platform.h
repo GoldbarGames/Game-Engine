@@ -1,7 +1,7 @@
 #pragma once
 #include "Path.h"
 #include "PhysicsEntity.h"
-class Platform : public PhysicsEntity
+class Platform : public Entity
 {
 public:
 	int spriteIndex = 0;

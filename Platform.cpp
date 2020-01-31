@@ -2,7 +2,7 @@
 #include "Renderer.h"
 #include "Game.h"
 
-Platform::Platform(Vector2 pos) : PhysicsEntity(pos)
+Platform::Platform(Vector2 pos) : Entity(pos)
 {
 	startPosition = position;
 	etype = "platform";
@@ -10,11 +10,15 @@ Platform::Platform(Vector2 pos) : PhysicsEntity(pos)
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 10;
 	
-	canBePushed = false; // TODO: Is there some potential here?
+	
 	jumpThru = true;
 	impassable = true;
-	useGravity = false;
-	mass = 10;
+	
+
+	physics = new PhysicsEntity(this);
+	physics->canBePushed = false; // TODO: Is there some potential here?
+	physics->useGravity = false;
+	physics->mass = 10;
 }
 
 
@@ -25,7 +29,7 @@ Platform::~Platform()
 
 std::string Platform::CalcDirection(bool x)
 {
-	Vector2 nextPos = position + velocity;
+	Vector2 nextPos = position + physics->velocity;
 
 	if (x)
 	{
@@ -67,20 +71,20 @@ void Platform::Update(Game& game)
 {
 	if (platformType == "Move")
 	{
-		SetVelocity(startVelocity);
+		physics->SetVelocity(startVelocity);
 
 		if (shouldLoop)
 		{
 			int distance = (tilesToMove * TILE_SIZE);
-			if (velocity.x > 0 && position.x >= startPosition.x + distance
-				|| velocity.x < 0 && position.x <= startPosition.x - distance)
+			if (physics->velocity.x > 0 && position.x >= startPosition.x + distance
+				|| physics->velocity.x < 0 && position.x <= startPosition.x - distance)
 			{
 				//TODO: Add a delay between moving the opposite direction
 				startVelocity.x *= -1;
 			}
 
-			if (velocity.y > 0 && position.y >= startPosition.y + distance
-				|| velocity.y < 0 && position.y <= startPosition.y - distance)
+			if (physics->velocity.y > 0 && position.y >= startPosition.y + distance
+				|| physics->velocity.y < 0 && position.y <= startPosition.y - distance)
 			{
 				//TODO: Add a delay between moving the opposite direction
 				startVelocity.y *= -1;
@@ -106,8 +110,8 @@ void Platform::Update(Game& game)
 		dx *= pathSpeed;
 		dy *= pathSpeed;
 
-		velocity.x = dx;
-		velocity.y = dy;
+		physics->velocity.x = dx;
+		physics->velocity.y = dy;
 
 		std::string currentDirectionX = CalcDirection(true);
 		std::string currentDirectionY = CalcDirection(false);
@@ -122,8 +126,8 @@ void Platform::Update(Game& game)
 
 		if (wrongDirection || RoundToInt(position) == RoundToInt(currentPath->nodes[pathNodeID]->point))
 		{
-			velocity.x = 0;
-			velocity.y = 0;
+			physics->velocity.x = 0;
+			physics->velocity.y = 0;
 
 			if (traversePathForward)
 				pathNodeID++;
@@ -158,9 +162,9 @@ void Platform::Update(Game& game)
 				else if (endPathBehavior == "Fall")
 				{
 					// Detach from the path and fall downward due to gravity
-					useGravity = true;					
+					physics->useGravity = true;
 					startVelocity = Vector2(0, 0);
-					velocity = startVelocity;
+					physics->velocity = startVelocity;
 					platformType = "";
 				}
 			}
@@ -168,20 +172,20 @@ void Platform::Update(Game& game)
 	}
 	else if (platformType == "Idle")
 	{
-		velocity.x = 0;
-		velocity.y = 0;
+		physics->velocity.x = 0;
+		physics->velocity.y = 0;
 	}
 
 	
 
-	PhysicsEntity::Update(game);
+	Entity::Update(game);
 
 
 }
 
 void Platform::Render(Renderer * renderer)
 {
-	PhysicsEntity::Render(renderer);
+	Entity::Render(renderer);
 }
 
 void Platform::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)

@@ -22,7 +22,7 @@ unsigned int Entity::Size()
 	//totalSize += sizeof(colliderWidth);
 	//totalSize += sizeof(colliderHeight);
 	totalSize += sizeof(nextValidID);
-	totalSize += sizeof(isPhysicsEntity);
+	//totalSize += sizeof(isPhysicsEntity);
 	totalSize += sizeof(drawDebugRect);
 	totalSize += sizeof(name);
 	totalSize += sizeof(flip);
@@ -124,6 +124,7 @@ void Entity::Pause(Uint32 ticks)
 	}	
 }
 
+
 void Entity::Unpause(Uint32 ticks)
 {
 	if (animator != nullptr)
@@ -184,39 +185,118 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 {
 	if (GetModeDebug() && drawDebugRect)
 	{
-		if (renderer->debugSprite != nullptr && renderer->IsVisible(layer))
+		if (physics != nullptr)
 		{
-			float rWidth = renderer->debugSprite->texture->GetWidth();
-			float rHeight = renderer->debugSprite->texture->GetHeight();
+			if (renderer->debugSprite != nullptr && renderer->IsVisible(layer))
+			{
+				float rWidth = renderer->debugSprite->texture->GetWidth();
+				float rHeight = renderer->debugSprite->texture->GetHeight();
 
-			float targetWidth = GetSprite()->frameWidth;
-			float targetHeight = GetSprite()->frameHeight;
+				float targetWidth = GetSprite()->frameWidth;
+				float targetHeight = GetSprite()->frameHeight;
 
-			if (jumpThru)
-				renderer->debugSprite->color = { 255, 165, 0, 255 };
-			else if (impassable)
-				renderer->debugSprite->color = { 255, 0, 0, 255 };
-			else
-				renderer->debugSprite->color = { 0, 255, 0, 255 };
+				if (impassable)
+					renderer->debugSprite->color = { 255, 0, 0, 255 };
+				else
+					renderer->debugSprite->color = { 0, 255, 0, 255 };
 
-			renderer->debugSprite->pivot = GetSprite()->pivot;
-			renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-			renderer->debugSprite->Render(position, 0, -1, flip, renderer, 0);
+				renderer->debugSprite->pivot = GetSprite()->pivot;
+				renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+				renderer->debugSprite->Render(position, 0, -1, flip, renderer, 0);
+
+				if (etype == "player")
+					int test = 0;
+
+				// draw collider
+				targetWidth = collisionBounds->w;
+				targetHeight = collisionBounds->h;
+
+				renderer->debugSprite->color = { 255, 255, 255, 255 };
+				renderer->debugSprite->pivot = GetSprite()->pivot;
+				renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+
+				Vector2 colliderPosition = Vector2(position.x + colliderOffset.x, position.y + colliderOffset.y);
+				renderer->debugSprite->Render(colliderPosition, 0, -1, flip, renderer, 0);
+			}
 		}
+		else
+		{
+			if (renderer->debugSprite != nullptr && renderer->IsVisible(layer))
+			{
+				float rWidth = renderer->debugSprite->texture->GetWidth();
+				float rHeight = renderer->debugSprite->texture->GetHeight();
+
+				float targetWidth = GetSprite()->frameWidth;
+				float targetHeight = GetSprite()->frameHeight;
+
+				if (jumpThru)
+					renderer->debugSprite->color = { 255, 165, 0, 255 };
+				else if (impassable)
+					renderer->debugSprite->color = { 255, 0, 0, 255 };
+				else
+					renderer->debugSprite->color = { 0, 255, 0, 255 };
+
+				renderer->debugSprite->pivot = GetSprite()->pivot;
+				renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+				renderer->debugSprite->Render(position, 0, -1, flip, renderer, 0);
+			}
+		}
+
+
+		
 	}
 }
 
 void Entity::Render(Renderer * renderer)
 {
-	if (currentSprite != nullptr && renderer->IsVisible(layer))
+	if (physics != nullptr)
 	{
-		if (animator != nullptr)
-			currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
-		else
-			currentSprite->Render(position, 0, -1, flip, renderer, 0);
+		//TODO: What is all of this code for? Why do we need this offset?
+		// Is it so that when you turn around, the collision box always stays centered?
+		entityPivot = currentSprite->pivot;
 
-		RenderDebug(renderer, Vector2(0,0));
+		// Get center of the white collision box, and use it as a vector2
+		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2.0f));
+		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2.0f));
+		Vector2 collisionCenter = Vector2(collisionCenterX + colliderOffset.x, collisionCenterY + colliderOffset.y);
+
+		Vector2 scaledPivot = physics->CalcScaledPivot();
+		Vector2 offset = collisionCenter - scaledPivot;
+
+		if (GetModeEdit())
+		{
+			if (animator != nullptr)
+				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+			else
+				currentSprite->Render(position, 0, -1, flip, renderer, 0);
+		}
+		else // use offset here?
+		{
+			if (animator != nullptr)
+				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+			else
+				currentSprite->Render(position, 0, -1, flip, renderer, 0);
+		}
+
+		if (GetModeDebug())
+		{
+			physics->RenderDebug(renderer);
+		}
 	}
+	else
+	{
+		if (currentSprite != nullptr && renderer->IsVisible(layer))
+		{
+			if (animator != nullptr)
+				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+			else
+				currentSprite->Render(position, 0, -1, flip, renderer, 0);
+
+			RenderDebug(renderer, Vector2(0, 0));
+		}
+	}
+
+	
 }
 
 void Entity::Render(Renderer* renderer, Vector2 offset)

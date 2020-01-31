@@ -3,11 +3,9 @@
 #include "debug_state.h"
 #include "Physics.h"
 
-PhysicsEntity::PhysicsEntity(Vector2 pos) : Entity(pos)
+PhysicsEntity::PhysicsEntity(Entity* entity)
 {
-	startPosition = pos;
-	CreateCollider(0, 0, 0, 0, 1, 1);
-	isPhysicsEntity = true;
+	our = entity;
 }
 
 PhysicsEntity::~PhysicsEntity()
@@ -15,61 +13,39 @@ PhysicsEntity::~PhysicsEntity()
 
 }
 
-const SDL_Rect* PhysicsEntity::GetColliderBounds()
-{
-	return collisionBounds;
-}
-
 void PhysicsEntity::SetVelocity(Vector2 newVelocity)
 {
 	velocity = newVelocity;
 }
 
-Vector2 PhysicsEntity::GetCenter()
-{
-	return Vector2(position.x, position.y);
-}
-
-void PhysicsEntity::Pause(Uint32 ticks)
-{
-	if (animator != nullptr)
-		animator->animationTimer.Pause(ticks);
-}
-
-void PhysicsEntity::Unpause(Uint32 ticks)
-{
-	if (animator != nullptr)
-		animator->animationTimer.Unpause(ticks);
-}
-
-float PhysicsEntity::CalcCollisionVelocity(PhysicsEntity* other, bool x)
+float PhysicsEntity::CalcCollisionVelocity(PhysicsEntity* their, bool x)
 {
 	if (x)
 	{
-		if (mass > other->mass)
+		if (mass > their->mass)
 			return velocity.x;
-		else if (mass == other->mass)
+		else if (mass == their->mass)
 			return 0;
 		else
-			return other->velocity.x;
+			return their->velocity.x;
 	}
 	else
 	{
-		if (mass > other->mass)
+		if (mass > their->mass)
 			return velocity.y;
-		else if (mass == other->mass)
+		else if (mass == their->mass)
 			return 0;
 		else
-			return other->velocity.y;
+			return their->velocity.y;
 	}
 	
 }
 
-bool PhysicsEntity::IsEntityPushingOther(PhysicsEntity* other, bool x)
+bool PhysicsEntity::IsEntityPushingOther(Entity* their, bool x)
 {
 	if (x)
 	{
-		float diffPosX = other->GetPosition().x - position.x;
+		float diffPosX = their->GetPosition().x - our->GetPosition().x;
 		return (velocity.x > 0 && diffPosX > 0) || (velocity.x < 0 && diffPosX < 0);
 	}
 	else
@@ -78,47 +54,47 @@ bool PhysicsEntity::IsEntityPushingOther(PhysicsEntity* other, bool x)
 	}	
 }
 
-PhysicsEntity* PhysicsEntity::CheckPrevParent()
+Entity* PhysicsEntity::CheckPrevParent()
 {
-	animator->SetBool("hasParent", false);
+	our->GetAnimator()->SetBool("hasParent", false);
 
-	PhysicsEntity* prevParent = parent;
+	Entity* prevParent = parent;
 	parent = nullptr;
 
-	if (prevParent != nullptr)
+	if (prevParent != nullptr && prevParent->physics != nullptr)
 	{
 		// If parent is moving and we are not, then make us move with parent
 		// Otherwise, just move according to our own speed
-		if (prevParent->velocity.x != 0 && velocity.x == 0)
+		if (prevParent->physics->velocity.x != 0 && velocity.x == 0)
 		{
-			velocity.x = prevParent->velocity.x;
+			velocity.x = prevParent->physics->velocity.x;
 		}
 
-		if (prevParent->velocity.y != 0)
+		if (prevParent->physics->velocity.y != 0)
 		{
-			velocity.y = prevParent->velocity.y;
+			velocity.y = prevParent->physics->velocity.y;
 		}
 	}
 
-	if (prevParent != nullptr && prevParent->velocity.y != 0)
+	if (prevParent != nullptr && prevParent->physics->velocity.y != 0)
 	{
-		animator->SetBool("isGrounded", true);
+		our->GetAnimator()->SetBool("isGrounded", true);
 
-		if (prevParent->velocity.y > 0)
+		if (prevParent->physics->velocity.y > 0)
 		{
-			velocity.y = prevParent->velocity.y;
+			velocity.y = prevParent->physics->velocity.y;
 		}
 	}
 
 	return prevParent;
 }
 
-bool PhysicsEntity::CheckCollisionHorizontal(Entity* entity, Game& game)
+bool PhysicsEntity::CheckCollisionHorizontal(Entity* their, Game& game)
 {
 	// if one entity is moving in the direction of the other entity...
-	if (entity->IsEntityPushingOther(this, true))
+	if (their->IsEntityPushingOther(this, true))
 	{
-		velocity.x = entity->CalcCollisionVelocity(this, true);
+		velocity.x = their->CalcCollisionVelocity(this, true);
 		return (velocity.x == 0);
 	}
 	else
@@ -130,19 +106,19 @@ bool PhysicsEntity::CheckCollisionHorizontal(Entity* entity, Game& game)
 	return false;
 }
 
-bool PhysicsEntity::CheckVerticalJumpThru(Entity* entity, Game& game)
+bool PhysicsEntity::CheckVerticalJumpThru(Entity* their, Game& game)
 {
 	// TODO: If we don't have NPCs using this, put it in the player script
-	if (etype == "player" && entity->jumpThru)
+	if (our->etype == "player" && their->jumpThru)
 	{
-		bool holdingDown = animator->GetBool("holdingDown");
+		bool holdingDown = our->GetAnimator()->GetBool("holdingDown");
 
 		if (holdingDown)
 		{
 			if ((!hadPressedJump && pressingJumpButton))
 			{
 				jumpsRemaining--;
-				position.y -= JUMP_SPEED * game.dt;
+				our->position.y -= JUMP_SPEED * game.dt;
 				PreviousFrameCollisions(game);
 				return true;
 			}
@@ -152,40 +128,41 @@ bool PhysicsEntity::CheckVerticalJumpThru(Entity* entity, Game& game)
 	return false;
 }
 
-bool PhysicsEntity::MoveVerticallyWithParent(Entity* entity, Game& game)
+bool PhysicsEntity::MoveVerticallyWithParent(Entity* their, Game& game)
 {
 	// Move vertically with the parent if there was one (keep this outside of the if)
 	// WARNING: Do not place a vertically moving platform next to a ceiling
 	// or Kaneko will go through the ceiling and get stuck there!
 	// TODO: Can we think of a good way around this?
-	if (useGravity && prevParent == entity && prevParent->velocity.y != 0)
+	if (useGravity && prevParent == their && prevParent->physics != nullptr
+		&& prevParent->physics->velocity.y != 0)
 	{
 		velocity.y = 0;
 
 		if (canJump)
 		{			
 			jumpsRemaining--;
-			position.y += (JUMP_SPEED * game.dt);
+			our->position.y += (JUMP_SPEED * game.dt);
 			return true;
 		}
 		else
 		{
-			position.y = (float)GetColliderBounds()->y;
-			position.y += entity->CalcCollisionVelocity(this, false) * game.dt;
+			our->position.y = (float)their->GetBounds()->y;
+			our->position.y += their->CalcCollisionVelocity(this, false) * game.dt;
 		}
 	}
 
 	return false;
 }
 
-bool PhysicsEntity::CheckCollisionCeiling(Entity* entity, Game& game)
+bool PhysicsEntity::CheckCollisionCeiling(Entity* other, Game& game)
 {
-	CheckCollisionTrigger(entity, game);
+	CheckCollisionTrigger(our, game);
 
-	if (etype == "player")
+	if (our->etype == "player")
 	{
 		velocity.y = 20 * Physics::GRAVITY;
-		position.y += (velocity.y * game.dt);
+		our->position.y += (velocity.y * game.dt);
 	}
 
 	// The reason we add to the position here is because we will not move
@@ -197,7 +174,7 @@ bool PhysicsEntity::CheckCollisionCeiling(Entity* entity, Game& game)
 
 void PhysicsEntity::CheckCollisions(Game& game)
 {
-	if (etype == "player")
+	if (our->etype == "player")
 		int test = 0;
 
 	shouldStickToGround = false;
@@ -206,14 +183,14 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	prevFrameCollisions = thisFrameCollisions;
 	thisFrameCollisions.clear();
 
-	CalculateCollider();
+	our->CalculateCollider();
 
-	PhysicsEntity* prevParent = CheckPrevParent();	
+	Entity* prevParent = CheckPrevParent();	
 
 	// if we were on the ground last frame, and the player wants to jump, then jump
-	bool wasGrounded = animator->GetBool("isGrounded");
+	bool wasGrounded = our->GetAnimator()->GetBool("isGrounded");
 
-	animator->SetBool("isGrounded", false);
+	our->GetAnimator()->SetBool("isGrounded", false);
 	
 	bool horizontalCollision = false;
 	bool verticalCollision = false;
@@ -221,7 +198,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	//const int TARGET_FPS = 30;
 
 	// Get bounds assuming the move is valid
-	SDL_Rect myBounds = *GetColliderBounds();
+	SDL_Rect myBounds = *(our->GetBounds());
 	myBounds.x -= (myBounds.w / 2);
 	myBounds.y += (myBounds.h / 2);
 
@@ -254,7 +231,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		theirBounds.w *= 2;
 		theirBounds.x -= (theirBounds.w/2);
 
-		if (entity == this)
+		if (entity == our)
 			continue;
 
 		if (entity->impassable || entity->jumpThru)
@@ -273,19 +250,18 @@ void PhysicsEntity::CheckCollisions(Game& game)
 				}
 			}
 
-
 			if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, &theirBounds))
 			{		
 
-				if (etype == "player")
+				if (our->etype == "player")
 					int test = 0;
 
 				horizontalCollision = CheckCollisionHorizontal(entity, game);
 
 				if (velocity.x > 0)
-					position.x = (float)(theirBounds.x - myBounds.w - colliderOffset.x);
+					our->position.x = (float)(theirBounds.x - myBounds.w - our->colliderOffset.x);
 				else if (velocity.x < 0)
-					position.x = (float)(theirBounds.x + theirBounds.w + colliderOffset.x);
+					our->position.x = (float)(theirBounds.x + theirBounds.w + our->colliderOffset.x);
 			}
 
 			// checks the ceiling
@@ -308,7 +284,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 				verticalCollision = true;
 				CheckCollisionTrigger(entity, game);
 
-				animator->SetBool("isGrounded", true);
+				our->GetAnimator()->SetBool("isGrounded", true);
 
 				if (CheckVerticalJumpThru(entity, game))
 					return;
@@ -318,15 +294,15 @@ void PhysicsEntity::CheckCollisions(Game& game)
 				// if colliding with ground, set velocity.y to zero (we need this if statement!)				
 				if (velocity.y >= 0)
 				{
-					animator->SetBool("isGrounded", true);
+					our->GetAnimator()->SetBool("isGrounded", true);
 
 					//TODO: Can we do this without casting?
 					// Sets the parent object that the player is standing on, if there is one, if we have not jumped
-					if (entity->isPhysicsEntity && !jumped)
+					if (entity->physics != nullptr && !jumped)
 					{
 						//std::cout << "set parent!" << std::endl;
-						parent = static_cast<PhysicsEntity*>(entity);
-						animator->SetBool("hasParent", true);
+						parent = entity;
+						our->GetAnimator()->SetBool("hasParent", true);
 					}
 
 					jumpsRemaining = 1;
@@ -357,19 +333,19 @@ void PhysicsEntity::CheckCollisions(Game& game)
 			}
 			else if (!verticalCollision)
 			{
-				if (etype == "player")
+				if (our->etype == "player")
 					int test = 0;
 			}
 			else
 			{
-				if (etype == "player")
+				if (our->etype == "player")
 					int test = 0;
 			}
 		}
 		else if (entity->trigger)
 		{
 
-			if (etype == "player")
+			if (our->etype == "player")
 				int test = 0;
 
 			if (SDL_HasIntersection(&newBoundsHorizontal, &theirBounds))
@@ -396,15 +372,15 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 	if (!horizontalCollision)
 	{
-		position.x += (velocity.x * game.dt);
+		our->position.x += (velocity.x * game.dt);
 	}
 
-	if (!verticalCollision || animator->GetBool("onLadder"))
+	if (!verticalCollision || our->GetAnimator()->GetBool("onLadder"))
 	{
 		if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0)
 		{
 			jumpsRemaining--;
-			position.y += JUMP_SPEED * game.dt;
+			our->position.y += JUMP_SPEED * game.dt;
 			
 		}
 		else if (!shouldStickToGround)
@@ -412,7 +388,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 			//if (etype == "player")
 			//	std::cout << "position.y += " << velocity.y << " * " << game.dt << std::endl;
 
-			position.y += (velocity.y * game.dt);
+			our->position.y += (velocity.y * game.dt);
 		}
 
 		//if (etype == "player")
@@ -455,7 +431,7 @@ void PhysicsEntity::PreviousFrameCollisions(Game& game)
 		}
 
 		if (triggerExit && prevFrameCollisions[i] != nullptr)
-			prevFrameCollisions[i]->OnTriggerExit(this, game);
+			prevFrameCollisions[i]->OnTriggerExit(our, game);
 	}
 }
 
@@ -479,11 +455,11 @@ void PhysicsEntity::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 
 		if (collisionStay)
 		{
-			collidedEntity->OnTriggerStay(this, game);
+			collidedEntity->OnTriggerStay(our, game);
 		}
 		else
 		{
-			collidedEntity->OnTriggerEnter(this, game);
+			collidedEntity->OnTriggerEnter(our, game);
 		}
 
 		thisFrameCollisions.emplace_back(collidedEntity);
@@ -492,13 +468,13 @@ void PhysicsEntity::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 
 Vector2 PhysicsEntity::CalcScaledPivot()
 {
-	if (flip == SDL_FLIP_HORIZONTAL)
+	if (our->flip == SDL_FLIP_HORIZONTAL)
 	{
 		//entityPivot.x = (currentSprite->windowRect.w) - currentSprite->pivot.x;
 	}
 
 	// scale the pivot and subtract it from the collision center
-	return Vector2(entityPivot.x, currentSprite->pivot.y);
+	return Vector2(our->entityPivot.x, our->GetSprite()->pivot.y);
 }
 
 void PhysicsEntity::Push(Vector2 pushVelocity)
@@ -528,90 +504,16 @@ void PhysicsEntity::Update(Game& game)
 		}
 	}
 
-	if (animator != nullptr)
-		animator->Update(this);
+	if (our->GetAnimator() != nullptr)
+		our->GetAnimator()->Update(our);
 }
 
 void PhysicsEntity::RenderDebug(Renderer* renderer)
 {
-	if (GetModeDebug())
-	{
-		if (renderer->debugSprite != nullptr && renderer->IsVisible(layer))
-		{
-			float rWidth = renderer->debugSprite->texture->GetWidth();
-			float rHeight = renderer->debugSprite->texture->GetHeight();
 
-			float targetWidth = GetSprite()->frameWidth;
-			float targetHeight = GetSprite()->frameHeight;
-
-			if (impassable)
-				renderer->debugSprite->color = { 255, 0, 0, 255 };
-			else
-				renderer->debugSprite->color = { 0, 255, 0, 255 };
-
-			renderer->debugSprite->pivot = GetSprite()->pivot;
-			renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-			renderer->debugSprite->Render(position, 0, -1, flip, renderer, 0);
-
-			if (etype == "player")
-				int test = 0;
-
-			// draw collider
-			targetWidth = collisionBounds->w;
-			targetHeight = collisionBounds->h;
-
-			renderer->debugSprite->color = { 255, 255, 255, 255 };
-			renderer->debugSprite->pivot = GetSprite()->pivot;
-			renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-
-			Vector2 colliderPosition = Vector2(position.x + colliderOffset.x, position.y + colliderOffset.y);
-			renderer->debugSprite->Render(colliderPosition, 0, -1, flip, renderer, 0);
-		}
-	}
-
-	/*
-	SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-
-	SDL_RenderDrawRect(renderer->renderer, collisionBounds);
-	SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-	*/
 }
 
 void PhysicsEntity::Render(Renderer* renderer)
 {
-	if (currentSprite != nullptr)
-	{
-		//TODO: What is all of this code for? Why do we need this offset?
-		// Is it so that when you turn around, the collision box always stays centered?
-		entityPivot = currentSprite->pivot;
-
-		// Get center of the white collision box, and use it as a vector2
-		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2.0f));
-		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2.0f));
-		Vector2 collisionCenter = Vector2(collisionCenterX + colliderOffset.x, collisionCenterY + colliderOffset.y);
-
-		Vector2 scaledPivot = CalcScaledPivot();
-		Vector2 offset = collisionCenter - scaledPivot;
-
-		if (GetModeEdit())
-		{
-			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
-			else
-				currentSprite->Render(position, 0, -1, flip, renderer, 0);
-		}
-		else // use offset here?
-		{
-			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
-			else
-				currentSprite->Render(position, 0, -1, flip, renderer, 0);
-		}
-
-		if (GetModeDebug())
-		{
-			RenderDebug(renderer);
-		}
-	}
 
 }

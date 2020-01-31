@@ -20,14 +20,15 @@ class PhysicsEntity;
 class Entity
 {
 protected:	
-	Vector2 position = Vector2(0, 0);	
+	
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
 	//float colliderWidth = 1;
 	//float colliderHeight = 1;
 
 public:
-
+	Vector2 position = Vector2(0, 0);
+	PhysicsEntity* physics;
 
 	unsigned int Size();
 
@@ -36,7 +37,6 @@ public:
 	Entity(Vector2 pos);
 	Entity(Vector2 pos, Sprite* sprite);
 	
-	bool isPhysicsEntity = false;
 	bool drawDebugRect = true;
 
 	std::string name = "";

@@ -2,15 +2,17 @@
 #include "Renderer.h"
 #include "Game.h"
 
-Block::Block(Vector2 pos) : PhysicsEntity(pos)
+Block::Block(Vector2 pos) : Entity(pos)
 {
 	etype = "block";
 	CreateCollider(0, 0, 0, -16, 48, 48);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 10;
-	canBePushed = true;
 	impassable = true;
-	mass = 5;
+	
+	physics = new PhysicsEntity(this);
+	physics->mass = 5;
+	physics->canBePushed = true;
 }
 
 Block::~Block()
@@ -20,7 +22,7 @@ Block::~Block()
 
 void Block::Render(Renderer * renderer)
 {
-	PhysicsEntity::Render(renderer);
+	Entity::Render(renderer);
 }
 
 void Block::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
@@ -70,6 +72,6 @@ void Block::SetProperty(std::string prop, std::string newValue)
 
 void Block::Save(std::ostringstream& level)
 {
-	level << std::to_string(id) << " " << etype << " " << startPosition.x <<
-		" " << startPosition.y << " " << spriteIndex << std::endl;
+	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
+		" " << physics->startPosition.y << " " << spriteIndex << std::endl;
 }

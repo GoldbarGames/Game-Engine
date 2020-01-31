@@ -2,7 +2,7 @@
 #include "Game.h"
 #include "debug_state.h"
 
-Missile::Missile(Vector2 pos) : PhysicsEntity(pos)
+Missile::Missile(Vector2 pos) : Entity(pos)
 {
 	//TODO: Check to see whether this collider exists or if it gets replaced with the base class
 	CreateCollider(23, 16, 0, -3, 10, 10);
@@ -10,6 +10,7 @@ Missile::Missile(Vector2 pos) : PhysicsEntity(pos)
 	timeToLive.Start(2000);
 
 	etype = "missile";
+	physics = new PhysicsEntity(this);
 
 	//TODO: Is there a good way to do this from within the constructor?
 	//animator = new Animator("missile", "moving"); //TODO: Make these parameters?
@@ -47,12 +48,12 @@ void Missile::Destroy()
 {
 	destroyed = true;
 	animator->SetBool("destroyed", true);
-	velocity = Vector2(0, 0);
+	physics->velocity = Vector2(0, 0);
 }
 
 void Missile::UpdatePhysics(Game& game)
 {
-	if (velocity.x > 0)
+	if (physics->velocity.x > 0)
 		flip = SDL_FLIP_NONE;
 	else
 		flip = SDL_FLIP_HORIZONTAL;
@@ -72,7 +73,8 @@ void Missile::UpdatePhysics(Game& game)
 	else
 	{
 		// move the missile
-		SetPosition(Vector2(position.x + (velocity.x * (float)game.dt), position.y + (velocity.y * (float)game.dt)));
+		SetPosition(Vector2(position.x + (physics->velocity.x * (float)game.dt), 
+			position.y + (physics->velocity.y * (float)game.dt)));
 	}
 }
 
@@ -88,20 +90,20 @@ bool Missile::CheckCollisions(Game& game)
 	bool verticalCollision = false;
 
 	// Get bounds assuming the move is valid
-	SDL_Rect myBounds = *GetColliderBounds();
+	SDL_Rect myBounds = *GetBounds();
 
 	SDL_Rect newBoundsHorizontal = myBounds;
-	newBoundsHorizontal.x = myBounds.x + (velocity.x * game.dt);
+	newBoundsHorizontal.x = myBounds.x + (physics->velocity.x * game.dt);
 
 	SDL_Rect newBoundsVertical = myBounds;
-	newBoundsVertical.y = myBounds.y + (velocity.y * game.dt);
+	newBoundsVertical.y = myBounds.y + (physics->velocity.y * game.dt);
 
 	// this needs to be here so that it does not check for horizontal collision when moving vertically
-	if (velocity.x > 0)
+	if (physics->velocity.x > 0)
 	{
 		newBoundsVertical.x -= 1;
 	}
-	else if (velocity.x < 0)
+	else if (physics->velocity.x < 0)
 	{
 		newBoundsVertical.x += 1;
 		newBoundsHorizontal.x -= 1;
@@ -112,11 +114,11 @@ bool Missile::CheckCollisions(Game& game)
 	}
 
 	// this needs to be here so that it does not check for vertical collision when moving horizontally
-	if (velocity.y > 0)
+	if (physics->velocity.y > 0)
 	{
 		newBoundsHorizontal.y -= 1;
 	}
-	else if (velocity.y < 0)
+	else if (physics->velocity.y < 0)
 	{
 		newBoundsHorizontal.y += 1;
 	}
@@ -141,35 +143,14 @@ bool Missile::CheckCollisions(Game& game)
 		{
 			if (SDL_HasIntersection(&newBoundsHorizontal, theirBounds))
 			{
-				CheckCollisionTrigger(game.entities[i], game);
+				physics->CheckCollisionTrigger(game.entities[i], game);
 			}
 			else if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
 			{
-				CheckCollisionTrigger(game.entities[i], game);
+				physics->CheckCollisionTrigger(game.entities[i], game);
 			}
 		}
 	}
 
 	return false;
-}
-
-void Missile::Pause(Uint32 ticks)
-{
-	//std::cout << "----" << std::endl;
-	//std::cout << string(50, '\n');
-	//std::cout << "pause missile" << std::endl;
-	timeToLive.Pause(ticks);
-	if (animator != nullptr)
-		animator->animationTimer.Pause(ticks);
-	//std::cout << "----" << std::endl;
-}
-
-void Missile::Unpause(Uint32 ticks)
-{
-	//std::cout << "----" << std::endl;
-	//std::cout << "unpause missile" << std::endl;
-	timeToLive.Unpause(ticks);
-	if (animator != nullptr)
-		animator->animationTimer.Unpause(ticks);
-	//std::cout << "----" << std::endl;
 }

@@ -9,7 +9,7 @@ class Ladder;
 class Renderer;
 class Goal;
 
-class Player : public PhysicsEntity
+class Player : public Entity
 {
 private:	
 	

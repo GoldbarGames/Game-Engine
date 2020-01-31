@@ -590,7 +590,7 @@ Shroom* Game::CreateShroom(Vector2 position, int spriteIndex)
 		spriteMap["shroom"][spriteIndex], renderer->shaders["default"], pivotPoint)));
 
 	newObject->SetAnimator(new Animator("shroom", animStates));
-	newObject->canBePushed = (spriteIndex == 1); // can push if it is in the pot
+	newObject->physics->canBePushed = (spriteIndex == 1); // can push if it is in the pot
 
 	return newObject;
 }
@@ -628,7 +628,7 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 	anim->SetBool("destroyed", false);
 
 	missile->SetAnimator(anim);
-	missile->SetVelocity(velocity);
+	missile->physics->SetVelocity(velocity);
 	missile->angle = angle;
 	missile->GetAnimator()->SetState("moving");
 

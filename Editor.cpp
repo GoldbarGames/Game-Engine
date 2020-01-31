@@ -1672,7 +1672,7 @@ void Editor::CreateLevelFromString(std::string level)
 				platform->startVelocity = Vector2(vx, vy);
 				platform->tilesToMove = std::stoi(tokens[index++]);
 				platform->shouldLoop = std::stoi(tokens[index++]);
-				platform->SetVelocity(platform->startVelocity);
+				platform->physics->SetVelocity(platform->startVelocity);
 			}	
 		}
 

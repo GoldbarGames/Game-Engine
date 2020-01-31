@@ -1,6 +1,6 @@
 #pragma once
 #include "PhysicsEntity.h"
-class Shroom : public PhysicsEntity
+class Shroom : public Entity
 {
 public:
 	int spriteIndex = 0;

@@ -2,14 +2,17 @@
 #include "Player.h"
 #include "Game.h"
 
-Bug::Bug(Vector2 pos) : PhysicsEntity(pos)
+Bug::Bug(Vector2 pos) : Entity(pos)
 {
 	layer = DrawingLayer::OBJECT;
 	drawOrder = 90;
 	etype = "bug";
 	trigger = true;
-	useGravity = false;
+	
 	CreateCollider(24, 24, 0, -4, 15, 18);
+
+	physics = new PhysicsEntity(this);
+	physics->useGravity = false;
 }
 
 Bug::~Bug()
@@ -45,6 +48,6 @@ void Bug::OnTriggerExit(Entity* other, Game& game)
 
 void Bug::Save(std::ostringstream& level)
 {
-	level << std::to_string(id) << " " << etype << " " << startPosition.x <<
-		" " << startPosition.y << " " << spriteIndex << std::endl;
+	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
+		" " << physics->startPosition.y << " " << spriteIndex << std::endl;
 }
