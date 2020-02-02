@@ -27,6 +27,10 @@ Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?
 	speaker->SetText(" ");
 	text->SetText(" ", textColor, boxWidth);
+
+	sprites['l'] = nullptr;
+	sprites['c'] = nullptr;
+	sprites['r'] = nullptr;
 }
 
 Textbox::~Textbox()
@@ -49,31 +53,31 @@ void Textbox::Render(Renderer * renderer)
 		int spriteX = (screenWidth / 5) * 3;
 		int spriteY = screenHeight / 2;
 
-		if (leftSprite != nullptr)
+		if (sprites['l'] != nullptr)
 		{
 			Vector2 renderPosition = Vector2( (spriteX * 0) + renderer->camera.position.x,
 				spriteY + renderer->camera.position.y);
 
 			//TODO: Make sure the position is in the center of the screen
-			leftSprite->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);			
+			sprites['l']->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
 		}
 
-		if (centerSprite != nullptr)
+		if (sprites['c'] != nullptr)
 		{
 			Vector2 renderPosition = Vector2( (spriteX * 1) + renderer->camera.position.x,
 				spriteY + renderer->camera.position.y);
 
 			//TODO: Make sure the position is in the center of the screen
-			centerSprite->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
+			sprites['c']->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
 		}
 
-		if (rightSprite != nullptr)
+		if (sprites['r'] != nullptr)
 		{
 			Vector2 renderPosition = Vector2( (spriteX * 2) + renderer->camera.position.x,
 				spriteY + renderer->camera.position.y);
 
 			//TODO: Make sure the position is in the center of the screen
-			rightSprite->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
+			sprites['r']->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
 		}
 
 

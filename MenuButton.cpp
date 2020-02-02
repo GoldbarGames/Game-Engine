@@ -16,10 +16,13 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 	//ANSWER: See the EditorButton
 
 	position = pos;
-	//image->windowRect.x = (int)pos.x;
-	//image->windowRect.y = (int)pos.y;
 
 	int scaledThickness = thickness;
+
+	image->renderRelativeToCamera = true;
+	image->keepScaleRelativeToCamera = true;
+	text->GetSprite()->renderRelativeToCamera = true;
+	text->GetSprite()->keepScaleRelativeToCamera = true;
 
 	/*
 

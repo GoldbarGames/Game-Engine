@@ -14,8 +14,6 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	position = Vector2(pos.x * 2, pos.y * 2);
 	name = filename;
 
-	//SDL_QueryTexture(buttonTexture, NULL, NULL, &buttonTextureRect.w, &buttonTextureRect.h);
-
 	buttonTextureRect.w *= 1;
 	buttonTextureRect.h *= 1;
 

@@ -2,7 +2,7 @@
 #include "Animator.h"
 #include "Sprite.h"
 #include "Text.h"
-
+#include <unordered_map>
 
 class Textbox
 {
@@ -13,9 +13,7 @@ public:
 	Animator* animator = nullptr;
 	Sprite* boxSprite = nullptr;
 
-	Sprite* leftSprite = nullptr;
-	Sprite* centerSprite = nullptr;
-	Sprite* rightSprite = nullptr;
+	std::unordered_map<char, Sprite*> sprites;
 
 	TTF_Font* textFont = nullptr;
 	TTF_Font* speakerFont = nullptr;

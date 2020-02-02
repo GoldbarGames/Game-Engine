@@ -9,14 +9,16 @@ typedef int (CutsceneCommands::*FuncList)(const std::vector<std::string>& parame
 static struct FuncLUT {
 	char command[30];
 	FuncList method;
-	int size = 6;
+	int size = 8;
 } cmd_lut[] = {
 	{"wait", &CutsceneCommands::Wait },
 	{"set_velocity", &CutsceneCommands::SetVelocity },
 	{"textbox", &CutsceneCommands::Textbox },
 	{"fade", &CutsceneCommands::Fade },
 	{"ld", &CutsceneCommands::LoadSprite },
-    {"sprite", &CutsceneCommands::SetSpriteProperty }
+	{"cl", &CutsceneCommands::ClearSprite },
+    {"sprite", &CutsceneCommands::SetSpriteProperty },
+	{"stralias", &CutsceneCommands::SetStringAlias }
 };
 
 //TODO: What's the best way to deal with the parameter counts?
@@ -64,52 +66,60 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 	}
 }
 
+int CutsceneCommands::SetStringAlias(const std::vector<std::string>& parameters)
+{
+	std::string key = parameters[1];
+	std::string value = parameters[2];
+	stralias[key] = value;
+	return 0;
+}
+
+std::string CutsceneCommands::GetStringAlias(std::string key)
+{
+	if (stralias.find(key) == stralias.end())
+	{
+		return key;
+	}
+	else
+	{
+		return stralias[key];
+	}
+}
+
+int CutsceneCommands::ClearSprite(const std::vector<std::string>& parameters)
+{
+	char location = parameters[1][0];
+
+	delete manager->textbox->sprites[location];
+	manager->textbox->sprites[location] = nullptr;
+
+	return 0;
+}
+
 int CutsceneCommands::LoadSprite(const std::vector<std::string>& parameters)
 {
-	std::string location = parameters[1];
-	std::string filepath = parameters[2];
+	char location = parameters[1][0];
+	std::string filepath = GetStringAlias(parameters[2]);
 
-	if (location == "l")
-	{
-		if (manager->textbox->leftSprite != nullptr)
-			delete manager->textbox->leftSprite;
+	if (manager->textbox->sprites[location] != nullptr)
+		delete manager->textbox->sprites[location];
 
-		manager->textbox->leftSprite = new Sprite(1, manager->game->spriteManager,
-			filepath, manager->game->renderer->shaders["default"], Vector2(0, 0));
+	manager->textbox->sprites[location] = new Sprite(1, manager->game->spriteManager,
+		filepath, manager->game->renderer->shaders["default"], Vector2(0, 0));
 
-		manager->textbox->leftSprite->renderRelativeToCamera = true;
-		manager->textbox->leftSprite->keepScaleRelativeToCamera = true;
-
-	}
-	else if (location == "c")
-	{
-		if (manager->textbox->centerSprite != nullptr)
-			delete manager->textbox->centerSprite;
-
-		manager->textbox->centerSprite = new Sprite(1, manager->game->spriteManager,
-			filepath, manager->game->renderer->shaders["default"], Vector2(0, 0));
-
-		manager->textbox->centerSprite->renderRelativeToCamera = true;
-		manager->textbox->centerSprite->keepScaleRelativeToCamera = true;
-	}
-	else if (location == "r")
-	{
-		if (manager->textbox->rightSprite != nullptr)
-			delete manager->textbox->rightSprite;
-
-		manager->textbox->rightSprite = new Sprite(1, manager->game->spriteManager,
-			filepath, manager->game->renderer->shaders["default"], Vector2(0, 0));
-
-		manager->textbox->rightSprite->renderRelativeToCamera = true;
-		manager->textbox->rightSprite->keepScaleRelativeToCamera = true;
-	}
+	manager->textbox->sprites[location]->renderRelativeToCamera = true;
+	manager->textbox->sprites[location]->keepScaleRelativeToCamera = true;
 
 	return 0;
 }
 
 int CutsceneCommands::SetSpriteProperty(const std::vector<std::string>& parameters)
 {
-	std::string location = parameters[1];
+	char location = parameters[1][0];
+	Sprite* sprite = manager->textbox->sprites[location];
+	if (sprite == nullptr)
+		return 1;
+
 	std::string spriteProperty = parameters[2];
 
 	if (spriteProperty == "color")
@@ -117,33 +127,11 @@ int CutsceneCommands::SetSpriteProperty(const std::vector<std::string>& paramete
 		Color color = { std::stoi(parameters[3]), std::stoi(parameters[4]), 
 			std::stoi(parameters[5]), std::stoi(parameters[6]) };
 
-		if (location == "l")
-		{
-			manager->textbox->leftSprite->color = color;
-		}
-		else if (location == "c")
-		{
-			manager->textbox->centerSprite->color = color;
-		}
-		else if (location == "r")
-		{
-			manager->textbox->rightSprite->color = color;
-		}
+		sprite->color = color;
 	}
 	else if (spriteProperty == "shader")
 	{	
-		if (location == "l")
-		{
-			manager->textbox->leftSprite->shader = manager->game->renderer->shaders[parameters[3]];
-		}
-		else if (location == "c")
-		{
-			manager->textbox->centerSprite->shader = manager->game->renderer->shaders[parameters[3]];
-		}
-		else if (location == "r")
-		{
-			manager->textbox->rightSprite->shader = manager->game->renderer->shaders[parameters[3]];
-		}
+		sprite->shader = manager->game->renderer->shaders[parameters[3]];
 	}
 
 	return 0;

@@ -60,9 +60,11 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 {
 
 	bool keepScaleRelative = false;
+	bool renderRelative = false;
 
 	if (textSprite != nullptr)
 	{
+		renderRelative = textSprite->renderRelativeToCamera;
 		keepScaleRelative = textSprite->keepScaleRelativeToCamera;
 		delete textSprite->texture;
 		delete textSprite;
@@ -97,12 +99,11 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 
 		textSprite = new Sprite(textTexture, renderer->shaders["default"]);
 		textSprite->keepScaleRelativeToCamera = keepScaleRelative;
+		textSprite->renderRelativeToCamera = renderRelative;
 
 		if (textSurface != nullptr)
 			SDL_FreeSurface(textSurface);
 	}
-
-	
 }
 
 void Text::Render(Renderer* renderer)

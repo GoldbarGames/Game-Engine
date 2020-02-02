@@ -8,6 +8,7 @@
 #include "Timer.h"
 #include "CutsceneCommands.h"
 
+
 class Game;
 
 class SceneLine
