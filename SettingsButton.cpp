@@ -144,8 +144,8 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	{
 		if (selectedOption == 0)
 			SDL_SetWindowFullscreen(game.window, 0);
-		else
-			SDL_SetWindowFullscreen(game.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		else //TODO: Should we figure out how to use FULLSCREEN_DESKTOP?
+			SDL_SetWindowFullscreen(game.window, SDL_WINDOW_FULLSCREEN);
 
 		game.isFullscreen = selectedOption;
 	}

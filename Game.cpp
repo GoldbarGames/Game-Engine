@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include "sdl_helpers.h"
 
 using std::string;
 
@@ -1271,6 +1272,7 @@ bool Game::HandleEvent(SDL_Event& event)
 	return quit;
 }
 
+
 void Game::SaveScreenshot()
 {
 	const std::string counterfilepath = "screenshots/counter.txt";
@@ -1293,13 +1295,13 @@ void Game::SaveScreenshot()
 	const unsigned int bytesPerPixel = 3;
 
 	unsigned char* pixels = new unsigned char[screenWidth * screenHeight * bytesPerPixel]; // 4 bytes for RGBA
-	glReadPixels(0, 0, screenHeight, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+	glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels);
 
 	SDL_Surface* screenshot = SDL_CreateRGBSurfaceFrom(pixels, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
 
 	//SDL_Surface * screenshot = SDL_CreateRGBSurface(0, screenWidth, screenHeight, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
 	//SDL_RenderReadPixels(renderer->renderer, NULL, SDL_PIXELFORMAT_ARGB8888, screenshot->pixels, screenshot->pitch);
-	
+	invertSDLSurfaceVertically(screenshot);
 	SDL_SaveBMP(screenshot, filepath.c_str());
 	SDL_FreeSurface(screenshot);
 

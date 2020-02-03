@@ -50,12 +50,16 @@ void Textbox::Render(Renderer * renderer)
 {
 	if (shouldRender)
 	{
-		int spriteX = (screenWidth / 5) * 3;
-		int spriteY = screenHeight / 2;
+		int halfScreenWidth = ((screenWidth * 2) / 2);
+		int spriteX = 0; // (screenWidth / 5) * 3;
+		int spriteY = screenHeight;
 
 		if (sprites['l'] != nullptr)
 		{
-			Vector2 renderPosition = Vector2( (spriteX * 0) + renderer->camera.position.x,
+			spriteX = halfScreenWidth - (halfScreenWidth/2);
+			spriteY = (screenHeight * 2) - (sprites['l']->frameHeight);
+
+			Vector2 renderPosition = Vector2(spriteX + renderer->camera.position.x,
 				spriteY + renderer->camera.position.y);
 
 			//TODO: Make sure the position is in the center of the screen
@@ -64,7 +68,10 @@ void Textbox::Render(Renderer * renderer)
 
 		if (sprites['c'] != nullptr)
 		{
-			Vector2 renderPosition = Vector2( (spriteX * 1) + renderer->camera.position.x,
+			spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
+			spriteY = (screenHeight * 2) - (sprites['c']->frameHeight);
+
+			Vector2 renderPosition = Vector2(spriteX + renderer->camera.position.x,
 				spriteY + renderer->camera.position.y);
 
 			//TODO: Make sure the position is in the center of the screen
@@ -73,7 +80,10 @@ void Textbox::Render(Renderer * renderer)
 
 		if (sprites['r'] != nullptr)
 		{
-			Vector2 renderPosition = Vector2( (spriteX * 2) + renderer->camera.position.x,
+			spriteX = halfScreenWidth + (halfScreenWidth / 2);
+			spriteY = (screenHeight * 2) - (sprites['r']->frameHeight);
+
+			Vector2 renderPosition = Vector2(spriteX + renderer->camera.position.x,
 				spriteY + renderer->camera.position.y);
 
 			//TODO: Make sure the position is in the center of the screen

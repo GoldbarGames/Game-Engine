@@ -184,6 +184,14 @@ void CutsceneManager::ReadNextLine()
 {
 	if (currentLabel != nullptr)
 	{
+		//TODO: keep track of other information such as speaker name, etc.
+		backlog.push(currentText);
+
+		if (backlog.size() > backlogMaxSize)
+		{
+			backlog.pop();
+		}
+
 		lineIndex++;	
 		currentText = "";
 

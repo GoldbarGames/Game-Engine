@@ -5,6 +5,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <queue>
+
 #include "Timer.h"
 #include "CutsceneCommands.h"
 
@@ -53,6 +55,8 @@ class CutsceneManager
 	std::string currentText = "";
 	SceneLabel * currentLabel = nullptr;
 	CutsceneCommands commands;
+	std::queue<std::string> backlog;
+	int backlogMaxSize = 3;
 public:	 
 	Textbox* textbox = nullptr;
 	Game* game = nullptr;
