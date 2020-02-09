@@ -25,6 +25,10 @@ Texture* SpriteManager::GetImage(std::string const& imagePath)
 		if (loadFromFile)
 		{
 			PHYSFS_file* myfile = PHYSFS_openRead(imagePath.c_str());
+
+			if (myfile == nullptr)
+				myfile = PHYSFS_openRead("assets/gui/white.png");			
+
 			PHYSFS_sint64  m_size = PHYSFS_fileLength(myfile);
 			uint8_t* m_data = new uint8_t[m_size];
 
@@ -46,6 +50,8 @@ Texture* SpriteManager::GetImage(std::string const& imagePath)
 		else
 		{
 			surface = IMG_Load(imagePath.c_str());
+			if (surface == nullptr)
+				surface = IMG_Load("assets/gui/white.png");
 		}	
 
 		Texture* newTexture = new Texture(imagePath.c_str());

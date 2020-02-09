@@ -23,8 +23,6 @@ protected:
 	
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
-	//float colliderWidth = 1;
-	//float colliderHeight = 1;
 
 public:
 	Vector2 position = Vector2(0, 0);
@@ -95,9 +93,6 @@ public:
 	virtual void SetProperty(std::string prop, std::string newValue);
 
 	virtual void Save(std::ostringstream& level);
-
-	virtual bool IsEntityPushingOther(PhysicsEntity* other, bool x);
-	virtual float CalcCollisionVelocity(PhysicsEntity* other, bool x);
 
 };
 

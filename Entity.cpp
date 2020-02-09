@@ -189,6 +189,7 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 		{
 			if (renderer->debugSprite != nullptr && renderer->IsVisible(layer))
 			{
+				//TODO: Make this a function inside the renderer
 				float rWidth = renderer->debugSprite->texture->GetWidth();
 				float rHeight = renderer->debugSprite->texture->GetHeight();
 
@@ -335,16 +336,6 @@ void Entity::SetSprite(Sprite* sprite)
 bool Entity::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 {
 	return true;
-}
-
-float Entity::CalcCollisionVelocity(PhysicsEntity* other, bool x)
-{
-	return 0;
-}
-
-bool Entity::IsEntityPushingOther(PhysicsEntity* other, bool x)
-{
-	return false;
 }
 
 void Entity::OnTriggerStay(Entity* other, Game& game)

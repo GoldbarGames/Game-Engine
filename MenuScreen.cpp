@@ -46,8 +46,6 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		//TODO: The only way to center the button is to do startWidth - windowRect.w / 2,
 		// but I can't get windowRect.x here because the rect has not been created yet!
 
-		//TODO: Also, the buttons are too tall. Either replace the image, or add an easy way to scale them
-
 		MenuButton* buttonPlay = new MenuButton("Play Game", "assets/gui/menu.png",
 			"Play Game", Vector2(buttonPosX, startHeight + (distance * 0)), game);
 
@@ -200,6 +198,8 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	{
 		selectedButton = buttons[0];
 		selectedButton->isSelected = true;
+		if (selectedButton->image != nullptr)
+			selectedButton->image->SetShader(game.renderer->shaders["color-glow"]);
 	}		
 }
 
@@ -248,12 +248,19 @@ void MenuScreen::Render(Renderer* renderer)
 bool MenuScreen::Update(Game& game)
 {
 	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-
 	BaseButton* lastButton = selectedButton;
 
 	selectedButton->isSelected = false;
 	selectedButton = selectedButton->Update(game, currentKeyStates);
 	selectedButton->isSelected = true;
+
+	if (selectedButton != lastButton)
+	{
+		if (selectedButton->image != nullptr)
+			selectedButton->image->SetShader(game.renderer->shaders["color-glow"]);
+		if (lastButton->image != nullptr)
+			lastButton->image->SetShader(game.renderer->shaders["default"]);
+	}
 
 	return (lastButton->pressedAnyKey);
 }

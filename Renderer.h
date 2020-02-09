@@ -5,6 +5,7 @@
 #include "globals.h"
 #include "Shader.h"
 #include "Camera.h"
+#include "Vector2.h"
 
 class Sprite;
 
@@ -18,6 +19,8 @@ public:
 	int drawCallsPerFrame = 0;
 
 	float now = 0;
+
+	Vector2 CalculateScale(Sprite* sourceSprite, Sprite* targetSprite);
 
 	std::unordered_map<std::string, ShaderProgram*> shaders;
 

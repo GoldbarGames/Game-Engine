@@ -11,12 +11,8 @@ class MenuButton : public BaseButton
 {
 private:
 	int thickness = 2;
-	SDL_Rect outlineHorizontal;
-	SDL_Rect outlineVertical;
-	SDL_Rect outlineCorners;	
 	Vector2 position = Vector2(0, 0);	
-public:
-	Sprite* image = nullptr;
+public:	
 	MenuButton(std::string txt, std::string filepath, std::string function, Vector2 pos, Game& game);
 	~MenuButton();
 	void Render(Renderer* renderer);

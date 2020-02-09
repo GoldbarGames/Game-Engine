@@ -30,6 +30,9 @@ public:
 	Vector2 position = Vector2(0,0);
 	std::string name = "";
 
+	bool isClicked = false;
+	bool isHovered = false;
+
 	EditorButton(std::string txt, std::string filename, Vector2 pos, Game& game, Vector2 size = Vector2(0, 0), Color color = { 255, 255, 255, 255 });
 	~EditorButton();
 
@@ -37,6 +40,6 @@ public:
 
 	void Render(Renderer* renderer);
 
-	bool IsClicked(const int& x, const int& y);
+	bool IsPointInsideButton(const int& x, const int& y);
 };
 

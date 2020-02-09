@@ -8,7 +8,11 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 	text = new Text(game.renderer, game.theFont);
 	text->SetText(txt);
 	//text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->GetTextHeight()/2));
-	text->SetPosition(pos.x, pos.y - (text->GetTextHeight() / 2));
+	text->SetPosition(pos.x, pos.y - (text->GetTextHeight() / 4));
+
+	text->GetSprite()->SetScale(Vector2(2, 2));
+	image->SetScale(game.renderer->CalculateScale(image, text->GetSprite()));
+	
 
 	name = function;
 
@@ -17,30 +21,10 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 
 	position = pos;
 
-	int scaledThickness = thickness;
-
 	image->renderRelativeToCamera = true;
 	image->keepScaleRelativeToCamera = true;
 	text->GetSprite()->renderRelativeToCamera = true;
 	text->GetSprite()->keepScaleRelativeToCamera = true;
-
-	/*
-
-	outlineHorizontal.x = image->GetRect()->x - scaledThickness;
-	outlineHorizontal.y = image->GetRect()->y;
-	outlineHorizontal.w = image->GetRect()->w + (2* scaledThickness);
-	outlineHorizontal.h = image->GetRect()->h;
-
-	outlineVertical.x = image->GetRect()->x;
-	outlineVertical.y = image->GetRect()->y - scaledThickness;
-	outlineVertical.w = image->GetRect()->w;
-	outlineVertical.h = image->GetRect()->h + (2* scaledThickness);
-
-	outlineCorners.x = image->GetRect()->x - (scaledThickness /2);
-	outlineCorners.y = image->GetRect()->y - (scaledThickness /2);
-	outlineCorners.w = image->GetRect()->w + scaledThickness;
-	outlineCorners.h = image->GetRect()->h + scaledThickness;
-	*/
 }
 
 
@@ -50,22 +34,7 @@ MenuButton::~MenuButton()
 }
 
 void MenuButton::Render(Renderer* renderer)
-{
-	// Draw the outline
-	/*
-	if (isSelected)
-	{
-		// TODO: Make this a color type that we can swap out
-		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255); //yellow
-		SDL_RenderFillRect(renderer->renderer, &outlineHorizontal);
-		SDL_RenderFillRect(renderer->renderer, &outlineVertical);
-		SDL_RenderFillRect(renderer->renderer, &outlineCorners);
-	}
-	*/
-
-	// Draw the button image
-	//TODO: What should the color be here? Dunno if this is right
-	//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+{	
 	image->Render(position, 0, -1, SDL_FLIP_NONE, renderer, 0);
 	text->Render(renderer);
 }

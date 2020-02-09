@@ -39,7 +39,6 @@ Editor::Editor(Game& g)
 	previewMap["shroom"] = game->CreateShroom(Vector2(0, 0), spriteMapIndex);
 	//TODO: Make the indexes different numbers for the names and sprite sheets?
 	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
-	
 
 	game->entities.clear();	
 
@@ -78,7 +77,9 @@ void Editor::CreateEditorButtons()
 		if (i > buttonNames.size() - 1)
 			break;
 
-		EditorButton* editorButton = new EditorButton("", buttonNames[i], Vector2(buttonX, screenHeight - buttonHeight), *game);
+		EditorButton* editorButton = new EditorButton("", buttonNames[i], 
+			Vector2(buttonX, screenHeight - buttonHeight), *game);
+
 		editorButton->image->keepScaleRelativeToCamera = true;
 		buttons.emplace_back(editorButton);
 
@@ -101,26 +102,21 @@ void Editor::CreateEditorButtons()
 
 void Editor::StartEdit()
 {
-	//toolbox = SDL_CreateWindow("Toolbox", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 100, 100, SDL_WINDOW_OPENGL);
-	//rendererToolbox = SDL_CreateRenderer(toolbox, -1, SDL_RENDERER_ACCELERATED);
-
 	game->LoadEditorSettings();
 
 	// TILE SHEET FOR TOOLBOX
+	if (tilesheetSprite == nullptr)
+	{
+		tilesheetSprite = new Sprite(1, game->spriteManager,
+			"assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
+			game->renderer->shaders["default"], Vector2(0, 0));
+	}
 
-	toolboxTexture = game->spriteManager->GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png");
-	toolboxTextureRect.x = 0;
-	toolboxTextureRect.y = 0;
-
-	//SDL_QueryTexture(toolboxTexture, NULL, NULL, &toolboxTextureRect.w, &toolboxTextureRect.h);
-
-	toolboxTextureRect.w *= 1;
-	toolboxTextureRect.h *= 1;
-
-	toolboxWindowRect.x = screenWidth - toolboxTextureRect.w;
-	toolboxWindowRect.y = 0;
-	toolboxWindowRect.w = toolboxTextureRect.w;
-	toolboxWindowRect.h = toolboxTextureRect.h;
+	tilesheetSprite->renderRelativeToCamera = true;
+	tilesheetSprite->keepScaleRelativeToCamera = true;
+	
+	tilesheetPosition.x = (screenWidth * 2) - tilesheetSprite->frameWidth;
+	tilesheetPosition.y = tilesheetSprite->frameHeight;
 
 	objectPropertiesRect.w = 400;
 	objectPropertiesRect.h = 600;
@@ -135,10 +131,8 @@ void Editor::StartEdit()
 	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
 	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
 
-	selectedRect.x = toolboxWindowRect.x;
-	selectedRect.y = 0;
-	selectedRect.w = 24;
-	selectedRect.h = 24;
+	selectedTilePosition.x = tilesheetPosition.x;
+	selectedTilePosition.y = tilesheetPosition.y;
 
 	hoveredTileRect.w = 24;
 	hoveredTileRect.h = 24;
@@ -191,47 +185,66 @@ void Editor::StopEdit()
 
 void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 {
-	bool clickedToolboxWindow = mouseX >= toolboxWindowRect.x && mouseY <= toolboxWindowRect.h;
+	bool clickedToolboxWindow = mouseX >= tilesheetPosition.x - tilesheetSprite->frameWidth
+		&& mouseY <= tilesheetSprite->frameHeight * 2;
 
-	// Get name of the button that was clicked, if any
-	string clickedButton = "";
-	for (unsigned int i = 0; i < buttons.size(); i++)
+	bool clickedNewButton = false;
+	if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 	{
-		if (buttons[i]->IsClicked(mouseX, mouseY))
-			clickedButton = buttons[i]->name;
+		// Get name of the button that was clicked, if any
+		for (unsigned int i = 0; i < buttons.size(); i++)
+		{
+			if (buttons[i]->IsPointInsideButton(mouseX, mouseY))
+			{
+				if (buttons[i] == clickedButton)
+				{
+					clickedButton->isClicked = false;
+					clickedNewButton = true;
+				}
+				else
+				{
+					if (clickedButton != nullptr)
+						clickedButton->isClicked = false;
+
+					clickedButton = buttons[i];
+					clickedButton->isClicked = true;
+					clickedNewButton = true;
+				}
+			}
+		}
 	}
 
 	string clickedLayerButton = "";
 	for (unsigned int i = 0; i < layerButtons.size(); i++)
 	{
-		if (layerButtons[i]->IsClicked(mouseX, mouseY))
+		if (layerButtons[i]->IsPointInsideButton(mouseX, mouseY))
 			clickedLayerButton = layerButtons[i]->text->txt;
 	}
 
 	string clickedLayerVisibleButton = "";
 	for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
 	{
-		if (layerVisibleButtons[i]->IsClicked(mouseX, mouseY))
+		if (layerVisibleButtons[i]->IsPointInsideButton(mouseX, mouseY))
 			clickedLayerVisibleButton = layerButtons[i]->text->txt;
 	}
 
 	// Allow the tile sheet to be clicked when in certain modes
 	if ( (objectMode == "tile" || objectMode == "replace" || objectMode == "copy") && clickedToolboxWindow)
 	{
-		int xOffset = (mouseX - toolboxWindowRect.x);
-		selectedRect.x = (xOffset - (xOffset % (TILE_SIZE * 1)));
-		selectedRect.y = (mouseY - (mouseY % (TILE_SIZE * 1)));
+		int xOffset = (mouseX - tilesheetPosition.x);
+		selectedTilePosition.x = (xOffset - (xOffset % (TILE_SIZE * 2)));
+		selectedTilePosition.y = (mouseY - (mouseY % (TILE_SIZE * 2)));
 
-		editorTileX = (selectedRect.x / (TILE_SIZE * 1)) + 1;
-		editorTileY = (selectedRect.y / (TILE_SIZE * 1)) + 1;
+		spriteSheetTileFrame.x = (selectedTilePosition.x / (TILE_SIZE * 1)) + 1;
+		spriteSheetTileFrame.y = (selectedTilePosition.y / (TILE_SIZE * 1)) + 1;
 
-		selectedRect.x += toolboxWindowRect.x;
+		selectedTilePosition.x += tilesheetPosition.x;
 	}
-	else if (clickedButton != "")
+	else if (clickedNewButton && clickedButton != nullptr)
 	{
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
-			ClickedButton(clickedButton);
+			ClickedButton();
 			objectPreview = previewMap[objectMode];
 		}
 	}
@@ -318,7 +331,6 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		{
 			bool foundTile = false;
 			Vector2 coordsToReplace = Vector2(0, 0);
-			Vector2 coordsToSet = Vector2(editorTileX, editorTileY);
 
 			for (unsigned int i = 0; i < game->entities.size(); i++)
 			{
@@ -345,7 +357,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 						Tile* tile = dynamic_cast<Tile*>(game->entities[i]);
 
 						// Set the index of the tile
-						tile->ChangeSprite(coordsToSet,
+						tile->ChangeSprite(spriteSheetTileFrame,
 							game->spriteManager->GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png"),
 							game->renderer);
 					}
@@ -353,9 +365,6 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 				DoAction();
 			}
-
-
-
 		}
 		else if (objectMode == "copy")
 		{
@@ -384,13 +393,13 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 				StartEdit();
 				objectMode = "tile";
 
-				selectedRect.x = (int)((tile->tileCoordinates.x - 1) * TILE_SIZE);
-				selectedRect.y = (int)((tile->tileCoordinates.y - 1) * TILE_SIZE);
+				selectedTilePosition.x = (int)((tile->tileCoordinates.x - 1) * TILE_SIZE);
+				selectedTilePosition.y = (int)((tile->tileCoordinates.y - 1) * TILE_SIZE);
 
-				editorTileX = (int)tile->tileCoordinates.x;
-				editorTileY = (int)tile->tileCoordinates.y;
+				spriteSheetTileFrame.x = (int)tile->tileCoordinates.x;
+				spriteSheetTileFrame.y = (int)tile->tileCoordinates.y;
 
-				selectedRect.x += toolboxWindowRect.x;
+				selectedTilePosition.x += tilesheetPosition.x;
 			}
 
 		}
@@ -708,9 +717,15 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 		int afterModX = ((int)(mouseX) % GRID_SIZE);
 		int afterModY = ((int)(mouseY) % GRID_SIZE);
 
-		Vector2 spawnPos = game->CalcTileSpawnPos(Vector2(mouseX - afterModX, mouseY - afterModY));
+		Vector2 snappedPos = Vector2(mouseX - afterModX, mouseY - afterModY);
 
-		game->SpawnTile(Vector2(editorTileX, editorTileY), "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
+		//TODO: Can't be this simple. Our zoom level affects the mouse position!
+		// Do we need to use raycasts or something else here?
+		Vector2 spawnPos = game->CalcTileSpawnPos(snappedPos);
+		spawnPos.x += game->renderer->camera.position.x;
+		spawnPos.y += game->renderer->camera.position.y;
+
+		game->SpawnTile(spriteSheetTileFrame, "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
 			spawnPos, drawingLayer);
 		game->SortEntities(game->entities);
 	}
@@ -906,7 +921,6 @@ void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
 					break;
 				}
 			}
-			
 		}
 	}
 }
@@ -943,6 +957,15 @@ void Editor::HandleEdit()
 	{
 		MiddleClick(clickedPosition);
 	}
+	else // no button was clicked, just check for hovering
+	{
+		for (unsigned int i = 0; i < buttons.size(); i++)
+		{
+			buttons[i]->isHovered = false;
+			if (buttons[i]->IsPointInsideButton(mouseX*2, mouseY*2))			
+				buttons[i]->isHovered = true;		
+		}
+	}
 
 	if (grabbedEntity != nullptr)
 	{
@@ -953,76 +976,88 @@ void Editor::HandleEdit()
 	previousMouseState = mouseState;
 }
 
-void Editor::ClickedButton(string buttonName)
+void Editor::ClickedButton()
 {
-	//objectMode = buttonName; //TODO: Make a better way to do this
-	if (buttonName == "Tileset")
+	if (clickedButton == nullptr)
+		return;
+
+	//objectMode = buttonName;
+	//TODO: Make a better way to do this
+	// (Use a switch/case instead of if-else
+
+	if (clickedButton->name == "Tileset")
 	{
 		ToggleTileset();
+		clickedButton->isClicked = false;
 	}
-	else if (buttonName == "Map")
+	else if (clickedButton->name == "Map")
 	{
 		//TODO: Maybe make this use the mouse wheel too?
 		ToggleSpriteMap();
 	}
-	else if (buttonName == "Grid")
+	else if (clickedButton->name == "Grid")
 	{
 		ToggleGridSize();
 	}
-	else if (buttonName == "Door")
+	else if (clickedButton->name == "Door")
 	{
 		ToggleObjectMode("door");
 	}
-	else if (buttonName == "Ladder")
+	else if (clickedButton->name == "Ladder")
 	{
 		ToggleObjectMode("ladder");
 	}	
-	else if (buttonName == "NPC")
+	else if (clickedButton->name == "NPC")
 	{
 		ToggleObjectMode("npc");
 	}
-	else if (buttonName == "Goal")
+	else if (clickedButton->name == "Goal")
 	{
 		ToggleObjectMode("goal");
 	}
-	else if (buttonName == "Bug")
+	else if (clickedButton->name == "Bug")
 	{
 		ToggleObjectMode("bug");
 	}
-	else if (buttonName == "Ether")
+	else if (clickedButton->name == "Ether")
 	{
 		ToggleObjectMode("ether");
 	}
-	else if (buttonName == "Block")
+	else if (clickedButton->name == "Block")
 	{
 		ToggleObjectMode("block");
 	}
-	else if (buttonName == "Inspect")
+	else if (clickedButton->name == "Inspect")
 	{
 		ToggleInspectionMode();
 	}
-	else if (buttonName == "NewLevel")
+	else if (clickedButton->name == "NewLevel")
 	{
 		NewLevel();
+		clickedButton->isClicked = false;
 	}
-	else if (buttonName == "Load")
+	else if (clickedButton->name == "Load")
 	{
 		CreateDialog("Type in the name of the file to load:");
 		game->StartTextInput("load_file_as");
+		clickedButton->isClicked = false;
 	}
-	else if (buttonName == "Save")
+	else if (clickedButton->name == "Save")
 	{
 		SaveLevel();
+		clickedButton->isClicked = false;
 	}
-	else if (buttonName == "Undo")
+	else if (clickedButton->name == "Undo")
 	{
 		UndoAction();
+		clickedButton->isClicked = false;
 	}
-	else if (buttonName == "Redo")
+	else if (clickedButton->name == "Redo")
 	{
 		RedoAction();
+		clickedButton->isClicked = false;
 	}
-	else if (buttonName == "Replace")
+	else if (clickedButton->name == "Replace")
 	{
 		if (objectMode == "replace")
 		{
@@ -1034,7 +1069,7 @@ void Editor::ClickedButton(string buttonName)
 			objectMode = "replace";
 		}
 	}
-	else if (buttonName == "Copy")
+	else if (clickedButton->name == "Copy")
 	{
 		if (objectMode == "copy")
 		{
@@ -1046,25 +1081,27 @@ void Editor::ClickedButton(string buttonName)
 			objectMode = "copy";
 		}
 	}
-	else if (buttonName == "Grab")
+	else if (clickedButton->name == "Grab")
 	{
 		ToggleObjectMode("grab");
 	}
-	else if (buttonName == "PrevPage")
+	else if (clickedButton->name == "PrevPage")
 	{
 		currentButtonPage--;
 		CreateEditorButtons();
+		clickedButton->isClicked = false;
 	}
-	else if (buttonName == "NextPage")
+	else if (clickedButton->name == "NextPage")
 	{
 		currentButtonPage++;
 		CreateEditorButtons();
+		clickedButton->isClicked = false;
 	}
-	else if (buttonName == "Platform")
+	else if (clickedButton->name == "Platform")
 	{
 		ToggleObjectMode("platform");
 	}
-	else if (buttonName == "Path")
+	else if (clickedButton->name == "Path")
 	{
 		if (currentPath != nullptr)
 		{
@@ -1073,7 +1110,7 @@ void Editor::ClickedButton(string buttonName)
 
 		ToggleObjectMode("path");
 	}
-	else if (buttonName == "Shroom")
+	else if (clickedButton->name == "Shroom")
 	{
 		ToggleObjectMode("shroom");
 	}
@@ -1341,12 +1378,16 @@ void Editor::Render(Renderer* renderer)
 			//SDL_RenderFillRect(renderer->renderer, &toolboxWindowRect);
 
 			// Draw the tilesheet (only if we are placing a tile)
-			//SDL_RenderCopy(renderer->renderer, toolboxTexture, &toolboxTextureRect, &toolboxWindowRect);
+			tilesheetSprite->Render(tilesheetPosition, game->renderer);
 
 			// Draw a yellow rectangle around the currently selected tileset tile
-			//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
-			//SDL_RenderDrawRect(renderer->renderer, &selectedRect);
-			//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+			game->renderer->debugSprite->color = { 255, 255, 0, 255 };
+			game->renderer->debugSprite->scale = Vector2(1, 1);
+			game->renderer->debugSprite->renderRelativeToCamera = true;
+			game->renderer->debugSprite->keepScaleRelativeToCamera = true;
+			game->renderer->debugSprite->Render(selectedTilePosition, renderer);
+			game->renderer->debugSprite->renderRelativeToCamera = false;
+			game->renderer->debugSprite->keepScaleRelativeToCamera = false;
 		}
 	}	
 

@@ -45,6 +45,10 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	{
 		optionNames = { "English", "Japanese" };
 	}
+	else if (name == "UI Size")
+	{
+		optionNames = { "Tiny", "Small", "Medium", "Big", "Large" };
+	}
 	else if (name == "Replacing") // When placing a tile, should it overwrite the old one?
 	{
 		optionNames = { "Don't Overwrite", "Overwrite" };
@@ -168,6 +172,10 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	else if (name == "Language")
 	{
 		//TODO: Deal with this when we implement translations
+	}
+	else if (name == "UI Size")
+	{
+		//TODO: Use a static variable or something to scale all menu sprites
 	}
 	else if (name == "Replacing")
 	{

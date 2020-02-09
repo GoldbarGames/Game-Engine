@@ -58,7 +58,7 @@ public:
 
 	Vector2 CalcScaledPivot();
 
-	virtual void Push(Vector2 pushVelocity);
+	void Push(Vector2 pushVelocity);
 
 	float CalcCollisionVelocity(PhysicsEntity* their, bool x);
 	bool IsEntityPushingOther(Entity* their, bool x);

@@ -14,6 +14,7 @@ class Game;
 class BaseButton
 {
 public:
+	Sprite* image = nullptr;
 	std::string name = ""; // function to execute when button is pressed
 	Text* text;
 	bool isSelected = false;

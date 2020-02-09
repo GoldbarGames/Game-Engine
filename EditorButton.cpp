@@ -59,19 +59,30 @@ EditorButton::~EditorButton()
 
 void EditorButton::Render(Renderer* renderer)
 {
-	buttonWindowRect.x = (int)position.x;
-	buttonWindowRect.y = (int)position.y;
-	buttonWindowRect.w = 50;
-	buttonWindowRect.h = 50;
+	// Set positiion of the button
 
-	Vector2 pos = Vector2(renderer->camera.position.x, renderer->camera.position.y);
+	buttonWindowRect.w = 100;
+	buttonWindowRect.h = 100;
 
-	image->Render(position + pos, renderer);
-	text->Render(renderer, pos);
+	buttonWindowRect.x = (int)position.x - (buttonWindowRect.w/2);
+	buttonWindowRect.y = (int)position.y - (buttonWindowRect.h/2);
+
+	// Darken/lighten the button based on status
+	if (isClicked)
+		image->color = { 128, 128, 128, 255 };
+	else if (isHovered)
+		image->color = { 384, 384, 384, 255 };
+	else
+		image->color = { 255, 255, 255, 255 };
+
+	// Render the button's image and text
+	Vector2 cameraPosition = Vector2(renderer->camera.position.x, renderer->camera.position.y);
+	image->Render(position + cameraPosition, renderer);
+	text->Render(renderer, cameraPosition);
 }
 
-bool EditorButton::IsClicked(const int& x, const int& y)
-{
+bool EditorButton::IsPointInsideButton(const int& x, const int& y)
+{	
 	return (x >= buttonWindowRect.x && x <= buttonWindowRect.x + buttonWindowRect.w &&
 		y >= buttonWindowRect.y && y <= buttonWindowRect.y + buttonWindowRect.h);
 }

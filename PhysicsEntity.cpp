@@ -91,16 +91,16 @@ Entity* PhysicsEntity::CheckPrevParent()
 
 bool PhysicsEntity::CheckCollisionHorizontal(Entity* their, Game& game)
 {
-	// if one entity is moving in the direction of the other entity...
-	if (their->IsEntityPushingOther(this, true))
-	{
-		velocity.x = their->CalcCollisionVelocity(this, true);
-		return (velocity.x == 0);
-	}
-	else
+	if (their->physics == nullptr)
 	{
 		velocity.x = 0;
 		return true;
+	}
+	// if one entity is moving in the direction of the other entity...
+	else if (their->physics->IsEntityPushingOther(their, true))
+	{
+		velocity.x = their->physics->CalcCollisionVelocity(this, true);
+		return (velocity.x == 0);
 	}
 
 	return false;
@@ -148,7 +148,7 @@ bool PhysicsEntity::MoveVerticallyWithParent(Entity* their, Game& game)
 		else
 		{
 			our->position.y = (float)their->GetBounds()->y;
-			our->position.y += their->CalcCollisionVelocity(this, false) * game.dt;
+			our->position.y += their->physics->CalcCollisionVelocity(this, false) * game.dt;
 		}
 	}
 

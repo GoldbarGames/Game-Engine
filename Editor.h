@@ -34,11 +34,11 @@ private:
 
 	Game* game = nullptr;
 
-	Texture * toolboxTexture = nullptr;
-	SDL_Rect toolboxTextureRect;
-	SDL_Rect toolboxWindowRect;
+	Vector2 tilesheetPosition = Vector2(0, 0);
+	Sprite* tilesheetSprite = nullptr;
 
-	SDL_Rect selectedRect;
+	Vector2 spriteSheetTileFrame = Vector2(0,0);
+	Vector2 selectedTilePosition = Vector2(0, 0);
 	SDL_Rect hoveredTileRect;
 
 	SDL_Rect objectPropertiesRect;
@@ -46,8 +46,7 @@ private:
 
 	Text* dialogText = nullptr;
 
-	int editorTileX = 0;
-	int editorTileY = 0;
+	
 
 	Uint32 previousMouseState = 0;
 
@@ -118,7 +117,9 @@ public:
 	DrawingLayer drawingLayer = BACK;
 	int tilesheetIndex = 0;
 	const string tilesheets[2] = { "housetiles5", "foresttiles" };
-	void ClickedButton(std::string buttonName);
+
+	EditorButton* clickedButton = nullptr;
+	void ClickedButton();
 	void ClickedLayerButton(std::string buttonText);
 	void ToggleGridSize();
 	void ToggleTileset();

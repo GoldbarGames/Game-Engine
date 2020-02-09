@@ -122,25 +122,49 @@ Game::~Game()
 void Game::ResetText()
 {
 	if (fpsText == nullptr)
+	{
 		fpsText = new Text(renderer, theFont);
+		fpsText->SetText("FPS:");
+		fpsText->textSprite->keepScaleRelativeToCamera = true;
+		fpsText->textSprite->renderRelativeToCamera = true;
+	}
+		
 
 	fpsText->SetText("FPS:");
-	fpsText->SetPosition(0, 0);
+	fpsText->SetPosition(fpsText->GetTextWidth() * 2, fpsText->GetTextHeight());
 
 	if (timerText == nullptr)
+	{
 		timerText = new Text(renderer, theFont);
+		timerText->SetText("");
+		timerText->textSprite->keepScaleRelativeToCamera = true;
+		timerText->textSprite->renderRelativeToCamera = true;
+	}
+		
 	
 	timerText->SetText("");
-	timerText->SetPosition(100, 0);
+	timerText->SetPosition(timerText->GetTextWidth() * 2, 300 + timerText->GetTextHeight());
 
 	if (bugText == nullptr)
+	{
 		bugText = new Text(renderer, theFont);
+		bugText->SetText("");
+		bugText->textSprite->keepScaleRelativeToCamera = true;
+		bugText->textSprite->renderRelativeToCamera = true;
+	}
+		
 	
 	bugText->SetText("Bugs Remaining: " + std::to_string(bugsRemaining));
 	bugText->SetPosition(0, 100);
 
 	if (etherText == nullptr)
+	{
 		etherText = new Text(renderer, theFont);
+		etherText->SetText("");
+		etherText->textSprite->keepScaleRelativeToCamera = true;
+		etherText->textSprite->renderRelativeToCamera = true;
+	}
+		
 	
 	etherText->SetText("Ether: " + std::to_string(currentEther));
 	etherText->SetPosition(0, 150);
@@ -184,8 +208,8 @@ void Game::CreateObjects()
 
 void Game::CreateShaders()
 {
-	renderer->CreateShader("default", "Shaders/shader0.vert", "Shaders/shader0.frag");
-	renderer->CreateShader("special", "Shaders/shader1.vert", "Shaders/shader1.frag");
+	renderer->CreateShader("default", "Shaders/default.vert", "Shaders/default.frag");
+	renderer->CreateShader("special", "Shaders/special.vert", "Shaders/special.frag");
 	renderer->CreateShader("multiply", "Shaders/color-multiply.vert", "Shaders/color-multiply.frag");
 	renderer->CreateShader("add", "Shaders/color-add.vert", "Shaders/color-add.frag");
 	renderer->CreateShader("hue-shift", "Shaders/color-hue-shift.vert", "Shaders/color-hue-shift.frag");
@@ -654,10 +678,8 @@ Vector2 Game::CalcTileSpawnPos(Vector2 pos)
 
 Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer)
 {
-	Vector2 newTilePos = position;// CalcObjPos(position);
-
 	//Sprite* tileSprite = new Sprite(Vector2(newTileX, newTileY), spriteManager.GetImage(tilesheet), renderer);
-	Tile* tile = new Tile(newTilePos, frame, spriteManager->GetImage(tilesheet), renderer);
+	Tile* tile = new Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION;
@@ -1353,22 +1375,6 @@ void Game::UpdateOverlayColor(int& color, const int& target)
 void Game::Update()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
-	//renderer->camera.KeyControl(input, dt);
-
-
-
-
-	if (player != nullptr)
-	{
-		// Update the camera
-		//camera = player->GetCenter();
-		//camera.x -= (screenWidth / 2.0f);
-		//camera.y -= (screenHeight / 2.0f);
-	}
-	else // to handle the title screen (maybe change this later)
-	{
-		//camera = Vector2(0, 0);
-	}
 
 	if (changingOverlayColor && timerOverlayColor.HasElapsed())
 	{

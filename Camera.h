@@ -42,7 +42,6 @@ private:
 
 	float screenWidth = 1280;
 	float screenHeight = 720;
-	
 
 	GLfloat yaw;
 	GLfloat pitch;
