@@ -5,12 +5,13 @@ in vec2 TexCoord;
 out vec4 color;
 
 uniform sampler2D theTexture;
+uniform vec4 spriteColor;
 uniform vec4 fadeColor;
 uniform float currentTime;
 
 void main()
 {
-    vec4 pixel = texture(theTexture, TexCoord.xy);
+    vec4 pixel = texture(theTexture, TexCoord.xy) * fadeColor;
 	vec4 newColor = vec4(pixel.r,pixel.g,pixel.b,pixel.a);
 
 	if (fadeColor.r != 1)

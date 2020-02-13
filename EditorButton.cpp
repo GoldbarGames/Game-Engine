@@ -9,7 +9,10 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	buttonColor = color;
 
 	image = new Sprite(1, game.spriteManager, "assets/editor/btn" + filename + ".png", 
-		game.renderer->shaders["default"], Vector2(0, 0));
+		game.renderer->shaders["gui"], Vector2(0, 0));
+
+	image->renderRelativeToCamera = true;
+	image->keepScaleRelativeToCamera = true;
 
 	position = Vector2(pos.x * 2, pos.y * 2);
 	name = filename;
@@ -22,6 +25,8 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 
 	text = new Text(game.renderer, game.theFont);
 	text->SetText(txt);
+	text->GetSprite()->renderRelativeToCamera = true;
+	text->GetSprite()->keepScaleRelativeToCamera = true;
 
 	if (size.x != 0)
 	{

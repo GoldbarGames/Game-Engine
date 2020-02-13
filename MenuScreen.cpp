@@ -199,7 +199,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		selectedButton = buttons[0];
 		selectedButton->isSelected = true;
 		if (selectedButton->image != nullptr)
-			selectedButton->image->SetShader(game.renderer->shaders["color-glow"]);
+			selectedButton->image->SetShader(game.renderer->shaders["glow"]);
 	}		
 }
 
@@ -257,7 +257,7 @@ bool MenuScreen::Update(Game& game)
 	if (selectedButton != lastButton)
 	{
 		if (selectedButton->image != nullptr)
-			selectedButton->image->SetShader(game.renderer->shaders["color-glow"]);
+			selectedButton->image->SetShader(game.renderer->shaders["glow"]);
 		if (lastButton->image != nullptr)
 			lastButton->image->SetShader(game.renderer->shaders["default"]);
 	}

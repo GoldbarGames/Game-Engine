@@ -65,7 +65,7 @@ public:
 	std::string filename = "";
 	SDL_Rect windowRect;
 
-
+	float angle = 0;
 
 	const SDL_Rect* GetRect();
 	void Animate(int msPerFrame, Uint32 time);

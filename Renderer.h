@@ -15,6 +15,7 @@ private:
 	std::unordered_map<std::string, bool> layersVisible;
 public:
 	Camera camera;
+	Camera guiCamera;
 	Sprite* debugSprite = nullptr;
 	int drawCallsPerFrame = 0;
 

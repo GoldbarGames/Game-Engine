@@ -5,7 +5,7 @@
 Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, 
 	GLfloat startYaw, GLfloat startPitch, 
 	GLfloat startMovementSpeed, GLfloat startTurnSpeed,
-	GLfloat startZoom, float width, float height)
+	GLfloat startZoom, float width, float height, bool useOrtho)
 {
 	position = startPosition;
 	worldUp = startUp;
@@ -18,6 +18,10 @@ Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp,
 
 	screenWidth = 1280.0f;
 	screenHeight = 720.0f;
+
+	angle = -45.0f;
+
+	useOrthoCamera = useOrtho;
 
 	projection = glm::mat4(1.0f);
 	guiProjection = glm::ortho(0.0f, screenWidth * 2, screenHeight * 2, 0.0f, -1.0f, 10.0f);
@@ -97,15 +101,77 @@ void Camera::KeyControl(const Uint8* input, GLfloat dt)
 		position -= right * velocity;
 	}
 
-	if (input[SDL_SCANCODE_N])
+	if (!useOrthoCamera)
 	{
-		Zoom(-0.025f, screenWidth, screenHeight);
+		if (input[SDL_SCANCODE_O])
+		{
+			position += front * velocity;
+		}
+
+		if (input[SDL_SCANCODE_P])
+		{
+			position -= front * velocity;
+		}
+
+		if (input[SDL_SCANCODE_N])
+		{
+			angle += 0.05f;
+			Zoom(0.0f, screenWidth, screenHeight);
+		}
+		if (input[SDL_SCANCODE_M])
+		{
+			angle -= 0.05f;
+			Zoom(0.0f, screenWidth, screenHeight);
+		}
+
+		if (input[SDL_SCANCODE_U])
+		{
+			if (!shouldUpdate)
+				return;
+
+			//yaw += xChange;
+			pitch += 1.0f;
+
+			if (pitch > 89.0f)
+				pitch = 89.0f;
+
+			if (pitch < -89.0f)
+				pitch = -89.0f;
+
+			Update();
+		}
+
+		if (input[SDL_SCANCODE_Y])
+		{
+			if (!shouldUpdate)
+				return;
+
+			//yaw += xChange;
+			pitch -= 1.0f;
+
+			if (pitch > 89.0f)
+				pitch = 89.0f;
+
+			if (pitch < -89.0f)
+				pitch = -89.0f;
+
+			Update();
+		}
+	}
+	else
+	{
+		if (input[SDL_SCANCODE_N])
+		{
+			Zoom(-0.025f, screenWidth, screenHeight);
+		}
+
+		if (input[SDL_SCANCODE_M])
+		{
+			Zoom(0.025f, screenWidth, screenHeight);
+		}
 	}
 
-	if (input[SDL_SCANCODE_M])
-	{
-		Zoom(0.025f, screenWidth, screenHeight);
-	}
+
 }
 
 void Camera::Zoom(float amount, float screenWidth, float screenHeight)
@@ -116,13 +182,13 @@ void Camera::Zoom(float amount, float screenWidth, float screenHeight)
 	{
 		GLfloat zoomX = ((GLfloat)screenWidth * orthoZoom);
 		GLfloat zoomY = ((GLfloat)screenHeight * orthoZoom);
-
 		projection = glm::ortho(0.0f, zoomX, zoomY, 0.0f, -1.0f, 10.0f);
+		
 	}
 	else
 	{
 		GLfloat aspectRatio = (GLfloat)screenWidth / (GLfloat)screenHeight;
-		projection = glm::perspective(45.0f, aspectRatio, 0.1f, 100.0f);
+		projection = glm::perspective(angle, -aspectRatio, 0.001f, 10000.0f);
 	}
 }
 

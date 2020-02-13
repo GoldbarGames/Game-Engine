@@ -241,8 +241,18 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 	shader->UseShader();
 
-	glUniformMatrix4fv(shader->GetUniformVariable("view"), 1, GL_FALSE,
-		glm::value_ptr(renderer->camera.CalculateViewMatrix()));
+	if (renderRelativeToCamera)
+	{
+		glUniformMatrix4fv(shader->GetUniformVariable("view"), 1, GL_FALSE,
+			glm::value_ptr(renderer->guiCamera.CalculateViewMatrix()));
+	}
+	else
+	{
+		glUniformMatrix4fv(shader->GetUniformVariable("view"), 1, GL_FALSE,
+			glm::value_ptr(renderer->camera.CalculateViewMatrix()));
+	}
+
+
 
 	GLfloat totalFrames = (endFrame - startFrame) + 1;
 
@@ -300,6 +310,9 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	glUniform2fv(shader->GetUniformVariable("texFrame"), 1, glm::value_ptr(texFrame));
 	glUniform2fv(shader->GetUniformVariable("texOffset"), 1, glm::value_ptr(texOffset));
 
+	glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
+	glUniform4fv(shader->GetUniformVariable("spriteColor"), 1, glm::value_ptr(spriteColor));
+
 	if (shader->GetName() == "fade-in-out")
 	{
 		GLfloat fadePoint = abs(sin(renderer->now / 1000));
@@ -337,7 +350,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 		glUniform4fv(shader->GetUniformVariable("fadeColor"), 1, glm::value_ptr(fadeColor));
 	}
-	else if (shader->GetName() == "color-glow")
+	else if (shader->GetName() == "glow")
 	{      
 		GLfloat fadePoint = abs(sin(renderer->now / 1000));
 		glm::vec4 fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
@@ -372,11 +385,6 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 		glUniform4fv(shader->GetUniformVariable("fadeColor"), 1, glm::value_ptr(fadeColor));
 	}
-	else
-	{
-		glm::vec4 fadeColor = glm::vec4(color.r/255.0f, color.g/255.0f, color.b/255.0f, color.a/255.0f);
-		glUniform4fv(shader->GetUniformVariable("fadeColor"), 1, glm::value_ptr(fadeColor));
-	}
 
 	glm::mat4 model(1.0f);
 
@@ -386,8 +394,16 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	
 	if (renderRelativeToCamera)
 	{
-		model = glm::translate(model, glm::vec3(position.x + renderer->camera.position.x, 
-			position.y + renderer->camera.position.y, -2.0f));
+		if (renderer->guiCamera.useOrthoCamera)
+		{
+			model = glm::translate(model, glm::vec3(position.x + renderer->guiCamera.position.x,
+				position.y + renderer->guiCamera.position.y, -2.0f));
+		}
+		else
+		{
+			model = glm::translate(model, glm::vec3(position.x + renderer->guiCamera.position.x,
+				position.y + renderer->guiCamera.position.y, renderer->guiCamera.position.z));
+		}		
 	}
 	else
 	{
@@ -405,7 +421,12 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 			glm::value_ptr(renderer->camera.projection));
 	}
 
-	//model = glm::rotate(model, currentAngle * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
+	// Rotation
+	if (!renderRelativeToCamera)
+	{
+		const float toRadians = 3.14159265f / 180.0f;
+		model = glm::rotate(model, angle * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
+	}
 
 	if (flip != SDL_FLIP_HORIZONTAL)
 	{
@@ -417,8 +438,6 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
 			scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
 	}
-
-	
 
 	// Set uniform variables
 	glUniformMatrix4fv(shader->GetUniformVariable("model"), 1, GL_FALSE, glm::value_ptr(model));

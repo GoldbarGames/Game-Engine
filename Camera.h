@@ -14,7 +14,8 @@ class Camera
 public:
 	Camera();
 	Camera(glm::vec3 startPosition, glm::vec3 startUp, GLfloat startYaw, GLfloat startPitch,
-		GLfloat startMovementSpeed, GLfloat startTurnSpeed, GLfloat startZoom, float width, float height);
+		GLfloat startMovementSpeed, GLfloat startTurnSpeed, GLfloat startZoom, 
+		float width, float height, bool useOrtho);
 	~Camera();
 
 	void KeyControl(const Uint8* input, GLfloat dt);
@@ -27,8 +28,10 @@ public:
 	glm::vec3 position;
 
 	Entity* target = nullptr;
-
+	bool shouldUpdate = true;
+	bool useOrthoCamera = true;
 	void FollowTarget();
+	void Update();
 
 private:
 	
@@ -38,7 +41,8 @@ private:
 	glm::vec3 worldUp;
 
 	float orthoZoom = 4.0f;
-	bool useOrthoCamera = true;
+	
+	float angle = -45.0f;
 
 	float screenWidth = 1280;
 	float screenHeight = 720;
@@ -50,7 +54,6 @@ private:
 	GLfloat movementSpeed;
 	GLfloat turnSpeed;
 
-	void Update();
 
 };
 

@@ -97,7 +97,7 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 		Texture* textTexture = new Texture(txt.c_str());
 		textTexture->LoadTexture(textSurface);
 
-		textSprite = new Sprite(textTexture, renderer->shaders["default"]);
+		textSprite = new Sprite(textTexture, renderer->shaders["gui"]);
 		textSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		textSprite->renderRelativeToCamera = renderRelative;
 

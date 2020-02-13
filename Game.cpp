@@ -187,35 +187,19 @@ void Game::CalcDt()
 
 void Game::CreateObjects()
 {
-	Sprite* spr1 = new Sprite(0, 1, 1, spriteManager, "Textures/but_defa1.png", renderer->shaders["special"], Vector2(0,0), true);
-	Sprite* spr2 = new Sprite(0, 1, 1, spriteManager, "Textures/street_1a.jpg", renderer->shaders["default"], Vector2(0,0), false);
-	Sprite* spr3 = new Sprite(0, 5, 6, spriteManager, "Textures/wdk_walk.png", renderer->shaders["default"], Vector2(0,0), true);
 
-
-	Entity* butler = new Entity(Vector2(0, 0), spr1);
-	Entity* bg = new Entity(Vector2(0, 0), spr2);
-	Entity* kaneko = new Entity(Vector2(0, 0), spr3);
-
-	kaneko->GetSprite()->numberFramesInTexture = 12;
-	kaneko->GetSprite()->framesPerRow = 6;
-	kaneko->GetSprite()->frameHeight = kaneko->GetSprite()->texture->GetHeight() / (kaneko->GetSprite()->numberFramesInTexture / kaneko->GetSprite()->framesPerRow);
-
-	//entities.push_back(bg);
-	//entities.push_back(butler);	
-	entities.push_back(kaneko);
-	//entities.push_back(cube);
 }
 
 void Game::CreateShaders()
 {
 	renderer->CreateShader("default", "Shaders/default.vert", "Shaders/default.frag");
-	renderer->CreateShader("special", "Shaders/special.vert", "Shaders/special.frag");
-	renderer->CreateShader("multiply", "Shaders/color-multiply.vert", "Shaders/color-multiply.frag");
-	renderer->CreateShader("add", "Shaders/color-add.vert", "Shaders/color-add.frag");
-	renderer->CreateShader("hue-shift", "Shaders/color-hue-shift.vert", "Shaders/color-hue-shift.frag");
-	renderer->CreateShader("fade-in-out", "Shaders/fade-in-out.vert", "Shaders/fade-in-out.frag");
-	renderer->CreateShader("color-glow", "Shaders/color-glow.vert", "Shaders/color-glow.frag");
-	renderer->CreateShader("textbox-default", "Shaders/textbox-default.vert", "Shaders/textbox-default.frag");
+	//renderer->CreateShader("special", "Shaders/special.vert", "Shaders/special.frag");
+	renderer->CreateShader("multiply", "Shaders/default.vert", "Shaders/multiply.frag");
+	renderer->CreateShader("add", "Shaders/default.vert", "Shaders/add.frag");
+	//renderer->CreateShader("hue-shift", "Shaders/hue-shift.vert", "Shaders/hue-shift.frag");
+	renderer->CreateShader("fade-in-out", "Shaders/default.vert", "Shaders/fade-in-out.frag");
+	renderer->CreateShader("glow", "Shaders/default.vert", "Shaders/glow.frag");
+	renderer->CreateShader("gui", "Shaders/gui.vert", "Shaders/gui.frag");
 }
 
 void Game::InitOpenGL()
@@ -252,8 +236,21 @@ void Game::InitOpenGL()
 
 	SDL_GL_SwapWindow(window);
 
-	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), 
-		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f, screenWidth, screenHeight);
+	bool use2DCamera = false;
+
+	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 1000.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
+		screenWidth, screenHeight, use2DCamera);
+
+	renderer->guiCamera = Camera(glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
+		screenWidth, screenHeight, use2DCamera);
+
+	renderer->guiCamera.shouldUpdate = false;
+	renderer->guiCamera.useOrthoCamera = true;
+
+	renderer->camera.Update();
+	renderer->guiCamera.Update();
 
 	CreateShaders(); // we must create the shaders at this point
 }
@@ -782,6 +779,7 @@ Player* Game::SpawnPlayer(Vector2 position)
 	entities.emplace_back(player);
 
 	renderer->camera.target = player;
+	renderer->guiCamera.target = player;
 
 	return player;
 }
@@ -919,7 +917,7 @@ void Game::HandleEditMode()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 	renderer->camera.KeyControl(input, dt);
-
+	renderer->guiCamera.KeyControl(input, dt);
 	editor->HandleEdit();
 }
 
@@ -1334,6 +1332,7 @@ void Game::GetMenuInput()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 	renderer->camera.KeyControl(input, dt);
+	renderer->guiCamera.KeyControl(input, dt);
 
 	Uint32 ticks = timer.GetTicks();
 	if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
@@ -1420,6 +1419,7 @@ void Game::Update()
 
 	// Update the camera last
 	renderer->camera.FollowTarget();
+	renderer->guiCamera.FollowTarget();
 }
 
 void Game::RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEntities)
