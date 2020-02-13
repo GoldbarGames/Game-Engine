@@ -78,7 +78,7 @@ void Editor::CreateEditorButtons()
 			break;
 
 		EditorButton* editorButton = new EditorButton("", buttonNames[i], 
-			Vector2(buttonX, screenHeight - buttonHeight), *game);
+			Vector2(buttonX, game->screenHeight - buttonHeight), *game);
 
 		editorButton->image->keepScaleRelativeToCamera = true;
 		buttons.emplace_back(editorButton);
@@ -87,14 +87,14 @@ void Editor::CreateEditorButtons()
 	}
 
 	EditorButton* previousButton = new EditorButton("", "PrevPage", 
-		Vector2(buttonStartX, screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
+		Vector2(buttonStartX, game->screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
 	
 	previousButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(previousButton);
 	
 	EditorButton* nextButton = new EditorButton("", "NextPage", 
 		Vector2(buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1),
-		screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
+		game->screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
 	
 	nextButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(nextButton);
@@ -115,18 +115,18 @@ void Editor::StartEdit()
 	tilesheetSprite->renderRelativeToCamera = true;
 	tilesheetSprite->keepScaleRelativeToCamera = true;
 	
-	tilesheetPosition.x = (screenWidth * 2) - tilesheetSprite->frameWidth;
+	tilesheetPosition.x = (game->screenWidth * 2) - tilesheetSprite->frameWidth;
 	tilesheetPosition.y = tilesheetSprite->frameHeight;
 
 	objectPropertiesRect.w = 400;
 	objectPropertiesRect.h = 600;
-	objectPropertiesRect.x = screenWidth - objectPropertiesRect.w;
+	objectPropertiesRect.x = game->screenWidth - objectPropertiesRect.w;
 	objectPropertiesRect.y = 0;
 
 	dialogRect.w = 400;
 	dialogRect.h = 200;
-	dialogRect.x = (screenWidth / 2) - (objectPropertiesRect.w / 2);
-	dialogRect.y = (screenHeight / 2) - (objectPropertiesRect.h / 2);
+	dialogRect.x = (game->screenWidth / 2) - (objectPropertiesRect.w / 2);
+	dialogRect.y = (game->screenHeight / 2) - (objectPropertiesRect.h / 2);
 
 	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
 	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);

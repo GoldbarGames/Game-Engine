@@ -8,6 +8,7 @@
 //#include <GLFW/glfw3.h>
 
 class Entity;
+class Game;
 
 class Camera
 {
@@ -18,7 +19,9 @@ public:
 		float width, float height, bool useOrtho);
 	~Camera();
 
-	void KeyControl(const Uint8* input, GLfloat dt);
+	void KeyControl(const Uint8* input, const float& dt,
+		const float& screenWidth, const float& screenHeight);
+
 	void MouseControl(GLfloat xChange, GLfloat yChange);
 	glm::mat4 projection;
 	glm::mat4 guiProjection;
@@ -30,7 +33,7 @@ public:
 	Entity* target = nullptr;
 	bool shouldUpdate = true;
 	bool useOrthoCamera = true;
-	void FollowTarget();
+	void FollowTarget(const float& screenWidth, const float& screenHeight);
 	void Update();
 
 private:
@@ -43,9 +46,6 @@ private:
 	float orthoZoom = 4.0f;
 	
 	float angle = -45.0f;
-
-	float screenWidth = 1280;
-	float screenHeight = 720;
 
 	GLfloat yaw;
 	GLfloat pitch;

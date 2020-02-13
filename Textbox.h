@@ -26,7 +26,7 @@ public:
 	const Uint32 boxWidth = 1160;
 
 	void UpdateText(std::string newText);
-	void Render(Renderer * renderer);
+	void Render(Renderer * renderer, const int& screenWidth, const int& screenHeight);
 
 	Textbox(SpriteManager * manager, Renderer * renderer);
 	~Textbox();

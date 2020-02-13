@@ -9,7 +9,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 	if (name == "Pause")
 	{
-		int startWidth = screenWidth / 2;
+		int startWidth = game.screenWidth / 2;
 		int startHeight = 100;
 		int distance = 120;
 
@@ -37,7 +37,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	}
 	else if (name == "Title")
 	{
-		int startWidth = screenWidth / 2;
+		int startWidth = game.screenWidth / 2;
 		int startHeight = 200;
 		int distance = 120;
 
@@ -64,7 +64,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		buttons.emplace_back(buttonExit);
 
 		Text* textCopyright = new Text(game.renderer, game.headerFont, "Copyright 2020 Goldbar Games LLC");
-		textCopyright->SetPosition(screenWidth - (textCopyright->GetTextWidth() / 2), 700);
+		textCopyright->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
 		textCopyright->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
 		textCopyright->GetSprite()->renderRelativeToCamera = true;
 		textCopyright->GetSprite()->keepScaleRelativeToCamera = true;
@@ -87,11 +87,11 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	}
 	else if (name == "Settings")
 	{
-		int startWidth = screenWidth / 2;
+		int startWidth = game.screenWidth / 2;
 		int startHeight = 100;
 		int distance = 60;
 
-		int buttonPosX = (screenWidth / 2);
+		int buttonPosX = (game.screenWidth / 2);
 
 		Text* header = new Text(game.renderer, game.headerFont, "Settings");
 		header->SetPosition(startWidth - (header->GetTextWidth() / 2), startHeight);
@@ -99,8 +99,8 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		header->GetSprite()->keepScaleRelativeToCamera = true;
 		texts.emplace_back(header);
 
-		std::vector<string> buttonNames = { "Music Volume", "Sound Volume", "Screen Resolution",
-		"Display FPS", "Display Timer", "Vsync", "Language" };
+		std::vector<string> buttonNames = { "Music Volume", "Sound Volume", "Fullscreen", 
+			"Screen Resolution", "Display FPS", "Display Timer", "Vsync", "Language" };
 
 		for (unsigned int i = 0; i < buttonNames.size(); i++)
 		{
@@ -118,11 +118,11 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	}
 	else if (name == "EditorSettings")
 	{
-		int startWidth = screenWidth / 2;
+		int startWidth = game.screenWidth / 2;
 		int startHeight = 100;
 		int distance = 60;
 
-		int buttonPosX = (screenWidth / 2);
+		int buttonPosX = (game.screenWidth / 2);
 
 		Text* header = new Text(game.renderer, game.headerFont, "Editor Settings");
 		header->SetPosition(startWidth - (header->GetTextWidth() / 2), startHeight);
@@ -152,11 +152,11 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	}
 	else if (name == "File Select")
 	{
-		int startWidth = screenWidth / 2;
+		int startWidth = game.screenWidth / 2;
 		int startHeight = 200;
 		int distance = 120;
 
-		int buttonPosX = (screenWidth / 2);
+		int buttonPosX = (game.screenWidth / 2);
 
 		//TODO: Replace each text with 'New Game' or 'Load Game' depending on whether there is save data
 

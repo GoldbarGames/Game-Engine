@@ -77,6 +77,10 @@ private:
 	Mesh* CreateSpriteMesh();
 public:
 
+	// can change resolution, this is base res
+	// TODO: Get this dynamically when the screen res is changed
+	int screenWidth = 1280;
+	int screenHeight = 720;
 	
 	std::unordered_map<std::string, std::vector<std::string>> spriteMap;
 
@@ -172,6 +176,7 @@ public:
 	bool isFullscreen = false;
 	bool showFPS = false;
 	bool showTimer = false;
+	int indexScreenResolution = 0;
 	
 	//TODO: Make an input class maybe
 	bool pressedDebugButton;

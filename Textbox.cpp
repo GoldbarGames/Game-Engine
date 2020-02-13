@@ -48,7 +48,7 @@ void Textbox::UpdateText(std::string newText)
 	//text->GetSprite()->SetShader(renderer->shaders["fade-in-out"]);
 }
 
-void Textbox::Render(Renderer * renderer)
+void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& screenHeight)
 {
 	if (shouldRender)
 	{

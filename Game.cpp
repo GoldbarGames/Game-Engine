@@ -236,7 +236,7 @@ void Game::InitOpenGL()
 
 	SDL_GL_SwapWindow(window);
 
-	bool use2DCamera = false;
+	bool use2DCamera = true;
 
 	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 1000.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
@@ -916,8 +916,8 @@ void Game::CheckDeleteEntities()
 void Game::HandleEditMode()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
-	renderer->camera.KeyControl(input, dt);
-	renderer->guiCamera.KeyControl(input, dt);
+	renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
+	renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
 	editor->HandleEdit();
 }
 
@@ -1038,7 +1038,8 @@ void Game::SaveSettings()
 
 	fout << "music_volume " << soundManager->bgmVolumeIndex << std::endl;
 	fout << "sound_volume " << soundManager->soundVolumeIndex << std::endl;
-	fout << "screen_resolution " << isFullscreen << std::endl;
+	fout << "windowed " << isFullscreen << std::endl;
+	fout << "screen_resolution " << indexScreenResolution << std::endl;
 	fout << "display_fps " << showFPS << std::endl;
 	fout << "display_timer " << showTimer << std::endl;
 	//fout << "language " << soundManager->soundVolumeIndex << std::endl;
@@ -1076,7 +1077,7 @@ void Game::LoadSettings()
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Sound Volume"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
-		else if (tokens[0] == "screen_resolution")
+		else if (tokens[0] == "fullscreen")
 		{
 			isFullscreen = std::stoi(tokens[1]);
 
@@ -1086,8 +1087,17 @@ void Game::LoadSettings()
 				SDL_SetWindowFullscreen(window, 0);				
 
 			//TODO: Refactor to avoid the dynamic cast
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Screen Resolution"));
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Windowed"));
 			button->selectedOption = std::stoi(tokens[1]);
+		}
+		else if (tokens[0] == "screen_resolution")
+		{
+			indexScreenResolution = std::stoi(tokens[1]);
+
+			//TODO: Refactor to avoid the dynamic cast
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Screen Resolution"));
+			button->selectedOption = indexScreenResolution;
+			button->ExecuteSelectedOption(*this);
 		}
 		else if (tokens[0] == "display_fps")
 		{
@@ -1331,8 +1341,8 @@ void Game::SaveScreenshot()
 void Game::GetMenuInput()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
-	renderer->camera.KeyControl(input, dt);
-	renderer->guiCamera.KeyControl(input, dt);
+	renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
+	renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
 
 	Uint32 ticks = timer.GetTicks();
 	if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
@@ -1418,8 +1428,8 @@ void Game::Update()
 	}
 
 	// Update the camera last
-	renderer->camera.FollowTarget();
-	renderer->guiCamera.FollowTarget();
+	renderer->camera.FollowTarget(screenWidth, screenHeight);
+	renderer->guiCamera.FollowTarget(screenWidth, screenHeight);
 }
 
 void Game::RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEntities)

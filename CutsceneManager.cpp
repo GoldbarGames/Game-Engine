@@ -147,7 +147,7 @@ std::string CutsceneManager::ParseWord(std::string text, char limit, unsigned in
 
 void CutsceneManager::Render(Renderer * renderer)
 {
-	textbox->Render(renderer);
+	textbox->Render(renderer, game->screenWidth, game->screenHeight);
 }
 
 SceneLabel* CutsceneManager::JumpToLabel(std::string newLabelName)

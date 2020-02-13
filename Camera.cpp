@@ -7,7 +7,13 @@ Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp,
 	GLfloat startMovementSpeed, GLfloat startTurnSpeed,
 	GLfloat startZoom, float width, float height, bool useOrtho)
 {
+	useOrthoCamera = useOrtho;
+	
 	position = startPosition;
+
+	if (useOrthoCamera)
+		position.z = 0;
+
 	worldUp = startUp;
 	yaw = startYaw;
 	pitch = startPitch;
@@ -16,18 +22,13 @@ Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp,
 	movementSpeed = startMovementSpeed;
 	turnSpeed = startTurnSpeed;
 
-	screenWidth = 1280.0f;
-	screenHeight = 720.0f;
-
 	angle = -45.0f;
-
-	useOrthoCamera = useOrtho;
-
-	projection = glm::mat4(1.0f);
-	guiProjection = glm::ortho(0.0f, screenWidth * 2, screenHeight * 2, 0.0f, -1.0f, 10.0f);
 	orthoZoom = startZoom;
 
-	Zoom(0.0f, screenWidth, screenHeight);
+	projection = glm::mat4(1.0f);
+	guiProjection = glm::ortho(0.0f, width * 2, height * 2, 0.0f, -1.0f, 10.0f);
+
+	Zoom(0.0f, width, height);
 
 	Update();
 }
@@ -42,10 +43,12 @@ Camera::~Camera()
 
 }
 
-void Camera::FollowTarget()
+void Camera::FollowTarget(const float& screenWidth, const float& screenHeight)
 {
 	if (target != nullptr)
 	{
+		// The position is the top left corner, so to get the target in the center
+		// of the screen, we need to offset it by half the screen's width and height
 		position = glm::vec3(target->GetPosition().x - (screenWidth * 0.5f), 
 			target->GetPosition().y - (screenHeight * 0.5f), position.z);
 	}
@@ -77,7 +80,8 @@ void Camera::MouseControl(GLfloat xChange, GLfloat yChange)
 	Update();
 }
 
-void Camera::KeyControl(const Uint8* input, GLfloat dt)
+void Camera::KeyControl(const Uint8* input, const float& dt, 
+	const float& screenWidth, const float& screenHeight)
 {
 	GLfloat velocity = movementSpeed * dt;
 
@@ -180,14 +184,13 @@ void Camera::Zoom(float amount, float screenWidth, float screenHeight)
 
 	if (useOrthoCamera)
 	{
-		GLfloat zoomX = ((GLfloat)screenWidth * orthoZoom);
-		GLfloat zoomY = ((GLfloat)screenHeight * orthoZoom);
+		float zoomX = (screenWidth * orthoZoom);
+		float zoomY = (screenHeight * orthoZoom);
 		projection = glm::ortho(0.0f, zoomX, zoomY, 0.0f, -1.0f, 10.0f);
-		
 	}
 	else
 	{
-		GLfloat aspectRatio = (GLfloat)screenWidth / (GLfloat)screenHeight;
+		float aspectRatio = screenWidth / screenHeight;
 		projection = glm::perspective(angle, -aspectRatio, 0.001f, 10000.0f);
 	}
 }

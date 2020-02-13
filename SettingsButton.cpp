@@ -20,9 +20,13 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	{
 		optionNames = { "Silent", "Quiet", "Medium", "Loud", "Max Volume" };
 	}
-	else if (name == "Screen Resolution")
+	else if (name == "Fullscreen")
 	{
 		optionNames = { "Windowed", "Fullscreen" };
+	}
+	else if (name == "Screen Resolution")
+	{
+		optionNames = { "1280 x 720", "640 x 360", "1920 x 1080" };
 	}
 	else if (name == "Vsync")
 	{
@@ -144,7 +148,7 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 		//TODO: There might be a better way to do this?
 		game.soundManager->SetVolumeBGM(selectedOption);
 	}
-	else if (name == "Screen Resolution")
+	else if (name == "Fullscreen")
 	{
 		if (selectedOption == 0)
 			SDL_SetWindowFullscreen(game.window, 0);
@@ -152,6 +156,34 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 			SDL_SetWindowFullscreen(game.window, SDL_WINDOW_FULLSCREEN);
 
 		game.isFullscreen = selectedOption;
+	}
+	else if (name == "Screen Resolution")
+	{		
+		switch (selectedOption)
+		{
+			case 0:
+				game.screenWidth = 1280;
+				game.screenHeight = 720;
+				break;
+			case 1:
+				game.screenWidth = 640;
+				game.screenHeight = 360;
+				break;
+			case 2:
+				game.screenWidth = 1920;
+				game.screenHeight = 1080;
+				break;
+			default:
+				break;
+		}
+
+		game.indexScreenResolution = selectedOption;
+		SDL_SetWindowSize(game.window, game.screenWidth, game.screenHeight);
+		game.renderer->camera.Zoom(0.0f, game.screenWidth, game.screenHeight);
+		game.renderer->guiCamera.Zoom(0.0f, game.screenWidth, game.screenHeight);
+
+		glViewport(0, 0, game.screenWidth, game.screenHeight);
+		game.renderer->screenScale = Vector2(game.screenWidth/1280.0f, game.screenHeight/720.0f);
 	}
 	else if (name == "Vsync")
 	{ 

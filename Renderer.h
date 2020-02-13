@@ -22,6 +22,7 @@ public:
 	float now = 0;
 
 	Vector2 CalculateScale(Sprite* sourceSprite, Sprite* targetSprite);
+	Vector2 screenScale = Vector2(1, 1);
 
 	std::unordered_map<std::string, ShaderProgram*> shaders;
 
