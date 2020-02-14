@@ -20,12 +20,13 @@ class PhysicsEntity;
 class Entity
 {
 protected:	
-	
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
 
 public:
 	Vector2 position = Vector2(0, 0);
+	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+
 	PhysicsEntity* physics;
 
 	unsigned int Size();

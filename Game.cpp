@@ -236,7 +236,7 @@ void Game::InitOpenGL()
 
 	SDL_GL_SwapWindow(window);
 
-	bool use2DCamera = true;
+	bool use2DCamera = false;
 
 	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 1000.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
@@ -1429,7 +1429,10 @@ void Game::Update()
 	// Update the camera last
 	// We need to use the original screen resolution here (for some reason)
 	// which in our case is 1280 x 720
-	renderer->camera.FollowTarget(1280, 720);
+
+	if (renderer->camera.useOrthoCamera)
+		renderer->camera.FollowTarget(1280, 720);
+
 	renderer->guiCamera.FollowTarget(1280, 720);
 }
 

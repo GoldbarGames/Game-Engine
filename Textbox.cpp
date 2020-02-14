@@ -65,7 +65,7 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 				spriteY + renderer->guiCamera.position.y);
 
 			//TODO: Make sure the position is in the center of the screen
-			sprites['l']->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
+			sprites['l']->Render(renderPosition, renderer);
 		}
 
 		if (sprites['c'] != nullptr)
@@ -77,7 +77,7 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 				spriteY + renderer->guiCamera.position.y);
 
 			//TODO: Make sure the position is in the center of the screen
-			sprites['c']->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
+			sprites['c']->Render(renderPosition, renderer);
 		}
 
 		if (sprites['r'] != nullptr)
@@ -89,7 +89,7 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 				spriteY + renderer->guiCamera.position.y);
 
 			//TODO: Make sure the position is in the center of the screen
-			sprites['r']->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
+			sprites['r']->Render(renderPosition, renderer);
 		}
 
 
@@ -135,7 +135,7 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 			renderer->guiCamera.position.y + offset.y);
 
 		//TODO: Make sure the position is in the center of the screen
-		boxSprite->Render(renderPosition, 0, -1, SDL_FLIP_NONE, renderer, 0);
+		boxSprite->Render(renderPosition, renderer);
 		speaker->Render(renderer, cameraPosition);
 
 		if (text != nullptr)

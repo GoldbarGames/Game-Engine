@@ -16,9 +16,17 @@ Editor::Editor(Game& g)
 
 	game = &g;
 
-	currentEditModeLayer = new Text(game->renderer, theFont);
-	cursorPosition = new Text(game->renderer, theFont);
-	cursorPosition->SetPosition(0, 50);
+	editorText["currentEditModeLayer"] = new Text(game->renderer, theFont);
+	
+	editorText["cursorPositionInScreen"] = new Text(game->renderer, theFont);
+	editorText["cursorPositionInScreen"]->SetPosition(200, 50);
+	editorText["cursorPositionInScreen"]->SetText("");
+	editorText["cursorPositionInScreen"]->GetSprite()->renderRelativeToCamera = true;
+
+	editorText["cursorPositionInWorld"] = new Text(game->renderer, theFont);
+	editorText["cursorPositionInWorld"]->SetPosition(200, 100);
+	editorText["cursorPositionInWorld"]->SetText("");
+	editorText["cursorPositionInWorld"]->GetSprite()->renderRelativeToCamera = true;
 
 	dialogText = new Text(game->renderer, theFont, "");
 	dialogInput = new Text(game->renderer, theFont, "");
@@ -324,7 +332,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		// if we are placing a tile...
 		if (objectMode == "tile")
 		{
-			PlaceTile(clickedPosition, mouseX, mouseY);
+			PlaceTile(clickedPosition, mouseX/2, mouseY/2);
 			DoAction();
 		}
 		else if (objectMode == "replace")
@@ -721,13 +729,19 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 
 		//TODO: Can't be this simple. Our zoom level affects the mouse position!
 		// Do we need to use raycasts or something else here?
-		Vector2 spawnPos = game->CalcTileSpawnPos(snappedPos);
-		spawnPos.x += game->renderer->camera.position.x;
-		spawnPos.y += game->renderer->camera.position.y;
+
+		glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
+		glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
+
+		//Vector2 spawnPos = game->CalcTileSpawnPos(snappedPos);
+		//spawnPos.x += game->renderer->camera.position.x;
+		//spawnPos.y += game->renderer->camera.position.y;
 
 		game->SpawnTile(spriteSheetTileFrame, "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
-			spawnPos, drawingLayer);
+			Vector2(spawnPos.x, spawnPos.y), drawingLayer);
 		game->SortEntities(game->entities);
+
+		std::cout << "Spawned at (" << spawnPos.x << "," << spawnPos.y << "!" << std::endl;
 	}
 }
 
@@ -941,12 +955,21 @@ void Editor::HandleEdit()
 	hoveredTileRect.x = clickedX;
 	hoveredTileRect.y = clickedY;
 
-	std::string clickedText = std::to_string(clickedX) + " " + std::to_string(clickedY);
-	cursorPosition->SetText("Position: " + clickedText);
-	cursorPosition->GetSprite()->keepScaleRelativeToCamera = true;
+	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
+	editorText["cursorPositionInScreen"]->SetText("Mouse Screen: " + clickedText);
+	editorText["cursorPositionInScreen"]->GetSprite()->keepScaleRelativeToCamera = true;
+
+	glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
+	glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
+
+	std::string clickedText2 = std::to_string((int)spawnPos.x) + " " + std::to_string((int)spawnPos.y);
+	editorText["cursorPositionInWorld"]->SetText("Mouse World: " + clickedText2);
+	editorText["cursorPositionInWorld"]->GetSprite()->keepScaleRelativeToCamera = true;
 
 	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 	{
+		// We multiply X and Y by 2 because the guiProjection is multiplied by 2
+		// TODO: Maybe remove the multiplier
 		LeftClick(clickedPosition, mouseX*2, mouseY*2);
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
@@ -1211,8 +1234,8 @@ void Editor::ToggleObjectMode(std::string mode)
 		objectMode = mode;
 	}
 
-	currentEditModeLayer->SetText("Active Mode: " + objectMode);
-	currentEditModeLayer->GetSprite()->keepScaleRelativeToCamera = true;
+	editorText["currentEditModeLayer"]->SetText("Active Mode: " + objectMode);
+	editorText["currentEditModeLayer"]->GetSprite()->keepScaleRelativeToCamera = true;
 }
 
 void Editor::ToggleGridSize()
@@ -1240,15 +1263,15 @@ void Editor::ToggleInspectionMode()
 		selectedEntity = nullptr;
 	}
 
-	currentEditModeLayer->SetText("Active Mode: " + objectMode);
+	editorText["currentEditModeLayer"]->SetText("Active Mode: " + objectMode);
 	//inspectionMode = !inspectionMode;
 }
 
 void Editor::SetLayer(DrawingLayer layer)
 {
 	drawingLayer = layer;
-	currentEditModeLayer->SetText("Drawing on layer: " + GetDrawingLayerName(drawingLayer));
-	currentEditModeLayer->GetSprite()->keepScaleRelativeToCamera = true;
+	editorText["currentEditModeLayer"]->SetText("Drawing on layer: " + GetDrawingLayerName(drawingLayer));
+	editorText["currentEditModeLayer"]->GetSprite()->keepScaleRelativeToCamera = true;
 }
 
 void Editor::ToggleTileset()
@@ -1307,7 +1330,7 @@ void Editor::Render(Renderer* renderer)
 		}
 
 		objectPreview->GetSprite()->Render(Vector2(hoveredTileRect.x, hoveredTileRect.y),
-			0, -1, SDL_FLIP_NONE, renderer, 0);
+			0, -1, SDL_FLIP_NONE, renderer, objectPreview->rotation);
 
 		if (placingDoor && currentDoor != nullptr)
 		{
@@ -1392,8 +1415,9 @@ void Editor::Render(Renderer* renderer)
 	}	
 
 	// Draw text
-	currentEditModeLayer->Render(renderer);
-	cursorPosition->Render(renderer);
+	editorText["currentEditModeLayer"]->Render(renderer);
+	editorText["cursorPositionInScreen"]->Render(renderer);
+	editorText["cursorPositionInWorld"]->Render(renderer);
 
 	// Draw all buttons
 	for (unsigned int i = 0; i < buttons.size(); i++)
@@ -1447,7 +1471,7 @@ void Editor::SetText(string newText)
 	//if (textTexture != nullptr)
 	//	delete textTexture;
 
-	currentEditModeLayer->SetText(newText);
+	editorText["currentEditModeLayer"]->SetText(newText);
 }
 
 void Editor::DestroyDialog()

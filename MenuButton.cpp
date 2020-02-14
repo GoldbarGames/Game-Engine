@@ -35,7 +35,7 @@ MenuButton::~MenuButton()
 
 void MenuButton::Render(Renderer* renderer)
 {	
-	image->Render(position, 0, -1, SDL_FLIP_NONE, renderer, 0);
+	image->Render(position, renderer);
 	text->Render(renderer);
 }
 

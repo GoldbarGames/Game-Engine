@@ -85,8 +85,7 @@ public:
 	unsigned int currentButtonPage = 0;
 	int propertyIndex = -1;
 	int GRID_SIZE = 24;
-	Text* currentEditModeLayer = nullptr;
-	Text* cursorPosition = nullptr;
+	std::unordered_map<std::string, Text*> editorText;
 
 	std::string objectMode = "tile";
 

@@ -28,6 +28,8 @@ Player::Player(Vector2 pos) : Entity(pos)
 	missileTimer.Start(1);
 	doorTimer.Start(1);	
 	spellTimer.Start(1);
+
+	//rotation = glm::vec3(90.0f, 0.0f, 0.0f);
 }
 
 Player::~Player()

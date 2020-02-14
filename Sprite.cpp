@@ -218,7 +218,7 @@ void Sprite::Animate(int msPerFrame, Uint32 time)
 
 void Sprite::Render(Vector2 position, Renderer* renderer)
 {
-	Render(position, 0, -1, SDL_FLIP_NONE, renderer, 0);
+	Render(position, 0, -1, SDL_FLIP_NONE, renderer, glm::vec3(0,0,0));
 }
 
 bool Sprite::ShouldAnimate(float time)
@@ -231,7 +231,7 @@ void Sprite::AnimateMesh(float time)
 	
 }
 
-void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, float angle)
+void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, glm::vec3 rotation)
 {
 	renderer->drawCallsPerFrame++;
 
@@ -392,6 +392,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	//TODO: Translate based on pivot point: (center - pivot)
 	// this will make the sprites look more centered
 	
+	// Position
 	if (renderRelativeToCamera)
 	{
 		if (renderer->guiCamera.useOrthoCamera)
@@ -410,6 +411,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
 	}
 
+	// Projection
 	if (keepScaleRelativeToCamera)
 	{
 		glUniformMatrix4fv(shader->GetUniformVariable("projection"), 1, GL_FALSE,
@@ -424,10 +426,13 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	// Rotation
 	if (!renderRelativeToCamera)
 	{
-		const float toRadians = 3.14159265f / 180.0f;
-		model = glm::rotate(model, angle * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
+		const float toRadians = 3.14159265f / 180.0f;		
+		model = glm::rotate(model, rotation.x * toRadians, glm::vec3(-1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, rotation.y * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
+		model = glm::rotate(model, rotation.z * toRadians, glm::vec3(0.0f, 0.0f, -1.0f));
 	}
 
+	// Scale
 	if (flip != SDL_FLIP_HORIZONTAL)
 	{
 		model = glm::scale(model, glm::vec3(-1 * scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),

@@ -26,6 +26,7 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	}
 	else if (name == "Screen Resolution")
 	{
+		//TODO: How to support resolutions with a 4:3 aspect ratio, black bars?
 		optionNames = { "640 x 360", "1280 x 720", "1600 x 900", "1920 x 1080" };
 	}
 	else if (name == "Vsync")
@@ -162,12 +163,12 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 		switch (selectedOption)
 		{
 			case 0:
-				game.screenWidth = 1280;
-				game.screenHeight = 720;
-				break;
-			case 1:
 				game.screenWidth = 640;
 				game.screenHeight = 360;
+				break;
+			case 1:
+				game.screenWidth = 1280;
+				game.screenHeight = 720;
 				break;
 			case 2:
 				game.screenWidth = 1600;

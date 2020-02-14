@@ -65,12 +65,10 @@ public:
 	std::string filename = "";
 	SDL_Rect windowRect;
 
-	float angle = 0;
-
 	const SDL_Rect* GetRect();
 	void Animate(int msPerFrame, Uint32 time);
 	void Render(Vector2 position, Renderer* renderer);
-	void Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer* renderer, float angle = 0);
+	void Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer* renderer, glm::vec3 rotation);
 	void SetScale(Vector2 s);
 	bool ShouldAnimate(float time);
 	void CreateMesh();

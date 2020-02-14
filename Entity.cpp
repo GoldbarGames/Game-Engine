@@ -203,7 +203,7 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 
 				renderer->debugSprite->pivot = GetSprite()->pivot;
 				renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-				renderer->debugSprite->Render(position, 0, -1, flip, renderer, 0);
+				renderer->debugSprite->Render(position, renderer);
 
 				if (etype == "player")
 					int test = 0;
@@ -217,7 +217,7 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 				renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 
 				Vector2 colliderPosition = Vector2(position.x + colliderOffset.x, position.y + colliderOffset.y);
-				renderer->debugSprite->Render(colliderPosition, 0, -1, flip, renderer, 0);
+				renderer->debugSprite->Render(colliderPosition, renderer);
 			}
 		}
 		else
@@ -239,7 +239,7 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 
 				renderer->debugSprite->pivot = GetSprite()->pivot;
 				renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-				renderer->debugSprite->Render(position, 0, -1, flip, renderer, 0);
+				renderer->debugSprite->Render(position, renderer);
 			}
 		}
 
@@ -267,16 +267,16 @@ void Entity::Render(Renderer * renderer)
 		if (GetModeEdit())
 		{
 			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
 			else
-				currentSprite->Render(position, 0, -1, flip, renderer, 0);
+				currentSprite->Render(position, 0, -1, flip, renderer, rotation);
 		}
 		else // use offset here?
 		{
 			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
 			else
-				currentSprite->Render(position, 0, -1, flip, renderer, 0);
+				currentSprite->Render(position, 0, -1, flip, renderer, rotation);
 		}
 
 		if (GetModeDebug())
@@ -289,9 +289,9 @@ void Entity::Render(Renderer * renderer)
 		if (currentSprite != nullptr && renderer->IsVisible(layer))
 		{
 			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
 			else
-				currentSprite->Render(position, 0, -1, flip, renderer, 0);
+				currentSprite->Render(position, 0, -1, flip, renderer, rotation);
 
 			RenderDebug(renderer, Vector2(0, 0));
 		}
@@ -305,9 +305,9 @@ void Entity::Render(Renderer* renderer, Vector2 offset)
 	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite->Render(position + offset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+			currentSprite->Render(position + offset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
 		else
-			currentSprite->Render(position + offset, 0, -1, flip, renderer, 0);
+			currentSprite->Render(position + offset, 0, -1, flip, renderer, rotation);
 
 		RenderDebug(renderer, Vector2(0, 0));
 	}
@@ -320,9 +320,9 @@ void Entity::RenderParallax(Renderer* renderer, float p)
 	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite->Render(renderPosition, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, 0);
+			currentSprite->Render(renderPosition, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
 		else
-			currentSprite->Render(renderPosition, 0, -1, flip, renderer, 0);
+			currentSprite->Render(renderPosition, 0, -1, flip, renderer, rotation);
 
 		RenderDebug(renderer, Vector2(0, 0));
 	}
