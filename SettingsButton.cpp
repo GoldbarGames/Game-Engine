@@ -26,7 +26,7 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	}
 	else if (name == "Screen Resolution")
 	{
-		optionNames = { "1280 x 720", "640 x 360", "1920 x 1080" };
+		optionNames = { "640 x 360", "1280 x 720", "1600 x 900", "1920 x 1080" };
 	}
 	else if (name == "Vsync")
 	{
@@ -170,6 +170,10 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 				game.screenHeight = 360;
 				break;
 			case 2:
+				game.screenWidth = 1600;
+				game.screenHeight = 900;
+				break;
+			case 3:
 				game.screenWidth = 1920;
 				game.screenHeight = 1080;
 				break;

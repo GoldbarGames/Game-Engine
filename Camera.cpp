@@ -182,15 +182,18 @@ void Camera::Zoom(float amount, float screenWidth, float screenHeight)
 {
 	orthoZoom += amount;
 
+	// For this to work correctly you need to use the original width/height
+	// which in our case is 1280 x 720
+
 	if (useOrthoCamera)
 	{
-		float zoomX = (screenWidth * orthoZoom);
-		float zoomY = (screenHeight * orthoZoom);
+		float zoomX = (1280.0f * orthoZoom);
+		float zoomY = (720.0f * orthoZoom);
 		projection = glm::ortho(0.0f, zoomX, zoomY, 0.0f, -1.0f, 10.0f);
 	}
 	else
 	{
-		float aspectRatio = screenWidth / screenHeight;
+		float aspectRatio = 1280.0f / 720.0f;
 		projection = glm::perspective(angle, -aspectRatio, 0.001f, 10000.0f);
 	}
 }

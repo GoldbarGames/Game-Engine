@@ -1420,7 +1420,6 @@ void Game::Update()
 		}
 	}
 		
-
 	// Update all entities
 	for (unsigned int i = 0; i < entities.size(); i++)
 	{		
@@ -1428,8 +1427,10 @@ void Game::Update()
 	}
 
 	// Update the camera last
-	renderer->camera.FollowTarget(screenWidth, screenHeight);
-	renderer->guiCamera.FollowTarget(screenWidth, screenHeight);
+	// We need to use the original screen resolution here (for some reason)
+	// which in our case is 1280 x 720
+	renderer->camera.FollowTarget(1280, 720);
+	renderer->guiCamera.FollowTarget(1280, 720);
 }
 
 void Game::RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEntities)
