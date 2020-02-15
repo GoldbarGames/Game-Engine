@@ -1,5 +1,6 @@
 #include "Textbox.h"
 #include "Renderer.h"
+#include "Entity.h"
 
 Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 {
@@ -27,11 +28,7 @@ Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 
 	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?
 	speaker->SetText(" ");
-	text->SetText(" ", textColor, boxWidth);
-
-	sprites['l'] = nullptr;
-	sprites['c'] = nullptr;
-	sprites['r'] = nullptr;
+	text->SetText(" ", text->textColor, boxWidth);
 }
 
 Textbox::~Textbox()
@@ -41,7 +38,7 @@ Textbox::~Textbox()
 
 void Textbox::UpdateText(std::string newText)
 {
-	text->SetText(newText, textColor, boxWidth);
+	text->SetText(newText, text->textColor, boxWidth);
 	text->GetSprite()->keepScaleRelativeToCamera = true;
 	text->GetSprite()->renderRelativeToCamera = true;
 	//TODO: If we want to modify the textbox's text shader, do so here
@@ -52,47 +49,6 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 {
 	if (shouldRender)
 	{
-		int halfScreenWidth = ((screenWidth * 2) / 2);
-		int spriteX = 0; // (screenWidth / 5) * 3;
-		int spriteY = screenHeight;
-
-		if (sprites['l'] != nullptr)
-		{
-			spriteX = halfScreenWidth - (halfScreenWidth/2);
-			spriteY = (screenHeight * 2) - (sprites['l']->frameHeight);
-
-			Vector2 renderPosition = Vector2(spriteX + renderer->guiCamera.position.x,
-				spriteY + renderer->guiCamera.position.y);
-
-			//TODO: Make sure the position is in the center of the screen
-			sprites['l']->Render(renderPosition, renderer);
-		}
-
-		if (sprites['c'] != nullptr)
-		{
-			spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
-			spriteY = (screenHeight * 2) - (sprites['c']->frameHeight);
-
-			Vector2 renderPosition = Vector2(spriteX + renderer->guiCamera.position.x,
-				spriteY + renderer->guiCamera.position.y);
-
-			//TODO: Make sure the position is in the center of the screen
-			sprites['c']->Render(renderPosition, renderer);
-		}
-
-		if (sprites['r'] != nullptr)
-		{
-			spriteX = halfScreenWidth + (halfScreenWidth / 2);
-			spriteY = (screenHeight * 2) - (sprites['r']->frameHeight);
-
-			Vector2 renderPosition = Vector2(spriteX + renderer->guiCamera.position.x,
-				spriteY + renderer->guiCamera.position.y);
-
-			//TODO: Make sure the position is in the center of the screen
-			sprites['r']->Render(renderPosition, renderer);
-		}
-
-
 		//TODO: X-alignment is not really correct
 		// The only way to align it horizontally is to draw the texture differently
 		// This code is just so that it does not go outside the bounds of the textbox
@@ -139,6 +95,8 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 		speaker->Render(renderer, cameraPosition);
 
 		if (text != nullptr)
-			text->Render(renderer, cameraPosition);
+			text->Render(renderer, cameraPosition);		
+
+
 	}	
 }

@@ -5,10 +5,12 @@
 
 class CutsceneManager;
 
+typedef const std::vector<std::string>& CutsceneParameters;
 class CutsceneCommands
 {
 private:
 	std::unordered_map<std::string, std::string> stralias;
+	std::unordered_map<std::string, unsigned int> numalias;
 public:
 	CutsceneManager* manager = nullptr;
 	CutsceneCommands();
@@ -16,17 +18,22 @@ public:
 
 	void ExecuteCommand(std::string command);
 	
-	int LoadSprite(const std::vector<std::string>& parameters);
-	int ClearSprite(const std::vector<std::string>& parameters);
-	int SetSpriteProperty(const std::vector<std::string>& parameters);
-	
-	
-	int SetVelocity(const std::vector<std::string>& parameters);
-	int Wait(const std::vector<std::string>& parameters);
-	int Textbox(const std::vector<std::string>& parameters);
-	int Fade(const std::vector<std::string>& parameters);
-	int SetStringAlias(const std::vector<std::string>& parameters);
+	// Load graphics
+	int LoadSprite(CutsceneParameters parameters);
+	int ClearSprite(CutsceneParameters parameters);
+	int SetSpriteProperty(CutsceneParameters parameters);
+	int LoadBackground(CutsceneParameters parameters);
 
-	std::string GetStringAlias(std::string param);
+	// Stuff
+	int SetVelocity(CutsceneParameters parameters);
+	int Wait(CutsceneParameters parameters);
+	int Textbox(CutsceneParameters parameters);
+	int Fade(CutsceneParameters parameters);
+	int SetStringAlias(CutsceneParameters parameters);
+	int SetNumAlias(CutsceneParameters parameters);
+
+	// Variables
+	std::string GetStringAlias(std::string key);
+	unsigned int GetNumAlias(std::string key);
 };
 

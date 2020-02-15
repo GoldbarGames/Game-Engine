@@ -25,7 +25,7 @@ private:
 public:
 	std::string id = ""; // this will always be english
 	std::string txt = ""; // this might get translated
-	Color textColor;
+	Color textColor = { 255, 255, 255, 255 };
 
 	Sprite* textSprite = nullptr;
 

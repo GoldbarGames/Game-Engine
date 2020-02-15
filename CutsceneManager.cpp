@@ -147,6 +147,12 @@ std::string CutsceneManager::ParseWord(std::string text, char limit, unsigned in
 
 void CutsceneManager::Render(Renderer * renderer)
 {
+	for (imageIterator = images.begin(); imageIterator != images.end(); imageIterator++)
+	{
+		if (imageIterator->second != nullptr)
+			imageIterator->second->Render(renderer);
+	}
+
 	textbox->Render(renderer, game->screenWidth, game->screenHeight);
 }
 

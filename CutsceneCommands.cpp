@@ -5,11 +5,11 @@
 #include <iterator>
 #include <sstream>
 
-typedef int (CutsceneCommands::*FuncList)(const std::vector<std::string>& parameters);
+typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 static struct FuncLUT {
 	char command[30];
 	FuncList method;
-	int size = 8;
+	int size = 10;
 } cmd_lut[] = {
 	{"wait", &CutsceneCommands::Wait },
 	{"set_velocity", &CutsceneCommands::SetVelocity },
@@ -18,6 +18,8 @@ static struct FuncLUT {
 	{"ld", &CutsceneCommands::LoadSprite },
 	{"cl", &CutsceneCommands::ClearSprite },
     {"sprite", &CutsceneCommands::SetSpriteProperty },
+	{"bg", &CutsceneCommands::LoadBackground },
+	{"numalias", &CutsceneCommands::SetNumAlias },
 	{"stralias", &CutsceneCommands::SetStringAlias }
 };
 
@@ -25,7 +27,9 @@ static struct FuncLUT {
 
 CutsceneCommands::CutsceneCommands()
 {
-
+	numalias["l"] = 1;
+	numalias["c"] = 2;
+	numalias["r"] = 3;
 }
 
 CutsceneCommands::~CutsceneCommands()
@@ -66,7 +70,7 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 	}
 }
 
-int CutsceneCommands::SetStringAlias(const std::vector<std::string>& parameters)
+int CutsceneCommands::SetStringAlias(CutsceneParameters parameters)
 {
 	std::string key = parameters[1];
 	std::string value = parameters[2];
@@ -86,39 +90,127 @@ std::string CutsceneCommands::GetStringAlias(std::string key)
 	}
 }
 
-int CutsceneCommands::ClearSprite(const std::vector<std::string>& parameters)
+int CutsceneCommands::SetNumAlias(CutsceneParameters parameters)
 {
-	char location = parameters[1][0];
+	std::string key = parameters[1];
+	unsigned int value = std::stoi(parameters[2]);
+	//TODO: Check for errors
+	numalias[key] = value;
+	return 0;
+}
 
-	delete manager->textbox->sprites[location];
-	manager->textbox->sprites[location] = nullptr;
+unsigned int CutsceneCommands::GetNumAlias(std::string key)
+{
+	if (numalias.find(key) == numalias.end())
+	{
+		return 0;
+	}
+	else
+	{
+		return numalias[key];
+	}
+}
+
+int CutsceneCommands::LoadBackground(CutsceneParameters parameters)
+{
+	return 0;
+}
+
+int CutsceneCommands::ClearSprite(CutsceneParameters parameters)
+{
+	unsigned int imageNumber = GetNumAlias(parameters[1]);
+
+	if (manager->images[imageNumber] != nullptr)
+		delete manager->images[imageNumber];
+
+	manager->images[imageNumber] = nullptr;
 
 	return 0;
 }
 
-int CutsceneCommands::LoadSprite(const std::vector<std::string>& parameters)
+int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 {
-	char location = parameters[1][0];
+	Vector2 pos = Vector2(0, 0);
+
+	bool isStandingImage = parameters[1] == "l" || parameters[1] == "c" || parameters[1] == "r";
+
+	if (!isStandingImage)
+	{
+		const unsigned int x = std::stoi(parameters[3]);
+		const unsigned int y = std::stoi(parameters[4]);
+
+		pos = Vector2(x, y);
+	}
+
 	std::string filepath = GetStringAlias(parameters[2]);
+	unsigned int imageNumber = GetNumAlias(parameters[1]);
 
-	if (manager->textbox->sprites[location] != nullptr)
-		delete manager->textbox->sprites[location];
+	//TODO: Don't delete/new, just grab from entity pool and reset
+	if (manager->images[imageNumber] != nullptr)
+		delete manager->images[imageNumber];
 
-	manager->textbox->sprites[location] = new Sprite(1, manager->game->spriteManager,
-		filepath, manager->game->renderer->shaders["default"], Vector2(0, 0));
+	manager->images[imageNumber] = new Entity(pos);
 
-	manager->textbox->sprites[location]->renderRelativeToCamera = true;
-	manager->textbox->sprites[location]->keepScaleRelativeToCamera = true;
+	manager->images[imageNumber]->SetSprite(new Sprite(1, manager->game->spriteManager,
+		filepath, manager->game->renderer->shaders["default"], Vector2(0, 0)));
+
+	if (isStandingImage)
+	{
+		int halfScreenWidth = ((manager->game->screenWidth * 2) / 2);
+		int spriteX = 0; // (manager->game->screenWidth / 5) * 3;
+		int spriteY = manager->game->screenHeight;
+
+		switch (parameters[1][0])
+		{
+		case 'l':
+			spriteX = halfScreenWidth - (halfScreenWidth / 2);
+			spriteY = (manager->game->screenHeight * 2) - 
+				(manager->images[imageNumber]->GetSprite()->frameHeight);
+
+			pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
+				spriteY + manager->game->renderer->guiCamera.position.y);
+			break;
+		case 'c':
+			spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
+			spriteY = (manager->game->screenHeight * 2) -
+				(manager->images[imageNumber]->GetSprite()->frameHeight);
+
+			pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
+				spriteY + manager->game->renderer->guiCamera.position.y);
+
+			break;
+		case 'r':
+			spriteX = halfScreenWidth + (halfScreenWidth / 2);
+			spriteY = (manager->game->screenHeight * 2) -
+				(manager->images[imageNumber]->GetSprite()->frameHeight);
+
+			pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
+				spriteY + manager->game->renderer->guiCamera.position.y);
+
+			break;
+		default:
+			break;
+		}
+		manager->images[imageNumber]->SetPosition(pos);
+	}
+
+	manager->images[imageNumber]->drawOrder = imageNumber;
+	manager->images[imageNumber]->GetSprite()->renderRelativeToCamera = true;
+	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
 
 	return 0;
 }
 
-int CutsceneCommands::SetSpriteProperty(const std::vector<std::string>& parameters)
+int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 {
-	char location = parameters[1][0];
-	Sprite* sprite = manager->textbox->sprites[location];
+	unsigned int imageNumber = GetNumAlias(parameters[1]);
+
+	if (manager->images[imageNumber] == nullptr)
+		return 1; //TODO: Error log
+
+	Sprite* sprite = manager->images[imageNumber]->GetSprite();
 	if (sprite == nullptr)
-		return 1;
+		return 2; //TODO: Error log
 
 	std::string spriteProperty = parameters[2];
 
@@ -131,7 +223,9 @@ int CutsceneCommands::SetSpriteProperty(const std::vector<std::string>& paramete
 	}
 	else if (spriteProperty == "shader")
 	{	
-		sprite->shader = manager->game->renderer->shaders[parameters[3]];
+		if (manager->game->renderer->shaders[parameters[3]] != nullptr)
+			sprite->shader = manager->game->renderer->shaders[parameters[3]];
+		//TODO: Log and display error if cannot find shader?
 	}
 
 	return 0;
@@ -139,7 +233,7 @@ int CutsceneCommands::SetSpriteProperty(const std::vector<std::string>& paramete
 
 //TODO: Maybe put this code somewhere so it can be used
 // both by the cutscene system and the level editor properties?
-int CutsceneCommands::SetVelocity(const std::vector<std::string>& parameters)
+int CutsceneCommands::SetVelocity(CutsceneParameters parameters)
 {
 	PhysicsEntity* entity = nullptr;
 
@@ -162,7 +256,7 @@ int CutsceneCommands::SetVelocity(const std::vector<std::string>& parameters)
 	return 0;
 }
 
-int CutsceneCommands::Wait(const std::vector<std::string>& parameters)
+int CutsceneCommands::Wait(CutsceneParameters parameters)
 {
 	int ms = std::stoi(parameters[1]);
 	manager->timer -= ms;
@@ -170,7 +264,7 @@ int CutsceneCommands::Wait(const std::vector<std::string>& parameters)
 	return 0;
 }
 
-int CutsceneCommands::Textbox(const std::vector<std::string>& parameters)
+int CutsceneCommands::Textbox(CutsceneParameters parameters)
 {
 	if (parameters[1] == "on")
 	{
@@ -184,7 +278,7 @@ int CutsceneCommands::Textbox(const std::vector<std::string>& parameters)
 	return 0;
 }
 
-int CutsceneCommands::Fade(const std::vector<std::string>& parameters)
+int CutsceneCommands::Fade(CutsceneParameters parameters)
 {
 	manager->game->changingOverlayColor = true;
 

@@ -60,6 +60,8 @@ class CutsceneManager
 public:	 
 	Textbox* textbox = nullptr;
 	Game* game = nullptr;
+	std::unordered_map<unsigned int, Entity*> images;
+	std::unordered_map<unsigned int, Entity*>::iterator imageIterator;
 	float timer = 0;
 	bool isCarryingOutCommands = false;
 	bool isReadingNextLine = false;
