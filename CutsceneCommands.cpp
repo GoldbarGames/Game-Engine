@@ -27,6 +27,7 @@ static struct FuncLUT {
 
 CutsceneCommands::CutsceneCommands()
 {
+	numalias["bg"] = 0;
 	numalias["l"] = 1;
 	numalias["c"] = 2;
 	numalias["r"] = 3;
@@ -78,7 +79,7 @@ int CutsceneCommands::SetStringAlias(CutsceneParameters parameters)
 	return 0;
 }
 
-std::string CutsceneCommands::GetStringAlias(std::string key)
+std::string CutsceneCommands::GetStringAlias(const std::string& key)
 {
 	if (stralias.find(key) == stralias.end())
 	{
@@ -99,11 +100,14 @@ int CutsceneCommands::SetNumAlias(CutsceneParameters parameters)
 	return 0;
 }
 
-unsigned int CutsceneCommands::GetNumAlias(std::string key)
+unsigned int CutsceneCommands::GetNumAlias(const std::string& key)
 {
 	if (numalias.find(key) == numalias.end())
 	{
-		return 0;
+		if (key.find_first_not_of("0123456789") == std::string::npos)
+			return std::stoi(key);
+		else
+			return 0;
 	}
 	else
 	{
@@ -113,6 +117,11 @@ unsigned int CutsceneCommands::GetNumAlias(std::string key)
 
 int CutsceneCommands::LoadBackground(CutsceneParameters parameters)
 {
+	std::vector<string> newParameters;
+	newParameters.push_back("");
+	newParameters.push_back(parameters[0]);
+	newParameters.push_back(parameters[1]);
+	LoadSprite(newParameters);
 	return 0;
 }
 
@@ -134,7 +143,7 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 
 	bool isStandingImage = parameters[1] == "l" || parameters[1] == "c" || parameters[1] == "r";
 
-	if (!isStandingImage)
+	if (!isStandingImage && parameters[1] != "bg")
 	{
 		const unsigned int x = std::stoi(parameters[3]);
 		const unsigned int y = std::stoi(parameters[4]);
@@ -162,35 +171,49 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 
 		switch (parameters[1][0])
 		{
-		case 'l':
-			spriteX = halfScreenWidth - (halfScreenWidth / 2);
-			spriteY = (manager->game->screenHeight * 2) - 
-				(manager->images[imageNumber]->GetSprite()->frameHeight);
+			case 'l':
+				spriteX = halfScreenWidth - (halfScreenWidth / 2);
+				spriteY = (manager->game->screenHeight * 2) - 
+					(manager->images[imageNumber]->GetSprite()->frameHeight);
 
-			pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
-				spriteY + manager->game->renderer->guiCamera.position.y);
-			break;
-		case 'c':
-			spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
-			spriteY = (manager->game->screenHeight * 2) -
-				(manager->images[imageNumber]->GetSprite()->frameHeight);
+				pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
+					spriteY + manager->game->renderer->guiCamera.position.y);
+				break;
+			case 'c':
+				spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
+				spriteY = (manager->game->screenHeight * 2) -
+					(manager->images[imageNumber]->GetSprite()->frameHeight);
 
-			pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
-				spriteY + manager->game->renderer->guiCamera.position.y);
+				pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
+					spriteY + manager->game->renderer->guiCamera.position.y);
 
-			break;
-		case 'r':
-			spriteX = halfScreenWidth + (halfScreenWidth / 2);
-			spriteY = (manager->game->screenHeight * 2) -
-				(manager->images[imageNumber]->GetSprite()->frameHeight);
+				break;
+			case 'r':
+				spriteX = halfScreenWidth + (halfScreenWidth / 2);
+				spriteY = (manager->game->screenHeight * 2) -
+					(manager->images[imageNumber]->GetSprite()->frameHeight);
 
-			pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
-				spriteY + manager->game->renderer->guiCamera.position.y);
+				pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
+					spriteY + manager->game->renderer->guiCamera.position.y);
 
-			break;
-		default:
-			break;
+				break;
+			default:
+				break;
 		}
+		manager->images[imageNumber]->SetPosition(pos);
+	}
+	else if (parameters[1] == "bg")
+	{
+		int halfScreenWidth = ((manager->game->screenWidth * 2) / 2);
+		int spriteY = manager->game->screenHeight;
+
+		int spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
+		spriteY = (manager->game->screenHeight * 2) -
+			(manager->images[imageNumber]->GetSprite()->frameHeight);
+
+		pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
+			spriteY + manager->game->renderer->guiCamera.position.y);
+
 		manager->images[imageNumber]->SetPosition(pos);
 	}
 

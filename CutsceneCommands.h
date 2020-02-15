@@ -33,7 +33,7 @@ public:
 	int SetNumAlias(CutsceneParameters parameters);
 
 	// Variables
-	std::string GetStringAlias(std::string key);
-	unsigned int GetNumAlias(std::string key);
+	std::string GetStringAlias(const std::string& key);
+	unsigned int GetNumAlias(const std::string& key);
 };
 
