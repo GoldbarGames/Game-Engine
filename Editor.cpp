@@ -1588,6 +1588,16 @@ std::string Editor::ReadLevelFromFile(std::string levelName)
 
 void Editor::CreateLevelFromString(std::string level)
 {
+	// Remove all backgrounds
+	for (unsigned int i = 0; i < game->backgrounds.size(); i++)
+	{
+		game->backgrounds[i]->DeleteLayers(*game);
+		delete game->backgrounds[i];
+	}
+
+	game->backgrounds.clear();
+
+
 	std::vector<Path*> paths;
 	std::vector<Platform*> movingPlatforms;
 
@@ -1740,6 +1750,22 @@ void Editor::CreateLevelFromString(std::string level)
 				platform->physics->SetVelocity(platform->startVelocity);
 			}	
 		}
+		else if (etype == "bg")
+		{
+			std::string bgName = tokens[index++];
+
+			// Create the backgrounds
+			const unsigned int NUM_BGS = 1;
+			const unsigned int BG_WIDTH = 636 * 2;
+			const unsigned int BG_OFFSET = (BG_WIDTH / 2);
+			const unsigned int Y_OFFSET = 0;
+
+			for (unsigned int i = 0; i < NUM_BGS; i++)
+			{
+				game->SpawnBackground(Vector2((BG_WIDTH * i) + BG_OFFSET, Y_OFFSET), bgName);
+			}			
+		}
+
 
 		ss.getline(lineChar, 256);
 	}
@@ -1796,30 +1822,6 @@ void Editor::InitLevelFromFile(std::string levelName)
 	CreateLevelFromString(level);
 
 	DoAction();
-
-	// Remove all backgrounds
-	for (unsigned int i = 0; i < game->backgrounds.size(); i++)
-	{
-		game->backgrounds[i]->DeleteLayers(*game);
-		delete game->backgrounds[i];
-	}
-
-	game->backgrounds.clear();
-		
-	// Create the backgrounds
-	const unsigned int NUM_BGS = 1;
-	const unsigned int BG_WIDTH = 636 * 2;
-	const unsigned int BG_OFFSET = (BG_WIDTH/2);
-
-	unsigned int Y_OFFSET = 0; // -4 * TILE_SIZE * Renderer::GetScale();
-	if (levelName == "title")
-		Y_OFFSET = 180;
-
-	for (unsigned int i = 0; i < NUM_BGS; i++)
-	{
-		game->SpawnBackground(Vector2( (BG_WIDTH * i) + BG_OFFSET, Y_OFFSET));
-	}
-
 	game->SortEntities(game->entities);
 
 	// Count all bugs

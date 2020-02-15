@@ -236,7 +236,7 @@ void Game::InitOpenGL()
 
 	SDL_GL_SwapWindow(window);
 
-	bool use2DCamera = false;
+	bool use2DCamera = true;
 
 	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 1000.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
@@ -694,9 +694,14 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 
 //TODO: How can we dynamically get the size of the background so that we can loop them without hardcoding it?
 // (low priority / not too important)
-Background* Game::SpawnBackground(Vector2 pos)
+Background* Game::SpawnBackground(Vector2 pos, std::string bgName)
 {
 	Background* background = new Background(pos);
+
+	if (bgName == "forest")
+	{
+
+	}
 
 	background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_sky1.png", -99, 1.0f);
 	//background->layers[0]->GetSprite()->renderRelativeToCamera = true;
