@@ -20,12 +20,13 @@ public:
 	Mix_Music* currentBGM = nullptr;
 	SoundManager();
 	~SoundManager();
-	void PlayBGM(std::string bgm, bool loop = true);
+	bool LoadBGM(const std::string& bgm);
+	void PlayBGM(const std::string& bgm, bool loop = true);
 	void StopBGM();
-	void FadeInBGM(std::string bgm, Uint32 duration, bool loop = true);
+	void FadeInBGM(const std::string& bgm, Uint32 duration, bool loop = true);
 	void FadeOutBGM(Uint32 duration);
 	void SetVolumeBGM(int index);
-	void PlaySound(std::string sound, int channel = -1);
+	void PlaySound(const std::string& sound, int channel = -1);
 	void SetVolumeSound(int index);
 };
 

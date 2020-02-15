@@ -290,7 +290,7 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	else if (selectedButton->name == "Load Game")
 	{
 		//TODO: Make this different when loading a save file with actual data in it
-		game.PlayLevel("test-vn");
+		game.PlayLevel("test2");
 	}
 	else if (selectedButton->name == "Play Game")
 	{

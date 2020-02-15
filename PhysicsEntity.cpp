@@ -507,13 +507,3 @@ void PhysicsEntity::Update(Game& game)
 	if (our->GetAnimator() != nullptr)
 		our->GetAnimator()->Update(our);
 }
-
-void PhysicsEntity::RenderDebug(Renderer* renderer)
-{
-
-}
-
-void PhysicsEntity::Render(Renderer* renderer)
-{
-
-}

@@ -183,7 +183,7 @@ void Entity::SetAnimator(Animator * anim)
 
 void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 {
-	if (GetModeDebug() && drawDebugRect)
+	if (GetModeDebug() && drawDebugRect && GetSprite() != nullptr)
 	{
 		if (physics != nullptr)
 		{
@@ -204,9 +204,6 @@ void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
 				renderer->debugSprite->pivot = GetSprite()->pivot;
 				renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 				renderer->debugSprite->Render(position, renderer);
-
-				if (etype == "player")
-					int test = 0;
 
 				// draw collider
 				targetWidth = collisionBounds->w;
@@ -279,10 +276,6 @@ void Entity::Render(Renderer * renderer)
 				currentSprite->Render(position, 0, -1, flip, renderer, rotation);
 		}
 
-		if (GetModeDebug())
-		{
-			physics->RenderDebug(renderer);
-		}
 	}
 	else
 	{
@@ -293,22 +286,12 @@ void Entity::Render(Renderer * renderer)
 			else
 				currentSprite->Render(position, 0, -1, flip, renderer, rotation);
 
-			RenderDebug(renderer, Vector2(0, 0));
+			
 		}
 	}
 
-	
-}
-
-void Entity::Render(Renderer* renderer, Vector2 offset)
-{
-	if (currentSprite != nullptr && renderer->IsVisible(layer))
+	if (GetModeDebug())
 	{
-		if (animator != nullptr)
-			currentSprite->Render(position + offset, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
-		else
-			currentSprite->Render(position + offset, 0, -1, flip, renderer, rotation);
-
 		RenderDebug(renderer, Vector2(0, 0));
 	}
 }

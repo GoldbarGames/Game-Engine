@@ -72,7 +72,6 @@ public:
 	void SetSprite(Sprite* sprite);
 	virtual void Update(Game& game);
 	virtual void Render(Renderer * renderer);
-	virtual void Render(Renderer* renderer, Vector2 offset);
 	virtual void RenderParallax(Renderer* renderer, float p);
 
 	void RenderDebug(Renderer * renderer, Vector2 cameraOffset);

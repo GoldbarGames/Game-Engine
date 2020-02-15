@@ -16,7 +16,7 @@ SoundManager::~SoundManager()
 	Mix_Quit();
 }
 
-void SoundManager::PlayBGM(std::string bgm, bool loop)
+bool SoundManager::LoadBGM(const std::string& bgm)
 {
 	if (currentBGM != nullptr)
 		Mix_FreeMusic(currentBGM);
@@ -24,14 +24,24 @@ void SoundManager::PlayBGM(std::string bgm, bool loop)
 	//bgm = "bgm/" + bgm + ".ogg";
 	currentBGM = Mix_LoadMUS(bgm.c_str());
 
-	if (currentBGM != nullptr)
+	if (currentBGM == nullptr)
+	{
+		//TODO: Log error, could not load file
+		return false;
+	}
+
+	return true;
+}
+
+void SoundManager::PlayBGM(const std::string& bgm, bool loop)
+{
+	if (LoadBGM(bgm))
 	{
 		if (loop)
 			Mix_PlayMusic(currentBGM, -1);
 		else
 			Mix_PlayMusic(currentBGM, 1);
 	}
-		
 }
 
 void SoundManager::StopBGM()
@@ -39,15 +49,9 @@ void SoundManager::StopBGM()
 	Mix_HaltMusic();
 }
 
-void SoundManager::FadeInBGM(std::string bgm, Uint32 duration, bool loop)
+void SoundManager::FadeInBGM(const std::string& bgm, Uint32 duration, bool loop)
 {
-	if (currentBGM != nullptr)
-		Mix_FreeMusic(currentBGM);
-
-	//bgm = "bgm/" + bgm + ".ogg";
-	currentBGM = Mix_LoadMUS(bgm.c_str());
-
-	if (currentBGM != nullptr)
+	if (LoadBGM(bgm))
 	{
 		if (loop)
 			Mix_FadeInMusic(currentBGM, -1, duration);
@@ -73,7 +77,7 @@ Uint32 SoundManager::GetVolumeBGM()
 	return volumeBGM;
 }
 
-void SoundManager::PlaySound(std::string sound, int channel)
+void SoundManager::PlaySound(const std::string& sound, int channel)
 {
 	// Don't do anything here, to avoid memory leaks
 	if (channel < 0)
@@ -86,8 +90,16 @@ void SoundManager::PlaySound(std::string sound, int channel)
 
 	//sound = "se/" + sound + ".wav";
 	sounds[channel] = Mix_LoadWAV(sound.c_str());
-	Mix_VolumeChunk(sounds[channel], volumeSound);
-	Mix_PlayChannel(channel, sounds[channel], 0);
+
+	if (sounds[channel] != nullptr)
+	{
+		Mix_VolumeChunk(sounds[channel], volumeSound);
+		Mix_PlayChannel(channel, sounds[channel], 0);
+	}
+	else
+	{
+		//TODO: Log error, could not load file
+	}	
 }
 
 void SoundManager::SetVolumeSound(int index)

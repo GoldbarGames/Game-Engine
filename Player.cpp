@@ -217,7 +217,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 		game.etherText->SetText("Ether: " + std::to_string(game.currentEther));
 
 		missile->etype = "debug_missile";
-		game.soundManager->PlaySound("shoot", 1);
+		game.soundManager->PlaySound("se/shoot.wav", 1);
 		animator->SetBool("isCastingDebug", true);
 		missileTimer.Start(750);
 	}
