@@ -852,7 +852,7 @@ void Game::LoadTitleScreen()
 	editor->InitLevelFromFile("title");
 	openedMenus.emplace_back(allMenus["Title"]);
 
-	soundManager->PlayBGM("Witchs_Waltz");
+	soundManager->PlayBGM("bgm/Witchs_Waltz.ogg");
 }
 
 void Game::LoadNextLevel()
@@ -872,7 +872,7 @@ void Game::PlayLevel(string levelName)
 
 	//TODO: Load different music based on each level
 
-	soundManager->PlayBGM("Forest");
+	soundManager->PlayBGM("bgm/Forest.ogg");
 }
 
 bool Game::CheckInputs()

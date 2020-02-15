@@ -21,7 +21,7 @@ void SoundManager::PlayBGM(std::string bgm, bool loop)
 	if (currentBGM != nullptr)
 		Mix_FreeMusic(currentBGM);
 
-	bgm = "bgm/" + bgm + ".ogg";
+	//bgm = "bgm/" + bgm + ".ogg";
 	currentBGM = Mix_LoadMUS(bgm.c_str());
 
 	if (currentBGM != nullptr)
@@ -44,7 +44,7 @@ void SoundManager::FadeInBGM(std::string bgm, Uint32 duration, bool loop)
 	if (currentBGM != nullptr)
 		Mix_FreeMusic(currentBGM);
 
-	bgm = "bgm/" + bgm + ".ogg";
+	//bgm = "bgm/" + bgm + ".ogg";
 	currentBGM = Mix_LoadMUS(bgm.c_str());
 
 	if (currentBGM != nullptr)
@@ -84,7 +84,7 @@ void SoundManager::PlaySound(std::string sound, int channel)
 		Mix_FreeChunk(sounds[channel]);
 	}
 
-	sound = "se/" + sound + ".wav";
+	//sound = "se/" + sound + ".wav";
 	sounds[channel] = Mix_LoadWAV(sound.c_str());
 	Mix_VolumeChunk(sounds[channel], volumeSound);
 	Mix_PlayChannel(channel, sounds[channel], 0);

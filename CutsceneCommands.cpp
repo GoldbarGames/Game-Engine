@@ -9,7 +9,7 @@ typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 static struct FuncLUT {
 	char command[30];
 	FuncList method;
-	int size = 10;
+	int size = 12;
 } cmd_lut[] = {
 	{"wait", &CutsceneCommands::Wait },
 	{"set_velocity", &CutsceneCommands::SetVelocity },
@@ -19,6 +19,8 @@ static struct FuncLUT {
 	{"cl", &CutsceneCommands::ClearSprite },
     {"sprite", &CutsceneCommands::SetSpriteProperty },
 	{"bg", &CutsceneCommands::LoadBackground },
+	{"bgm", &CutsceneCommands::MusicCommand },
+	{"se", &CutsceneCommands::SoundCommand },
 	{"numalias", &CutsceneCommands::SetNumAlias },
 	{"stralias", &CutsceneCommands::SetStringAlias }
 };
@@ -69,6 +71,53 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 			// if no commands fit, use the properties code (set properties)
 		}
 	}
+}
+
+int CutsceneCommands::MusicCommand(CutsceneParameters parameters)
+{
+	//TODO: Deal with custom loop times
+
+	if (parameters[1] == "play")
+	{
+		manager->game->soundManager->PlayBGM(parameters[2], true);
+	}
+	else if (parameters[1] == "once")
+	{
+		manager->game->soundManager->PlayBGM(parameters[2], false);
+	}
+	else if (parameters[1] == "stop")
+	{
+		manager->game->soundManager->StopBGM();
+	}
+	else if (parameters[1] == "fadein")
+	{
+		manager->game->soundManager->FadeInBGM(parameters[2], std::stoi(parameters[3]), true);
+	}
+	else if (parameters[1] == "fadeout")
+	{
+		manager->game->soundManager->FadeOutBGM(std::stoi(parameters[2]));
+	}
+	else if (parameters[1] == "volume")
+	{
+		manager->game->soundManager->SetVolumeBGM(std::stoi(parameters[2]));
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
+{
+	if (parameters[1] == "play")
+	{
+		//TODO: Deal with multiple channels
+		manager->game->soundManager->PlaySound(parameters[2], 1);
+	}
+	else if (parameters[1] == "volume")
+	{
+		manager->game->soundManager->SetVolumeSound(std::stoi(parameters[2]));
+	}
+
+	return 0;
 }
 
 int CutsceneCommands::SetStringAlias(CutsceneParameters parameters)

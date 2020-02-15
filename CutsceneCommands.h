@@ -24,6 +24,10 @@ public:
 	int SetSpriteProperty(CutsceneParameters parameters);
 	int LoadBackground(CutsceneParameters parameters);
 
+	// Sounds
+	int MusicCommand(CutsceneParameters parameters);
+	int SoundCommand(CutsceneParameters parameters);
+
 	// Stuff
 	int SetVelocity(CutsceneParameters parameters);
 	int Wait(CutsceneParameters parameters);
