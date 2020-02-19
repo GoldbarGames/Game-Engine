@@ -32,8 +32,12 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		buttons.emplace_back(buttonResume);		
 		buttons.emplace_back(buttonSpellbook);		
-		buttons.emplace_back(buttonSettings);		
+		buttons.emplace_back(buttonSettings);
 		buttons.emplace_back(buttonExit);
+	}
+	else if (name == "Credits")
+	{
+
 	}
 	else if (name == "Title")
 	{
@@ -52,16 +56,18 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		MenuButton* buttonSettings = new MenuButton("Settings", "assets/gui/menu.png",
 			"Settings", Vector2(buttonPosX, startHeight + (distance * 1)), game);
 
-		MenuButton* buttonExit = new MenuButton("Exit", "assets/gui/menu.png",
-			"Exit Game", Vector2(buttonPosX, startHeight + (distance * 2)), game);
+		MenuButton* buttonCredits = new MenuButton("Credits", "assets/gui/menu.png",
+			"Credits", Vector2(buttonPosX, startHeight + (distance * 2)), game);
 
-		buttonPlay->SetButtonsUpDownLeftRight(buttonExit, buttonSettings, buttonExit, buttonSettings);
-		buttonSettings->SetButtonsUpDownLeftRight(buttonPlay, buttonExit, buttonPlay, buttonExit);
-		buttonExit->SetButtonsUpDownLeftRight(buttonSettings, buttonPlay, buttonSettings, buttonPlay);
+		MenuButton* buttonExit = new MenuButton("Exit", "assets/gui/menu.png",
+			"Exit Game", Vector2(buttonPosX, startHeight + (distance * 3)), game);
 
 		buttons.emplace_back(buttonPlay);
 		buttons.emplace_back(buttonSettings);
+		buttons.emplace_back(buttonCredits);
 		buttons.emplace_back(buttonExit);
+
+		AssignButtons(true);
 
 		Text* textCopyright = new Text(game.renderer, game.headerFont, "Copyright 2020 Goldbar Games LLC");
 		textCopyright->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
@@ -110,7 +116,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 			buttons.emplace_back(button);
 		}
 
-		AssignButtons();
+		AssignButtons(false);
 
 		// Highlight the selected option
 		//TODO: Is there a better way than hard-coding it?
@@ -140,7 +146,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 			buttons.emplace_back(button);
 		}
 
-		AssignButtons();
+		AssignButtons(false);
 
 		// Highlight the selected option
 		//TODO: Is there a better way than hard-coding it?
@@ -173,23 +179,17 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		MenuButton* buttonFile3 = new MenuButton("File 3", "assets/gui/menu.png",
 			file3Function, Vector2(buttonPosX, startHeight + (distance * 2)), game);
 
-		buttonFile1->SetButtonsUpDownLeftRight(buttonFile3, buttonFile2, buttonFile3, buttonFile2);
-		buttonFile2->SetButtonsUpDownLeftRight(buttonFile1, buttonFile3, buttonFile1, buttonFile3);
-		buttonFile3->SetButtonsUpDownLeftRight(buttonFile2, buttonFile1, buttonFile2, buttonFile1);
-
 		buttons.emplace_back(buttonFile1);
 		buttons.emplace_back(buttonFile2);
 		buttons.emplace_back(buttonFile3);
+
+		AssignButtons(true);
 
 		Text* textHeader = new Text(game.renderer, game.headerFont, "Select a File");
 		textHeader->SetPosition(startWidth - (textHeader->GetTextWidth() / 2), 60);
 		textHeader->textSprite->renderRelativeToCamera = true;
 		textHeader->textSprite->keepScaleRelativeToCamera = true;
 		texts.emplace_back(textHeader);
-	}
-	else
-	{
-		
 	}
 
 	// Automatically select the first button in the list
@@ -204,7 +204,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 }
 
 //TODO: Maybe rename this to a better name
-void MenuScreen::AssignButtons()
+void MenuScreen::AssignButtons(bool useLeftRight)
 {
 	for (unsigned int i = 0; i < buttons.size(); i++)
 	{
@@ -217,7 +217,12 @@ void MenuScreen::AssignButtons()
 		if (nextIndex >= buttons.size())
 			nextIndex = 0;
 
-		buttons[i]->SetButtonsUpDownLeftRight(buttons[prevIndex], buttons[nextIndex], nullptr, nullptr);
+		if (useLeftRight)
+			buttons[i]->SetButtonsUpDownLeftRight(buttons[prevIndex], buttons[nextIndex], 
+				buttons[prevIndex], buttons[nextIndex]);
+		else
+			buttons[i]->SetButtonsUpDownLeftRight(buttons[prevIndex], buttons[nextIndex], 
+				nullptr, nullptr);
 	}
 }
 
@@ -282,6 +287,11 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	{
 		game.openedMenus.clear();
 		game.openedMenus.emplace_back(game.allMenus["Settings"]);
+	}
+	else if (selectedButton->name == "Credits")
+	{
+		game.openedMenus.clear();
+		game.openedMenus.emplace_back(game.allMenus["Credits"]);
 	}
 	else if (selectedButton->name == "Spellbook")
 	{

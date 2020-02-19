@@ -352,19 +352,19 @@ int CutsceneCommands::Textbox(CutsceneParameters parameters)
 
 int CutsceneCommands::Fade(CutsceneParameters parameters)
 {
-	manager->game->changingOverlayColor = true;
+	manager->game->renderer->changingOverlayColor = true;
 
 	if (parameters[1] == "clear")
 	{
-		manager->game->targetColor = Color { 0, 0, 0, 0 };
+		manager->game->renderer->targetColor = Color { 0, 0, 0, 0 };
 	}
 	else if (parameters[1] == "white")
 	{
-		manager->game->targetColor = Color{ 255, 255, 255, 255 };
+		manager->game->renderer->targetColor = Color{ 255, 255, 255, 255 };
 	}
 	else if (parameters[1] == "black")
 	{
-		manager->game->targetColor = Color{0, 0, 0, 255 };
+		manager->game->renderer->targetColor = Color{0, 0, 0, 255 };
 	}
 
 	return 0;

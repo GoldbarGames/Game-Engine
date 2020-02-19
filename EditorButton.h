@@ -20,12 +20,8 @@ public:
 	SDL_Rect buttonWindowRect;
 
 	Sprite* image = nullptr;
-	Text* text;
+	Text* text= nullptr;
 	Color buttonColor;
-
-	// TODO: Make an unordered map of colors for this too?
-	Color colorOn;
-	Color colorOff;
 
 	Vector2 position = Vector2(0,0);
 	std::string name = "";
@@ -33,10 +29,10 @@ public:
 	bool isClicked = false;
 	bool isHovered = false;
 
-	EditorButton(std::string txt, std::string filename, Vector2 pos, Game& game, Vector2 size = Vector2(0, 0), Color color = { 255, 255, 255, 255 });
-	~EditorButton();
+	EditorButton(std::string txt, std::string filename, Vector2 pos, 
+		Game& game, Vector2 size = Vector2(0, 0), Color color = { 255, 255, 255, 255 });
 
-	void SetColors(Color c1, Color c2);
+	~EditorButton();
 
 	void Render(Renderer* renderer);
 

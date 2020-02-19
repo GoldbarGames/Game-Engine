@@ -285,8 +285,6 @@ void Entity::Render(Renderer * renderer)
 				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
 			else
 				currentSprite->Render(position, 0, -1, flip, renderer, rotation);
-
-			
 		}
 	}
 

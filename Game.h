@@ -139,15 +139,9 @@ public:
 	Uint32 lastPressedKeyTicks = 0;
 	std::vector<Background*> backgrounds;
 
-	CutsceneManager * cutscene;
+	CutsceneManager* cutscene;
 
-	SDL_Rect overlayRect;
-	Color overlayColor { 0, 0, 0, 0 };
-	Color targetColor { 0, 0, 0, 0 };
-	bool changingOverlayColor = false;
-	Timer timerOverlayColor;
-
-	Renderer * renderer = nullptr;
+	Renderer* renderer = nullptr;
 	SpriteManager* spriteManager = nullptr;
 	SoundManager* soundManager = nullptr;
 	TTF_Font* theFont = nullptr;

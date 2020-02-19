@@ -17,7 +17,10 @@ Editor::Editor(Game& g)
 	game = &g;
 
 	editorText["currentEditModeLayer"] = new Text(game->renderer, theFont);
-	
+	editorText["currentEditModeLayer"]->SetText("");
+	editorText["currentEditModeLayer"]->GetSprite()->renderRelativeToCamera = true;
+	editorText["currentEditModeLayer"]->GetSprite()->keepScaleRelativeToCamera = true;
+
 	editorText["cursorPositionInScreen"] = new Text(game->renderer, theFont);
 	editorText["cursorPositionInScreen"]->SetPosition(200, 50);
 	editorText["cursorPositionInScreen"]->SetText("");
@@ -45,6 +48,7 @@ Editor::Editor(Game& g)
 	previewMap["block"] = game->CreateBlock(Vector2(0, 0), spriteMapIndex);
 	previewMap["platform"] = game->CreatePlatform(Vector2(0, 0), spriteMapIndex);
 	previewMap["shroom"] = game->CreateShroom(Vector2(0, 0), spriteMapIndex);
+
 	//TODO: Make the indexes different numbers for the names and sprite sheets?
 	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 
@@ -62,7 +66,11 @@ void Editor::CreateEditorButtons()
 {
 	// Create all the buttons for the bottom of the editor
 	for (unsigned int i = 0; i < buttons.size(); i++)
+	{
 		delete buttons[i];
+		buttons[i] = nullptr;
+	}
+
 	buttons.clear();
 
 	const int buttonStartX = 50;
@@ -72,7 +80,9 @@ void Editor::CreateEditorButtons()
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
 
-	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", "Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", "Replace", "Copy", "Block", "Grab", "Platform", "Path", "Shroom" };
+	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", 
+		"Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", 
+		"Replace", "Copy", "Block", "Grab", "Platform", "Path", "Shroom" };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
 	unsigned int BUTTON_LIST_END = BUTTON_LIST_START + BUTTONS_PER_PAGE;
@@ -88,6 +98,7 @@ void Editor::CreateEditorButtons()
 		EditorButton* editorButton = new EditorButton("", buttonNames[i], 
 			Vector2(buttonX, game->screenHeight - buttonHeight), *game);
 
+		editorButton->image->renderRelativeToCamera = true;
 		editorButton->image->keepScaleRelativeToCamera = true;
 		buttons.emplace_back(editorButton);
 
@@ -236,6 +247,9 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 			clickedLayerVisibleButton = layerButtons[i]->text->txt;
 	}
 
+	mouseX = mouseX / 2;
+	mouseY = mouseY / 2;
+
 	// Allow the tile sheet to be clicked when in certain modes
 	if ( (objectMode == "tile" || objectMode == "replace" || objectMode == "copy") && clickedToolboxWindow)
 	{
@@ -332,7 +346,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		// if we are placing a tile...
 		if (objectMode == "tile")
 		{
-			PlaceTile(clickedPosition, mouseX/2, mouseY/2);
+			PlaceTile(clickedPosition, mouseX, mouseY);
 			DoAction();
 		}
 		else if (objectMode == "replace")
@@ -730,12 +744,12 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 		//TODO: Can't be this simple. Our zoom level affects the mouse position!
 		// Do we need to use raycasts or something else here?
 
-		glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
-		glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
+		//glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
+		//glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
 
-		//Vector2 spawnPos = game->CalcTileSpawnPos(snappedPos);
-		//spawnPos.x += game->renderer->camera.position.x;
-		//spawnPos.y += game->renderer->camera.position.y;
+		Vector2 spawnPos = game->CalcTileSpawnPos(snappedPos);
+		spawnPos.x += game->renderer->camera.position.x;
+		spawnPos.y += game->renderer->camera.position.y;
 
 		game->SpawnTile(spriteSheetTileFrame, "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
 			Vector2(spawnPos.x, spawnPos.y), drawingLayer);
@@ -1271,7 +1285,6 @@ void Editor::SetLayer(DrawingLayer layer)
 {
 	drawingLayer = layer;
 	editorText["currentEditModeLayer"]->SetText("Drawing on layer: " + GetDrawingLayerName(drawingLayer));
-	editorText["currentEditModeLayer"]->GetSprite()->keepScaleRelativeToCamera = true;
 }
 
 void Editor::ToggleTileset()
@@ -1338,7 +1351,8 @@ void Editor::Render(Renderer* renderer)
 
 			Vector2 doorCenter = currentDoor->GetCenter();
 			Vector2 doorPos = currentDoor->GetPosition() + doorCenter;
-			//SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, hoveredTileRect.x + doorCenter.x, hoveredTileRect.y + doorCenter.y);
+			//SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, 
+			//hoveredTileRect.x + doorCenter.x, hoveredTileRect.y + doorCenter.y);
 
 			//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
@@ -1461,17 +1475,6 @@ void Editor::Render(Renderer* renderer)
 		dialogInput->Render(renderer);
 		//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
-}
-
-void Editor::SetText(string newText)
-{
-	//TODO: Check what to do here to avoid memory leaks
-	//if (textSurface != nullptr)
-	//	delete textSurface;
-	//if (textTexture != nullptr)
-	//	delete textTexture;
-
-	editorText["currentEditModeLayer"]->SetText(newText);
 }
 
 void Editor::DestroyDialog()

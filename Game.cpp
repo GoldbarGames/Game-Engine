@@ -63,10 +63,9 @@ Game::Game()
 	renderer->debugSprite = new Sprite(0, 0, 24, 24, spriteManager,
 		"assets/editor/rect-outline.png", renderer->shaders["default"], Vector2(0, 0));
 
-	overlayRect.x = 0;
-	overlayRect.y = 0;
-	overlayRect.w = screenWidth;
-	overlayRect.h = screenHeight;
+	// Initialize overlay sprite
+	renderer->overlaySprite = new Sprite(0, 0, 24, 24, spriteManager,
+		"assets/gui/white.png", renderer->shaders["default"], Vector2(0, 0));
 
 	// Initialize the sprite map (do this BEFORE the editor)
 	//TODO: Can this be done automatically by grabbing all files in each folder?
@@ -108,8 +107,6 @@ Game::Game()
 	allMenus["Settings"] = new MenuScreen("Settings", *this);
 	allMenus["Spellbook"] = new MenuScreen("Spellbook", *this);
 	allMenus["EditorSettings"] = new MenuScreen("EditorSettings", *this);
-
-	timerOverlayColor.Start(1);
 
 	start_time = clock::now();
 }
@@ -1374,32 +1371,13 @@ void Game::UpdateTextInput()
 	}
 }
 
-void Game::UpdateOverlayColor(int& color, const int& target)
-{
-	if (color != target)
-	{
-		changingOverlayColor = true;
-		if (target > color)
-			color++;
-		else
-			color--;
-	}
-}
+
 
 void Game::Update()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	if (changingOverlayColor && timerOverlayColor.HasElapsed())
-	{
-		timerOverlayColor.Start(1);
-		changingOverlayColor = false;
-		UpdateOverlayColor(overlayColor.r, targetColor.r);
-		UpdateOverlayColor(overlayColor.g, targetColor.g);
-		UpdateOverlayColor(overlayColor.b, targetColor.b);
-		UpdateOverlayColor(overlayColor.a, targetColor.a);
-		std::cout << overlayColor.r << std::endl;
-	}
+	renderer->Update();
 
 	if (watchingCutscene)
 	{
@@ -1477,19 +1455,6 @@ void Game::Render()
 		openedMenus[openedMenus.size() - 1]->Render(renderer);
 	}
 
-	// Draw stuff for debugging purposes here
-	if (GetModeDebug())
-	{
-		/*
-		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
-		for (unsigned int i = 0; i < debugRectangles.size(); i++)
-		{
-			SDL_RenderDrawRect(renderer->renderer, debugRectangles[i]);
-		}
-		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-		*/
-	}
-
 	if (showFPS)
 		fpsText->Render(renderer);
 	
@@ -1502,15 +1467,15 @@ void Game::Render()
 		//etherText->Render(renderer);
 	}	
 
-	// Draw the screen overlay
-	//SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
-	//SDL_SetRenderDrawColor(renderer->renderer, overlayColor.r, overlayColor.g, overlayColor.b, overlayColor.a);
-	//SDL_RenderFillRect(renderer->renderer, &overlayRect);
-	//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-	//SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
-
+	// Draw anything in the cutscenes
 	if (watchingCutscene)
+	{
 		cutscene->Render(renderer);
+	}
+	else
+	{
+		renderer->FadeOverlay(screenWidth, screenHeight);
+	}
 
 	// Render editor toolbox
 	if (GetModeEdit())

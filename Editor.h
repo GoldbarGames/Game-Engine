@@ -112,7 +112,6 @@ public:
 	void SaveLevel(std::string levelName = "");
 	void InitLevelFromFile(std::string levelName);
 	void Render(Renderer* renderer);
-	void SetText(string newText);
 	DrawingLayer drawingLayer = BACK;
 	int tilesheetIndex = 0;
 	const string tilesheets[2] = { "housetiles5", "foresttiles" };

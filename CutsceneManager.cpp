@@ -147,12 +147,17 @@ std::string CutsceneManager::ParseWord(std::string text, char limit, unsigned in
 
 void CutsceneManager::Render(Renderer * renderer)
 {
+	// Render every sprite in the cutscene
 	for (imageIterator = images.begin(); imageIterator != images.end(); imageIterator++)
 	{
 		if (imageIterator->second != nullptr)
 			imageIterator->second->Render(renderer);
 	}
 
+	// Render the overlay above all sprites
+	renderer->FadeOverlay(game->screenWidth, game->screenHeight);
+
+	// Render the textbox above everything
 	textbox->Render(renderer, game->screenWidth, game->screenHeight);
 }
 

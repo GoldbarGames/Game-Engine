@@ -81,19 +81,14 @@ void EditorButton::Render(Renderer* renderer)
 		image->color = { 255, 255, 255, 255 };
 
 	// Render the button's image and text
-	Vector2 cameraPosition = Vector2(renderer->camera.position.x, renderer->camera.position.y);
-	image->Render(position + cameraPosition, renderer);
-	text->Render(renderer, cameraPosition);
+	//Vector2 cameraPosition = Vector2(renderer->camera.position.x, renderer->camera.position.y);
+	
+	image->Render(position, renderer);
+	text->Render(renderer, Vector2(0,0));
 }
 
 bool EditorButton::IsPointInsideButton(const int& x, const int& y)
 {	
 	return (x >= buttonWindowRect.x && x <= buttonWindowRect.x + buttonWindowRect.w &&
 		y >= buttonWindowRect.y && y <= buttonWindowRect.y + buttonWindowRect.h);
-}
-
-void EditorButton::SetColors(Color c1, Color c2)
-{
-	colorOn = c1;
-	colorOff = c2;
 }
