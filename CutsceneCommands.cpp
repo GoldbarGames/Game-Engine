@@ -293,6 +293,10 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 
 		sprite->color = color;
 	}
+	else if (spriteProperty == "scale")
+	{
+		sprite->scale = Vector2(std::stoi(parameters[3]), std::stoi(parameters[4]));
+	}
 	else if (spriteProperty == "shader")
 	{	
 		if (manager->game->renderer->shaders[parameters[3]] != nullptr)

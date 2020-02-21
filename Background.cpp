@@ -2,8 +2,9 @@
 #include "BackgroundLayer.h"
 #include "Game.h"
 
-Background::Background(Vector2 pos)
+Background::Background(std::string n, Vector2 pos)
 {
+	name = n;
 	position = pos;
 }
 
@@ -12,7 +13,7 @@ Background::~Background()
 {
 	for (unsigned int i = 0; i < layers.size(); i++)
 	{
-		delete layers[i];
+		delete_it(layers[i]);
 	}
 }
 
@@ -42,4 +43,9 @@ void Background::DeleteLayers(Game& game)
 	{
 		game.ShouldDeleteEntity(layers[i]);
 	}
+}
+
+void Background::Save(std::ostringstream& level)
+{
+	level << "0 bg " << position.x << " " << position.y << " " << name << std::endl;
 }

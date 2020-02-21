@@ -39,7 +39,7 @@ private:
 
 	Vector2 spriteSheetTileFrame = Vector2(0,0);
 	Vector2 selectedTilePosition = Vector2(0, 0);
-	SDL_Rect hoveredTileRect;
+	Vector2 objPreviewPosition = Vector2(0,0);
 
 	SDL_Rect objectPropertiesRect;
 	SDL_Rect dialogRect;

@@ -139,6 +139,12 @@ void Editor::StartEdit()
 	tilesheetPosition.x = (game->screenWidth * 2) - tilesheetSprite->frameWidth;
 	tilesheetPosition.y = tilesheetSprite->frameHeight;
 
+	// this centers the yellow rectangle on the top left tile in the tilesheet
+	// (we need to subtract the width/height to get to the top left corner,
+	// and then add the tile size to center it within the actual tile)
+	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprite->frameWidth + TILE_SIZE;
+	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprite->frameHeight + TILE_SIZE;
+
 	objectPropertiesRect.w = 400;
 	objectPropertiesRect.h = 600;
 	objectPropertiesRect.x = game->screenWidth - objectPropertiesRect.w;
@@ -152,11 +158,6 @@ void Editor::StartEdit()
 	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
 	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
 
-	selectedTilePosition.x = tilesheetPosition.x;
-	selectedTilePosition.y = tilesheetPosition.y;
-
-	hoveredTileRect.w = 24;
-	hoveredTileRect.h = 24;
 
 	CreateEditorButtons();
 
@@ -250,20 +251,37 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 			clickedLayerVisibleButton = layerButtons[i]->text->txt;
 	}
 
-	mouseX = mouseX / 2;
-	mouseY = mouseY / 2;
+	mouseX /= 2;
+	mouseY /= 2;
 
 	// Allow the tile sheet to be clicked when in certain modes
 	if ( (objectMode == "tile" || objectMode == "replace" || objectMode == "copy") && clickedToolboxWindow)
 	{
-		int xOffset = (mouseX - tilesheetPosition.x);
-		selectedTilePosition.x = (xOffset - (xOffset % (TILE_SIZE * 2)));
-		selectedTilePosition.y = (mouseY - (mouseY % (TILE_SIZE * 2)));
+		mouseX *= 2;
+		mouseY *= 2;
 
-		spriteSheetTileFrame.x = (selectedTilePosition.x / (TILE_SIZE * 1)) + 1;
-		spriteSheetTileFrame.y = (selectedTilePosition.y / (TILE_SIZE * 1)) + 1;
+		const int topLeftX = tilesheetPosition.x - tilesheetSprite->frameWidth;
+		const int topLeftY = tilesheetPosition.y - tilesheetSprite->frameHeight;
 
-		selectedTilePosition.x += tilesheetPosition.x;
+		int xOffset = (mouseX - topLeftX);
+		int yOffset = (mouseY - topLeftY);
+
+		// Calculate the position in the tilesheet texture to use for drawing the tile
+		float x2 = (xOffset / (float)(TILE_SIZE));
+		float y2 = (yOffset / (float)(TILE_SIZE));
+
+		spriteSheetTileFrame.x = (int)(roundf(x2)/2.0f) + 1;
+		spriteSheetTileFrame.y = (int)(roundf(y2)/2.0f) + 1;
+
+		int moveRight = ( (spriteSheetTileFrame.x - 1) * TILE_SIZE * 2);
+		int moveDown = ( (spriteSheetTileFrame.y - 1) * TILE_SIZE * 2);
+
+		//std::cout << "(" << x2 << "," << y2 << ")" << std::endl;
+		//std::cout << "(" << spriteSheetTileFrame.x << "," << spriteSheetTileFrame.y << ")" << std::endl;
+
+		// Set the location of the yellow rectangle indicating which tile will be drawn
+		selectedTilePosition.x = topLeftX + TILE_SIZE + moveRight;
+		selectedTilePosition.y = topLeftY + TILE_SIZE + moveDown;
 	}
 	else if (clickedNewButton && clickedButton != nullptr)
 	{
@@ -961,12 +979,9 @@ void Editor::HandleEdit()
 	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE));
 
 	// snapped position in screen space (0,0) to (1280,720)
-	Vector2 clickedPosition(clickedX, clickedY); 
+	Vector2 clickedScreenPosition(clickedX, clickedY); 
 
-	Vector2 hoveredPos = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
-
-	hoveredTileRect.x = hoveredPos.x;
-	hoveredTileRect.y = hoveredPos.y;
+	objPreviewPosition = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
 
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
 	editorText["cursorPositionInScreen"]->SetText("Mouse Screen: " + clickedText);
@@ -983,15 +998,15 @@ void Editor::HandleEdit()
 	{
 		// We multiply X and Y by 2 because the guiProjection is multiplied by 2
 		// TODO: Maybe remove the multiplier
-		LeftClick(clickedPosition, mouseX*2, mouseY*2);
+		LeftClick(clickedScreenPosition, mouseX*2, mouseY*2);
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{
-		RightClick(clickedPosition);
+		RightClick(clickedScreenPosition);
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE)) // toggles special properties
 	{
-		MiddleClick(clickedPosition);
+		MiddleClick(clickedScreenPosition);
 	}
 	else // no button was clicked, just check for hovering
 	{
@@ -1341,7 +1356,7 @@ void Editor::Render(Renderer* renderer)
 			//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
 
-		objectPreview->GetSprite()->Render(Vector2(hoveredTileRect.x, hoveredTileRect.y),
+		objectPreview->GetSprite()->Render(Vector2(objPreviewPosition.x, objPreviewPosition.y),
 			0, -1, SDL_FLIP_NONE, renderer, objectPreview->rotation);
 
 		if (placingDoor && currentDoor != nullptr)
@@ -1516,6 +1531,11 @@ std::string Editor::SaveLevelAsString()
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
 		game->entities[i]->Save(level);
+	}
+
+	for (unsigned int i = 0; i < game->backgrounds.size(); i++)
+	{
+		game->backgrounds[i]->Save(level);
 	}
 
 	return level.str();
