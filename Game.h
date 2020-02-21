@@ -230,7 +230,7 @@ public:
 	void PlayLevel(string levelName);
 	void LoadNextLevel();
 
-	Vector2 CalcTileSpawnPos(Vector2 pos);
+	Vector2 CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE);
 
 	Vector2 SnapToGrid(Vector2 position);
 

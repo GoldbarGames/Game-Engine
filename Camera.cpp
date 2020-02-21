@@ -1,6 +1,7 @@
 #include "Camera.h"
 #include "Entity.h"
 #include <SDL_scancode.h>
+#include "debug_state.h"
 
 Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, 
 	GLfloat startYaw, GLfloat startPitch, 
@@ -23,6 +24,8 @@ Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp,
 	turnSpeed = startTurnSpeed;
 
 	angle = -45.0f;
+
+	startingZoom = startZoom;
 	orthoZoom = startZoom;
 
 	projection = glm::mat4(1.0f);
@@ -85,6 +88,8 @@ void Camera::KeyControl(const Uint8* input, const float& dt,
 {
 	GLfloat velocity = movementSpeed * dt;
 
+	// 2D Movement
+
 	if (input[SDL_SCANCODE_K])
 	{
 		position += up * velocity;
@@ -105,6 +110,8 @@ void Camera::KeyControl(const Uint8* input, const float& dt,
 		position -= right * velocity;
 	}
 
+	// 3D Movement
+
 	if (!useOrthoCamera)
 	{
 		if (input[SDL_SCANCODE_O])
@@ -116,7 +123,12 @@ void Camera::KeyControl(const Uint8* input, const float& dt,
 		{
 			position -= front * velocity;
 		}
+	}
 
+	// 3D rotation
+
+	if (!useOrthoCamera)
+	{
 		if (input[SDL_SCANCODE_N])
 		{
 			angle += 0.05f;
@@ -162,20 +174,39 @@ void Camera::KeyControl(const Uint8* input, const float& dt,
 			Update();
 		}
 	}
-	else
+	else // 2D Zoom
 	{
-		if (input[SDL_SCANCODE_N])
+		if (!GetModeEdit())
 		{
-			Zoom(-0.025f, screenWidth, screenHeight);
+			if (input[SDL_SCANCODE_N])
+			{
+				Zoom(-0.025f, screenWidth, screenHeight);
+			}
+
+			if (input[SDL_SCANCODE_M])
+			{
+				Zoom(0.025f, screenWidth, screenHeight);
+			}
 		}
 
-		if (input[SDL_SCANCODE_M])
-		{
-			Zoom(0.025f, screenWidth, screenHeight);
-		}
 	}
 
 
+}
+
+void Camera::ResetProjection()
+{
+	if (useOrthoCamera)
+	{
+		float zoomX = (1280.0f * startingZoom);
+		float zoomY = (720.0f * startingZoom);
+		projection = glm::ortho(0.0f, zoomX, zoomY, 0.0f, -1.0f, 10.0f);
+	}
+	else
+	{
+		float aspectRatio = 1280.0f / 720.0f;
+		projection = glm::perspective(angle, -aspectRatio, 0.001f, 10000.0f);
+	}
 }
 
 void Camera::Zoom(float amount, float screenWidth, float screenHeight)

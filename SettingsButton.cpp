@@ -10,7 +10,7 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	label = new Text(game.renderer, game.headerFont, name);
 	label->SetPosition(position.x - 400, position.y);
 
-	label->GetSprite()->renderRelativeToCamera = true;
+	label->GetSprite()->keepPositionRelativeToCamera = true;
 	label->GetSprite()->keepScaleRelativeToCamera = true;
 
 	std::vector<std::string> optionNames;
@@ -72,7 +72,7 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	{
 		Text* text = new Text(game.renderer, game.headerFont, optionNames[i]);
 		text->SetPosition(position.x, position.y);
-		text->GetSprite()->renderRelativeToCamera = true;
+		text->GetSprite()->keepPositionRelativeToCamera = true;
 		text->GetSprite()->keepScaleRelativeToCamera = true;
 		options.emplace_back(text);
 	}

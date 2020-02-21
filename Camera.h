@@ -27,6 +27,7 @@ public:
 	glm::mat4 guiProjection;
 	glm::mat4 CalculateViewMatrix();
 	void Zoom(float amount, float screenWidth, float screenHeight);
+	void ResetProjection();
 
 	glm::vec3 position;
 
@@ -44,6 +45,7 @@ private:
 	glm::vec3 worldUp;
 
 	float orthoZoom = 4.0f;
+	float startingZoom = 4.0f;
 	
 	float angle = -45.0f;
 

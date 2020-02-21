@@ -9,10 +9,10 @@ NPC::NPC(std::string n, Vector2 pos) : Entity(pos)
 	CreateCollider(0, 0, 0, 0, 0, 0);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 20;
-	
 
 	physics = new PhysicsEntity(this);
 	physics->standAboveGround = true;
+	physics->useGravity = true;
 }
 
 

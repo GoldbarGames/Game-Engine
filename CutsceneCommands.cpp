@@ -267,7 +267,7 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 	}
 
 	manager->images[imageNumber]->drawOrder = imageNumber;
-	manager->images[imageNumber]->GetSprite()->renderRelativeToCamera = true;
+	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
 	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
 
 	return 0;

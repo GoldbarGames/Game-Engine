@@ -24,7 +24,7 @@ unsigned int Sprite::Size()
 		totalSize += sizeof(texture);
 
 	totalSize += sizeof(color);
-	totalSize += sizeof(renderRelativeToCamera);
+	totalSize += sizeof(keepPositionRelativeToCamera);
 	totalSize += sizeof(keepScaleRelativeToCamera);
 	totalSize += sizeof(lastAnimTime);
 	totalSize += sizeof(animSpeed);
@@ -241,7 +241,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 	shader->UseShader();
 
-	if (renderRelativeToCamera)
+	if (keepPositionRelativeToCamera)
 	{
 		glUniformMatrix4fv(shader->GetUniformVariable("view"), 1, GL_FALSE,
 			glm::value_ptr(renderer->guiCamera.CalculateViewMatrix()));
@@ -393,7 +393,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	// this will make the sprites look more centered
 	
 	// Position
-	if (renderRelativeToCamera)
+	if (keepPositionRelativeToCamera)
 	{
 		if (renderer->guiCamera.useOrthoCamera)
 		{
@@ -424,7 +424,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	}
 
 	// Rotation
-	if (!renderRelativeToCamera)
+	if (!keepPositionRelativeToCamera)
 	{
 		const float toRadians = 3.14159265f / 180.0f;		
 		model = glm::rotate(model, rotation.x * toRadians, glm::vec3(-1.0f, 0.0f, 0.0f));

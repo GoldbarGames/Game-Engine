@@ -18,18 +18,18 @@ Editor::Editor(Game& g)
 
 	editorText["currentEditModeLayer"] = new Text(game->renderer, theFont);
 	editorText["currentEditModeLayer"]->SetText("");
-	editorText["currentEditModeLayer"]->GetSprite()->renderRelativeToCamera = true;
+	editorText["currentEditModeLayer"]->GetSprite()->keepPositionRelativeToCamera = true;
 	editorText["currentEditModeLayer"]->GetSprite()->keepScaleRelativeToCamera = true;
 
 	editorText["cursorPositionInScreen"] = new Text(game->renderer, theFont);
 	editorText["cursorPositionInScreen"]->SetPosition(200, 50);
 	editorText["cursorPositionInScreen"]->SetText("");
-	editorText["cursorPositionInScreen"]->GetSprite()->renderRelativeToCamera = true;
+	editorText["cursorPositionInScreen"]->GetSprite()->keepPositionRelativeToCamera = true;
 
 	editorText["cursorPositionInWorld"] = new Text(game->renderer, theFont);
 	editorText["cursorPositionInWorld"]->SetPosition(200, 100);
 	editorText["cursorPositionInWorld"]->SetText("");
-	editorText["cursorPositionInWorld"]->GetSprite()->renderRelativeToCamera = true;
+	editorText["cursorPositionInWorld"]->GetSprite()->keepPositionRelativeToCamera = true;
 
 	dialogText = new Text(game->renderer, theFont, "");
 	dialogInput = new Text(game->renderer, theFont, "");
@@ -98,7 +98,7 @@ void Editor::CreateEditorButtons()
 		EditorButton* editorButton = new EditorButton("", buttonNames[i], 
 			Vector2(buttonX, game->screenHeight - buttonHeight), *game);
 
-		editorButton->image->renderRelativeToCamera = true;
+		editorButton->image->keepPositionRelativeToCamera = true;
 		editorButton->image->keepScaleRelativeToCamera = true;
 		buttons.emplace_back(editorButton);
 
@@ -123,6 +123,8 @@ void Editor::StartEdit()
 {
 	game->LoadEditorSettings();
 
+	game->renderer->camera.ResetProjection();
+
 	// TILE SHEET FOR TOOLBOX
 	if (tilesheetSprite == nullptr)
 	{
@@ -131,7 +133,7 @@ void Editor::StartEdit()
 			game->renderer->shaders["default"], Vector2(0, 0));
 	}
 
-	tilesheetSprite->renderRelativeToCamera = true;
+	tilesheetSprite->keepPositionRelativeToCamera = true;
 	tilesheetSprite->keepScaleRelativeToCamera = true;
 	
 	tilesheetPosition.x = (game->screenWidth * 2) - tilesheetSprite->frameWidth;
@@ -197,6 +199,7 @@ void Editor::StartEdit()
 
 void Editor::StopEdit()
 {
+	game->renderer->camera.Zoom(0.0f, game->screenWidth, game->screenHeight);
 	selectedEntity = nullptr;
 	//inspectionMode = false;	
 	propertyIndex = -1;
@@ -546,7 +549,8 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 
 	if (canPlaceObjectHere)
 	{
-		Vector2 snappedPosition = game->SnapToGrid(Vector2(mouseX, mouseY));
+		Vector2 snappedPosition = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
+
 		if (objectMode == "npc")
 		{
 			currentNPC = game->SpawnNPC(npcNames[spriteMapIndex], snappedPosition, spriteMapIndex);
@@ -736,20 +740,13 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 
 	if (canPlaceTileHere)
 	{
-		int afterModX = ((int)(mouseX) % GRID_SIZE);
-		int afterModY = ((int)(mouseY) % GRID_SIZE);
-
-		Vector2 snappedPos = Vector2(mouseX - afterModX, mouseY - afterModY);
-
 		//TODO: Can't be this simple. Our zoom level affects the mouse position!
 		// Do we need to use raycasts or something else here?
 
 		//glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
 		//glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
 
-		Vector2 spawnPos = game->CalcTileSpawnPos(snappedPos);
-		spawnPos.x += game->renderer->camera.position.x;
-		spawnPos.y += game->renderer->camera.position.y;
+		Vector2 spawnPos = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
 
 		game->SpawnTile(spriteSheetTileFrame, "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
 			Vector2(spawnPos.x, spawnPos.y), drawingLayer);
@@ -966,8 +963,10 @@ void Editor::HandleEdit()
 	// snapped position in screen space (0,0) to (1280,720)
 	Vector2 clickedPosition(clickedX, clickedY); 
 
-	hoveredTileRect.x = clickedX;
-	hoveredTileRect.y = clickedY;
+	Vector2 hoveredPos = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
+
+	hoveredTileRect.x = hoveredPos.x;
+	hoveredTileRect.y = hoveredPos.y;
 
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
 	editorText["cursorPositionInScreen"]->SetText("Mouse Screen: " + clickedText);
@@ -1161,7 +1160,7 @@ void Editor::ToggleSpriteMap()
 		spriteMapIndex = 0;
 
 	if (previewMap.count(objectMode) > 0 && previewMap[objectMode] != nullptr)
-		delete previewMap[objectMode];
+		delete_it(previewMap[objectMode]);
 
 	// Update the preview sprites accordingly
 	if (objectMode == "door")
@@ -1420,10 +1419,10 @@ void Editor::Render(Renderer* renderer)
 			// Draw a yellow rectangle around the currently selected tileset tile
 			game->renderer->debugSprite->color = { 255, 255, 0, 255 };
 			game->renderer->debugSprite->scale = Vector2(1, 1);
-			game->renderer->debugSprite->renderRelativeToCamera = true;
+			game->renderer->debugSprite->keepPositionRelativeToCamera = true;
 			game->renderer->debugSprite->keepScaleRelativeToCamera = true;
 			game->renderer->debugSprite->Render(selectedTilePosition, renderer);
-			game->renderer->debugSprite->renderRelativeToCamera = false;
+			game->renderer->debugSprite->keepPositionRelativeToCamera = false;
 			game->renderer->debugSprite->keepScaleRelativeToCamera = false;
 		}
 	}	

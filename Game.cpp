@@ -107,6 +107,7 @@ Game::Game()
 	allMenus["Settings"] = new MenuScreen("Settings", *this);
 	allMenus["Spellbook"] = new MenuScreen("Spellbook", *this);
 	allMenus["EditorSettings"] = new MenuScreen("EditorSettings", *this);
+	allMenus["Credits"] = new MenuScreen("Credits", *this);
 
 	start_time = clock::now();
 }
@@ -123,7 +124,7 @@ void Game::ResetText()
 		fpsText = new Text(renderer, theFont);
 		fpsText->SetText("FPS:");
 		fpsText->textSprite->keepScaleRelativeToCamera = true;
-		fpsText->textSprite->renderRelativeToCamera = true;
+		fpsText->textSprite->keepPositionRelativeToCamera = true;
 	}
 		
 
@@ -135,7 +136,7 @@ void Game::ResetText()
 		timerText = new Text(renderer, theFont);
 		timerText->SetText("");
 		timerText->textSprite->keepScaleRelativeToCamera = true;
-		timerText->textSprite->renderRelativeToCamera = true;
+		timerText->textSprite->keepPositionRelativeToCamera = true;
 	}
 		
 	
@@ -147,7 +148,7 @@ void Game::ResetText()
 		bugText = new Text(renderer, theFont);
 		bugText->SetText("");
 		bugText->textSprite->keepScaleRelativeToCamera = true;
-		bugText->textSprite->renderRelativeToCamera = true;
+		bugText->textSprite->keepPositionRelativeToCamera = true;
 	}
 		
 	
@@ -159,7 +160,7 @@ void Game::ResetText()
 		etherText = new Text(renderer, theFont);
 		etherText->SetText("");
 		etherText->textSprite->keepScaleRelativeToCamera = true;
-		etherText->textSprite->renderRelativeToCamera = true;
+		etherText->textSprite->keepPositionRelativeToCamera = true;
 	}
 		
 	
@@ -656,16 +657,26 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 	return missile;
 }
 
-Vector2 Game::CalcTileSpawnPos(Vector2 pos)
+// Calculate the object's location in game coordinates
+// based on the mouse's position in screen coordinates
+Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE)
 {
-	int newTileX = (int)pos.x;
-	int newTileY = (int)pos.y;
+	int afterModX = ((int)(mousePos.x) % GRID_SIZE);
+	int afterModY = ((int)(mousePos.y) % GRID_SIZE);
+
+	Vector2 snappedPos = Vector2(mousePos.x - afterModX, mousePos.y - afterModY);
+
+	int newTileX = (int)snappedPos.x;
+	int newTileY = (int)snappedPos.y;
 
 	if (newTileX % 2 != 0)
 		newTileX++;
 
 	if (newTileY % 2 != 0)
 		newTileY++;
+
+	newTileX += renderer->camera.position.x;
+	newTileY += renderer->camera.position.y;
 
 	return Vector2(newTileX, newTileY);
 }
@@ -918,8 +929,10 @@ void Game::CheckDeleteEntities()
 void Game::HandleEditMode()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
+
 	renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
 	renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
+
 	editor->HandleEdit();
 }
 
@@ -945,13 +958,19 @@ void Game::EscapeMenu()
 		// Close the current menu
 		openedMenus.pop_back();
 
-		// Open a menu after closing this one
+		// Open a menu after closing this one	
 		if (currentMenu->name == "File Select")
 		{
 			openedMenus.emplace_back(allMenus["Title"]);
 		}
 
 		if (currentMenu->name == "Settings")
+		{
+			if (currentLevel == "title")
+				openedMenus.emplace_back(allMenus["Title"]);
+		}
+
+		if (currentMenu->name == "Credits")
 		{
 			if (currentLevel == "title")
 				openedMenus.emplace_back(allMenus["Title"]);
@@ -1343,8 +1362,12 @@ void Game::SaveScreenshot()
 void Game::GetMenuInput()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
-	renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
-	renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
+
+	if (GetModeDebug())
+	{
+		renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
+		renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
+	}
 
 	Uint32 ticks = timer.GetTicks();
 	if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors

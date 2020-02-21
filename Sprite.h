@@ -44,7 +44,7 @@ public:
 
 	Color color { 255, 255, 255, 255 };
 
-	bool renderRelativeToCamera = false;
+	bool keepPositionRelativeToCamera = false;
 	bool keepScaleRelativeToCamera = false;
 
 	float lastAnimTime = -1;

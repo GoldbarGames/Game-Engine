@@ -18,3 +18,4 @@ std::string GetDrawingLayerName(DrawingLayer layer)
 		return "";
 	}
 }
+

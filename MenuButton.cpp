@@ -21,9 +21,9 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 
 	position = pos;
 
-	image->renderRelativeToCamera = true;
+	image->keepPositionRelativeToCamera = true;
 	image->keepScaleRelativeToCamera = true;
-	text->GetSprite()->renderRelativeToCamera = true;
+	text->GetSprite()->keepPositionRelativeToCamera = true;
 	text->GetSprite()->keepScaleRelativeToCamera = true;
 }
 

@@ -10,6 +10,13 @@ enum DrawingLayer { BACK = 0, FRONT = 40, OBJECT = 20, COLLISION = 30, MIDDLE = 
 
 std::string GetDrawingLayerName(DrawingLayer layer);
 
+template<typename T>
+void delete_it(T& v)
+{
+	delete v;
+	v = nullptr;
+}
+
 struct Color {
 	int r = 0;
 	int g = 0;

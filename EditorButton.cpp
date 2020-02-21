@@ -11,7 +11,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	image = new Sprite(1, game.spriteManager, "assets/editor/btn" + filename + ".png", 
 		game.renderer->shaders["gui"], Vector2(0, 0));
 
-	image->renderRelativeToCamera = true;
+	image->keepPositionRelativeToCamera = true;
 	image->keepScaleRelativeToCamera = true;
 
 	position = Vector2(pos.x * 2, pos.y * 2);
@@ -23,10 +23,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	buttonWindowRect.x = 0;
 	buttonWindowRect.y = 0;
 
-	text = new Text(game.renderer, game.theFont);
-	text->SetText(txt);
-	text->GetSprite()->renderRelativeToCamera = true;
-	text->GetSprite()->keepScaleRelativeToCamera = true;
+	text = new Text(game.renderer, game.theFont, txt, true, true);
 
 	if (size.x != 0)
 	{

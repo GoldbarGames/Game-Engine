@@ -4,11 +4,18 @@
 
 int Text::GetTextWidth() 
 { 
-	return textSprite->texture->GetWidth(); 
+	if (textSprite != nullptr)
+		return textSprite->texture->GetWidth();
+	else
+		return 1;
 }
+
 int Text::GetTextHeight() 
 { 
-	return textSprite->texture->GetHeight(); 
+	if (textSprite != nullptr)
+		return textSprite->texture->GetHeight();
+	else
+		return 1;
 }
 
 //TODO: Refactor these constructors a little bit
@@ -21,7 +28,8 @@ Text::Text(Renderer* newRenderer, TTF_Font* newFont)
 	SetPosition(0, 0);
 }
 
-Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt)
+Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, 
+	bool relPos, bool relScale)
 {
 	renderer = newRenderer;
 	font = newFont;
@@ -29,6 +37,12 @@ Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt)
 	position.y = 0;
 	SetPosition(0, 0);
 	SetText(txt);
+
+	if (textSprite != nullptr)
+	{
+		textSprite->keepPositionRelativeToCamera = relPos;
+		textSprite->keepScaleRelativeToCamera = relScale;
+	}
 }
 
 Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color)
@@ -45,8 +59,8 @@ Text::~Text()
 {
 	if (textSprite != nullptr)
 	{
-		delete textSprite->texture;
-		delete textSprite;
+		delete_it(textSprite->texture);
+		delete_it(textSprite);
 	}
 }
 
@@ -58,16 +72,15 @@ void Text::SetFont(TTF_Font* newFont)
 //TODO: Maybe modify this or make another function to pass in a shader?
 void Text::SetText(string text, Color color, Uint32 wrapWidth)
 {
-
 	bool keepScaleRelative = false;
 	bool renderRelative = false;
 
 	if (textSprite != nullptr)
 	{
-		renderRelative = textSprite->renderRelativeToCamera;
+		renderRelative = textSprite->keepPositionRelativeToCamera;
 		keepScaleRelative = textSprite->keepScaleRelativeToCamera;
-		delete textSprite->texture;
-		delete textSprite;
+		delete_it(textSprite->texture);
+		delete_it(textSprite);
 	}
 
 	textColor = color;
@@ -99,7 +112,7 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 
 		textSprite = new Sprite(textTexture, renderer->shaders["gui"]);
 		textSprite->keepScaleRelativeToCamera = keepScaleRelative;
-		textSprite->renderRelativeToCamera = renderRelative;
+		textSprite->keepPositionRelativeToCamera = renderRelative;
 
 		if (textSurface != nullptr)
 			SDL_FreeSurface(textSurface);

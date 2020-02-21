@@ -135,10 +135,13 @@ void Entity::Unpause(Uint32 ticks)
 }
 
 void Entity::Update(Game& game)
-{
-	CalculateCollider();
+{	
 	if (animator != nullptr)
 		animator->Update(this);
+	
+	CalculateCollider();
+	if (physics != nullptr)
+		physics->Update(game);
 }
 
 Animator* Entity::GetAnimator()

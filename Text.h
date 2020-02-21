@@ -35,7 +35,8 @@ public:
 
 	Vector2 position = Vector2(0,0);
 	Text(Renderer* newRenderer, TTF_Font* newFont);
-	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt);
+	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt,
+		bool relPos = false, bool relScale = false);
 	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color);
 	~Text();
 	void SetText(string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth=0);

@@ -12,19 +12,13 @@ Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 	boxSprite = new Sprite(0, 0, 1, manager, "assets/gui/textbox.png", 
 		renderer->shaders["gui"], Vector2(0, 0));
 	boxSprite->keepScaleRelativeToCamera = true;
-	boxSprite->renderRelativeToCamera = true;
+	boxSprite->keepPositionRelativeToCamera = true;
 
-	text = new Text(renderer, textFont);
-	speaker = new Text(renderer, speakerFont);
+	text = new Text(renderer, textFont, "...", true, true);
+	speaker = new Text(renderer, speakerFont, "...", true, true);
 
-	if (text->GetSprite() != nullptr)
-		text->GetSprite()->keepScaleRelativeToCamera = true;
-
-	if (speaker->GetSprite() != nullptr)
-		speaker->GetSprite()->keepScaleRelativeToCamera = true;
-	
-	text->SetPosition(150, 720 + 320);
-	speaker->SetPosition(640, 480);
+	text->SetPosition(1080, 1040);
+	speaker->SetPosition(700, 960);
 
 	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?
 	speaker->SetText(" ");
@@ -39,8 +33,7 @@ Textbox::~Textbox()
 void Textbox::UpdateText(std::string newText)
 {
 	text->SetText(newText, text->textColor, boxWidth);
-	text->GetSprite()->keepScaleRelativeToCamera = true;
-	text->GetSprite()->renderRelativeToCamera = true;
+
 	//TODO: If we want to modify the textbox's text shader, do so here
 	//text->GetSprite()->SetShader(renderer->shaders["fade-in-out"]);
 }
@@ -49,39 +42,37 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 {
 	if (shouldRender)
 	{
-		//TODO: X-alignment is not really correct
-		// The only way to align it horizontally is to draw the texture differently
-		// This code is just so that it does not go outside the bounds of the textbox
-		// and is drawn in an order that looks good
-
 		string alignmentX = "LEFT";
 		string alignmentY = "TOP";
 
+		const int boxOffsetX = 1350;
+		const int boxOffsetY = 1060;
+
 		if (alignmentX == "LEFT")
 		{
-			offset.x = text->GetTextWidth();
-
+			offset.x = boxOffsetX - boxWidth + text->GetTextWidth();
 		}
 		else if (alignmentX == "RIGHT")
 		{
-			offset.x = -1 * text->GetTextWidth();
+			offset.x = boxOffsetX + boxWidth - text->GetTextWidth();
 		}
 		else if (alignmentX == "CENTER")
 		{
-			offset.x = 0;
+			offset.x = boxOffsetX + text->GetTextWidth();
 		}
 
+		//TODO: We would use a boxHeight if we had one to calculate these correctly
 		if (alignmentY == "TOP")
 		{
-			offset.y = text->GetTextHeight();
+			offset.y = boxOffsetY; //text->GetTextHeight();
 		}
 		else if (alignmentY == "BOTTOM")
 		{
-			offset.y = -1 * text->GetTextHeight();
+			offset.y = -1 * boxOffsetY;
 		}
 		else if (alignmentY == "CENTER")
 		{
-			offset.y = 0;
+			offset.y = text->GetTextHeight();
 		}
 
 		Vector2 renderPosition = Vector2(position.x + renderer->guiCamera.position.x,
@@ -91,12 +82,14 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 			renderer->guiCamera.position.y + offset.y);
 
 		//TODO: Make sure the position is in the center of the screen
-		boxSprite->Render(renderPosition, renderer);
-		speaker->Render(renderer, cameraPosition);
+		boxSprite->Render(position, renderer);
+		speaker->Render(renderer);
 
 		if (text != nullptr)
-			text->Render(renderer, cameraPosition);		
-
-
+		{
+			text->SetPosition(offset.x, offset.y);
+			text->Render(renderer);
+		}
+			
 	}	
 }

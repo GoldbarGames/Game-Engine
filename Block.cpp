@@ -13,6 +13,7 @@ Block::Block(Vector2 pos) : Entity(pos)
 	physics = new PhysicsEntity(this);
 	physics->mass = 5;
 	physics->canBePushed = true;
+	physics->useGravity = true;
 }
 
 Block::~Block()
