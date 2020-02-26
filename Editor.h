@@ -35,7 +35,9 @@ private:
 	Game* game = nullptr;
 
 	Vector2 tilesheetPosition = Vector2(0, 0);
-	Sprite* tilesheetSprite = nullptr;
+	
+	std::vector<Sprite*> tilesheetSprites;	
+	std::vector<string> tilesheetFilenames = { "housetiles5", "foresttiles" };
 
 	Vector2 spriteSheetTileFrame = Vector2(0,0);
 	Vector2 selectedTilePosition = Vector2(0, 0);
@@ -82,6 +84,7 @@ private:
 	const unsigned int BUTTONS_PER_PAGE = 18;
 
 public:
+	int tilesheetIndex = 0;
 	unsigned int currentButtonPage = 0;
 	int propertyIndex = -1;
 	int GRID_SIZE = 24;
@@ -113,8 +116,7 @@ public:
 	void InitLevelFromFile(std::string levelName);
 	void Render(Renderer* renderer);
 	DrawingLayer drawingLayer = BACK;
-	int tilesheetIndex = 0;
-	const string tilesheets[2] = { "housetiles5", "foresttiles" };
+
 
 	EditorButton* clickedButton = nullptr;
 	void ClickedButton();

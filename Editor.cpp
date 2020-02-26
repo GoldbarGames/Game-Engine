@@ -126,24 +126,27 @@ void Editor::StartEdit()
 	game->renderer->camera.ResetProjection();
 
 	// TILE SHEET FOR TOOLBOX
-	if (tilesheetSprite == nullptr)
+	if (tilesheetSprites.empty())
 	{
-		tilesheetSprite = new Sprite(1, game->spriteManager,
-			"assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
-			game->renderer->shaders["default"], Vector2(0, 0));
-	}
+		for (int i = 0; i < tilesheetFilenames.size(); i++)
+		{
+			tilesheetSprites.push_back(new Sprite(1, game->spriteManager,
+				"assets/tiles/" + tilesheetFilenames[i] + ".png",
+				game->renderer->shaders["noalpha"], Vector2(0, 0)));
 
-	tilesheetSprite->keepPositionRelativeToCamera = true;
-	tilesheetSprite->keepScaleRelativeToCamera = true;
+			tilesheetSprites[i]->keepPositionRelativeToCamera = true;
+			tilesheetSprites[i]->keepScaleRelativeToCamera = true;
+		}
+	}
 	
-	tilesheetPosition.x = (game->screenWidth * 2) - tilesheetSprite->frameWidth;
-	tilesheetPosition.y = tilesheetSprite->frameHeight;
+	tilesheetPosition.x = (game->screenWidth * 2) - tilesheetSprites[tilesheetIndex]->frameWidth;
+	tilesheetPosition.y = tilesheetSprites[tilesheetIndex]->frameHeight;
 
 	// this centers the yellow rectangle on the top left tile in the tilesheet
 	// (we need to subtract the width/height to get to the top left corner,
 	// and then add the tile size to center it within the actual tile)
-	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprite->frameWidth + TILE_SIZE;
-	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprite->frameHeight + TILE_SIZE;
+	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + TILE_SIZE;
+	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + TILE_SIZE;
 
 	objectPropertiesRect.w = 400;
 	objectPropertiesRect.h = 600;
@@ -208,8 +211,8 @@ void Editor::StopEdit()
 
 void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 {
-	bool clickedToolboxWindow = mouseX >= tilesheetPosition.x - tilesheetSprite->frameWidth
-		&& mouseY <= tilesheetSprite->frameHeight * 2;
+	bool clickedToolboxWindow = mouseX >= tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth
+		&& mouseY <= tilesheetSprites[tilesheetIndex]->frameHeight * 2;
 
 	bool clickedNewButton = false;
 	if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
@@ -260,8 +263,8 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		mouseX *= 2;
 		mouseY *= 2;
 
-		const int topLeftX = tilesheetPosition.x - tilesheetSprite->frameWidth;
-		const int topLeftY = tilesheetPosition.y - tilesheetSprite->frameHeight;
+		const int topLeftX = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth;
+		const int topLeftY = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight;
 
 		int xOffset = (mouseX - topLeftX);
 		int yOffset = (mouseY - topLeftY);
@@ -401,7 +404,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 						// Set the index of the tile
 						tile->ChangeSprite(spriteSheetTileFrame,
-							game->spriteManager->GetImage("assets/tiles/" + tilesheets[tilesheetIndex] + ".png"),
+							game->spriteManager->GetImage("assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png"),
 							game->renderer);
 					}
 				}
@@ -737,7 +740,9 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 	bool canPlaceTileHere = true;
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
-		if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedPosition) &&
+		Vector2 entityPosition = RoundToInt(game->entities[i]->GetPosition());
+		Vector2 intPosition = RoundToInt(clickedPosition);
+		if (entityPosition == game->CalculateObjectSpawnPosition(intPosition, GRID_SIZE) &&
 			game->entities[i]->layer == drawingLayer &&
 			game->entities[i]->etype == "tile")
 		{
@@ -766,7 +771,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 
 		Vector2 spawnPos = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
 
-		game->SpawnTile(spriteSheetTileFrame, "assets/tiles/" + tilesheets[tilesheetIndex] + ".png",
+		game->SpawnTile(spriteSheetTileFrame, "assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png",
 			Vector2(spawnPos.x, spawnPos.y), drawingLayer);
 		game->SortEntities(game->entities);
 
@@ -829,11 +834,9 @@ void Editor::RightClick(Vector2 clickedPosition)
 		bool shouldDeleteThis = false;
 		bool sameMode = game->entities[i]->etype == objectMode;
 		bool sameLayer = game->entities[i]->layer == drawingLayer;
-		bool samePosition = entityPosition.x >= clickedInt.x - 1 &&
-			entityPosition.x <= clickedInt.x + 1 &&
-			entityPosition.y >= clickedInt.y - 1 &&
-			entityPosition.y <= clickedInt.y + 1;
-
+		
+		bool samePosition = (entityPosition == game->CalculateObjectSpawnPosition(clickedInt, GRID_SIZE));
+		
 		if (deleteSettingIndex == 0) // TODO: Can we change this number to a string?
 		{
 			// Same layer, same mode
@@ -1306,6 +1309,14 @@ void Editor::ToggleTileset()
 	tilesheetIndex++;
 	if (tilesheetIndex > 1)
 		tilesheetIndex = 0;
+
+	// Calculate and set positions for the selected tilesheet
+	//TODO: Maybe make this its own function?
+	tilesheetPosition.x = (game->screenWidth * 2) - tilesheetSprites[tilesheetIndex]->frameWidth;
+	tilesheetPosition.y = tilesheetSprites[tilesheetIndex]->frameHeight;
+	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + TILE_SIZE;
+	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + TILE_SIZE;
+	
 	game->SaveEditorSettings();
 	StartEdit();	
 }
@@ -1424,12 +1435,8 @@ void Editor::Render(Renderer* renderer)
 	{
 		if (objectMode == "tile" || objectMode == "replace" || objectMode == "copy")
 		{
-			// Draw a white rectangle around the entire tilesheet
-			//SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 255, 255);
-			//SDL_RenderFillRect(renderer->renderer, &toolboxWindowRect);
-
 			// Draw the tilesheet (only if we are placing a tile)
-			tilesheetSprite->Render(tilesheetPosition, game->renderer);
+			tilesheetSprites[tilesheetIndex]->Render(tilesheetPosition, game->renderer);
 
 			// Draw a yellow rectangle around the currently selected tileset tile
 			game->renderer->debugSprite->color = { 255, 255, 0, 255 };
@@ -1654,7 +1661,7 @@ void Editor::CreateLevelFromString(std::string level)
 			int frameX = std::stoi(tokens[index++]);
 			int frameY = std::stoi(tokens[index++]);
 
-			Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheets[tilesheet] + ".png",
+			Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheetFilenames[tilesheet] + ".png",
 				Vector2(positionX, positionY), (DrawingLayer)layer);
 
 			if (passableState == 2)

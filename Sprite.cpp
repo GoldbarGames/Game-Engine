@@ -350,6 +350,10 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 		glUniform4fv(shader->GetUniformVariable("fadeColor"), 1, glm::value_ptr(fadeColor));
 	}
+	else if (shader->GetName() == "noalpha")
+	{
+		glUniform1f(shader->GetUniformVariable("currentTime"), renderer->now);
+	}
 	else if (shader->GetName() == "glow")
 	{      
 		GLfloat fadePoint = abs(sin(renderer->now / 1000));

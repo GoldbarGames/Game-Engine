@@ -198,6 +198,7 @@ void Game::CreateShaders()
 	renderer->CreateShader("fade-in-out", "Shaders/default.vert", "Shaders/fade-in-out.frag");
 	renderer->CreateShader("glow", "Shaders/default.vert", "Shaders/glow.frag");
 	renderer->CreateShader("gui", "Shaders/gui.vert", "Shaders/gui.frag");
+	renderer->CreateShader("noalpha", "Shaders/default.vert", "Shaders/noalpha.frag");
 }
 
 void Game::InitOpenGL()
@@ -657,12 +658,16 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 	return missile;
 }
 
+// TODO: Possibly rename this function to something more general like ConvertScreenToGameCoordinates
 // Calculate the object's location in game coordinates
 // based on the mouse's position in screen coordinates
 Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE)
 {
-	int afterModX = ((int)(mousePos.x) % GRID_SIZE);
-	int afterModY = ((int)(mousePos.y) % GRID_SIZE);
+	mousePos.x += renderer->camera.position.x;
+	mousePos.y += renderer->camera.position.y;
+
+	int afterModX = ((int)(mousePos.x) % (GRID_SIZE * 2));
+	int afterModY = ((int)(mousePos.y) % (GRID_SIZE * 2));
 
 	Vector2 snappedPos = Vector2(mousePos.x - afterModX, mousePos.y - afterModY);
 
@@ -675,8 +680,10 @@ Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE
 	if (newTileY % 2 != 0)
 		newTileY++;
 
-	newTileX += renderer->camera.position.x;
-	newTileY += renderer->camera.position.y;
+	//TODO: Not sure if this should go here or somewhere else
+	// but the tile is not centered on the grid
+	newTileX += GRID_SIZE;
+	newTileY += GRID_SIZE;
 
 	return Vector2(newTileX, newTileY);
 }
@@ -1263,6 +1270,9 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_e:
 				pressedRightTrigger = true;
 				break;
+
+				// DEVELOPER BUTTONS
+
 			case SDLK_r:
 				//if (player != nullptr)
 				//	player->ResetPosition();
