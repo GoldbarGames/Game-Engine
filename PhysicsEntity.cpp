@@ -213,7 +213,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	newBoundsVertical.y += 1;
 
 	SDL_Rect floorBounds = newBoundsVertical;
-	//floorBounds.y += 1;
+	floorBounds.y += 20;
 
 	// 2.5D look
 	const int FLOOR_SIZE = 0;

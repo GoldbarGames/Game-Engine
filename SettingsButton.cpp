@@ -9,6 +9,7 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 
 	label = new Text(game.renderer, game.headerFont, name);
 	label->SetPosition(position.x - 400, position.y);
+	position.x += 400;
 
 	label->GetSprite()->keepPositionRelativeToCamera = true;
 	label->GetSprite()->keepScaleRelativeToCamera = true;

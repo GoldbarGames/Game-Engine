@@ -181,6 +181,8 @@ public:
 
 
 	std::vector<Entity*> entities;
+	std::vector<Entity*> bgEntities;
+
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
 

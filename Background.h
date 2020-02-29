@@ -12,7 +12,7 @@ public:
 	Background(std::string n, Vector2 pos);
 	~Background();
 	void Render(Renderer * renderer);
-	void AddLayer(SpriteManager* spriteManager, Renderer* renderer, 
+	Entity* AddLayer(Vector2 offset, SpriteManager* spriteManager, Renderer* renderer,
 		std::string filepath, int drawOrder, float parallax);
 	void DeleteLayers(Game& game);
 	void Save(std::ostringstream& level);

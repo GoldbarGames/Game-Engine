@@ -9,31 +9,36 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 	if (name == "Pause")
 	{
-		int startWidth = game.screenWidth / 2;
-		int startHeight = 100;
 		int distance = 120;
+		int startPosX = game.screenWidth;
+		int startPosY = game.screenHeight - distance;		
+
+		int endPosY = startPosY + (distance * 5);
+		int newStartPosY = startPosY - ((endPosY - startPosY) / 2);
+
+		Text* header = new Text(game.renderer, game.headerFont, "Game Paused", true, true);
+		header->SetPosition(startPosX, newStartPosY);
+		header->GetSprite()->SetScale(Vector2(2.0f, 2.0f));
+		texts.emplace_back(header);
 
 		MenuButton* buttonResume = new MenuButton("Resume", "assets/gui/menu.png",
-			"Resume Game", Vector2(startWidth, startHeight + (distance * 0)), game);
+			"Resume Game", Vector2(startPosX, newStartPosY + (distance * 2)), game);
 
 		MenuButton* buttonSpellbook = new MenuButton("Spellbook", "assets/gui/menu.png",
-			"Spellbook", Vector2(startWidth, startHeight + (distance * 1)), game);
+			"Spellbook", Vector2(startPosX, newStartPosY + (distance * 2)), game);
 
 		MenuButton* buttonSettings = new MenuButton("Settings", "assets/gui/menu.png",
-			"Settings", Vector2(startWidth, startHeight + (distance * 2)), game);
+			"Settings", Vector2(startPosX, newStartPosY + (distance * 3)), game);
 
 		MenuButton* buttonExit = new MenuButton("Title Screen", "assets/gui/menu.png",
-			"Title Screen", Vector2(startWidth, startHeight + (distance * 3)), game);
-
-		buttonResume->SetButtonsUpDownLeftRight(buttonExit, buttonSpellbook, buttonExit, buttonSpellbook);
-		buttonSpellbook->SetButtonsUpDownLeftRight(buttonResume, buttonSettings, buttonResume, buttonSettings);
-		buttonSettings->SetButtonsUpDownLeftRight(buttonSpellbook, buttonExit, buttonSpellbook, buttonExit);
-		buttonExit->SetButtonsUpDownLeftRight(buttonSettings, buttonResume, buttonSettings, buttonResume);
+			"Title Screen", Vector2(startPosX, newStartPosY + (distance * 4)), game);
 
 		buttons.emplace_back(buttonResume);		
-		buttons.emplace_back(buttonSpellbook);		
+		//buttons.emplace_back(buttonSpellbook); // COMMENTED OUT FOR DEMO
 		buttons.emplace_back(buttonSettings);
 		buttons.emplace_back(buttonExit);
+
+		AssignButtons(true);
 	}
 	else if (name == "Credits")
 	{
@@ -80,25 +85,26 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	else if (name == "Title")
 	{
 		int startWidth = game.screenWidth / 2;
-		int startHeight = 200;
+		
 		int distance = 120;
 
-		int buttonPosX = 640;
+		int startPosX = 1600;
+		int startPosy = 700;
 
 		//TODO: The only way to center the button is to do startWidth - windowRect.w / 2,
 		// but I can't get windowRect.x here because the rect has not been created yet!
 
 		MenuButton* buttonPlay = new MenuButton("Play Game", "assets/gui/menu.png",
-			"Play Game", Vector2(buttonPosX, startHeight + (distance * 0)), game);
+			"Play Game", Vector2(startPosX, startPosy + (distance * 0)), game);
 
 		MenuButton* buttonSettings = new MenuButton("Settings", "assets/gui/menu.png",
-			"Settings", Vector2(buttonPosX, startHeight + (distance * 1)), game);
+			"Settings", Vector2(startPosX, startPosy + (distance * 1)), game);
 
 		MenuButton* buttonCredits = new MenuButton("Credits", "assets/gui/menu.png",
-			"Credits", Vector2(buttonPosX, startHeight + (distance * 2)), game);
+			"Credits", Vector2(startPosX, startPosy + (distance * 2)), game);
 
 		MenuButton* buttonExit = new MenuButton("Exit", "assets/gui/menu.png",
-			"Exit Game", Vector2(buttonPosX, startHeight + (distance * 3)), game);
+			"Exit Game", Vector2(startPosX, startPosy + (distance * 3)), game);
 
 		buttons.emplace_back(buttonPlay);
 		buttons.emplace_back(buttonSettings);
@@ -108,7 +114,8 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		AssignButtons(true);
 
 		Text* textCopyright = new Text(game.renderer, game.headerFont, "Copyright 2020 Goldbar Games LLC", true, true);
-		textCopyright->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
+		//textCopyright->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
+		textCopyright->SetPosition(startPosX, 1200);
 		textCopyright->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textCopyright);
 
@@ -120,7 +127,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		titleCharacter->GetSprite()->SetShader(game.renderer->shaders["fade-in-out"]);
 		images.emplace_back(titleCharacter);
 
-		Entity* titleLogo = new Entity(Vector2(1600, 400));
+		Entity* titleLogo = new Entity(Vector2(1600, 350));
 		titleLogo->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png", game.renderer->shaders["default"], Vector2(320, 137), false));
 		titleLogo->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
 		titleLogo->GetSprite()->keepPositionRelativeToCamera = true;
@@ -129,23 +136,25 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	}
 	else if (name == "Settings")
 	{
-		int startWidth = game.screenWidth / 2;
-		int startHeight = 100;
-		int distance = 60;
+		std::vector<string> buttonNames = { "Music Volume", "Sound Volume", "Fullscreen",
+		"Screen Resolution", "Display FPS", "Display Timer", "Vsync", "Language" };
 
-		int buttonPosX = (game.screenWidth / 2);
+		int distance = 120;
+		int startPosX = game.screenWidth;
+		int startPosY = game.screenHeight - distance;	
+
+		int endPosY = startPosY + (distance * buttonNames.size());
+		int newStartPosY = startPosY - ((endPosY - startPosY) / 2);
 
 		Text* header = new Text(game.renderer, game.headerFont, "Settings", true, true);
-		header->SetPosition(startWidth - (header->GetTextWidth() / 2), startHeight);
+		header->SetPosition(startPosX, newStartPosY);
+		header->GetSprite()->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(header);
-
-		std::vector<string> buttonNames = { "Music Volume", "Sound Volume", "Fullscreen", 
-			"Screen Resolution", "Display FPS", "Display Timer", "Vsync", "Language" };
 
 		for (unsigned int i = 0; i < buttonNames.size(); i++)
 		{
 			SettingsButton* button = new SettingsButton(buttonNames[i],
-				Vector2(buttonPosX, startHeight + (distance * (i+1))), game);
+				Vector2(startPosX, newStartPosY + (distance * (i+2))), game);
 
 			buttons.emplace_back(button);
 		}
@@ -332,12 +341,13 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	else if (selectedButton->name == "Load Game")
 	{
 		//TODO: Make this different when loading a save file with actual data in it
-		game.PlayLevel("test1");
+		game.PlayLevel("demo");
 	}
 	else if (selectedButton->name == "Play Game")
 	{
 		game.openedMenus.clear();
-		game.openedMenus.emplace_back(game.allMenus["File Select"]);
+		//game.openedMenus.emplace_back(game.allMenus["File Select"]);
+		game.PlayLevel("demo");
 	}
 	else if (selectedButton->name == "Title Screen")
 	{

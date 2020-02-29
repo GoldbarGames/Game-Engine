@@ -696,7 +696,6 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION;
 
-
 	//tile->etype = "tile";
 	//tile->tileCoordinates = frame;
 	tile->tilesheetIndex = editor->tilesheetIndex;
@@ -716,20 +715,32 @@ Background* Game::SpawnBackground(Vector2 pos, std::string bgName)
 	//TODO: Should this stuff go inside the Background class constructor?
 	if (bgName == "forest")
 	{
-		background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_sky1.png", -99, 1.0f);
+		Entity* blueBG = background->AddLayer(Vector2(0, 0), spriteManager, renderer, "assets/gui/white.png", -99, 0.0f);
+		blueBG->GetSprite()->color = { 0, 0, 83, 255 };
+		blueBG->GetSprite()->SetScale(Vector2(19.875f, 11.2f * 4));
+		blueBG->position.y -= (358 * 4);
+		
+		background->AddLayer(Vector2(0, 0), spriteManager, renderer, "assets/bg/forest/forest_sky1.png", -98, 0.0f);
 		//background->layers[0]->GetSprite()->renderRelativeToCamera = true;
 		//background->layers[0]->GetSprite()->keepScaleRelativeToCamera = true;
 
-		background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_ground.png", -90, 1.0f);
-		background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_back_curved.png", -21, 0.7f);
-		background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_back.png", -20, 0.6f);
-		background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_front_curved.png", -11, 0.5f);
-		background->AddLayer(spriteManager, renderer, "assets/bg/forest/forest_trees_front.png", -10, 0.4f);
+		background->AddLayer(Vector2(0,0), spriteManager, renderer, "assets/bg/forest/forest_ground.png", -90, 1.0f);
+		background->AddLayer(Vector2(0, 0), spriteManager, renderer, "assets/bg/forest/forest_trees_back_curved.png", -21, 0.7f);
+		background->AddLayer(Vector2(0, 0), spriteManager, renderer, "assets/bg/forest/forest_trees_back.png", -20, 0.6f);
+		background->AddLayer(Vector2(0, 0), spriteManager, renderer, "assets/bg/forest/forest_trees_front_curved.png", -11, 0.5f);
+		background->AddLayer(Vector2(0, 100), spriteManager, renderer, "assets/bg/forest/forest_trees_front.png", -10, 0.4f);
+	}
+	else if (bgName == "title")
+	{
+		background->AddLayer(Vector2(0, 0), spriteManager, renderer, "assets/bg/title/title.png", -98, 0.0f);
 	}
 
 	SortEntities(background->layers);
 
 	backgrounds.emplace_back(background);
+
+	for (int i = 0; i < background->layers.size(); i++)
+		bgEntities.emplace_back(background->layers[i]);	
 
 	return background;
 }
@@ -1459,7 +1470,7 @@ void Game::RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEnt
 void Game::Render()
 {
 	// Clear window
-	glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Render editor grid
@@ -1469,9 +1480,9 @@ void Game::Render()
 	}
 
 	// Render all backgrounds and their layers
-	for (int i = 0; i < backgrounds.size(); i++)
+	for (int i = 0; i < bgEntities.size(); i++)
 	{
-		backgrounds[i]->Render(renderer);		
+		bgEntities[i]->Render(renderer);
 	}	
 
 	// Render all entities

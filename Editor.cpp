@@ -222,10 +222,10 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		{
 			if (buttons[i]->IsPointInsideButton(mouseX, mouseY))
 			{
+				clickedNewButton = true;
 				if (buttons[i] == clickedButton)
 				{
 					clickedButton->isClicked = false;
-					clickedNewButton = true;
 				}
 				else
 				{
@@ -234,7 +234,6 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 					clickedButton = buttons[i];
 					clickedButton->isClicked = true;
-					clickedNewButton = true;
 				}
 			}
 		}
@@ -363,7 +362,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		}
 		
 	}
-	else // we clicked somewhere in the game world, so place a tile/object
+	else if (mouseY < 1290/2) // we clicked somewhere in the game world, so place a tile/object
 	{
 		//clickedPosition += game->camera;
 
@@ -742,6 +741,11 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 	{
 		Vector2 entityPosition = RoundToInt(game->entities[i]->GetPosition());
 		Vector2 intPosition = RoundToInt(clickedPosition);
+
+		std::cout << "--" << std::endl;
+		std::cout << "E: " << entityPosition << std::endl;
+		std::cout << "I: " << intPosition << std::endl;
+
 		if (entityPosition == game->CalculateObjectSpawnPosition(intPosition, GRID_SIZE) &&
 			game->entities[i]->layer == drawingLayer &&
 			game->entities[i]->etype == "tile")
@@ -1626,7 +1630,6 @@ void Editor::CreateLevelFromString(std::string level)
 
 	game->backgrounds.clear();
 
-
 	std::vector<Path*> paths;
 	std::vector<Platform*> movingPlatforms;
 
@@ -1784,15 +1787,28 @@ void Editor::CreateLevelFromString(std::string level)
 			std::string bgName = tokens[index++];
 
 			// Create the backgrounds
-			const unsigned int NUM_BGS = 1;
-			const unsigned int BG_WIDTH = 636 * 2;
-			const unsigned int BG_OFFSET = (BG_WIDTH / 2);
-			const unsigned int Y_OFFSET = 0;
+			unsigned int NUM_BGS = 8;
+			
+			//TODO: Get the width of the texture automatically
+			// or read it in from the level file
+			unsigned int BG_WIDTH = 636 * 2;
+			unsigned int X_OFFSET = 636 * -4;
+			unsigned int Y_OFFSET = 0;
+
+			if (bgName == "title")
+			{
+				X_OFFSET = 640; // half the width of the texture
+				Y_OFFSET = 360; // half the height of the texture
+				NUM_BGS = 1;
+			}
+				
 
 			for (unsigned int i = 0; i < NUM_BGS; i++)
 			{
-				game->SpawnBackground(Vector2((BG_WIDTH * i) + BG_OFFSET, Y_OFFSET), bgName);
-			}			
+				Background* bg = game->SpawnBackground(Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET), bgName);
+			}	
+
+			game->SortEntities(game->bgEntities);
 		}
 
 
@@ -1821,6 +1837,7 @@ void Editor::ClearLevelEntities()
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 		delete game->entities[i];
 	game->entities.clear();
+	game->bgEntities.clear();
 }
 
 void Editor::InitLevelFromFile(std::string levelName)
