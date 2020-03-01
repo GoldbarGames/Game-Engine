@@ -10,6 +10,8 @@ public:
 	std::string name = "";
 	std::vector<Entity*> layers;
 	Background(std::string n, Vector2 pos);
+	void CreateBackground(std::string n, Vector2 pos, SpriteManager* spriteManager, Renderer* renderer);
+	void ResetBackground();
 	~Background();
 	void Render(Renderer * renderer);
 	Entity* AddLayer(Vector2 offset, SpriteManager* spriteManager, Renderer* renderer,

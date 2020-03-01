@@ -137,7 +137,8 @@ public:
 	std::string nextLevel = "";
 
 	Uint32 lastPressedKeyTicks = 0;
-	std::vector<Background*> backgrounds;
+	//std::vector<Background*> backgrounds;
+	Background* background;
 
 	CutsceneManager* cutscene;
 
@@ -198,7 +199,6 @@ public:
 	// Spawn functions
 	Tile* SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer);
 	Player* SpawnPlayer(Vector2 position);
-	Background* SpawnBackground(Vector2 pos, std::string bgName);
 	Missile* SpawnMissile(Vector2 position, Vector2 velocity, float angle);
 
 	Door* CreateDoor(Vector2 position, int spriteIndex); // returns the Door entity with default parameters

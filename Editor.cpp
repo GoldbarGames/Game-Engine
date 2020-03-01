@@ -1544,10 +1544,7 @@ std::string Editor::SaveLevelAsString()
 		game->entities[i]->Save(level);
 	}
 
-	for (unsigned int i = 0; i < game->backgrounds.size(); i++)
-	{
-		game->backgrounds[i]->Save(level);
-	}
+	game->background->Save(level);
 
 	return level.str();
 }
@@ -1621,14 +1618,11 @@ std::string Editor::ReadLevelFromFile(std::string levelName)
 
 void Editor::CreateLevelFromString(std::string level)
 {
-	// Remove all backgrounds
-	for (unsigned int i = 0; i < game->backgrounds.size(); i++)
-	{
-		game->backgrounds[i]->DeleteLayers(*game);
-		delete game->backgrounds[i];
-	}
+	if (game->background == nullptr)
+		game->background = new Background("", Vector2(0,0));
 
-	game->backgrounds.clear();
+	// Remove all backgrounds
+	game->background->ResetBackground();
 
 	std::vector<Path*> paths;
 	std::vector<Platform*> movingPlatforms;
@@ -1801,16 +1795,16 @@ void Editor::CreateLevelFromString(std::string level)
 				Y_OFFSET = 360; // half the height of the texture
 				NUM_BGS = 1;
 			}
-				
 
 			for (unsigned int i = 0; i < NUM_BGS; i++)
 			{
-				Background* bg = game->SpawnBackground(Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET), bgName);
+				//Background* bg = game->SpawnBackground(Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET), bgName);
+				Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
+				game->background->CreateBackground(bgName, bgPos, game->spriteManager, game->renderer);
 			}	
 
-			game->SortEntities(game->bgEntities);
+			game->SortEntities(game->background->layers);
 		}
-
 
 		ss.getline(lineChar, 256);
 	}
@@ -1837,7 +1831,6 @@ void Editor::ClearLevelEntities()
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 		delete game->entities[i];
 	game->entities.clear();
-	game->bgEntities.clear();
 }
 
 void Editor::InitLevelFromFile(std::string levelName)
