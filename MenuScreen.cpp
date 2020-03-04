@@ -163,7 +163,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		// Highlight the selected option
 		//TODO: Is there a better way than hard-coding it?
-		buttons[0]->SetOptionColors({ 255, 255, 0, 255 });
+		buttons[0]->SetOptionColors({ 0, 255, 0, 255 });
 	}
 	else if (name == "EditorSettings")
 	{

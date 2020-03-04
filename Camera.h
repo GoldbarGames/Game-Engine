@@ -28,6 +28,7 @@ public:
 	glm::mat4 CalculateViewMatrix();
 	void Zoom(float amount, float screenWidth, float screenHeight);
 	void ResetProjection();
+	void ResetCamera();
 
 	glm::vec3 position;
 

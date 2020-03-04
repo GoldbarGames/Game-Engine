@@ -6,15 +6,14 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
 
-	buttonColor = color;
-
 	image = new Sprite(1, game.spriteManager, "assets/editor/btn" + filename + ".png", 
 		game.renderer->shaders["gui"], Vector2(0, 0));
 
 	image->keepPositionRelativeToCamera = true;
 	image->keepScaleRelativeToCamera = true;
+	image->color = color;
 
-	position = Vector2(pos.x * 2, pos.y * 2);
+	position = Vector2(pos.x, pos.y);
 	name = filename;
 
 	buttonTextureRect.w *= 1;
@@ -25,30 +24,22 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 
 	text = new Text(game.renderer, game.theFont, txt, true, true);
 
-	if (size.x != 0)
-	{
-		buttonWindowRect.w = (int)size.x;
-	}
-	else if (image == nullptr)
+	if (image == nullptr) // if no image, set the size to 50,50
 	{
 		buttonWindowRect.w = 50;
-	}
-	else
-	{
-		buttonWindowRect.w = buttonTextureRect.w;
-	}
-
-	if (size.y != 0)
-	{
-		buttonWindowRect.h = (int)size.y;
-	}
-	else if (image == nullptr)
-	{
 		buttonWindowRect.h = 50;
 	}
-	else
+	else // set a custom size for the button other than the size of the image
 	{
-		buttonWindowRect.h = buttonTextureRect.h;
+		if (size.x != 0)
+			buttonWindowRect.w = (int)size.x;
+		else
+			buttonWindowRect.w = buttonTextureRect.w;
+
+		if (size.y != 0)
+			buttonWindowRect.h = (int)size.y;
+		else
+			buttonWindowRect.h = buttonTextureRect.h;
 	}
 
 	text->SetPosition(pos.x, pos.y + (buttonWindowRect.h / 2) - (text->GetTextHeight() / 2));

@@ -108,7 +108,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 		if (buttonPressedUp != nullptr)
 		{
 			SetOptionColors({ 255, 255, 255, 255 });
-			buttonPressedUp->SetOptionColors({ 255, 255, 0, 255 });
+			buttonPressedUp->SetOptionColors({ 0, 255, 0, 255 });
 			return buttonPressedUp;
 		}
 	}
@@ -117,7 +117,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 		if (buttonPressedDown != nullptr)
 		{
 			SetOptionColors({ 255, 255, 255, 255 });
-			buttonPressedDown->SetOptionColors({ 255, 255, 0, 255 });
+			buttonPressedDown->SetOptionColors({ 0, 255, 0, 255 });
 			return buttonPressedDown;
 		}
 	}

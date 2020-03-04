@@ -46,6 +46,14 @@ void Player::Update(Game& game)
 {	
 	static unsigned int count = 0;
 
+	//TODO: Change this so that we collide with an object instead of hard-coding a number
+	// Also, maybe draw an outline of the death barrier so the player can see where this is
+	if (position.y > 500)
+	{
+		game.resetLevel = true;
+		return;
+	}		
+
 	if (game.watchingCutscene)
 	{
 		//TODO: Get input for handling the textbox

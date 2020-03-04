@@ -46,6 +46,13 @@ Camera::~Camera()
 
 }
 
+void Camera::ResetCamera()
+{
+	position = glm::vec3(0, 0, 0);
+	angle = 0.0f;
+	ResetProjection();
+}
+
 void Camera::FollowTarget(const float& screenWidth, const float& screenHeight)
 {
 	if (target != nullptr)

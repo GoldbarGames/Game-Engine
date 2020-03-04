@@ -129,6 +129,8 @@ public:
 
 	void ResetText();
 
+	bool resetLevel = false;
+
 	Timer timer;
 	Timer fpsLimit;
 	bool limitFPS = false;

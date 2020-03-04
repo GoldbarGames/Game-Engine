@@ -57,6 +57,11 @@ int main(int argc, char *args[])
 			game.LoadNextLevel();
 			game.goToNextLevel = false;
 		}
+		else if (game.resetLevel)
+		{
+			game.editor->InitLevelFromFile(game.currentLevel);
+			game.resetLevel = false;
+		}
 
 		quit = game.CheckInputs();
 

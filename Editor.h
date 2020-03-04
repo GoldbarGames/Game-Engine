@@ -148,8 +148,6 @@ public:
 
 	void SetPropertyText();
 
-	void SetLayerButtonColor(Color color);
-
 	std::string GetCurrentPropertyOptionString(int diff);
 
 	void UndoAction();

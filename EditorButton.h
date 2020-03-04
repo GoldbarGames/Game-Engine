@@ -21,7 +21,6 @@ public:
 
 	Sprite* image = nullptr;
 	Text* text= nullptr;
-	Color buttonColor;
 
 	Vector2 position = Vector2(0,0);
 	std::string name = "";

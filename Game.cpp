@@ -834,6 +834,8 @@ void Game::StopTextInput()
 
 void Game::LoadTitleScreen()
 {
+	renderer->camera.ResetCamera();
+
 	openedMenus.clear();
 	editor->InitLevelFromFile("title");
 	openedMenus.emplace_back(allMenus["Title"]);

@@ -16,11 +16,6 @@ Editor::Editor(Game& g)
 
 	game = &g;
 
-	editorText["currentEditModeLayer"] = new Text(game->renderer, theFont);
-	editorText["currentEditModeLayer"]->SetText("");
-	editorText["currentEditModeLayer"]->GetSprite()->keepPositionRelativeToCamera = true;
-	editorText["currentEditModeLayer"]->GetSprite()->keepScaleRelativeToCamera = true;
-
 	editorText["cursorPositionInScreen"] = new Text(game->renderer, theFont);
 	editorText["cursorPositionInScreen"]->SetPosition(200, 50);
 	editorText["cursorPositionInScreen"]->SetText("");
@@ -96,8 +91,9 @@ void Editor::CreateEditorButtons()
 			break;
 
 		EditorButton* editorButton = new EditorButton("", buttonNames[i], 
-			Vector2(buttonX, game->screenHeight - buttonHeight), *game);
+			Vector2(buttonX*2, (game->screenHeight - buttonHeight)*2), *game);
 
+		
 		editorButton->image->keepPositionRelativeToCamera = true;
 		editorButton->image->keepScaleRelativeToCamera = true;
 		buttons.emplace_back(editorButton);
@@ -106,14 +102,14 @@ void Editor::CreateEditorButtons()
 	}
 
 	EditorButton* previousButton = new EditorButton("", "PrevPage", 
-		Vector2(buttonStartX, game->screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
+		Vector2(buttonStartX*2, (game->screenHeight - buttonHeight - buttonHeight - buttonSpacing)*2), *game);
 	
 	previousButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(previousButton);
 	
 	EditorButton* nextButton = new EditorButton("", "NextPage", 
-		Vector2(buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1),
-		game->screenHeight - buttonHeight - buttonHeight - buttonSpacing), *game);
+		Vector2((buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1))*2,
+		(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing)*2), *game);
 	
 	nextButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(nextButton);
@@ -178,18 +174,22 @@ void Editor::StartEdit()
 	int buttonY = 200;
 	const int layerButtonWidth = 100;
 	const int layerButtonHeight = 50;
-	const int layerButtonSpacing = 20;
+	const int layerButtonSpacing = 80;
 
 	std::vector<string> layerButtonNames = { "BACK", "MIDDLE", "OBJECT", "COLLISION", "FRONT" };
 
 	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
 	{
-		EditorButton* layerButton = new EditorButton(layerButtonNames[i], "Layer", Vector2(buttonX, buttonY), *game, Vector2(layerButtonWidth, 50), { 128, 128, 128, 255 });
+		EditorButton* layerButton = new EditorButton(layerButtonNames[i], "Layer", 
+			Vector2(buttonX, buttonY), *game, Vector2(layerButtonWidth, 50), { 255, 255, 255, 255 });
+
 		layerButton->image->keepScaleRelativeToCamera = true;
 		layerButton->text->GetSprite()->keepScaleRelativeToCamera = true;
 		layerButtons.emplace_back(layerButton);
 		
-		EditorButton* layerVisibleButton = new EditorButton("", "Visible", Vector2(buttonX + layerButtonWidth, buttonY), *game, Vector2(50, 50));
+		EditorButton* layerVisibleButton = new EditorButton("", "Visible", 
+			Vector2(buttonX + (layerButtonWidth * 2), buttonY), *game, Vector2(50, 50), { 255, 255, 255, 255 });
+
 		layerVisibleButton->image->keepScaleRelativeToCamera = true;
 		layerVisibleButton->text->GetSprite()->keepScaleRelativeToCamera = true;
 		layerVisibleButtons.emplace_back(layerVisibleButton);
@@ -311,10 +311,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 				if (layerButtons[i]->text->txt == clickedLayerVisibleButton)
 				{
 					// Toggle between white and black colors
-					if (layerVisibleButtons[i]->buttonColor.b == 255)
-						layerVisibleButtons[i]->buttonColor = { 0, 0, 0, 0 };
-					else
-						layerVisibleButtons[i]->buttonColor = { 255, 255, 255, 255 };
+					layerVisibleButtons[i]->isClicked = !layerVisibleButtons[i]->isClicked;
 				}
 			}
 		}
@@ -737,16 +734,14 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 {
 	bool canPlaceTileHere = true;
+
+	Vector2 spawnPos = game->CalculateObjectSpawnPosition(clickedPosition, GRID_SIZE);
+
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
 		Vector2 entityPosition = RoundToInt(game->entities[i]->GetPosition());
-		Vector2 intPosition = RoundToInt(clickedPosition);
 
-		std::cout << "--" << std::endl;
-		std::cout << "E: " << entityPosition << std::endl;
-		std::cout << "I: " << intPosition << std::endl;
-
-		if (entityPosition == game->CalculateObjectSpawnPosition(intPosition, GRID_SIZE) &&
+		if (entityPosition == spawnPos &&
 			game->entities[i]->layer == drawingLayer &&
 			game->entities[i]->etype == "tile")
 		{
@@ -772,8 +767,6 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 
 		//glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
 		//glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
-
-		Vector2 spawnPos = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
 
 		game->SpawnTile(spriteSheetTileFrame, "assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png",
 			Vector2(spawnPos.x, spawnPos.y), drawingLayer);
@@ -933,14 +926,6 @@ void Editor::RightClick(Vector2 clickedPosition)
 			DestroyLadder("top", lastPosition);
 			DestroyLadder("bottom", lastPosition);
 		}
-	}
-}
-
-void Editor::SetLayerButtonColor(Color color)
-{
-	for (int i = 0; i < layerButtons.size(); i++)
-	{
-		layerButtons[i]->buttonColor = color;
 	}
 }
 
@@ -1219,10 +1204,10 @@ void Editor::ClickedLayerButton(string buttonText)
 	// Highlight the current layer, return all others to normal
 	for (unsigned int i = 0; i < layerButtons.size(); i++)
 	{		
-		layerButtons[i]->buttonColor = { 128, 128, 128, 255 };
+		layerButtons[i]->isClicked = false;
 		if (layerButtons[i]->text->txt == buttonText)
 		{
-			layerButtons[i]->buttonColor = { 0, 0, 255, 255 };
+			layerButtons[i]->isClicked = true;
 		}
 	}
 
@@ -1305,7 +1290,6 @@ void Editor::ToggleInspectionMode()
 void Editor::SetLayer(DrawingLayer layer)
 {
 	drawingLayer = layer;
-	editorText["currentEditModeLayer"]->SetText("Drawing on layer: " + GetDrawingLayerName(drawingLayer));
 }
 
 void Editor::ToggleTileset()
@@ -1454,7 +1438,6 @@ void Editor::Render(Renderer* renderer)
 	}	
 
 	// Draw text
-	editorText["currentEditModeLayer"]->Render(renderer);
 	editorText["cursorPositionInScreen"]->Render(renderer);
 	editorText["cursorPositionInWorld"]->Render(renderer);
 
