@@ -54,6 +54,10 @@ public:
 	int frameHeight = 0;
 	Vector2 scale = Vector2(1, 1);
 
+	Vector2 lastPosition = Vector2(0, 0);
+	glm::vec3 lastRotation = glm::vec3(0, 0, 0);
+	Vector2 lastScale = Vector2(0, 0);
+
 	bool shouldLoop = true;
 	int startFrame = 0;
 	int endFrame = 0;
@@ -61,6 +65,7 @@ public:
 	unsigned int framesPerRow = numberFramesInTexture;
 	unsigned int numberRows = 1;
 
+	glm::mat4 model;
 	Vector2 pivot = Vector2(0, 0);
 	std::string filename = "";
 	SDL_Rect windowRect;
@@ -75,7 +80,9 @@ public:
 	Sprite(Texture* t, ShaderProgram* s);
 	Sprite(Vector2 frame, Texture* image, ShaderProgram* shader);
 	Sprite(int numFrames, SpriteManager* manager, std::string filepath, ShaderProgram* shader, Vector2 newPivot);
-	
+	glm::vec2 CalculateRenderFrame(Renderer* renderer);
+	void CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* renderer, SDL_RendererFlip flip);
+
 	//TODO: What should we do here?
 	// start = first frame of animation
 	// end = last frame of animation

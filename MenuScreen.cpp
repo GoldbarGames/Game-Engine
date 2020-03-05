@@ -58,8 +58,6 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		creditsHeader->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(creditsHeader);
 
-
-
 		std::vector<string> textLines = { 
 			"Programmer: Anton Strickland (Kinjo)", 
 			"Concept Art: Osato", 

@@ -70,6 +70,7 @@ void Sprite::CreateMesh()
 
 Sprite::Sprite(Texture* t, ShaderProgram* s)
 {
+	model = glm::mat4(1.0f);
 	texture = t;
 	shader = s;
 
@@ -88,6 +89,7 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 // constructor for tiles from tilesheets
 Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
 {
+	model = glm::mat4(1.0f);
 	texture = image;
 	shader = s;
 
@@ -121,6 +123,7 @@ Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
 Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath, 
 	ShaderProgram * s, Vector2 newPivot)
 {
+	model = glm::mat4(1.0f);
 	filename = filepath;
 	texture = manager->GetImage(filepath);
 	shader = s;
@@ -142,6 +145,7 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, std::string filepath,
 Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager,
 	std::string filepath, ShaderProgram* s, Vector2 newPivot, bool loop)
 {
+	model = glm::mat4(1.0f);
 	texture = manager->GetImage(filepath);
 	shader = s;
 
@@ -165,6 +169,7 @@ Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager
 Sprite::Sprite(int start, int end, int numframes, SpriteManager* manager, 
 	std::string filepath, ShaderProgram* s, Vector2 newPivot, bool loop)
 {
+	model = glm::mat4(1.0f);
 	texture = manager->GetImage(filepath);
 	shader = s;
 
@@ -231,32 +236,8 @@ void Sprite::AnimateMesh(float time)
 	
 }
 
-void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, glm::vec3 rotation)
+glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer)
 {
-	renderer->drawCallsPerFrame++;
-
-	GLfloat multiplyColor[] = { 0.0f, 1.0f, 0.0f, 1.0f };
-
-	ShaderProgram* shader = GetShader();
-
-	shader->UseShader();
-
-	if (keepPositionRelativeToCamera)
-	{
-		glUniformMatrix4fv(shader->GetUniformVariable("view"), 1, GL_FALSE,
-			glm::value_ptr(renderer->guiCamera.CalculateViewMatrix()));
-	}
-	else
-	{
-		glUniformMatrix4fv(shader->GetUniformVariable("view"), 1, GL_FALSE,
-			glm::value_ptr(renderer->camera.CalculateViewMatrix()));
-	}
-
-
-
-	GLfloat totalFrames = (endFrame - startFrame) + 1;
-
-	glm::vec2 texFrame = glm::vec2((1.0f / framesPerRow), frameHeight/(GLfloat)texture->GetHeight());
 	glm::vec2 texOffset = glm::vec2(0.5f, 0.0f);
 
 	numberRows = texture->GetHeight() / frameHeight;
@@ -306,6 +287,90 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		texOffset.y = 0;
 	}
 
+	return texOffset;
+}
+
+void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* renderer, SDL_RendererFlip flip)
+{
+	// Only recalculate the model if position, rotation, or scale have changed
+	if (position != lastPosition || rotation != lastRotation || scale != lastScale || keepPositionRelativeToCamera)
+	{
+		model = glm::mat4(1.0f);
+
+		lastPosition = position;
+		lastRotation = rotation;
+		lastScale = scale;
+
+		// Translate, Rotate, Scale
+		//TODO: Translate based on pivot point: (center - pivot)
+		// this will make the sprites look more centered
+
+		// Position
+		if (keepPositionRelativeToCamera)
+		{
+			if (renderer->guiCamera.useOrthoCamera)
+			{
+				model = glm::translate(model, glm::vec3(position.x + renderer->guiCamera.position.x,
+					position.y + renderer->guiCamera.position.y, -2.0f));
+			}
+			else
+			{
+				model = glm::translate(model, glm::vec3(position.x + renderer->guiCamera.position.x,
+					position.y + renderer->guiCamera.position.y, renderer->guiCamera.position.z));
+			}
+		}
+		else
+		{
+			model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
+		}
+
+		// Rotation
+		if (!keepPositionRelativeToCamera)
+		{
+			const float toRadians = 3.14159265f / 180.0f;
+			model = glm::rotate(model, rotation.x * toRadians, glm::vec3(-1.0f, 0.0f, 0.0f));
+			model = glm::rotate(model, rotation.y * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
+			model = glm::rotate(model, rotation.z * toRadians, glm::vec3(0.0f, 0.0f, -1.0f));
+		}
+
+		// Scale
+		if (flip != SDL_FLIP_HORIZONTAL)
+		{
+			model = glm::scale(model, glm::vec3(-1 * scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
+				scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
+		}
+		else
+		{
+			model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
+				scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
+		}
+
+	}
+	
+}
+
+void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, glm::vec3 rotation)
+{
+	renderer->drawCallsPerFrame++;
+
+	ShaderProgram* shader = GetShader();
+	shader->UseShader();
+
+	if (keepPositionRelativeToCamera)
+	{
+		glUniformMatrix4fv(shader->GetUniformVariable("view"), 1, GL_FALSE,
+			glm::value_ptr(renderer->guiCamera.CalculateViewMatrix()));
+	}
+	else
+	{
+		glUniformMatrix4fv(shader->GetUniformVariable("view"), 1, GL_FALSE,
+			glm::value_ptr(renderer->camera.CalculateViewMatrix()));
+	}
+
+	GLfloat totalFrames = (endFrame - startFrame) + 1;
+	glm::vec2 texFrame = glm::vec2((1.0f / framesPerRow), frameHeight/(GLfloat)texture->GetHeight());
+	glm::vec2 texOffset = CalculateRenderFrame(renderer);
+	
 	// Send the info to the shader
 	glUniform2fv(shader->GetUniformVariable("texFrame"), 1, glm::value_ptr(texFrame));
 	glUniform2fv(shader->GetUniformVariable("texOffset"), 1, glm::value_ptr(texOffset));
@@ -390,30 +455,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		glUniform4fv(shader->GetUniformVariable("fadeColor"), 1, glm::value_ptr(fadeColor));
 	}
 
-	glm::mat4 model(1.0f);
-
-	// Translate, Rotate, Scale
-	//TODO: Translate based on pivot point: (center - pivot)
-	// this will make the sprites look more centered
-	
-	// Position
-	if (keepPositionRelativeToCamera)
-	{
-		if (renderer->guiCamera.useOrthoCamera)
-		{
-			model = glm::translate(model, glm::vec3(position.x + renderer->guiCamera.position.x,
-				position.y + renderer->guiCamera.position.y, -2.0f));
-		}
-		else
-		{
-			model = glm::translate(model, glm::vec3(position.x + renderer->guiCamera.position.x,
-				position.y + renderer->guiCamera.position.y, renderer->guiCamera.position.z));
-		}		
-	}
-	else
-	{
-		model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
-	}
+	CalculateModel(position, rotation, renderer, flip);
 
 	// Projection
 	if (keepScaleRelativeToCamera)
@@ -425,27 +467,6 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	{
 		glUniformMatrix4fv(shader->GetUniformVariable("projection"), 1, GL_FALSE,
 			glm::value_ptr(renderer->camera.projection));
-	}
-
-	// Rotation
-	if (!keepPositionRelativeToCamera)
-	{
-		const float toRadians = 3.14159265f / 180.0f;		
-		model = glm::rotate(model, rotation.x * toRadians, glm::vec3(-1.0f, 0.0f, 0.0f));
-		model = glm::rotate(model, rotation.y * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
-		model = glm::rotate(model, rotation.z * toRadians, glm::vec3(0.0f, 0.0f, -1.0f));
-	}
-
-	// Scale
-	if (flip != SDL_FLIP_HORIZONTAL)
-	{
-		model = glm::scale(model, glm::vec3(-1 * scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
-			scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
-	}
-	else
-	{
-		model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
-			scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
 	}
 
 	// Set uniform variables

@@ -52,8 +52,14 @@ void Texture::LoadTexture(SDL_Surface* surface, bool reset)
 
 void Texture::UseTexture()
 {
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, textureID);
+	static unsigned int lastTextureID = -1;
+
+	if (textureID != lastTextureID)
+	{
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		lastTextureID = textureID;
+	}
 }
 
 void Texture::ClearTexture()

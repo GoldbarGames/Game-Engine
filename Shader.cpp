@@ -110,6 +110,14 @@ std::string ShaderProgram::ReadFile(const char* filePath)
 void ShaderProgram::UseShader()
 {
     glUseProgram(programID);
+    /*
+    static unsigned int lastProgramID = -1;
+
+    if (programID != lastProgramID)
+    {
+        
+        lastProgramID = programID;
+    }   */
 }
 
 void ShaderProgram::ClearShader()
