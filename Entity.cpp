@@ -184,66 +184,48 @@ void Entity::SetAnimator(Animator * anim)
 	anim->DoState(this);
 }
 
-void Entity::RenderDebug(Renderer * renderer, Vector2 cameraOffset)
+void Entity::RenderDebug(Renderer * renderer)
 {
 	if (GetModeDebug() && drawDebugRect && GetSprite() != nullptr)
 	{
+		if (debugSprite == nullptr)
+			debugSprite = new Sprite(renderer->debugSprite->texture, renderer->debugSprite->shader);
+
+		if (renderer->IsVisible(layer))
+		{
+			//TODO: Make this a function inside the renderer
+			float rWidth = debugSprite->texture->GetWidth();
+			float rHeight = debugSprite->texture->GetHeight();
+
+			float targetWidth = GetSprite()->frameWidth;
+			float targetHeight = GetSprite()->frameHeight;
+
+			if (jumpThru)
+				debugSprite->color = { 255, 255, 0, 255 };
+			else if (impassable)
+				debugSprite->color = { 255, 0, 0, 255 };
+			else
+				debugSprite->color = { 0, 255, 0, 255 };
+
+			debugSprite->pivot = GetSprite()->pivot;
+			debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+			debugSprite->Render(position, renderer);
+
+			// draw collider
+			targetWidth = collisionBounds->w;
+			targetHeight = collisionBounds->h;
+
+			debugSprite->color = { 255, 255, 255, 255 };
+			debugSprite->pivot = GetSprite()->pivot;
+			debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+		}
+
 		if (physics != nullptr)
 		{
-			if (renderer->debugSprite != nullptr && renderer->IsVisible(layer))
-			{
-				//TODO: Make this a function inside the renderer
-				float rWidth = renderer->debugSprite->texture->GetWidth();
-				float rHeight = renderer->debugSprite->texture->GetHeight();
-
-				float targetWidth = GetSprite()->frameWidth;
-				float targetHeight = GetSprite()->frameHeight;
-
-				if (impassable)
-					renderer->debugSprite->color = { 255, 0, 0, 255 };
-				else
-					renderer->debugSprite->color = { 0, 255, 0, 255 };
-
-				renderer->debugSprite->pivot = GetSprite()->pivot;
-				renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-				renderer->debugSprite->Render(position, renderer);
-
-				// draw collider
-				targetWidth = collisionBounds->w;
-				targetHeight = collisionBounds->h;
-
-				renderer->debugSprite->color = { 255, 255, 255, 255 };
-				renderer->debugSprite->pivot = GetSprite()->pivot;
-				renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-
-				Vector2 colliderPosition = Vector2(position.x + colliderOffset.x, position.y + colliderOffset.y);
-				renderer->debugSprite->Render(colliderPosition, renderer);
-			}
+			Vector2 colliderPosition = Vector2(position.x + colliderOffset.x,
+				position.y + colliderOffset.y);
+			debugSprite->Render(colliderPosition, renderer);
 		}
-		else
-		{
-			if (renderer->debugSprite != nullptr && renderer->IsVisible(layer))
-			{
-				float rWidth = renderer->debugSprite->texture->GetWidth();
-				float rHeight = renderer->debugSprite->texture->GetHeight();
-
-				float targetWidth = GetSprite()->frameWidth;
-				float targetHeight = GetSprite()->frameHeight;
-
-				if (jumpThru)
-					renderer->debugSprite->color = { 255, 165, 0, 255 };
-				else if (impassable)
-					renderer->debugSprite->color = { 255, 0, 0, 255 };
-				else
-					renderer->debugSprite->color = { 0, 255, 0, 255 };
-
-				renderer->debugSprite->pivot = GetSprite()->pivot;
-				renderer->debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-				renderer->debugSprite->Render(position, renderer);
-			}
-		}
-
-
 		
 	}
 }
@@ -282,6 +264,9 @@ void Entity::Render(Renderer * renderer)
 	}
 	else
 	{
+		if (layer == DrawingLayer::COLLISION2)
+			int test = 0;
+
 		if (currentSprite != nullptr && renderer->IsVisible(layer))
 		{
 			if (animator != nullptr)
@@ -289,11 +274,6 @@ void Entity::Render(Renderer * renderer)
 			else
 				currentSprite->Render(position, 0, -1, flip, renderer, rotation);
 		}
-	}
-
-	if (GetModeDebug())
-	{
-		RenderDebug(renderer, Vector2(0, 0));
 	}
 }
 
@@ -307,8 +287,6 @@ void Entity::RenderParallax(Renderer* renderer, float p)
 			currentSprite->Render(renderPosition, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
 		else
 			currentSprite->Render(renderPosition, 0, -1, flip, renderer, rotation);
-
-		RenderDebug(renderer, Vector2(0, 0));
 	}
 }
 

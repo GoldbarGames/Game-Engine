@@ -22,7 +22,7 @@ class Entity
 protected:	
 	Animator* animator = nullptr;
 	Sprite* currentSprite = nullptr;
-
+	Sprite* debugSprite = nullptr;
 public:
 	Vector2 position = Vector2(0, 0);
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -74,7 +74,7 @@ public:
 	virtual void Render(Renderer * renderer);
 	virtual void RenderParallax(Renderer* renderer, float p);
 
-	void RenderDebug(Renderer * renderer, Vector2 cameraOffset);
+	void RenderDebug(Renderer * renderer);
 
 	void CreateCollider(float startX, float startY, float x, float y, float w, float h);
 	void CalculateCollider();

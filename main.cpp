@@ -33,7 +33,7 @@ int main(int argc, char *args[])
 
 		game.CalcDt();		
 
-		game.showFPS = true;
+		//game.showFPS = true;
 		if (game.showFPS)
 		{
 			timeLeft -= game.dt;

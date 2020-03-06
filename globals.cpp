@@ -12,6 +12,8 @@ std::string GetDrawingLayerName(DrawingLayer layer)
 		return "OBJECT";
 	case COLLISION:
 		return "COLLISION";
+	case COLLISION2:
+		return "COLLISION2";
 	case MIDDLE:
 		return "MIDDLE";
 	default:

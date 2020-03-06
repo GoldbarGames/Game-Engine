@@ -7,6 +7,7 @@ Renderer::Renderer()
 	layersVisible["MIDDLE"] = true;
 	layersVisible["OBJECT"] = true;
 	layersVisible["COLLISION"] = true;
+	layersVisible["COLLISION2"] = true;
 	layersVisible["FRONT"] = true;
 
 	timerOverlayColor.Start(1);

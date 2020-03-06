@@ -694,7 +694,8 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 	Tile* tile = new Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
-	tile->impassable = drawingLayer == DrawingLayer::COLLISION;
+	tile->impassable = drawingLayer == DrawingLayer::COLLISION 
+		|| drawingLayer == DrawingLayer::COLLISION2;
 
 	//tile->etype = "tile";
 	//tile->tileCoordinates = frame;
@@ -1449,6 +1450,14 @@ void Game::Render()
 	for (unsigned int i = 0; i < entities.size(); i++)
 	{
 		entities[i]->Render(renderer);
+	}
+
+	if (GetModeDebug())
+	{
+		for (unsigned int i = 0; i < entities.size(); i++)
+		{
+			entities[i]->RenderDebug(renderer);
+		}
 	}
 
 	// LAST THING

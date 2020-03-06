@@ -1,6 +1,7 @@
 #include "Sprite.h"
 #include "globals.h"
 #include "Renderer.h"
+#include "debug_state.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -478,6 +479,20 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	// Render Mesh
 	mesh->RenderMesh();
 
+	// TODO: Only draw these rectangles for game entities and not menu images
+	/*
+	if (GetModeDebug())
+	{
+		spriteColor = glm::vec4(1, 0, 0, 1); //TODO: Maybe make this color a parameter?
+		glUniform4fv(shader->GetUniformVariable("spriteColor"), 1, glm::value_ptr(spriteColor));
+
+		// Use Texture
+		renderer->debugSprite->texture->UseTexture();
+
+		// Render Mesh
+		mesh->RenderMesh();
+	}
+	*/
 
 
 	// Update this rectangle for calculating physics

@@ -52,14 +52,20 @@ void Texture::LoadTexture(SDL_Surface* surface, bool reset)
 
 void Texture::UseTexture()
 {
+	// WARNING: For some reason this code can cause the texture 
+	// to flicker in and out with an incorrect texture
+	// Is there a way to resolve this?
+	/*
 	static unsigned int lastTextureID = -1;
 
 	if (textureID != lastTextureID)
 	{
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureID);
+		
 		lastTextureID = textureID;
-	}
+	}*/
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureID);
 }
 
 void Texture::ClearTexture()

@@ -6,7 +6,7 @@ const int TILE_SIZE = 24;
 const int SCREEN_FPS = 60;
 const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
-enum DrawingLayer { BACK = 0, FRONT = 40, OBJECT = 20, COLLISION = 30, MIDDLE = 10 };
+enum DrawingLayer { BACK = 0, MIDDLE = 10, OBJECT = 20, COLLISION = 30, COLLISION2 = 35, FRONT = 40 };
 
 std::string GetDrawingLayerName(DrawingLayer layer);
 

@@ -176,7 +176,13 @@ void Editor::StartEdit()
 	const int layerButtonHeight = 50;
 	const int layerButtonSpacing = 80;
 
-	std::vector<string> layerButtonNames = { "BACK", "MIDDLE", "OBJECT", "COLLISION", "FRONT" };
+	// To add a new layer:
+	// 1. Add the name here
+	// 2. Add the enum
+	// 3. In renderer, add the layersVisible for it to true
+	// 4. In globals.cpp, add the switch/case for it
+
+	std::vector<string> layerButtonNames = { "BACK", "MIDDLE", "OBJECT", "COLLISION", "COLLISION2", "FRONT" };
 
 	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
 	{
@@ -1228,6 +1234,10 @@ void Editor::ClickedLayerButton(string buttonText)
 	else if (buttonText == "COLLISION")
 	{
 		layer = DrawingLayer::COLLISION;
+	}
+	else if (buttonText == "COLLISION2")
+	{
+		layer = DrawingLayer::COLLISION2;
 	}
 	else if (buttonText == "FRONT")
 	{
