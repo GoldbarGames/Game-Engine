@@ -3,12 +3,12 @@
 
 Renderer::Renderer()
 {
-	layersVisible["BACK"] = true;
-	layersVisible["MIDDLE"] = true;
-	layersVisible["OBJECT"] = true;
-	layersVisible["COLLISION"] = true;
-	layersVisible["COLLISION2"] = true;
-	layersVisible["FRONT"] = true;
+	layersVisible[DrawingLayer::BACK] = true;
+	layersVisible[DrawingLayer::MIDDLE] = true;
+	layersVisible[DrawingLayer::OBJECT] = true;
+	layersVisible[DrawingLayer::COLLISION] = true;
+	layersVisible[DrawingLayer::COLLISION2] = true;
+	layersVisible[DrawingLayer::FRONT] = true;
 
 	timerOverlayColor.Start(1);
 }
@@ -81,10 +81,12 @@ void Renderer::CreateShader(const char* shaderName, const char* vertexFilePath, 
 
 bool Renderer::IsVisible(DrawingLayer layer)
 {
-	return layersVisible[GetDrawingLayerName(layer)];
+	//return layersVisible[GetDrawingLayerName(layer)];
+
+	return layersVisible[layer];
 }
 
-void Renderer::ToggleVisibility(std::string layer)
+void Renderer::ToggleVisibility(DrawingLayer layer)
 {
 	layersVisible[layer] = !layersVisible[layer];
 }

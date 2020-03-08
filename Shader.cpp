@@ -5,8 +5,8 @@ ShaderProgram::ShaderProgram(const char* n, const char* vertexFilePath, const ch
 {
     name = n;
     programID = 0;
-    uniformVariables["model"] = 0;
-    uniformVariables["projection"] = 0;
+    uniformVariables[ShaderVariable::model] = 0;
+    uniformVariables[ShaderVariable::projection] = 0;
 
     CreateFromFiles(vertexFilePath, fragmentFilePath);
 }
@@ -57,18 +57,18 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
         return;
     }
 
-    uniformVariables["model"] = glGetUniformLocation(programID, "model");
-    uniformVariables["projection"] = glGetUniformLocation(programID, "projection");
-    uniformVariables["view"] = glGetUniformLocation(programID, "view");
-    uniformVariables["texFrame"] = glGetUniformLocation(programID, "texFrame");
-    uniformVariables["texOffset"] = glGetUniformLocation(programID, "texOffset");
+    uniformVariables[ShaderVariable::model] = glGetUniformLocation(programID, "model");
+    uniformVariables[ShaderVariable::projection] = glGetUniformLocation(programID, "projection");
+    uniformVariables[ShaderVariable::view] = glGetUniformLocation(programID, "view");
+    uniformVariables[ShaderVariable::texFrame] = glGetUniformLocation(programID, "texFrame");
+    uniformVariables[ShaderVariable::texOffset] = glGetUniformLocation(programID, "texOffset");
 
     //TODO: What is a good way for us to define variables for specific shaders?
-    uniformVariables["fadeColor"] = glGetUniformLocation(programID, "fadeColor");
-    uniformVariables["currentTime"] = glGetUniformLocation(programID, "currentTime");
+    uniformVariables[ShaderVariable::fadeColor] = glGetUniformLocation(programID, "fadeColor");
+    uniformVariables[ShaderVariable::currentTime] = glGetUniformLocation(programID, "currentTime");
 }
 
-GLuint ShaderProgram::GetUniformVariable(const std::string& variable)
+GLuint ShaderProgram::GetUniformVariable(ShaderVariable variable)
 {
     return uniformVariables[variable];
 }
@@ -128,8 +128,8 @@ void ShaderProgram::ClearShader()
         programID = 0;
     }
 
-    uniformVariables["model"] = 0;
-    uniformVariables["projection"] = 0;
+    uniformVariables[ShaderVariable::model] = 0;
+    uniformVariables[ShaderVariable::projection] = 0;
 }
 
 void ShaderProgram::AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType)

@@ -359,12 +359,12 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 	if (keepPositionRelativeToCamera)
 	{
-		glUniformMatrix4fv(shader->GetUniformVariable("view"), 1, GL_FALSE,
+		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
 			glm::value_ptr(renderer->guiCamera.CalculateViewMatrix()));
 	}
 	else
 	{
-		glUniformMatrix4fv(shader->GetUniformVariable("view"), 1, GL_FALSE,
+		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
 			glm::value_ptr(renderer->camera.CalculateViewMatrix()));
 	}
 
@@ -373,11 +373,11 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	glm::vec2 texOffset = CalculateRenderFrame(renderer);
 	
 	// Send the info to the shader
-	glUniform2fv(shader->GetUniformVariable("texFrame"), 1, glm::value_ptr(texFrame));
-	glUniform2fv(shader->GetUniformVariable("texOffset"), 1, glm::value_ptr(texOffset));
+	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
+	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
 
 	glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
-	glUniform4fv(shader->GetUniformVariable("spriteColor"), 1, glm::value_ptr(spriteColor));
+	glUniform4fv(shader->GetUniformVariable(ShaderVariable::spriteColor), 1, glm::value_ptr(spriteColor));
 
 	if (shader->GetName() == "fade-in-out")
 	{
@@ -385,9 +385,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		glm::vec4 fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
 
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
-		// (so in order to fade to clear/transparent, we oscillate EVERY color)
-
-		std::string selectedColor = "clear";
+		// (so in order to fade to clear/transparent, we oscillate EVERY color)		
 
 		if (selectedColor == "red")
 		{
@@ -414,18 +412,18 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 			fadeColor = glm::vec4(1, 1, 1, fadePoint);
 		}
 
-		glUniform4fv(shader->GetUniformVariable("fadeColor"), 1, glm::value_ptr(fadeColor));
+		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
 	}
 	else if (shader->GetName() == "noalpha")
 	{
-		glUniform1f(shader->GetUniformVariable("currentTime"), renderer->now);
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer->now);
 	}
 	else if (shader->GetName() == "glow")
 	{      
 		GLfloat fadePoint = abs(sin(renderer->now / 1000));
 		glm::vec4 fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
 
-		glUniform1f(shader->GetUniformVariable("currentTime"), renderer->now);
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer->now);
 
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)
@@ -453,7 +451,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 			fadeColor = glm::vec4(1, 1, 1, 1);
 		}
 
-		glUniform4fv(shader->GetUniformVariable("fadeColor"), 1, glm::value_ptr(fadeColor));
+		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
 	}
 
 	CalculateModel(position, rotation, renderer, flip);
@@ -461,17 +459,17 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	// Projection
 	if (keepScaleRelativeToCamera)
 	{
-		glUniformMatrix4fv(shader->GetUniformVariable("projection"), 1, GL_FALSE,
+		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
 			glm::value_ptr(renderer->camera.guiProjection));
 	}
 	else
 	{
-		glUniformMatrix4fv(shader->GetUniformVariable("projection"), 1, GL_FALSE,
+		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
 			glm::value_ptr(renderer->camera.projection));
 	}
 
 	// Set uniform variables
-	glUniformMatrix4fv(shader->GetUniformVariable("model"), 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::model), 1, GL_FALSE, glm::value_ptr(model));
 
 	// Use Texture
 	texture->UseTexture();

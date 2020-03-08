@@ -13,7 +13,7 @@ class Sprite;
 class Renderer
 {
 private:
-	std::unordered_map<std::string, bool> layersVisible;
+	std::unordered_map<DrawingLayer, bool> layersVisible;
 	void UpdateOverlayColor(int& color, const int& target);
 public:
 	Camera camera;
@@ -37,7 +37,7 @@ public:
 	std::unordered_map<std::string, ShaderProgram*> shaders;
 	
 	void FadeOverlay(const int screenWidth, const int screenHeight);
-	void ToggleVisibility(std::string layer);
+	void ToggleVisibility(DrawingLayer layer);
 	bool IsVisible(DrawingLayer layer);
 
 	void CreateShader(const char* shaderName, const char* vertexFilePath, const char* fragmentFilePath);

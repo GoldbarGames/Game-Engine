@@ -3,6 +3,15 @@
 #include "Game.h"
 #include "Test.h"
 
+static unsigned int allocationCount = 0;
+
+void* operator new(size_t size)
+{
+	allocationCount++;
+	//std::cout << allocationCount << " Allocating " << size << " bytes\n";
+	return malloc(size);
+}
+
 int main(int argc, char *args[])
 {
 	Game game;
@@ -31,7 +40,10 @@ int main(int argc, char *args[])
 	{
 		game.renderer->drawCallsPerFrame = 0;
 
-		game.CalcDt();		
+		game.CalcDt();
+
+		std::cout << "---" << std::endl;
+		allocationCount = 0;
 
 		//game.showFPS = true;
 		if (game.showFPS)

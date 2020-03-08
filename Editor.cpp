@@ -309,8 +309,36 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 	else if (clickedLayerVisibleButton != "")
 	{
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
-		{
-			game->renderer->ToggleVisibility(clickedLayerVisibleButton);
+		{		
+			if (clickedLayerVisibleButton != "")
+			{
+				if (clickedLayerVisibleButton == "BACK")
+				{
+					game->renderer->ToggleVisibility(DrawingLayer::BACK);
+				}
+				else if (clickedLayerVisibleButton == "MIDDLE")
+				{
+					game->renderer->ToggleVisibility(DrawingLayer::MIDDLE);
+				}
+				else if (clickedLayerVisibleButton == "OBJECT")
+				{
+					game->renderer->ToggleVisibility(DrawingLayer::OBJECT);
+				}
+				else if (clickedLayerVisibleButton == "COLLISION")
+				{
+					game->renderer->ToggleVisibility(DrawingLayer::COLLISION);
+				}
+				else if (clickedLayerVisibleButton == "COLLISION2")
+				{
+					game->renderer->ToggleVisibility(DrawingLayer::COLLISION2);
+				}
+				else if (clickedLayerVisibleButton == "FRONT")
+				{
+					game->renderer->ToggleVisibility(DrawingLayer::FRONT);
+				}
+			}
+
+
 
 			for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
 			{

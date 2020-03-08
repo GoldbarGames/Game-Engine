@@ -11,6 +11,8 @@
 
 class Renderer;
 
+enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, };
+
 class ShaderProgram
 {
 public:
@@ -28,14 +30,14 @@ public:
 
 	GLuint GetID() { return programID; }
 
-	GLuint GetUniformVariable(const std::string& variable);
+	GLuint GetUniformVariable(ShaderVariable variable);
 
-	std::string GetName() { return name; }
+	const std::string& GetName() { return name; }
 
 private:
 	GLuint programID;
 	std::string name = "";
-	std::unordered_map<std::string, GLuint> uniformVariables;
+	std::unordered_map<ShaderVariable, GLuint> uniformVariables;
 
 	void CompileShader(const char* vertexCode, const char* fragmentCode);
 	void AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType);
