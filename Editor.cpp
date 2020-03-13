@@ -26,6 +26,11 @@ Editor::Editor(Game& g)
 	editorText["cursorPositionInWorld"]->SetText("");
 	editorText["cursorPositionInWorld"]->GetSprite()->keepPositionRelativeToCamera = true;
 
+	editorText["currentEditModeLayer"] = new Text(game->renderer, theFont);
+	editorText["currentEditModeLayer"]->SetPosition(200, 200);
+	editorText["currentEditModeLayer"]->SetText("");
+	editorText["currentEditModeLayer"]->GetSprite()->keepPositionRelativeToCamera = true;
+
 	dialogText = new Text(game->renderer, theFont, "");
 	dialogInput = new Text(game->renderer, theFont, "");
 	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
@@ -735,23 +740,19 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 						if (ladderGoesUp)
 						{
 							// Connect the two edges by spawning the middle parts
-							mouseY += GRID_SIZE;
-
 							while (snappedPosition.y < currentLadder->GetPosition().y)
 							{
 								game->SpawnLadder(snappedPosition, spriteMapIndex);
-								snappedPosition.y += GRID_SIZE;
+								snappedPosition.y += TILE_SIZE * 2;
 							}
 						}
 						else
 						{
 							// Connect the two edges by spawning the middle parts
-							mouseY -= GRID_SIZE;
-
 							while (snappedPosition.y > currentLadder->GetPosition().y)
 							{
 								game->SpawnLadder(snappedPosition, spriteMapIndex);
-								snappedPosition.y -= GRID_SIZE;
+								snappedPosition.y -= TILE_SIZE * 2;
 							}
 						}
 

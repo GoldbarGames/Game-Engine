@@ -56,7 +56,7 @@ Entity::Entity(Vector2 pos)
 	//position = pos;
 	id = nextValidID;
 	nextValidID++;
-	CreateCollider(TILE_SIZE, TILE_SIZE, 0, 0, TILE_SIZE, TILE_SIZE);
+	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 }
 
 Entity::Entity(Vector2 pos, Sprite* sprite)
@@ -64,7 +64,7 @@ Entity::Entity(Vector2 pos, Sprite* sprite)
 	position = pos;
 	id = nextValidID;
 	nextValidID++;
-	CreateCollider(TILE_SIZE, TILE_SIZE, 0, 0, TILE_SIZE, TILE_SIZE);
+	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 	currentSprite = sprite;
 }
 
@@ -78,7 +78,7 @@ Entity::~Entity()
 		delete collisionBounds;
 }
 
-void Entity::CreateCollider(float startX, float startY, float x, float y, float w, float h)
+void Entity::CreateCollider(float x, float y, float w, float h)
 {
 	if (collisionBounds != nullptr)
 		delete collisionBounds;
@@ -91,13 +91,15 @@ void Entity::CreateCollider(float startX, float startY, float x, float y, float 
 
 	colliderScale.x = w;
 	colliderScale.y = h;
-
-	//startSpriteSize.x = startX * Renderer::GetScale();
-	//startSpriteSize.y = startY * Renderer::GetScale();
 }
 
 void Entity::CalculateCollider()
 {
+	if (etype == "door")
+	{
+		int test = 0;
+	}
+
 	if (currentSprite != nullptr)
 	{
 		collisionBounds->w = colliderScale.x; //currentSprite->frameWidth;
@@ -109,9 +111,13 @@ void Entity::CalculateCollider()
 		collisionBounds->h = 1;
 	}
 
-	// set the collision bounds position to where the player actually is
-	collisionBounds->x = (int)(position.x - (collisionBounds->w /2) + colliderOffset.x);
-	collisionBounds->y = (int)(position.y - (collisionBounds->h /2) + colliderOffset.y);
+	// TODO: Do we need this anymore? Not sure this is the right idea
+	//collisionBounds->x = (int)(position.x - (collisionBounds->w / 2) + colliderOffset.x);
+	//collisionBounds->y = (int)(position.y - (collisionBounds->h / 2) + colliderOffset.y);
+
+	// set the collision bounds to the position
+	collisionBounds->x = (int)(position.x);
+	collisionBounds->y = (int)(position.y);
 }
 
 
@@ -211,22 +217,21 @@ void Entity::RenderDebug(Renderer * renderer)
 			debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 			debugSprite->Render(position, renderer);
 
-			// draw collider
-			targetWidth = collisionBounds->w;
-			targetHeight = collisionBounds->h;
+			if (physics != nullptr)
+			{
+				// draw collider
+				targetWidth = collisionBounds->w;
+				targetHeight = collisionBounds->h;
 
-			debugSprite->color = { 255, 255, 255, 255 };
-			debugSprite->pivot = GetSprite()->pivot;
-			debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-		}
+				debugSprite->color = { 255, 255, 255, 255 };
+				debugSprite->pivot = GetSprite()->pivot;
+				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 
-		if (physics != nullptr)
-		{
-			Vector2 colliderPosition = Vector2(position.x + colliderOffset.x,
-				position.y + colliderOffset.y);
-			debugSprite->Render(colliderPosition, renderer);
+				Vector2 colliderPosition = Vector2(position.x + colliderOffset.x,
+					position.y + colliderOffset.y);
+				debugSprite->Render(colliderPosition, renderer);
+			}
 		}
-		
 	}
 }
 

@@ -42,7 +42,7 @@ int main(int argc, char *args[])
 
 		game.CalcDt();
 
-		std::cout << "---" << std::endl;
+		//std::cout << "---" << std::endl;
 		allocationCount = 0;
 
 		//game.showFPS = true;
@@ -53,7 +53,7 @@ int main(int argc, char *args[])
 			if (timeLeft <= 0)
 			{
 				game.fpsText->SetText("FPS: " + std::to_string((int)(fpsSum / frames)));
-				std::cout << game.fpsText->txt << std::endl;
+				//std::cout << game.fpsText->txt << std::endl;
 				timeLeft = updateInterval;
 				fpsSum = 0;
 				frames = 0;

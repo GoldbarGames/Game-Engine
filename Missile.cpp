@@ -5,7 +5,7 @@
 Missile::Missile(Vector2 pos) : Entity(pos)
 {
 	//TODO: Check to see whether this collider exists or if it gets replaced with the base class
-	CreateCollider(23, 16, 0, -3, 10, 10);
+	CreateCollider(0, -3, 10, 10);
 
 	timeToLive.Start(2000);
 

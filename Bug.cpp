@@ -9,7 +9,7 @@ Bug::Bug(Vector2 pos) : Entity(pos)
 	etype = "bug";
 	trigger = true;
 	
-	CreateCollider(24, 24, 0, -4, 15, 18);
+	CreateCollider(0, -4, 15, 18);
 
 	physics = new PhysicsEntity(this);
 	physics->useGravity = false;

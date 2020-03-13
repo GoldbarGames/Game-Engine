@@ -10,7 +10,7 @@ Player::Player(Vector2 pos) : Entity(pos)
 {
 	etype = "player";
 	
-	CreateCollider(27, 46, 0, 0, 20.25f, 41.40f);
+	CreateCollider(0, 0, 20.25f, 41.40f);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 99;
 	

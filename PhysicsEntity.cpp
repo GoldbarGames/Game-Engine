@@ -344,7 +344,6 @@ void PhysicsEntity::CheckCollisions(Game& game)
 		}
 		else if (entity->trigger)
 		{
-
 			if (our->etype == "player")
 				int test = 0;
 

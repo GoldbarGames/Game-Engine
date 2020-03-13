@@ -76,7 +76,7 @@ public:
 
 	void RenderDebug(Renderer * renderer);
 
-	void CreateCollider(float startX, float startY, float x, float y, float w, float h);
+	void CreateCollider(float x, float y, float w, float h);
 	void CalculateCollider();
 
 	virtual void Pause(Uint32 ticks);

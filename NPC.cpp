@@ -6,7 +6,7 @@ NPC::NPC(std::string n, Vector2 pos) : Entity(pos)
 {
 	name = n;
 	etype = "npc";
-	CreateCollider(0, 0, 0, 0, 0, 0);
+	CreateCollider(0, 0, 0, 0);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 20;
 
@@ -23,7 +23,7 @@ NPC::~NPC()
 
 void NPC::ChangeCollider(float x, float y, float w, float h)
 {
-	CreateCollider(0, 0, x, y, w, h);
+	CreateCollider(x, y, w, h);
 }
 
 

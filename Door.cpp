@@ -9,6 +9,7 @@ Door::Door(Vector2 pos, Vector2 dest) : Entity(pos)
 	drawOrder = 90;
 	etype = "door";
 	trigger = true;
+	CreateCollider(0, 0, 96, 96);
 }
 
 Door::~Door()

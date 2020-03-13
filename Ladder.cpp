@@ -10,7 +10,7 @@ Ladder::Ladder(Vector2 pos) : Entity(pos)
 	layer = DrawingLayer::OBJECT;
 	drawOrder = 90;
 	trigger = true;
-	//collider.CreateCollider(TILE_SIZE, TILE_SIZE, 0, 0, TILE_SIZE, TILE_SIZE);
+	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 }
 
 Ladder::~Ladder()
