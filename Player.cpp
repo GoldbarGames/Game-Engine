@@ -354,6 +354,7 @@ void Player::SetProperty(std::string prop, std::string newValue)
 	}
 
 	// 2. Based on the key, change its value
+	//TODO: Refactor this to use the physics component start position stuff
 	if (key == "Start Pos X")
 	{
 		if (newValue != "")

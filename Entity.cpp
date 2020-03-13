@@ -324,7 +324,7 @@ void Entity::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Pro
 {
 	Entity::DeleteProperties(properties);
 	std::string id_string = "ID: " + std::to_string(id);
-	properties.emplace_back(new Property(new Text(renderer, font, id_string, { 255, 0, 0, 255 })));
+	properties.emplace_back(new Property(new Text(renderer, font, id_string, { 0, 0, 255, 255 })));
 }
 
 void Entity::DeleteProperties(std::vector<Property*>& properties)

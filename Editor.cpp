@@ -97,7 +97,6 @@ void Editor::CreateEditorButtons()
 
 		EditorButton* editorButton = new EditorButton("", buttonNames[i], 
 			Vector2(buttonX*2, (game->screenHeight - buttonHeight)*2), *game);
-
 		
 		editorButton->image->keepPositionRelativeToCamera = true;
 		editorButton->image->keepScaleRelativeToCamera = true;
@@ -151,13 +150,13 @@ void Editor::StartEdit()
 
 	objectPropertiesRect.w = 400;
 	objectPropertiesRect.h = 600;
-	objectPropertiesRect.x = game->screenWidth - objectPropertiesRect.w;
-	objectPropertiesRect.y = 0;
+	objectPropertiesRect.x = (game->screenWidth * 2) - objectPropertiesRect.w;
+	objectPropertiesRect.y = 100;
 
-	dialogRect.w = 400;
-	dialogRect.h = 200;
 	dialogRect.x = (game->screenWidth / 2) - (objectPropertiesRect.w / 2);
 	dialogRect.y = (game->screenHeight / 2) - (objectPropertiesRect.h / 2);
+	dialogRect.w = 400;
+	dialogRect.h = 200;
 
 	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
 	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
@@ -220,7 +219,7 @@ void Editor::StopEdit()
 	propertyIndex = -1;
 }
 
-void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
+void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition)
 {
 	bool clickedToolboxWindow = mouseX >= tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth
 		&& mouseY <= tilesheetSprites[tilesheetIndex]->frameHeight * 2;
@@ -343,8 +342,6 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 				}
 			}
 
-
-
 			for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
 			{
 				if (layerButtons[i]->text->txt == clickedLayerVisibleButton)
@@ -357,8 +354,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 	}
 	else if (objectMode == "inspect")
 	{
-		//clickedPosition += game->camera;
-		InspectObject(mouseX, mouseY);
+		InspectObject(clickedWorldPosition.x, clickedWorldPosition.y);
 	}
 	else if (objectMode == "grab")
 	{
@@ -405,7 +401,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		// if we are placing a tile...
 		if (objectMode == "tile")
 		{
-			PlaceTile(clickedPosition, mouseX, mouseY);
+			PlaceTile(clickedScreenPosition, mouseX, mouseY);
 			DoAction();
 		}
 		else if (objectMode == "replace")
@@ -415,7 +411,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 			for (unsigned int i = 0; i < game->entities.size(); i++)
 			{
-				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedPosition) &&
+				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedWorldPosition) &&
 					game->entities[i]->layer == drawingLayer &&
 					game->entities[i]->etype == "tile")
 				{
@@ -456,7 +452,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 
 			for (unsigned int i = 0; i < game->entities.size(); i++)
 			{
-				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedPosition) &&
+				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedWorldPosition) &&
 					game->entities[i]->layer == drawingLayer &&
 					game->entities[i]->etype == "tile")
 				{
@@ -486,7 +482,7 @@ void Editor::LeftClick(Vector2 clickedPosition, int mouseX, int mouseY)
 		}
 		else // when placing an object
 		{
-			PlaceObject(clickedPosition, mouseX, mouseY);
+			PlaceObject(clickedScreenPosition, mouseX, mouseY);
 			DoAction();
 		}
 		
@@ -507,9 +503,14 @@ void Editor::InspectObject(int mouseX, int mouseY)
 	{
 		for (unsigned int i = 0; i < properties.size(); i++)
 		{
-			//TODO: Fix for OpenGL
-			/*
-			if (SDL_PointInRect(&point, &properties[i]->text->textWindowRect))
+			//TODO: Fix for OpenGL		
+			SDL_Rect textRect;
+			textRect.w = properties[i]->text->GetTextWidth();
+			textRect.h = properties[i]->text->GetTextHeight();
+			textRect.x = properties[i]->text->position.x - (textRect.w/2);
+			textRect.y = properties[i]->text->position.y - (textRect.h/2);			
+
+			if (SDL_PointInRect(&point, &textRect))
 			{
 				if (selectedEntity != nullptr)
 				{
@@ -522,8 +523,7 @@ void Editor::InspectObject(int mouseX, int mouseY)
 					}					
 				}
 				break;
-			}
-			*/
+			}			
 		}
 	}
 	else
@@ -590,12 +590,11 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 {
 	bool canPlaceObjectHere = true;
 
-	clickedPosition.x = (float)clickedPosition.x;
-	clickedPosition.y = (float)clickedPosition.y;
+	Vector2 snappedPosition = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
-		if (game->entities[i]->GetPosition() == clickedPosition &&
+		if (game->entities[i]->GetPosition() == snappedPosition &&
 			game->entities[i]->etype == objectMode)
 		{
 			canPlaceObjectHere = false;
@@ -605,8 +604,6 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 
 	if (canPlaceObjectHere)
 	{
-		Vector2 snappedPosition = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
-
 		if (objectMode == "npc")
 		{
 			currentNPC = game->SpawnNPC(npcNames[spriteMapIndex], snappedPosition, spriteMapIndex);
@@ -1025,7 +1022,7 @@ void Editor::HandleEdit()
 	{
 		// We multiply X and Y by 2 because the guiProjection is multiplied by 2
 		// TODO: Maybe remove the multiplier
-		LeftClick(clickedScreenPosition, mouseX*2, mouseY*2);
+		LeftClick(clickedScreenPosition, mouseX*2, mouseY*2, objPreviewPosition);
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{
@@ -1429,8 +1426,6 @@ void Editor::Render(Renderer* renderer)
 		}
 	}
 	
-	//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-
 	if (objectMode == "inspect" && selectedEntity != nullptr)
 	{
 		// Draw a yellow rectangle around the currently selected object
@@ -1453,6 +1448,8 @@ void Editor::Render(Renderer* renderer)
 				//	SDL_RenderDrawRect(renderer->renderer, &properties[i]->text->);
 			}
 
+			properties[i]->text->GetSprite()->keepPositionRelativeToCamera = true;
+			properties[i]->text->GetSprite()->keepScaleRelativeToCamera = true;
 			properties[i]->text->Render(renderer);
 		}
 
@@ -1567,6 +1564,11 @@ std::string Editor::SaveLevelAsString()
 	}
 
 	game->background->Save(level);
+
+	if (game->levelStartCutscene != "")
+	{
+		level << "1 cutscene-start 0 0 " << game->levelStartCutscene << std::endl;
+	}
 
 	return level.str();
 }
@@ -1897,6 +1899,15 @@ void Editor::InitLevelFromFile(std::string levelName)
 
 	if (game->levelStartCutscene != "")
 	{
-		game->cutscene->PlayCutscene(game->levelStartCutscene);
+		if (levelName == "demo")
+		{
+			if (playOpeningDemoCutscene)
+				game->cutscene->PlayCutscene(game->levelStartCutscene);
+			playOpeningDemoCutscene = false;
+		}
+		else
+		{
+			game->cutscene->PlayCutscene(game->levelStartCutscene);
+		}
 	}
 }

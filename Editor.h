@@ -46,9 +46,7 @@ private:
 	SDL_Rect objectPropertiesRect;
 	SDL_Rect dialogRect;
 
-	Text* dialogText = nullptr;
-
-	
+	Text* dialogText = nullptr;	
 
 	Uint32 previousMouseState = 0;
 
@@ -82,6 +80,8 @@ private:
 	Vector2 oldGrabbedPosition = Vector2(0, 0);
 
 	const unsigned int BUTTONS_PER_PAGE = 18;
+
+	bool playOpeningDemoCutscene = true;
 
 public:
 	int tilesheetIndex = 0;
@@ -130,7 +130,7 @@ public:
 	void CreateEditorButtons();
 
 	//TODO: Make these return bools, and if true, DoAction()?
-	void LeftClick(Vector2 clickedPosition, int mouseX, int mouseY);
+	void LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition);
 	void RightClick(Vector2 clickedPosition);
 	void MiddleClick(Vector2 clickedPosition);
 

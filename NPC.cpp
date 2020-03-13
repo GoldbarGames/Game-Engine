@@ -13,6 +13,7 @@ NPC::NPC(std::string n, Vector2 pos) : Entity(pos)
 	physics = new PhysicsEntity(this);
 	physics->standAboveGround = true;
 	physics->useGravity = true;
+	physics->startPosition = pos;
 }
 
 

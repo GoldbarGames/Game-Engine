@@ -73,5 +73,6 @@ public:
 	void Render(Renderer * renderer);
 	SceneLabel * JumpToLabel(std::string newLabelName);
 	void PlayCutscene(std::string labelName);
+	void EndCutscene();
 	void ReadNextLine();
 };

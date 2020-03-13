@@ -1398,6 +1398,12 @@ void Game::Update()
 			{
 				cutscene->ReadNextLine();
 			}
+			else if (input[SDL_SCANCODE_TAB])
+			{
+				//TODO: This is not perfect, it just breaks out of the cutscene and does not carry out commands
+				// Also, should maybe disable this outside of development mode or make it an option
+				cutscene->EndCutscene();
+			}
 			else if (input[SDL_SCANCODE_UP])
 			{
 				//cutscene->textbox->Test();

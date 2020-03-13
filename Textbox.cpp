@@ -18,7 +18,7 @@ Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
 	speaker = new Text(renderer, speakerFont, "...", true, true);
 
 	text->SetPosition(1080, 1040);
-	speaker->SetPosition(700, 960);
+	speaker->SetPosition(235, 985);
 
 	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?
 	speaker->SetText(" ");

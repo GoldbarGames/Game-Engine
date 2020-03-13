@@ -191,6 +191,15 @@ void CutsceneManager::PlayCutscene(std::string labelName)
 	}	
 }
 
+void CutsceneManager::EndCutscene()
+{
+	currentText = "";
+	textbox->text->SetText(currentText);
+	game->watchingCutscene = false;
+	isCarryingOutCommands = false;
+	isReadingNextLine = false;
+}
+
 void CutsceneManager::ReadNextLine()
 {
 	if (currentLabel != nullptr)
@@ -205,6 +214,7 @@ void CutsceneManager::ReadNextLine()
 
 		lineIndex++;	
 		currentText = "";
+		textbox->text->SetText(currentText);
 
 		if (lineIndex >= currentLabel->lines.size())
 		{
