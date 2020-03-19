@@ -45,8 +45,8 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 		string alignmentX = "LEFT";
 		string alignmentY = "TOP";
 
-		const int boxOffsetX = 1350;
-		const int boxOffsetY = 1060;
+		const int boxOffsetX = 1300;
+		const int boxOffsetY = 1100;
 
 		if (alignmentX == "LEFT")
 		{

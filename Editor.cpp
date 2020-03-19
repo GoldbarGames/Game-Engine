@@ -38,7 +38,9 @@ Editor::Editor(Game& g)
 
 	npcNames = { "gramps", "the_man" };
 
-	previewMap["tile"] = nullptr;
+	previewMap["tile"] = game->CreateTile(Vector2(0,0), "assets/editor/rect-outline.png", Vector2(0,0), DrawingLayer::FRONT);
+	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
+
 	previewMap["door"] = game->CreateDoor(Vector2(0,0), spriteMapIndex);
 	previewMap["ladder"] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
 
@@ -1579,7 +1581,7 @@ void Editor::SaveLevel(std::string levelName)
 		game->currentLevel = levelName;
 
 	std::ofstream fout;
-	fout.open("data/" + game->currentLevel + ".lvl");
+	fout.open("data/levels/" + game->currentLevel + ".lvl");
 
 	fout << SaveLevelAsString();
 
@@ -1627,7 +1629,7 @@ void Editor::DoAction()
 std::string Editor::ReadLevelFromFile(std::string levelName)
 {
 	std::ifstream fin;
-	fin.open("data/" + levelName + ".lvl");
+	fin.open("data/levels/" + levelName + ".lvl");
 
 	std::string level = "";
 	for (std::string line; std::getline(fin, line); )

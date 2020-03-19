@@ -13,6 +13,7 @@ Bug::Bug(Vector2 pos) : Entity(pos)
 
 	physics = new PhysicsEntity(this);
 	physics->useGravity = false;
+	physics->startPosition = pos;
 }
 
 Bug::~Bug()

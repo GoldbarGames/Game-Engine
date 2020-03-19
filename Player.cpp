@@ -139,7 +139,6 @@ void Player::UpdateNormally(Game& game)
 	}
 
 	//TODO: What should happen if multiple buttons are pressed at the same time?
-
 	if (game.pressedLeftTrigger)
 	{
 		spellIndex--;

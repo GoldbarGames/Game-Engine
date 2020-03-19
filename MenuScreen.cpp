@@ -117,6 +117,12 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		textCopyright->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textCopyright);
 
+		Text* textVersion = new Text(game.renderer, game.headerFont, "Demo Version 2020-03-20", true, true);
+		//textVersion->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
+		textVersion->SetPosition(startPosX, 1300);
+		textVersion->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
+		texts.emplace_back(textVersion);
+
 		Entity* titleCharacter = new Entity(Vector2(600, 350));
 		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders["default"], Vector2(222, 370), false));
 		titleCharacter->GetSprite()->SetScale(Vector2(0.5f, 0.5f));

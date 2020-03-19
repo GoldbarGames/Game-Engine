@@ -51,13 +51,21 @@ void Missile::Destroy()
 	physics->velocity = Vector2(0, 0);
 }
 
+void Missile::SetVelocity(Vector2 newVelocity)
+{
+	physics->velocity = newVelocity;
+	if (physics->velocity.x > 0)
+		rotation = glm::vec3(0, 0, 0);
+	else if (physics->velocity.x < 0)
+		rotation = glm::vec3(0, 180, 0);
+	else if (physics->velocity.y > 0)
+		rotation = glm::vec3(0, 0, 270);
+	else if (physics->velocity.y < 0)
+		rotation = glm::vec3(0, 0, 90);
+}
+
 void Missile::UpdatePhysics(Game& game)
 {
-	if (physics->velocity.x > 0)
-		flip = SDL_FLIP_NONE;
-	else
-		flip = SDL_FLIP_HORIZONTAL;
-
 	// check for collisions, and destroy if it hits a wall or an enemy'
 	if (CheckCollisions(game))
 	{

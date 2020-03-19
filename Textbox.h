@@ -19,7 +19,7 @@ public:
 	Text* speaker = nullptr;
 
 	bool shouldRender = true;
-	const Uint32 boxWidth = 1160;
+	const Uint32 boxWidth = 1140;
 
 	void UpdateText(std::string newText);
 	void Render(Renderer * renderer, const int& screenWidth, const int& screenHeight);

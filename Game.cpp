@@ -127,9 +127,8 @@ void Game::ResetText()
 		fpsText->textSprite->keepPositionRelativeToCamera = true;
 	}
 		
-
 	fpsText->SetText("FPS:");
-	fpsText->SetPosition(fpsText->GetTextWidth() * 2, fpsText->GetTextHeight());
+	fpsText->SetPosition((screenWidth * 2) - (fpsText->GetTextWidth() * 2), fpsText->GetTextHeight());
 
 	if (timerText == nullptr)
 	{
@@ -138,10 +137,9 @@ void Game::ResetText()
 		timerText->textSprite->keepScaleRelativeToCamera = true;
 		timerText->textSprite->keepPositionRelativeToCamera = true;
 	}
-		
-	
+			
 	timerText->SetText("");
-	timerText->SetPosition(timerText->GetTextWidth() * 2, 300 + timerText->GetTextHeight());
+	timerText->SetPosition((screenWidth) - (timerText->GetTextWidth() * 2), timerText->GetTextHeight());
 
 	if (bugText == nullptr)
 	{
@@ -150,10 +148,9 @@ void Game::ResetText()
 		bugText->textSprite->keepScaleRelativeToCamera = true;
 		bugText->textSprite->keepPositionRelativeToCamera = true;
 	}
-		
 	
 	bugText->SetText("Bugs Remaining: " + std::to_string(bugsRemaining));
-	bugText->SetPosition(0, 100);
+	bugText->SetPosition(bugText->GetTextWidth() * 1.25f, bugText->GetTextHeight() * 1.25f);
 
 	if (etherText == nullptr)
 	{
@@ -190,15 +187,15 @@ void Game::CreateObjects()
 
 void Game::CreateShaders()
 {
-	renderer->CreateShader("default", "Shaders/default.vert", "Shaders/default.frag");
-	//renderer->CreateShader("special", "Shaders/special.vert", "Shaders/special.frag");
-	renderer->CreateShader("multiply", "Shaders/default.vert", "Shaders/multiply.frag");
-	renderer->CreateShader("add", "Shaders/default.vert", "Shaders/add.frag");
-	//renderer->CreateShader("hue-shift", "Shaders/hue-shift.vert", "Shaders/hue-shift.frag");
-	renderer->CreateShader("fade-in-out", "Shaders/default.vert", "Shaders/fade-in-out.frag");
-	renderer->CreateShader("glow", "Shaders/default.vert", "Shaders/glow.frag");
-	renderer->CreateShader("gui", "Shaders/gui.vert", "Shaders/gui.frag");
-	renderer->CreateShader("noalpha", "Shaders/default.vert", "Shaders/noalpha.frag");
+	renderer->CreateShader("default", "data/shaders/default.vert", "data/shaders/default.frag");
+	//renderer->CreateShader("special", "data/shaders/special.vert", "data/shaders/special.frag");
+	renderer->CreateShader("multiply", "data/shaders/default.vert", "data/shaders/multiply.frag");
+	renderer->CreateShader("add", "data/shaders/default.vert", "data/shaders/add.frag");
+	//renderer->CreateShader("hue-shift", "data/shaders/hue-shift.vert", "data/shaders/hue-shift.frag");
+	renderer->CreateShader("fade-in-out", "data/shaders/default.vert", "data/shaders/fade-in-out.frag");
+	renderer->CreateShader("glow", "data/shaders/default.vert", "data/shaders/glow.frag");
+	renderer->CreateShader("gui", "data/shaders/gui.vert", "data/shaders/gui.frag");
+	renderer->CreateShader("noalpha", "data/shaders/default.vert", "data/shaders/noalpha.frag");
 }
 
 void Game::InitOpenGL()
@@ -649,8 +646,7 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 	anim->SetBool("destroyed", false);
 
 	missile->SetAnimator(anim);
-	missile->physics->SetVelocity(velocity);
-	missile->angle = angle;
+	missile->SetVelocity(velocity);
 	missile->GetAnimator()->SetState("moving");
 
 	entities.emplace_back(missile);
@@ -686,6 +682,18 @@ Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE
 	newTileY += GRID_SIZE;
 
 	return Vector2(newTileX, newTileY);
+}
+
+Tile* Game::CreateTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer)
+{
+	Tile* tile = new Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
+
+	tile->layer = drawingLayer;
+	tile->impassable = drawingLayer == DrawingLayer::COLLISION
+		|| drawingLayer == DrawingLayer::COLLISION2;
+	//tile->tilesheetIndex = editor->tilesheetIndex;
+
+	return tile;
 }
 
 Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer)
@@ -1236,6 +1244,10 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_c:
 				pressedDebugButton = true;
 				break;
+
+#if _DEBUG
+			// NOT IMPLEMENTED YET
+
 			case SDLK_v:
 				pressedSpellButton = true;
 				break;
@@ -1247,6 +1259,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				break;
 
 				// DEVELOPER BUTTONS
+
 
 			case SDLK_r:
 				//if (player != nullptr)
@@ -1285,6 +1298,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_6: // Screenshot Button
 				SaveScreenshot();
 				break;
+#endif
 			default:
 				break;
 			}
@@ -1481,7 +1495,7 @@ void Game::Render()
 
 	if (currentLevel != "title" && !watchingCutscene)
 	{
-		//bugText->Render(renderer);
+		bugText->Render(renderer);
 		//etherText->Render(renderer);
 	}	
 

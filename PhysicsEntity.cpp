@@ -6,6 +6,7 @@
 PhysicsEntity::PhysicsEntity(Entity* entity)
 {
 	our = entity;
+	startPosition = entity->position;
 }
 
 PhysicsEntity::~PhysicsEntity()

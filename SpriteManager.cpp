@@ -18,7 +18,11 @@ Texture* SpriteManager::GetImage(std::string const& imagePath)
 {
 	if (images[imagePath].get() == nullptr)
 	{
-		bool loadFromFile = false;
+		bool loadFromFile = true;
+
+#if _DEBUG
+		loadFromFile = false;
+#endif
 
 		SDL_Surface * surface;
 

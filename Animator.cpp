@@ -116,7 +116,10 @@ void Animator::CheckStateKaneko()
 		}
 		else if (GetBool("isCastingDebug"))
 		{
-			SetState("debug_air_up");
+			if (GetBool("isGrounded"))
+				SetState("debug_up");
+			else
+				SetState("debug_air_up");
 		}
 	}
 	else if (currentState->name == "look_down")
@@ -127,7 +130,10 @@ void Animator::CheckStateKaneko()
 		}
 		else if (GetBool("isCastingDebug"))
 		{
-			SetState("debug_air_down");
+			if (GetBool("isGrounded"))
+				SetState("debug_down");
+			else
+				SetState("debug_air_down");
 		}
 	}
 
@@ -319,6 +325,7 @@ void Animator::SetState(std::string state)
 	beforePreviousState = previousState;
 	previousState = currentState;	
 	currentState = mapNamesToStates[state];
+	currentState->sprite->currentFrame = 0;
 
 	StartTimer();
 }
