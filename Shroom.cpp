@@ -29,6 +29,8 @@ void Shroom::OnTriggerEnter(Entity* other, Game& game)
 	{
 		Player* player = static_cast<Player*>(other);
 		player->physics->velocity.y = -1;
+		game.soundManager->PlaySound("se/Jump.wav", 0);
+		//player->physics->Jump(game);
 	}
 }
 

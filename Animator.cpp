@@ -27,17 +27,17 @@ Animator::Animator(std::string animType, std::vector<AnimState*> states, std::st
 			if (states[i]->name == initialState)
 			{
 				found = true;
-				SetState(states[i]->name);
+				SetState(states[i]->name.c_str());
 				break;
 			}
 		}
 
 		if (!found)
-			SetState(states[0]->name);
+			SetState(states[0]->name.c_str());
 	}
 	else
 	{
-		SetState(states[0]->name);
+		SetState(states[0]->name.c_str());
 	}
 
 	previousState = currentState;
@@ -320,7 +320,7 @@ int Animator::GetSpeed()
 	return currentState->speed;
 }
 
-void Animator::SetState(std::string state)
+void Animator::SetState(const char* state)
 {
 	beforePreviousState = previousState;
 	previousState = currentState;	
@@ -330,23 +330,23 @@ void Animator::SetState(std::string state)
 	StartTimer();
 }
 
-bool Animator::GetBool(std::string param)
+bool Animator::GetBool(const char* param)
 {
 	//TODO: Check if it exists first
 	return mapParamsBool[param];
 }
 
-void Animator::SetBool(std::string param, bool value)
+void Animator::SetBool(const char* param, bool value)
 {
 	mapParamsBool[param] = value;
 }
 
-void Animator::SetFloat(std::string param, float value)
+void Animator::SetFloat(const char* param, float value)
 {
 	mapParamsFloat[param] = value;
 }
 
-void Animator::SetInt(std::string param, int value)
+void Animator::SetInt(const char* param, int value)
 {
 	mapParamsInt[param] = value;
 }

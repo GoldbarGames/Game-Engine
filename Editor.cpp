@@ -1705,7 +1705,7 @@ void Editor::CreateLevelFromString(std::string level)
 			std::string ladderState = tokens[index++];
 			int spriteIndex = std::stoi(tokens[index++]);
 			Ladder* newLadder = game->SpawnLadder(Vector2(positionX, positionY), spriteIndex);
-			newLadder->GetAnimator()->SetState(ladderState);
+			newLadder->GetAnimator()->SetState(ladderState.c_str());
 		}
 		else if (etype == "player")
 		{

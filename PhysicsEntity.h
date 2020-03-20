@@ -70,5 +70,7 @@ public:
 	bool CheckVerticalJumpThru(Entity* their, Game& game);
 
 	bool MoveVerticallyWithParent(Entity* their, Game& game);
+
+	void Jump(Game& game);
 };
 

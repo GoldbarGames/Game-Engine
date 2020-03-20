@@ -50,8 +50,11 @@ Game::Game()
 	Sprite::mesh = CreateSpriteMesh();
 
 	// Initialize the font before all text
-	theFont = TTF_OpenFont("fonts/default.ttf", 20);
-	headerFont = TTF_OpenFont("fonts/default.ttf", 32);
+	const char* fontSourceCodePro = "fonts/source-code-pro/SourceCodePro-Regular.ttf";
+	const char* fontDejaVuSansMono = "fonts/dejavu-sans-mono/DejaVuSansMono.ttf";
+	const char* fontSpaceMono = "fonts/space-mono/SpaceMono-Regular.ttf";
+	theFont = TTF_OpenFont(fontSourceCodePro, 20);
+	headerFont = TTF_OpenFont(fontSourceCodePro, 32);
 
 	soundManager = new SoundManager();
 
@@ -1233,7 +1236,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			switch (event.key.keysym.sym)
 			{
 			case SDLK_ESCAPE:
-				if (!GetModeEdit())
+				if (!GetModeEdit() && !watchingCutscene)
 				{
 					openedMenus.emplace_back(allMenus["Pause"]);
 					Uint32 ticks = SDL_GetTicks();
@@ -1408,7 +1411,7 @@ void Game::Update()
 		{
 			const Uint8* input = SDL_GetKeyboardState(NULL);
 
-			if (input[SDL_SCANCODE_DOWN])
+			if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_RETURN])
 			{
 				cutscene->ReadNextLine();
 			}

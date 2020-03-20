@@ -12,6 +12,11 @@ void* operator new(size_t size)
 	return malloc(size);
 }
 
+void operator delete(void* p)
+{
+	free(p);
+}
+
 int main(int argc, char *args[])
 {
 	Game game;

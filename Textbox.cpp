@@ -2,11 +2,14 @@
 #include "Renderer.h"
 #include "Entity.h"
 
-Textbox::Textbox(SpriteManager * manager, Renderer * renderer)
+Textbox::Textbox(SpriteManager* manager, Renderer* renderer)
 {
 	//TODO: Replace these with the real fonts
-	textFont = TTF_OpenFont("fonts/default.ttf", 24);
-	speakerFont = TTF_OpenFont("fonts/default.ttf", 24);
+	const char* fontSourceCodePro = "fonts/source-code-pro/SourceCodePro-Regular.ttf";
+	const char* fontDejaVuSansMono = "fonts/dejavu-sans-mono/DejaVuSansMono.ttf";
+	const char* fontSpaceMono = "fonts/space-mono/SpaceMono-Regular.ttf";
+	textFont = TTF_OpenFont(fontSourceCodePro, 24);
+	speakerFont = TTF_OpenFont(fontSourceCodePro, 24);
 
 	position = Vector2(1280, 720);
 	boxSprite = new Sprite(0, 0, 1, manager, "assets/gui/textbox.png", 

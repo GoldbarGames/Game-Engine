@@ -118,8 +118,7 @@ bool PhysicsEntity::CheckVerticalJumpThru(Entity* their, Game& game)
 		{
 			if ((!hadPressedJump && pressingJumpButton))
 			{
-				jumpsRemaining--;
-				our->position.y -= JUMP_SPEED * game.dt;
+				Jump(game);
 				PreviousFrameCollisions(game);
 				return true;
 			}
@@ -140,10 +139,9 @@ bool PhysicsEntity::MoveVerticallyWithParent(Entity* their, Game& game)
 	{
 		velocity.y = 0;
 
-		if (canJump)
+		if (canJump) // Jumping off the parent object
 		{			
-			jumpsRemaining--;
-			our->position.y += (JUMP_SPEED * game.dt);
+			Jump(game);
 			return true;
 		}
 		else
@@ -217,7 +215,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	floorBounds.y += 20;
 
 	// 2.5D look
-	const int FLOOR_SIZE = 0;
+	const int FLOOR_SIZE = 16;
 
 	if (standAboveGround)
 		floorBounds.h += FLOOR_SIZE; // (int)(newBoundsVertical.h * 0.25f);
@@ -311,10 +309,10 @@ void PhysicsEntity::CheckCollisions(Game& game)
 					if (useGravity)
 					{
 						velocity.y = 0;
-						//if (standAboveGround)
-						//	position.y = (float)(theirBounds->y - myBounds.h - FLOOR_SIZE - colliderOffset.y);
-						//else
-						//	position.y = (float)(theirBounds->y - myBounds.h - colliderOffset.y);
+						if (standAboveGround)
+							our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - FLOOR_SIZE - our->colliderOffset.y);
+						else
+							our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - our->colliderOffset.y);
 						shouldStickToGround = true;
 					}						
 				}
@@ -361,6 +359,7 @@ void PhysicsEntity::CheckCollisions(Game& game)
 
 	if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0 && wasGrounded)
 	{
+		game.soundManager->PlaySound("se/Jump.wav", 0);
 		jumpsRemaining--;
 		velocity.y = JUMP_SPEED;
 	}
@@ -379,13 +378,11 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	{
 		if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0)
 		{
-			jumpsRemaining--;
-			our->position.y += JUMP_SPEED * game.dt;
-			
+			Jump(game);
 		}
 		else if (!shouldStickToGround)
 		{
-			//if (etype == "player")
+			//if (our->etype == "player")
 			//	std::cout << "position.y += " << velocity.y << " * " << game.dt << std::endl;
 
 			our->position.y += (velocity.y * game.dt);
@@ -397,6 +394,13 @@ void PhysicsEntity::CheckCollisions(Game& game)
 	}
 
 	PreviousFrameCollisions(game);
+}
+
+void PhysicsEntity::Jump(Game& game)
+{
+	game.soundManager->PlaySound("se/Jump.wav", 0);
+	jumpsRemaining--;
+	our->position.y -= JUMP_SPEED * game.dt;
 }
 
 void PhysicsEntity::PreviousFrameCollisions(Game& game)
