@@ -43,11 +43,11 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	else if (name == "Credits")
 	{
 		int startWidth = game.screenWidth / 2;
-		int startHeight = 400;
+		int startHeight = 300;
 		int distance = 60;
 
 		MenuButton* buttonBack = new MenuButton("Back", "assets/gui/menu.png",
-			"Go To Title", Vector2(startWidth, 1200), game);
+			"Go To Title", Vector2(game.screenWidth, 1200), game);
 
 		buttons.emplace_back(buttonBack);
 
@@ -55,23 +55,29 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		Text* creditsHeader = new Text(game.renderer, game.headerFont, "CREDITS", true, true);
 		creditsHeader->SetPosition(game.screenWidth - (creditsHeader->GetTextWidth() / 2), 100);
-		creditsHeader->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
+		creditsHeader->GetSprite()->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(creditsHeader);
 
 		std::vector<string> textLines = { 
-			"Programmer: Anton Strickland (Kinjo)", 
+			"Programming: Kinjo",
 			"Concept Art: Osato", 
 			"Pixel Art: TahYllis",
 			"Music: Solo Acapello", 
 			" ", 
-			"Special thanks to our Twitch and Patreon supporters!", 
-			" ", 
-			" " };
+			"Special thanks to our Patreon and Twitch supporters:", 
+			" ",
+			"Van Kadix, NovelistEzhno, M.E. Hatch, JimmyJDogg,", 
+			"Sajo8, Zephilinox, MrJontel, EminentVirtue" };
 
 		for (unsigned int i = 0; i < textLines.size(); i++)
 		{
+			int offsetX = 400;
+
+			if (i < 4)
+				offsetX = 0;
+
 			Text* textLine = new Text(game.renderer, game.headerFont, textLines[i], true, true);
-			textLine->SetPosition(game.screenWidth - (textLine->GetTextWidth() / 2),
+			textLine->SetPosition(game.screenWidth + offsetX - (textLine->GetTextWidth() / 2),
 				startHeight + (distance * (i + 1)));
 
 			textLine->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
@@ -124,11 +130,10 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		texts.emplace_back(textVersion);
 
 		Entity* titleCharacter = new Entity(Vector2(600, 350));
-		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders["default"], Vector2(222, 370), false));
+		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders["fade-in-out"], Vector2(222, 370), false));
 		titleCharacter->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 		titleCharacter->GetSprite()->keepPositionRelativeToCamera = true;
 		titleCharacter->GetSprite()->keepScaleRelativeToCamera = true;
-		titleCharacter->GetSprite()->SetShader(game.renderer->shaders["fade-in-out"]);
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = new Entity(Vector2(1600, 350));

@@ -21,7 +21,7 @@ Texture* SpriteManager::GetImage(std::string const& imagePath)
 		bool loadFromFile = true;
 
 #if _DEBUG
-		loadFromFile = false;
+		loadFromFile = true;
 #endif
 
 		SDL_Surface * surface;

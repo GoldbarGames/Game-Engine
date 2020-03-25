@@ -48,21 +48,6 @@ void Ladder::OnTriggerExit(Entity* other, Game& game)
 void Ladder::Render(Renderer * renderer, GLuint uniformModel)
 {
 	Entity::Render(renderer);
-	//collider.CalculateCollider(position, Vector2(0,0)); // calculate here for next update frame
-
-	if (GetModeDebug())
-	{
-		/*
-		SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 255);
-		SDL_RenderDrawRect(renderer->renderer, currentSprite->GetRect());
-
-		SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-		collider.CalculateCollider(position, Vector2(0,0)); //TODO: better way than calculating this twice?
-
-		SDL_RenderDrawRect(renderer->renderer, collider.collisionBounds);
-		SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-		*/
-	}
 }
 
 const SDL_Rect* Ladder::GetBounds()

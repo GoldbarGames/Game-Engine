@@ -90,39 +90,66 @@ void Player::UpdateNormally(Game& game)
 	animator->SetBool("holdingUp", input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
 	animator->SetBool("holdingDown", input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
 
+	if (currentLadder != nullptr && !physics->hadPressedJump && physics->pressingJumpButton)
+	{
+		GetAnimator()->SetBool("onLadder", false);
+		currentLadder = nullptr;
+	}
+
 	// if we are holding up now and were not before...
-	if (animator->GetBool("holdingUp") && !wasHoldingUp)
+	if (animator->GetBool("holdingUp"))
 	{
 		// if we are in front of a door, ladder, or NPC...
 
-		if (currentNPC != nullptr)
+		// for when up is pressed
+		if (!wasHoldingUp)
 		{
-			game.cutscene->PlayCutscene(currentNPC->cutsceneLabel);
-		}
-		else if (currentGoal != nullptr)
-		{
-			if (currentGoal->isOpen)
+			if (currentNPC != nullptr)
 			{
-				game.goToNextLevel = true;
-				game.nextLevel = currentGoal->nextLevelName;
-				return;
-			}			
+				game.cutscene->PlayCutscene(currentNPC->cutsceneLabel);
+			}
+			else if (currentGoal != nullptr)
+			{
+				if (currentGoal->isOpen)
+				{
+					game.goToNextLevel = true;
+					game.nextLevel = currentGoal->nextLevelName;
+					return;
+				}
+			}
+			else if (currentDoor != nullptr && doorTimer.HasElapsed())
+			{
+				//TODO: Make this look better later
+				SetPosition(currentDoor->GetDestination() + physics->CalcScaledPivot());
+				doorTimer.Start(500);
+			}
+			else if (currentLadder != nullptr)
+			{
+				// TODO: Maybe make this a function or refactor to something better?
+				// TODO: What if there is a door and a ladder at the same spot?
+				if (currentLadder->GetAnimator()->currentState->name != "top")
+				{
+					//std::cout << "ladder 1" << std::endl;
+					physics->velocity.y = 0;
+					physics->velocity.x = 0;
+					animator->SetBool("onLadder", true);
+				}
+			}
 		}
-		else if (currentDoor != nullptr && doorTimer.HasElapsed())
+
+		// for when up is being held
+		if (currentLadder != nullptr)
 		{
-			//TODO: Make this look better later
-			SetPosition(currentDoor->GetDestination() + physics->CalcScaledPivot());
-			doorTimer.Start(500);
-		}
-		else if (currentLadder != nullptr)
-		{
+			//std::cout << "ladder NOT null" << std::endl;
 			// TODO: What if there is a door and a ladder at the same spot?
 			if (currentLadder->GetAnimator()->currentState->name != "top")
 			{
+				//std::cout << "ladder 2" << std::endl;
 				physics->velocity.y = 0;
+				physics->velocity.x = 0;
 				animator->SetBool("onLadder", true);
 			}
-		}
+		}		
 	}
 
 	//TODO: Should we limit the number that can be spawned?
@@ -237,12 +264,12 @@ void Player::GetLadderInput(const Uint8* input)
 	if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
 	{
 		animator->SetBool("climbing", true);
-		physics->velocity.y -= physics->horizontalSpeed;
+		physics->velocity.y -= physics->horizontalSpeed * 0.5f;
 	}
 	else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
 	{
 		animator->SetBool("climbing", true);
-		physics->velocity.y += physics->horizontalSpeed;
+		physics->velocity.y += physics->horizontalSpeed * 0.5f;
 	}
 	else
 	{
@@ -252,13 +279,13 @@ void Player::GetLadderInput(const Uint8* input)
 	if (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A])
 	{
 		animator->SetBool("climbing", true);
-		physics->velocity.x -= physics->horizontalSpeed;
+		physics->velocity.x -= physics->horizontalSpeed * 0.15f;
 		flip = SDL_FLIP_HORIZONTAL;
 	}
 	else if (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D])
 	{
 		animator->SetBool("climbing", true);
-		physics->velocity.x += physics->horizontalSpeed;
+		physics->velocity.x += physics->horizontalSpeed * 0.15f;
 		flip = SDL_FLIP_NONE;
 	}
 	else

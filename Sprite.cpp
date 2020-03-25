@@ -335,6 +335,7 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* rend
 		}
 
 		// Scale
+		// TODO: Remove the enum, just change the scale
 		if (flip != SDL_FLIP_HORIZONTAL)
 		{
 			model = glm::scale(model, glm::vec3(-1 * scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
@@ -345,9 +346,7 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* rend
 			model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
 				scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
 		}
-
-	}
-	
+	}	
 }
 
 void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, glm::vec3 rotation)
@@ -375,9 +374,6 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	// Send the info to the shader
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
-
-	glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
-	glUniform4fv(shader->GetUniformVariable(ShaderVariable::spriteColor), 1, glm::value_ptr(spriteColor));
 
 	if (shader->GetName() == "fade-in-out")
 	{
@@ -452,6 +448,11 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		}
 
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
+	}
+	else
+	{
+		glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
+		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(spriteColor));
 	}
 
 	CalculateModel(position, rotation, renderer, flip);

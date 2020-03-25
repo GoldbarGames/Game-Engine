@@ -53,8 +53,8 @@ Game::Game()
 	const char* fontSourceCodePro = "fonts/source-code-pro/SourceCodePro-Regular.ttf";
 	const char* fontDejaVuSansMono = "fonts/dejavu-sans-mono/DejaVuSansMono.ttf";
 	const char* fontSpaceMono = "fonts/space-mono/SpaceMono-Regular.ttf";
-	theFont = TTF_OpenFont(fontSourceCodePro, 20);
-	headerFont = TTF_OpenFont(fontSourceCodePro, 32);
+	theFont = TTF_OpenFont(fontDejaVuSansMono, 20);
+	headerFont = TTF_OpenFont(fontDejaVuSansMono, 32);
 
 	soundManager = new SoundManager();
 
@@ -1250,7 +1250,7 @@ bool Game::HandleEvent(SDL_Event& event)
 
 #if _DEBUG
 			// NOT IMPLEMENTED YET
-
+				
 			case SDLK_v:
 				pressedSpellButton = true;
 				break;
@@ -1261,8 +1261,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				pressedRightTrigger = true;
 				break;
 
-				// DEVELOPER BUTTONS
-
+			// DEVELOPER BUTTONS
 
 			case SDLK_r:
 				//if (player != nullptr)

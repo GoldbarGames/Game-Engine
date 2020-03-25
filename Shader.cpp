@@ -43,7 +43,7 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     if (!result)
     {
         glGetProgramInfoLog(programID, sizeof(eLog), NULL, eLog);
-        printf("Error linking program: '%s'%\n", eLog);
+        printf("Error linking program: '%s'\n", eLog);
         return;
     }
 
@@ -53,7 +53,7 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     if (!result)
     {
         glGetProgramInfoLog(programID, sizeof(eLog), NULL, eLog);
-        printf("Error validating program: '%s'%\n", eLog);
+        printf("Error validating program: '%s'\n", eLog);
         return;
     }
 
@@ -153,7 +153,7 @@ void ShaderProgram::AddShader(GLuint theProgram, const char* shaderCode, GLenum 
     if (!result)
     {
         glGetShaderInfoLog(theShader, sizeof(eLog), NULL, eLog);
-        printf("Error compiling the  %d shader: '%s'%\n", shaderType, eLog);
+        printf("Error compiling the  %d shader: '%s'\n", shaderType, eLog);
         return;
     }
 

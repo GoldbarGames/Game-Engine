@@ -49,7 +49,7 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	}
 	else if (name == "Language")
 	{
-		optionNames = { "English", "Japanese" };
+		optionNames = { "English" }; //, "Japanese"	
 	}
 	else if (name == "UI Size")
 	{
@@ -93,7 +93,7 @@ void SettingsButton::Render(Renderer* renderer)
 
 void SettingsButton::SetOptionColors(Color color)
 {
-	for (int i = 0; i < options.size(); i++)
+	for (unsigned int i = 0; i < options.size(); i++)
 	{
 		options[i]->SetText(options[i]->txt, color);
 	}
