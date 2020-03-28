@@ -22,6 +22,7 @@
 #include "Camera.h"
 #include "Texture.h"
 
+#include "Logger.h"
 
 #include <string>
 #include <iostream>
@@ -76,6 +77,8 @@ private:
 
 	Mesh* CreateSpriteMesh();
 public:
+
+	Logger* logger;
 
 	// can change resolution, this is base res
 	// TODO: Get this dynamically when the screen res is changed

@@ -62,6 +62,8 @@ Game::Game()
 	cutscene = new CutsceneManager(*this);
 	cutscene->ParseScene();
 
+	logger = new Logger("logs/output.log");
+
 	// Initialize debug stuff
 	renderer->debugSprite = new Sprite(0, 0, 24, 24, spriteManager,
 		"assets/editor/rect-outline.png", renderer->shaders["default"], Vector2(0, 0));

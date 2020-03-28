@@ -22,6 +22,7 @@ se/
 bgm/
 fonts/
 x64/
+logs/
 *.zip
 *.wdk
 *.dll
