@@ -61,7 +61,7 @@ void Player::Update(Game& game)
 	}
 	else
 	{
-		if (!animator->GetBool("isCastingSpell"))
+		if (!castingSpell)
 			UpdateNormally(game);
 	}
 
@@ -75,6 +75,18 @@ void Player::Update(Game& game)
 
 void Player::UpdateAnimator()
 {
+	if (castingDebug && animator->animationTimer.HasElapsed())
+	{
+		animator->SetBool("isCastingDebug", false);
+		castingDebug = false;
+	}
+
+	if (castingSpell && animator->animationTimer.HasElapsed())
+	{
+		animator->SetBool("isCastingSpell", false);
+		castingSpell = false;
+	}
+
 	if (animator != nullptr)
 		animator->Update(this);
 }
@@ -154,14 +166,13 @@ void Player::UpdateNormally(Game& game)
 
 	//TODO: Should we limit the number that can be spawned?
 	//TODO: Add a time limit between shots
-	if (game.pressedDebugButton && missileTimer.HasElapsed())
+	if (game.pressedDebugButton && missileTimer.HasElapsed() && !castingDebug)
 	{
 		CastSpellDebug(game, input);
 	}
-	else if (game.pressedSpellButton && spellTimer.HasElapsed())
+	else if (game.pressedSpellButton && spellTimer.HasElapsed() && !castingSpell)
 	{
-		if (!animator->GetBool("isCastingSpell"))
-			spells[spellIndex]->Cast(game);
+		spells[spellIndex]->Cast(game);
 		// TODO: Reset the spell timer somehow
 	}
 
@@ -195,7 +206,7 @@ void Player::UpdateNormally(Game& game)
 		{
 			GetMoveInput(input);
 		}
-		else if (animator->GetBool("isGrounded"))
+		else if (physics->isGrounded)
 		{
 			physics->velocity.x = 0;
 		}
@@ -214,6 +225,8 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 {
 	if (game.currentEther <= 0)
 		return;
+
+	castingDebug = true;
 
 	Vector2 missilePosition = this->position;
 	//missilePosition.x += (this->currentSprite->GetRect()->w / 2);

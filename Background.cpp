@@ -57,7 +57,7 @@ void Background::Render(Renderer * renderer)
 
 Entity* Background::AddLayer(Vector2 offset, SpriteManager* spriteManager, Renderer* renderer, std::string filepath, int drawOrder, float parallax)
 {
-	Sprite* layer = new Sprite(1, spriteManager, filepath, renderer->shaders["default"], Vector2(0, 0));
+	Sprite* layer = new Sprite(1, spriteManager, filepath, renderer->shaders[ShaderName::Default], Vector2(0, 0));
 	Entity* bg = new BackgroundLayer(offset, parallax);
 	bg->drawOrder = drawOrder;
 	bg->SetSprite(layer);

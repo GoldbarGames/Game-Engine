@@ -7,7 +7,7 @@ protected:
 	Entity* our = nullptr;
 	
 	Vector2 acceleration = Vector2(0, 0);
-	
+
 	
 	std::vector<Entity*> thisFrameCollisions;
 	std::vector<Entity*> prevFrameCollisions;
@@ -18,7 +18,7 @@ public:
 	const float maxHorizontalSpeed = 0.5f;
 	float horizontalSpeed = 0.5f;
 	int jumpsRemaining = 2;
-
+	bool isGrounded = false;
 	unsigned int mass = 1;
 
 	bool hitByPushSpell = false;

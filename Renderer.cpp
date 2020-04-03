@@ -71,7 +71,7 @@ void Renderer::FadeOverlay(const int screenWidth, const int screenHeight)
 	overlaySprite->Render(Vector2(0, 0), this);
 }
 
-void Renderer::CreateShader(const char* shaderName, const char* vertexFilePath, const char* fragmentFilePath)
+void Renderer::CreateShader(const ShaderName shaderName, const char* vertexFilePath, const char* fragmentFilePath)
 {
 	if (shaders[shaderName] != nullptr)
 		delete shaders[shaderName];

@@ -1,7 +1,7 @@
 #include "Shader.h"
 #include "Renderer.h"
 
-ShaderProgram::ShaderProgram(const char* n, const char* vertexFilePath, const char* fragmentFilePath)
+ShaderProgram::ShaderProgram(const ShaderName n, const char* vertexFilePath, const char* fragmentFilePath)
 {
     name = n;
     programID = 0;

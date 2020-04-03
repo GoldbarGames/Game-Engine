@@ -26,12 +26,13 @@ class Renderer;
 class NPC;
 class Path;
 
+enum class EditorText { cursorPositionInScreen, cursorPositionInWorld, currentEditModeLayer, 
+	drawCalls, updateCalls, collisionChecks
+};
 
 class Editor
 {
 private:
-	//SDL_Window* toolbox = nullptr;
-
 	Game* game = nullptr;
 
 	Vector2 tilesheetPosition = Vector2(0, 0);
@@ -88,11 +89,11 @@ public:
 	unsigned int currentButtonPage = 0;
 	int propertyIndex = -1;
 	int GRID_SIZE = 24;
-	std::unordered_map<std::string, Text*> editorText;
+	std::unordered_map<EditorText, Text*> editorText;
 
 	std::string objectMode = "tile";
 
-	Entity * objectPreview = nullptr;
+	Entity* objectPreview = nullptr;
 
 	Text* dialogInput = nullptr;
 	bool showDialogPopup = false;
@@ -115,6 +116,7 @@ public:
 	void SaveLevel(std::string levelName = "");
 	void InitLevelFromFile(std::string levelName);
 	void Render(Renderer* renderer);
+	void RenderDebug(Renderer* renderer);
 	DrawingLayer drawingLayer = BACK;
 
 
@@ -127,6 +129,7 @@ public:
 	void ToggleSpriteMap();
 	void ToggleInspectionMode();
 
+	void CreateEditorText(const EditorText textName, const int x, const int y);
 	void CreateEditorButtons();
 
 	//TODO: Make these return bools, and if true, DoAction()?

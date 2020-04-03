@@ -12,11 +12,12 @@
 class Renderer;
 
 enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, };
+enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha };
 
 class ShaderProgram
 {
 public:
-	ShaderProgram(const char * n, const char* vertexFilePath, const char* fragmentFilePath);
+	ShaderProgram(const ShaderName n, const char* vertexFilePath, const char* fragmentFilePath);
 
 	~ShaderProgram();
 
@@ -32,11 +33,11 @@ public:
 
 	GLuint GetUniformVariable(ShaderVariable variable);
 
-	const std::string& GetName() { return name; }
+	const ShaderName& GetName() { return name; }
 
 private:
 	GLuint programID;
-	std::string name = "";
+	ShaderName name;
 	std::unordered_map<ShaderVariable, GLuint> uniformVariables;
 
 	void CompileShader(const char* vertexCode, const char* fragmentCode);

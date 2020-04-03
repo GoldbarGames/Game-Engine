@@ -72,6 +72,10 @@ void Text::SetFont(TTF_Font* newFont)
 //TODO: Maybe modify this or make another function to pass in a shader?
 void Text::SetText(string text, Color color, Uint32 wrapWidth)
 {
+	// don't do anything if it would result in the same thing
+	if (txt == text && textColor == color)
+		return;
+
 	bool keepScaleRelative = false;
 	bool renderRelative = false;
 
@@ -110,7 +114,7 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 		Texture* textTexture = new Texture(txt.c_str());
 		textTexture->LoadTexture(textSurface);
 
-		textSprite = new Sprite(textTexture, renderer->shaders["gui"]);
+		textSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
 		textSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		textSprite->keepPositionRelativeToCamera = renderRelative;
 
@@ -135,13 +139,13 @@ void Text::Render(Renderer* renderer, Vector2 offset)
 	}
 }
 
-void Text::SetPosition(float x, float y)
+void Text::SetPosition(const float x, const float y)
 {
 	position.x = x;
 	position.y = y;
 }
 
-void Text::SetPosition(int x, int y)
+void Text::SetPosition(const int x, const int y)
 {
 	position.x = (float)x;
 	position.y = (float)y;

@@ -3,7 +3,7 @@
 
 MenuButton::MenuButton(std::string txt, std::string filepath, std::string function, Vector2 pos, Game& game)
 {
-	image = new Sprite(1, game.spriteManager, filepath, game.renderer->shaders["gui"], Vector2(0,0));
+	image = new Sprite(1, game.spriteManager, filepath, game.renderer->shaders[ShaderName::GUI], Vector2(0,0));
 
 	text = new Text(game.renderer, game.theFont);
 	text->SetText(txt);

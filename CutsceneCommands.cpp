@@ -210,7 +210,7 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 	manager->images[imageNumber] = new Entity(pos);
 
 	manager->images[imageNumber]->SetSprite(new Sprite(1, manager->game->spriteManager,
-		filepath, manager->game->renderer->shaders["default"], Vector2(0, 0)));
+		filepath, manager->game->renderer->shaders[ShaderName::Default], Vector2(0, 0)));
 
 	if (isStandingImage)
 	{
@@ -299,8 +299,9 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 	}
 	else if (spriteProperty == "shader")
 	{	
-		if (manager->game->renderer->shaders[parameters[3]] != nullptr)
-			sprite->shader = manager->game->renderer->shaders[parameters[3]];
+		//TODO: Fix this so that it works with enums
+		//if (manager->game->renderer->GetShaderFromString(parameters[3]) != nullptr)
+		//	sprite->shader = manager->game->renderer->GetShaderFromString(parameters[3]);
 		//TODO: Log and display error if cannot find shader?
 	}
 

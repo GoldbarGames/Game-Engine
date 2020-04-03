@@ -130,14 +130,14 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		texts.emplace_back(textVersion);
 
 		Entity* titleCharacter = new Entity(Vector2(600, 350));
-		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders["fade-in-out"], Vector2(222, 370), false));
+		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders[ShaderName::FadeInOut], Vector2(222, 370), false));
 		titleCharacter->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 		titleCharacter->GetSprite()->keepPositionRelativeToCamera = true;
 		titleCharacter->GetSprite()->keepScaleRelativeToCamera = true;
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = new Entity(Vector2(1600, 350));
-		titleLogo->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png", game.renderer->shaders["default"], Vector2(320, 137), false));
+		titleLogo->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png", game.renderer->shaders[ShaderName::Default], Vector2(320, 137), false));
 		titleLogo->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
 		titleLogo->GetSprite()->keepPositionRelativeToCamera = true;
 		titleLogo->GetSprite()->keepScaleRelativeToCamera = true;
@@ -249,7 +249,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		selectedButton = buttons[0];
 		selectedButton->isSelected = true;
 		if (selectedButton->image != nullptr)
-			selectedButton->image->SetShader(game.renderer->shaders["glow"]);
+			selectedButton->image->SetShader(game.renderer->shaders[ShaderName::Glow]);
 	}		
 }
 
@@ -312,9 +312,9 @@ bool MenuScreen::Update(Game& game)
 	if (selectedButton != lastButton)
 	{
 		if (selectedButton->image != nullptr)
-			selectedButton->image->SetShader(game.renderer->shaders["glow"]);
+			selectedButton->image->SetShader(game.renderer->shaders[ShaderName::Glow]);
 		if (lastButton->image != nullptr)
-			lastButton->image->SetShader(game.renderer->shaders["default"]);
+			lastButton->image->SetShader(game.renderer->shaders[ShaderName::Default]);
 	}
 
 	return (lastButton->pressedAnyKey);

@@ -10,6 +10,7 @@
 
 class Sprite;
 
+
 class Renderer
 {
 private:
@@ -34,13 +35,13 @@ public:
 	Vector2 CalculateScale(Sprite* sourceSprite, Sprite* targetSprite);
 	Vector2 screenScale = Vector2(1, 1);
 
-	std::unordered_map<std::string, ShaderProgram*> shaders;
+	std::unordered_map<ShaderName, ShaderProgram*> shaders;
 	
 	void FadeOverlay(const int screenWidth, const int screenHeight);
 	void ToggleVisibility(DrawingLayer layer);
 	bool IsVisible(DrawingLayer layer);
 
-	void CreateShader(const char* shaderName, const char* vertexFilePath, const char* fragmentFilePath);
+	void CreateShader(const ShaderName shaderName, const char* vertexFilePath, const char* fragmentFilePath);
 
 	Renderer();
 	~Renderer();

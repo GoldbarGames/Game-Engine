@@ -68,7 +68,6 @@ public:
 	Timer nextLetterTimer;
 	CutsceneManager(Game& g);
 	void ParseScene();
-	std::string ParseWord(std::string text, char limit, unsigned int& index);
 	void Update();
 	void Render(Renderer * renderer);
 	SceneLabel * JumpToLabel(std::string newLabelName);

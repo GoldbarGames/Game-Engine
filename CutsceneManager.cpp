@@ -122,28 +122,6 @@ void CutsceneManager::ParseScene()
 	} while (index < data.length());
 }
 
-std::string CutsceneManager::ParseWord(std::string text, char limit, unsigned int& index)
-{
-	std::string word = "";
-
-	if (index >= text.length())
-		return word;
-
-	while (text[index] != limit)
-	{
-		word += text[index];
-		index++;
-
-		if (index >= text.length())
-		{
-			std::cout << "ERROR: Parsing word, index out of range: " + word << std::endl;
-			break;
-		}
-	}
-
-	index++; // move past the space/newline
-	return word;
-}
 
 void CutsceneManager::Render(Renderer * renderer)
 {

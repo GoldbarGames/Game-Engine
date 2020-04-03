@@ -16,20 +16,12 @@ Editor::Editor(Game& g)
 
 	game = &g;
 
-	editorText["cursorPositionInScreen"] = new Text(game->renderer, theFont);
-	editorText["cursorPositionInScreen"]->SetPosition(200, 50);
-	editorText["cursorPositionInScreen"]->SetText("");
-	editorText["cursorPositionInScreen"]->GetSprite()->keepPositionRelativeToCamera = true;
-
-	editorText["cursorPositionInWorld"] = new Text(game->renderer, theFont);
-	editorText["cursorPositionInWorld"]->SetPosition(200, 100);
-	editorText["cursorPositionInWorld"]->SetText("");
-	editorText["cursorPositionInWorld"]->GetSprite()->keepPositionRelativeToCamera = true;
-
-	editorText["currentEditModeLayer"] = new Text(game->renderer, theFont);
-	editorText["currentEditModeLayer"]->SetPosition(200, 200);
-	editorText["currentEditModeLayer"]->SetText("");
-	editorText["currentEditModeLayer"]->GetSprite()->keepPositionRelativeToCamera = true;
+	CreateEditorText(EditorText::cursorPositionInScreen, 200, 50);
+	CreateEditorText(EditorText::cursorPositionInWorld, 200, 100);
+	CreateEditorText(EditorText::currentEditModeLayer, 200, 200);
+	CreateEditorText(EditorText::drawCalls, 200, 300);
+	CreateEditorText(EditorText::updateCalls, 200, 400);
+	CreateEditorText(EditorText::collisionChecks, 200, 500);
 
 	dialogText = new Text(game->renderer, theFont, "");
 	dialogInput = new Text(game->renderer, theFont, "");
@@ -62,6 +54,14 @@ Editor::Editor(Game& g)
 Editor::~Editor()
 {
 
+}
+
+void Editor::CreateEditorText(const EditorText textName, const int x, const int y)
+{
+	editorText[textName] = new Text(game->renderer, theFont);
+	editorText[textName]->SetPosition(x, y);
+	editorText[textName]->SetText("");
+	editorText[textName]->GetSprite()->keepPositionRelativeToCamera = true;
 }
 
 void Editor::CreateEditorButtons()
@@ -134,7 +134,7 @@ void Editor::StartEdit()
 		{
 			tilesheetSprites.push_back(new Sprite(1, game->spriteManager,
 				"assets/tiles/" + tilesheetFilenames[i] + ".png",
-				game->renderer->shaders["noalpha"], Vector2(0, 0)));
+				game->renderer->shaders[ShaderName::NoAlpha], Vector2(0, 0)));
 
 			tilesheetSprites[i]->keepPositionRelativeToCamera = true;
 			tilesheetSprites[i]->keepScaleRelativeToCamera = true;
@@ -1010,15 +1010,15 @@ void Editor::HandleEdit()
 	objPreviewPosition = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
 
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
-	editorText["cursorPositionInScreen"]->SetText("Mouse Screen: " + clickedText);
-	editorText["cursorPositionInScreen"]->GetSprite()->keepScaleRelativeToCamera = true;
+	editorText[EditorText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);
+	editorText[EditorText::cursorPositionInScreen]->GetSprite()->keepScaleRelativeToCamera = true;
 
 	glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
 	glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
 
 	std::string clickedText2 = std::to_string((int)spawnPos.x) + " " + std::to_string((int)spawnPos.y);
-	editorText["cursorPositionInWorld"]->SetText("Mouse World: " + clickedText2);
-	editorText["cursorPositionInWorld"]->GetSprite()->keepScaleRelativeToCamera = true;
+	editorText[EditorText::cursorPositionInWorld]->SetText("Mouse World: " + clickedText2);
+	editorText[EditorText::cursorPositionInWorld]->GetSprite()->keepScaleRelativeToCamera = true;
 
 	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 	{
@@ -1292,8 +1292,8 @@ void Editor::ToggleObjectMode(std::string mode)
 		objectMode = mode;
 	}
 
-	editorText["currentEditModeLayer"]->SetText("Active Mode: " + objectMode);
-	editorText["currentEditModeLayer"]->GetSprite()->keepScaleRelativeToCamera = true;
+	editorText[EditorText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
+	editorText[EditorText::currentEditModeLayer]->GetSprite()->keepScaleRelativeToCamera = true;
 }
 
 void Editor::ToggleGridSize()
@@ -1321,7 +1321,7 @@ void Editor::ToggleInspectionMode()
 		selectedEntity = nullptr;
 	}
 
-	editorText["currentEditModeLayer"]->SetText("Active Mode: " + objectMode);
+	editorText[EditorText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
 	//inspectionMode = !inspectionMode;
 }
 
@@ -1363,6 +1363,20 @@ void Editor::DrawGrid()
 	}
 
 	//SDL_SetRenderDrawColor(game->renderer->renderer, 0, 0, 0, 255);
+}
+void Editor::RenderDebug(Renderer* renderer)
+{
+	editorText[EditorText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer->drawCallsPerFrame));
+	editorText[EditorText::drawCalls]->GetSprite()->keepScaleRelativeToCamera = true;
+	editorText[EditorText::drawCalls]->Render(renderer);
+
+	editorText[EditorText::updateCalls]->SetText("Update Calls: " + std::to_string(game->updateCalls));
+	editorText[EditorText::updateCalls]->GetSprite()->keepScaleRelativeToCamera = true;
+	editorText[EditorText::updateCalls]->Render(renderer);
+
+	editorText[EditorText::collisionChecks]->SetText("Collision Checks: " + std::to_string(game->collisionChecks));
+	editorText[EditorText::collisionChecks]->GetSprite()->keepScaleRelativeToCamera = true;
+	editorText[EditorText::collisionChecks]->Render(renderer);
 }
 
 void Editor::Render(Renderer* renderer)
@@ -1476,8 +1490,8 @@ void Editor::Render(Renderer* renderer)
 	}	
 
 	// Draw text
-	editorText["cursorPositionInScreen"]->Render(renderer);
-	editorText["cursorPositionInWorld"]->Render(renderer);
+	editorText[EditorText::cursorPositionInScreen]->Render(renderer);
+	editorText[EditorText::cursorPositionInWorld]->Render(renderer);
 
 	// Draw all buttons
 	for (unsigned int i = 0; i < buttons.size(); i++)
@@ -1758,8 +1772,10 @@ void Editor::CreateLevelFromString(std::string level)
 		}
 		else if (etype == "cutscene-start")
 		{
+#if _RELEASE
 			const std::string label = tokens[index++];
 			game->levelStartCutscene = label;
+#endif
 		}
 		else if (etype == "path")
 		{

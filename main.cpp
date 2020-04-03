@@ -8,7 +8,8 @@ static unsigned int allocationCount = 0;
 void* operator new(size_t size)
 {
 	allocationCount++;
-	//std::cout << allocationCount << " Allocating " << size << " bytes\n";
+	//if (allocationCount < 1000)
+	//	std::cout << allocationCount << " Allocating " << size << " bytes\n";
 	return malloc(size);
 }
 
@@ -110,7 +111,7 @@ int main(int argc, char *args[])
 
 		if (game.renderer->drawCallsPerFrame != drawCallsLastFrame)
 		{
-			drawCallsLastFrame = game.renderer->drawCallsPerFrame;
+			drawCallsLastFrame = game.renderer->drawCallsPerFrame;			
 			//std::cout << "Draw calls: " << game.renderer->drawCallsPerFrame << std::endl;
 		}	
 

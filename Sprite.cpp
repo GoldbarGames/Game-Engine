@@ -375,10 +375,14 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
 
-	if (shader->GetName() == "fade-in-out")
+	GLfloat fadePoint;
+	glm::vec4 fadeColor;
+
+	switch (shader->GetName())
 	{
-		GLfloat fadePoint = abs(sin(renderer->now / 1000));
-		glm::vec4 fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
+	case ShaderName::FadeInOut:
+		fadePoint = abs(sin(renderer->now / 1000));
+		fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
 
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)		
@@ -409,21 +413,20 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		}
 
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
-	}
-	else if (shader->GetName() == "noalpha")
-	{
+		break;
+	case ShaderName::NoAlpha:
 		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer->now);
-	}
-	else if (shader->GetName() == "glow")
-	{      
-		GLfloat fadePoint = abs(sin(renderer->now / 1000));
-		glm::vec4 fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
+		break;
+	case ShaderName::Glow:
+		fadePoint = abs(sin(renderer->now / 1000));
+		fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
 
 		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer->now);
 
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)
 
+		/*
 		std::string selectedColor = "green";
 
 		if (selectedColor == "red")
@@ -445,14 +448,14 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 		else if (selectedColor == "white")
 		{
 			fadeColor = glm::vec4(1, 1, 1, 1);
-		}
+		}*/
 
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
-	}
-	else
-	{
+		break;
+	default:
 		glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(spriteColor));
+		break;
 	}
 
 	CalculateModel(position, rotation, renderer, flip);

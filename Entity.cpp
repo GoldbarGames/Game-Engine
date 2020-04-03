@@ -142,6 +142,8 @@ void Entity::Unpause(Uint32 ticks)
 
 void Entity::Update(Game& game)
 {	
+	game.updateCalls++;
+
 	if (animator != nullptr)
 		animator->Update(this);
 	

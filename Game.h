@@ -71,7 +71,6 @@ private:
 	const float toRadians = 3.14159265f / 180.0f;
 
 	float now = 0;
-
 	
 	std::unordered_map<std::string, Mesh*> meshes;
 
@@ -80,10 +79,11 @@ public:
 
 	Logger* logger;
 
-	// can change resolution, this is base res
-	// TODO: Get this dynamically when the screen res is changed
 	int screenWidth = 1280;
 	int screenHeight = 720;
+
+	unsigned int collisionChecks = 0;
+	unsigned int updateCalls = 0;
 	
 	std::unordered_map<std::string, std::vector<std::string>> spriteMap;
 

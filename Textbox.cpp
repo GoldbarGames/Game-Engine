@@ -13,7 +13,7 @@ Textbox::Textbox(SpriteManager* manager, Renderer* renderer)
 
 	position = Vector2(1280, 720);
 	boxSprite = new Sprite(0, 0, 1, manager, "assets/gui/textbox.png", 
-		renderer->shaders["gui"], Vector2(0, 0));
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 	boxSprite->keepScaleRelativeToCamera = true;
 	boxSprite->keepPositionRelativeToCamera = true;
 

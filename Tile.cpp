@@ -23,7 +23,7 @@ void Tile::ChangeSprite(Vector2 frame, Texture * image, Renderer * renderer)
 		delete currentSprite;
 	
 	tileCoordinates = frame;
-	currentSprite = new Sprite(frame, image, renderer->shaders["default"]);
+	currentSprite = new Sprite(frame, image, renderer->shaders[ShaderName::Default]);
 }
 
 void Tile::Animate()

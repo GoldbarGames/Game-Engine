@@ -9,6 +9,8 @@ const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 enum DrawingLayer { BACK = 0, MIDDLE = 10, OBJECT = 20, COLLISION = 30, COLLISION2 = 35, FRONT = 40 };
 
 std::string GetDrawingLayerName(DrawingLayer layer);
+std::string ParseWord(const std::string& text, char limit, unsigned int& index);
+std::vector<std::string> SplitString(const std::string& str, char delim);
 
 template<typename T>
 void delete_it(T& v)
