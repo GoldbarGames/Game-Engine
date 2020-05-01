@@ -293,6 +293,9 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer)
 
 void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* renderer, SDL_RendererFlip flip)
 {
+	if (rotation.x >= 89)
+		int test = 0;
+
 	// Only recalculate the model if position, rotation, or scale have changed
 	if (position != lastPosition || rotation != lastRotation || scale != lastScale || keepPositionRelativeToCamera)
 	{
@@ -326,13 +329,16 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* rend
 		}
 
 		// Rotation
+		/*
 		if (!keepPositionRelativeToCamera)
 		{
-			const float toRadians = 3.14159265f / 180.0f;
-			model = glm::rotate(model, rotation.x * toRadians, glm::vec3(-1.0f, 0.0f, 0.0f));
-			model = glm::rotate(model, rotation.y * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
-			model = glm::rotate(model, rotation.z * toRadians, glm::vec3(0.0f, 0.0f, -1.0f));
-		}
+			
+		}*/
+
+		const float toRadians = 3.14159265f / 180.0f;
+		model = glm::rotate(model, rotation.x * toRadians, glm::vec3(-1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, rotation.y * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
+		model = glm::rotate(model, rotation.z * toRadians, glm::vec3(0.0f, 0.0f, -1.0f));
 
 		// Scale
 		// TODO: Remove the enum, just change the scale

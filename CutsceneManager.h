@@ -51,13 +51,14 @@ class CutsceneManager
 	std::string data = "";
 	unsigned int lineIndex = 0;
 	unsigned int letterIndex = 0;
-	unsigned int commandIndex = 0;
+	int commandIndex = 0;
 	std::string currentText = "";
 	SceneLabel * currentLabel = nullptr;
 	CutsceneCommands commands;
 	std::queue<std::string> backlog;
 	int backlogMaxSize = 3;
 public:	 
+	bool watchingCutscene = false;
 	Textbox* textbox = nullptr;
 	Game* game = nullptr;
 	std::unordered_map<unsigned int, Entity*> images;
@@ -70,8 +71,8 @@ public:
 	void ParseScene();
 	void Update();
 	void Render(Renderer * renderer);
-	SceneLabel * JumpToLabel(std::string newLabelName);
-	void PlayCutscene(std::string labelName);
+	SceneLabel * JumpToLabel(const char* newLabelName);
+	void PlayCutscene(const char* labelName);
 	void EndCutscene();
 	void ReadNextLine();
 };

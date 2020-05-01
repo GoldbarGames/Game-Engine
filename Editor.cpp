@@ -1366,6 +1366,8 @@ void Editor::DrawGrid()
 }
 void Editor::RenderDebug(Renderer* renderer)
 {
+	//TODO: Only set each text if the number has changed from last time
+
 	editorText[EditorText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer->drawCallsPerFrame));
 	editorText[EditorText::drawCalls]->GetSprite()->keepScaleRelativeToCamera = true;
 	editorText[EditorText::drawCalls]->Render(renderer);
@@ -1772,10 +1774,10 @@ void Editor::CreateLevelFromString(std::string level)
 		}
 		else if (etype == "cutscene-start")
 		{
-#if _RELEASE
+//#if _RELEASE
 			const std::string label = tokens[index++];
 			game->levelStartCutscene = label;
-#endif
+//#endif
 		}
 		else if (etype == "path")
 		{
@@ -1920,12 +1922,12 @@ void Editor::InitLevelFromFile(std::string levelName)
 		if (levelName == "demo")
 		{
 			if (playOpeningDemoCutscene)
-				game->cutscene->PlayCutscene(game->levelStartCutscene);
+				game->cutscene->PlayCutscene(game->levelStartCutscene.c_str());
 			playOpeningDemoCutscene = false;
 		}
 		else
 		{
-			game->cutscene->PlayCutscene(game->levelStartCutscene);
+			game->cutscene->PlayCutscene(game->levelStartCutscene.c_str());
 		}
 	}
 }

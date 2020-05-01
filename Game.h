@@ -57,6 +57,8 @@
 
 using std::string; 
 
+enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
+
 class Game
 {
 private:
@@ -131,14 +133,15 @@ public:
 	void CheckDeleteEntities();
 
 	void ResetText();
-
-	bool resetLevel = false;
+	 
 
 	Timer timer;
 	Timer fpsLimit;
 	bool limitFPS = false;
+	
+	GameState state;
+	//GameState previousState;
 
-	bool goToNextLevel = false;
 	std::string nextLevel = "";
 
 	Uint32 lastPressedKeyTicks = 0;
@@ -160,7 +163,6 @@ public:
 	Text* bugText = nullptr;
 	Text* etherText = nullptr;
 
-	bool watchingCutscene = false;
 	bool getKeyboardInput = false;
 
 	std::string inputText = "";

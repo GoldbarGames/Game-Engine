@@ -50,11 +50,11 @@ void Player::Update(Game& game)
 	// Also, maybe draw an outline of the death barrier so the player can see where this is
 	if (position.y > 500)
 	{
-		game.resetLevel = true;
+		game.state = GameState::RESET_LEVEL;
 		return;
 	}		
 
-	if (game.watchingCutscene)
+	if (game.cutscene->watchingCutscene)
 	{
 		//TODO: Get input for handling the textbox
 		animator->SetBool("holdingUp",  false);
@@ -118,13 +118,13 @@ void Player::UpdateNormally(Game& game)
 		{
 			if (currentNPC != nullptr)
 			{
-				game.cutscene->PlayCutscene(currentNPC->cutsceneLabel);
+				game.cutscene->PlayCutscene(currentNPC->cutsceneLabel.c_str());
 			}
 			else if (currentGoal != nullptr)
 			{
 				if (currentGoal->isOpen)
 				{
-					game.goToNextLevel = true;
+					game.state = GameState::LOAD_NEXT_LEVEL;
 					game.nextLevel = currentGoal->nextLevelName;
 					return;
 				}

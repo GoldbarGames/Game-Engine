@@ -44,7 +44,7 @@ void CutsceneManager::ParseScene()
 		newLabel->name = ParseWord(data, '*', index);
 		//cout << "Label name: " + newLabel->name;
 
-		std::vector<std::string> tempCommands;
+		std::vector<std::string> commands;
 
 		// Until end of file or new label...
 		while (index < data.length() && data[index] != '*')
@@ -81,15 +81,15 @@ void CutsceneManager::ParseScene()
 
 				// add all commands for this line
 				SceneLine* tempLine = new SceneLine(newText, newName);
-				for (unsigned int i = 0; i < tempCommands.size(); i++)
+				for (unsigned int i = 0; i < commands.size(); i++)
 				{
 					//std::cout << tempCommands[i] << std::endl;
-					tempLine->commands.emplace_back(tempCommands[i]);
+					tempLine->commands.emplace_back(commands[i]);
 				}
 
 				// add the line
 				newLabel->lines.emplace_back(tempLine);
-				tempCommands.clear();
+				commands.clear();
 				index++;
 			}
 			else if (data[index] == ';')
@@ -112,8 +112,24 @@ void CutsceneManager::ParseScene()
 				}
 
 				index++;
-				tempCommands.emplace_back(commandLine);
+				commands.emplace_back(commandLine);
 			}
+		}
+
+		// If we have commands but no line before a new label,
+		// add an empty text to that line
+		if (commands.size() > 0)
+		{
+			SceneLine* tempLine = new SceneLine("", "");
+			for (unsigned int i = 0; i < commands.size(); i++)
+			{
+				//std::cout << tempCommands[i] << std::endl;
+				tempLine->commands.emplace_back(commands[i]);
+			}
+
+			// add the line
+			newLabel->lines.emplace_back(tempLine);
+			commands.clear();
 		}
 
 		// when we encounter a new label, add this one to the list
@@ -125,21 +141,28 @@ void CutsceneManager::ParseScene()
 
 void CutsceneManager::Render(Renderer * renderer)
 {
-	// Render every sprite in the cutscene
-	for (imageIterator = images.begin(); imageIterator != images.end(); imageIterator++)
+	if (watchingCutscene)
 	{
-		if (imageIterator->second != nullptr)
-			imageIterator->second->Render(renderer);
+		// Render every sprite in the cutscene
+		for (imageIterator = images.begin(); imageIterator != images.end(); imageIterator++)
+		{
+			if (imageIterator->second != nullptr)
+				imageIterator->second->Render(renderer);
+		}
+
+		// Render the overlay above all sprites
+		renderer->FadeOverlay(game->screenWidth, game->screenHeight);
+
+		// Render the textbox above everything
+		textbox->Render(renderer, game->screenWidth, game->screenHeight);
 	}
-
-	// Render the overlay above all sprites
-	renderer->FadeOverlay(game->screenWidth, game->screenHeight);
-
-	// Render the textbox above everything
-	textbox->Render(renderer, game->screenWidth, game->screenHeight);
+	else // only draw the overlay, not text or box
+	{
+		renderer->FadeOverlay(game->screenWidth, game->screenHeight);
+	}
 }
 
-SceneLabel* CutsceneManager::JumpToLabel(std::string newLabelName)
+SceneLabel* CutsceneManager::JumpToLabel(const char* newLabelName)
 {
 	for (unsigned int i = 0; i < labels.size(); i++)
 	{
@@ -151,17 +174,17 @@ SceneLabel* CutsceneManager::JumpToLabel(std::string newLabelName)
 	return nullptr;
 }
 
-void CutsceneManager::PlayCutscene(std::string labelName)
+void CutsceneManager::PlayCutscene(const char* labelName)
 {
 	if (labelName != "" && labelName != "null")
 	{
-		game->watchingCutscene = true;
+		watchingCutscene = true;
 
 		currentLabel = JumpToLabel(labelName);
 
 		// if failed to load label, exit cutscenes
 		if (currentLabel == nullptr)
-			game->watchingCutscene = false;
+			watchingCutscene = false;
 
 		lineIndex = -1;
 
@@ -173,7 +196,7 @@ void CutsceneManager::EndCutscene()
 {
 	currentText = "";
 	textbox->text->SetText(currentText);
-	game->watchingCutscene = false;
+	watchingCutscene = false;
 	isCarryingOutCommands = false;
 	isReadingNextLine = false;
 }
@@ -196,11 +219,13 @@ void CutsceneManager::ReadNextLine()
 
 		if (lineIndex >= currentLabel->lines.size())
 		{
-			game->watchingCutscene = false;
+			watchingCutscene = false;
+			//TODO: Maybe instead of ending the cutscene,
+			// go to the next label in sequence?
 		}
 		else
 		{
-			commandIndex = 0;
+			commandIndex = -1;
 			letterIndex = 0;
 			isCarryingOutCommands = true;
 			isReadingNextLine = true;
@@ -219,17 +244,18 @@ void CutsceneManager::Update()
 	//TODO: Fix this, it no longer works properly with the corrected dt
 	timer += (float)game->dt;
 
-	SceneLine* line = currentLabel->lines[lineIndex];
-
 	while (timer > delay)
 	{
 		timer -= delay;
 
 		if (isCarryingOutCommands)
 		{
-			if (commandIndex >= 0 && commandIndex < line->commands.size())
+			if (commandIndex < 0)
+				commandIndex = 0;
+
+			if (commandIndex >= 0 && commandIndex < currentLabel->lines[lineIndex]->commands.size())
 			{				
-				commands.ExecuteCommand(line->commands[commandIndex]);
+				commands.ExecuteCommand(currentLabel->lines[lineIndex]->commands[commandIndex]);
 				commandIndex++;
 			}
 			else
@@ -238,9 +264,56 @@ void CutsceneManager::Update()
 			}
 		}
 		else if (isReadingNextLine)
-		{
-			currentText += line->text[letterIndex];
-			textbox->UpdateText(currentText);
+		{		
+			SceneLine* line = currentLabel->lines[lineIndex];
+			if (line->text[letterIndex] != '[')
+			{
+				currentText += line->text[letterIndex];
+				textbox->UpdateText(currentText);
+			}
+			else // Handle special conditions here, like inserting variables into the text
+			{
+				letterIndex++;
+
+				unsigned int varNameIndex = letterIndex;
+				// Get everything until the next ] symbol
+				std::string word = ParseWord(line->text, ']', letterIndex);
+				
+				// at this point we have the $variablename
+				// so we need to check the first character to get the type
+
+				if (word.length() != 0)
+				{
+					varNameIndex++;
+					std::string variableName = ParseWord(line->text, ']', varNameIndex);
+					std::string variableValue = "";
+					switch (word[0])
+					{
+					case '$': // string
+						variableValue = commands.GetStringVariable(commands.GetNumAlias(variableName));
+						break;
+					case '%': // number
+						variableValue = std::to_string(commands.GetNumberVariable(commands.GetNumAlias(variableName)));
+						break;
+					default:
+						break;
+					}
+
+					//currentText += variableValue;
+
+					//TODO: Make the word appear one letter at a time
+					int valueIndex = 0;
+					while (valueIndex < variableValue.length())
+					{
+						currentText += variableValue[valueIndex];
+						textbox->UpdateText(currentText);
+						valueIndex++;
+					};
+
+					letterIndex--;
+
+				}
+			}
 
 			//nextLetterTimer.Start(lettersPerFrame * delay);
 			letterIndex++;

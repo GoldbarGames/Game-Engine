@@ -922,12 +922,14 @@ void Game::CheckDeleteEntities()
 
 void Game::HandleEditMode()
 {
-	const Uint8* input = SDL_GetKeyboardState(NULL);
+	if (!getKeyboardInput)
+	{
+		const Uint8* input = SDL_GetKeyboardState(NULL);
+		renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
+		renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
 
-	renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
-	renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
-
-	editor->HandleEdit();
+		editor->HandleEdit();
+	}
 }
 
 void Game::EscapeMenu()
@@ -1238,7 +1240,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			switch (event.key.keysym.sym)
 			{
 			case SDLK_ESCAPE:
-				if (!GetModeEdit() && !watchingCutscene)
+				if (!GetModeEdit() && !cutscene->watchingCutscene)
 				{
 					openedMenus.emplace_back(allMenus["Pause"]);
 					Uint32 ticks = SDL_GetTicks();
@@ -1404,7 +1406,7 @@ void Game::Update()
 
 	renderer->Update();
 
-	if (watchingCutscene)
+	if (cutscene->watchingCutscene)
 	{
 		cutscene->Update();
 		
@@ -1511,21 +1513,14 @@ void Game::Render()
 	if (showTimer)
 		timerText->Render(renderer);
 
-	if (currentLevel != "title" && !watchingCutscene)
+	if (currentLevel != "title" && !cutscene->watchingCutscene)
 	{
 		bugText->Render(renderer);
 		//etherText->Render(renderer);
 	}	
 
 	// Draw anything in the cutscenes
-	if (watchingCutscene)
-	{
-		cutscene->Render(renderer);
-	}
-	else
-	{
-		renderer->FadeOverlay(screenWidth, screenHeight);
-	}
+	cutscene->Render(renderer); // includes the overlay
 
 	// Render editor toolbox
 	if (GetModeEdit())

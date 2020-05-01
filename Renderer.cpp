@@ -36,8 +36,7 @@ Vector2 Renderer::CalculateScale(Sprite* sourceSprite, Sprite* targetSprite)
 void Renderer::Update()
 {
 	if (changingOverlayColor && timerOverlayColor.HasElapsed())
-	{
-		timerOverlayColor.Start(1);
+	{		
 		changingOverlayColor = false;
 		UpdateOverlayColor(overlayColor.r, targetColor.r);
 		UpdateOverlayColor(overlayColor.g, targetColor.g);
@@ -45,6 +44,7 @@ void Renderer::Update()
 		UpdateOverlayColor(overlayColor.a, targetColor.a);
 		//std::cout << overlayColor.a << std::endl;
 		//std::cout << timerOverlayColor.GetTicks() << std::endl;
+		timerOverlayColor.Start(1);
 	}
 }
 

@@ -32,7 +32,7 @@ void CutsceneTrigger::OnTriggerEnter(Entity* other)
 	{
 		Player* player = static_cast<Player*>(other);
 		if (player->game != nullptr)
-			player->game->cutscene->PlayCutscene(cutsceneLabel);
+			player->game->cutscene->PlayCutscene(cutsceneLabel.c_str());
 	}
 }
 

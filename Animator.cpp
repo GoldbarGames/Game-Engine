@@ -32,8 +32,6 @@ AnimatorInfo::AnimatorInfo(std::string name)
 	}
 	fin.close();
 
-
-
 	// Read in all the variables for this animator type
 	//TODO: These can probably be inferred from the state machine
 	std::cout << "Reading vars file:" << std::endl;
