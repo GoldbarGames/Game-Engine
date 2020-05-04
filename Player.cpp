@@ -409,5 +409,5 @@ void Player::SetProperty(std::string prop, std::string newValue)
 void Player::Save(std::ostringstream& level)
 {
 	level << std::to_string(id) << " " << etype << " " << startPosition.x << " " << startPosition.y << " " << drawOrder <<
-		" " << layer << " " << impassable << std::endl;
+		" " << (int)layer << " " << impassable << std::endl;
 }

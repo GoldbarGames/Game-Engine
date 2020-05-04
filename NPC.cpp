@@ -95,5 +95,5 @@ void NPC::Save(std::ostringstream& level)
 
 	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << name <<
 		" " << cutsceneLabel << " " << spriteIndex << " " << drawOrder <<
-		" " << layer << " " << impassable << std::endl;
+		" " << (int)layer << " " << impassable << std::endl;
 }

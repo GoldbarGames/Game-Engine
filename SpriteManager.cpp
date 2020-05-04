@@ -21,7 +21,7 @@ Texture* SpriteManager::GetImage(std::string const& imagePath)
 		bool loadFromFile = true;
 
 #if _DEBUG
-		loadFromFile = true;
+		loadFromFile = false;
 #endif
 
 		SDL_Surface * surface;
@@ -31,8 +31,11 @@ Texture* SpriteManager::GetImage(std::string const& imagePath)
 			PHYSFS_file* myfile = PHYSFS_openRead(imagePath.c_str());
 
 			if (myfile == nullptr)
-				myfile = PHYSFS_openRead("assets/gui/white.png");			
-
+			{
+				myfile = PHYSFS_openRead("assets/gui/white.png");
+				std::cout << "FAILED TO LOAD SPRITE: " << imagePath << std::endl;
+			}
+				
 			PHYSFS_sint64  m_size = PHYSFS_fileLength(myfile);
 			uint8_t* m_data = new uint8_t[m_size];
 
@@ -55,7 +58,11 @@ Texture* SpriteManager::GetImage(std::string const& imagePath)
 		{
 			surface = IMG_Load(imagePath.c_str());
 			if (surface == nullptr)
+			{
 				surface = IMG_Load("assets/gui/white.png");
+				std::cout << "FAILED TO LOAD SPRITE: " << imagePath << std::endl;
+			}
+				
 		}	
 
 		Texture* newTexture = new Texture(imagePath.c_str());

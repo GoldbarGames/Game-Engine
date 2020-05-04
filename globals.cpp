@@ -19,7 +19,7 @@ std::vector<std::string> SplitString(const std::string& str, char delim)
 	return strings;
 }
 
-std::string ParseWord(const std::string& text, char limit, unsigned int& index)
+std::string ParseWord(const std::string& text, char limit, int& index)
 {
 	std::string word = "";	
 	size_t length = text.length();

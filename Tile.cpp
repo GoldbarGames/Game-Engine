@@ -68,7 +68,7 @@ void Tile::Save(std::ostringstream& level)
 	if (jumpThru)
 		passableState = 2;
 
-	level << std::to_string(id) << " " << etype << " " << x << " " << y << " " << drawOrder << " " << layer << " " 
+	level << std::to_string(id) << " " << etype << " " << x << " " << y << " " << drawOrder << " " << (int)layer << " " 
 		<< passableState << " " << tilesheetIndex << " " << tileCoordinates.x <<
 		" " << tileCoordinates.y << "" << std::endl;
 }

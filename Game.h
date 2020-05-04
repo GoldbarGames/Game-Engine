@@ -164,6 +164,7 @@ public:
 	Text* etherText = nullptr;
 
 	bool getKeyboardInput = false;
+	bool shouldQuit = false;
 
 	std::string inputText = "";
 	std::string inputType = "";

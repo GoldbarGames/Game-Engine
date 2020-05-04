@@ -26,9 +26,13 @@ public:
 	int SetSpriteProperty(CutsceneParameters parameters);
 	int LoadBackground(CutsceneParameters parameters);
 
+	// Text
+	int LoadText(CutsceneParameters parameters);
+
 	// Sounds
 	int MusicCommand(CutsceneParameters parameters);
 	int SoundCommand(CutsceneParameters parameters);
+	int MusicEffectCommand(CutsceneParameters parameters);
 
 	// Stuff
 	int SetVelocity(CutsceneParameters parameters);
@@ -56,5 +60,18 @@ public:
 	// Control Flow
 	int GoToLabel(CutsceneParameters parameters);
 	int IfCondition(CutsceneParameters parameters);
+	int JumpBack(CutsceneParameters parameters);
+	int JumpForward(CutsceneParameters parameters);
+	int GoSubroutine(CutsceneParameters parameters);
+	int ReturnFromSubroutine(CutsceneParameters parameters);
+
+	int EndGame(CutsceneParameters parameters);
+	int ResetGame(CutsceneParameters parameters);
+	int SaveGame(CutsceneParameters parameters);
+	int LoadGame(CutsceneParameters parameters);
+
+
+
+	int DoNothing(CutsceneParameters parameters);
 };
 

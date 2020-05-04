@@ -43,14 +43,25 @@ public:
 	}
 };
 
+// Use this for returning from a gosub or loading saved data
+struct SceneData
+{
+public:
+	std::string labelName = "";
+	std::string lineText = "";
+	int labelIndex = 0;
+	int lineIndex = 0;
+	int commandIndex = 0;
+};
 
 class CutsceneManager
 {
 	std::vector<SceneLabel*> labels;
 	std::string language = "english";
 	std::string data = "";
-	unsigned int lineIndex = 0;
-	unsigned int letterIndex = 0;
+	int labelIndex = 0;
+	int lineIndex = 0;
+	int letterIndex = 0;
 	int commandIndex = 0;
 	std::string currentText = "";
 	SceneLabel * currentLabel = nullptr;
@@ -75,4 +86,7 @@ public:
 	void PlayCutscene(const char* labelName);
 	void EndCutscene();
 	void ReadNextLine();
+	void ClearAllSprites();
+	void JumpForward();
+	void JumpBack();
 };

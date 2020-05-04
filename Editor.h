@@ -117,7 +117,7 @@ public:
 	void InitLevelFromFile(std::string levelName);
 	void Render(Renderer* renderer);
 	void RenderDebug(Renderer* renderer);
-	DrawingLayer drawingLayer = BACK;
+	DrawingLayer drawingLayer = DrawingLayer::BACK;
 
 
 	EditorButton* clickedButton = nullptr;

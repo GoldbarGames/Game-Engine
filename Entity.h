@@ -46,7 +46,7 @@ public:
 	std::string etype = "entity";
 	int id = 0; //TODO
 	int drawOrder = 0; // order for drawing
-	DrawingLayer layer = FRONT;
+	DrawingLayer layer = DrawingLayer::FRONT;
 
 	// maybe move this to the Tile class
 	int tilesheetIndex = 0;

@@ -26,7 +26,7 @@ public:
 	void FadeInBGM(const std::string& bgm, Uint32 duration, bool loop = true);
 	void FadeOutBGM(Uint32 duration);
 	void SetVolumeBGM(int index);
-	void PlaySound(const std::string& sound, int channel = -1);
+	void PlaySound(const std::string& sound, int channel = -1, int loop = 0);
 	void SetVolumeSound(int index);
 };
 

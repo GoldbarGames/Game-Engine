@@ -41,7 +41,7 @@ AnimatorInfo::AnimatorInfo(std::string name)
 		int i = 1;
 		for (std::string line; std::getline(fin, line); )
 		{
-			unsigned int index = 0;
+			int index = 0;
 			std::string variableType = ParseWord(line, ' ', index);
 			std::string variableName = ParseWord(line, ' ', index);
 
@@ -99,12 +99,12 @@ AnimatorInfo::AnimatorInfo(std::string name)
 					// before moving on to the next one
 				}
 
-				unsigned int index = 1;
+				int index = 1;
 				stateName = ParseWord(line, '*', index);
 			}
 			else
 			{
-				unsigned int index = 0;
+				int index = 0;
 				bool readLine = true;
 
 				std::string nextStateName = ParseWord(line, ':', index);

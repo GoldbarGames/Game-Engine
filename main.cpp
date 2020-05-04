@@ -36,12 +36,10 @@ int main(int argc, char *args[])
 	float timeLeft = updateInterval; // time left before updating
 	int frames = 0; // number of frames counted
 
-	bool quit = false;
-
 	int drawCallsLastFrame = 0;
 	int previousNumberOfFrames = 0;
 
-	while (!quit)
+	while (!game.shouldQuit)
 	{
 		game.renderer->drawCallsPerFrame = 0;
 
@@ -91,7 +89,7 @@ int main(int argc, char *args[])
 			break;
 		}
 
-		quit = game.CheckInputs();
+		game.shouldQuit = game.CheckInputs();
 		game.CheckDeleteEntities();
 
 		if (game.openedMenus.size() > 0)

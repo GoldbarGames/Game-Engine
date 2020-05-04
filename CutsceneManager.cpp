@@ -33,7 +33,7 @@ void CutsceneManager::ParseScene()
 		delete labels[i];
 	labels.clear();
 
-	unsigned int index = 0;
+	int index = 0;
 
 	do
 	{
@@ -162,12 +162,75 @@ void CutsceneManager::Render(Renderer * renderer)
 	}
 }
 
+void CutsceneManager::JumpBack()
+{
+	int label = labelIndex;
+	int line = lineIndex;
+	int cmd = commandIndex;
+
+	bool found = false;
+	
+	while (!found)
+	{
+		std::cout << "Label " << label << ", Line " << line << ", Cmd " << cmd << std::endl;
+		if (label < labels.size() 
+			&& line < labels[label]->lines.size()
+			&& cmd < labels[label]->lines[line]->commands.size()
+			&& labels[label]->lines[line]->commands[cmd][0] == '~')
+		{
+			found = true;
+			currentLabel = JumpToLabel(labels[label]->name.c_str());
+			labelIndex = label;
+			lineIndex = line;
+			commandIndex = cmd;
+		}
+		else
+		{
+			cmd--;
+			if (cmd < 0)
+			{
+				line--;
+				if (line < 0)
+				{
+					label--;
+					if (label < 0)
+						return;
+					line = labels[label]->lines.size() - 1;
+				}
+				cmd = labels[label]->lines[line]->commands.size() - 1;
+			}
+		}
+	}
+
+}
+
+void CutsceneManager::JumpForward()
+{
+	for (unsigned int i = 0; i < labels.size(); i++)
+	{
+		for (unsigned int j = 0; j < labels[i]->lines.size(); j++)
+		{
+			for (unsigned int k = 0; k < labels[i]->lines[j]->commands.size(); k++)
+			{
+				if (labels[i]->lines[j]->commands[k][0] == '~')
+				{
+					currentLabel = JumpToLabel(labels[i]->name.c_str());
+					labelIndex = i;
+					lineIndex = j;
+					commandIndex = k;
+				}
+			}
+		}
+	}
+}
+
 SceneLabel* CutsceneManager::JumpToLabel(const char* newLabelName)
 {
 	for (unsigned int i = 0; i < labels.size(); i++)
 	{
 		if (labels[i]->name == newLabelName)
 		{
+			labelIndex = i;
 			return labels[i];
 		}
 	}
@@ -199,6 +262,25 @@ void CutsceneManager::EndCutscene()
 	watchingCutscene = false;
 	isCarryingOutCommands = false;
 	isReadingNextLine = false;
+}
+
+void CutsceneManager::ClearAllSprites()
+{
+	// Clear all normal sprites
+	unsigned int num = commands.GetNumAlias("l");	
+	if (images[num] != nullptr)
+		delete images[num];
+	images[num] = nullptr;
+
+	num = commands.GetNumAlias("c");
+	if (images[num] != nullptr)
+		delete images[num];
+	images[num] = nullptr;
+
+	num = commands.GetNumAlias("r");
+	if (images[num] != nullptr)
+		delete images[num];
+	images[num] = nullptr;
 }
 
 void CutsceneManager::ReadNextLine()
@@ -275,7 +357,7 @@ void CutsceneManager::Update()
 			{
 				letterIndex++;
 
-				unsigned int varNameIndex = letterIndex;
+				int varNameIndex = letterIndex;
 				// Get everything until the next ] symbol
 				std::string word = ParseWord(line->text, ']', letterIndex);
 				

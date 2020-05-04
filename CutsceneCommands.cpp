@@ -14,18 +14,28 @@ static struct FuncLUT {
 };
 
 std::vector<FuncLUT>cmd_lut = {
+	{"~", &CutsceneCommands::DoNothing},
 	{"add", &CutsceneCommands::AddNumberVariables},
 	{"bg", &CutsceneCommands::LoadBackground },
 	{"bgm", &CutsceneCommands::MusicCommand },
 	{"cl", &CutsceneCommands::ClearSprite },
 	{"div", &CutsceneCommands::DivideNumberVariables},
+	{"end", &CutsceneCommands::EndGame },
 	{"fade", &CutsceneCommands::Fade },
+	{"gosub", &CutsceneCommands::GoSubroutine },
 	{"goto", &CutsceneCommands::GoToLabel },
 	{"if", &CutsceneCommands::IfCondition },
+	{"jumpb", &CutsceneCommands::JumpBack },
+	{"jumpf", &CutsceneCommands::JumpForward },
 	{"ld", &CutsceneCommands::LoadSprite },
+	{"loadgame",&CutsceneCommands::LoadGame },
+	{"me", &CutsceneCommands::MusicEffectCommand},
 	{"mod", &CutsceneCommands::ModNumberVariables},
 	{"mul", &CutsceneCommands::MultiplyNumberVariables},
 	{"numalias", &CutsceneCommands::SetNumAlias },
+	{"reset", &CutsceneCommands::ResetGame },
+	{"return", &CutsceneCommands::ReturnFromSubroutine },
+	{"savegame",&CutsceneCommands::SaveGame },
 	{"se", &CutsceneCommands::SoundCommand },
 	{"set_velocity", &CutsceneCommands::SetVelocity },
 	{"setnumvar", &CutsceneCommands::SetNumberVariable },
@@ -33,6 +43,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"sprite", &CutsceneCommands::SetSpriteProperty },	
 	{"stralias", &CutsceneCommands::SetStringAlias },
 	{"sub", &CutsceneCommands::SubtractNumberVariables},
+	{"text", &CutsceneCommands::LoadText },
 	{"textbox", &CutsceneCommands::Textbox },
 	{"wait",& CutsceneCommands::Wait }
 };
@@ -43,11 +54,12 @@ std::vector<FuncLUT>cmd_lut = {
 // * Jump to labels
 // * If/else control flow, compare strings/numbers/variables
 // For loops, while loops
-// Jump forward/back
+// * Jump forward/back
+// Set sprites/text as buttons
 // Dialogue options / choices
 // Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
 // Playing animations
-// Music effects (ME)
+// * Music effects (ME) - works just like SE but with a loop
 // Save/load?
 // Display text on the screen as a sprite outside the textbox
 // Math functions (abs, sin, cos, tan, etc.)
@@ -55,9 +67,9 @@ std::vector<FuncLUT>cmd_lut = {
 // Timers, set/reset/stop them
 // Randomness/seed
 // Lights and shadows?
-// User-defined functions
+// User-defined functions, gosub (goto and return)
 // Visual Editor, modify cutscene as it is running, replay it
-// Ending the game window / restarting the game window
+// * Ending the game window / restarting the game window
 // Output error logs
 // Changing the file/directory where the script file is read from
 // Change screen resolution / options
@@ -107,6 +119,12 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 	}
 }
 
+int CutsceneCommands::DoNothing(CutsceneParameters parameters)
+{
+	// Do nothing in this function!
+	return 0;
+}
+
 int CutsceneCommands::MusicCommand(CutsceneParameters parameters)
 {
 	//TODO: Deal with custom loop times
@@ -139,12 +157,27 @@ int CutsceneCommands::MusicCommand(CutsceneParameters parameters)
 	return 0;
 }
 
+int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
+{
+	if (parameters[1] == "play")
+	{
+		//TODO: Deal with multiple channels
+		manager->game->soundManager->PlaySound(parameters[2], std::stoi(parameters[3]), -1);
+	}
+	else if (parameters[1] == "volume")
+	{
+		manager->game->soundManager->SetVolumeSound(std::stoi(parameters[2]));
+	}
+
+	return 0;
+}
+
 int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
 {
 	if (parameters[1] == "play")
 	{
 		//TODO: Deal with multiple channels
-		manager->game->soundManager->PlaySound(parameters[2], 1);
+		manager->game->soundManager->PlaySound(parameters[2], std::stoi(parameters[3]));
 	}
 	else if (parameters[1] == "volume")
 	{
@@ -156,154 +189,192 @@ int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
 
 int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 {
-	bool leftHandIsNumber = false;
-	bool rightHandIsNumber = false;
-
-	std::string leftValueStr = "";
-	std::string rightValueStr = "";
-	int leftValueNum = 0;
-	int rightValueNum = 0;
-
-	// 1. First, check the left hand side - is it a string, number, strvar, or numvar?
-	// 2. Then, check the operator (>, >=, <, <=, ==, !=)
-	// 3. Then, check the right hand side - is it a string, number, strvar, or numvar?
-	// 4. If left and right sides are the same type, evaluate the condition
-	// 5. If the condition is true, execute the command that follows it
-
-	switch (parameters[1][0])
-	{
-	case '$': // string variable
-		leftHandIsNumber = false;
-		leftValueStr = GetStringVariable(GetNumAlias(parameters[1]));
-		break;
-	case '%': // number variable
-		leftHandIsNumber = true;
-		leftValueNum = GetNumberVariable(GetNumAlias(parameters[1]));
-		break;
-	default:
-		if (parameters[1].find_first_not_of("-0123456789") == std::string::npos)
-		{
-			leftValueNum = std::stoi(parameters[1]);
-			leftHandIsNumber = true;
-		}
-		else
-		{
-			leftValueStr = parameters[1];
-			leftHandIsNumber = false;
-		}
-			
-		break;
-	}
-
-	switch (parameters[3][0])
-	{
-	case '$': // string variable
-		rightHandIsNumber = false;
-		rightValueStr = GetStringVariable(GetNumAlias(parameters[3]));
-		break;
-	case '%': // number variable
-		rightHandIsNumber = true;
-		rightValueNum = GetNumberVariable(GetNumAlias(parameters[3]));
-		break;
-	default:
-		if (parameters[3].find_first_not_of("-0123456789") == std::string::npos)
-		{
-			rightValueNum = std::stoi(parameters[3]);
-			rightHandIsNumber = true;
-		}			
-		else
-		{
-			rightValueStr = parameters[3];
-			rightHandIsNumber = false;
-		}
-			
-		break;
-	}
-
-	// Don't do any comparison if they are not the same type
-	if (leftHandIsNumber != rightHandIsNumber)
-		return 0;
-
+	int index = 1;
 	bool conditionIsTrue = false;
 
-	if (parameters[2] == ">")
+	do
 	{
-		if (leftHandIsNumber)
-		{
-			conditionIsTrue = (leftValueNum > rightValueNum);
-		}
-		else
-		{
-			conditionIsTrue = (leftValueStr > rightValueStr);
-		}
-	}
-	else if (parameters[2] == ">=")
-	{
-		if (leftHandIsNumber)
-		{
-			conditionIsTrue = (leftValueNum >= rightValueNum);
-		}
-		else
-		{
-			conditionIsTrue = (leftValueStr >= rightValueStr);
-		}
-	}
-	else if (parameters[2] == "<")
-	{
-		if (leftHandIsNumber)
-		{
-			conditionIsTrue = (leftValueNum < rightValueNum);
-		}
-		else
-		{
-			conditionIsTrue = (leftValueStr < rightValueStr);
-		}
-	}
-	else if (parameters[2] == "<=")
-	{
-		if (leftHandIsNumber)
-		{
-			conditionIsTrue = (leftValueNum <= rightValueNum);
-		}
-		else
-		{
-			conditionIsTrue = (leftValueStr <= rightValueStr);
-		}
-	}
-	else if (parameters[2] == "==")
-	{
-		if (leftHandIsNumber)
-		{
-			conditionIsTrue = (leftValueNum == rightValueNum);
-		}
-		else
-		{
-			conditionIsTrue = (leftValueStr == rightValueStr);
-		}
-	}
-	else if (parameters[2] == "!=")
-	{
-		if (leftHandIsNumber)
-		{
-			conditionIsTrue = (leftValueNum != rightValueNum);
-		}
-		else
-		{
-			conditionIsTrue = (leftValueStr != rightValueStr);
-		}
-	}
+		bool leftHandIsNumber = false;
+		bool rightHandIsNumber = false;
 
-	// If the condition is true, execute the following command
-	if (conditionIsTrue)
-	{
-		std::string nextCommand = "";
+		std::string leftValueStr = "";
+		std::string rightValueStr = "";
+		int leftValueNum = 0;
+		int rightValueNum = 0;
 
-		for (int i = 4; i < parameters.size(); i++)
-			nextCommand += (parameters[i] + " ");
+		// 1. First, check the left hand side - is it a string, number, strvar, or numvar?
+		// 2. Then, check the operator (>, >=, <, <=, ==, !=)
+		// 3. Then, check the right hand side - is it a string, number, strvar, or numvar?
+		// 4. If left and right sides are the same type, evaluate the condition
+		// 5. If the condition is true, execute the command that follows it
+		// 6. If there's an &&, repeat for the next condition, and only execute if all true
 
-		ExecuteCommand(nextCommand);
-	}
+		// NOTE: We don't ~really~ need OR because we can just do another IF on the next line
 
+		switch (parameters[index][0])
+		{
+		case '$': // string variable
+			leftHandIsNumber = false;
+			leftValueStr = GetStringVariable(GetNumAlias(parameters[index]));
+			break;
+		case '%': // number variable
+			leftHandIsNumber = true;
+			leftValueNum = GetNumberVariable(GetNumAlias(parameters[index]));
+			break;
+		default:
+			if (parameters[index].find_first_not_of("-0123456789") == std::string::npos)
+			{
+				leftValueNum = std::stoi(parameters[index]);
+				leftHandIsNumber = true;
+			}
+			else
+			{
+				leftValueStr = parameters[index];
+				leftHandIsNumber = false;
+			}
+
+			break;
+		}
+
+		index += 2; // skip the operator
+
+		switch (parameters[index][0])
+		{
+		case '$': // string variable
+			rightHandIsNumber = false;
+			rightValueStr = GetStringVariable(GetNumAlias(parameters[index]));
+			break;
+		case '%': // number variable
+			rightHandIsNumber = true;
+			rightValueNum = GetNumberVariable(GetNumAlias(parameters[index]));
+			break;
+		default:
+			if (parameters[index].find_first_not_of("-0123456789") == std::string::npos)
+			{
+				rightValueNum = std::stoi(parameters[index]);
+				rightHandIsNumber = true;
+			}
+			else
+			{
+				rightValueStr = parameters[index];
+				rightHandIsNumber = false;
+			}
+
+			break;
+		}
+
+		// Don't do any comparison if they are not the same type
+		if (leftHandIsNumber != rightHandIsNumber)
+			return -1;
+
+		index--; // go back to operator
+
+		if (parameters[index] == ">")
+		{
+			if (leftHandIsNumber)
+			{
+				conditionIsTrue = (leftValueNum > rightValueNum);
+			}
+			else
+			{
+				conditionIsTrue = (leftValueStr > rightValueStr);
+			}
+		}
+		else if (parameters[index] == ">=")
+		{
+			if (leftHandIsNumber)
+			{
+				conditionIsTrue = (leftValueNum >= rightValueNum);
+			}
+			else
+			{
+				conditionIsTrue = (leftValueStr >= rightValueStr);
+			}
+		}
+		else if (parameters[index] == "<")
+		{
+			if (leftHandIsNumber)
+			{
+				conditionIsTrue = (leftValueNum < rightValueNum);
+			}
+			else
+			{
+				conditionIsTrue = (leftValueStr < rightValueStr);
+			}
+		}
+		else if (parameters[index] == "<=")
+		{
+			if (leftHandIsNumber)
+			{
+				conditionIsTrue = (leftValueNum <= rightValueNum);
+			}
+			else
+			{
+				conditionIsTrue = (leftValueStr <= rightValueStr);
+			}
+		}
+		else if (parameters[index] == "==")
+		{
+			if (leftHandIsNumber)
+			{
+				conditionIsTrue = (leftValueNum == rightValueNum);
+			}
+			else
+			{
+				conditionIsTrue = (leftValueStr == rightValueStr);
+			}
+		}
+		else if (parameters[index] == "!=")
+		{
+			if (leftHandIsNumber)
+			{
+				conditionIsTrue = (leftValueNum != rightValueNum);
+			}
+			else
+			{
+				conditionIsTrue = (leftValueStr != rightValueStr);
+			}
+		}
+
+		// If the condition is true, check for other conditions
+		if (conditionIsTrue)
+		{
+			index += 2;
+
+			// If all conditions are true, execute the following command
+			if (parameters[index] != "&&")
+			{
+				std::string nextCommand = "";
+				for (int i = index; i < parameters.size(); i++)
+					nextCommand += (parameters[i] + " ");
+
+				ExecuteCommand(nextCommand);
+			}
+			else
+			{
+				conditionIsTrue = false;
+				index++;
+			}
+		}
+		else // else exit, do nothing
+		{
+			return -1;
+		}
+
+	} while (!conditionIsTrue);
+
+
+	return 0;
+}
+
+int CutsceneCommands::GoSubroutine(CutsceneParameters parameters)
+{
+	return 0;
+}
+
+int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
+{
+	return 0;
 }
 
 int CutsceneCommands::GoToLabel(CutsceneParameters parameters)
@@ -319,6 +390,50 @@ int CutsceneCommands::GoToLabel(CutsceneParameters parameters)
 		break;
 	}
 
+	return 0;
+}
+
+int CutsceneCommands::JumpBack(CutsceneParameters parameters)
+{
+	// Search all game states going backwards until we find a ~ in the command list
+	// If not found, do nothing and carry on as normal
+	// Else, jump to that label and set command index to after the ~
+	manager->JumpBack();
+	return 0;
+}
+
+int CutsceneCommands::JumpForward(CutsceneParameters parameters)
+{
+	// Search all game states going forwards until we find a ~ in the command list
+	// If not found, do nothing and carry on as normal
+	// Else, jump to that label and set command index to after the ~
+	manager->JumpForward();
+	return 0;
+}
+
+int CutsceneCommands::EndGame(CutsceneParameters parameters)
+{
+	manager->game->shouldQuit = true;
+	return 0;
+}
+
+int CutsceneCommands::ResetGame(CutsceneParameters parameters)
+{
+	manager->ClearAllSprites();
+	// TODO: Clear BG
+	manager->game->soundManager->StopBGM();
+	// TODO: Stop all sound channels
+	manager->PlayCutscene("start");
+	return 0;
+}
+
+int CutsceneCommands::SaveGame(CutsceneParameters parameters)
+{
+	return 0;
+}
+
+int CutsceneCommands::LoadGame(CutsceneParameters parameters)
+{
 	return 0;
 }
 
@@ -392,7 +507,7 @@ int CutsceneCommands::SetStringVariable(CutsceneParameters parameters)
 	std::string value = parameters[2];
 	if (value[0] == '[')
 	{
-		unsigned int varNameIndex = 1;
+		int varNameIndex = 1;
 		value = ParseWord(value, ']', varNameIndex);
 	}
 	else
@@ -477,22 +592,25 @@ unsigned int CutsceneCommands::GetNumAlias(const std::string& key)
 
 int CutsceneCommands::LoadBackground(CutsceneParameters parameters)
 {
-	std::vector<string> newParameters;
-	newParameters.push_back("");
-	newParameters.push_back(parameters[0]);
-	newParameters.push_back(parameters[1]);
-	LoadSprite(newParameters);
+	LoadSprite({ "", parameters[0], parameters[1] });
 	return 0;
 }
 
 int CutsceneCommands::ClearSprite(CutsceneParameters parameters)
 {
-	unsigned int imageNumber = GetNumAlias(parameters[1]);
+	if (parameters[1] == "a")
+	{
+		manager->ClearAllSprites();
+	}
+	else
+	{
+		unsigned int imageNumber = GetNumAlias(parameters[1]);
 
-	if (manager->images[imageNumber] != nullptr)
-		delete manager->images[imageNumber];
+		if (manager->images[imageNumber] != nullptr)
+			delete manager->images[imageNumber];
 
-	manager->images[imageNumber] = nullptr;
+		manager->images[imageNumber] = nullptr;
+	}
 
 	return 0;
 }
@@ -564,6 +682,8 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 	}
 	else if (parameters[1] == "bg")
 	{
+		manager->ClearAllSprites();
+
 		int halfScreenWidth = ((manager->game->screenWidth * 2) / 2);
 		int spriteY = manager->game->screenHeight;
 
@@ -581,6 +701,11 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
 	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
 
+	return 0;
+}
+
+int CutsceneCommands::LoadText(CutsceneParameters parameters)
+{
 	return 0;
 }
 

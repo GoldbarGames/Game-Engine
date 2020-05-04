@@ -77,7 +77,7 @@ Uint32 SoundManager::GetVolumeBGM()
 	return volumeBGM;
 }
 
-void SoundManager::PlaySound(const std::string& sound, int channel)
+void SoundManager::PlaySound(const std::string& sound, int channel, int loop)
 {
 	// Don't do anything here, to avoid memory leaks
 	if (channel < 0)
@@ -94,7 +94,7 @@ void SoundManager::PlaySound(const std::string& sound, int channel)
 	if (sounds[channel] != nullptr)
 	{
 		Mix_VolumeChunk(sounds[channel], volumeSound);
-		Mix_PlayChannel(channel, sounds[channel], 0);
+		Mix_PlayChannel(channel, sounds[channel], loop);		
 	}
 	else
 	{
