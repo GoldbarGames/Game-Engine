@@ -8,6 +8,7 @@ class Door;
 class Ladder;
 class Renderer;
 class Goal;
+class NPC;
 
 class Player : public Entity
 {

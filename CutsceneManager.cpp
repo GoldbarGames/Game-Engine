@@ -242,7 +242,7 @@ void CutsceneManager::PlayCutscene(const char* labelName)
 	if (labelName != "" && labelName != "null")
 	{
 		watchingCutscene = true;
-
+		textbox->isReading = true;
 		currentLabel = JumpToLabel(labelName);
 
 		// if failed to load label, exit cutscenes
@@ -311,7 +311,13 @@ void CutsceneManager::ReadNextLine()
 			letterIndex = 0;
 			isCarryingOutCommands = true;
 			isReadingNextLine = true;
-			textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker);
+			//textbox->isReading = false;
+
+			// If speaker of this line is same as last, instantly show it
+			if (textbox->speaker->txt == currentLabel->lines[lineIndex]->speaker)
+				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker);
+			else
+				textbox->speaker->SetText("");
 		}
 	}	
 }
@@ -325,6 +331,46 @@ void CutsceneManager::Update()
 
 	//TODO: Fix this, it no longer works properly with the corrected dt
 	timer += (float)game->dt;
+
+	if (waitingForButton && timer > delay)
+	{
+		timer -= delay;
+
+		//TODO: We want to get the mouse/keyboard input here
+		const Uint8* input = SDL_GetKeyboardState(NULL);
+
+		if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
+		{
+			images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 255, 255 };
+			buttonIndex--;
+			if (buttonIndex < 0)
+				buttonIndex = activeButtons.size() - 1;
+			images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 0, 255 };
+		}
+		else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
+		{
+			images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 255, 255 };
+			buttonIndex++;
+			if (buttonIndex >= activeButtons.size())
+				buttonIndex = 0;
+			images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 0, 255 };
+		}
+		else if (input[SDL_SCANCODE_SPACE])
+		{
+			// Return the result in the specified variable and resume reading
+			unsigned int chosenSprite = activeButtons[buttonIndex];
+			commands.numberVariables[buttonResult] = spriteButtons[chosenSprite];
+			waitingForButton = false;
+			isCarryingOutCommands = true;
+			isReadingNextLine = true;
+			activeButtons.clear();
+			textbox->isReading = true;
+		}
+
+		return;
+	}
+
+	textbox->isReading = (timer > 0);
 
 	while (timer > delay)
 	{
@@ -395,6 +441,11 @@ void CutsceneManager::Update()
 					letterIndex--;
 
 				}
+			}
+
+			if (currentText.length() == 1)
+			{
+				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker);
 			}
 
 			//nextLetterTimer.Start(lettersPerFrame * delay);

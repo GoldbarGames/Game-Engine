@@ -18,6 +18,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"add", &CutsceneCommands::AddNumberVariables},
 	{"bg", &CutsceneCommands::LoadBackground },
 	{"bgm", &CutsceneCommands::MusicCommand },
+	{"btnwait", &CutsceneCommands::WaitForButton },
 	{"cl", &CutsceneCommands::ClearSprite },
 	{"div", &CutsceneCommands::DivideNumberVariables},
 	{"end", &CutsceneCommands::EndGame },
@@ -40,6 +41,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"set_velocity", &CutsceneCommands::SetVelocity },
 	{"setnumvar", &CutsceneCommands::SetNumberVariable },
 	{"setstrvar", &CutsceneCommands::SetStringVariable },
+	{"spbtn", &CutsceneCommands::SetSpriteButton},
 	{"sprite", &CutsceneCommands::SetSpriteProperty },	
 	{"stralias", &CutsceneCommands::SetStringAlias },
 	{"sub", &CutsceneCommands::SubtractNumberVariables},
@@ -55,17 +57,19 @@ std::vector<FuncLUT>cmd_lut = {
 // * If/else control flow, compare strings/numbers/variables
 // For loops, while loops
 // * Jump forward/back
-// Set sprites/text as buttons
-// Dialogue options / choices
+
+// * Display text on the screen as an image/entity
+// * Set images as clickable buttons
+// * Dialogue options / choices
+
 // Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
 // Playing animations
 // * Music effects (ME) - works just like SE but with a loop
 // Save/load?
-// Display text on the screen as a sprite outside the textbox
 // Math functions (abs, sin, cos, tan, etc.)
 // Physics functions 
 // Timers, set/reset/stop them
-// Randomness/seed
+// Randomize a variable and re-seed the randomness
 // Lights and shadows?
 // User-defined functions, gosub (goto and return)
 // Visual Editor, modify cutscene as it is running, replay it
@@ -74,6 +78,12 @@ std::vector<FuncLUT>cmd_lut = {
 // Changing the file/directory where the script file is read from
 // Change screen resolution / options
 // Check if a file exists
+
+// Skip button to skip text
+// Log button to read old text
+// Automode with different speeds
+// Adjustable text speed
+// Right-click menu
 
 CutsceneCommands::CutsceneCommands()
 {
@@ -210,16 +220,18 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		// 6. If there's an &&, repeat for the next condition, and only execute if all true
 
 		// NOTE: We don't ~really~ need OR because we can just do another IF on the next line
-
+		std::string word = "";
 		switch (parameters[index][0])
 		{
 		case '$': // string variable
 			leftHandIsNumber = false;
-			leftValueStr = GetStringVariable(GetNumAlias(parameters[index]));
+			word = parameters[index].substr(1, word.size() - 1);
+			leftValueStr = GetStringVariable(GetNumAlias(word));
 			break;
 		case '%': // number variable
 			leftHandIsNumber = true;
-			leftValueNum = GetNumberVariable(GetNumAlias(parameters[index]));
+			word = parameters[index].substr(1, word.size() - 1);
+			leftValueNum = GetNumberVariable(GetNumAlias(word));
 			break;
 		default:
 			if (parameters[index].find_first_not_of("-0123456789") == std::string::npos)
@@ -242,11 +254,13 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		{
 		case '$': // string variable
 			rightHandIsNumber = false;
-			rightValueStr = GetStringVariable(GetNumAlias(parameters[index]));
+			word = parameters[index].substr(1, word.size() - 1);
+			rightValueStr = GetStringVariable(GetNumAlias(word));
 			break;
 		case '%': // number variable
 			rightHandIsNumber = true;
-			rightValueNum = GetNumberVariable(GetNumAlias(parameters[index]));
+			word = parameters[index].substr(1, word.size() - 1);
+			rightValueNum = GetNumberVariable(GetNumAlias(word));
 			break;
 		default:
 			if (parameters[index].find_first_not_of("-0123456789") == std::string::npos)
@@ -374,6 +388,45 @@ int CutsceneCommands::GoSubroutine(CutsceneParameters parameters)
 
 int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 {
+	return 0;
+}
+
+int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
+{
+	// If there are no active buttons, you can't wait for a button
+	if (manager->activeButtons.size() > 0)
+	{
+		// Get the variable number to store the result in
+		if (parameters[1][0] == '%')
+			manager->buttonResult = GetNumberVariable(GetNumAlias(parameters[1]));
+		else
+			manager->buttonResult = GetNumAlias(parameters[1]);
+
+		// Change the state of the game to wait until a button has been pressed
+		manager->waitingForButton = true;
+
+		// Set the first button as highlighted
+		manager->buttonIndex = 0;
+		manager->images[manager->activeButtons[manager->buttonIndex]]->
+			GetSprite()->color = { 255, 255, 0, 255 };
+
+		manager->isCarryingOutCommands = false;
+		manager->isReadingNextLine = true;
+		manager->textbox->isReading = false;
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::SetSpriteButton(CutsceneParameters parameters)
+{
+	unsigned int spriteNumber = GetNumAlias(parameters[1]);
+	unsigned int buttonNumber = GetNumAlias(parameters[2]);
+
+	manager->spriteButtons[spriteNumber] = buttonNumber;
+
+	manager->activeButtons.push_back(spriteNumber);
+
 	return 0;
 }
 
@@ -706,6 +759,40 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 
 int CutsceneCommands::LoadText(CutsceneParameters parameters)
 {
+	Vector2 pos = Vector2(0, 0);
+
+	// text 9 [Hello, world!] 0 0 ;
+	//TODO: Make sure text color works (#)
+	//TODO: Make sure variables work (%, $)
+
+	unsigned int imageNumber = GetNumAlias(parameters[1]);
+
+	const unsigned int x = std::stoi(parameters[2]);
+	const unsigned int y = std::stoi(parameters[3]);
+	pos = Vector2(x, y);
+
+	std::string text = parameters[4];
+	
+	for(int i = 5; i < parameters.size(); i++)
+		text += (" " + parameters[i]);
+
+	//TODO: Don't delete/new, just grab from entity pool and reset
+	if (manager->images[imageNumber] != nullptr)
+		delete manager->images[imageNumber];
+
+	Color textColor = { 255, 255, 255, 255 };
+
+	manager->images[imageNumber] = new Text(manager->game->renderer, 
+		manager->game->theFont, text, textColor);
+
+	manager->images[imageNumber]->SetPosition(pos);
+	manager->images[imageNumber]->drawOrder = imageNumber;
+	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
+	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
+
+	// Color the text yellow when we hover the mouse over it or select with keyboard
+	//manager->images[imageNumber]->GetSprite()->color = { 255, 255, 0, 255 } ;
+
 	return 0;
 }
 
@@ -778,7 +865,7 @@ int CutsceneCommands::Wait(CutsceneParameters parameters)
 {
 	int ms = std::stoi(parameters[1]);
 	manager->timer -= ms;
-
+	manager->textbox->isReading = false;
 	return 0;
 }
 

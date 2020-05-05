@@ -12,8 +12,9 @@ private:
 	std::unordered_map<std::string, std::string> stralias;
 	std::unordered_map<std::string, unsigned int> numalias;
 	std::unordered_map<unsigned int, std::string> stringVariables;
-	std::unordered_map<unsigned int, int> numberVariables;
 public:
+	//TODO: Make this only accessible to the manager
+	std::unordered_map<unsigned int, int> numberVariables;
 	CutsceneManager* manager = nullptr;
 	CutsceneCommands();
 	~CutsceneCommands();
@@ -64,6 +65,9 @@ public:
 	int JumpForward(CutsceneParameters parameters);
 	int GoSubroutine(CutsceneParameters parameters);
 	int ReturnFromSubroutine(CutsceneParameters parameters);
+
+	int WaitForButton(CutsceneParameters parameters);
+	int SetSpriteButton(CutsceneParameters parameters);
 
 	int EndGame(CutsceneParameters parameters);
 	int ResetGame(CutsceneParameters parameters);

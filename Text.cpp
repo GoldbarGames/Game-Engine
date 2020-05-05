@@ -4,22 +4,22 @@
 
 int Text::GetTextWidth() 
 { 
-	if (textSprite != nullptr)
-		return textSprite->texture->GetWidth();
+	if (currentSprite != nullptr)
+		return currentSprite->texture->GetWidth();
 	else
 		return 1;
 }
 
 int Text::GetTextHeight() 
 { 
-	if (textSprite != nullptr)
-		return textSprite->texture->GetHeight();
+	if (currentSprite != nullptr)
+		return currentSprite->texture->GetHeight();
 	else
 		return 1;
 }
 
 //TODO: Refactor these constructors a little bit
-Text::Text(Renderer* newRenderer, TTF_Font* newFont)
+Text::Text(Renderer* newRenderer, TTF_Font* newFont) : Entity(Vector2(0,0))
 {
 	renderer = newRenderer;
 	font = newFont;
@@ -29,7 +29,7 @@ Text::Text(Renderer* newRenderer, TTF_Font* newFont)
 }
 
 Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, 
-	bool relPos, bool relScale)
+	bool relPos, bool relScale) : Entity(Vector2(0, 0))
 {
 	renderer = newRenderer;
 	font = newFont;
@@ -38,14 +38,14 @@ Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt,
 	SetPosition(0, 0);
 	SetText(txt);
 
-	if (textSprite != nullptr)
+	if (currentSprite != nullptr)
 	{
-		textSprite->keepPositionRelativeToCamera = relPos;
-		textSprite->keepScaleRelativeToCamera = relScale;
+		currentSprite->keepPositionRelativeToCamera = relPos;
+		currentSprite->keepScaleRelativeToCamera = relScale;
 	}
 }
 
-Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color)
+Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color) : Entity(Vector2(0, 0))
 {
 	renderer = newRenderer;
 	font = newFont;
@@ -57,10 +57,10 @@ Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color colo
 
 Text::~Text()
 {
-	if (textSprite != nullptr)
+	if (currentSprite != nullptr)
 	{
-		delete_it(textSprite->texture);
-		delete_it(textSprite);
+		delete_it(currentSprite->texture);
+		delete_it(currentSprite);
 	}
 }
 
@@ -79,12 +79,12 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 	bool keepScaleRelative = false;
 	bool renderRelative = false;
 
-	if (textSprite != nullptr)
+	if (currentSprite != nullptr)
 	{
-		renderRelative = textSprite->keepPositionRelativeToCamera;
-		keepScaleRelative = textSprite->keepScaleRelativeToCamera;
-		delete_it(textSprite->texture);
-		delete_it(textSprite);
+		renderRelative = currentSprite->keepPositionRelativeToCamera;
+		keepScaleRelative = currentSprite->keepScaleRelativeToCamera;
+		delete_it(currentSprite->texture);
+		delete_it(currentSprite);
 	}
 
 	textColor = color;
@@ -114,9 +114,9 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 		Texture* textTexture = new Texture(txt.c_str());
 		textTexture->LoadTexture(textSurface);
 
-		textSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
-		textSprite->keepScaleRelativeToCamera = keepScaleRelative;
-		textSprite->keepPositionRelativeToCamera = renderRelative;
+		currentSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
+		currentSprite->keepScaleRelativeToCamera = keepScaleRelative;
+		currentSprite->keepPositionRelativeToCamera = renderRelative;
 
 		if (textSurface != nullptr)
 			SDL_FreeSurface(textSurface);
@@ -125,17 +125,17 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 
 void Text::Render(Renderer* renderer)
 {
-	if (textSprite != nullptr)
+	if (currentSprite != nullptr)
 	{
-		textSprite->Render(position, renderer);
+		currentSprite->Render(position, renderer);
 	}
 }
 
 void Text::Render(Renderer* renderer, Vector2 offset)
 {
-	if (textSprite != nullptr)
+	if (currentSprite != nullptr)
 	{
-		textSprite->Render(position + offset, renderer);
+		currentSprite->Render(position + offset, renderer);
 	}
 }
 

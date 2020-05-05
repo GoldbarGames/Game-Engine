@@ -10,11 +10,8 @@
 #include <unordered_map>
 #include <deque>
 
-#include "Text.h"
 #include "EditorButton.h"
-
 #include "Property.h"
-
 #include "Texture.h"
 
 using std::string;
@@ -25,6 +22,7 @@ class Ladder;
 class Renderer;
 class NPC;
 class Path;
+class Text;
 
 enum class EditorText { cursorPositionInScreen, cursorPositionInWorld, currentEditModeLayer, 
 	drawCalls, updateCalls, collisionChecks

@@ -43,7 +43,7 @@ void Textbox::UpdateText(std::string newText)
 
 void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& screenHeight)
 {
-	if (shouldRender)
+	if (shouldRender && isReading)
 	{
 		string alignmentX = "LEFT";
 		string alignmentY = "TOP";

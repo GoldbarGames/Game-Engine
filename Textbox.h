@@ -19,6 +19,7 @@ public:
 	Text* speaker = nullptr;
 
 	bool shouldRender = true;
+	bool isReading = false;
 	const Uint32 boxWidth = 1140;
 
 	void UpdateText(std::string newText);

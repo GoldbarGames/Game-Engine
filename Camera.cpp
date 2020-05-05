@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include <SDL_scancode.h>
 #include "debug_state.h"
+#include "editor_state.h"
 
 Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, 
 	GLfloat startYaw, GLfloat startPitch, 

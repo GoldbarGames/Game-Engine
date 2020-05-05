@@ -1,14 +1,9 @@
 #pragma once
 #include "SDL.h"
+#include "SDL_ttf.h"
+
 #include "Sprite.h"
 #include "Animator.h"
-#include "Editor.h"
-
-#include "Property.h"
-
-#include "Mesh.h"
-#include "Texture.h"
-#include "Shader.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -16,6 +11,7 @@
 
 class Game;
 class PhysicsEntity;
+class Property;
 
 class Entity
 {

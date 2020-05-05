@@ -237,8 +237,8 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		Text* textHeader = new Text(game.renderer, game.headerFont, "Select a File");
 		textHeader->SetPosition(startWidth - (textHeader->GetTextWidth() / 2), 60);
-		textHeader->textSprite->keepPositionRelativeToCamera = true;
-		textHeader->textSprite->keepScaleRelativeToCamera = true;
+		textHeader->GetSprite()->keepPositionRelativeToCamera = true;
+		textHeader->GetSprite()->keepScaleRelativeToCamera = true;
 		texts.emplace_back(textHeader);
 	}
 

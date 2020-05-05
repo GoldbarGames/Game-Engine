@@ -2,22 +2,25 @@
 #include "SDL.h"
 #include <SDL_ttf.h>
 #include <string>
-#include "globals.h"
-#include "GL/glew.h"
 
+#include "GL/glew.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "Entity.h"
+#include "globals.h"
+
 #include "Texture.h"
 #include "Vector2.h"
+
 
 using std::string;
 
 class Renderer;
 class Sprite;
 
-class Text
+class Text : public Entity
 {
 private:
 	Renderer* renderer;
@@ -27,13 +30,13 @@ public:
 	std::string txt = "ERROR"; // this might get translated
 	Color textColor = { 255, 255, 255, 255 };
 
-	Sprite* textSprite = nullptr;
+	//Sprite* textSprite = nullptr;
 
 	int GetTextWidth();
 	int GetTextHeight();
-	Sprite* GetSprite() { return textSprite; };
+	//Sprite* GetSprite() { return textSprite; };
 
-	Vector2 position = Vector2(0,0);
+	//Vector2 position = Vector2(0,0);
 	Text(Renderer* newRenderer, TTF_Font* newFont);
 	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt,
 		bool relPos = false, bool relScale = false);

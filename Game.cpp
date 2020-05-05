@@ -128,8 +128,8 @@ void Game::ResetText()
 	{
 		fpsText = new Text(renderer, theFont);
 		fpsText->SetText("FPS:");
-		fpsText->textSprite->keepScaleRelativeToCamera = true;
-		fpsText->textSprite->keepPositionRelativeToCamera = true;
+		fpsText->GetSprite()->keepScaleRelativeToCamera = true;
+		fpsText->GetSprite()->keepPositionRelativeToCamera = true;
 	}
 		
 	fpsText->SetText("FPS:");
@@ -139,8 +139,8 @@ void Game::ResetText()
 	{
 		timerText = new Text(renderer, theFont);
 		timerText->SetText("");
-		timerText->textSprite->keepScaleRelativeToCamera = true;
-		timerText->textSprite->keepPositionRelativeToCamera = true;
+		timerText->GetSprite()->keepScaleRelativeToCamera = true;
+		timerText->GetSprite()->keepPositionRelativeToCamera = true;
 	}
 			
 	timerText->SetText("");
@@ -150,8 +150,8 @@ void Game::ResetText()
 	{
 		bugText = new Text(renderer, theFont);
 		bugText->SetText("");
-		bugText->textSprite->keepScaleRelativeToCamera = true;
-		bugText->textSprite->keepPositionRelativeToCamera = true;
+		bugText->GetSprite()->keepScaleRelativeToCamera = true;
+		bugText->GetSprite()->keepPositionRelativeToCamera = true;
 	}
 	
 	bugText->SetText("Bugs Remaining: " + std::to_string(bugsRemaining));
@@ -161,8 +161,8 @@ void Game::ResetText()
 	{
 		etherText = new Text(renderer, theFont);
 		etherText->SetText("");
-		etherText->textSprite->keepScaleRelativeToCamera = true;
-		etherText->textSprite->keepPositionRelativeToCamera = true;
+		etherText->GetSprite()->keepScaleRelativeToCamera = true;
+		etherText->GetSprite()->keepPositionRelativeToCamera = true;
 	}
 		
 	
