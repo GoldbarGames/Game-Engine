@@ -12,6 +12,7 @@ private:
 	std::unordered_map<std::string, std::string> stralias;
 	std::unordered_map<std::string, unsigned int> numalias;
 	std::unordered_map<unsigned int, std::string> stringVariables;
+	std::vector<std::string> userDefinedFunctions; //TODO: Implement these
 public:
 	//TODO: Make this only accessible to the manager
 	std::unordered_map<unsigned int, int> numberVariables;
@@ -57,6 +58,7 @@ public:
 	int MultiplyNumberVariables(CutsceneParameters parameters);
 	int DivideNumberVariables(CutsceneParameters parameters);
 	int ModNumberVariables(CutsceneParameters parameters);
+	int RandomNumberVariable(CutsceneParameters parameters);
 
 	// Control Flow
 	int GoToLabel(CutsceneParameters parameters);

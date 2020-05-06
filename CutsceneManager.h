@@ -55,7 +55,7 @@ public:
 };
 
 class CutsceneManager
-{	
+{
 	std::string language = "english";
 	std::string data = "";
 	int labelIndex = 0;
@@ -67,6 +67,10 @@ class CutsceneManager
 	std::queue<std::string> backlog;
 	int backlogMaxSize = 3;
 public:	 
+	//TODO: Move these button configurations to some place more relevant
+	// This class should have a reference to the controller and get the bindings from it
+	SDL_Scancode skipButton = SDL_Scancode::SDL_SCANCODE_LCTRL;
+	SDL_Scancode autoButton = SDL_Scancode::SDL_SCANCODE_A;
 	std::vector<SceneLabel*> labels;
 	SceneLabel* currentLabel = nullptr;
 	std::vector<SceneData*> gosubStack;
@@ -75,6 +79,12 @@ public:
 	int buttonResult = 0;
 	bool watchingCutscene = false;
 	bool waitingForButton = false;
+	bool automaticallyRead = false;
+	float autoTimeToWait[3] = { 500, 2000, 8000 };
+	int autoTimeIndex = 0;
+	Timer autoReaderTimer;
+	Timer inputTimer;
+	float inputTimeToWait = 100;
 	Textbox* textbox = nullptr;
 	Game* game = nullptr;
 	std::vector<std::string> choiceIfStatements;

@@ -1414,7 +1414,8 @@ void Game::Update()
 		{
 			const Uint8* input = SDL_GetKeyboardState(NULL);
 
-			if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_RETURN])
+			if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_RETURN] || input[cutscene->skipButton] 
+				|| (cutscene->automaticallyRead && cutscene->autoReaderTimer.HasElapsed()))
 			{
 				cutscene->ReadNextLine();
 			}

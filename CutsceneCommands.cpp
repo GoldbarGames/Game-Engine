@@ -35,6 +35,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"mod", &CutsceneCommands::ModNumberVariables},
 	{"mul", &CutsceneCommands::MultiplyNumberVariables},
 	{"numalias", &CutsceneCommands::SetNumAlias },
+	{"random", &CutsceneCommands::RandomNumberVariable },
 	{"reset", &CutsceneCommands::ResetGame },
 	{"return", &CutsceneCommands::ReturnFromSubroutine },
 	{"savegame",&CutsceneCommands::SaveGame },
@@ -69,9 +70,9 @@ std::vector<FuncLUT>cmd_lut = {
 // Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
 // Playing animations
 // Timers, set/reset/stop them
-// Randomize a variable and re-seed the randomness
+// * Randomize a variable and re-seed the randomness
 // User-defined functions (get parameters)
-//* gosub (goto and return)
+// * gosub (goto and return)
 // Change screen resolution / options
 // Check if a file exists
 
@@ -81,9 +82,9 @@ std::vector<FuncLUT>cmd_lut = {
 // Change window caption and icon
 // Change location of save data
 // Alpha image effects
-// Skip button to skip text
+// * Skip button to skip text
 // Log button to read old text
-// Automode with different speeds
+// * Automode, adjust automode speeds
 // Adjustable text speed
 // Right-click menu
 // Keyboard input for variables
@@ -176,6 +177,7 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 
 		if (!commandFound)
 		{
+			//TODO: We want to check user-defined functions in here
 			std::cout << "ERROR: Command " << parameters[0] << " not found.";
 		}
 	}
@@ -606,11 +608,19 @@ int CutsceneCommands::ResetGame(CutsceneParameters parameters)
 
 int CutsceneCommands::SaveGame(CutsceneParameters parameters)
 {
+	//TODO: Save all of these to a file:
+
+	// Scene data, string/number variables, object information, user defined functions and aliases, settings, etc.
+	// Possibly could simply this by storing some things that won't change in a config file (functions, aliases)
+
+
 	return 0;
 }
 
 int CutsceneCommands::LoadGame(CutsceneParameters parameters)
 {
+	//TODO: Load everything that was saved from a file
+
 	return 0;
 }
 
@@ -665,6 +675,39 @@ int CutsceneCommands::ModNumberVariables(CutsceneParameters parameters)
 	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
 
 	numberVariables[key] = number1 % number2;
+
+	return 0;
+}
+
+int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
+{
+	if (parameters[1] == "seed")
+	{
+		if (parameters[2] == "time")
+		{
+			srand((int)time(0));
+		}
+		else
+		{
+			srand(GetNumAlias(parameters[2]));
+			//TODO: Seed based on variable input
+		}
+	}
+	else if (parameters[1] == "range")
+	{
+		unsigned int key = GetNumAlias(parameters[2]);
+		unsigned int minNumber = GetNumberVariable(GetNumAlias(parameters[3]));
+		unsigned int maxNumber = GetNumberVariable(GetNumAlias(parameters[4]));
+
+		numberVariables[key] = (rand() % maxNumber) + minNumber;
+	}
+	else // no offset
+	{
+		unsigned int key = GetNumAlias(parameters[1]);
+		unsigned int maxNumber = GetNumberVariable(GetNumAlias(parameters[2]));
+
+		numberVariables[key] = (rand() % maxNumber);
+	}
 
 	return 0;
 }

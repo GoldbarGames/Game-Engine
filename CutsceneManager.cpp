@@ -11,6 +11,8 @@ CutsceneManager::CutsceneManager(Game& g)
 	commands.manager = this;
 
 	nextLetterTimer.Start(1);
+	autoReaderTimer.Start(1);
+	inputTimer.Start(1);
 
 	std::ifstream fin;
 	std::string directory = "data/" + language + "/cutscenes.txt";
@@ -309,6 +311,9 @@ void CutsceneManager::ClearAllSprites()
 
 void CutsceneManager::ReadNextLine()
 {
+	if (waitingForButton)
+		return;
+
 	if (currentLabel != nullptr)
 	{
 		//TODO: keep track of other information such as speaker name, etc.
@@ -351,6 +356,36 @@ void CutsceneManager::Update()
 	//int lettersPerFrame = 2;
 	float delay = 10.0f;
 
+	const Uint8* input = SDL_GetKeyboardState(NULL);
+
+	if (input[autoButton] && inputTimer.HasElapsed())
+	{
+		automaticallyRead = !automaticallyRead;
+		inputTimer.Start(inputTimeToWait);
+	}
+
+	//TODO: Make this more customizable
+	//TODO: Add a delay between letters as well.
+	//TODO: Try to estimate the length of text to match human reading speed
+	if (input[SDL_SCANCODE_0])
+	{
+		autoTimeIndex++;
+		if (autoTimeIndex > 2)
+			autoTimeIndex = 0;
+	}
+	if (input[SDL_SCANCODE_1])
+	{
+		autoTimeIndex = 0;
+	}
+	if (input[SDL_SCANCODE_2])
+	{
+		autoTimeIndex = 1;
+	}
+	if (input[SDL_SCANCODE_3])
+	{
+		autoTimeIndex = 2;
+	}
+		
 	//nextLetterTimer.Start(lettersPerFrame * delay);
 
 	//TODO: Fix this, it no longer works properly with the corrected dt
@@ -361,50 +396,56 @@ void CutsceneManager::Update()
 		timer -= delay;
 
 		//TODO: We want to get the mouse/keyboard input here
-		const Uint8* input = SDL_GetKeyboardState(NULL);
 
-		if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
+		if (inputTimer.HasElapsed())
 		{
-			images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 255, 255 };
-			buttonIndex--;
-			if (buttonIndex < 0)
-				buttonIndex = activeButtons.size() - 1;
-			images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 0, 255 };
-		}
-		else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
-		{
-			images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 255, 255 };
-			buttonIndex++;
-			if (buttonIndex >= activeButtons.size())
-				buttonIndex = 0;
-			images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 0, 255 };
-		}
-		else if (input[SDL_SCANCODE_SPACE])
-		{
-			// Return the result in the specified variable and resume reading
-			unsigned int chosenSprite = activeButtons[buttonIndex];
-			commands.numberVariables[buttonResult] = spriteButtons[chosenSprite];
-			waitingForButton = false;
-			isCarryingOutCommands = true;
-			isReadingNextLine = true;
-			textbox->isReading = true;
-
-			// Remove the sprite buttons from the screen
-			commands.ClearSprite({ "", std::to_string(choiceQuestionNumber)});
-			for (int i = 0; i < activeButtons.size(); i++)
+			if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
 			{
-				commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
+				images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 255, 255 };
+				buttonIndex--;
+				if (buttonIndex < 0)
+					buttonIndex = activeButtons.size() - 1;
+				images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 0, 255 };
+				inputTimer.Start(inputTimeToWait);
 			}
-
-			activeButtons.clear();
-
-			// Evaluate if statements
-			if (choiceIfStatements.size() > 0)
+			else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
 			{
-				for (int i = 0; i < choiceIfStatements.size(); i++)
+				images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 255, 255 };
+				buttonIndex++;
+				if (buttonIndex >= activeButtons.size())
+					buttonIndex = 0;
+				images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 0, 255 };
+				inputTimer.Start(inputTimeToWait);
+			}
+			else if (input[SDL_SCANCODE_SPACE])
+			{
+				// Return the result in the specified variable and resume reading
+				unsigned int chosenSprite = activeButtons[buttonIndex];
+				commands.numberVariables[buttonResult] = spriteButtons[chosenSprite];
+				waitingForButton = false;
+				isCarryingOutCommands = true;
+				isReadingNextLine = true;
+				textbox->isReading = true;
+
+				// Remove the sprite buttons from the screen
+				commands.ClearSprite({ "", std::to_string(choiceQuestionNumber) });
+				for (int i = 0; i < activeButtons.size(); i++)
 				{
-					commands.ExecuteCommand(choiceIfStatements[i]);
+					commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
 				}
+
+				activeButtons.clear();
+
+				// Evaluate if statements
+				if (choiceIfStatements.size() > 0)
+				{
+					for (int i = 0; i < choiceIfStatements.size(); i++)
+					{
+						commands.ExecuteCommand(choiceIfStatements[i]);
+					}
+				}
+
+				inputTimer.Start(inputTimeToWait);
 			}
 		}
 
@@ -412,6 +453,9 @@ void CutsceneManager::Update()
 	}
 
 	textbox->isReading = (timer > 0);
+
+	if (input[skipButton])
+		delay = 0.0f;
 
 	while (timer > delay)
 	{
@@ -496,8 +540,16 @@ void CutsceneManager::Update()
 			{
 				isReadingNextLine = false;
 				//game->player->cutsceneInputTimer.Start(100);
+
+				if (automaticallyRead)
+					autoReaderTimer.Start(autoTimeToWait[autoTimeIndex]);
+			
 				return;
 			}
+		}
+		else if (delay == 0.0f)
+		{
+			break;
 		}
 	}
 	
