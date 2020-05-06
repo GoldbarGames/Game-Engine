@@ -65,6 +65,7 @@ public:
 	int JumpForward(CutsceneParameters parameters);
 	int GoSubroutine(CutsceneParameters parameters);
 	int ReturnFromSubroutine(CutsceneParameters parameters);
+	int DisplayChoice(CutsceneParameters parameters);
 
 	int WaitForButton(CutsceneParameters parameters);
 	int SetSpriteButton(CutsceneParameters parameters);

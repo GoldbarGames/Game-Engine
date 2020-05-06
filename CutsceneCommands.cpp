@@ -19,6 +19,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"bg", &CutsceneCommands::LoadBackground },
 	{"bgm", &CutsceneCommands::MusicCommand },
 	{"btnwait", &CutsceneCommands::WaitForButton },
+	{"choice", &CutsceneCommands::DisplayChoice },
 	{"cl", &CutsceneCommands::ClearSprite },
 	{"div", &CutsceneCommands::DivideNumberVariables},
 	{"end", &CutsceneCommands::EndGame },
@@ -61,29 +62,38 @@ std::vector<FuncLUT>cmd_lut = {
 // * Display text on the screen as an image/entity
 // * Set images as clickable buttons
 // * Dialogue options / choices
+// * Music effects (ME) - works just like SE but with a loop
+// * Ending the game window / restarting the game window
 
+// Save/load?
 // Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
 // Playing animations
-// * Music effects (ME) - works just like SE but with a loop
-// Save/load?
-// Math functions (abs, sin, cos, tan, etc.)
-// Physics functions 
 // Timers, set/reset/stop them
 // Randomize a variable and re-seed the randomness
-// Lights and shadows?
-// User-defined functions, gosub (goto and return)
-// Visual Editor, modify cutscene as it is running, replay it
-// * Ending the game window / restarting the game window
-// Output error logs
-// Changing the file/directory where the script file is read from
+// User-defined functions
+// gosub (goto and return)
 // Change screen resolution / options
 // Check if a file exists
 
+// Change color for menu selection
+// Change placement of textbox, namebox, and image
+// Change font size for textbox, choices, etc.
+// Change window caption and icon
+// Change location of save data
+// Alpha image effects
 // Skip button to skip text
 // Log button to read old text
 // Automode with different speeds
 // Adjustable text speed
 // Right-click menu
+// Keyboard input for variables
+// Global/persistent variables
+
+// Output error logs
+// Math functions (abs, sin, cos, tan, etc.)
+// Changing the file/directory where the script file is read from
+// Physics functions (movement, velocity, acceleration, collision detection)
+// Visual Editor, modify cutscene as it is running, replay it
 
 CutsceneCommands::CutsceneCommands()
 {
@@ -100,6 +110,24 @@ CutsceneCommands::~CutsceneCommands()
 
 void CutsceneCommands::ExecuteCommand(std::string command)
 {
+	// Replace all the bracketed spaces with underscores
+	bool shouldReplace = false;
+	for (int i = 0; i < command.size(); i++)
+	{
+		if (shouldReplace && command[i] == ' ')
+		{
+			command[i] = '_';
+		}
+		else if (command[i] == '[')
+		{
+			shouldReplace = true;
+		}
+		else if (command[i] == ']')
+		{
+			shouldReplace = false;
+		}
+	}
+
 	// Break up the command string into a vector of strings, one word each
 	//TODO: Is this the best way to do this?
 	std::stringstream ss(command);
@@ -111,6 +139,30 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 
 	if (parameters.size() > 0)
 	{
+		// Replace all the bracketed underscores with spaces again
+		shouldReplace = false;
+		for (int i = 0; i < parameters.size(); i++)
+		{
+			shouldReplace = false;
+			for (int k = 0; k < parameters[i].size(); k++)
+			{
+				if (shouldReplace && parameters[i][k] == '_')
+				{
+					parameters[i][k] = ' ';
+				}
+				else if (parameters[i][k] == '[')
+				{
+					shouldReplace = true;
+					parameters[i][k] = ' ';
+				}
+				else if (parameters[i][k] == ']')
+				{
+					shouldReplace = false;
+					parameters[i][k] = ' ';
+				}
+			}
+		}
+
 		bool commandFound = false;
 		for (auto cmd : cmd_lut)
 		{
@@ -362,6 +414,9 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 				for (int i = index; i < parameters.size(); i++)
 					nextCommand += (parameters[i] + " ");
 
+				// If this is from a choice, don't evaluate any more
+				manager->choiceIfStatements.clear();
+
 				ExecuteCommand(nextCommand);
 			}
 			else
@@ -388,6 +443,52 @@ int CutsceneCommands::GoSubroutine(CutsceneParameters parameters)
 
 int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 {
+	return 0;
+}
+
+int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
+{
+	unsigned int numberOfChoices = GetNumAlias(parameters[1]);
+
+	int index = 2;
+	int spriteNumber = manager->choiceQuestionNumber;
+	std::string choiceQuestion = parameters[index];
+
+	int choiceYPos = 100;
+	LoadText({"", std::to_string(spriteNumber), "1280", std::to_string(choiceYPos), choiceQuestion });
+	spriteNumber++;
+
+	manager->choiceIfStatements.clear();
+	
+	for (int i = 0; i < numberOfChoices; i++)
+	{	
+		// Get the text and label for the choice
+		index++;
+		std::string choiceText = parameters[index];
+		index++;
+		std::string choiceLabel = parameters[index];
+
+		// Display the choice as a text sprite on the screen
+		std::string choiceNumber = std::to_string(spriteNumber + i);
+		choiceYPos = 300 + (200 * i);
+		//TODO: Set the width to the center of the screen
+
+		LoadText({"", choiceNumber, "1280",
+			std::to_string(choiceYPos), choiceText });
+
+		// Make the text sprite act as a button
+		SetSpriteButton({ "", choiceNumber , choiceNumber });
+
+		// Wait for button input
+		std::string variableNumber = std::to_string(42);
+		WaitForButton({ "",  variableNumber });
+
+		// Construct the if-statement and store it
+		//if %42 == 21 goto label_left ;
+
+		manager->choiceIfStatements.push_back("if %" + variableNumber + " == " + choiceNumber + " goto " + choiceLabel + " ;");
+	}
+
 	return 0;
 }
 
@@ -774,7 +875,7 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	std::string text = parameters[4];
 	
 	for(int i = 5; i < parameters.size(); i++)
-		text += (" " + parameters[i]);
+		text += (parameters[i]);
 
 	//TODO: Don't delete/new, just grab from entity pool and reset
 	if (manager->images[imageNumber] != nullptr)

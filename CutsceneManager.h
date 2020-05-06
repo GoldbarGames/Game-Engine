@@ -69,12 +69,14 @@ class CutsceneManager
 	std::queue<std::string> backlog;
 	int backlogMaxSize = 3;
 public:	 
+	const int choiceQuestionNumber = 10000;
 	int buttonIndex = 0;
 	int buttonResult = 0;
 	bool watchingCutscene = false;
 	bool waitingForButton = false;
 	Textbox* textbox = nullptr;
 	Game* game = nullptr;
+	std::vector<std::string> choiceIfStatements;
 	std::vector<unsigned int> activeButtons;
 	std::unordered_map<unsigned int, unsigned int> spriteButtons;
 	std::unordered_map<unsigned int, Entity*> images;

@@ -96,7 +96,7 @@ void CutsceneManager::ParseScene()
 			{
 				//TODO: implement comments
 			}
-			else
+			else // we have a command
 			{
 				std::string commandLine = "";
 
@@ -363,8 +363,25 @@ void CutsceneManager::Update()
 			waitingForButton = false;
 			isCarryingOutCommands = true;
 			isReadingNextLine = true;
-			activeButtons.clear();
 			textbox->isReading = true;
+
+			// Remove the sprite buttons from the screen
+			commands.ClearSprite({ "", std::to_string(choiceQuestionNumber)});
+			for (int i = 0; i < activeButtons.size(); i++)
+			{
+				commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
+			}
+
+			activeButtons.clear();
+
+			// Evaluate if statements
+			if (choiceIfStatements.size() > 0)
+			{
+				for (int i = 0; i < choiceIfStatements.size(); i++)
+				{
+					commands.ExecuteCommand(choiceIfStatements[i]);
+				}
+			}
 		}
 
 		return;
