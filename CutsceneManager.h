@@ -55,8 +55,7 @@ public:
 };
 
 class CutsceneManager
-{
-	std::vector<SceneLabel*> labels;
+{	
 	std::string language = "english";
 	std::string data = "";
 	int labelIndex = 0;
@@ -64,11 +63,13 @@ class CutsceneManager
 	int letterIndex = 0;
 	int commandIndex = 0;
 	std::string currentText = "";
-	SceneLabel * currentLabel = nullptr;
 	CutsceneCommands commands;
 	std::queue<std::string> backlog;
 	int backlogMaxSize = 3;
 public:	 
+	std::vector<SceneLabel*> labels;
+	SceneLabel* currentLabel = nullptr;
+	std::vector<SceneData*> gosubStack;
 	const int choiceQuestionNumber = 10000;
 	int buttonIndex = 0;
 	int buttonResult = 0;
@@ -88,12 +89,14 @@ public:
 	CutsceneManager(Game& g);
 	void ParseScene();
 	void Update();
-	void Render(Renderer * renderer);
-	SceneLabel * JumpToLabel(const char* newLabelName);
+	void Render(Renderer* renderer);
+	SceneLabel* JumpToLabel(const char* newLabelName);
 	void PlayCutscene(const char* labelName);
 	void EndCutscene();
 	void ReadNextLine();
 	void ClearAllSprites();
 	void JumpForward();
 	void JumpBack();
+	void PushCurrentSceneDataToStack();
+	SceneData* PopSceneDataFromStack();
 };

@@ -264,6 +264,30 @@ void CutsceneManager::EndCutscene()
 	isReadingNextLine = false;
 }
 
+void CutsceneManager::PushCurrentSceneDataToStack()
+{
+	SceneData* newData = new SceneData();
+	newData->labelIndex = labelIndex;
+	newData->labelName = currentLabel->name;
+	newData->lineIndex = lineIndex;
+	newData->lineText = currentLabel->lines[lineIndex]->text;
+	newData->commandIndex = commandIndex;
+
+	gosubStack.push_back(newData);
+}
+
+SceneData* CutsceneManager::PopSceneDataFromStack()
+{
+	SceneData* data = gosubStack[gosubStack.size() - 1];
+	gosubStack.pop_back();
+
+	labelIndex = data->labelIndex;
+	lineIndex = data->lineIndex;
+	commandIndex = data->commandIndex;
+
+	return data;
+}
+
 void CutsceneManager::ClearAllSprites()
 {
 	// Clear all normal sprites

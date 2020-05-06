@@ -70,8 +70,8 @@ std::vector<FuncLUT>cmd_lut = {
 // Playing animations
 // Timers, set/reset/stop them
 // Randomize a variable and re-seed the randomness
-// User-defined functions
-// gosub (goto and return)
+// User-defined functions (get parameters)
+//* gosub (goto and return)
 // Change screen resolution / options
 // Check if a file exists
 
@@ -438,11 +438,34 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 
 int CutsceneCommands::GoSubroutine(CutsceneParameters parameters)
 {
+	// Save our current spot in the text file
+	manager->PushCurrentSceneDataToStack();
+
+	// Jump to the specified label
+	GoToLabel(parameters);
+
 	return 0;
 }
 
 int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 {
+	SceneData* data = manager->PopSceneDataFromStack();
+
+	// Check the label name to see if it is a variable
+	std::string labelName = data->labelName;
+
+	if (labelName[0] == '$')
+		labelName = GetStringVariable(GetNumAlias(parameters[1]));
+
+	manager->currentLabel = manager->JumpToLabel(labelName.c_str());
+	if (manager->currentLabel == nullptr)
+	{
+		if (data->labelIndex < manager->labels.size())
+			manager->currentLabel = manager->labels[data->labelIndex];
+		else
+			std::cout << "ERROR: Could not find label " << labelName << std::endl;
+	}
+
 	return 0;
 }
 
@@ -593,50 +616,55 @@ int CutsceneCommands::LoadGame(CutsceneParameters parameters)
 
 int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int number1 = GetNumAlias(parameters[1]);
-	unsigned int number2 = GetNumAlias(parameters[2]);
+	unsigned int key = GetNumAlias(parameters[1]);
+	unsigned int number1 = GetNumberVariable(GetNumAlias(parameters[1]));
+	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
 
-	numberVariables[number1] = numberVariables[number1] + numberVariables[number2];
+	numberVariables[key] = number1 + number2;
 
 	return 0;
 }
 
 int CutsceneCommands::SubtractNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int number1 = GetNumAlias(parameters[1]);
-	unsigned int number2 = GetNumAlias(parameters[2]);
+	unsigned int key = GetNumAlias(parameters[1]);
+	unsigned int number1 = GetNumberVariable(GetNumAlias(parameters[1]));
+	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
 
-	numberVariables[number1] = numberVariables[number1] - numberVariables[number2];
+	numberVariables[key] = number1 - number2;
 
 	return 0;
 }
 
 int CutsceneCommands::MultiplyNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int number1 = GetNumAlias(parameters[1]);
-	unsigned int number2 = GetNumAlias(parameters[2]);
+	unsigned int key = GetNumAlias(parameters[1]);
+	unsigned int number1 = GetNumberVariable(GetNumAlias(parameters[1]));
+	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
 
-	numberVariables[number1] = numberVariables[number1] * numberVariables[number2];
+	numberVariables[key] = number1 * number2;
 
 	return 0;
 }
 
 int CutsceneCommands::DivideNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int number1 = GetNumAlias(parameters[1]);
-	unsigned int number2 = GetNumAlias(parameters[2]);
+	unsigned int key = GetNumAlias(parameters[1]);
+	unsigned int number1 = GetNumberVariable(GetNumAlias(parameters[1]));
+	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
 
-	numberVariables[number1] = numberVariables[number1] / numberVariables[number2];
+	numberVariables[key] = number1 / number2;
 
 	return 0;
 }
 
 int CutsceneCommands::ModNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int number1 = GetNumAlias(parameters[1]);
-	unsigned int number2 = GetNumAlias(parameters[2]);
+	unsigned int key = GetNumAlias(parameters[1]);
+	unsigned int number1 = GetNumberVariable(GetNumAlias(parameters[1]));
+	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
 
-	numberVariables[number1] = numberVariables[number1] % numberVariables[number2];
+	numberVariables[key] = number1 % number2;
 
 	return 0;
 }
@@ -677,7 +705,7 @@ int CutsceneCommands::GetNumberVariable(const unsigned int key)
 {
 	if (numberVariables.find(key) == numberVariables.end())
 	{
-		return 0;
+		return key;
 	}
 	else
 	{
