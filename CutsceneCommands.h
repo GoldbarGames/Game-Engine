@@ -8,12 +8,12 @@ class CutsceneManager;
 typedef const std::vector<std::string>& CutsceneParameters;
 class CutsceneCommands
 {
-private:
+public:
 	std::unordered_map<std::string, std::string> stralias;
 	std::unordered_map<std::string, unsigned int> numalias;
 	std::unordered_map<unsigned int, std::string> stringVariables;
 	std::vector<std::string> userDefinedFunctions; //TODO: Implement these
-public:
+
 	//TODO: Make this only accessible to the manager
 	std::unordered_map<unsigned int, int> numberVariables;
 	CutsceneManager* manager = nullptr;
@@ -30,6 +30,7 @@ public:
 
 	// Text
 	int LoadText(CutsceneParameters parameters);
+	int TextColor(CutsceneParameters parameters);
 
 	// Sounds
 	int MusicCommand(CutsceneParameters parameters);

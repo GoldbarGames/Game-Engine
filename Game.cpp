@@ -1429,6 +1429,15 @@ void Game::Update()
 			{
 				//cutscene->textbox->Test();
 			}
+			else if (input[SDL_SCANCODE_S]) // save game
+			{
+				cutscene->SaveGame();
+			}
+			else if (input[SDL_SCANCODE_L]) // load game
+			{
+				cutscene->LoadGame();
+				cutscene->ReadNextLine();
+			}
 		}
 		else
 		{

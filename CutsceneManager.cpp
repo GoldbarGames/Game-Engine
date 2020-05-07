@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "Game.h"
 #include "globals.h"
+#include <iterator>
 
 CutsceneManager::CutsceneManager(Game& g)
 {
@@ -13,6 +14,8 @@ CutsceneManager::CutsceneManager(Game& g)
 	nextLetterTimer.Start(1);
 	autoReaderTimer.Start(1);
 	inputTimer.Start(1);
+
+	namesToColors[""] = currentColor;
 
 	std::ifstream fin;
 	std::string directory = "data/" + language + "/cutscenes.txt";
@@ -342,6 +345,8 @@ void CutsceneManager::ReadNextLine()
 			isReadingNextLine = true;
 			//textbox->isReading = false;
 
+			currentColor = namesToColors[currentLabel->lines[lineIndex]->speaker];
+
 			// If speaker of this line is same as last, instantly show it
 			if (textbox->speaker->txt == currentLabel->lines[lineIndex]->speaker)
 				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker);
@@ -482,7 +487,7 @@ void CutsceneManager::Update()
 			if (line->text[letterIndex] != '[')
 			{
 				currentText += line->text[letterIndex];
-				textbox->UpdateText(currentText);
+				textbox->UpdateText(currentText, currentColor);
 			}
 			else // Handle special conditions here, like inserting variables into the text
 			{
@@ -519,7 +524,7 @@ void CutsceneManager::Update()
 					while (valueIndex < variableValue.length())
 					{
 						currentText += variableValue[valueIndex];
-						textbox->UpdateText(currentText);
+						textbox->UpdateText(currentText, currentColor);
 						valueIndex++;
 					};
 
@@ -551,6 +556,182 @@ void CutsceneManager::Update()
 		{
 			break;
 		}
-	}
+	}	
+}
+
+
+
+void CutsceneManager::SaveGame()
+{
+	std::ofstream fout;
+
+	// 1. Save the scene data (label, line, command)
+	//TODO: Make sure to save the gosub stack as well
+	fout.open("saves/test.sav");
 	
+	fout << currentLabel->name << std::endl;
+	fout << "text" << std::endl;
+	//fout << currentLabel->lines[lineIndex]->text << std::endl;
+	fout << labelIndex << std::endl;
+	fout << lineIndex << std::endl;
+	fout << commandIndex << std::endl;
+
+	fout.close();
+
+	// 2. Save string variables (keys and values)
+	fout.open("saves/strvars.sav");
+	for (auto const& var : commands.stringVariables)
+	{
+		fout << var.first  // key
+			<< " "
+			<< var.second  // value 
+			<< std::endl;
+	}
+	fout.close();
+
+	// 3. Save number variables (keys and values)
+	fout.open("saves/numvars.sav");
+	for (auto const& var : commands.numberVariables)
+	{
+		fout << var.first  // key
+			<< " "
+			<< var.second  // value 
+			<< std::endl;
+	}
+	fout.close();
+
+	// 4. Save string aliases (keys and values)
+	fout.open("saves/stralias.sav");
+	for (auto const& var : commands.stralias)
+	{
+		fout << var.first  // key
+			<< " "
+			<< var.second  // value 
+			<< std::endl;
+	}
+	fout.close();
+
+	// 5. Save number aliases (keys and values)
+	fout.open("saves/numalias.sav");
+	for (auto const& var : commands.numalias)
+	{
+		fout << var.first  // key
+			<< " "
+			<< var.second  // value 
+			<< std::endl;
+	}
+	fout.close();
+
+	// 6. Save object information (sprite number, filepath/text, position, rotation, color, etc.)
+	fout.open("saves/objects.sav");
+	for (auto const& var : images)
+	{
+		Entity* entity = var.second;
+
+		if (var.second != nullptr)
+		{
+			fout << var.first  // key
+				<< " "
+				<< entity->GetSprite()->filename
+				<< " "
+				<< entity->position.x
+				<< " "
+				<< entity->position.y
+				<< " "
+				<< entity->rotation.x
+				<< " "
+				<< entity->rotation.y
+				<< " "
+				<< entity->rotation.z
+				<< std::endl;
+		}
+	}
+	fout.close();
+
+	// 7. Save other important things (random seed, music volume, textbox color, etc.)
+	fout.open("saves/textcolors.sav");
+	for (auto const& var : namesToColors)
+	{
+		fout << var.first  // key
+			<< " "
+			<< var.second.r 
+			<< " "
+			<< var.second.g
+			<< " "
+			<< var.second.b
+			<< " "
+			<< var.second.a
+			<< std::endl;
+	}
+	fout.close();
+
+}
+
+void CutsceneManager::LoadGame()
+{
+	std::ifstream fin;
+	std::string data = "";
+
+	fin.open("saves/test.sav");
+	for (std::string line; std::getline(fin, line); )
+	{
+		data += line + "\n";
+	}
+	fin.close();
+
+	std::stringstream ss(data);
+	std::istream_iterator<std::string> begin(ss);
+	std::istream_iterator<std::string> end;
+
+	std::vector<std::string> saveData(begin, end);
+	std::copy(saveData.begin(), saveData.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
+
+	// These aren't actually stored in the cutscene manager,
+	// but we might want to use them to more accurately find the load point
+	std::string labelName = saveData[0];
+	std::string lineText = saveData[1];
+	
+	labelIndex = std::stoi(saveData[2]);
+	lineIndex = std::stoi(saveData[3]) - 1;
+	commandIndex = std::stoi(saveData[4]);
+
+	currentLabel = JumpToLabel(labelName.c_str());
+	if (currentLabel == nullptr)
+	{
+		if (labelIndex < labels.size())
+			currentLabel = labels[labelIndex];
+		else
+			std::cout << "ERROR: Could not find label " << labelName << std::endl;
+	}
+
+	// 2. Save string variables (keys and values)
+	fin.open("saves/strvars.sav");
+
+	fin.close();
+
+	// 3. Save number variables (keys and values)
+	fin.open("saves/numvars.sav");
+
+	fin.close();
+
+	// 4. Save string aliases (keys and values)
+	fin.open("saves/stralias.sav");
+
+	fin.close();
+
+	// 5. Save number aliases (keys and values)
+	fin.open("saves/numalias.sav");
+
+	fin.close();
+
+	// 6. Save object information (sprite number, filepath/text, position, rotation, color, etc.)
+	fin.open("saves/objects.sav");
+
+	fin.close();
+
+	// 7. Save other important things (random seed, music volume, textbox color, etc.)
+	fin.open("saves/textcolors.sav");
+
+	fin.close();
+
 }

@@ -23,6 +23,7 @@ bgm/
 fonts/
 x64/
 logs/
+saves/
 *.zip
 *.wdk
 *.dll

@@ -58,15 +58,15 @@ class CutsceneManager
 {
 	std::string language = "english";
 	std::string data = "";
-	int labelIndex = 0;
-	int lineIndex = 0;
-	int letterIndex = 0;
-	int commandIndex = 0;
 	std::string currentText = "";
 	CutsceneCommands commands;
 	std::queue<std::string> backlog;
 	int backlogMaxSize = 3;
 public:	 
+	int labelIndex = 0;
+	int lineIndex = 0;
+	int letterIndex = 0;
+	int commandIndex = 0;
 	//TODO: Move these button configurations to some place more relevant
 	// This class should have a reference to the controller and get the bindings from it
 	SDL_Scancode skipButton = SDL_Scancode::SDL_SCANCODE_LCTRL;
@@ -86,12 +86,14 @@ public:
 	Timer inputTimer;
 	float inputTimeToWait = 100;
 	Textbox* textbox = nullptr;
+	Color currentColor = { 255, 255, 255, 255 };
 	Game* game = nullptr;
 	std::vector<std::string> choiceIfStatements;
 	std::vector<unsigned int> activeButtons;
 	std::unordered_map<unsigned int, unsigned int> spriteButtons;
 	std::unordered_map<unsigned int, Entity*> images;
 	std::unordered_map<unsigned int, Entity*>::iterator imageIterator;
+	std::unordered_map<std::string, Color> namesToColors;
 	float timer = 0;
 	bool isCarryingOutCommands = false;
 	bool isReadingNextLine = false;
@@ -109,4 +111,7 @@ public:
 	void JumpBack();
 	void PushCurrentSceneDataToStack();
 	SceneData* PopSceneDataFromStack();
+
+	void SaveGame();
+	void LoadGame();
 };

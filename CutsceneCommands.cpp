@@ -49,6 +49,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"sub", &CutsceneCommands::SubtractNumberVariables},
 	{"text", &CutsceneCommands::LoadText },
 	{"textbox", &CutsceneCommands::Textbox },
+	{"textcolor", &CutsceneCommands::TextColor },
 	{"wait",& CutsceneCommands::Wait }
 };
 
@@ -75,6 +76,14 @@ std::vector<FuncLUT>cmd_lut = {
 // * gosub (goto and return)
 // Change screen resolution / options
 // Check if a file exists
+
+// * Can assign color to a character's dialogue
+// - TODO: Can use variables to get the color,
+// - and can embed colors into text (## returns it to normal)
+
+//textcolor default #ffffff ;
+//textcolor BUTLER #ff0000 ;
+//`:BUTLER: This is #ff0000red text ## and this is not.`
 
 // Change color for menu selection
 // Change placement of textbox, namebox, and image
@@ -170,7 +179,16 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 			if (cmd.command == parameters[0])
 			{
 				commandFound = true;
-				(this->*cmd.method)(parameters);				
+				int errorCode = (this->*cmd.method)(parameters);
+
+				if (errorCode != 0)
+				{
+					std::cout << "ERROR " << errorCode << ": ";
+					for (int i = 0; i < parameters.size(); i++)
+						std::cout << parameters[i] << " ";
+					std::cout << std::endl;
+				}
+
 				break;
 			}				
 		}
@@ -610,9 +628,10 @@ int CutsceneCommands::SaveGame(CutsceneParameters parameters)
 {
 	//TODO: Save all of these to a file:
 
-	// Scene data, string/number variables, object information, user defined functions and aliases, settings, etc.
+	// Scene data, string/number variables, random seed, object information, user defined functions and aliases, settings, etc.
 	// Possibly could simply this by storing some things that won't change in a config file (functions, aliases)
 
+	manager->SaveGame();
 
 	return 0;
 }
@@ -620,6 +639,8 @@ int CutsceneCommands::SaveGame(CutsceneParameters parameters)
 int CutsceneCommands::LoadGame(CutsceneParameters parameters)
 {
 	//TODO: Load everything that was saved from a file
+
+	manager->LoadGame();
 
 	return 0;
 }
@@ -964,6 +985,46 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 
 	// Color the text yellow when we hover the mouse over it or select with keyboard
 	//manager->images[imageNumber]->GetSprite()->color = { 255, 255, 0, 255 } ;
+
+	return 0;
+}
+
+// Assign color of text to a speaking character
+int CutsceneCommands::TextColor(CutsceneParameters parameters)
+{
+	std::string characterName = parameters[1];
+	std::string hexadecimalColor = parameters[2];
+
+	bool success = false;
+
+	int index = 0;
+
+	Color color = { 255, 255, 255, 255 };
+
+	if (hexadecimalColor[index] == '#') // check to see if it is hexadecimal
+	{
+		index++;
+		//TODO: Do hexadecimal later
+		//success = true;
+	}
+	else // then it must be RGB or RGBA decimal such as 255 255 255 or 255 255 255 255
+	{
+		// Note: blue and red are swapped for endianness
+		color.b = std::stoi(parameters[2]);
+		color.g = std::stoi(parameters[3]);
+		color.r = std::stoi(parameters[4]);
+
+		if (parameters.size() > 5)
+			color.a = std::stoi(parameters[5]);
+
+		manager->namesToColors[characterName] = color;
+		manager->currentColor = manager->namesToColors[manager->currentLabel->lines[manager->lineIndex]->speaker];
+
+		success = true;
+	};
+
+	if (!success)
+		return -1;
 
 	return 0;
 }

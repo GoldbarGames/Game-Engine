@@ -33,9 +33,10 @@ Textbox::~Textbox()
 
 }
 
-void Textbox::UpdateText(std::string newText)
+void Textbox::UpdateText(const std::string& newText, const Color& color)
 {
-	text->SetText(newText, text->textColor, boxWidth);
+	text->SetText(newText, color, boxWidth);
+	//text->SetText(newText, text->textColor, boxWidth);
 
 	//TODO: If we want to modify the textbox's text shader, do so here
 	//text->GetSprite()->SetShader(renderer->shaders["fade-in-out"]);

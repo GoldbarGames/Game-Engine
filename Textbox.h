@@ -22,7 +22,7 @@ public:
 	bool isReading = false;
 	const Uint32 boxWidth = 1140;
 
-	void UpdateText(std::string newText);
+	void UpdateText(const std::string& newText, const Color& color);
 	void Render(Renderer * renderer, const int& screenWidth, const int& screenHeight);
 
 	Textbox(SpriteManager * manager, Renderer * renderer);
