@@ -704,34 +704,38 @@ void CutsceneManager::LoadGame()
 			std::cout << "ERROR: Could not find label " << labelName << std::endl;
 	}
 
-	// 2. Save string variables (keys and values)
+	// 2. Load string variables (keys and values)
 	fin.open("saves/strvars.sav");
 
 	fin.close();
 
-	// 3. Save number variables (keys and values)
+	// 3. Load number variables (keys and values)
 	fin.open("saves/numvars.sav");
 
 	fin.close();
 
-	// 4. Save string aliases (keys and values)
+	// 4. Load string aliases (keys and values)
 	fin.open("saves/stralias.sav");
 
 	fin.close();
 
-	// 5. Save number aliases (keys and values)
+	// 5. Load number aliases (keys and values)
 	fin.open("saves/numalias.sav");
 
 	fin.close();
 
-	// 6. Save object information (sprite number, filepath/text, position, rotation, color, etc.)
+	// 6. Load object information (sprite number, filepath/text, position, rotation, color, etc.)
 	fin.open("saves/objects.sav");
 
 	fin.close();
 
-	// 7. Save other important things (random seed, music volume, textbox color, etc.)
+	// 7. Load other important things (random seed, music volume, textbox color, etc.)
 	fin.open("saves/textcolors.sav");
-
+	data = "";
+	for (std::string line; std::getline(fin, line); )
+	{
+		data += line + "\n";
+	}
 	fin.close();
 
 }

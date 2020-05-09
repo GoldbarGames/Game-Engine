@@ -78,6 +78,7 @@ public:
 	int SaveGame(CutsceneParameters parameters);
 	int LoadGame(CutsceneParameters parameters);
 
+	int SetResolution(CutsceneParameters parameters);
 
 
 	int DoNothing(CutsceneParameters parameters);

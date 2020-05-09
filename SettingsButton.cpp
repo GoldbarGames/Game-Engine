@@ -161,35 +161,24 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	}
 	else if (name == "Screen Resolution")
 	{		
+		game.indexScreenResolution = selectedOption;
 		switch (selectedOption)
 		{
 			case 0:
-				game.screenWidth = 640;
-				game.screenHeight = 360;
+				game.SetScreenResolution(640, 360);
 				break;
 			case 1:
-				game.screenWidth = 1280;
-				game.screenHeight = 720;
+				game.SetScreenResolution(1280, 720);
 				break;
 			case 2:
-				game.screenWidth = 1600;
-				game.screenHeight = 900;
+				game.SetScreenResolution(1600, 900);
 				break;
 			case 3:
-				game.screenWidth = 1920;
-				game.screenHeight = 1080;
+				game.SetScreenResolution(1920, 1080);
 				break;
 			default:
 				break;
 		}
-
-		game.indexScreenResolution = selectedOption;
-		SDL_SetWindowSize(game.window, game.screenWidth, game.screenHeight);
-		game.renderer->camera.Zoom(0.0f, game.screenWidth, game.screenHeight);
-		game.renderer->guiCamera.Zoom(0.0f, game.screenWidth, game.screenHeight);
-
-		glViewport(0, 0, game.screenWidth, game.screenHeight);
-		game.renderer->screenScale = Vector2(game.screenWidth/1280.0f, game.screenHeight/720.0f);
 	}
 	else if (name == "Vsync")
 	{ 

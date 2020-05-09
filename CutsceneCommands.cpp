@@ -37,6 +37,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"numalias", &CutsceneCommands::SetNumAlias },
 	{"random", &CutsceneCommands::RandomNumberVariable },
 	{"reset", &CutsceneCommands::ResetGame },
+	{"resolution", &CutsceneCommands::SetResolution },
 	{"return", &CutsceneCommands::ReturnFromSubroutine },
 	{"savegame",&CutsceneCommands::SaveGame },
 	{"se", &CutsceneCommands::SoundCommand },
@@ -52,6 +53,8 @@ std::vector<FuncLUT>cmd_lut = {
 	{"textcolor", &CutsceneCommands::TextColor },
 	{"wait",& CutsceneCommands::Wait }
 };
+
+
 
 // TODO: Implement these commands:
 // * Store/retrieve/display values via variables
@@ -74,18 +77,20 @@ std::vector<FuncLUT>cmd_lut = {
 // * Randomize a variable and re-seed the randomness
 // User-defined functions (get parameters)
 // * gosub (goto and return)
-// Change screen resolution / options
+// * Change screen resolution
+// TODO: Fix rendering so that it is compatible with 4:3 aspect ratio, or others that are not 16:9
+// Change other options
 // Check if a file exists
 
 // * Can assign color to a character's dialogue
 // - TODO: Can use variables to get the color,
 // - and can embed colors into text (## returns it to normal)
-
+// - (this requires drawing the text one letter per sprite)
 //textcolor default #ffffff ;
 //textcolor BUTLER #ff0000 ;
 //`:BUTLER: This is #ff0000red text ## and this is not.`
 
-// Change color for menu selection
+// * Change text color for menu selection
 // Change placement of textbox, namebox, and image
 // Change font size for textbox, choices, etc.
 // Change window caption and icon
@@ -964,8 +969,7 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	const unsigned int y = std::stoi(parameters[3]);
 	pos = Vector2(x, y);
 
-	std::string text = parameters[4];
-	
+	std::string text = parameters[4];	
 	for(int i = 5; i < parameters.size(); i++)
 		text += (parameters[i]);
 
@@ -973,10 +977,19 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	if (manager->images[imageNumber] != nullptr)
 		delete manager->images[imageNumber];
 
+	//TODO: Parse text string to get and set the color
 	Color textColor = { 255, 255, 255, 255 };
-
-	manager->images[imageNumber] = new Text(manager->game->renderer, 
-		manager->game->theFont, text, textColor);
+	if (text.size() > 1 && text[1] == '#')
+	{
+		textColor = ParseColorHexadecimal(text.substr(1, 9));
+		manager->images[imageNumber] = new Text(manager->game->renderer,
+			manager->game->theFont, text.substr(10, text.size()-9), textColor);
+	}
+	else
+	{
+		manager->images[imageNumber] = new Text(manager->game->renderer,
+			manager->game->theFont, text, textColor);
+	}
 
 	manager->images[imageNumber]->SetPosition(pos);
 	manager->images[imageNumber]->drawOrder = imageNumber;
@@ -996,16 +1009,12 @@ int CutsceneCommands::TextColor(CutsceneParameters parameters)
 	std::string hexadecimalColor = parameters[2];
 
 	bool success = false;
-
-	int index = 0;
-
 	Color color = { 255, 255, 255, 255 };
 
-	if (hexadecimalColor[index] == '#') // check to see if it is hexadecimal
+	if (hexadecimalColor[0] == '#') // check to see if it is hexadecimal
 	{
-		index++;
-		//TODO: Do hexadecimal later
-		//success = true;
+		color = ParseColorHexadecimal(hexadecimalColor);
+		success = true;
 	}
 	else // then it must be RGB or RGBA decimal such as 255 255 255 or 255 255 255 255
 	{
@@ -1017,14 +1026,21 @@ int CutsceneCommands::TextColor(CutsceneParameters parameters)
 		if (parameters.size() > 5)
 			color.a = std::stoi(parameters[5]);
 
-		manager->namesToColors[characterName] = color;
-		manager->currentColor = manager->namesToColors[manager->currentLabel->lines[manager->lineIndex]->speaker];
-
 		success = true;
 	};
 
 	if (!success)
 		return -1;
+	else
+	{
+		if (characterName == "default")
+			manager->namesToColors[""] = color;
+		else
+			manager->namesToColors[characterName] = color;
+
+		manager->currentColor = manager->namesToColors[manager->currentLabel->lines[manager->lineIndex]->speaker];
+
+	}
 
 	return 0;
 }
@@ -1132,6 +1148,18 @@ int CutsceneCommands::Fade(CutsceneParameters parameters)
 	{
 		manager->game->renderer->targetColor = Color{0, 0, 0, 255 };
 	}
+
+	return 0;
+}
+
+int CutsceneCommands::SetResolution(CutsceneParameters parameters)
+{
+	//TODO: Maybe place this command in a config file to start the window in a certain resolution?
+	//TODO: Allow setting resolution based on variable values
+	const int width = GetNumAlias(parameters[1]);
+	const int height = GetNumAlias(parameters[2]);
+
+	manager->game->SetScreenResolution(width, height);
 
 	return 0;
 }

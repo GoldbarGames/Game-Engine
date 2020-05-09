@@ -133,6 +133,8 @@ public:
 	void CheckDeleteEntities();
 
 	void ResetText();
+
+	void SetScreenResolution(const unsigned int width, const unsigned int height);
 	 
 
 	Timer timer;

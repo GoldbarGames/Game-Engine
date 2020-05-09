@@ -1464,6 +1464,19 @@ void Game::Update()
 	renderer->guiCamera.FollowTarget(1280, 720);
 }
 
+void Game::SetScreenResolution(const unsigned int width, const unsigned int height)
+{
+	screenWidth = width;
+	screenHeight = height;
+
+	SDL_SetWindowSize(window, screenWidth, screenHeight);
+	renderer->camera.Zoom(0.0f, screenWidth, screenHeight);
+	renderer->guiCamera.Zoom(0.0f, screenWidth, screenHeight);
+
+	glViewport(0, 0, screenWidth, screenHeight);
+	renderer->screenScale = Vector2(screenWidth / 1280.0f, screenHeight / 720.0f);
+}
+
 void Game::RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEntities)
 {
 	
