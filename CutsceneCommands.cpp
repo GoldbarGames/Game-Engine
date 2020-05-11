@@ -92,23 +92,26 @@ std::vector<FuncLUT>cmd_lut = {
 
 // * Change text color for menu selection
 // Change placement of textbox, namebox, and image
+// Pop up a box with text for a time limit
 // Change font size for textbox, choices, etc.
 // Change window caption and icon
 // Change location of save data
 // Alpha image effects
 // * Skip button to skip text
-// Log button to read old text
-// * Automode, adjust automode speeds
-// Adjustable text speed
-// Right-click menu
+// Log button to read old text (in box vs. scroll)
+// * Automode, adjust automode speeds (per letter and per line)
+// Adjustable text speed (!sd)
+// Right-click subroutine
+// Click-wait subroutine
 // Keyboard input for variables
 // Global/persistent variables
 
 // Output error logs
 // Math functions (abs, sin, cos, tan, etc.)
 // Changing the file/directory where the script file is read from
-// Physics functions (movement, velocity, acceleration, collision detection)
+// Physics functions (position, velocity, acceleration, collision detection)
 // Visual Editor, modify cutscene as it is running, replay it
+// Declare arrays and lists of variables, more complex stuff
 
 CutsceneCommands::CutsceneCommands()
 {

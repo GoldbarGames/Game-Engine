@@ -27,7 +27,7 @@ CutsceneManager::CutsceneManager(Game& g)
 		data = "";
 		for (std::string line; std::getline(fin, line); )
 		{
-			data += line;
+			data += line + " ;";
 		}
 	}
 }
@@ -97,23 +97,25 @@ void CutsceneManager::ParseScene()
 				commands.clear();
 				index++;
 			}
-			else if (data[index] == ';')
-			{
-				//TODO: implement comments
-			}
 			else // we have a command
 			{
 				std::string commandLine = "";
 
 				// read until we hit the end of the line
-				while (data[index] != ';')
+				bool endOfLine = (data[index] == ';');
+				while (!endOfLine)
 				{
-					std::string commandWord = ParseWord(data, ' ', index);
-					commandLine += commandWord + " ";
 					if (index >= data.length())
 					{
-						std::cout << "Error on line: " + commandWord;
+						std::cout << "Error on line: " + commandLine;
+						break;
 					}
+					else
+					{
+						commandLine += data[index];
+						index++;
+					}
+					endOfLine = (data[index] == ';');
 				}
 
 				index++;
