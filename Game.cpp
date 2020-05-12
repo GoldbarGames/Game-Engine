@@ -1412,32 +1412,7 @@ void Game::Update()
 		
 		if (!cutscene->isReadingNextLine)
 		{
-			const Uint8* input = SDL_GetKeyboardState(NULL);
-
-			if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_RETURN] || input[cutscene->skipButton] 
-				|| (cutscene->automaticallyRead && cutscene->autoReaderTimer.HasElapsed()))
-			{
-				cutscene->ReadNextLine();
-			}
-			else if (input[SDL_SCANCODE_TAB])
-			{
-				//TODO: This is not perfect, it just breaks out of the cutscene and does not carry out commands
-				// Also, should maybe disable this outside of development mode or make it an option
-				cutscene->EndCutscene();
-			}
-			else if (input[SDL_SCANCODE_UP])
-			{
-				//cutscene->textbox->Test();
-			}
-			else if (input[SDL_SCANCODE_S]) // save game
-			{
-				cutscene->SaveGame();
-			}
-			else if (input[SDL_SCANCODE_L]) // load game
-			{
-				cutscene->LoadGame();
-				cutscene->ReadNextLine();
-			}
+			cutscene->CheckKeys();
 		}
 		else
 		{

@@ -112,6 +112,8 @@ public:
 	void PushCurrentSceneDataToStack();
 	SceneData* PopSceneDataFromStack();
 
+	void CheckKeys();
+
 	void SaveGame();
 	void LoadGame();
 };

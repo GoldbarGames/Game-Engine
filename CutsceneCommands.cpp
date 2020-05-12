@@ -21,6 +21,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"btnwait", &CutsceneCommands::WaitForButton },
 	{"choice", &CutsceneCommands::DisplayChoice },
 	{"cl", &CutsceneCommands::ClearSprite },
+	{"defsub", &CutsceneCommands::DefineUserFunction},
 	{"div", &CutsceneCommands::DivideNumberVariables},
 	{"end", &CutsceneCommands::EndGame },
 	{"fade", &CutsceneCommands::Fade },
@@ -55,7 +56,6 @@ std::vector<FuncLUT>cmd_lut = {
 };
 
 
-
 // TODO: Implement these commands:
 // * Store/retrieve/display values via variables
 // * Variable operations (add, sub, mul, div, mod)
@@ -75,7 +75,8 @@ std::vector<FuncLUT>cmd_lut = {
 // Playing animations
 // Timers, set/reset/stop them
 // * Randomize a variable and re-seed the randomness
-// User-defined functions (get parameters)
+// * User-defined functions 
+// (get parameters)
 // * gosub (goto and return)
 // * Change screen resolution
 // TODO: Fix rendering so that it is compatible with 4:3 aspect ratio, or others that are not 16:9
@@ -115,10 +116,23 @@ std::vector<FuncLUT>cmd_lut = {
 
 CutsceneCommands::CutsceneCommands()
 {
+	//TODO: Add a command to define this via scripting
+	buttonLabels[(unsigned int)SDL_SCANCODE_ESCAPE] = "pause_menu";
+
 	numalias["bg"] = 0;
 	numalias["l"] = 1;
 	numalias["c"] = 2;
 	numalias["r"] = 3;
+
+	numalias["param1"] = 101;
+	numalias["param2"] = 102;
+	numalias["param3"] = 103;
+	numalias["param4"] = 104;
+	numalias["param5"] = 105;
+	numalias["param6"] = 106;
+	numalias["param7"] = 107;
+	numalias["param8"] = 108;
+	numalias["param9"] = 109;
 }
 
 CutsceneCommands::~CutsceneCommands()
@@ -204,7 +218,20 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 		if (!commandFound)
 		{
 			//TODO: We want to check user-defined functions in here
-			std::cout << "ERROR: Command " << parameters[0] << " not found.";
+			auto it = std::find(userDefinedFunctions.begin(),
+				userDefinedFunctions.end(), parameters[0]);
+
+			// If function name exists, jump to the label with that name
+			if (it != userDefinedFunctions.end())
+			{
+				//TODO: If I want to get the parameters for the function,
+				// it would probably have to be done here
+				GoSubroutine({ parameters[0], parameters[0] });
+			}
+			else
+			{
+				std::cout << "ERROR: Command " << parameters[0] << " not found.";
+			}			
 		}
 	}
 }
@@ -464,6 +491,23 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 	return 0;
 }
 
+int CutsceneCommands::DefineUserFunction(CutsceneParameters parameters)
+{
+	auto it = std::find(userDefinedFunctions.begin(), 
+		userDefinedFunctions.end(), parameters[1]);
+
+	//auto it = std::find_if(begin(userDefinedFunctions), end(userDefinedFunctions),
+	//	[&](auto func) { return func.name == parameters[1]; });
+
+	// If function name does not exist, add it to the list
+	if (it == userDefinedFunctions.end())
+	{
+		userDefinedFunctions.push_back(parameters[1]);
+	}
+
+	return 0;
+}
+
 int CutsceneCommands::GoSubroutine(CutsceneParameters parameters)
 {
 	// Save our current spot in the text file
@@ -653,12 +697,38 @@ int CutsceneCommands::LoadGame(CutsceneParameters parameters)
 	return 0;
 }
 
+// If the parameter starts with a % sign 
+// - if it is followed by a string, get the number associated with the string,
+// and get the value of the variable of that number
+// - if it is followed by a number, just get the value of the variable of that number
+// otherwise, if it is a string, get the number associated with the string,
+// or if it is a number, just use the number
+
+//TODO: Should be able to add two strings together
 int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int key = GetNumAlias(parameters[1]);
-	unsigned int number1 = GetNumberVariable(GetNumAlias(parameters[1]));
-	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
+	std::string variableName = "";
+	unsigned int key = 0;
+	unsigned int number1 = 0;
+	unsigned int number2 = 0;
 
+	variableName = parameters[1];
+
+	key = GetNumAlias(parameters[1]);
+	if (variableName[0] == '%')
+		key = GetNumAlias(variableName.substr(1, variableName.size() - 1));
+
+	if (variableName[0] == '%')
+		number1 = GetNumberVariable(GetNumAlias(variableName.substr(1, variableName.size() - 1)));
+	else
+		number1 = GetNumAlias(variableName);
+		
+	variableName = parameters[2];
+	if (variableName[0] == '%')
+		number2 = GetNumberVariable(GetNumAlias(variableName.substr(1, variableName.size() - 1)));
+	else
+		number2 = GetNumAlias(variableName);
+	
 	numberVariables[key] = number1 + number2;
 
 	return 0;

@@ -32,6 +32,49 @@ CutsceneManager::CutsceneManager(Game& g)
 	}
 }
 
+void CutsceneManager::CheckKeys()
+{
+	const Uint8* input = SDL_GetKeyboardState(NULL);
+
+	if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_RETURN] || input[skipButton]
+		|| (automaticallyRead && autoReaderTimer.HasElapsed()))
+	{
+		ReadNextLine();
+	}
+	else if (input[SDL_SCANCODE_TAB])
+	{
+		//TODO: This is not perfect, it just breaks out of the cutscene and does not carry out commands
+		// Also, should maybe disable this outside of development mode or make it an option
+		EndCutscene();
+	}
+	else if (input[SDL_SCANCODE_UP])
+	{
+		//textbox->Test();
+	}
+	else if (input[SDL_SCANCODE_S]) // save game
+	{
+		SaveGame();
+	}
+	else if (input[SDL_SCANCODE_L]) // load game
+	{
+		LoadGame();
+		ReadNextLine();
+	}
+	else
+	{
+		std::unordered_map<unsigned int, std::string>::iterator it;
+
+		for (it = commands.buttonLabels.begin(); it != commands.buttonLabels.end(); it++)
+		{
+			if (input[it->first]) //TODO: Also check if button is active
+			{
+				commands.GoSubroutine({ it->second, it->second });
+				break;
+			}
+		}
+	}
+}
+
 void CutsceneManager::ParseScene()
 {
 	for (unsigned int i = 0; i < labels.size(); i++)

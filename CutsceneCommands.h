@@ -16,6 +16,10 @@ public:
 
 	//TODO: Make this only accessible to the manager
 	std::unordered_map<unsigned int, int> numberVariables;
+
+	// When you press the button, jump to the corresponding label
+	std::unordered_map<unsigned int, std::string> buttonLabels;
+
 	CutsceneManager* manager = nullptr;
 	CutsceneCommands();
 	~CutsceneCommands();
@@ -79,7 +83,7 @@ public:
 	int LoadGame(CutsceneParameters parameters);
 
 	int SetResolution(CutsceneParameters parameters);
-
+	int DefineUserFunction(CutsceneParameters parameters);
 
 	int DoNothing(CutsceneParameters parameters);
 };
