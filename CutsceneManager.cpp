@@ -62,13 +62,12 @@ void CutsceneManager::CheckKeys()
 	}
 	else
 	{
-		std::unordered_map<unsigned int, std::string>::iterator it;
-
-		for (it = commands.buttonLabels.begin(); it != commands.buttonLabels.end(); it++)
+		for (auto const& button : commands.buttonLabels)
 		{
-			if (input[it->first]) //TODO: Also check if button is active
+			if (input[button.first]) //TODO: Also check if button is active
 			{
-				commands.GoSubroutine({ it->second, it->second });
+				commandIndex--;
+				commands.GoSubroutine({ button.second, button.second });
 				break;
 			}
 		}
@@ -334,6 +333,8 @@ SceneData* CutsceneManager::PopSceneDataFromStack()
 	labelIndex = data->labelIndex;
 	lineIndex = data->lineIndex;
 	commandIndex = data->commandIndex;
+	letterIndex = 0;
+	currentText = "";
 
 	return data;
 }
@@ -470,6 +471,7 @@ void CutsceneManager::Update()
 			else if (input[SDL_SCANCODE_SPACE])
 			{
 				// Return the result in the specified variable and resume reading
+				// TODO: This can be buggy if the btnwait variable is not reset beforehand
 				unsigned int chosenSprite = activeButtons[buttonIndex];
 				commands.numberVariables[buttonResult] = spriteButtons[chosenSprite];
 				waitingForButton = false;
@@ -516,6 +518,9 @@ void CutsceneManager::Update()
 			if (commandIndex < 0)
 				commandIndex = 0;
 
+			if (lineIndex < 0)
+				lineIndex = 0;
+
 			if (commandIndex >= 0 && commandIndex < currentLabel->lines[lineIndex]->commands.size())
 			{				
 				commands.ExecuteCommand(currentLabel->lines[lineIndex]->commands[commandIndex]);
@@ -527,7 +532,7 @@ void CutsceneManager::Update()
 			}
 		}
 		else if (isReadingNextLine)
-		{		
+		{
 			SceneLine* line = currentLabel->lines[lineIndex];
 			if (line->text[letterIndex] != '[')
 			{

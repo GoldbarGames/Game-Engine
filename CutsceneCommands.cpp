@@ -482,7 +482,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		}
 		else // else exit, do nothing
 		{
-			return -1;
+			return -2;
 		}
 
 	} while (!conditionIsTrue);
@@ -537,6 +537,8 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 		else
 			std::cout << "ERROR: Could not find label " << labelName << std::endl;
 	}
+
+	manager->currentColor = manager->namesToColors[manager->currentLabel->lines[manager->lineIndex]->speaker];
 
 	return 0;
 }
@@ -606,9 +608,10 @@ int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
 		manager->images[manager->activeButtons[manager->buttonIndex]]->
 			GetSprite()->color = { 255, 255, 0, 255 };
 
-		manager->isCarryingOutCommands = false;
+		manager->isCarryingOutCommands = true;
 		manager->isReadingNextLine = true;
 		manager->textbox->isReading = false;
+		manager->textbox->text->SetText("");
 	}
 
 	return 0;
@@ -819,7 +822,10 @@ int CutsceneCommands::SetNumberVariable(CutsceneParameters parameters)
 	if (GetNumberVariable(value) == 0)
 		numberVariables[key] = value;
 	else
-		numberVariables[key] = GetNumberVariable(value);
+		numberVariables[key] = value; // GetNumberVariable(value);
+
+	//TODO: To set a variable to the value of another variable,
+	// check if the number starts with % or it is a string
 
 	return 0;
 }
