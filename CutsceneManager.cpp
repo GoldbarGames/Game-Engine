@@ -18,6 +18,8 @@ CutsceneManager::CutsceneManager(Game& g)
 
 	namesToColors[""] = currentColor;
 
+	LoadGlobalVariables();
+
 	std::ifstream fin;
 	std::string directory = "data/" + language + "/cutscenes.txt";
 
@@ -610,6 +612,135 @@ void CutsceneManager::Update()
 			break;
 		}
 	}	
+}
+
+std::vector<string> CutsceneManager::GetVectorOfStringsFromFile(const char* filepath)
+{
+	std::ifstream fin;
+	std::string data = "";
+
+	fin.open(filepath);
+	for (std::string line; std::getline(fin, line); )
+	{
+		data += line + "\n";
+	}
+	fin.close();
+
+	std::stringstream ss(data);
+	std::istream_iterator<std::string> begin(ss);
+	std::istream_iterator<std::string> end;
+
+	std::vector<std::string> globalData(begin, end);
+	std::copy(globalData.begin(), globalData.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
+
+	return globalData;
+}
+
+void CutsceneManager::LoadGlobalVariables()
+{
+	std::vector<std::string> globalData = GetVectorOfStringsFromFile("saves/globals-num.dat");
+
+	for (int i = 0; i < globalData.size(); i += 2)
+	{
+		commands.SetNumberVariable({ "", globalData[i], globalData[i+1] });
+	}
+
+	globalData = GetVectorOfStringsFromFile("saves/globals-str.dat");
+
+	for (int i = 0; i < globalData.size(); i += 2)
+	{
+		commands.SetStringVariable({ "", globalData[i], globalData[i + 1] });
+	}
+}
+
+void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& value)
+{
+	// 1. Load the global variables into a data structure from the file
+	std::ifstream fin;
+	std::vector<std::string> globalData;
+
+	fin.open("saves/globals-str.dat");
+	for (std::string line; std::getline(fin, line); )
+	{
+		globalData.push_back(line + "\n");
+	}
+	fin.close();
+
+	bool foundData = false;
+	int index = 0;
+	for (int i = 0; i < globalData.size(); i++)
+	{
+		index = 0;
+		if (ParseWord(globalData[i], ' ', index) == std::to_string(key))
+		{
+			// 2. If the global variable is already in the DS, update its value in the DS
+			globalData[i] = std::to_string(key) + " " + value + "\n";
+			foundData = true;
+			break;
+		}
+	}
+
+	if (!foundData)
+	{
+		// 3. Else, add the global variable and its value to the DS
+		globalData.push_back(std::to_string(key) + " " + value + "\n");
+	}
+
+	// 4. Save the DS to the file
+	std::ofstream fout;
+	fout.open("saves/globals-str.dat");
+
+	for (int i = 0; i < globalData.size(); i++)
+	{
+		fout << globalData[i];
+	}
+
+	fout.close();
+}
+
+void CutsceneManager::SaveGlobalVariable(unsigned int key, unsigned int value)
+{
+	// 1. Load the global variables into a data structure from the file
+	std::ifstream fin;
+	std::vector<std::string> globalData;
+
+	fin.open("saves/globals-num.dat");
+	for (std::string line; std::getline(fin, line); )
+	{
+		globalData.push_back(line + "\n");
+	}
+	fin.close();
+
+	bool foundData = false;
+	int index = 0;
+	for (int i = 0; i < globalData.size(); i++)
+	{
+		index = 0;
+		if (ParseWord(globalData[i], ' ', index) == std::to_string(key))
+		{
+			// 2. If the global variable is already in the DS, update its value in the DS
+			globalData[i] = std::to_string(key) + " " + std::to_string(value) + "\n";
+			foundData = true;
+			break;
+		}
+	}
+
+	if (!foundData)
+	{
+		// 3. Else, add the global variable and its value to the DS
+		globalData.push_back(std::to_string(key) + " " + std::to_string(value) + "\n");
+	}
+
+	// 4. Save the DS to the file
+	std::ofstream fout;
+	fout.open("saves/globals-num.dat");
+
+	for (int i = 0; i < globalData.size(); i++)
+	{
+		fout << globalData[i];
+	}
+
+	fout.close();
 }
 
 

@@ -16,15 +16,18 @@ static struct FuncLUT {
 std::vector<FuncLUT>cmd_lut = {
 	{"~", &CutsceneCommands::DoNothing},
 	{"add", &CutsceneCommands::AddNumberVariables},
+	{"backlog", &CutsceneCommands::OpenBacklog},
 	{"bg", &CutsceneCommands::LoadBackground },
 	{"bgm", &CutsceneCommands::MusicCommand },
 	{"btnwait", &CutsceneCommands::WaitForButton },
 	{"choice", &CutsceneCommands::DisplayChoice },
 	{"cl", &CutsceneCommands::ClearSprite },
+	{"concat", &CutsceneCommands::ConcatenateStringVariables},
 	{"defsub", &CutsceneCommands::DefineUserFunction},
 	{"div", &CutsceneCommands::DivideNumberVariables},
 	{"end", &CutsceneCommands::EndGame },
 	{"fade", &CutsceneCommands::Fade },
+	{"global", &CutsceneCommands::SetGlobalNumber},
 	{"gosub", &CutsceneCommands::GoSubroutine },
 	{"goto", &CutsceneCommands::GoToLabel },
 	{"if", &CutsceneCommands::IfCondition },
@@ -716,75 +719,135 @@ int CutsceneCommands::LoadGame(CutsceneParameters parameters)
 // or if it is a number, just use the number
 
 //TODO: Should be able to add two strings together
+int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
+{
+	unsigned int key = 0;
+	std::string word1 = "";
+	std::string word2 = "";
+
+	key = GetNumAlias(parameters[1]);
+	if (parameters[1][0] == '$')
+		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+
+	word1 = ParseStringValue(parameters[1]);
+	word2 = ParseStringValue(parameters[2]);
+
+	stringVariables[key] = word1 + word2;
+
+	// If global variable, save change to file
+	if (key >= manager->globalStart)
+		manager->SaveGlobalVariable(key, stringVariables[key]);
+
+	return 0;
+}
+
+
 int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 {
-	std::string variableName = "";
 	unsigned int key = 0;
 	unsigned int number1 = 0;
 	unsigned int number2 = 0;
 
-	variableName = parameters[1];
-
 	key = GetNumAlias(parameters[1]);
-	if (variableName[0] == '%')
-		key = GetNumAlias(variableName.substr(1, variableName.size() - 1));
+	if (parameters[1][0] == '%')
+		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
 
-	if (variableName[0] == '%')
-		number1 = GetNumberVariable(GetNumAlias(variableName.substr(1, variableName.size() - 1)));
-	else
-		number1 = GetNumAlias(variableName);
-		
-	variableName = parameters[2];
-	if (variableName[0] == '%')
-		number2 = GetNumberVariable(GetNumAlias(variableName.substr(1, variableName.size() - 1)));
-	else
-		number2 = GetNumAlias(variableName);
+	number1 = ParseNumberValue(parameters[1]);
+	number2 = ParseNumberValue(parameters[2]);		
 	
 	numberVariables[key] = number1 + number2;
+
+	// If global variable, save change to file
+	if (key >= manager->globalStart)
+		manager->SaveGlobalVariable(key, numberVariables[key]);
 
 	return 0;
 }
 
 int CutsceneCommands::SubtractNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int key = GetNumAlias(parameters[1]);
-	unsigned int number1 = GetNumberVariable(GetNumAlias(parameters[1]));
-	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
+	unsigned int key = 0;
+	unsigned int number1 = 0;
+	unsigned int number2 = 0;
+
+	key = GetNumAlias(parameters[1]);
+	if (parameters[1][0] == '%')
+		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+
+	number1 = ParseNumberValue(parameters[1]);
+	number2 = ParseNumberValue(parameters[2]);
 
 	numberVariables[key] = number1 - number2;
+
+	// If global variable, save change to file
+	if (key >= manager->globalStart)
+		manager->SaveGlobalVariable(key, numberVariables[key]);
 
 	return 0;
 }
 
 int CutsceneCommands::MultiplyNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int key = GetNumAlias(parameters[1]);
-	unsigned int number1 = GetNumberVariable(GetNumAlias(parameters[1]));
-	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
+	unsigned int key = 0;
+	unsigned int number1 = 0;
+	unsigned int number2 = 0;
+
+	key = GetNumAlias(parameters[1]);
+	if (parameters[1][0] == '%')
+		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+
+	number1 = ParseNumberValue(parameters[1]);
+	number2 = ParseNumberValue(parameters[2]);
 
 	numberVariables[key] = number1 * number2;
+
+	// If global variable, save change to file
+	if (key >= manager->globalStart)
+		manager->SaveGlobalVariable(key, numberVariables[key]);
 
 	return 0;
 }
 
 int CutsceneCommands::DivideNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int key = GetNumAlias(parameters[1]);
-	unsigned int number1 = GetNumberVariable(GetNumAlias(parameters[1]));
-	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
+	unsigned int key = 0;
+	unsigned int number1 = 0;
+	unsigned int number2 = 0;
+
+	key = GetNumAlias(parameters[1]);
+	if (parameters[1][0] == '%')
+		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+
+	number1 = ParseNumberValue(parameters[1]);
+	number2 = ParseNumberValue(parameters[2]);
 
 	numberVariables[key] = number1 / number2;
+
+	// If global variable, save change to file
+	if (key >= manager->globalStart)
+		manager->SaveGlobalVariable(key, numberVariables[key]);
 
 	return 0;
 }
 
 int CutsceneCommands::ModNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int key = GetNumAlias(parameters[1]);
-	unsigned int number1 = GetNumberVariable(GetNumAlias(parameters[1]));
-	unsigned int number2 = GetNumberVariable(GetNumAlias(parameters[2]));
+	unsigned int key = 0;
+	unsigned int number1 = 0;
+	unsigned int number2 = 0;
+
+	key = GetNumAlias(parameters[1]);
+	if (parameters[1][0] == '%')
+		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+
+	number1 = ParseNumberValue(parameters[1]);
+	number2 = ParseNumberValue(parameters[2]);
 
 	numberVariables[key] = number1 % number2;
+
+	// If global variable, save change to file
+	if (key >= manager->globalStart)
+		manager->SaveGlobalVariable(key, numberVariables[key]);
 
 	return 0;
 }
@@ -810,6 +873,10 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 		unsigned int maxNumber = ParseNumberValue(parameters[4]);
 
 		numberVariables[key] = (rand() % maxNumber) + minNumber;
+
+		// If global variable, save change to file
+		if (key >= manager->globalStart)
+			manager->SaveGlobalVariable(key, numberVariables[key]);
 	}
 	else // no offset
 	{
@@ -817,6 +884,10 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 		unsigned int maxNumber = ParseNumberValue(parameters[2]);
 
 		numberVariables[key] = (rand() % maxNumber);
+
+		// If global variable, save change to file
+		if (key >= manager->globalStart)
+			manager->SaveGlobalVariable(key, numberVariables[key]);
 	}
 
 	return 0;
@@ -834,6 +905,10 @@ int CutsceneCommands::SetNumberVariable(CutsceneParameters parameters)
 
 	//TODO: To set a variable to the value of another variable,
 	// check if the number starts with % or it is a string
+
+	// If global variable, save change to file
+	if (key >= manager->globalStart)
+		manager->SaveGlobalVariable(key, numberVariables[key]);
 
 	return 0;
 }
@@ -854,6 +929,11 @@ int CutsceneCommands::SetStringVariable(CutsceneParameters parameters)
 	}
 
 	stringVariables[key] = value;
+
+	// If global variable, save change to file
+	if (key >= manager->globalStart)
+		manager->SaveGlobalVariable(key, stringVariables[key]);
+
 	return 0;
 }
 
@@ -1279,5 +1359,21 @@ int CutsceneCommands::SetResolution(CutsceneParameters parameters)
 
 	manager->game->SetScreenResolution(width, height);
 
+	return 0;
+}
+
+// This number indicates the first global variable slot
+// All variable slots before this number are local
+// Local variables are only saved within the current save file
+// Global variables are saved across all save files
+int CutsceneCommands::SetGlobalNumber(CutsceneParameters parameters)
+{
+	manager->globalStart = ParseNumberValue(parameters[1]);
+
+	return 0;
+}
+
+int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
+{
 	return 0;
 }

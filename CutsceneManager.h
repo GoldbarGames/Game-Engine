@@ -117,4 +117,9 @@ public:
 
 	void SaveGame();
 	void LoadGame();
+
+	void LoadGlobalVariables();
+	void SaveGlobalVariable(unsigned int key, unsigned int value);
+	void SaveGlobalVariable(unsigned int key, const std::string& value);
+	std::vector<string> GetVectorOfStringsFromFile(const char* filepath);
 };

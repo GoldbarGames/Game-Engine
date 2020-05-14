@@ -57,6 +57,8 @@ public:
 	std::string GetStringAlias(const std::string& key);
 	unsigned int GetNumAlias(const std::string& key);
 
+	int ConcatenateStringVariables(CutsceneParameters parameters);
+
 	// Numeric Operations
 	int AddNumberVariables(CutsceneParameters parameters);
 	int SubtractNumberVariables(CutsceneParameters parameters);
@@ -89,5 +91,8 @@ public:
 
 	unsigned int ParseNumberValue(const std::string& parameter);
 	std::string ParseStringValue(const std::string& parameter);
+
+	int SetGlobalNumber(CutsceneParameters parameters);
+	int OpenBacklog(CutsceneParameters parameters);
 };
 
