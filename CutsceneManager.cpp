@@ -10,6 +10,7 @@ CutsceneManager::CutsceneManager(Game& g)
 	textbox = new Textbox(g.spriteManager, g.renderer);
 
 	commands.manager = this;
+	inputTimeToWait = 100;
 
 	nextLetterTimer.Start(1);
 	autoReaderTimer.Start(1);
@@ -36,7 +37,7 @@ void CutsceneManager::CheckKeys()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_RETURN] || input[skipButton]
+	if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN] || input[skipButton]
 		|| (automaticallyRead && autoReaderTimer.HasElapsed()))
 	{
 		ReadNextLine();
@@ -45,7 +46,9 @@ void CutsceneManager::CheckKeys()
 	{
 		//TODO: This is not perfect, it just breaks out of the cutscene and does not carry out commands
 		// Also, should maybe disable this outside of development mode or make it an option
+#if _DEBUG
 		EndCutscene();
+#endif
 	}
 	else if (input[SDL_SCANCODE_UP])
 	{
@@ -625,6 +628,33 @@ void CutsceneManager::SaveGame()
 	fout << labelIndex << std::endl;
 	fout << lineIndex << std::endl;
 	fout << commandIndex << std::endl;
+
+	fout.close();
+
+	// 2a. Save global variables
+	fout.open("saves/globals.sav");
+
+	for (auto const& var : commands.stringVariables)
+	{
+		if (var.first >= globalStart)
+		{
+			fout << var.first  // key
+				<< " "
+				<< var.second  // value 
+				<< std::endl;
+		}
+	}
+
+	for (auto const& var : commands.numberVariables)
+	{
+		if (var.first >= globalStart)
+		{
+			fout << var.first  // key
+				<< " "
+				<< var.second  // value 
+				<< std::endl;
+		}
+	}
 
 	fout.close();
 

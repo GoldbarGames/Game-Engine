@@ -86,5 +86,8 @@ public:
 	int DefineUserFunction(CutsceneParameters parameters);
 
 	int DoNothing(CutsceneParameters parameters);
+
+	unsigned int ParseNumberValue(const std::string& parameter);
+	std::string ParseStringValue(const std::string& parameter);
 };
 

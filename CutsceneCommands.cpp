@@ -294,11 +294,11 @@ int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
 	if (parameters[1] == "play")
 	{
 		//TODO: Deal with multiple channels
-		manager->game->soundManager->PlaySound(parameters[2], std::stoi(parameters[3]));
+		manager->game->soundManager->PlaySound(ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]));
 	}
 	else if (parameters[1] == "volume")
 	{
-		manager->game->soundManager->SetVolumeSound(std::stoi(parameters[2]));
+		manager->game->soundManager->SetVolumeSound(ParseNumberValue(parameters[2]));
 	}
 
 	return 0;
@@ -327,7 +327,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		// 6. If there's an &&, repeat for the next condition, and only execute if all true
 
 		// NOTE: We don't ~really~ need OR because we can just do another IF on the next line
-		std::string word = "";
+		std::string word = parameters[index];
 		switch (parameters[index][0])
 		{
 		case '$': // string variable
@@ -524,10 +524,7 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 	SceneData* data = manager->PopSceneDataFromStack();
 
 	// Check the label name to see if it is a variable
-	std::string labelName = data->labelName;
-
-	if (labelName[0] == '$')
-		labelName = GetStringVariable(GetNumAlias(parameters[1]));
+	const std::string labelName = ParseStringValue(data->labelName);
 
 	manager->currentLabel = manager->JumpToLabel(labelName.c_str());
 	if (manager->currentLabel == nullptr)
@@ -538,18 +535,19 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 			std::cout << "ERROR: Could not find label " << labelName << std::endl;
 	}
 
-	manager->currentColor = manager->namesToColors[manager->currentLabel->lines[manager->lineIndex]->speaker];
+	if (manager->currentLabel != nullptr)
+		manager->currentColor = manager->namesToColors[manager->currentLabel->lines[manager->lineIndex]->speaker];
 
 	return 0;
 }
 
 int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 {
-	unsigned int numberOfChoices = GetNumAlias(parameters[1]);
+	unsigned int numberOfChoices = ParseNumberValue(parameters[1]);
 
 	int index = 2;
 	int spriteNumber = manager->choiceQuestionNumber;
-	std::string choiceQuestion = parameters[index];
+	std::string choiceQuestion = ParseStringValue(parameters[index]);
 
 	int choiceYPos = 100;
 	LoadText({"", std::to_string(spriteNumber), "1280", std::to_string(choiceYPos), choiceQuestion });
@@ -561,9 +559,9 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 	{	
 		// Get the text and label for the choice
 		index++;
-		std::string choiceText = parameters[index];
+		std::string choiceText = ParseStringValue(parameters[index]);
 		index++;
-		std::string choiceLabel = parameters[index];
+		std::string choiceLabel = ParseStringValue(parameters[index]);
 
 		// Display the choice as a text sprite on the screen
 		std::string choiceNumber = std::to_string(spriteNumber + i);
@@ -584,6 +582,8 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 		//if %42 == 21 goto label_left ;
 
 		manager->choiceIfStatements.push_back("if %" + variableNumber + " == " + choiceNumber + " goto " + choiceLabel + " ;");
+
+		manager->inputTimer.Start(1000);
 	}
 
 	return 0;
@@ -595,10 +595,14 @@ int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
 	if (manager->activeButtons.size() > 0)
 	{
 		// Get the variable number to store the result in
+		manager->buttonResult = ParseNumberValue(parameters[1]);
+
+		/* OLD
 		if (parameters[1][0] == '%')
-			manager->buttonResult = GetNumberVariable(GetNumAlias(parameters[1]));
+			manager->buttonResult = GetNumberVariable(GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1)));
 		else
 			manager->buttonResult = GetNumAlias(parameters[1]);
+			*/
 
 		// Change the state of the game to wait until a button has been pressed
 		manager->waitingForButton = true;
@@ -619,8 +623,8 @@ int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
 
 int CutsceneCommands::SetSpriteButton(CutsceneParameters parameters)
 {
-	unsigned int spriteNumber = GetNumAlias(parameters[1]);
-	unsigned int buttonNumber = GetNumAlias(parameters[2]);
+	unsigned int spriteNumber = ParseNumberValue(parameters[1]);
+	unsigned int buttonNumber = ParseNumberValue(parameters[2]);
 
 	manager->spriteButtons[spriteNumber] = buttonNumber;
 
@@ -632,15 +636,19 @@ int CutsceneCommands::SetSpriteButton(CutsceneParameters parameters)
 int CutsceneCommands::GoToLabel(CutsceneParameters parameters)
 {
 	// Check the label name to see if it is a variable
+	manager->PlayCutscene(ParseStringValue(parameters[1]).c_str());
+
+	/*
 	switch (parameters[1][0])
 	{
 	case '$': // string variable
-		manager->PlayCutscene(GetStringVariable(GetNumAlias(parameters[1])).c_str());
+		manager->PlayCutscene(GetStringVariable(GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1))).c_str());
 		break;
 	default:
 		manager->PlayCutscene(parameters[1].c_str());
 		break;
 	}
+	*/
 
 	return 0;
 }
@@ -791,22 +799,22 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 		}
 		else
 		{
-			srand(GetNumAlias(parameters[2]));
+			srand(ParseNumberValue(parameters[2]));
 			//TODO: Seed based on variable input
 		}
 	}
 	else if (parameters[1] == "range")
 	{
-		unsigned int key = GetNumAlias(parameters[2]);
-		unsigned int minNumber = GetNumberVariable(GetNumAlias(parameters[3]));
-		unsigned int maxNumber = GetNumberVariable(GetNumAlias(parameters[4]));
+		unsigned int key = ParseNumberValue(parameters[2]);
+		unsigned int minNumber = ParseNumberValue(parameters[3]);
+		unsigned int maxNumber = ParseNumberValue(parameters[4]);
 
 		numberVariables[key] = (rand() % maxNumber) + minNumber;
 	}
 	else // no offset
 	{
-		unsigned int key = GetNumAlias(parameters[1]);
-		unsigned int maxNumber = GetNumberVariable(GetNumAlias(parameters[2]));
+		unsigned int key = ParseNumberValue(parameters[1]);
+		unsigned int maxNumber = ParseNumberValue(parameters[2]);
 
 		numberVariables[key] = (rand() % maxNumber);
 	}
@@ -816,8 +824,8 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 
 int CutsceneCommands::SetNumberVariable(CutsceneParameters parameters)
 {
-	unsigned int key = GetNumAlias(parameters[1]);
-	unsigned int value = GetNumAlias(parameters[2]);
+	unsigned int key = ParseNumberValue(parameters[1]);
+	unsigned int value = ParseNumberValue(parameters[2]);
 
 	if (GetNumberVariable(value) == 0)
 		numberVariables[key] = value;
@@ -832,7 +840,7 @@ int CutsceneCommands::SetNumberVariable(CutsceneParameters parameters)
 
 int CutsceneCommands::SetStringVariable(CutsceneParameters parameters)
 {
-	unsigned int key = GetNumAlias(parameters[1]);
+	unsigned int key = ParseNumberValue(parameters[1]);
 
 	std::string value = parameters[2];
 	if (value[0] == '[')
@@ -842,7 +850,7 @@ int CutsceneCommands::SetStringVariable(CutsceneParameters parameters)
 	}
 	else
 	{
-		value = GetStringVariable(GetNumAlias(value));
+		value = ParseStringValue(value);
 	}
 
 	stringVariables[key] = value;
@@ -896,10 +904,36 @@ std::string CutsceneCommands::GetStringAlias(const std::string& key)
 int CutsceneCommands::SetNumAlias(CutsceneParameters parameters)
 {
 	std::string key = parameters[1];
-	unsigned int value = std::stoi(parameters[2]);
+	unsigned int value = ParseNumberValue(parameters[2]);
 	//TODO: Check for errors
 	numalias[key] = value;
 	return 0;
+}
+
+std::string CutsceneCommands::ParseStringValue(const std::string& parameter)
+{
+	std::string value = "";
+
+	// Get the variable number to store the result in
+	if (parameter[0] == '$')
+		value = GetStringVariable(GetNumAlias(parameter.substr(1, parameter.size() - 1)));
+	else
+		value = GetStringAlias(parameter);
+
+	return value;
+}
+
+unsigned int CutsceneCommands::ParseNumberValue(const std::string& parameter)
+{
+	unsigned int value = 0;
+
+	// Get the variable number to store the result in
+	if (parameter[0] == '%')
+		value = GetNumberVariable(GetNumAlias(parameter.substr(1, parameter.size() - 1)));
+	else
+		value = GetNumAlias(parameter);
+
+	return value;
 }
 
 unsigned int CutsceneCommands::GetNumAlias(const std::string& key)
@@ -934,7 +968,7 @@ int CutsceneCommands::ClearSprite(CutsceneParameters parameters)
 	}
 	else
 	{
-		unsigned int imageNumber = GetNumAlias(parameters[1]);
+		unsigned int imageNumber = ParseNumberValue(parameters[1]);
 
 		if (manager->images[imageNumber] != nullptr)
 			delete manager->images[imageNumber];
@@ -953,14 +987,14 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 
 	if (!isStandingImage && parameters[1] != "bg")
 	{
-		const unsigned int x = std::stoi(parameters[3]);
-		const unsigned int y = std::stoi(parameters[4]);
+		const unsigned int x = ParseNumberValue(parameters[3]);
+		const unsigned int y = ParseNumberValue(parameters[4]);
 
 		pos = Vector2(x, y);
 	}
 
-	std::string filepath = GetStringAlias(parameters[2]);
-	unsigned int imageNumber = GetNumAlias(parameters[1]);
+	std::string filepath = ParseStringValue(parameters[2]);
+	unsigned int imageNumber = ParseNumberValue(parameters[1]);
 
 	//TODO: Don't delete/new, just grab from entity pool and reset
 	if (manager->images[imageNumber] != nullptr)
@@ -1042,10 +1076,10 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	//TODO: Make sure text color works (#)
 	//TODO: Make sure variables work (%, $)
 
-	unsigned int imageNumber = GetNumAlias(parameters[1]);
+	unsigned int imageNumber = ParseNumberValue(parameters[1]);
 
-	const unsigned int x = std::stoi(parameters[2]);
-	const unsigned int y = std::stoi(parameters[3]);
+	const unsigned int x = ParseNumberValue(parameters[2]);
+	const unsigned int y = ParseNumberValue(parameters[3]);
 	pos = Vector2(x, y);
 
 	std::string text = parameters[4];	
@@ -1098,12 +1132,12 @@ int CutsceneCommands::TextColor(CutsceneParameters parameters)
 	else // then it must be RGB or RGBA decimal such as 255 255 255 or 255 255 255 255
 	{
 		// Note: blue and red are swapped for endianness
-		color.b = std::stoi(parameters[2]);
-		color.g = std::stoi(parameters[3]);
-		color.r = std::stoi(parameters[4]);
+		color.b = ParseNumberValue(parameters[2]);
+		color.g = ParseNumberValue(parameters[3]);
+		color.r = ParseNumberValue(parameters[4]);
 
 		if (parameters.size() > 5)
-			color.a = std::stoi(parameters[5]);
+			color.a = ParseNumberValue(parameters[5]);
 
 		success = true;
 	};
@@ -1136,22 +1170,23 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 	if (entity->GetSprite() == nullptr)
 		return 2; //TODO: Error log
 
-	std::string spriteProperty = parameters[2];
+	const std::string spriteProperty = ParseStringValue(parameters[2]);
 
 	if (spriteProperty == "color")
 	{
-		Color color = { std::stoi(parameters[3]), std::stoi(parameters[4]), 
-			std::stoi(parameters[5]), std::stoi(parameters[6]) };
+		Color color = { ParseNumberValue(parameters[3]), ParseNumberValue(parameters[4]),
+			ParseNumberValue(parameters[5]), ParseNumberValue(parameters[6]) };
 
 		entity->GetSprite()->color = color;
 	}
 	else if (spriteProperty == "scale")
 	{
-		entity->GetSprite()->scale = Vector2(std::stoi(parameters[3]), std::stoi(parameters[4]));
+		entity->GetSprite()->scale = Vector2(ParseNumberValue(parameters[3]), ParseNumberValue(parameters[4]));
 	}
 	else if (spriteProperty == "rotate")
 	{
-		entity->rotation = glm::vec3(std::stoi(parameters[3]), std::stoi(parameters[4]), std::stoi(parameters[5]));
+		entity->rotation = glm::vec3(ParseNumberValue(parameters[3]), 
+			ParseNumberValue(parameters[4]), ParseNumberValue(parameters[5]));
 	}
 	else if (spriteProperty == "shader")
 	{	
@@ -1178,9 +1213,9 @@ int CutsceneCommands::SetVelocity(CutsceneParameters parameters)
 
 			if (entity != nullptr)
 			{
-				float x = std::stof(parameters[2]);
-				float y = std::stof(parameters[3]);
-				entity->SetVelocity(Vector2(x, y));
+				unsigned int x = ParseNumberValue(parameters[2]);
+				unsigned int y = ParseNumberValue(parameters[3]);
+				entity->SetVelocity(Vector2(x * 0.001f, y * 0.001f));
 			}
 			break;
 		}
@@ -1191,7 +1226,7 @@ int CutsceneCommands::SetVelocity(CutsceneParameters parameters)
 
 int CutsceneCommands::Wait(CutsceneParameters parameters)
 {
-	int ms = std::stoi(parameters[1]);
+	int ms = ParseNumberValue(parameters[1]);
 	manager->timer -= ms;
 	manager->textbox->isReading = false;
 	return 0;
@@ -1227,6 +1262,10 @@ int CutsceneCommands::Fade(CutsceneParameters parameters)
 	{
 		manager->game->renderer->targetColor = Color{0, 0, 0, 255 };
 	}
+	else
+	{
+		// TODO: Parse color
+	}
 
 	return 0;
 }
@@ -1234,9 +1273,9 @@ int CutsceneCommands::Fade(CutsceneParameters parameters)
 int CutsceneCommands::SetResolution(CutsceneParameters parameters)
 {
 	//TODO: Maybe place this command in a config file to start the window in a certain resolution?
-	//TODO: Allow setting resolution based on variable values
-	const int width = GetNumAlias(parameters[1]);
-	const int height = GetNumAlias(parameters[2]);
+	//TEST: Allow setting resolution based on variable values
+	const int width = ParseNumberValue(parameters[1]);
+	const int height = ParseNumberValue(parameters[2]);
 
 	manager->game->SetScreenResolution(width, height);
 

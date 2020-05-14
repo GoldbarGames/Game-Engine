@@ -1410,7 +1410,7 @@ void Game::Update()
 	{
 		cutscene->Update();
 		
-		if (!cutscene->isReadingNextLine)
+		if (!cutscene->isReadingNextLine && cutscene->inputTimer.HasElapsed())
 		{
 			cutscene->CheckKeys();
 		}

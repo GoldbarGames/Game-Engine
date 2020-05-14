@@ -67,6 +67,7 @@ public:
 	int lineIndex = 0;
 	int letterIndex = 0;
 	int commandIndex = 0;
+	unsigned int globalStart = 1000;
 	//TODO: Move these button configurations to some place more relevant
 	// This class should have a reference to the controller and get the bindings from it
 	SDL_Scancode skipButton = SDL_Scancode::SDL_SCANCODE_LCTRL;
@@ -84,7 +85,7 @@ public:
 	int autoTimeIndex = 0;
 	Timer autoReaderTimer;
 	Timer inputTimer;
-	float inputTimeToWait = 100;
+	float inputTimeToWait = 1000;
 	Textbox* textbox = nullptr;
 	Color currentColor = { 255, 255, 255, 255 };
 	Game* game = nullptr;
