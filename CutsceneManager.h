@@ -54,19 +54,34 @@ public:
 	int commandIndex = 0;
 };
 
+struct BacklogData
+{
+	int labelIndex = 0;
+	int lineIndex = 0;
+
+	BacklogData(int l, int i)
+	{
+		labelIndex = l;
+		lineIndex = i;
+	}
+};
+
 class CutsceneManager
 {
 	std::string language = "english";
 	std::string data = "";
 	std::string currentText = "";
 	CutsceneCommands commands;
-	std::queue<std::string> backlog;
-	int backlogMaxSize = 3;
 public:	 
 	int labelIndex = 0;
 	int lineIndex = 0;
 	int letterIndex = 0;
 	int commandIndex = 0;
+	int backlogIndex = 0;
+	bool readingBacklog = false;
+	Color backlogColor = { 255, 255, 0, 255 };
+	std::vector<BacklogData> backlog;
+	int backlogMaxSize = 3;
 	unsigned int globalStart = 1000;
 	//TODO: Move these button configurations to some place more relevant
 	// This class should have a reference to the controller and get the bindings from it
@@ -114,6 +129,7 @@ public:
 	SceneData* PopSceneDataFromStack();
 
 	void CheckKeys();
+	void ReadBacklog();
 
 	void SaveGame();
 	void LoadGame();

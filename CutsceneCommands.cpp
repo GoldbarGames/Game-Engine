@@ -102,13 +102,13 @@ std::vector<FuncLUT>cmd_lut = {
 // Change location of save data
 // Alpha image effects
 // * Skip button to skip text
-// Log button to read old text (in box vs. scroll)
+// * Log button to read old text (in box vs. scroll)
 // * Automode, adjust automode speeds (per letter and per line)
 // Adjustable text speed (!sd)
 // Right-click subroutine
 // Click-wait subroutine
 // Keyboard input for variables
-// Global/persistent variables
+// * Global/persistent variables
 
 // Output error logs
 // Math functions (abs, sin, cos, tan, etc.)
@@ -1069,7 +1069,6 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 	{
 		const unsigned int x = ParseNumberValue(parameters[3]);
 		const unsigned int y = ParseNumberValue(parameters[4]);
-
 		pos = Vector2(x, y);
 	}
 
@@ -1358,7 +1357,7 @@ int CutsceneCommands::SetResolution(CutsceneParameters parameters)
 	const int height = ParseNumberValue(parameters[2]);
 
 	manager->game->SetScreenResolution(width, height);
-
+	
 	return 0;
 }
 
@@ -1369,11 +1368,47 @@ int CutsceneCommands::SetResolution(CutsceneParameters parameters)
 int CutsceneCommands::SetGlobalNumber(CutsceneParameters parameters)
 {
 	manager->globalStart = ParseNumberValue(parameters[1]);
-
 	return 0;
 }
 
 int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 {
+	if (parameters.size() > 1)
+	{
+		if (parameters[1] == "size")
+		{
+			manager->backlogMaxSize = ParseNumberValue(parameters[2]);
+			//TODO: Save this to a settings file
+		}
+		else if (parameters[1] == "color")
+		{
+			if (parameters[2][0] == '#')
+			{
+				manager->backlogColor = ParseColorHexadecimal(parameters[2]);
+			}
+			else if (parameters.size() == 5)
+			{
+				manager->backlogColor = { (int)ParseNumberValue(parameters[2]),
+					(int)ParseNumberValue(parameters[3]) ,
+					(int)ParseNumberValue(parameters[4]),
+					255 };
+			}
+			else if(parameters.size() == 6)
+			{
+				manager->backlogColor = { (int)ParseNumberValue(parameters[2]),
+					(int)ParseNumberValue(parameters[3]) ,
+					(int)ParseNumberValue(parameters[4]),
+					(int)ParseNumberValue(parameters[5]) };
+			}
+		}
+	}
+	else
+	{
+		//TODO: Allow the script to set other backlog properties
+		manager->readingBacklog = true;
+		manager->backlogIndex = manager->backlog.size() - 1;
+		manager->ReadBacklog();
+	}
+
 	return 0;
 }

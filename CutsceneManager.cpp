@@ -35,11 +35,38 @@ CutsceneManager::CutsceneManager(Game& g)
 	}
 }
 
+// Check input after textbox line has been fully read
 void CutsceneManager::CheckKeys()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN] || input[skipButton]
+	if (readingBacklog)
+	{
+		if (input[SDL_SCANCODE_UP])
+		{
+			backlogIndex--;
+			if (backlogIndex < 0)
+				backlogIndex = 0;
+			ReadBacklog();
+			inputTimer.Start(inputTimeToWait);
+		}
+		else if (input[SDL_SCANCODE_DOWN])
+		{
+			backlogIndex++;
+			if (backlogIndex >= backlog.size())
+			{
+				readingBacklog = false;
+				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
+				textbox->text->SetText(currentLabel->lines[lineIndex]->text, currentColor);
+			}
+			else
+			{
+				ReadBacklog();
+			}
+			inputTimer.Start(inputTimeToWait);
+		}
+	}
+	else if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN] || input[skipButton]
 		|| (automaticallyRead && autoReaderTimer.HasElapsed()))
 	{
 		ReadNextLine();
@@ -54,7 +81,10 @@ void CutsceneManager::CheckKeys()
 	}
 	else if (input[SDL_SCANCODE_UP])
 	{
-		//textbox->Test();
+		readingBacklog = true;
+		backlogIndex = backlog.size() - 1;
+		ReadBacklog();
+		inputTimer.Start(inputTimeToWait);
 	}
 	else if (input[SDL_SCANCODE_S]) // save game
 	{
@@ -370,14 +400,13 @@ void CutsceneManager::ReadNextLine()
 
 	if (currentLabel != nullptr)
 	{
-		//TODO: keep track of other information such as speaker name, etc.
-		backlog.push(currentText);
+		//TODO: Make sure to save the backlog when we save the game
+		if (lineIndex >= 0 && labelIndex >= 0)
+			backlog.push_back( BacklogData(labelIndex, lineIndex) );
 
 		if (backlog.size() > backlogMaxSize)
-		{
-			backlog.pop();
-		}
-
+			backlog.erase(backlog.begin());
+		
 		lineIndex++;	
 		currentText = "";
 		textbox->text->SetText(currentText);
@@ -400,11 +429,29 @@ void CutsceneManager::ReadNextLine()
 
 			// If speaker of this line is same as last, instantly show it
 			if (textbox->speaker->txt == currentLabel->lines[lineIndex]->speaker)
-				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker);
+				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
 			else
 				textbox->speaker->SetText("");
 		}
 	}	
+}
+
+void CutsceneManager::ReadBacklog()
+{	
+	//Color color = namesToColors[label->lines[lineIndex]->speaker];
+	if (backlogIndex < backlog.size())
+	{
+		if (backlog[backlogIndex].labelIndex < labels.size())
+		{
+			SceneLabel* label = labels[backlog[backlogIndex].labelIndex];
+			if (label != nullptr && backlog[backlogIndex].lineIndex < label->lines.size())
+			{
+				SceneLine* line = label->lines[backlog[backlogIndex].lineIndex];
+				textbox->speaker->SetText(line->speaker, backlogColor);
+				textbox->text->SetText(line->text, backlogColor);
+			}
+		}		
+	}
 }
 
 void CutsceneManager::Update()
@@ -590,7 +637,7 @@ void CutsceneManager::Update()
 
 			if (currentText.length() == 1)
 			{
-				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker);
+				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
 			}
 
 			//nextLetterTimer.Start(lettersPerFrame * delay);
