@@ -57,7 +57,7 @@ void CutsceneManager::CheckKeys()
 			{
 				readingBacklog = false;
 				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
-				textbox->text->SetText(currentLabel->lines[lineIndex]->text, currentColor);
+				textbox->text->SetText(currentText, currentColor);
 			}
 			else
 			{
@@ -402,7 +402,7 @@ void CutsceneManager::ReadNextLine()
 	{
 		//TODO: Make sure to save the backlog when we save the game
 		if (lineIndex >= 0 && labelIndex >= 0)
-			backlog.push_back( BacklogData(labelIndex, lineIndex) );
+			backlog.push_back( BacklogData(labelIndex, lineIndex, currentText.c_str()) );
 
 		if (backlog.size() > backlogMaxSize)
 			backlog.erase(backlog.begin());
@@ -450,7 +450,9 @@ void CutsceneManager::ReadBacklog()
 				textbox->speaker->SetText(line->speaker, backlogColor);
 				textbox->text->SetText(line->text, backlogColor);
 			}
-		}		
+		}	
+
+		textbox->text->SetText(backlog[backlogIndex].text, backlogColor);
 	}
 }
 

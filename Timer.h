@@ -10,18 +10,20 @@ private:
 	bool paused = false;
 	bool started = false;
 	Uint32 endTime = 0; // the time at which to stop the timer, if any
+	Uint32 lastDuration = 0; // the last time that the duration was set
 public:
 	Timer();
 	~Timer();
 	bool alwaysOn = false;
 	bool loopAnimation = false;
-	void Start(Uint32 duration = 0, bool loop=true); //milliseconds
+	void Start(Uint32 duration = 0, bool loopAnim=true); //milliseconds
 	void Stop();
-	void Pause(Uint32 ticks);
-	void Unpause(Uint32 ticks = 0);
+	void Pause();
+	void Unpause();
 	Uint32 GetTicks();
 	Uint32 GetAnimationTime();
 	bool IsPaused();
 	bool HasElapsed();
+	void Reset();
 };
 

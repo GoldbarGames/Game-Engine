@@ -9,6 +9,7 @@
 
 #include "Timer.h"
 #include "CutsceneCommands.h"
+#include <map>
 
 
 class Game;
@@ -58,11 +59,13 @@ struct BacklogData
 {
 	int labelIndex = 0;
 	int lineIndex = 0;
+	std::string text = "";
 
-	BacklogData(int l, int i)
+	BacklogData(int l, int i, const char* t)
 	{
 		labelIndex = l;
 		lineIndex = i;
+		text = t;
 	}
 };
 
@@ -107,9 +110,10 @@ public:
 	std::vector<std::string> choiceIfStatements;
 	std::vector<unsigned int> activeButtons;
 	std::unordered_map<unsigned int, unsigned int> spriteButtons;
-	std::unordered_map<unsigned int, Entity*> images;
-	std::unordered_map<unsigned int, Entity*>::iterator imageIterator;
+	std::map<unsigned int, Entity*> images; // needs to be in order for rendering
+	std::map<unsigned int, Entity*>::iterator imageIterator;
 	std::unordered_map<std::string, Color> namesToColors;
+	std::unordered_map<unsigned int, Timer*> timers;
 	float timer = 0;
 	bool isCarryingOutCommands = false;
 	bool isReadingNextLine = false;

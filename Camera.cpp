@@ -196,10 +196,7 @@ void Camera::KeyControl(const Uint8* input, const float& dt,
 				Zoom(0.025f, screenWidth, screenHeight);
 			}
 		}
-
 	}
-
-
 }
 
 void Camera::ResetProjection()

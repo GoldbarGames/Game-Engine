@@ -1,9 +1,11 @@
 #include "CutsceneCommands.h"
 #include "CutsceneManager.h"
 #include "Game.h"
+#include "Timer.h"
 #include <iostream>
 #include <iterator>
 #include <sstream>
+
 
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 
@@ -20,6 +22,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"bg", &CutsceneCommands::LoadBackground },
 	{"bgm", &CutsceneCommands::MusicCommand },
 	{"btnwait", &CutsceneCommands::WaitForButton },
+	{"camera", &CutsceneCommands::CameraFunction},
 	{"choice", &CutsceneCommands::DisplayChoice },
 	{"cl", &CutsceneCommands::ClearSprite },
 	{"concat", &CutsceneCommands::ConcatenateStringVariables},
@@ -55,6 +58,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"text", &CutsceneCommands::LoadText },
 	{"textbox", &CutsceneCommands::Textbox },
 	{"textcolor", &CutsceneCommands::TextColor },
+	{"timer", &CutsceneCommands::TimerFunction},
 	{"wait",& CutsceneCommands::Wait }
 };
 
@@ -75,8 +79,10 @@ std::vector<FuncLUT>cmd_lut = {
 
 // Save/load?
 // Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
+// - set the position, rotation, just like anything else
+// - set the zoom factor, the projection stuff, perspective, etc.
 // Playing animations
-// Timers, set/reset/stop them
+
 // * Randomize a variable and re-seed the randomness
 // * User-defined functions 
 // (get parameters)
@@ -116,6 +122,9 @@ std::vector<FuncLUT>cmd_lut = {
 // Physics functions (position, velocity, acceleration, collision detection)
 // Visual Editor, modify cutscene as it is running, replay it
 // Declare arrays and lists of variables, more complex stuff
+// * Timers, set/reset/stop/pause/unpause them
+
+
 
 CutsceneCommands::CutsceneCommands()
 {
@@ -1156,7 +1165,6 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	//TODO: Make sure variables work (%, $)
 
 	unsigned int imageNumber = ParseNumberValue(parameters[1]);
-
 	const unsigned int x = ParseNumberValue(parameters[2]);
 	const unsigned int y = ParseNumberValue(parameters[3]);
 	pos = Vector2(x, y);
@@ -1408,6 +1416,111 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 		manager->readingBacklog = true;
 		manager->backlogIndex = manager->backlog.size() - 1;
 		manager->ReadBacklog();
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::TimerFunction(CutsceneParameters parameters)
+{
+	//TODO: Display errors for syntax errors rather than crashing
+
+	unsigned int timerNumber = ParseNumberValue(parameters[2]);
+
+	if (parameters[1] == "start")
+	{		
+		if (manager->timers.count(timerNumber) != 1)
+			manager->timers[timerNumber] = new Timer();			
+
+		unsigned int timerDuration = ParseNumberValue(parameters[3]);
+		manager->timers[timerNumber]->Start(timerDuration);
+	}
+	else if (parameters[1] == "pause")
+	{
+		if (manager->timers.count(timerNumber) == 1)
+		{
+			manager->timers[timerNumber]->Pause();
+		}
+	}
+	else if (parameters[1] == "unpause")
+	{
+		if (manager->timers.count(timerNumber) == 1)
+		{
+			manager->timers[timerNumber]->Unpause();
+		}
+	}
+	else if (parameters[1] == "reset")
+	{
+		if (manager->timers.count(timerNumber) == 1)
+		{
+			manager->timers[timerNumber]->Reset();
+		}
+	}
+	else if (parameters[1] == "elapsed") //TODO: Change this word?
+	{
+		if (manager->timers.count(timerNumber) == 1)
+		{
+			// Get the amount of time that has elapsed since the timer started
+			SetNumberVariable({ "", parameters[3], std::to_string(manager->timers[timerNumber]->GetTicks()) });
+		}
+	}
+	else if (parameters[1] == "delete")
+	{
+		if (manager->timers.count(timerNumber) == 1)
+		{
+			delete manager->timers[timerNumber];
+			manager->timers.erase(timerNumber);
+		}
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
+{
+	if (parameters[1] == "zoom")
+	{
+
+	}
+	else if (parameters[1] == "set")
+	{
+		if (parameters[2] == "position")
+		{
+
+		}
+		else if (parameters[2] == "rotation")
+		{
+
+		}
+		else if (parameters[2] == "pitch")
+		{
+
+		}
+		else if (parameters[2] == "yaw")
+		{
+
+		}
+		else if (parameters[2] == "projection")
+		{
+			if (parameters[3] == "orthographic")
+			{
+				manager->game->renderer->camera.useOrthoCamera = true;
+				manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+			}
+			else if (parameters[2] == "perspective")
+			{
+				manager->game->renderer->camera.useOrthoCamera = false;
+				manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+			}
+		}
+	}
+	else if (parameters[1] == "pan")
+	{
+
+	}
+	else if (parameters[1] == "rotate")
+	{
+
 	}
 
 	return 0;

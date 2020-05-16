@@ -94,5 +94,8 @@ public:
 
 	int SetGlobalNumber(CutsceneParameters parameters);
 	int OpenBacklog(CutsceneParameters parameters);
+
+	int TimerFunction(CutsceneParameters parameters);
+	int CameraFunction(CutsceneParameters parameters);
 };
 
