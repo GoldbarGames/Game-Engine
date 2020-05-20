@@ -1452,11 +1452,6 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 	renderer->screenScale = Vector2(screenWidth / 1280.0f, screenHeight / 720.0f);
 }
 
-void Game::RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEntities)
-{
-	
-}
-
 void Game::Render()
 {
 	// Clear window

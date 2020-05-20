@@ -23,8 +23,8 @@ public:
 		const float& screenWidth, const float& screenHeight);
 
 	void MouseControl(GLfloat xChange, GLfloat yChange);
-	glm::mat4 projection;
-	glm::mat4 guiProjection;
+	glm::mat4 projection = glm::mat4();
+	glm::mat4 guiProjection = glm::mat4();
 	glm::mat4 CalculateViewMatrix();
 	void Zoom(float amount, float screenWidth, float screenHeight);
 	void ResetProjection();
@@ -40,22 +40,22 @@ public:
 
 private:
 	
-	glm::vec3 front;
-	glm::vec3 up;
-	glm::vec3 right;
-	glm::vec3 worldUp;
+	glm::vec3 front = glm::vec3(0, 0, 0);
+	glm::vec3 up = glm::vec3(0, 0, 0);
+	glm::vec3 right = glm::vec3(0, 0, 0);
+	glm::vec3 worldUp = glm::vec3(0, 0, 0);
 
 	float orthoZoom = 4.0f;
 	float startingZoom = 4.0f;
 	
 	float angle = -45.0f;
 
-	GLfloat yaw;
-	GLfloat pitch;
+	GLfloat yaw = 0;
+	GLfloat pitch = 0;
 	//GLfloat roll;
 
-	GLfloat movementSpeed;
-	GLfloat turnSpeed;
+	GLfloat movementSpeed = 0;
+	GLfloat turnSpeed = 0;
 
 
 };

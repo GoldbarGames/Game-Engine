@@ -10,7 +10,7 @@
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 
 //Look Up Table
-static struct FuncLUT {
+struct FuncLUT {
 	char command[32];
 	FuncList method;
 };
@@ -23,6 +23,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"bgm", &CutsceneCommands::MusicCommand },
 	{"btnwait", &CutsceneCommands::WaitForButton },
 	{"camera", &CutsceneCommands::CameraFunction},
+	{"controls", & CutsceneCommands::ControlBindings},
 	{"choice", &CutsceneCommands::DisplayChoice },
 	{"cl", &CutsceneCommands::ClearSprite },
 	{"concat", &CutsceneCommands::ConcatenateStringVariables},
@@ -36,6 +37,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"if", &CutsceneCommands::IfCondition },
 	{"jumpb", &CutsceneCommands::JumpBack },
 	{"jumpf", &CutsceneCommands::JumpForward },
+	{"keybind", &CutsceneCommands::BindKeyToLabel },
 	{"ld", &CutsceneCommands::LoadSprite },
 	{"loadgame",&CutsceneCommands::LoadGame },
 	{"me", &CutsceneCommands::MusicEffectCommand},
@@ -59,7 +61,8 @@ std::vector<FuncLUT>cmd_lut = {
 	{"textbox", &CutsceneCommands::Textbox },
 	{"textcolor", &CutsceneCommands::TextColor },
 	{"timer", &CutsceneCommands::TimerFunction},
-	{"wait",& CutsceneCommands::Wait }
+	{"wait",& CutsceneCommands::Wait },
+	{"window", &CutsceneCommands::WindowFunction }
 };
 
 
@@ -78,19 +81,52 @@ std::vector<FuncLUT>cmd_lut = {
 // * Ending the game window / restarting the game window
 
 // Save/load?
-// Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
-// - set the position, rotation, just like anything else
-// - set the zoom factor, the projection stuff, perspective, etc.
-// Playing animations
+// Playing animations (use state machines, set variables, etc.)
+// - what about animations that involve each frame being its own file?
 
 // * Randomize a variable and re-seed the randomness
 // * User-defined functions 
-// (get parameters)
+// * Get parameters (defsub myfunction %param1 $param2 %param3)
 // * gosub (goto and return)
-// * Change screen resolution
-// TODO: Fix rendering so that it is compatible with 4:3 aspect ratio, or others that are not 16:9
-// Change other options
-// Check if a file exists
+// * Change screen resolution (TODO: See camera.cpp constructor)
+// Settings screen (sound volume, text speed, etc.)
+// Check if a file exists (fileexist assets/myfile.png %0)
+// * Change text color for menu selection
+
+// * Enable / disable mouse controls (enable mouse, enable keyboard, enable both)
+// * Bind keyboard keys to labels via script
+// Custom key bindings (advance text, backlog, etc.)
+// Change placement of textbox, namebox
+// Change image of textbox, namebox
+// Change font properties of textbox, namebox, choices (type, size, style, color)
+// Set the click to continue button image / animation
+// Automatically position the CTC image
+
+// * Change window caption and icon
+// Change location of save data
+// Alpha image effects
+// * Skip button to skip text
+// * Log button to read old text (in box vs. scroll)
+// * Automode, adjust automode speeds (per letter and per line)
+// Adjustable text speed (!sd)
+// * Right-click (escape) subroutine
+// Click-wait subroutine
+// Keyboard input for variables
+// * Global/persistent variables
+
+// Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
+// - set the position, rotation, just like anything else
+// - set the zoom factor, the projection stuff, perspective, etc.
+
+// Output error logs
+// Proper syntax checking and error handling
+// Math functions (abs, sin, cos, tan, etc.)
+// Changing the file/directory where the script file is read from
+// Physics functions (position, velocity, acceleration, collision detection)
+// Visual Editor, modify cutscene as it is running, replay it
+// Declare arrays and lists of variables, more complex stuff
+// * Timers, set/reset/stop/pause/unpause them
+// Pop up a box with text for a time limit
 
 // * Can assign color to a character's dialogue
 // - TODO: Can use variables to get the color,
@@ -99,31 +135,6 @@ std::vector<FuncLUT>cmd_lut = {
 //textcolor default #ffffff ;
 //textcolor BUTLER #ff0000 ;
 //`:BUTLER: This is #ff0000red text ## and this is not.`
-
-// * Change text color for menu selection
-// Change placement of textbox, namebox, and image
-// Pop up a box with text for a time limit
-// Change font size for textbox, choices, etc.
-// Change window caption and icon
-// Change location of save data
-// Alpha image effects
-// * Skip button to skip text
-// * Log button to read old text (in box vs. scroll)
-// * Automode, adjust automode speeds (per letter and per line)
-// Adjustable text speed (!sd)
-// Right-click subroutine
-// Click-wait subroutine
-// Keyboard input for variables
-// * Global/persistent variables
-
-// Output error logs
-// Math functions (abs, sin, cos, tan, etc.)
-// Changing the file/directory where the script file is read from
-// Physics functions (position, velocity, acceleration, collision detection)
-// Visual Editor, modify cutscene as it is running, replay it
-// Declare arrays and lists of variables, more complex stuff
-// * Timers, set/reset/stop/pause/unpause them
-
 
 
 CutsceneCommands::CutsceneCommands()
@@ -229,18 +240,47 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 
 		if (!commandFound)
 		{
-			//TODO: We want to check user-defined functions in here
-			auto it = std::find(userDefinedFunctions.begin(),
-				userDefinedFunctions.end(), parameters[0]);
-
-			// If function name exists, jump to the label with that name
-			if (it != userDefinedFunctions.end())
+			// We want to check user-defined functions in here
+			for (int k = 0; k < userDefinedFunctions.size(); k++)
 			{
-				//TODO: If I want to get the parameters for the function,
-				// it would probably have to be done here
-				GoSubroutine({ parameters[0], parameters[0] });
+				// If function name exists, jump to the label with that name
+				if (userDefinedFunctions[k]->functionName == parameters[0])
+				{
+					commandFound = true;
+
+					//			myfunction 123 [test] 456  <-- parameters
+					// defsub	myfunction %0  $45	  %33  <-- definition
+
+					// Grab parameters and place their values in the corresponding variables
+					for (int i = 0; i < userDefinedFunctions[k]->parameters.size(); i++)
+					{
+						int index = GetNumAlias(userDefinedFunctions[k]->parameters[i].substr(1, 
+							userDefinedFunctions[k]->parameters[i].size() - 1));
+
+						// Set values for each variable as defined in the function definition
+						switch (userDefinedFunctions[k]->parameters[i][0])
+						{
+						case '$':
+							stringVariables[index] = ParseStringValue(parameters[i + 1]);
+							break;
+						case '%':
+							numberVariables[index] = ParseNumberValue(parameters[i + 1]);
+							break;
+						default:
+							// Do nothing, maybe error message?
+							std::cout << "Invalid parameter definition for " << parameters[0] << " function";
+							break;
+						}
+					}
+
+					GoSubroutine({ parameters[0], parameters[0] });
+
+					break;
+				}
+
 			}
-			else
+
+			if (!commandFound)
 			{
 				std::cout << "ERROR: Command " << parameters[0] << " not found.";
 			}			
@@ -505,16 +545,31 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 
 int CutsceneCommands::DefineUserFunction(CutsceneParameters parameters)
 {
-	auto it = std::find(userDefinedFunctions.begin(), 
-		userDefinedFunctions.end(), parameters[1]);
+	bool functionAlreadyExists = false;
+	for (int i = 0; i < userDefinedFunctions.size(); i++)
+	{
+		if (userDefinedFunctions[i]->functionName == parameters[1])
+		{
+			functionAlreadyExists = true;
+			break;
+		}
+	}
 
+	//auto it = std::find(userDefinedFunctions.begin(), 
+	//	userDefinedFunctions.end(), parameters[1]);
 	//auto it = std::find_if(begin(userDefinedFunctions), end(userDefinedFunctions),
 	//	[&](auto func) { return func.name == parameters[1]; });
 
 	// If function name does not exist, add it to the list
-	if (it == userDefinedFunctions.end())
+	if (!functionAlreadyExists)
 	{
-		userDefinedFunctions.push_back(parameters[1]);
+		UserDefinedFunction* newFunction = new UserDefinedFunction;
+		newFunction->functionName = parameters[1];
+
+		for (int i = 2; i < parameters.size(); i++)
+			newFunction->parameters.push_back(parameters[i]);
+
+		userDefinedFunctions.push_back(newFunction);
 	}
 
 	return 0;
@@ -1502,16 +1557,16 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 		}
 		else if (parameters[2] == "projection")
 		{
-			if (parameters[3] == "orthographic")
-			{
-				manager->game->renderer->camera.useOrthoCamera = true;
-				manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
-			}
-			else if (parameters[2] == "perspective")
-			{
-				manager->game->renderer->camera.useOrthoCamera = false;
-				manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
-			}
+		if (parameters[3] == "orthographic")
+		{
+			manager->game->renderer->camera.useOrthoCamera = true;
+			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+		}
+		else if (parameters[2] == "perspective")
+		{
+			manager->game->renderer->camera.useOrthoCamera = false;
+			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+		}
 		}
 	}
 	else if (parameters[1] == "pan")
@@ -1521,6 +1576,92 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 	else if (parameters[1] == "rotate")
 	{
 
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::WindowFunction(CutsceneParameters parameters)
+{
+	if (parameters.size() > 1)
+	{
+		if (parameters[1] == "icon")
+		{
+			SDL_SetWindowIcon(manager->game->window, IMG_Load(ParseStringValue(parameters[2]).c_str()));
+		}
+		else if (parameters[1] == "title")
+		{
+			SDL_SetWindowTitle(manager->game->window, ParseStringValue(parameters[2]).c_str());
+		}
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::ControlBindings(CutsceneParameters parameters)
+{
+	if (parameters.size() > 1)
+	{
+		//TODO: Toggle function?
+		if (parameters[1] == "mouse")
+		{
+			manager->useMouseControls = (parameters[2] == "on");
+		}
+		else if (parameters[1] == "keyboard")
+		{
+			manager->useKeyboardControls = (parameters[2] == "on");
+		}
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::BindKeyToLabel(CutsceneParameters parameters)
+{
+	if (parameters.size() > 2)
+	{
+		std::string labelName = ParseStringValue(parameters[2]);
+
+		if (parameters[1].size() > 1)
+		{
+			// Handle special cases / full words here (spacebar, enter, etc.)
+			if (parameters[1] == "spacebar")
+			{
+				buttonLabels[SDL_SCANCODE_SPACE] = labelName;
+			}
+			else if (parameters[1] == "enter" || parameters[1] == "return")
+			{
+				buttonLabels[SDL_SCANCODE_RETURN] = labelName;
+			}
+		}
+		else
+		{
+			//TODO: Handle other single character keys
+
+			// Get the ASCII value of the character
+			int letter = parameters[1][0];
+
+			// ASCII A starts at 65, SDL starts at 4, so 65-4 = 61 = offset
+			// ASCII a starts at 97, SDL starts at 4, so 97-4 = 93 = offset
+			// ASCII 1 starts at 49, SDL starts at 30, so 49 - 30 = 19 = offset
+			
+			if (letter > 64 && letter < 91) // A
+			{
+				buttonLabels[letter - 61] = labelName;
+			}
+			else if (letter > 96 && letter < 123) // a
+			{
+				buttonLabels[letter - 93] = labelName;
+			}
+			else if (letter > 48 && letter < 58) // 1
+			{
+				buttonLabels[letter - 19] = labelName;
+			}
+			else if (letter == 48) // 0
+			{
+				buttonLabels[SDL_SCANCODE_0] = labelName;
+			}
+		}
 	}
 
 	return 0;

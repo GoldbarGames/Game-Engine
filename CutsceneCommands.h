@@ -5,6 +5,12 @@
 
 class CutsceneManager;
 
+struct UserDefinedFunction
+{
+	std::string functionName = "";
+	std::vector<std::string> parameters;
+};
+
 typedef const std::vector<std::string>& CutsceneParameters;
 class CutsceneCommands
 {
@@ -12,7 +18,7 @@ public:
 	std::unordered_map<std::string, std::string> stralias;
 	std::unordered_map<std::string, unsigned int> numalias;
 	std::unordered_map<unsigned int, std::string> stringVariables;
-	std::vector<std::string> userDefinedFunctions; //TODO: Implement these
+	std::vector<UserDefinedFunction*> userDefinedFunctions; //TODO: Implement these
 
 	//TODO: Make this only accessible to the manager
 	std::unordered_map<unsigned int, int> numberVariables;
@@ -97,5 +103,9 @@ public:
 
 	int TimerFunction(CutsceneParameters parameters);
 	int CameraFunction(CutsceneParameters parameters);
+
+	int WindowFunction(CutsceneParameters parameters);
+	int ControlBindings(CutsceneParameters parameters);
+	int BindKeyToLabel(CutsceneParameters parameters);
 };
 

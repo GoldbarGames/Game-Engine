@@ -263,7 +263,5 @@ public:
 
 	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*> & animStates);
 	void SaveScreenshot();
-
-	void RenderEntities(glm::mat4 projection, std::vector<Entity*> renderedEntities);
 };
 

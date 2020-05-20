@@ -40,73 +40,94 @@ void CutsceneManager::CheckKeys()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	if (readingBacklog)
+	if (useMouseControls)
 	{
-		if (input[SDL_SCANCODE_UP])
+		int mouseX, mouseY = 0;
+		const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+
+		if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 		{
-			backlogIndex--;
-			if (backlogIndex < 0)
-				backlogIndex = 0;
+			ReadNextLine();
+		}
+		else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT))
+		{
+			commandIndex--;
+			commands.GoSubroutine({ "", commands.buttonLabels[(unsigned int)SDL_SCANCODE_ESCAPE] });
+		}
+	}
+
+	if (useKeyboardControls)
+	{
+		if (readingBacklog)
+		{
+			if (input[SDL_SCANCODE_UP])
+			{
+				backlogIndex--;
+				if (backlogIndex < 0)
+					backlogIndex = 0;
+				ReadBacklog();
+				inputTimer.Start(inputTimeToWait);
+			}
+			else if (input[SDL_SCANCODE_DOWN])
+			{
+				backlogIndex++;
+				if (backlogIndex >= backlog.size())
+				{
+					readingBacklog = false;
+					textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
+					textbox->text->SetText(currentText, currentColor);
+				}
+				else
+				{
+					ReadBacklog();
+				}
+				inputTimer.Start(inputTimeToWait);
+			}
+		}
+		else if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN] || input[skipButton]
+			|| (automaticallyRead && autoReaderTimer.HasElapsed()))
+		{
+			ReadNextLine();
+		}
+		else if (input[SDL_SCANCODE_UP])
+		{
+			readingBacklog = true;
+			backlogIndex = backlog.size() - 1;
 			ReadBacklog();
 			inputTimer.Start(inputTimeToWait);
 		}
-		else if (input[SDL_SCANCODE_DOWN])
-		{
-			backlogIndex++;
-			if (backlogIndex >= backlog.size())
-			{
-				readingBacklog = false;
-				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
-				textbox->text->SetText(currentText, currentColor);
-			}
-			else
-			{
-				ReadBacklog();
-			}
-			inputTimer.Start(inputTimeToWait);
-		}
-	}
-	else if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN] || input[skipButton]
-		|| (automaticallyRead && autoReaderTimer.HasElapsed()))
-	{
-		ReadNextLine();
-	}
-	else if (input[SDL_SCANCODE_TAB])
-	{
-		//TODO: This is not perfect, it just breaks out of the cutscene and does not carry out commands
-		// Also, should maybe disable this outside of development mode or make it an option
 #if _DEBUG
-		EndCutscene();
-#endif
-	}
-	else if (input[SDL_SCANCODE_UP])
-	{
-		readingBacklog = true;
-		backlogIndex = backlog.size() - 1;
-		ReadBacklog();
-		inputTimer.Start(inputTimeToWait);
-	}
-	else if (input[SDL_SCANCODE_S]) // save game
-	{
-		SaveGame();
-	}
-	else if (input[SDL_SCANCODE_L]) // load game
-	{
-		LoadGame();
-		ReadNextLine();
-	}
-	else
-	{
-		for (auto const& button : commands.buttonLabels)
+		else if (input[SDL_SCANCODE_S]) // save game
 		{
-			if (input[button.first]) //TODO: Also check if button is active
+			SaveGame();
+		}
+		else if (input[SDL_SCANCODE_L]) // load game
+		{
+			LoadGame();
+			ReadNextLine();
+		}
+		else if (input[SDL_SCANCODE_TAB])
+		{
+			//TODO: This is not perfect, it just breaks out of the cutscene and does not carry out commands
+			// Also, should maybe disable this outside of development mode or make it an option
+			EndCutscene();
+		}
+#endif
+		else
+		{
+			for (auto const& button : commands.buttonLabels)
 			{
-				commandIndex--;
-				commands.GoSubroutine({ button.second, button.second });
-				break;
+				if (input[button.first]) //TODO: Also check if button is active
+				{
+					commandIndex--;
+					commands.GoSubroutine({ button.second, button.second });
+					break;
+				}
 			}
 		}
 	}
+
+	
 }
 
 void CutsceneManager::ParseScene()
@@ -468,6 +489,9 @@ void CutsceneManager::Update()
 		automaticallyRead = !automaticallyRead;
 		inputTimer.Start(inputTimeToWait);
 	}
+
+	//TODO: Disable all of this if the keyboard controls are disabled
+	// And also allow mouse control alternatives
 
 	//TODO: Make this more customizable
 	//TODO: Add a delay between letters as well.

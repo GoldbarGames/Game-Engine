@@ -30,7 +30,10 @@ Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp,
 	orthoZoom = startZoom;
 
 	projection = glm::mat4(1.0f);
-	guiProjection = glm::ortho(0.0f, width * 2, height * 2, 0.0f, -1.0f, 10.0f);
+
+	//TODO: Replace width and height with startWidth and startHeight
+	// This is what scales the gui-scaled images when we change screen resolutions
+	guiProjection = glm::ortho(0.0f, width * 2.0f, height * 2.0f, 0.0f, -1.0f, 10.0f);
 
 	Zoom(0.0f, width, height);
 
@@ -203,8 +206,8 @@ void Camera::ResetProjection()
 {
 	if (useOrthoCamera)
 	{
-		float zoomX = (1280.0f * startingZoom);
-		float zoomY = (720.0f * startingZoom);
+		float zoomX = (800 * startingZoom);
+		float zoomY = (600 * startingZoom);
 		projection = glm::ortho(0.0f, zoomX, zoomY, 0.0f, -1.0f, 10.0f);
 	}
 	else
@@ -223,8 +226,8 @@ void Camera::Zoom(float amount, float screenWidth, float screenHeight)
 
 	if (useOrthoCamera)
 	{
-		float zoomX = (1280.0f * orthoZoom);
-		float zoomY = (720.0f * orthoZoom);
+		float zoomX = (screenWidth * orthoZoom);
+		float zoomY = (screenHeight * orthoZoom);
 		projection = glm::ortho(0.0f, zoomX, zoomY, 0.0f, -1.0f, 10.0f);
 	}
 	else

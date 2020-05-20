@@ -69,6 +69,8 @@ struct BacklogData
 	}
 };
 
+
+
 class CutsceneManager
 {
 	std::string language = "english";
@@ -76,6 +78,8 @@ class CutsceneManager
 	std::string currentText = "";
 	CutsceneCommands commands;
 public:	 
+	bool useMouseControls = true;
+	bool useKeyboardControls = true;
 	int labelIndex = 0;
 	int lineIndex = 0;
 	int letterIndex = 0;
