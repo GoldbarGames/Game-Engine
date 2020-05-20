@@ -124,3 +124,4 @@ std::string ParseWord(const std::string& text, char limit, int& index)
 	index++; // move past the space/newline
 	return word;
 }
+

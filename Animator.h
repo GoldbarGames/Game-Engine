@@ -7,8 +7,6 @@
 
 class Entity;
 
-
-
 // For the sprite to know what to draw
 struct AnimState {
 	std::string name = "";

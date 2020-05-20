@@ -2,9 +2,11 @@
 #include "CutsceneManager.h"
 #include "Game.h"
 #include "Timer.h"
+#include "Animator.h"
 #include <iostream>
 #include <iterator>
 #include <sstream>
+#include <stdexcept>
 
 
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
@@ -1084,12 +1086,15 @@ unsigned int CutsceneCommands::GetNumAlias(const std::string& key)
 {
 	if (numalias.find(key) == numalias.end())
 	{
-		if (key.find_first_not_of("-0123456789") == std::string::npos)
-			return std::stoi(key);
-		else
+		try
 		{
+			return std::stoi(key);
+		}
+		catch (const std::exception& ex)
+		{			
 			std::cout << "ERROR: Numalias not defined for " << key << std::endl;
-			return 0;
+			std::cout << ex.what() << std::endl;
+			return 0; //TODO: Should this be changed to -1?
 		}
 	}
 	else
@@ -1303,7 +1308,7 @@ int CutsceneCommands::TextColor(CutsceneParameters parameters)
 int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 {
 	unsigned int imageNumber = GetNumAlias(parameters[1]);
-
+	//TODO: Maybe make a manager->GetImage(imageNumber) function for error handling
 	Entity* entity = manager->images[imageNumber];
 	if (entity == nullptr)
 		return 1; //TODO: Error log
@@ -1336,6 +1341,49 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 		//if (manager->game->renderer->GetShaderFromString(parameters[3]) != nullptr)
 		//	sprite->shader = manager->game->renderer->GetShaderFromString(parameters[3]);
 		//TODO: Log and display error if cannot find shader?
+	}
+	else if (spriteProperty == "animator")
+	{
+		const std::string animAction = ParseStringValue(parameters[3]);
+
+		if (animAction == "=") // set the sprite's animator equal to this one
+		{
+			if (entity->GetAnimator() != nullptr)
+				delete entity->GetAnimator();
+
+			std::vector<AnimState*> animStates;
+			ReadAnimData(ParseStringValue(parameters[4]), animStates);
+
+			Animator* newAnim = new Animator(AnimType::Player, animStates, ParseStringValue(parameters[5]));
+			entity->SetAnimator(newAnim);
+		}
+		else if (entity->GetAnimator() == nullptr)
+		{
+			std::cout << "Error, sprite " << imageNumber << " does not have animator" << std::endl;
+		}
+		else if (animAction == "state") // change the animator's state
+		{
+			entity->GetAnimator()->SetState(parameters[4].c_str());
+		}
+		else if (animAction == "bool") // change the animator's bool var
+		{
+			int num = ParseNumberValue(parameters[5]);
+
+			//TODO: Don't just hardcode these values, make it work with cutscene vars too
+			if (parameters[5] == "true" || parameters[5] == "True" || num > 0)
+				entity->GetAnimator()->SetBool(parameters[4].c_str(), true);
+			else
+				entity->GetAnimator()->SetBool(parameters[4].c_str(), false);
+		}
+		else if (animAction == "int") // change the animator's int var
+		{
+			entity->GetAnimator()->SetInt(parameters[4].c_str(), ParseNumberValue(parameters[5]));
+		}
+		else if (animAction == "float") // change the animator's float var
+		{
+			//TODO: This will not work because the parse function doesn't get floats
+			entity->GetAnimator()->SetInt(parameters[4].c_str(), ParseNumberValue(parameters[5]));
+		}
 	}
 
 	return 0;
@@ -1665,4 +1713,66 @@ int CutsceneCommands::BindKeyToLabel(CutsceneParameters parameters)
 	}
 
 	return 0;
+}
+
+
+//TODO: Only read this data once at the beginning and then store it for lookup later
+void CutsceneCommands::ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates)
+{
+	// Get anim data from the file
+	std::ifstream fin;
+	fin.open(dataFilePath);
+
+	std::string animData = "";
+	for (std::string line; std::getline(fin, line); )
+	{
+		animData += line + "\n";
+	}
+
+	fin.close();
+
+	// Go through the data and add all states
+
+	std::stringstream ss{ animData };
+
+	char lineChar[256];
+	ss.getline(lineChar, 256);
+
+	try
+	{
+		while (ss.good() && !ss.eof())
+		{
+			std::istringstream buf(lineChar);
+			std::istream_iterator<std::string> beg(buf), end;
+			std::vector<std::string> tokens(beg, end);
+
+			int index = 0;
+
+			std::string stateName = tokens[index++];
+			int stateSpeed = std::stoi(tokens[index++]);
+			int spriteStartFrame = std::stoi(tokens[index++]);
+			int spriteEndFrame = std::stoi(tokens[index++]);
+			int spriteFrameWidth = std::stoi(tokens[index++]);
+			int spriteFrameHeight = std::stoi(tokens[index++]);
+
+			std::string spriteFilePath = tokens[index++];
+			int spritePivotX = std::stoi(tokens[index++]);
+			int spritePivotY = std::stoi(tokens[index++]);
+
+			animStates.push_back(new AnimState(stateName, stateSpeed,
+				new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
+					manager->game->spriteManager, spriteFilePath,
+					manager->game->renderer->shaders[ShaderName::Default],
+					Vector2(spritePivotX, spritePivotY))));
+
+			ss.getline(lineChar, 256);
+		}
+	}
+	catch (const std::exception& ex)
+	{
+		const char* message = ex.what();
+		std::cout << message << std::endl;
+	}
+
+	
 }

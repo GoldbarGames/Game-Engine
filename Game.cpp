@@ -720,52 +720,7 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 	return tile;
 }
 
-//TODO: Only read this data once at the beginning and then store it for lookup later
-void Game::ReadAnimData(std::string dataFilePath, std::vector<AnimState*> & animStates)
-{
-	// Get anim data from the file
-	std::ifstream fin;
-	fin.open(dataFilePath);
 
-	std::string animData = "";
-	for (std::string line; std::getline(fin, line); )
-	{
-		animData += line + "\n";
-	}
-
-	fin.close();
-
-	// Go through the data and add all states
-
-	std::stringstream ss{ animData };
-
-	char lineChar[256];
-	ss.getline(lineChar, 256);
-
-	while (ss.good() && !ss.eof())
-	{
-		std::istringstream buf(lineChar);
-		std::istream_iterator<std::string> beg(buf), end;
-		std::vector<std::string> tokens(beg, end);
-
-		int index = 0;
-		std::string stateName = tokens[index++];
-		int stateSpeed = std::stoi(tokens[index++]);
-		int spriteStartFrame = std::stoi(tokens[index++]);
-		int spriteEndFrame = std::stoi(tokens[index++]);
-		int spriteFrameWidth = std::stoi(tokens[index++]);
-		int spriteFrameHeight = std::stoi(tokens[index++]);
-		std::string spriteFilePath = tokens[index++];
-		int spritePivotX = std::stoi(tokens[index++]);
-		int spritePivotY = std::stoi(tokens[index++]);
-
-		animStates.push_back(new AnimState(stateName, stateSpeed,
-			new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
-				spriteManager, spriteFilePath, renderer->shaders[ShaderName::Default], Vector2(spritePivotX, spritePivotY))));
-
-		ss.getline(lineChar, 256);
-	}
-}
 
 Player* Game::SpawnPlayer(Vector2 position)
 {
@@ -773,7 +728,7 @@ Player* Game::SpawnPlayer(Vector2 position)
 	player->game = this;
 
 	std::vector<AnimState*> animStates;
-	ReadAnimData("data/animations/player.anim", animStates);
+	cutscene->commands.ReadAnimData("data/animators/player.machine", animStates);
 
 	Animator* anim1 = new Animator(AnimType::Player, animStates, "idle");
 	anim1->SetBool("isGrounded", true);

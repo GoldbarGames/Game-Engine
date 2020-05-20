@@ -9,6 +9,8 @@ std::unordered_map<AnimType, AnimatorInfo*> Animator::mapTypeToInfo;
 AnimatorInfo::AnimatorInfo(std::string name)
 {
 	std::ifstream fin;
+
+	//TODO: Refactor this so that you can have custom paths for these files
 	std::string animatorFile = "data/animators/" + name + ".animator";
 	std::string statesFile = "data/animators/" + name + ".states";
 	std::string varsFile = "data/animators/" + name + ".vars";
@@ -294,7 +296,7 @@ void Animator::Update(Entity* entity)
 
 			if (allConditionsTrue) // then go to the next state
 			{
-				if (currentState->name != condition->nextState.c_str())
+				if (condition != nullptr && currentState->name != condition->nextState.c_str())
 				{
 					int test = 0;
 				}

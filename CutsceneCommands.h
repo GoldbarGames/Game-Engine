@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "Animator.h"
 
 class CutsceneManager;
 
@@ -107,5 +108,8 @@ public:
 	int WindowFunction(CutsceneParameters parameters);
 	int ControlBindings(CutsceneParameters parameters);
 	int BindKeyToLabel(CutsceneParameters parameters);
+
+	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates);
+
 };
 

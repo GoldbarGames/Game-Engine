@@ -76,8 +76,8 @@ class CutsceneManager
 	std::string language = "english";
 	std::string data = "";
 	std::string currentText = "";
-	CutsceneCommands commands;
 public:	 
+	CutsceneCommands commands;
 	bool useMouseControls = true;
 	bool useKeyboardControls = true;
 	int labelIndex = 0;

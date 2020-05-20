@@ -1,6 +1,7 @@
 #pragma once
-#include <string>
+
 #include <vector>
+#include <string>
 
 const int TILE_SIZE = 24;
 const int SCREEN_FPS = 60;
@@ -30,6 +31,7 @@ std::string ParseWord(const std::string& text, char limit, int& index);
 std::vector<std::string> SplitString(const std::string& str, char delim);
 Color ParseColorHexadecimal(const std::string& text);
 int HexToDecimal(const char hex);
+
 
 template<typename T>
 void delete_it(T& v)
