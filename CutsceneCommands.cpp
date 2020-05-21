@@ -8,7 +8,6 @@
 #include <sstream>
 #include <stdexcept>
 
-
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 
 //Look Up Table
@@ -83,8 +82,9 @@ std::vector<FuncLUT>cmd_lut = {
 // * Ending the game window / restarting the game window
 
 // Save/load?
-// Playing animations (use state machines, set variables, etc.)
+// * Playing animations (use state machines, set variables, etc.)
 // - what about animations that involve each frame being its own file?
+// - custom timers (we'll deal with this when we handle blinking animations)
 
 // * Randomize a variable and re-seed the randomness
 // * User-defined functions 
@@ -1328,7 +1328,11 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 	}
 	else if (spriteProperty == "scale")
 	{
-		entity->GetSprite()->scale = Vector2(ParseNumberValue(parameters[3]), ParseNumberValue(parameters[4]));
+		// Because animators have different sprites for each animation state,
+		// we want to change the scale of the entity and then apply that scale
+		// to whatever sprite is currently being animated
+		entity->scale = Vector2(ParseNumberValue(parameters[3]), ParseNumberValue(parameters[4]));
+		entity->SetSprite(entity->GetSprite());
 	}
 	else if (spriteProperty == "rotate")
 	{
@@ -1351,8 +1355,16 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 			if (entity->GetAnimator() != nullptr)
 				delete entity->GetAnimator();
 
+			Sprite* test = entity->GetSprite();
+
 			std::vector<AnimState*> animStates;
 			ReadAnimData(ParseStringValue(parameters[4]), animStates);
+
+			for (int i = 0; i < animStates.size(); i++)
+			{
+				animStates[i]->sprite->keepPositionRelativeToCamera = true;
+				animStates[i]->sprite->keepScaleRelativeToCamera = true;
+			}
 
 			Animator* newAnim = new Animator(AnimType::Player, animStates, ParseStringValue(parameters[5]));
 			entity->SetAnimator(newAnim);
@@ -1431,6 +1443,22 @@ int CutsceneCommands::Textbox(CutsceneParameters parameters)
 	else if (parameters[1] == "off")
 	{
 		manager->textbox->shouldRender = false;
+	}
+	else if (parameters[1] == "color")
+	{
+
+	}
+	else if (parameters[1] == "position")
+	{
+
+	}
+	else if (parameters[1] == "image")
+	{
+
+	}
+	else if (parameters[1] == "font")
+	{
+
 	}
 
 	return 0;

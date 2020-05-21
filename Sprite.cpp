@@ -147,6 +147,7 @@ Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager
 	std::string filepath, ShaderProgram* s, Vector2 newPivot, bool loop)
 {
 	model = glm::mat4(1.0f);
+	filename = filepath;
 	texture = manager->GetImage(filepath);
 	shader = s;
 

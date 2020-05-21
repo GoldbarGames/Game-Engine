@@ -479,6 +479,12 @@ void CutsceneManager::ReadBacklog()
 
 void CutsceneManager::Update()
 {
+	for (auto const& [key, image] : images)
+	{
+		if (image != nullptr)
+			image->Update(*game);
+	}
+
 	//int lettersPerFrame = 2;
 	float delay = 10.0f;
 

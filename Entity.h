@@ -22,6 +22,7 @@ protected:
 public:
 	Vector2 position = Vector2(0, 0);
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+	Vector2 scale = Vector2(1, 1);
 
 	PhysicsEntity* physics;
 

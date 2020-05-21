@@ -300,6 +300,7 @@ void Entity::RenderParallax(Renderer* renderer, float p)
 void Entity::SetSprite(Sprite* sprite)
 {
 	currentSprite = sprite;
+	currentSprite->scale = scale;
 }
 
 bool Entity::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)

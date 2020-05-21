@@ -356,6 +356,7 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	{
 		game.openedMenus.clear();
 		//game.openedMenus.emplace_back(game.allMenus["File Select"]);
+		//game.PlayLevel("demo");
 		game.PlayLevel("test-vn");
 	}
 	else if (selectedButton->name == "Title Screen")
