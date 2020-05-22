@@ -2,18 +2,26 @@
 #include "Renderer.h"
 #include "Entity.h"
 
-Textbox::Textbox(SpriteManager* manager, Renderer* renderer)
+Textbox::Textbox(SpriteManager* m, Renderer* r)
 {
+	spriteManager = m;
+	renderer = r;
+
 	//TODO: Replace these with the real fonts
-	const char* fontSourceCodePro = "fonts/source-code-pro/SourceCodePro-Regular.ttf";
-	const char* fontDejaVuSansMono = "fonts/dejavu-sans-mono/DejaVuSansMono.ttf";
-	const char* fontSpaceMono = "fonts/space-mono/SpaceMono-Regular.ttf";
-	textFont = TTF_OpenFont(fontDejaVuSansMono, 24);
-	speakerFont = TTF_OpenFont(fontDejaVuSansMono, 24);
+	//TODO: How to deal with font sizes? Maybe map from string to map<int, TTF*>
+	fonts["default"] = TTF_OpenFont("fonts/default.ttf", 24);
+	fonts["fontSourceCodePro"] = TTF_OpenFont("fonts/source-code-pro/SourceCodePro-Regular.ttf", 24);
+	fonts["fontDejaVuSansMono"] = TTF_OpenFont("fonts/dejavu-sans-mono/DejaVuSansMono.ttf", 24);
+	fonts["fontSpaceMono"] = TTF_OpenFont("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+
+	textFont = fonts["fontSourceCodePro"];
+	speakerFont = fonts["fontSourceCodePro"];
 
 	position = Vector2(1280, 720);
-	boxSprite = new Sprite(0, 0, 1, manager, "assets/gui/textbox.png", 
+	
+	boxSprite = new Sprite(0, 0, 1, spriteManager, "assets/gui/textbox.png",
 		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
+
 	boxSprite->keepScaleRelativeToCamera = true;
 	boxSprite->keepPositionRelativeToCamera = true;
 
@@ -31,6 +39,50 @@ Textbox::Textbox(SpriteManager* manager, Renderer* renderer)
 Textbox::~Textbox()
 {
 
+}
+
+void Textbox::ChangeBoxFont(const std::string& fontName)
+{
+	//TODO: What about the backlog font?
+	//TODO: How to change the font size?
+	//TODO: Make another map that takes the filepath as the key and has the short name as the value
+	if (fonts.count(fontName) == 1)
+	{
+		textFont = fonts[fontName];
+		text->SetFont(textFont);
+	}		
+}
+
+void Textbox::ChangeNameFont(const std::string& fontName)
+{
+	//TODO: What about the backlog font?
+	//TODO: How to change the font size?
+	//TODO: Make another map that takes the filepath as the key and has the short name as the value
+	if (fonts.count(fontName) == 1)
+	{
+		speakerFont = fonts[fontName];
+		speaker->SetFont(speakerFont);
+	}		
+}
+
+void Textbox::ChangeNameSprite(const std::string& filepath)
+{
+	if (nameSprite != nullptr)
+		delete nameSprite;
+
+	//TODO: Allow for animations by dissecting the filepath name
+	nameSprite = new Sprite(0, 0, 1, spriteManager, filepath,
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
+}
+
+void Textbox::ChangeBoxSprite(const std::string& filepath)
+{
+	if (boxSprite != nullptr)
+		delete boxSprite;
+
+	//TODO: Allow for animations by dissecting the filepath name
+	boxSprite = new Sprite(0, 0, 1, spriteManager, filepath,
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 }
 
 void Textbox::UpdateText(const std::string& newText, const Color& color)

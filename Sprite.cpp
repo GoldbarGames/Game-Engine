@@ -187,7 +187,6 @@ Sprite::Sprite(int start, int end, int numframes, SpriteManager* manager,
 	frameWidth = texture->GetWidth() / numberFramesInTexture;
 	frameHeight = texture->GetHeight();
 
-
 	shouldLoop = loop;
 }
 

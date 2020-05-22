@@ -52,6 +52,7 @@ public:
 	int SetVelocity(CutsceneParameters parameters);
 	int Wait(CutsceneParameters parameters);
 	int Textbox(CutsceneParameters parameters);
+	int Namebox(CutsceneParameters parameters);
 	int Fade(CutsceneParameters parameters);
 	int SetStringAlias(CutsceneParameters parameters);
 	int SetNumAlias(CutsceneParameters parameters);
@@ -110,6 +111,6 @@ public:
 	int BindKeyToLabel(CutsceneParameters parameters);
 
 	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates);
-
+	Color ParseColorFromParameters(const std::vector<std::string>& parameters, const int index);
 };
 

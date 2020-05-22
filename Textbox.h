@@ -12,6 +12,10 @@ private:
 public:
 	Animator* animator = nullptr;
 	Sprite* boxSprite = nullptr;
+	Sprite* nameSprite = nullptr;
+
+	//TODO: Minimize string allocations, use a map of ints to strings
+	std::unordered_map<std::string, TTF_Font*> fonts;
 
 	TTF_Font* textFont = nullptr;
 	TTF_Font* speakerFont = nullptr;
@@ -22,10 +26,19 @@ public:
 	bool isReading = false;
 	const Uint32 boxWidth = 1140;
 
-	void UpdateText(const std::string& newText, const Color& color);
-	void Render(Renderer * renderer, const int& screenWidth, const int& screenHeight);
+	SpriteManager* spriteManager = nullptr;
+	Renderer* renderer = nullptr;
 
-	Textbox(SpriteManager * manager, Renderer * renderer);
+	void ChangeNameFont(const std::string& fontName);
+	void ChangeNameSprite(const std::string& filepath);
+
+	void ChangeBoxFont(const std::string& fontName);
+	void ChangeBoxSprite(const std::string& filepath);
+
+	void UpdateText(const std::string& newText, const Color& color);
+	void Render(Renderer* renderer, const int& screenWidth, const int& screenHeight);
+
+	Textbox(SpriteManager* m, Renderer* r);
 	~Textbox();
 };
 

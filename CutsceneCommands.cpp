@@ -44,6 +44,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"me", &CutsceneCommands::MusicEffectCommand},
 	{"mod", &CutsceneCommands::ModNumberVariables},
 	{"mul", &CutsceneCommands::MultiplyNumberVariables},
+	{"namebox", &CutsceneCommands::Namebox},
 	{"numalias", &CutsceneCommands::SetNumAlias },
 	{"random", &CutsceneCommands::RandomNumberVariable },
 	{"reset", &CutsceneCommands::ResetGame },
@@ -98,9 +99,12 @@ std::vector<FuncLUT>cmd_lut = {
 // * Enable / disable mouse controls (enable mouse, enable keyboard, enable both)
 // * Bind keyboard keys to labels via script
 // Custom key bindings (advance text, backlog, etc.)
-// Change placement of textbox, namebox
-// Change image of textbox, namebox
-// Change font properties of textbox, namebox, choices (type, size, style, color)
+
+// Display sprite of talking character in the textbox
+// Highlight/dim speaking characters (map name of the character to the sprite via folder path)
+// * Change textbox & namebox: position, sprite (animation), text, font type, font color
+// font (size, style)
+
 // Set the click to continue button image / animation
 // Automatically position the CTC image
 
@@ -1241,7 +1245,7 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	Color textColor = { 255, 255, 255, 255 };
 	if (text.size() > 1 && text[1] == '#')
 	{
-		textColor = ParseColorHexadecimal(text.substr(1, 9));
+		textColor = ParseColorHexadecimal(text.substr(1, 9).c_str());
 		manager->images[imageNumber] = new Text(manager->game->renderer,
 			manager->game->theFont, text.substr(10, text.size()-9), textColor);
 	}
@@ -1262,45 +1266,45 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	return 0;
 }
 
-// Assign color of text to a speaking character
-int CutsceneCommands::TextColor(CutsceneParameters parameters)
+// Parameters is the list of RGBA values,
+// OR it only contains one string, which is the hexadecimal string
+Color CutsceneCommands::ParseColorFromParameters(const std::vector<std::string>& parameters, const int index)
 {
-	std::string characterName = parameters[1];
-	std::string hexadecimalColor = parameters[2];
-
-	bool success = false;
 	Color color = { 255, 255, 255, 255 };
+	std::vector<std::string> colorParams { begin(parameters) + index, end(parameters) };
 
-	if (hexadecimalColor[0] == '#') // check to see if it is hexadecimal
+	if (colorParams[0][0] == '#') // check to see if it is hexadecimal
 	{
-		color = ParseColorHexadecimal(hexadecimalColor);
-		success = true;
+		color = ParseColorHexadecimal(colorParams[0].c_str());
 	}
 	else // then it must be RGB or RGBA decimal such as 255 255 255 or 255 255 255 255
 	{
 		// Note: blue and red are swapped for endianness
-		color.b = ParseNumberValue(parameters[2]);
-		color.g = ParseNumberValue(parameters[3]);
-		color.r = ParseNumberValue(parameters[4]);
+		color.b = ParseNumberValue(colorParams[0]);
+		color.g = ParseNumberValue(colorParams[1]);
+		color.r = ParseNumberValue(colorParams[2]);
 
-		if (parameters.size() > 5)
-			color.a = ParseNumberValue(parameters[5]);
-
-		success = true;
+		if (colorParams.size() > 3)
+			color.a = ParseNumberValue(colorParams[3]);
 	};
 
-	if (!success)
-		return -1;
+	return color;
+}
+
+// Assign color of text to a speaking character
+int CutsceneCommands::TextColor(CutsceneParameters parameters)
+{
+	std::string characterName = parameters[1];
+
+	//TODO: Error checking?
+	Color color = ParseColorFromParameters(parameters, 2);
+
+	if (characterName == "default")
+		manager->namesToColors[""] = color;
 	else
-	{
-		if (characterName == "default")
-			manager->namesToColors[""] = color;
-		else
-			manager->namesToColors[characterName] = color;
+		manager->namesToColors[characterName] = color;
 
-		manager->currentColor = manager->namesToColors[manager->currentLabel->lines[manager->lineIndex]->speaker];
-
-	}
+	manager->currentColor = manager->namesToColors[manager->currentLabel->lines[manager->lineIndex]->speaker];
 
 	return 0;
 }
@@ -1434,6 +1438,62 @@ int CutsceneCommands::Wait(CutsceneParameters parameters)
 	return 0;
 }
 
+int CutsceneCommands::Namebox(CutsceneParameters parameters)
+{
+	if (parameters[1] == "on")
+	{
+		manager->textbox->shouldRender = true;
+	}
+	else if (parameters[1] == "off")
+	{
+		manager->textbox->shouldRender = false;
+	}
+	else if (parameters[1] == "text")
+	{
+		if (parameters[2] == "color")
+		{
+			manager->textbox->speaker->GetSprite()->color = ParseColorFromParameters(parameters, 2);
+		}
+		else if (parameters[2] == "contents")
+		{
+			//TODO: This probably won't work well because the text will be overwritten
+			// once all the commands are finished executing.
+			manager->textbox->speaker->SetText(ParseStringValue(parameters[2]));
+		}
+		else if (parameters[2] == "font")
+		{
+			//TODO: Add a separate command for loading new fonts?
+			if (parameters[3] == "type")
+			{
+				manager->textbox->ChangeNameFont(ParseStringValue(parameters[4]));
+			}
+			else if (parameters[3] == "size")
+			{
+
+			}
+			else if (parameters[3] == "style")
+			{
+
+			}
+		}
+	}
+	else if (parameters[1] == "color")
+	{
+		manager->textbox->nameSprite->color = ParseColorFromParameters(parameters, 2);
+	}
+	else if (parameters[1] == "position")
+	{
+		manager->textbox->speaker->SetPosition((int)ParseNumberValue(parameters[2]),
+			(int)ParseNumberValue(parameters[3]));
+	}
+	else if (parameters[1] == "image")
+	{
+		manager->textbox->ChangeNameSprite(ParseStringValue(parameters[2]));
+	}
+
+	return 0;
+}
+
 int CutsceneCommands::Textbox(CutsceneParameters parameters)
 {
 	if (parameters[1] == "on")
@@ -1444,21 +1504,47 @@ int CutsceneCommands::Textbox(CutsceneParameters parameters)
 	{
 		manager->textbox->shouldRender = false;
 	}
+	else if (parameters[1] == "text")
+	{
+		if (parameters[2] == "color")
+		{
+			manager->textbox->text->GetSprite()->color = ParseColorFromParameters(parameters, 2);
+		}
+		else if (parameters[2] == "contents")
+		{
+			//TODO: This probably won't work well because the text will be overwritten
+			// once all the commands are finished executing.
+			manager->textbox->text->SetText(ParseStringValue(parameters[2]));
+		}
+		else if (parameters[2] == "font")
+		{
+			//TODO: Add a separate command for loading new fonts?
+			if (parameters[3] == "type")
+			{
+				manager->textbox->ChangeBoxFont(ParseStringValue(parameters[4]));
+			}
+			else if (parameters[3] == "size")
+			{
+
+			}
+			else if (parameters[3] == "style")
+			{
+
+			}
+		}
+	}
 	else if (parameters[1] == "color")
 	{
-
+		manager->textbox->boxSprite->color = ParseColorFromParameters(parameters, 2);
 	}
 	else if (parameters[1] == "position")
 	{
-
+		manager->textbox->text->SetPosition((int)ParseNumberValue(parameters[2]),
+			(int)ParseNumberValue(parameters[3]));
 	}
 	else if (parameters[1] == "image")
 	{
-
-	}
-	else if (parameters[1] == "font")
-	{
-
+		manager->textbox->ChangeBoxSprite(ParseStringValue(parameters[2]));
 	}
 
 	return 0;
@@ -1482,7 +1568,21 @@ int CutsceneCommands::Fade(CutsceneParameters parameters)
 	}
 	else
 	{
-		// TODO: Parse color
+		if (parameters.size() > 5)
+		{
+			manager->game->renderer->targetColor = { (int)ParseNumberValue(parameters[2]),
+				(int)ParseNumberValue(parameters[3]),
+				(int)ParseNumberValue(parameters[4]),
+				(int)ParseNumberValue(parameters[5])};
+		}
+		else
+		{
+			manager->game->renderer->targetColor = { (int)ParseNumberValue(parameters[2]),
+				(int)ParseNumberValue(parameters[3]),
+				(int)ParseNumberValue(parameters[4]),
+				255 };
+		}
+
 	}
 
 	return 0;
@@ -1523,7 +1623,7 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 		{
 			if (parameters[2][0] == '#')
 			{
-				manager->backlogColor = ParseColorHexadecimal(parameters[2]);
+				manager->backlogColor = ParseColorHexadecimal(parameters[2].c_str());
 			}
 			else if (parameters.size() == 5)
 			{
