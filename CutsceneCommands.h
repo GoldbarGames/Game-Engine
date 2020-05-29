@@ -42,6 +42,7 @@ public:
 	// Text
 	int LoadText(CutsceneParameters parameters);
 	int TextColor(CutsceneParameters parameters);
+	int LoadTextFromSaveFile(CutsceneParameters parameters);
 
 	// Sounds
 	int MusicCommand(CutsceneParameters parameters);

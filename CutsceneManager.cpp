@@ -217,7 +217,9 @@ void CutsceneManager::ParseScene()
 				}
 
 				index++;
-				commands.emplace_back(commandLine);
+
+				if (commandLine != "" && commandLine != " ")
+					commands.emplace_back(commandLine);
 			}
 		}
 
@@ -828,131 +830,210 @@ void CutsceneManager::SaveGame()
 {
 	std::ofstream fout;
 
-	// 1. Save the scene data (label, line, command)
+	// 1. Save the story data (label, line, command)
+	// (the information necessary for us to find our place in the story)
+
 	//TODO: Make sure to save the gosub stack as well
-	fout.open("saves/test.sav");
-	
-	fout << currentLabel->name << std::endl;
-	fout << "text" << std::endl;
-	//fout << currentLabel->lines[lineIndex]->text << std::endl;
-	fout << labelIndex << std::endl;
-	fout << lineIndex << std::endl;
-	fout << commandIndex << std::endl;
+	fout.open("saves/file1.sav");
 
-	fout.close();
+	std::map<SaveSections, std::string> sections = {
+		{ SaveSections::CONFIG_OPTIONS, "@ CONFIG_OPTIONS"},
+		{ SaveSections::STORY_DATA, "@ STORY_DATA"},
+		{ SaveSections::GLOBAL_STRINGS, "@ GLOBAL_STRINGS"},
+		{ SaveSections::GLOBAL_NUMBERS, "@ GLOBAL_NUMBERS"},
+		{ SaveSections::ALIAS_STRINGS, "@ ALIAS_STRINGS"},
+		{ SaveSections::ALIAS_NUMBERS, "@ ALIAS_NUMBERS"},
+		{ SaveSections::LOCAL_STRINGS, "@ LOCAL_STRINGS"},
+		{ SaveSections::LOCAL_NUMBERS, "@ LOCAL_NUMBERS"},
+		{ SaveSections::LOCAL_OBJECTS, "@ LOCAL_OBJECTS"},
+		{ SaveSections::NAMES_TO_COLORS, "@ NAMES_TO_COLORS"},
+		{ SaveSections::OTHER_STUFF, "@ OTHER_STUFF"}
+	};
 
-	// 2a. Save global variables
-	fout.open("saves/globals.sav");
-
-	for (auto const& var : commands.stringVariables)
+	for (auto const& x : sections)
 	{
-		if (var.first >= globalStart)
+		fout << x.second << std::endl;
+
+		switch (x.first)
 		{
-			fout << var.first  // key
-				<< " "
-				<< var.second  // value 
-				<< std::endl;
+		case SaveSections::CONFIG_OPTIONS:
+			fout << "global_start " << globalStart << std::endl;
+			break;
+		case SaveSections::STORY_DATA:
+			fout << currentLabel->name << " ";
+			fout << labelIndex << " ";
+			fout << lineIndex << " ";
+			fout << commandIndex << std::endl;
+			break;
+		case SaveSections::GLOBAL_STRINGS:
+			// 2a. Save global variables
+			for (auto const& var : commands.stringVariables)
+			{
+				if (var.first >= globalStart)
+				{
+					fout << var.first  // key
+						<< " "
+						<< var.second  // value 
+						<< std::endl;
+				}
+			}
+			break;
+		case SaveSections::GLOBAL_NUMBERS:
+			for (auto const& var : commands.numberVariables)
+			{
+				if (var.first >= globalStart)
+				{
+					fout << var.first  // key
+						<< " "
+						<< var.second  // value 
+						<< std::endl;
+				}
+			}
+			break;
+		case SaveSections::ALIAS_STRINGS:
+			// 4. Save string aliases (keys and values)
+			for (auto const& var : commands.stralias)
+			{
+				fout << var.first  // key
+					<< " "
+					<< var.second  // value 
+					<< std::endl;
+			}
+			break;
+		case SaveSections::ALIAS_NUMBERS:
+			// 5. Save number aliases (keys and values)
+			for (auto const& var : commands.numalias)
+			{
+				fout << var.first  // key
+					<< " "
+					<< var.second  // value 
+					<< std::endl;
+			}
+			break;
+		case SaveSections::LOCAL_STRINGS:
+			// 2. Save string variables (keys and values)
+			for (auto const& var : commands.stringVariables)
+			{
+				if (var.first < globalStart)
+				{
+					fout << var.first  // key
+						<< " "
+						<< var.second  // value 
+						<< std::endl;
+				}
+			}
+			break;
+		case SaveSections::LOCAL_NUMBERS:
+			// 3. Save number variables (keys and values)
+			for (auto const& var : commands.numberVariables)
+			{
+				if (var.first < globalStart)
+				{
+					fout << var.first  // key
+						<< " "
+						<< var.second  // value 
+						<< std::endl;
+				}
+			}
+			break;
+		case SaveSections::LOCAL_OBJECTS:
+			// 6. Save object information (sprite number, filepath/text, position, rotation, color, etc.)
+			for (auto const& var : images)
+			{
+				Entity* entity = var.second;
+
+				if (entity != nullptr)
+				{
+					std::string s = typeid(*entity).name();
+					std::cout << s << std::endl;
+					if (s == "class Text")
+					{
+						//TODO: Store font, size, style, etc. (for each letter)
+						Text* text = static_cast<Text*>(entity);
+						fout << var.first  // key
+							<< " "
+							<< "text"
+							<< " "
+							<< text->position.x
+							<< " "
+							<< text->position.y
+							<< " "
+							<< text->rotation.x
+							<< " "
+							<< text->rotation.y
+							<< " "
+							<< text->rotation.z
+							<< " "
+							<< text->GetTextString()
+							<< " "
+							<< text->textColor.r
+							<< " "
+							<< text->textColor.g
+							<< " "
+							<< text->textColor.b
+							<< " "
+							<< text->textColor.a
+							<< std::endl;
+					}
+					else
+					{
+						fout << var.first  // key
+							<< " "
+							<< entity->GetSprite()->filename
+							<< " "
+							<< entity->position.x
+							<< " "
+							<< entity->position.y
+							<< " "
+							<< entity->rotation.x
+							<< " "
+							<< entity->rotation.y
+							<< " "
+							<< entity->rotation.z
+							<< std::endl;
+					}
+				}
+			}
+			break;
+		case SaveSections::NAMES_TO_COLORS:
+			// 7. Save other important things (random seed, music volume, textbox color, etc.)
+			for (auto const& var : namesToColors)
+			{
+				if (var.first != "")
+				{
+					fout << var.first  // key
+						<< " "
+						<< var.second.r
+						<< " "
+						<< var.second.g
+						<< " "
+						<< var.second.b
+						<< " "
+						<< var.second.a
+						<< std::endl;
+				}
+				else
+				{
+					fout << "_"  // key
+						<< " "
+						<< var.second.r
+						<< " "
+						<< var.second.g
+						<< " "
+						<< var.second.b
+						<< " "
+						<< var.second.a
+						<< std::endl;
+				}
+			}
+			break;
+		case SaveSections::OTHER_STUFF:
+			break;
+		default:
+			break;
 		}
 	}
 
-	for (auto const& var : commands.numberVariables)
-	{
-		if (var.first >= globalStart)
-		{
-			fout << var.first  // key
-				<< " "
-				<< var.second  // value 
-				<< std::endl;
-		}
-	}
-
-	fout.close();
-
-	// 2. Save string variables (keys and values)
-	fout.open("saves/strvars.sav");
-	for (auto const& var : commands.stringVariables)
-	{
-		fout << var.first  // key
-			<< " "
-			<< var.second  // value 
-			<< std::endl;
-	}
-	fout.close();
-
-	// 3. Save number variables (keys and values)
-	fout.open("saves/numvars.sav");
-	for (auto const& var : commands.numberVariables)
-	{
-		fout << var.first  // key
-			<< " "
-			<< var.second  // value 
-			<< std::endl;
-	}
-	fout.close();
-
-	// 4. Save string aliases (keys and values)
-	fout.open("saves/stralias.sav");
-	for (auto const& var : commands.stralias)
-	{
-		fout << var.first  // key
-			<< " "
-			<< var.second  // value 
-			<< std::endl;
-	}
-	fout.close();
-
-	// 5. Save number aliases (keys and values)
-	fout.open("saves/numalias.sav");
-	for (auto const& var : commands.numalias)
-	{
-		fout << var.first  // key
-			<< " "
-			<< var.second  // value 
-			<< std::endl;
-	}
-	fout.close();
-
-	// 6. Save object information (sprite number, filepath/text, position, rotation, color, etc.)
-	fout.open("saves/objects.sav");
-	for (auto const& var : images)
-	{
-		Entity* entity = var.second;
-
-		if (var.second != nullptr)
-		{
-			fout << var.first  // key
-				<< " "
-				<< entity->GetSprite()->filename
-				<< " "
-				<< entity->position.x
-				<< " "
-				<< entity->position.y
-				<< " "
-				<< entity->rotation.x
-				<< " "
-				<< entity->rotation.y
-				<< " "
-				<< entity->rotation.z
-				<< std::endl;
-		}
-	}
-	fout.close();
-
-	// 7. Save other important things (random seed, music volume, textbox color, etc.)
-	fout.open("saves/textcolors.sav");
-	for (auto const& var : namesToColors)
-	{
-		fout << var.first  // key
-			<< " "
-			<< var.second.r 
-			<< " "
-			<< var.second.g
-			<< " "
-			<< var.second.b
-			<< " "
-			<< var.second.a
-			<< std::endl;
-	}
 	fout.close();
 
 }
@@ -960,72 +1041,143 @@ void CutsceneManager::SaveGame()
 void CutsceneManager::LoadGame()
 {
 	std::ifstream fin;
-	std::string data = "";
+	//std::string data = "";
+	std::vector<std::string> dataLines;
 
-	fin.open("saves/test.sav");
+	fin.open("saves/file1.sav");
 	for (std::string line; std::getline(fin, line); )
 	{
-		data += line + "\n";
+		//data += line + "\n";
+		dataLines.push_back(line);
 	}
 	fin.close();
 
-	std::stringstream ss(data);
-	std::istream_iterator<std::string> begin(ss);
-	std::istream_iterator<std::string> end;
+	// While we have lines to examine
+	// Check the first character for an @ symbol
+	// If there is one, change the current section
+	// Otherwise, interpret the line based on the current section
 
-	std::vector<std::string> saveData(begin, end);
-	std::copy(saveData.begin(), saveData.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
+	std::map<std::string, SaveSections> sections = {
+		{ "@ CONFIG_OPTIONS", SaveSections::CONFIG_OPTIONS},
+		{ "@ STORY_DATA", SaveSections::STORY_DATA},
+		{ "@ GLOBAL_STRINGS", SaveSections::GLOBAL_STRINGS},
+		{ "@ GLOBAL_NUMBERS", SaveSections::GLOBAL_NUMBERS},
+		{ "@ ALIAS_STRINGS", SaveSections::ALIAS_STRINGS},
+		{ "@ ALIAS_NUMBERS", SaveSections::ALIAS_NUMBERS},
+		{ "@ LOCAL_STRINGS", SaveSections::LOCAL_STRINGS},
+		{ "@ LOCAL_NUMBERS", SaveSections::LOCAL_NUMBERS},
+		{ "@ LOCAL_OBJECTS", SaveSections::LOCAL_OBJECTS},
+		{ "@ NAMES_TO_COLORS", SaveSections::NAMES_TO_COLORS},
+		{ "@ OTHER_STUFF",  SaveSections::OTHER_STUFF}
+	};
 
-	// These aren't actually stored in the cutscene manager,
-	// but we might want to use them to more accurately find the load point
-	std::string labelName = saveData[0];
-	std::string lineText = saveData[1];
-	
-	labelIndex = std::stoi(saveData[2]);
-	lineIndex = std::stoi(saveData[3]) - 1;
-	commandIndex = std::stoi(saveData[4]);
+	int index = 0;
+	std::string currentSection = "";
+	std::string labelName = "";
 
-	currentLabel = JumpToLabel(labelName.c_str());
-	if (currentLabel == nullptr)
+	while (index < dataLines.size())
 	{
-		if (labelIndex < labels.size())
-			currentLabel = labels[labelIndex];
+		std::stringstream ss(dataLines[index]);
+		std::istream_iterator<std::string> begin(ss);
+		std::istream_iterator<std::string> end;
+
+		std::vector<std::string> lineParams(begin, end);
+		std::copy(lineParams.begin(), lineParams.end(), std::ostream_iterator<std::string>(std::cout, " "));
+
+		if (dataLines[index][0] == '@')
+		{
+			currentSection = dataLines[index];
+		}
 		else
-			std::cout << "ERROR: Could not find label " << labelName << std::endl;
+		{
+			SaveSections section = sections[currentSection];
+			switch (section)
+			{
+			case SaveSections::CONFIG_OPTIONS:
+
+				//TODO: Deal with other config options later
+				if (lineParams[0] == "global_start")
+					globalStart = std::stoi(lineParams[1]);
+
+				break;
+			case SaveSections::STORY_DATA:
+				// These aren't actually stored in the cutscene manager,
+				// but we might want to use them to more accurately find the load point
+
+				labelName = lineParams[0];
+				//std::string lineText = saveData[1];
+				labelIndex = std::stoi(lineParams[1]);
+				lineIndex = std::stoi(lineParams[2]) - 1;
+				commandIndex = std::stoi(lineParams[3]);
+
+				currentLabel = JumpToLabel(labelName.c_str());
+				if (currentLabel == nullptr)
+				{
+					if (labelIndex < labels.size())
+						currentLabel = labels[labelIndex];
+					else
+						std::cout << "ERROR: Could not find label " << labelName << std::endl;
+				}
+				break;
+			case SaveSections::ALIAS_STRINGS:
+				commands.stralias[lineParams[0]] = lineParams[1];
+				break;
+			case SaveSections::ALIAS_NUMBERS:
+				commands.numalias[lineParams[0]] = std::stoi(lineParams[1]);
+				break;
+			case SaveSections::GLOBAL_STRINGS:
+			case SaveSections::LOCAL_STRINGS:
+				commands.stringVariables[std::stoi(lineParams[0])] = lineParams[1];
+				break;
+			case SaveSections::GLOBAL_NUMBERS:
+			case SaveSections::LOCAL_NUMBERS:
+				commands.numberVariables[std::stoi(lineParams[0])] = std::stoi(lineParams[1]);
+				break;
+			case SaveSections::LOCAL_OBJECTS:
+				if (lineParams[1] == "text") // load text object
+				{
+					commands.LoadTextFromSaveFile(lineParams);
+				}
+				else // load sprite object
+				{
+					lineParams.insert(lineParams.begin(), "");
+					commands.LoadSprite(lineParams);
+					images[std::stoi(lineParams[1])]->rotation = glm::vec3(
+						std::stoi(lineParams[5]), 
+						std::stoi(lineParams[6]), 
+						std::stoi(lineParams[7]));
+				}
+				break;
+			case SaveSections::NAMES_TO_COLORS:
+				if (lineParams[0] == "_")
+				{
+					lineParams[0] = "";
+				}
+
+				namesToColors[lineParams[0]] = {
+				std::stoi(lineParams[1]),
+				std::stoi(lineParams[2]),
+				std::stoi(lineParams[3]),
+				std::stoi(lineParams[4])
+				};
+
+				break;
+			case SaveSections::OTHER_STUFF:
+				break;
+			default:
+				break;
+			}
+		}
+
+		index++;
 	}
 
 	// 2. Load string variables (keys and values)
-	fin.open("saves/strvars.sav");
-
-	fin.close();
-
 	// 3. Load number variables (keys and values)
-	fin.open("saves/numvars.sav");
-
-	fin.close();
-
 	// 4. Load string aliases (keys and values)
-	fin.open("saves/stralias.sav");
-
-	fin.close();
-
 	// 5. Load number aliases (keys and values)
-	fin.open("saves/numalias.sav");
-
-	fin.close();
-
 	// 6. Load object information (sprite number, filepath/text, position, rotation, color, etc.)
-	fin.open("saves/objects.sav");
-
-	fin.close();
-
 	// 7. Load other important things (random seed, music volume, textbox color, etc.)
-	fin.open("saves/textcolors.sav");
-	data = "";
-	for (std::string line; std::getline(fin, line); )
-	{
-		data += line + "\n";
-	}
-	fin.close();
+
 
 }

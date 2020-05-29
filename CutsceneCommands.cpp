@@ -82,7 +82,7 @@ std::vector<FuncLUT>cmd_lut = {
 // * Music effects (ME) - works just like SE but with a loop
 // * Ending the game window / restarting the game window
 
-// Save/load?
+// - Save/load
 // * Playing animations (use state machines, set variables, etc.)
 // - what about animations that involve each frame being its own file?
 // - custom timers (we'll deal with this when we handle blinking animations)
@@ -133,6 +133,9 @@ std::vector<FuncLUT>cmd_lut = {
 // Declare arrays and lists of variables, more complex stuff
 // * Timers, set/reset/stop/pause/unpause them
 // Pop up a box with text for a time limit
+// Get name of BGM currently playing (or just names of files being used in the scene)
+
+
 
 // * Can assign color to a character's dialogue
 // - TODO: Can use variables to get the color,
@@ -142,6 +145,10 @@ std::vector<FuncLUT>cmd_lut = {
 //textcolor BUTLER #ff0000 ;
 //`:BUTLER: This is #ff0000red text ## and this is not.`
 
+// Special features:
+// - picture gallery
+// - music player
+// - dictionary
 
 CutsceneCommands::CutsceneCommands()
 {
@@ -765,7 +772,10 @@ int CutsceneCommands::SaveGame(CutsceneParameters parameters)
 	//TODO: Save all of these to a file:
 
 	// Scene data, string/number variables, random seed, object information, user defined functions and aliases, settings, etc.
-	// Possibly could simply this by storing some things that won't change in a config file (functions, aliases)
+	// Possibly could simplify this by storing some things that won't change in a config file (functions, aliases)
+	// For example, on the game's startup we load the config file and read it in
+	// Then, when the player loads a save file, we don't have to deal with the stuff in the config file
+
 
 	manager->SaveGame();
 
@@ -1213,6 +1223,53 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 		manager->images[imageNumber]->SetPosition(pos);
 	}
 
+	manager->images[imageNumber]->drawOrder = imageNumber;
+	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
+	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
+
+	return 0;
+}
+
+int CutsceneCommands::LoadTextFromSaveFile(CutsceneParameters parameters)
+{
+	unsigned int imageNumber = ParseNumberValue(parameters[0]);
+	const unsigned int x = ParseNumberValue(parameters[2]);
+	const unsigned int y = ParseNumberValue(parameters[3]);
+	Vector2 pos = Vector2(x, y);
+
+	glm::vec3 rotation = glm::vec3(
+		std::stoi(parameters[4]),
+		std::stoi(parameters[5]),
+		std::stoi(parameters[6]));
+
+	std::string text = parameters[7];
+
+	int index = 8;
+	if (text[0] == '[')
+	{		
+		while (parameters[index][0] != ']')
+		{
+			text += " " + parameters[index];
+			index++;
+		}		
+	}
+	index++;
+
+	Color textColor = {
+		std::stoi(parameters[index]),
+		std::stoi(parameters[index + 1]),
+		std::stoi(parameters[index + 2]),
+		std::stoi(parameters[index + 3]),
+	};
+
+	if (manager->images[imageNumber] != nullptr)
+		delete manager->images[imageNumber];
+
+	//TODO: Also save/load in the font type/size/style for this text object
+	manager->images[imageNumber] = new Text(manager->game->renderer,
+		manager->game->theFont, text, textColor);
+
+	manager->images[imageNumber]->SetPosition(pos);
 	manager->images[imageNumber]->drawOrder = imageNumber;
 	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
 	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;

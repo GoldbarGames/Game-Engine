@@ -11,6 +11,9 @@
 #include "CutsceneCommands.h"
 #include <map>
 
+enum class SaveSections { CONFIG_OPTIONS, STORY_DATA, GLOBAL_STRINGS, GLOBAL_NUMBERS, ALIAS_STRINGS, 
+	ALIAS_NUMBERS, LOCAL_STRINGS, LOCAL_NUMBERS, LOCAL_OBJECTS, NAMES_TO_COLORS, OTHER_STUFF
+};
 
 class Game;
 
@@ -89,7 +92,7 @@ public:
 	Color backlogColor = { 255, 255, 0, 255 };
 	std::vector<BacklogData> backlog;
 	int backlogMaxSize = 3;
-	unsigned int globalStart = 1000;
+	unsigned int globalStart = 1000; //TODO: Should this be a config variable?
 	//TODO: Move these button configurations to some place more relevant
 	// This class should have a reference to the controller and get the bindings from it
 	SDL_Scancode skipButton = SDL_Scancode::SDL_SCANCODE_LCTRL;

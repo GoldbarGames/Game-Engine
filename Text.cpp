@@ -18,6 +18,11 @@ int Text::GetTextHeight()
 		return 1;
 }
 
+std::string Text::GetTextString()
+{
+	return "[" + txt + "]";
+}
+
 //TODO: Refactor these constructors a little bit
 Text::Text(Renderer* newRenderer, TTF_Font* newFont) : Entity(Vector2(0,0))
 {

@@ -36,6 +36,8 @@ public:
 	int GetTextHeight();
 	//Sprite* GetSprite() { return textSprite; };
 
+	std::string GetTextString();
+
 	//Vector2 position = Vector2(0,0);
 	Text(Renderer* newRenderer, TTF_Font* newFont);
 	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt,
