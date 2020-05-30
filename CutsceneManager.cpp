@@ -105,6 +105,7 @@ void CutsceneManager::CheckKeys()
 		{
 			LoadGame();
 			ReadNextLine();
+			isCarryingOutCommands = false;
 		}
 		else if (input[SDL_SCANCODE_TAB])
 		{
@@ -824,7 +825,17 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, unsigned int value)
 	fout.close();
 }
 
-
+//TODO: Regarding saving/loading...
+// * Window title/icon
+// * Play the BGM and other sounds
+// Controller bindings and settings
+// Random seed
+// Function definitions
+// Gosub stack
+// Timer values
+// Textbox customization
+// Backlog customization
+// Window resolution
 
 void CutsceneManager::SaveGame()
 {
@@ -839,8 +850,6 @@ void CutsceneManager::SaveGame()
 	std::map<SaveSections, std::string> sections = {
 		{ SaveSections::CONFIG_OPTIONS, "@ CONFIG_OPTIONS"},
 		{ SaveSections::STORY_DATA, "@ STORY_DATA"},
-		{ SaveSections::GLOBAL_STRINGS, "@ GLOBAL_STRINGS"},
-		{ SaveSections::GLOBAL_NUMBERS, "@ GLOBAL_NUMBERS"},
 		{ SaveSections::ALIAS_STRINGS, "@ ALIAS_STRINGS"},
 		{ SaveSections::ALIAS_NUMBERS, "@ ALIAS_NUMBERS"},
 		{ SaveSections::LOCAL_STRINGS, "@ LOCAL_STRINGS"},
@@ -864,31 +873,6 @@ void CutsceneManager::SaveGame()
 			fout << labelIndex << " ";
 			fout << lineIndex << " ";
 			fout << commandIndex << std::endl;
-			break;
-		case SaveSections::GLOBAL_STRINGS:
-			// 2a. Save global variables
-			for (auto const& var : commands.stringVariables)
-			{
-				if (var.first >= globalStart)
-				{
-					fout << var.first  // key
-						<< " "
-						<< var.second  // value 
-						<< std::endl;
-				}
-			}
-			break;
-		case SaveSections::GLOBAL_NUMBERS:
-			for (auto const& var : commands.numberVariables)
-			{
-				if (var.first >= globalStart)
-				{
-					fout << var.first  // key
-						<< " "
-						<< var.second  // value 
-						<< std::endl;
-				}
-			}
 			break;
 		case SaveSections::ALIAS_STRINGS:
 			// 4. Save string aliases (keys and values)
@@ -1028,6 +1012,25 @@ void CutsceneManager::SaveGame()
 			}
 			break;
 		case SaveSections::OTHER_STUFF:
+
+			// Save the window title
+			fout << "window title " << game->windowTitle << std::endl;
+
+			// Save the window icon
+			fout << "window icon " << game->windowIconFilepath << std::endl;
+
+			// Save the currently playing BGM
+			fout << "bgm " << game->soundManager->bgmFilepath << std::endl;
+
+			// Save other looped sounds
+			for (auto const& [num, channel] : game->soundManager->sounds)
+			{
+				if (channel->loop == -1)
+					fout << "me " << channel->num << " " << channel->sound->filepath << std::endl;
+				else
+					fout << "se " << channel->num << " " << channel->sound->filepath << " " << channel->loop << std::endl;
+			}
+
 			break;
 		default:
 			break;
@@ -1109,6 +1112,7 @@ void CutsceneManager::LoadGame()
 				labelIndex = std::stoi(lineParams[1]);
 				lineIndex = std::stoi(lineParams[2]) - 1;
 				commandIndex = std::stoi(lineParams[3]);
+				isCarryingOutCommands = false;
 
 				currentLabel = JumpToLabel(labelName.c_str());
 				if (currentLabel == nullptr)
@@ -1125,11 +1129,9 @@ void CutsceneManager::LoadGame()
 			case SaveSections::ALIAS_NUMBERS:
 				commands.numalias[lineParams[0]] = std::stoi(lineParams[1]);
 				break;
-			case SaveSections::GLOBAL_STRINGS:
 			case SaveSections::LOCAL_STRINGS:
 				commands.stringVariables[std::stoi(lineParams[0])] = lineParams[1];
 				break;
-			case SaveSections::GLOBAL_NUMBERS:
 			case SaveSections::LOCAL_NUMBERS:
 				commands.numberVariables[std::stoi(lineParams[0])] = std::stoi(lineParams[1]);
 				break;
@@ -1163,6 +1165,24 @@ void CutsceneManager::LoadGame()
 
 				break;
 			case SaveSections::OTHER_STUFF:
+
+				if (lineParams[0] == "bgm")
+				{
+					game->soundManager->PlayBGM(lineParams[1]);
+				}
+				else if (lineParams[0] == "me")
+				{
+					game->soundManager->PlaySound(lineParams[2], std::stoi(lineParams[1]));
+				}
+				else if (lineParams[0] == "se")
+				{
+					game->soundManager->PlaySound(lineParams[2], std::stoi(lineParams[1]), std::stoi(lineParams[3]));
+				}
+				else if (lineParams[0] == "window")
+				{
+					commands.WindowFunction(lineParams);
+				}
+
 				break;
 			default:
 				break;

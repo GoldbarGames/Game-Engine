@@ -261,10 +261,13 @@ void Game::InitSDL()
 	SDL_Init(SDL_INIT_VIDEO);
 	TTF_Init();
 
-	window = SDL_CreateWindow("Witch Doctor Kaneko",
+	windowTitle = "Witch Doctor Kaneko";
+	windowIconFilepath = "assets/gui/icon.png";
+
+	window = SDL_CreateWindow(windowTitle.c_str(),
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
-	SDL_SetWindowIcon(window, IMG_Load("assets/gui/icon.png"));
+	SDL_SetWindowIcon(window, IMG_Load(windowIconFilepath.c_str()));
 
 	renderer = new Renderer();
 }

@@ -1819,11 +1819,13 @@ int CutsceneCommands::WindowFunction(CutsceneParameters parameters)
 	if (parameters.size() > 1)
 	{
 		if (parameters[1] == "icon")
-		{
+		{			
+			manager->game->windowIconFilepath = ParseStringValue(parameters[2]);
 			SDL_SetWindowIcon(manager->game->window, IMG_Load(ParseStringValue(parameters[2]).c_str()));
 		}
 		else if (parameters[1] == "title")
 		{
+			manager->game->windowTitle = ParseStringValue(parameters[2]);
 			SDL_SetWindowTitle(manager->game->window, ParseStringValue(parameters[2]).c_str());
 		}
 	}

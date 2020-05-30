@@ -79,6 +79,9 @@ private:
 	Mesh* CreateSpriteMesh();
 public:
 
+	std::string windowIconFilepath = "";
+	std::string windowTitle = "";
+
 	Logger* logger;
 
 	int screenWidth = 1280;

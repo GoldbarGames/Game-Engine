@@ -4,20 +4,60 @@
 #include <vector>
 #include <unordered_map>
 
+struct Sound {
+	Mix_Chunk* chunk;
+	std::string filepath;
+
+	Sound(std::string f): chunk(Mix_LoadWAV(f.c_str())), filepath(f) { }
+
+	~Sound()
+	{
+		if (chunk != nullptr)
+			Mix_FreeChunk(chunk);
+	}
+};
+
+struct SoundChannel {
+	const int num;
+	Sound* sound;
+	char volume;
+	int loop;
+	SoundChannel(int n, Sound* s, char v, int l) : num(n), sound(s), volume(v), loop(l) { }
+	~SoundChannel()
+	{
+		if (sound != nullptr)
+			delete sound;
+	}
+
+	void Play()
+	{
+		if (sound->chunk != nullptr)
+		{
+			Mix_Volume(num, volume);
+			Mix_PlayChannel(num, sound->chunk, loop);
+		}
+		else
+		{
+			//TODO: Log error, could not load file
+		}
+	}
+};
+
 class SoundManager
 {
 private:
 	Uint32 volumeBGM = 20;
 	Uint32 volumeSound = 20;
 	std::vector<int> volArray;
-	std::unordered_map<int, Mix_Chunk*> sounds;
-public:
 
+public:
+	std::unordered_map<int, SoundChannel*> sounds;
 	Uint32 GetVolumeBGM();
 	Uint32 GetVolumeSound();
 	int bgmVolumeIndex = 0;
 	int soundVolumeIndex = 0;
 	Mix_Music* currentBGM = nullptr;
+	std::string bgmFilepath = "";
 	SoundManager();
 	~SoundManager();
 	bool LoadBGM(const std::string& bgm);
@@ -26,7 +66,8 @@ public:
 	void FadeInBGM(const std::string& bgm, Uint32 duration, bool loop = true);
 	void FadeOutBGM(Uint32 duration);
 	void SetVolumeBGM(int index);
-	void PlaySound(const std::string& sound, int channel = -1, int loop = 0);
+	void PlaySound(const std::string& filepath, int channel = -1, int loop = 0);
+	void ClearChannel(int channel);
 	void SetVolumeSound(int index);
 };
 
