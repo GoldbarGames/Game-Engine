@@ -21,7 +21,12 @@ CutsceneManager::CutsceneManager(Game& g)
 	LoadGlobalVariables();
 
 	std::ifstream fin;
+
+	commands.pathPrefix = "";
 	std::string directory = "data/" + language + "/cutscenes.txt";
+
+	//commands.pathPrefix = "assets\\arc\\";
+	//std::string directory = "data/" + language + "/butler1.txt";
 
 	fin.open(directory);
 
@@ -30,9 +35,16 @@ CutsceneManager::CutsceneManager(Game& g)
 		data = "";
 		for (std::string line; std::getline(fin, line); )
 		{
+			//if (line[0] == '*')
+			//	data += line + "*";
+			//else
 			data += line + " ;";
 		}
-	}
+		fin.close();
+		//PlayCutscene("define");
+	}	
+
+	
 }
 
 // Check input after textbox line has been fully read
@@ -241,7 +253,10 @@ void CutsceneManager::ParseScene()
 		}
 
 		// when we encounter a new label, add this one to the list
-		labels.emplace_back(newLabel);
+		if (newLabel->lines.size() > 0)
+		{
+			labels.emplace_back(newLabel);
+		}			
 
 	} while (index < data.length());
 }
@@ -449,7 +464,7 @@ void CutsceneManager::ReadNextLine()
 			isReadingNextLine = true;
 			//textbox->isReading = false;
 
-			currentColor = namesToColors[currentLabel->lines[lineIndex]->speaker];
+			FlushCurrentColor();
 
 			// If speaker of this line is same as last, instantly show it
 			if (textbox->speaker->txt == currentLabel->lines[lineIndex]->speaker)
@@ -458,6 +473,21 @@ void CutsceneManager::ReadNextLine()
 				textbox->speaker->SetText("");
 		}
 	}	
+}
+
+void CutsceneManager::FlushCurrentColor()
+{
+	if (currentLabel != nullptr)
+	{
+		if (namesToColors.count(currentLabel->lines[lineIndex]->speaker))
+		{
+			currentColor = namesToColors[currentLabel->lines[lineIndex]->speaker];
+		}
+		else
+		{
+			currentColor = namesToColors[""];
+		}
+	}		
 }
 
 void CutsceneManager::ReadBacklog()
@@ -599,6 +629,12 @@ void CutsceneManager::Update()
 	while (timer > delay)
 	{
 		timer -= delay;
+
+		if (currentLabel == nullptr)
+		{
+			std::cout << "ERROR - current label is null!" << std::endl;
+			return;
+		}
 
 		if (isCarryingOutCommands)
 		{
@@ -828,10 +864,10 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, unsigned int value)
 //TODO: Regarding saving/loading...
 // * Window title/icon
 // * Play the BGM and other sounds
-// Controller bindings and settings
-// Random seed
+// + Controller bindings and settings
+// + Random seed
 // Function definitions
-// Gosub stack
+// + Gosub stack
 // Timer values
 // Textbox customization
 // Backlog customization
@@ -850,6 +886,7 @@ void CutsceneManager::SaveGame()
 	std::map<SaveSections, std::string> sections = {
 		{ SaveSections::CONFIG_OPTIONS, "@ CONFIG_OPTIONS"},
 		{ SaveSections::STORY_DATA, "@ STORY_DATA"},
+		{ SaveSections::GOSUB_STACK, "@ GOSUB_STACK"},
 		{ SaveSections::ALIAS_STRINGS, "@ ALIAS_STRINGS"},
 		{ SaveSections::ALIAS_NUMBERS, "@ ALIAS_NUMBERS"},
 		{ SaveSections::LOCAL_STRINGS, "@ LOCAL_STRINGS"},
@@ -873,6 +910,17 @@ void CutsceneManager::SaveGame()
 			fout << labelIndex << " ";
 			fout << lineIndex << " ";
 			fout << commandIndex << std::endl;
+			break;
+		case SaveSections::GOSUB_STACK:
+
+			for (int i = gosubStack.size() - 1; i >= 0; i--)
+			{
+				fout << gosubStack[i]->labelName << " ";
+				fout << gosubStack[i]->labelIndex << " ";
+				fout << gosubStack[i]->lineIndex << " ";
+				fout << gosubStack[i]->commandIndex << std::endl;
+			}
+
 			break;
 		case SaveSections::ALIAS_STRINGS:
 			// 4. Save string aliases (keys and values)
@@ -948,6 +996,10 @@ void CutsceneManager::SaveGame()
 							<< " "
 							<< text->rotation.z
 							<< " "
+							<< text->scale.x
+							<< " "
+							<< text->scale.y
+							<< " "
 							<< text->GetTextString()
 							<< " "
 							<< text->textColor.r
@@ -974,6 +1026,10 @@ void CutsceneManager::SaveGame()
 							<< entity->rotation.y
 							<< " "
 							<< entity->rotation.z
+							<< " "
+							<< entity->scale.x
+							<< " "
+							<< entity->scale.y
 							<< std::endl;
 					}
 				}
@@ -1019,6 +1075,13 @@ void CutsceneManager::SaveGame()
 			// Save the window icon
 			fout << "window icon " << game->windowIconFilepath << std::endl;
 
+			// Save the random seed
+			fout << "random seed " << commands.randomSeed << std::endl;
+
+			// Save controller bindings
+			fout << "controls mouse" << useMouseControls << std::endl;
+			fout << "controls keyboard" << useKeyboardControls << std::endl;
+
 			// Save the currently playing BGM
 			fout << "bgm " << game->soundManager->bgmFilepath << std::endl;
 
@@ -1055,6 +1118,8 @@ void CutsceneManager::LoadGame()
 	}
 	fin.close();
 
+	gosubStack.clear();
+
 	// While we have lines to examine
 	// Check the first character for an @ symbol
 	// If there is one, change the current section
@@ -1063,8 +1128,7 @@ void CutsceneManager::LoadGame()
 	std::map<std::string, SaveSections> sections = {
 		{ "@ CONFIG_OPTIONS", SaveSections::CONFIG_OPTIONS},
 		{ "@ STORY_DATA", SaveSections::STORY_DATA},
-		{ "@ GLOBAL_STRINGS", SaveSections::GLOBAL_STRINGS},
-		{ "@ GLOBAL_NUMBERS", SaveSections::GLOBAL_NUMBERS},
+		{ "@ GOSUB_STACK", SaveSections::GOSUB_STACK},
 		{ "@ ALIAS_STRINGS", SaveSections::ALIAS_STRINGS},
 		{ "@ ALIAS_NUMBERS", SaveSections::ALIAS_NUMBERS},
 		{ "@ LOCAL_STRINGS", SaveSections::LOCAL_STRINGS},
@@ -1077,6 +1141,7 @@ void CutsceneManager::LoadGame()
 	int index = 0;
 	std::string currentSection = "";
 	std::string labelName = "";
+	SceneData* gosubData = nullptr;
 
 	while (index < dataLines.size())
 	{
@@ -1123,6 +1188,16 @@ void CutsceneManager::LoadGame()
 						std::cout << "ERROR: Could not find label " << labelName << std::endl;
 				}
 				break;
+			case SaveSections::GOSUB_STACK:
+
+				gosubData = new SceneData();
+				gosubData->labelName = lineParams[0];
+				gosubData->labelIndex = std::stoi(lineParams[1]);
+				gosubData->lineIndex = std::stoi(lineParams[2]) - 1;
+				gosubData->commandIndex = std::stoi(lineParams[3]);
+				gosubStack.push_back(gosubData);
+
+				break;
 			case SaveSections::ALIAS_STRINGS:
 				commands.stralias[lineParams[0]] = lineParams[1];
 				break;
@@ -1144,10 +1219,18 @@ void CutsceneManager::LoadGame()
 				{
 					lineParams.insert(lineParams.begin(), "");
 					commands.LoadSprite(lineParams);
-					images[std::stoi(lineParams[1])]->rotation = glm::vec3(
+					Entity* entity = images[std::stoi(lineParams[1])];
+
+					entity->rotation = glm::vec3(
 						std::stoi(lineParams[5]), 
 						std::stoi(lineParams[6]), 
 						std::stoi(lineParams[7]));
+					
+					entity->scale = Vector2(
+						std::stoi(lineParams[8]), 
+						std::stoi(lineParams[9]));
+
+					entity->SetSprite(entity->GetSprite());
 				}
 				break;
 			case SaveSections::NAMES_TO_COLORS:
@@ -1181,6 +1264,21 @@ void CutsceneManager::LoadGame()
 				else if (lineParams[0] == "window")
 				{
 					commands.WindowFunction(lineParams);
+				}
+				else if (lineParams[0] == "random")
+				{
+					commands.RandomNumberVariable(lineParams);
+				}
+				else if (lineParams[0] == "controls")
+				{
+					if (lineParams[1] == "mouse")
+					{
+						useMouseControls = std::stoi(lineParams[2]);
+					}
+					else if (lineParams[2] == "keyboard")
+					{
+						useKeyboardControls = std::stoi(lineParams[2]);
+					}
 				}
 
 				break;

@@ -27,6 +27,9 @@ public:
 	// When you press the button, jump to the corresponding label
 	std::unordered_map<unsigned int, std::string> buttonLabels;
 
+	std::string pathPrefix = "";
+	int randomSeed = 0;
+
 	CutsceneManager* manager = nullptr;
 	CutsceneCommands();
 	~CutsceneCommands();
@@ -111,7 +114,11 @@ public:
 	int ControlBindings(CutsceneParameters parameters);
 	int BindKeyToLabel(CutsceneParameters parameters);
 
+	int FlipSprite(CutsceneParameters parameters);
+
 	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates);
 	Color ParseColorFromParameters(const std::vector<std::string>& parameters, const int index);
+
+	
 };
 

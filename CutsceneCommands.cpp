@@ -32,6 +32,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"div", &CutsceneCommands::DivideNumberVariables},
 	{"end", &CutsceneCommands::EndGame },
 	{"fade", &CutsceneCommands::Fade },
+	{"flip", &CutsceneCommands::FlipSprite },
 	{"global", &CutsceneCommands::SetGlobalNumber},
 	{"gosub", &CutsceneCommands::GoSubroutine },
 	{"goto", &CutsceneCommands::GoToLabel },
@@ -83,6 +84,7 @@ std::vector<FuncLUT>cmd_lut = {
 // * Ending the game window / restarting the game window
 
 // - Save/load
+// - Save screenshot as image
 // * Playing animations (use state machines, set variables, etc.)
 // - what about animations that involve each frame being its own file?
 // - custom timers (we'll deal with this when we handle blinking animations)
@@ -108,6 +110,7 @@ std::vector<FuncLUT>cmd_lut = {
 // Set the click to continue button image / animation
 // Automatically position the CTC image
 
+// Flip images horizontal/vertical
 // * Change window caption and icon
 // Change location of save data
 // Alpha image effects
@@ -148,7 +151,7 @@ std::vector<FuncLUT>cmd_lut = {
 // Special features:
 // - picture gallery
 // - music player
-// - dictionary
+// - encyclopedia
 
 CutsceneCommands::CutsceneCommands()
 {
@@ -184,7 +187,7 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 	{
 		if (shouldReplace && command[i] == ' ')
 		{
-			command[i] = '_';
+			command[i] = '`';
 		}
 		else if (command[i] == '[')
 		{
@@ -203,7 +206,8 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 	std::istream_iterator<std::string> end;
 
 	std::vector<std::string> parameters(begin, end);
-	std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
+	//std::cout << command << std::endl;
+	//std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
 
 	if (parameters.size() > 0)
 	{
@@ -211,24 +215,33 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 		shouldReplace = false;
 		for (int i = 0; i < parameters.size(); i++)
 		{
+			bool replaced = false;
 			shouldReplace = false;
 			for (int k = 0; k < parameters[i].size(); k++)
 			{
-				if (shouldReplace && parameters[i][k] == '_')
+				if (shouldReplace && parameters[i][k] == '`')
 				{
 					parameters[i][k] = ' ';
 				}
 				else if (parameters[i][k] == '[')
 				{
+					replaced = true;
 					shouldReplace = true;
 					parameters[i][k] = ' ';
 				}
 				else if (parameters[i][k] == ']')
 				{
+					replaced = true;
 					shouldReplace = false;
 					parameters[i][k] = ' ';
 				}
 			}
+
+			if (replaced)
+			{
+				Trim(parameters[i]);
+			}
+			
 		}
 
 		bool commandFound = false;
@@ -295,7 +308,7 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 
 			if (!commandFound)
 			{
-				std::cout << "ERROR: Command " << parameters[0] << " not found.";
+				std::cout << "ERROR: Command " << parameters[0] << " not found." << std::endl;
 			}			
 		}
 	}
@@ -313,11 +326,11 @@ int CutsceneCommands::MusicCommand(CutsceneParameters parameters)
 
 	if (parameters[1] == "play")
 	{
-		manager->game->soundManager->PlayBGM(parameters[2], true);
+		manager->game->soundManager->PlayBGM(pathPrefix + ParseStringValue(parameters[2]), true);
 	}
 	else if (parameters[1] == "once")
 	{
-		manager->game->soundManager->PlayBGM(parameters[2], false);
+		manager->game->soundManager->PlayBGM(pathPrefix + ParseStringValue(parameters[2]), false);
 	}
 	else if (parameters[1] == "stop")
 	{
@@ -325,15 +338,15 @@ int CutsceneCommands::MusicCommand(CutsceneParameters parameters)
 	}
 	else if (parameters[1] == "fadein")
 	{
-		manager->game->soundManager->FadeInBGM(parameters[2], std::stoi(parameters[3]), true);
+		manager->game->soundManager->FadeInBGM(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]), true);
 	}
 	else if (parameters[1] == "fadeout")
 	{
-		manager->game->soundManager->FadeOutBGM(std::stoi(parameters[2]));
+		manager->game->soundManager->FadeOutBGM(ParseNumberValue(parameters[3]));
 	}
 	else if (parameters[1] == "volume")
 	{
-		manager->game->soundManager->SetVolumeBGM(std::stoi(parameters[2]));
+		manager->game->soundManager->SetVolumeBGM(ParseNumberValue(parameters[3]));
 	}
 
 	return 0;
@@ -344,11 +357,11 @@ int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
 	if (parameters[1] == "play")
 	{
 		//TODO: Deal with multiple channels
-		manager->game->soundManager->PlaySound(parameters[2], std::stoi(parameters[3]), -1);
+		manager->game->soundManager->PlaySound(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]), -1);
 	}
 	else if (parameters[1] == "volume")
 	{
-		manager->game->soundManager->SetVolumeSound(std::stoi(parameters[2]));
+		manager->game->soundManager->SetVolumeSound(ParseNumberValue(parameters[2]));
 	}
 
 	return 0;
@@ -359,7 +372,7 @@ int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
 	if (parameters[1] == "play")
 	{
 		//TODO: Deal with multiple channels
-		manager->game->soundManager->PlaySound(ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]));
+		manager->game->soundManager->PlaySound(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]));
 	}
 	else if (parameters[1] == "volume")
 	{
@@ -615,8 +628,7 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 			std::cout << "ERROR: Could not find label " << labelName << std::endl;
 	}
 
-	if (manager->currentLabel != nullptr)
-		manager->currentColor = manager->namesToColors[manager->currentLabel->lines[manager->lineIndex]->speaker];
+	manager->FlushCurrentColor();
 
 	return 0;
 }
@@ -938,12 +950,13 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 	{
 		if (parameters[2] == "time")
 		{
-			srand((int)time(0));
+			randomSeed = (int)time(0);
+			srand(randomSeed);
 		}
 		else
 		{
-			srand(ParseNumberValue(parameters[2]));
-			//TODO: Seed based on variable input
+			randomSeed = ParseNumberValue(parameters[2]);
+			srand(randomSeed);
 		}
 	}
 	else if (parameters[1] == "range")
@@ -1155,7 +1168,7 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 		pos = Vector2(x, y);
 	}
 
-	std::string filepath = ParseStringValue(parameters[2]);
+	std::string filepath = pathPrefix + ParseStringValue(parameters[2]);
 	unsigned int imageNumber = ParseNumberValue(parameters[1]);
 
 	//TODO: Don't delete/new, just grab from entity pool and reset
@@ -1242,9 +1255,11 @@ int CutsceneCommands::LoadTextFromSaveFile(CutsceneParameters parameters)
 		std::stoi(parameters[5]),
 		std::stoi(parameters[6]));
 
-	std::string text = parameters[7];
+	Vector2 scale = Vector2(std::stoi(parameters[7]), std::stoi(parameters[8]));
 
-	int index = 8;
+	std::string text = parameters[9];
+
+	int index = 10;
 	if (text[0] == '[')
 	{		
 		while (parameters[index][0] != ']')
@@ -1270,6 +1285,8 @@ int CutsceneCommands::LoadTextFromSaveFile(CutsceneParameters parameters)
 		manager->game->theFont, text, textColor);
 
 	manager->images[imageNumber]->SetPosition(pos);
+	manager->images[imageNumber]->rotation = rotation;
+	manager->images[imageNumber]->scale = scale;
 	manager->images[imageNumber]->drawOrder = imageNumber;
 	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
 	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
@@ -1299,12 +1316,13 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 		delete manager->images[imageNumber];
 
 	//TODO: Parse text string to get and set the color
+	//TODO: Deal with individual glyphs
 	Color textColor = { 255, 255, 255, 255 };
-	if (text.size() > 1 && text[1] == '#')
+	if (text.size() > 1 && text[0] == '#')
 	{
-		textColor = ParseColorHexadecimal(text.substr(1, 9).c_str());
+		textColor = ParseColorHexadecimal(text.substr(0, 8).c_str());
 		manager->images[imageNumber] = new Text(manager->game->renderer,
-			manager->game->theFont, text.substr(10, text.size()-9), textColor);
+			manager->game->theFont, text.substr(9, text.size()-8), textColor);
 	}
 	else
 	{
@@ -1361,14 +1379,15 @@ int CutsceneCommands::TextColor(CutsceneParameters parameters)
 	else
 		manager->namesToColors[characterName] = color;
 
-	manager->currentColor = manager->namesToColors[manager->currentLabel->lines[manager->lineIndex]->speaker];
+	manager->FlushCurrentColor();
 
 	return 0;
 }
 
 int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 {
-	unsigned int imageNumber = GetNumAlias(parameters[1]);
+	unsigned int imageNumber = ParseNumberValue(parameters[1]);
+
 	//TODO: Maybe make a manager->GetImage(imageNumber) function for error handling
 	Entity* entity = manager->images[imageNumber];
 	if (entity == nullptr)
@@ -1399,6 +1418,7 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 	{
 		entity->rotation = glm::vec3(ParseNumberValue(parameters[3]), 
 			ParseNumberValue(parameters[4]), ParseNumberValue(parameters[5]));
+		entity->SetSprite(entity->GetSprite());
 	}
 	else if (spriteProperty == "shader")
 	{	
@@ -1706,6 +1726,32 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 		manager->ReadBacklog();
 	}
 
+	return 0;
+}
+
+int CutsceneCommands::FlipSprite(CutsceneParameters parameters)
+{
+	if (parameters.size() > 2)
+	{		
+		int spriteNum = ParseNumberValue(parameters[1]);
+		Vector2 scale = manager->images[spriteNum]->scale;
+
+		std::string direction = ParseStringValue(parameters[2]);
+
+		if (direction == "h" || direction == "horizontal")
+		{			
+			SetSpriteProperty({ "", parameters[1], "scale", std::to_string(-scale.x), "1"});
+		}
+		else if (direction == "v" || direction == "vertical")
+		{
+			SetSpriteProperty({ "", parameters[1], "scale", "1", std::to_string(-scale.y) });
+		}
+		else if (direction == "b" || direction == "both")
+		{
+			SetSpriteProperty({ "", parameters[1], "scale", std::to_string(-scale.x), std::to_string(-scale.y) });
+		}
+	}
+	
 	return 0;
 }
 

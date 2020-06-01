@@ -11,8 +11,8 @@
 #include "CutsceneCommands.h"
 #include <map>
 
-enum class SaveSections { CONFIG_OPTIONS, STORY_DATA, GLOBAL_STRINGS, GLOBAL_NUMBERS, ALIAS_STRINGS, 
-	ALIAS_NUMBERS, LOCAL_STRINGS, LOCAL_NUMBERS, LOCAL_OBJECTS, NAMES_TO_COLORS, OTHER_STUFF
+enum class SaveSections { CONFIG_OPTIONS, STORY_DATA, GOSUB_STACK, ALIAS_STRINGS, ALIAS_NUMBERS, 
+	LOCAL_STRINGS, LOCAL_NUMBERS, LOCAL_OBJECTS, NAMES_TO_COLORS, OTHER_STUFF
 };
 
 class Game;
@@ -144,6 +144,8 @@ public:
 
 	void SaveGame();
 	void LoadGame();
+
+	void FlushCurrentColor();
 
 	void LoadGlobalVariables();
 	void SaveGlobalVariable(unsigned int key, unsigned int value);
