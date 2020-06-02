@@ -92,7 +92,7 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 		delete_it(currentSprite);
 	}
 
-	textColor = color;
+	textColor = color; //TODO: Does this even do anything?
 	txt = text; // translate the text here
 	id = text;
 
@@ -101,57 +101,145 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 	if (txt == "")
 		txt = " ";
 
-
 	SDL_Surface* textSurface = nullptr;
-	SDL_Color textColor = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
-	
+	SDL_Color textColorSDL = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
+
+	glyphs.clear();
+
+	for (int i = 0; i < txt.size(); i++)
+	{
+		textSurface = TTF_RenderGlyph_Blended(font, txt[i], textColorSDL);
+
+		if (textSurface != nullptr)
+		{
+			//TODO: If the texture for this glyph already exists, don't recreate it
+			Texture* textTexture = new Texture(txt.c_str());
+			textTexture->LoadTexture(textSurface);			
+
+			Sprite* newSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
+			newSprite->keepScaleRelativeToCamera = keepScaleRelative;
+			newSprite->keepPositionRelativeToCamera = renderRelative;
+
+			Glyph* newGlyph = new Glyph;
+			newGlyph->sprite = newSprite;
+
+			glyphs.push_back(newGlyph);
+
+			// When GetSprite() is called, get the first glyph in the text
+			if (i == 0)
+				currentSprite = newSprite;
+
+			if (textSurface != nullptr)
+				SDL_FreeSurface(textSurface);
+		}
+	}
+
+	SetPosition(position.x, position.y);
+
+	/*
 	if (wrapWidth > 0)
 	{
-		textSurface = TTF_RenderText_Blended_Wrapped(font, txt.c_str(), textColor, wrapWidth);
+		textSurface = TTF_RenderText_Blended_Wrapped(font, txt.c_str(), textColorSDL, wrapWidth);
 	}
 	else
 	{
-		textSurface = TTF_RenderText_Blended(font, txt.c_str(), textColor);
+		textSurface = TTF_RenderText_Blended(font, txt.c_str(), textColorSDL);
 	}
+	*/	
+}
+
+void Text::AddText(char c, Color color)
+{
+	bool keepScaleRelative = false;
+	bool renderRelative = false;
+
+	//id = text;
+
+	SDL_Surface* textSurface = nullptr;
+	SDL_Color textColorSDL = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
+
+	textSurface = TTF_RenderGlyph_Blended(font, c, textColorSDL);
 
 	if (textSurface != nullptr)
 	{
-		Texture* textTexture = new Texture(txt.c_str());
+		//TODO: If the texture for this glyph already exists, don't recreate it
+		Texture* textTexture = new Texture(&c);
 		textTexture->LoadTexture(textSurface);
 
-		currentSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
-		currentSprite->keepScaleRelativeToCamera = keepScaleRelative;
-		currentSprite->keepPositionRelativeToCamera = renderRelative;
+		Sprite* newSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
+		newSprite->keepScaleRelativeToCamera = keepScaleRelative;
+		newSprite->keepPositionRelativeToCamera = renderRelative;
+
+		Glyph* newGlyph = new Glyph;
+		newGlyph->sprite = newSprite;
+
+		glyphs.push_back(newGlyph);
 
 		if (textSurface != nullptr)
 			SDL_FreeSurface(textSurface);
 	}
+
+	SetPosition(position.x, position.y);
+
+	/*
+	if (wrapWidth > 0)
+	{
+		textSurface = TTF_RenderText_Blended_Wrapped(font, txt.c_str(), textColorSDL, wrapWidth);
+	}
+	else
+	{
+		textSurface = TTF_RenderText_Blended(font, txt.c_str(), textColorSDL);
+	}
+	*/
 }
+
 
 void Text::Render(Renderer* renderer)
 {
-	if (currentSprite != nullptr)
+	for (int i = 0; i < glyphs.size(); i++)
 	{
-		currentSprite->Render(position, renderer);
+		if (glyphs[i]->sprite != nullptr)
+			glyphs[i]->sprite->Render(glyphs[i]->position, renderer);
+		else
+			int test = 0;
 	}
 }
 
 void Text::Render(Renderer* renderer, Vector2 offset)
 {
-	if (currentSprite != nullptr)
+	for (int i = 0; i < glyphs.size(); i++)
 	{
-		currentSprite->Render(position + offset, renderer);
+		glyphs[i]->sprite->Render(glyphs[i]->position + offset, renderer);
 	}
 }
 
+//TODO: Make sure to account for offsetting all the letters
 void Text::SetPosition(const float x, const float y)
 {
 	position.x = x;
 	position.y = y;
+
+	Vector2 currentPosition = Vector2(position);
+
+	for (int i = 0; i < glyphs.size(); i++)
+	{
+		currentPosition.x += glyphs[i]->sprite->frameWidth * 2;
+		
+		//TODO: Maybe add some space between the letters?
+
+		//TODO: Implement word wrap here
+		if (wrapWidth > 0 && currentPosition.x > wrapWidth)
+		{
+			//TODO: What is the actual height?
+			currentPosition.y += glyphs[i]->sprite->frameHeight; 
+			currentPosition.x = x;
+		}		
+
+		glyphs[i]->position = currentPosition;
+	}	
 }
 
 void Text::SetPosition(const int x, const int y)
 {
-	position.x = (float)x;
-	position.y = (float)y;
+	SetPosition((float)x, (float)y);
 }

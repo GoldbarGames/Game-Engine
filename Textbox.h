@@ -35,6 +35,7 @@ public:
 	void ChangeBoxFont(const std::string& fontName);
 	void ChangeBoxSprite(const std::string& filepath);
 
+	void UpdateText(const char c, const Color& color);
 	void UpdateText(const std::string& newText, const Color& color);
 	void Render(Renderer* renderer, const int& screenWidth, const int& screenHeight);
 

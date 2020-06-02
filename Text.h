@@ -20,6 +20,12 @@ using std::string;
 class Renderer;
 class Sprite;
 
+struct Glyph
+{
+	Sprite* sprite = nullptr;
+	Vector2 position = Vector2(0,0);
+};
+
 class Text : public Entity
 {
 private:
@@ -29,6 +35,10 @@ public:
 	std::string id = ""; // this will always be english
 	std::string txt = "ERROR"; // this might get translated
 	Color textColor = { 255, 255, 255, 255 };
+
+	std::vector<Glyph*> glyphs;
+
+	Uint32 wrapWidth = 0;
 
 	//Sprite* textSprite = nullptr;
 
@@ -45,6 +55,7 @@ public:
 	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color);
 	~Text();
 	void SetText(string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth=0);
+	void AddText(char c, Color color = { 255, 255, 255, 255 });
 	void Render(Renderer* renderer);
 	void Render(Renderer* renderer, Vector2 offset);
 	void SetPosition(const float x, const float y);

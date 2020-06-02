@@ -69,10 +69,10 @@ public:
 	glm::mat4 model;
 	Vector2 pivot = Vector2(0, 0);
 	std::string filename = "";
-	SDL_Rect windowRect;
-
+	
+	SDL_Rect windowRect; //TODO: Get rid of this?
 	const SDL_Rect* GetRect();
-	void Animate(int msPerFrame, Uint32 time);
+
 	void Render(Vector2 position, Renderer* renderer);
 	void Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer* renderer, glm::vec3 rotation);
 	void SetScale(Vector2 s);

@@ -669,8 +669,9 @@ void CutsceneManager::Update()
 			SceneLine* line = currentLabel->lines[lineIndex];
 			if (line->text[letterIndex] != '[')
 			{
-				currentText += line->text[letterIndex];
-				textbox->UpdateText(currentText, currentColor);
+				//currentText += line->text[letterIndex];
+				//textbox->UpdateText(currentText, currentColor);
+				textbox->UpdateText(line->text[letterIndex], currentColor);
 			}
 			else // Handle special conditions here, like inserting variables into the text
 			{
@@ -706,13 +707,15 @@ void CutsceneManager::Update()
 					int valueIndex = 0;
 					while (valueIndex < variableValue.length())
 					{
-						currentText += variableValue[valueIndex];
-						textbox->UpdateText(currentText, currentColor);
+						//currentText += variableValue[valueIndex];
+						//textbox->UpdateText(currentText, currentColor);
+
+						textbox->UpdateText(variableValue[valueIndex], currentColor);
+
 						valueIndex++;
 					};
 
 					letterIndex--;
-
 				}
 			}
 

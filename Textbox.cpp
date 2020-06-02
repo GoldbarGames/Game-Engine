@@ -85,8 +85,15 @@ void Textbox::ChangeBoxSprite(const std::string& filepath)
 		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 }
 
+void Textbox::UpdateText(const char c, const Color& color)
+{
+	text->wrapWidth = boxWidth;
+	text->AddText(c, color);
+}
+
 void Textbox::UpdateText(const std::string& newText, const Color& color)
 {
+	text->wrapWidth = boxWidth;
 	text->SetText(newText, color, boxWidth);
 	//text->SetText(newText, text->textColor, boxWidth);
 

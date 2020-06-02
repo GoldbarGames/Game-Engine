@@ -71,17 +71,17 @@ Entity::Entity(Vector2 pos, Sprite* sprite)
 Entity::~Entity()
 {
 	if (animator != nullptr)
-		delete animator;
+		delete_it(animator);
 	if (currentSprite != nullptr)
-		delete currentSprite;
+		delete_it(currentSprite);
 	if (collisionBounds != nullptr)
-		delete collisionBounds;
+		delete_it(collisionBounds);
 }
 
 void Entity::CreateCollider(float x, float y, float w, float h)
 {
 	if (collisionBounds != nullptr)
-		delete collisionBounds;
+		delete_it(collisionBounds);
 
 	collisionBounds = new SDL_Rect();
 	collisionBounds->x = (int)x;

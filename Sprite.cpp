@@ -204,24 +204,6 @@ Sprite::~Sprite()
 	}		
 }
 
-void Sprite::Animate(int msPerFrame, Uint32 time)
-{
-	if (msPerFrame != 0 && endFrame != 0 && (startFrame - endFrame) != 0)
-	{
-		if (time < 0) // change frame based on total time
-			time = SDL_GetTicks();
-		else if (time > 0) // change frame based on time relative to the animator
-		{
-			int frame = startFrame + ((time / msPerFrame) % endFrame);
-			//textureRect.x = frame * textureRect.w;
-		}
-		else // if time == 0, show the last frame
-		{
-			//textureRect.x = endFrame * textureRect.w;
-		}
-	}
-}
-
 void Sprite::Render(Vector2 position, Renderer* renderer)
 {
 	Render(position, 0, -1, SDL_FLIP_NONE, renderer, glm::vec3(0,0,0));
