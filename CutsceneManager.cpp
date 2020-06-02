@@ -28,17 +28,19 @@ CutsceneManager::CutsceneManager(Game& g)
 	//commands.pathPrefix = "assets\\arc\\";
 	//std::string directory = "data/" + language + "/butler1.txt";
 
+	std::string line = "";
+
 	fin.open(directory);
 
 	if (fin.is_open())
 	{
 		data = "";
-		for (std::string line; std::getline(fin, line); )
+		for (line; std::getline(fin, line); )
 		{
 			//if (line[0] == '*')
 			//	data += line + "*";
 			//else
-			data += line + " ;";
+				data += line + " ;";
 		}
 		fin.close();
 		//PlayCutscene("define");
@@ -437,6 +439,14 @@ void CutsceneManager::ReadNextLine()
 	if (waitingForButton)
 		return;
 
+	if (readingSameLine)
+	{		
+		letterIndex++;
+		isReadingNextLine = true;
+		readingSameLine = false;
+		return;
+	}
+
 	if (currentLabel != nullptr)
 	{
 		//TODO: Make sure to save the backlog when we save the game
@@ -723,6 +733,13 @@ void CutsceneManager::Update()
 					autoReaderTimer.Start(autoTimeToWait[autoTimeIndex]);
 			
 				return;
+			}
+			else if (line->text[letterIndex] == '@')
+			{
+				readingSameLine = true;
+				isReadingNextLine = false;
+				if (automaticallyRead)
+					autoReaderTimer.Start(autoTimeToWait[autoTimeIndex]);
 			}
 		}
 		else if (delay == 0.0f)

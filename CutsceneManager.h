@@ -106,6 +106,7 @@ public:
 	bool watchingCutscene = false;
 	bool waitingForButton = false;
 	bool automaticallyRead = false;
+	bool readingSameLine = false;
 	float autoTimeToWait[3] = { 500, 2000, 8000 };
 	int autoTimeIndex = 0;
 	Timer autoReaderTimer;
