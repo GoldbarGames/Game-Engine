@@ -4,18 +4,61 @@
 
 int Text::GetTextWidth() 
 { 
+	int width = 1;
+	for (int i = 0; i < glyphs.size(); i++)
+	{
+		if (glyphs[i]->sprite != nullptr)
+			width += glyphs[i]->sprite->texture->GetWidth();
+	}
+
+	return width;
+
+	/*
 	if (currentSprite != nullptr)
 		return currentSprite->texture->GetWidth();
 	else
 		return 1;
+		*/
 }
 
 int Text::GetTextHeight() 
-{ 
+{
+	int width = 0;
+	int height = 1;
+
+	for (int i = 0; i < glyphs.size(); i++)
+	{
+		if (glyphs[i]->sprite != nullptr)
+		{
+			width += glyphs[i]->sprite->texture->GetWidth();
+			if (width > wrapWidth)
+			{
+				width = 0;
+				height += glyphs[i]->sprite->texture->GetHeight();				
+			}
+			else if (wrapWidth == 0)
+			{
+				return glyphs[0]->sprite->texture->GetHeight();
+			}				
+		}			
+	}
+
+	if (glyphs.size() > 0)
+	{
+		if (glyphs[0]->sprite != nullptr && glyphs[0]->sprite->texture != nullptr)
+		{
+			return glyphs[0]->sprite->texture->GetHeight();
+		}
+	}
+
+	return height;
+
+	/*
 	if (currentSprite != nullptr)
 		return currentSprite->texture->GetHeight();
 	else
 		return 1;
+		*/
 }
 
 std::string Text::GetTextString()
@@ -81,8 +124,8 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 	if (txt == text && textColor == color)
 		return;
 
-	bool keepScaleRelative = false;
-	bool renderRelative = false;
+	bool keepScaleRelative = true;
+	bool renderRelative = true;
 
 	if (currentSprite != nullptr)
 	{
@@ -104,6 +147,11 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 	SDL_Surface* textSurface = nullptr;
 	SDL_Color textColorSDL = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
 
+	for (int i = 0; i < glyphs.size(); i++)
+	{
+		delete glyphs[i];
+	}
+
 	glyphs.clear();
 
 	for (int i = 0; i < txt.size(); i++)
@@ -113,12 +161,13 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 		if (textSurface != nullptr)
 		{
 			//TODO: If the texture for this glyph already exists, don't recreate it
-			Texture* textTexture = new Texture(txt.c_str());
+			Texture* textTexture = new Texture(&txt[i]);
 			textTexture->LoadTexture(textSurface);			
 
 			Sprite* newSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
 			newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 			newSprite->keepPositionRelativeToCamera = renderRelative;
+			newSprite->filename = txt[i];
 
 			Glyph* newGlyph = new Glyph;
 			newGlyph->sprite = newSprite;
@@ -150,8 +199,8 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 
 void Text::AddText(char c, Color color)
 {
-	bool keepScaleRelative = false;
-	bool renderRelative = false;
+	bool keepScaleRelative = true;
+	bool renderRelative = true;
 
 	//id = text;
 
@@ -169,6 +218,7 @@ void Text::AddText(char c, Color color)
 		Sprite* newSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
 		newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		newSprite->keepPositionRelativeToCamera = renderRelative;
+		newSprite->filename = c;
 
 		Glyph* newGlyph = new Glyph;
 		newGlyph->sprite = newSprite;
@@ -213,6 +263,18 @@ void Text::Render(Renderer* renderer, Vector2 offset)
 	}
 }
 
+void Text::SetScale(Vector2 newScale)
+{
+	scale = newScale;
+
+	for (int i = 0; i < glyphs.size(); i++)
+	{
+		glyphs[i]->sprite->SetScale(newScale);
+	}
+
+	SetPosition(position.x, position.y);
+}
+
 //TODO: Make sure to account for offsetting all the letters
 void Text::SetPosition(const float x, const float y)
 {
@@ -223,15 +285,15 @@ void Text::SetPosition(const float x, const float y)
 
 	for (int i = 0; i < glyphs.size(); i++)
 	{
-		currentPosition.x += glyphs[i]->sprite->frameWidth * 2;
+		currentPosition.x += glyphs[i]->sprite->frameWidth * glyphs[i]->sprite->scale.x * 2;
 		
 		//TODO: Maybe add some space between the letters?
 
 		//TODO: Implement word wrap here
-		if (wrapWidth > 0 && currentPosition.x > wrapWidth)
+		if (wrapWidth > 0 && currentPosition.x > wrapWidth * 2)
 		{
 			//TODO: What is the actual height?
-			currentPosition.y += glyphs[i]->sprite->frameHeight; 
+			currentPosition.y += glyphs[i]->sprite->frameHeight * glyphs[i]->sprite->scale.y * 2;
 			currentPosition.x = x;
 		}		
 

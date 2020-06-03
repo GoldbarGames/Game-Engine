@@ -33,6 +33,15 @@ Vector2 Renderer::CalculateScale(Sprite* sourceSprite, Sprite* targetSprite)
 		targetHeight * targetSprite->scale.y / sourceHeight);
 }
 
+Vector2 Renderer::CalculateScale(Sprite* sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale)
+{
+	float sourceWidth = sourceSprite->texture->GetWidth();
+	float sourceHeight = sourceSprite->texture->GetHeight();
+
+	return Vector2(targetWidth * targetScale.x / sourceWidth,
+		targetHeight * targetScale.y / sourceHeight);
+}
+
 void Renderer::Update()
 {
 	if (changingOverlayColor && timerOverlayColor.HasElapsed())

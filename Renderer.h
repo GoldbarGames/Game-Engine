@@ -33,6 +33,7 @@ public:
 	Timer timerOverlayColor;
 
 	Vector2 CalculateScale(Sprite* sourceSprite, Sprite* targetSprite);
+	Vector2 CalculateScale(Sprite* sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale);
 	Vector2 screenScale = Vector2(1, 1);
 
 	std::unordered_map<ShaderName, ShaderProgram*> shaders;

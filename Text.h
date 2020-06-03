@@ -48,6 +48,8 @@ public:
 
 	std::string GetTextString();
 
+	void SetScale(Vector2 newScale);
+
 	//Vector2 position = Vector2(0,0);
 	Text(Renderer* newRenderer, TTF_Font* newFont);
 	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt,

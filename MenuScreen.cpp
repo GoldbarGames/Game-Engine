@@ -55,7 +55,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		Text* creditsHeader = new Text(game.renderer, game.headerFont, "CREDITS", true, true);
 		creditsHeader->SetPosition(game.screenWidth - (creditsHeader->GetTextWidth() / 2), 100);
-		creditsHeader->GetSprite()->SetScale(Vector2(2.0f, 2.0f));
+		creditsHeader->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(creditsHeader);
 
 		std::vector<string> textLines = { 
@@ -119,13 +119,13 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		Text* textCopyright = new Text(game.renderer, game.headerFont, "Copyright 2020 Goldbar Games LLC", true, true);
 		//textCopyright->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
-		textCopyright->SetPosition(startPosX, 1200);
+		textCopyright->SetPosition(startPosX - 400, 1200);
 		textCopyright->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textCopyright);
 
 		Text* textVersion = new Text(game.renderer, game.headerFont, "Demo Version 2020-03-20", true, true);
 		//textVersion->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
-		textVersion->SetPosition(startPosX, 1300);
+		textVersion->SetPosition(startPosX - 100, 1300);
 		textVersion->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textVersion);
 
@@ -157,7 +157,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		Text* header = new Text(game.renderer, game.headerFont, "Settings", true, true);
 		header->SetPosition(startPosX, newStartPosY);
-		header->GetSprite()->SetScale(Vector2(2.0f, 2.0f));
+		header->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(header);
 
 		for (unsigned int i = 0; i < buttonNames.size(); i++)

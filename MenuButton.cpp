@@ -10,10 +10,11 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 	//text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->GetTextHeight()/2));
 	text->SetPosition(pos.x, pos.y - (text->GetTextHeight() / 4));
 
-	text->GetSprite()->SetScale(Vector2(2, 2));
-	image->SetScale(game.renderer->CalculateScale(image, text->GetSprite()));
-	
+	text->SetScale(Vector2(2, 2));
 
+	image->SetScale(game.renderer->CalculateScale(image, text->GetTextWidth(), 
+		text->GetTextHeight(), text->scale));
+	
 	name = function;
 
 	//TODO: What if I want to scale the button to a particular width and height independent of the image?
@@ -35,7 +36,10 @@ MenuButton::~MenuButton()
 
 void MenuButton::Render(Renderer* renderer)
 {	
-	image->Render(position, renderer);
+	//TODO: Add padding, maybe move this somewhere more efficient
+	Vector2 imagePosition = Vector2(position.x + (image->frameWidth * image->scale.x), position.y);
+		//position.y + (image->frameHeight * image->scale.y));
+	image->Render(imagePosition, renderer);
 	text->Render(renderer);
 }
 

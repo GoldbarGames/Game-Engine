@@ -1315,22 +1315,26 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	if (manager->images[imageNumber] != nullptr)
 		delete manager->images[imageNumber];
 
+	Text* newText = nullptr;
+
 	//TODO: Parse text string to get and set the color
 	//TODO: Deal with individual glyphs
 	Color textColor = { 255, 255, 255, 255 };
 	if (text.size() > 1 && text[0] == '#')
 	{
 		textColor = ParseColorHexadecimal(text.substr(0, 8).c_str());
-		manager->images[imageNumber] = new Text(manager->game->renderer,
+		newText = new Text(manager->game->renderer,
 			manager->game->theFont, text.substr(9, text.size()-8), textColor);
 	}
 	else
 	{
-		manager->images[imageNumber] = new Text(manager->game->renderer,
+		newText = new Text(manager->game->renderer,
 			manager->game->theFont, text, textColor);
 	}
 
-	manager->images[imageNumber]->SetPosition(pos);
+	newText->SetPosition(pos.x, pos.y); // use the Text SetPosition function, not Entity
+
+	manager->images[imageNumber] = newText;
 	manager->images[imageNumber]->drawOrder = imageNumber;
 	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
 	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
