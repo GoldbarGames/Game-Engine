@@ -89,12 +89,18 @@ void Textbox::UpdateText(const char c, const Color& color)
 {
 	text->wrapWidth = boxWidth;
 	text->AddText(c, color);
+	const int boxOffsetX = 100;
+	const int boxOffsetY = 1070;
+	text->SetPosition(boxOffsetX, boxOffsetY);
 }
 
 void Textbox::UpdateText(const std::string& newText, const Color& color)
 {
 	text->wrapWidth = boxWidth;
 	text->SetText(newText, color, boxWidth);
+	const int boxOffsetX = 100;
+	const int boxOffsetY = 1070;
+	text->SetPosition(boxOffsetX, boxOffsetY);
 	//text->SetText(newText, text->textColor, boxWidth);
 
 	//TODO: If we want to modify the textbox's text shader, do so here
@@ -105,52 +111,12 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 {
 	if (shouldRender && isReading)
 	{
-		string alignmentX = "LEFT";
-		string alignmentY = "TOP";
-
-		const int boxOffsetX = 1300;
-		const int boxOffsetY = 1100;
-
-		if (alignmentX == "LEFT")
-		{
-			offset.x = boxOffsetX - boxWidth + text->GetTextWidth();
-		}
-		else if (alignmentX == "RIGHT")
-		{
-			offset.x = boxOffsetX + boxWidth - text->GetTextWidth();
-		}
-		else if (alignmentX == "CENTER")
-		{
-			offset.x = boxOffsetX + text->GetTextWidth();
-		}
-
-		//TODO: We would use a boxHeight if we had one to calculate these correctly
-		if (alignmentY == "TOP")
-		{
-			offset.y = boxOffsetY; //text->GetTextHeight();
-		}
-		else if (alignmentY == "BOTTOM")
-		{
-			offset.y = -1 * boxOffsetY;
-		}
-		else if (alignmentY == "CENTER")
-		{
-			offset.y = text->GetTextHeight();
-		}
-
-		Vector2 renderPosition = Vector2(position.x + renderer->guiCamera.position.x,
-			position.y + renderer->guiCamera.position.y);
-
-		Vector2 cameraPosition = Vector2(renderer->guiCamera.position.x + offset.x,
-			renderer->guiCamera.position.y + offset.y);
-
 		//TODO: Make sure the position is in the center of the screen
 		boxSprite->Render(position, renderer);
 		speaker->Render(renderer);
 
 		if (text != nullptr)
 		{
-			text->SetPosition(offset.x, offset.y);
 			text->Render(renderer);
 		}
 			

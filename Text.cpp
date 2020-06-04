@@ -139,11 +139,6 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 	txt = text; // translate the text here
 	id = text;
 
-    // empty string generates a null pointer
-	// so a blank space guarantees that the surface pointer will not be null
-	if (txt == "")
-		txt = " ";
-
 	SDL_Surface* textSurface = nullptr;
 	SDL_Color textColorSDL = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
 
@@ -153,6 +148,13 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 	}
 
 	glyphs.clear();
+
+    // empty string generates a null pointer
+	// so a blank space guarantees that the surface pointer will not be null
+	if (txt == "")
+	{
+		txt = " ";
+	}
 
 	for (int i = 0; i < txt.size(); i++)
 	{
@@ -278,23 +280,149 @@ void Text::SetScale(Vector2 newScale)
 //TODO: Make sure to account for offsetting all the letters
 void Text::SetPosition(const float x, const float y)
 {
-	position.x = x;
-	position.y = y;
+	alignX = AlignmentX::RIGHT;
+
+	switch (alignX)
+	{
+	case AlignmentX::LEFT:
+		position.x = x;
+		break;
+	case AlignmentX::CENTER:
+		position.x = x + GetTextWidth();
+		break;
+	case AlignmentX::RIGHT:
+		position.x = x + (wrapWidth * 2);
+		break;
+	default:
+		break;
+	}
+
+	//TODO: We would use a boxHeight if we had one to calculate these correctly
+	switch (alignY)
+	{
+	case AlignmentY::TOP:
+		position.y = y; //text->GetTextHeight();
+		break;
+	case AlignmentY::CENTER:
+		position.y = GetTextHeight();
+		break;
+	case AlignmentY::BOTTOM:
+		position.y = -1 * y;
+		break;
+	default:
+		break;
+	}
 
 	Vector2 currentPosition = Vector2(position);
 
 	for (int i = 0; i < glyphs.size(); i++)
 	{
-		currentPosition.x += glyphs[i]->sprite->frameWidth * glyphs[i]->sprite->scale.x * 2;
-		
 		//TODO: Maybe add some space between the letters?
+		// sente/nce is
 
-		//TODO: Implement word wrap here
-		if (wrapWidth > 0 && currentPosition.x > wrapWidth * 2)
+		bool passedWrapLine = false;
+
+		switch (alignX)
 		{
-			//TODO: What is the actual height?
-			currentPosition.y += glyphs[i]->sprite->frameHeight * glyphs[i]->sprite->scale.y * 2;
-			currentPosition.x = x;
+		case AlignmentX::LEFT:
+			currentPosition.x += glyphs[i]->sprite->frameWidth * glyphs[i]->sprite->scale.x * 2;
+			passedWrapLine = (currentPosition.x > wrapWidth * 2);
+			break;
+		case AlignmentX::CENTER:
+			passedWrapLine = (currentPosition.x > wrapWidth * 2);
+			break;
+		case AlignmentX::RIGHT:
+			currentPosition.x -= glyphs[i]->sprite->frameWidth * glyphs[i]->sprite->scale.x * 2;
+			passedWrapLine = (currentPosition.x < x);
+			break;
+		default:
+			break;
+		}
+
+		// Handle word wrap when the most recent letter exceeds the wrap width
+		if (wrapWidth > 0 && passedWrapLine)
+		{
+			// Don't indent new lines when the words wrap past it
+			if (glyphs[i]->sprite->filename != " ") 
+			{
+				// Get the index of the start of the most recent word
+				unsigned int wordStartIndex = i;
+				for (int k = i; i > 0; k--)
+				{
+					if (glyphs[k]->sprite->filename == " ")
+					{
+						wordStartIndex = k+1;
+						break;
+					}
+				}
+
+				// Go through each letter in the most recent word
+				// and re-calculate its position based on the wrapping
+				float newLineX = 0;
+				
+				//TODO: What is the actual height?
+				float newLineY = currentPosition.y + glyphs[wordStartIndex]->sprite->frameHeight * glyphs[wordStartIndex]->sprite->scale.y * 2;
+
+				//TODO: When we call SetText("") it makes the first glyph a space, so the first line is indented
+				// Therefore for each subsequent line, we need to indent by one letter as well.
+				// Not sure how to fix this, deal with it later.
+				
+				switch (alignX)
+				{
+				case AlignmentX::LEFT:
+					newLineX = x + glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
+					newLineX += glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
+					break;
+				case AlignmentX::CENTER:
+					newLineX = x + glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
+					newLineX += glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
+					break;
+				case AlignmentX::RIGHT:
+					newLineX = x + (wrapWidth * 2) - glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
+					newLineX += glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
+					break;
+				default:
+					break;
+				}
+
+				for (int k = wordStartIndex; k < glyphs.size(); k++)
+				{
+					if (glyphs[k]->sprite->filename != " ")
+					{
+						glyphs[k]->position.x = newLineX;
+						glyphs[k]->position.y = newLineY;
+
+						currentPosition.x = newLineX;
+						currentPosition.y = newLineY;
+
+						switch (alignX)
+						{
+						case AlignmentX::LEFT:
+							newLineX += glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
+							break;
+						case AlignmentX::CENTER:
+							newLineX += glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
+							break;
+						case AlignmentX::RIGHT:
+							newLineX -= glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
+							break;
+						default:
+							break;
+						}
+						
+						i = k;
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+			else
+			{
+				// When we see the empty space, we know that we have reached the end of the new word
+				// (unless we don't see any empty space)
+			}
 		}		
 
 		glyphs[i]->position = currentPosition;

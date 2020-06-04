@@ -20,6 +20,9 @@ using std::string;
 class Renderer;
 class Sprite;
 
+enum class AlignmentX { LEFT, CENTER, RIGHT };
+enum class AlignmentY { TOP, CENTER, BOTTOM };
+
 struct Glyph
 {
 	Sprite* sprite = nullptr;
@@ -38,6 +41,8 @@ public:
 
 	std::vector<Glyph*> glyphs;
 
+	AlignmentX alignX = AlignmentX::LEFT;
+	AlignmentY alignY = AlignmentY::TOP;
 	Uint32 wrapWidth = 0;
 
 	//Sprite* textSprite = nullptr;
