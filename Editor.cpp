@@ -1368,6 +1368,8 @@ void Editor::RenderDebug(Renderer* renderer)
 {
 	//TODO: Only set each text if the number has changed from last time
 
+	return;
+
 	editorText[EditorText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer->drawCallsPerFrame));
 	editorText[EditorText::drawCalls]->GetSprite()->keepScaleRelativeToCamera = true;
 	editorText[EditorText::drawCalls]->Render(renderer);

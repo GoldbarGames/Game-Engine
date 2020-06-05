@@ -87,9 +87,11 @@ void Textbox::ChangeBoxSprite(const std::string& filepath)
 
 void Textbox::UpdateText(const char c, const Color& color)
 {
+	std::cout << position.x << "," << position.y << std::endl;
+
 	text->wrapWidth = boxWidth;
 	text->AddText(c, color);
-	const int boxOffsetX = 100;
+	const int boxOffsetX = 120;
 	const int boxOffsetY = 1070;
 	text->SetPosition(boxOffsetX, boxOffsetY);
 }
@@ -98,7 +100,7 @@ void Textbox::UpdateText(const std::string& newText, const Color& color)
 {
 	text->wrapWidth = boxWidth;
 	text->SetText(newText, color, boxWidth);
-	const int boxOffsetX = 100;
+	const int boxOffsetX = 120;
 	const int boxOffsetY = 1070;
 	text->SetPosition(boxOffsetX, boxOffsetY);
 	//text->SetText(newText, text->textColor, boxWidth);

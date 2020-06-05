@@ -12,8 +12,23 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 
 	text->SetScale(Vector2(2, 2));
 
-	image->SetScale(game.renderer->CalculateScale(image, text->GetTextWidth(), 
-		text->GetTextHeight(), text->scale));
+	switch (text->alignX)
+	{
+	case AlignmentX::LEFT:
+		image->SetScale(game.renderer->CalculateScale(image, text->GetTextWidth(),
+			text->GetTextHeight(), text->scale));
+		break;
+	case AlignmentX::CENTER:
+		break;
+	case AlignmentX::RIGHT:
+		image->SetScale(game.renderer->CalculateScale(image, -text->GetTextWidth(),
+			text->GetTextHeight(), text->scale));
+		break;
+	default:
+		break;
+	}
+
+
 	
 	name = function;
 
