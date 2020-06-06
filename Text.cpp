@@ -105,11 +105,12 @@ Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color colo
 
 Text::~Text()
 {
-	if (currentSprite != nullptr)
+	for (int i = 0; i < glyphs.size(); i++)
 	{
-		delete_it(currentSprite->texture);
-		delete_it(currentSprite);
+		delete_it(glyphs[i]);
 	}
+
+	glyphs.clear();
 }
 
 void Text::SetFont(TTF_Font* newFont)
@@ -131,23 +132,31 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 	{
 		renderRelative = currentSprite->keepPositionRelativeToCamera;
 		keepScaleRelative = currentSprite->keepScaleRelativeToCamera;
-		delete_it(currentSprite->texture);
-		delete_it(currentSprite);
+		//delete_it(currentSprite->texture);
+		//delete_it(currentSprite);
+
+		//TODO: Probably shouldn't have two pointers to the same memory location,
+		// since when it gets deleted here, the other point is pointing at deleted memory
+		if (glyphs.size() > 0)
+			glyphs[0] = nullptr;
 	}
+
+	//TODO: There is a memory leak here because we never actually delete the glyph's sprite's texture.
+	// But actually, we don't really want to delete it. We want to re-use it for the next time.
+	// So make some kind of manager where we can grab that texture.
+	for (int i = 0; i < glyphs.size(); i++)
+	{
+		delete_it(glyphs[i]);
+	}
+
+	glyphs.clear();
 
 	textColor = color; //TODO: Does this even do anything?
 	txt = text; // translate the text here
 	id = text;
 
-	SDL_Surface* textSurface = nullptr;
+	//SDL_Surface* textSurface = nullptr;
 	SDL_Color textColorSDL = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
-
-	for (int i = 0; i < glyphs.size(); i++)
-	{
-		delete glyphs[i];
-	}
-
-	glyphs.clear();
 
     // empty string generates a null pointer
 	// so a blank space guarantees that the surface pointer will not be null
@@ -158,14 +167,10 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 
 	for (int i = 0; i < txt.size(); i++)
 	{
-		textSurface = TTF_RenderGlyph_Blended(font, txt[i], textColorSDL);
+		Texture* textTexture = GetTexture(font, txt[i], textColorSDL);
 
-		if (textSurface != nullptr)
+		if (textTexture != nullptr)
 		{
-			//TODO: If the texture for this glyph already exists, don't recreate it
-			Texture* textTexture = new Texture(&txt[i]);
-			textTexture->LoadTexture(textSurface);			
-
 			Sprite* newSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
 			newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 			newSprite->keepPositionRelativeToCamera = renderRelative;
@@ -179,24 +184,34 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 			// When GetSprite() is called, get the first glyph in the text
 			if (i == 0)
 				currentSprite = newSprite;
-
-			if (textSurface != nullptr)
-				SDL_FreeSurface(textSurface);
 		}
 	}
 
 	SetPosition(position.x, position.y);
+}
 
-	/*
-	if (wrapWidth > 0)
+Texture* Text::GetTexture(TTF_Font* f, char c, SDL_Color col)
+{	
+	GlyphSurfaceData data;
+	data.fontName = TTF_FontFaceStyleName(f);
+	data.glyph = c;
+	data.color = col;
+
+	if (glyphTextures[data].get() == nullptr)
 	{
-		textSurface = TTF_RenderText_Blended_Wrapped(font, txt.c_str(), textColorSDL, wrapWidth);
+		SDL_Surface* textSurface = TTF_RenderGlyph_Blended(f, data.glyph, data.color);
+		
+		Texture* textTexture = nullptr;
+		textTexture = new Texture(&data.glyph);
+		textTexture->LoadTexture(textSurface);
+		
+		glyphTextures[data].reset(textTexture);
+
+		if (textSurface != nullptr)
+			SDL_FreeSurface(textSurface);
 	}
-	else
-	{
-		textSurface = TTF_RenderText_Blended(font, txt.c_str(), textColorSDL);
-	}
-	*/	
+
+	return glyphTextures[data].get();
 }
 
 void Text::AddText(char c, Color color)
@@ -204,19 +219,11 @@ void Text::AddText(char c, Color color)
 	bool keepScaleRelative = true;
 	bool renderRelative = true;
 
-	//id = text;
-
-	SDL_Surface* textSurface = nullptr;
 	SDL_Color textColorSDL = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
+	Texture* textTexture = GetTexture(font, c, textColorSDL);
 
-	textSurface = TTF_RenderGlyph_Blended(font, c, textColorSDL);
-
-	if (textSurface != nullptr)
+	if (textTexture != nullptr)
 	{
-		//TODO: If the texture for this glyph already exists, don't recreate it
-		Texture* textTexture = new Texture(&c);
-		textTexture->LoadTexture(textSurface);
-
 		Sprite* newSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
 		newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		newSprite->keepPositionRelativeToCamera = renderRelative;
@@ -226,23 +233,9 @@ void Text::AddText(char c, Color color)
 		newGlyph->sprite = newSprite;
 
 		glyphs.push_back(newGlyph);
-
-		if (textSurface != nullptr)
-			SDL_FreeSurface(textSurface);
 	}
 
 	SetPosition(position.x, position.y);
-
-	/*
-	if (wrapWidth > 0)
-	{
-		textSurface = TTF_RenderText_Blended_Wrapped(font, txt.c_str(), textColorSDL, wrapWidth);
-	}
-	else
-	{
-		textSurface = TTF_RenderText_Blended(font, txt.c_str(), textColorSDL);
-	}
-	*/
 }
 
 
@@ -280,11 +273,9 @@ void Text::SetScale(Vector2 newScale)
 //TODO: Make sure to account for offsetting all the letters
 void Text::SetPosition(const float x, const float y)
 {
-	alignX = AlignmentX::RIGHT;
+	alignX = AlignmentX::CENTER;
 
 	Vector2 currentPosition = Vector2(x, y);
-	if (x >= 2400)
-		int test = 0;
 
 	float wrapX = currentPosition.x;
 	float glyphHeight = 0;
@@ -293,10 +284,7 @@ void Text::SetPosition(const float x, const float y)
 	int numberOfLines = 0;
 	
 	// Keep track of the last index in the glyph array that goes into each line
-	// example: if lineEndIndex[1] == 78, then that means the 2nd line goes up until glyph index 78
-	//std::vector<int> lineEndIndex;
 	std::unordered_map<int, int> lineNumToIndex;
-	std::string currentLine = "";
 
 	// First, split the text into multiple lines, then align each line
 	for (int i = 0; i < glyphs.size(); i++)
@@ -311,7 +299,6 @@ void Text::SetPosition(const float x, const float y)
 
 		// The only reason to keep track of the current line is to get the total size
 		// and the indices of the most recently added word
-		//currentLine += glyphs[i]->sprite->filename;
 		wrapX += width;
 
 		// Handle word wrap when the most recent letter exceeds the wrap width
@@ -327,15 +314,12 @@ void Text::SetPosition(const float x, const float y)
 						break;
 				}
 
+				// make a record of which glyph index should be the end of this line
 				lineNumToIndex[numberOfLines] = endOfLineIndex;
+				//std::cout << "Line " << numberOfLines << ": " << endOfLineIndex << std::endl;
 				
-
-				std::cout << "Line " << numberOfLines << ": " << endOfLineIndex << std::endl;
-				
-				//lineEndIndex.push_back(endOfLineIndex); // make a record of which glyph index should be the end of this line
 				wrapX = position.x;
 				numberOfLines++;
-				//currentLine == "";
 			}
 
 		}
@@ -346,7 +330,6 @@ void Text::SetPosition(const float x, const float y)
 	//currentGlyphWidth.clear();
 	
 	int lineNumber = 0;
-	currentLine = "";
 	index = 0;
 
 	//TODO: We would use a boxHeight if we had one to calculate these correctly
@@ -388,93 +371,72 @@ void Text::SetPosition(const float x, const float y)
 
 		break;
 	case AlignmentX::CENTER:
-		//passedWrapLine = (currentPosition.x > wrapWidth * 2);
-
-
-		for (int i = 0; i < glyphs.size(); i++)
 		{
-			//TODO: Maybe add some space between the letters?
-			bool passedWrapLine = false;
+			position.x = x;
 
-			// 1
-			currentPosition.x += glyphs[i]->sprite->frameWidth * glyphs[i]->sprite->scale.x * 2;
-			passedWrapLine = (currentPosition.x > wrapWidth * 2);
+			if (wrapWidth == 0)
+				currentPosition.x = position.x;
+			else
+				currentPosition.x = wrapWidth;
 
-			// Handle word wrap when the most recent letter exceeds the wrap width
-			if (wrapWidth > 0 && passedWrapLine)
+
+			currentPosition.y = position.y;
+
+			float lineWidth = 0;
+			std::unordered_map<int, float> lineWidths; //TODO: Should this be a map instead?
+
+			// On each line, sum together the width of all glyphs on that line, and subtract half of that from the position
+			for (int i = 0; i < glyphs.size(); i++)
 			{
-				// Don't indent new lines when the words wrap past it
-				if (glyphs[i]->sprite->filename != " ")
+				lineWidth += glyphs[i]->sprite->frameWidth * glyphs[i]->sprite->scale.x * 2;
+
+				if (i > 0 && i == lineNumToIndex[lineNumber])
 				{
-					// Get the index of the start of the most recent word
-					unsigned int wordStartIndex = i;
-					for (int k = i; i > 0; k--)
-					{
-						if (glyphs[k]->sprite->filename == " ")
-						{
-							wordStartIndex = k + 1;
-							break;
-						}
-					}
-
-					// Go through each letter in the most recent word
-					// and re-calculate its position based on the wrapping
-					float newLineX = 0;
-
-					//TODO: What is the actual height?
-					float newLineY = currentPosition.y + glyphs[wordStartIndex]->sprite->frameHeight * glyphs[wordStartIndex]->sprite->scale.y * 2;
-
-					//TODO: When we call SetText("") it makes the first glyph a space, so the first line is indented
-					// Therefore for each subsequent line, we need to indent by one letter as well.
-					// Not sure how to fix this, deal with it later.
-
-					// 2
-					newLineX = x + glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
-					newLineX += glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
-
-					for (int k = wordStartIndex; k < glyphs.size(); k++)
-					{
-						if (glyphs[k]->sprite->filename != " ")
-						{
-							glyphs[k]->position.x = newLineX;
-							glyphs[k]->position.y = newLineY;
-
-							currentPosition.x = newLineX;
-							currentPosition.y = newLineY;
-
-							// 3
-							newLineX += glyphs[wordStartIndex]->sprite->frameWidth * glyphs[wordStartIndex]->sprite->scale.x * 2;
-
-							i = k;
-						}
-						else
-						{
-							break;
-						}
-					}
-				}
-				else
-				{
-					// When we see the empty space, we know that we have reached the end of the new word
-					// (unless we don't see any empty space)
+					lineWidths[lineNumber] = lineWidth;
+					lineNumber++;					
+					lineWidth = 0;
 				}
 			}
 
-			glyphs[i]->position = currentPosition;
+			lineWidths[lineNumber] = lineWidth;
+			lineNumber = 0;
+
+			for (int i = 0; i < glyphs.size(); i++)
+			{			
+				currentPosition.x += glyphs[i]->sprite->frameWidth * glyphs[i]->sprite->scale.x * 2;
+
+				glyphs[i]->position = currentPosition;
+				glyphs[i]->position.x -= lineWidths[lineNumber] / 2.0f;
+
+				if (i > 0 && i == lineNumToIndex[lineNumber])
+				{
+					lineNumber++;
+					lineWidth = 0;
+					if (wrapWidth == 0)
+						currentPosition.x = position.x;
+					else
+						currentPosition.x = wrapWidth;
+					currentPosition.y += glyphs[i]->sprite->frameHeight * glyphs[i]->sprite->scale.y * 2;;
+				}
+			}
+
 
 		}
 
+		
 
 		break;
 	case AlignmentX::RIGHT:
 
 		position.x = x;
-		currentPosition.x = position.x + (wrapWidth * 2);
+		currentPosition.x = position.x + (wrapWidth * 2);		
+		// Add an offset to all previous lines to align them with the top of the textbox
 		currentPosition.y = position.y + (lineNumToIndex.size() * glyphHeight);
 
 		lineNumber = 0;		
 		for (int i = glyphs.size() - 1; i >= 0; i--)
 		{
+			// To avoid having the earlier lines on the bottom, we need to subtract here to make the next lines move up,
 			currentPosition.x -= glyphs[i]->sprite->frameWidth * glyphs[i]->sprite->scale.x * 2;
 			glyphs[i]->position = currentPosition;
 
@@ -483,23 +445,9 @@ void Text::SetPosition(const float x, const float y)
 			{
 				lineNumber++;
 				currentPosition.x = position.x + (wrapWidth * 2);
-
-				int glyphHeight = glyphs[i]->sprite->frameHeight * glyphs[i]->sprite->scale.y * 2;
-
-				// To avoid having the earlier lines on the bottom, we need to subtract here to make the next lines move up,
-				// then add an offset to all previous lines to align them with the top of the textbox
-				currentPosition.y -= glyphHeight;
-
-				for (int j = glyphs.size() - 1; j > i; j--)
-				{
-					glyphHeight = glyphs[j]->sprite->frameHeight * glyphs[j]->sprite->scale.y * 2;
-					//glyphs[j]->position.y += (lineIndexFromEnd) * glyphHeight;
-					//currentPosition.y -= glyphHeight;
-				}
+				currentPosition.y -= glyphs[i]->sprite->frameHeight * glyphs[i]->sprite->scale.y * 2;
 			}
 		}
-
-
 
 		break;
 	default:

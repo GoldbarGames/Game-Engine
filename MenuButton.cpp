@@ -19,6 +19,8 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 			text->GetTextHeight(), text->scale));
 		break;
 	case AlignmentX::CENTER:
+		image->SetScale(game.renderer->CalculateScale(image, text->GetTextWidth(),
+			text->GetTextHeight(), text->scale));
 		break;
 	case AlignmentX::RIGHT:
 		image->SetScale(game.renderer->CalculateScale(image, -text->GetTextWidth(),
@@ -54,6 +56,10 @@ void MenuButton::Render(Renderer* renderer)
 	//TODO: Add padding, maybe move this somewhere more efficient
 	Vector2 imagePosition = Vector2(position.x + (image->frameWidth * image->scale.x), position.y);
 		//position.y + (image->frameHeight * image->scale.y));
+
+	if (text->alignX == AlignmentX::CENTER) //TODO: This isn't quite right
+		imagePosition.x -= text->GetTextWidth() * image->scale.x * 0.5f;
+
 	image->Render(imagePosition, renderer);
 	text->Render(renderer);
 }
