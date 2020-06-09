@@ -9,6 +9,8 @@
 
 #include "Texture.h"
 
+struct AnimState;
+
 class Renderer;
 
 class SpriteManager
@@ -17,9 +19,11 @@ private:
 	std::unordered_map<std::string, std::unique_ptr<Texture, ImageDeleter>> images;
 	std::unordered_map<std::string, Vector2> pivotPoints;
 public:
+	Renderer* renderer = nullptr;
+	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates);
 	Texture* GetImage(std::string const& imagePath);
 	Vector2 GetPivotPoint(std::string const& filename);
-	SpriteManager();
+	SpriteManager(Renderer* r);
 	~SpriteManager();
 };
 

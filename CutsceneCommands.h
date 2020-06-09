@@ -78,6 +78,7 @@ public:
 	int DivideNumberVariables(CutsceneParameters parameters);
 	int ModNumberVariables(CutsceneParameters parameters);
 	int RandomNumberVariable(CutsceneParameters parameters);
+	int MoveVariables(CutsceneParameters parameters);
 
 	// Control Flow
 	int GoToLabel(CutsceneParameters parameters);
@@ -116,9 +117,13 @@ public:
 
 	int FlipSprite(CutsceneParameters parameters);
 
-	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates);
+	
 	Color ParseColorFromParameters(const std::vector<std::string>& parameters, const int index);
 
+	int LuaCommand(CutsceneParameters parameters);
+	int SetClickToContinue(CutsceneParameters parameters);
+
+	int ScreenshotCommand(CutsceneParameters parameters);
 	
 };
 

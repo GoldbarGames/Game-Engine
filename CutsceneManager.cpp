@@ -22,31 +22,74 @@ CutsceneManager::CutsceneManager(Game& g)
 
 	std::ifstream fin;
 
-	commands.pathPrefix = "";
-	std::string directory = "data/" + language + "/cutscenes.txt";
-
-	//commands.pathPrefix = "assets\\arc\\";
-	//std::string directory = "data/" + language + "/butler1.txt";
-
+	bool testVN = false;
+	std::string directory = "";
 	std::string line = "";
 
-	fin.open(directory);
+	//TODO: Read in the define block stuff at the very beginning to save time
 
-	if (fin.is_open())
+	if (testVN)
 	{
-		data = "";
-		for (line; std::getline(fin, line); )
+		commands.pathPrefix = "assets\\arc\\";
+		directory = "data/" + language + "/butler1.txt";
+
+		fin.open(directory);
+
+		if (fin.is_open())
 		{
-			//if (line[0] == '*')
-			//	data += line + "*";
-			//else
-				data += line + " ;";
+			data = "";
+			for (line; std::getline(fin, line); )
+			{
+				if (line[0] == '*')
+					data += line + "*";
+				else
+					data += line + " ;";
+			}
+			fin.close();
+			//PlayCutscene("define");
 		}
-		fin.close();
-		//PlayCutscene("define");
-	}	
+	}
+	else
+	{
+		commands.pathPrefix = "";
+		directory = "data/" + language + "/cutscenes.txt";
+
+		fin.open(directory);
+
+		if (fin.is_open())
+		{
+			data = "";
+			for (line; std::getline(fin, line); )
+			{
+				data += line + " ;";
+			}
+			fin.close();
+			//PlayCutscene("define");
+		}
+	}
 
 	
+
+
+
+	
+}
+
+CutsceneManager::~CutsceneManager()
+{
+	for (int i = 0; i < labels.size(); i++)
+	{
+		for (int k = 0; k < labels[i]->lines.size(); k++)
+		{
+			delete labels[i]->lines[k];
+		}
+		delete labels[i];
+	}
+
+	for (int i = 0; i < gosubStack.size(); i++)
+	{
+		delete gosubStack[i];
+	}
 }
 
 // Check input after textbox line has been fully read
@@ -280,6 +323,11 @@ void CutsceneManager::Render(Renderer * renderer)
 
 		// Render the textbox above everything
 		textbox->Render(renderer, game->screenWidth, game->screenHeight);
+
+		if (!isCarryingOutCommands && !isReadingNextLine)
+		{
+			textbox->clickToContinue->Render(renderer);
+		}
 	}
 	else // only draw the overlay, not text or box
 	{
@@ -451,10 +499,17 @@ void CutsceneManager::ReadNextLine()
 	{
 		//TODO: Make sure to save the backlog when we save the game
 		if (lineIndex >= 0 && labelIndex >= 0)
-			backlog.push_back( BacklogData(labelIndex, lineIndex, currentText.c_str()) );
+		{
+			backlog.push_back(new BacklogData(labelIndex, lineIndex, currentText.c_str()));
+		}
+			
 
 		if (backlog.size() > backlogMaxSize)
+		{
+			delete backlog[0];
 			backlog.erase(backlog.begin());
+		}
+			
 		
 		lineIndex++;	
 		currentText = "";
@@ -505,18 +560,18 @@ void CutsceneManager::ReadBacklog()
 	//Color color = namesToColors[label->lines[lineIndex]->speaker];
 	if (backlogIndex < backlog.size())
 	{
-		if (backlog[backlogIndex].labelIndex < labels.size())
+		if (backlog[backlogIndex]->labelIndex < labels.size())
 		{
-			SceneLabel* label = labels[backlog[backlogIndex].labelIndex];
-			if (label != nullptr && backlog[backlogIndex].lineIndex < label->lines.size())
+			SceneLabel* label = labels[backlog[backlogIndex]->labelIndex];
+			if (label != nullptr && backlog[backlogIndex]->lineIndex < label->lines.size())
 			{
-				SceneLine* line = label->lines[backlog[backlogIndex].lineIndex];
+				SceneLine* line = label->lines[backlog[backlogIndex]->lineIndex];
 				textbox->speaker->SetText(line->speaker, backlogColor);
 				textbox->text->SetText(line->text, backlogColor);
 			}
 		}	
 
-		textbox->text->SetText(backlog[backlogIndex].text, backlogColor);
+		textbox->text->SetText(backlog[backlogIndex]->text, backlogColor);
 	}
 }
 
@@ -646,16 +701,21 @@ void CutsceneManager::Update()
 			return;
 		}
 
+		if (commandIndex < 0)
+		{
+			commandIndex = 0;
+		}			
+
+		if (lineIndex < 0)
+		{
+			lineIndex = 0;
+			letterIndex = 0;
+		}
+
 		if (isCarryingOutCommands)
 		{
-			if (commandIndex < 0)
-				commandIndex = 0;
-
-			if (lineIndex < 0)
-				lineIndex = 0;
-
 			if (commandIndex >= 0 && commandIndex < currentLabel->lines[lineIndex]->commands.size())
-			{				
+			{
 				commands.ExecuteCommand(currentLabel->lines[lineIndex]->commands[commandIndex]);
 				commandIndex++;
 			}
@@ -730,6 +790,10 @@ void CutsceneManager::Update()
 			if (letterIndex >= line->text.length())
 			{
 				isReadingNextLine = false;
+				
+				textbox->SetCursorPosition(true);
+				//textbox->clickToContinue->Update(*game);
+
 				//game->player->cutsceneInputTimer.Start(100);
 
 				if (automaticallyRead)
@@ -741,6 +805,10 @@ void CutsceneManager::Update()
 			{
 				readingSameLine = true;
 				isReadingNextLine = false;
+				
+				textbox->SetCursorPosition(false);
+				//textbox->clickToContinue->Update(*game);
+
 				if (automaticallyRead)
 					autoReaderTimer.Start(autoTimeToWait[autoTimeIndex]);
 			}
@@ -750,6 +818,7 @@ void CutsceneManager::Update()
 			break;
 		}
 	}	
+
 }
 
 std::vector<string> CutsceneManager::GetVectorOfStringsFromFile(const char* filepath)

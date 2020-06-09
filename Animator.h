@@ -1,6 +1,5 @@
 #pragma once
 #include <unordered_map>
-#include "SpriteManager.h"
 #include "Sprite.h"
 #include "Timer.h"
 #include <SDL.h>
@@ -66,7 +65,7 @@ public:
 	AnimatorInfo(std::string name);
 };
 
-enum class AnimType { None, Player, Block, Bug, DebugMissile, Door, Ether, Ladder, Platform, NPC, Shroom };
+enum class AnimType { None, Player, Cursor, Block, Bug, DebugMissile, Door, Ether, Ladder, Platform, NPC, Shroom };
 
 class Animator
 {
@@ -110,6 +109,9 @@ public:
 	void MapNumbersToState(unsigned int number, AnimState* state);
 
 	unsigned int GetNumberOfStateFromName(const char* name);
+
+	void SetScaleAllStates(Vector2 newScale);
+	void SetRelativeAllStates(bool b);
 
 	Animator(std::vector<Sprite*> sprites);
 	Animator(AnimType animType, std::vector<AnimState*> states, std::string initialState = "");

@@ -31,6 +31,20 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	text->SetPosition(1080, 1040);
 	speaker->SetPosition(235, 985);
 
+	text->isRichText = true;
+	clickToContinue = new Entity(Vector2(0,0));
+
+	std::vector<AnimState*> animStates;
+	spriteManager->ReadAnimData("data/animators/cursor/cursor.machine", animStates);
+
+	Animator* anim1 = new Animator(AnimType::Cursor, animStates, "samepage");
+	anim1->SetBool("endOfPage", false);
+	anim1->SetRelativeAllStates(true);
+	//anim1->SetScaleAllStates(Vector2(0.5f, 0.5f));
+
+	clickToContinue->SetAnimator(anim1);
+	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+
 	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?
 	speaker->SetText(" ");
 	text->SetText(" ", text->textColor, boxWidth);
@@ -38,7 +52,20 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 
 Textbox::~Textbox()
 {
+	if (clickToContinue != nullptr)
+		delete clickToContinue;
+}
 
+void Textbox::SetCursorPosition(bool endOfPage)
+{
+	clickToContinue->GetAnimator()->SetBool("endOfPage", endOfPage);
+	clickToContinue->GetAnimator()->Update(clickToContinue);
+	clickToContinue->GetAnimator()->DoState(clickToContinue);
+	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+
+	Vector2 cursorPos = text->GetLastGlyphPosition();
+	cursorPos.x += clickToContinue->GetSprite()->frameWidth;
+	clickToContinue->SetPosition(cursorPos);
 }
 
 void Textbox::ChangeBoxFont(const std::string& fontName)
@@ -92,6 +119,7 @@ void Textbox::UpdateText(const char c, const Color& color)
 	const int boxOffsetX = 120;
 	const int boxOffsetY = 1070;
 	text->SetPosition(boxOffsetX, boxOffsetY);
+	clickToContinue->SetPosition(Vector2(boxOffsetX, boxOffsetY));
 }
 
 void Textbox::UpdateText(const std::string& newText, const Color& color)
@@ -101,6 +129,7 @@ void Textbox::UpdateText(const std::string& newText, const Color& color)
 	const int boxOffsetX = 120;
 	const int boxOffsetY = 1070;
 	text->SetPosition(boxOffsetX, boxOffsetY);
+	clickToContinue->SetPosition(Vector2(boxOffsetX, boxOffsetY));
 	//text->SetText(newText, text->textColor, boxWidth);
 
 	//TODO: If we want to modify the textbox's text shader, do so here

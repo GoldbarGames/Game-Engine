@@ -90,7 +90,7 @@ public:
 	int backlogIndex = 0;
 	bool readingBacklog = false;
 	Color backlogColor = { 255, 255, 0, 255 };
-	std::vector<BacklogData> backlog;
+	std::vector<BacklogData*> backlog;
 	int backlogMaxSize = 3;
 	unsigned int globalStart = 1000; //TODO: Should this be a config variable?
 	//TODO: Move these button configurations to some place more relevant
@@ -139,6 +139,8 @@ public:
 	void JumpBack();
 	void PushCurrentSceneDataToStack();
 	SceneData* PopSceneDataFromStack();
+
+	~CutsceneManager();
 
 	void CheckKeys();
 	void ReadBacklog();

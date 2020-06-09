@@ -28,7 +28,6 @@ unsigned int Sprite::Size()
 	totalSize += sizeof(keepPositionRelativeToCamera);
 	totalSize += sizeof(keepScaleRelativeToCamera);
 	totalSize += sizeof(lastAnimTime);
-	totalSize += sizeof(animSpeed);
 	totalSize += sizeof(frameWidth);
 	totalSize += sizeof(frameHeight);
 	totalSize += sizeof(scale);
@@ -95,9 +94,6 @@ Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
 	shader = s;
 
 	CreateMesh();
-
-	// don't animate the tiles!
-	animSpeed = 0.0f;
 
 	frameWidth = TILE_SIZE;
 	frameHeight = TILE_SIZE;
@@ -219,7 +215,7 @@ void Sprite::AnimateMesh(float time)
 	
 }
 
-glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer)
+glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
 {
 	glm::vec2 texOffset = glm::vec2(0.5f, 0.0f);
 
@@ -228,7 +224,7 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer)
 	if (numberRows > 1) // this is mainly the code for the tilesheets
 	{
 		// Only go to the next frame when enough time has passed
-		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + 100)
+		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + animSpeed)
 		{
 			currentFrame++;
 
@@ -357,7 +353,7 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 	GLfloat totalFrames = (endFrame - startFrame) + 1;
 	glm::vec2 texFrame = glm::vec2((1.0f / framesPerRow), frameHeight/(GLfloat)texture->GetHeight());
-	glm::vec2 texOffset = CalculateRenderFrame(renderer);
+	glm::vec2 texOffset = CalculateRenderFrame(renderer, speed);
 	
 	// Send the info to the shader
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));

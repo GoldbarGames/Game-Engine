@@ -13,6 +13,7 @@ public:
 	Animator* animator = nullptr;
 	Sprite* boxSprite = nullptr;
 	Sprite* nameSprite = nullptr;
+	Entity* clickToContinue = nullptr;
 
 	//TODO: Minimize string allocations, use a map of ints to strings
 	std::unordered_map<std::string, TTF_Font*> fonts;
@@ -24,6 +25,7 @@ public:
 
 	bool shouldRender = true;
 	bool isReading = false;
+
 	const Uint32 boxWidth = 1140;
 
 	SpriteManager* spriteManager = nullptr;
@@ -38,6 +40,8 @@ public:
 	void UpdateText(const char c, const Color& color);
 	void UpdateText(const std::string& newText, const Color& color);
 	void Render(Renderer* renderer, const int& screenWidth, const int& screenHeight);
+
+	void SetCursorPosition(bool endOfPage);
 
 	Textbox(SpriteManager* m, Renderer* r);
 	~Textbox();

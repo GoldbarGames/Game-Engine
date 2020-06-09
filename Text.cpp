@@ -5,60 +5,71 @@
 int Text::GetTextWidth() 
 { 
 	int width = 1;
-	for (int i = 0; i < glyphs.size(); i++)
+
+	if (isRichText)
 	{
-		if (glyphs[i]->sprite != nullptr)
-			width += glyphs[i]->sprite->texture->GetWidth();
+		for (int i = 0; i < glyphs.size(); i++)
+		{
+			if (glyphs[i]->sprite != nullptr)
+				width += glyphs[i]->sprite->texture->GetWidth();
+		}
 	}
-
-	return width;
-
-	/*
-	if (currentSprite != nullptr)
+	else if (currentSprite != nullptr)
+	{		
 		return currentSprite->texture->GetWidth();
-	else
-		return 1;
-		*/
+	}
+	
+	return width;
 }
 
 int Text::GetTextHeight() 
-{
-	int width = 0;
+{	
 	int height = 1;
 
-	for (int i = 0; i < glyphs.size(); i++)
+	if (isRichText)
 	{
-		if (glyphs[i]->sprite != nullptr)
+		int width = 0;
+		for (int i = 0; i < glyphs.size(); i++)
 		{
-			width += glyphs[i]->sprite->texture->GetWidth();
-			if (width > wrapWidth)
+			if (glyphs[i]->sprite != nullptr)
 			{
-				width = 0;
-				height += glyphs[i]->sprite->texture->GetHeight();				
+				width += glyphs[i]->sprite->texture->GetWidth();
+				if (width > wrapWidth)
+				{
+					width = 0;
+					height += glyphs[i]->sprite->texture->GetHeight();
+				}
+				else if (wrapWidth == 0)
+				{
+					return glyphs[0]->sprite->texture->GetHeight();
+				}
 			}
-			else if (wrapWidth == 0)
+		}
+
+		if (glyphs.size() > 0)
+		{
+			if (glyphs[0]->sprite != nullptr && glyphs[0]->sprite->texture != nullptr)
 			{
 				return glyphs[0]->sprite->texture->GetHeight();
-			}				
-		}			
-	}
-
-	if (glyphs.size() > 0)
-	{
-		if (glyphs[0]->sprite != nullptr && glyphs[0]->sprite->texture != nullptr)
-		{
-			return glyphs[0]->sprite->texture->GetHeight();
+			}
 		}
+	}
+	else if (currentSprite != nullptr)
+	{
+		return currentSprite->texture->GetHeight();
 	}
 
 	return height;
+}
 
-	/*
-	if (currentSprite != nullptr)
-		return currentSprite->texture->GetHeight();
-	else
-		return 1;
-		*/
+Vector2 Text::GetLastGlyphPosition()
+{
+	if (isRichText && glyphs.size() > 0)
+	{
+		return glyphs[glyphs.size() - 1]->position;
+	}
+
+	return position;
 }
 
 std::string Text::GetTextString()
@@ -124,6 +135,12 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 	// don't do anything if it would result in the same thing
 	if (txt == text && textColor == color)
 		return;
+
+	if (!isRichText)
+	{
+		SetTextAsOneSprite(text, color, wrapWidth);
+		return;
+	}
 
 	bool keepScaleRelative = true;
 	bool renderRelative = true;
@@ -238,23 +255,91 @@ void Text::AddText(char c, Color color)
 	SetPosition(position.x, position.y);
 }
 
+void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
+{
+	// don't do anything if it would result in the same thing
+	if (txt == text && textColor == color)
+		return;
+
+	bool keepScaleRelative = false;
+	bool renderRelative = false;
+
+	if (currentSprite != nullptr)
+	{
+		renderRelative = currentSprite->keepPositionRelativeToCamera;
+		keepScaleRelative = currentSprite->keepScaleRelativeToCamera;
+		delete_it(currentSprite->texture);
+		delete_it(currentSprite);
+	}
+
+	textColor = color;
+	txt = text; // translate the text here
+	id = text;
+
+	// empty string generates a null pointer
+	// so a blank space guarantees that the surface pointer will not be null
+	if (txt == "")
+		txt = " ";
+
+
+	SDL_Surface* textSurface = nullptr;
+	SDL_Color textColor = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
+
+	if (wrapWidth > 0)
+	{
+		textSurface = TTF_RenderText_Blended_Wrapped(font, txt.c_str(), textColor, wrapWidth);
+	}
+	else
+	{
+		textSurface = TTF_RenderText_Blended(font, txt.c_str(), textColor);
+	}
+
+	if (textSurface != nullptr)
+	{
+		Texture* textTexture = new Texture(txt.c_str());
+		textTexture->LoadTexture(textSurface);
+
+		currentSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
+		currentSprite->keepScaleRelativeToCamera = keepScaleRelative;
+		currentSprite->keepPositionRelativeToCamera = renderRelative;
+
+		if (textSurface != nullptr)
+			SDL_FreeSurface(textSurface);
+	}
+}
+
 
 void Text::Render(Renderer* renderer)
 {
-	for (int i = 0; i < glyphs.size(); i++)
+	if (isRichText)
 	{
-		if (glyphs[i]->sprite != nullptr)
-			glyphs[i]->sprite->Render(glyphs[i]->position, renderer);
-		else
-			int test = 0;
+		for (int i = 0; i < glyphs.size(); i++)
+		{
+			if (glyphs[i]->sprite != nullptr)
+			{
+				glyphs[i]->sprite->Render(glyphs[i]->position, renderer);
+			}
+		}
 	}
+	else if(currentSprite != nullptr)
+	{
+		currentSprite->Render(position, renderer);
+	}
+
 }
 
 void Text::Render(Renderer* renderer, Vector2 offset)
 {
-	for (int i = 0; i < glyphs.size(); i++)
+	if (isRichText)
 	{
-		glyphs[i]->sprite->Render(glyphs[i]->position + offset, renderer);
+		for (int i = 0; i < glyphs.size(); i++)
+		{
+			glyphs[i]->sprite->Render(glyphs[i]->position + offset, renderer);
+		}
+	}
+	else if (currentSprite != nullptr)
+	{
+		currentSprite->Render(position + offset, renderer);
 	}
 }
 
@@ -262,9 +347,16 @@ void Text::SetScale(Vector2 newScale)
 {
 	scale = newScale;
 
-	for (int i = 0; i < glyphs.size(); i++)
+	if (isRichText)
 	{
-		glyphs[i]->sprite->SetScale(newScale);
+		for (int i = 0; i < glyphs.size(); i++)
+		{
+			glyphs[i]->sprite->SetScale(newScale);
+		}
+	}
+	else if (currentSprite != nullptr)
+	{
+		currentSprite->SetScale(scale);
 	}
 
 	SetPosition(position.x, position.y);
@@ -273,7 +365,47 @@ void Text::SetScale(Vector2 newScale)
 //TODO: Make sure to account for offsetting all the letters
 void Text::SetPosition(const float x, const float y)
 {
-	alignX = AlignmentX::CENTER;
+	alignX = AlignmentX::LEFT;
+
+	//TODO: Make this work for aligning non-rich text as well
+	if (!isRichText)
+	{
+		switch (alignX)
+		{
+		case AlignmentX::LEFT:
+			position.x = x;
+			break;
+		case AlignmentX::CENTER:
+			position.x = x;
+			break;
+		case AlignmentX::RIGHT:
+			position.x = wrapWidth - GetTextWidth();
+			break;
+		default:
+			break;
+		}
+
+		switch (alignY)
+		{
+		case AlignmentY::TOP:
+			position.y = y; //text->GetTextHeight();
+			break;
+		case AlignmentY::CENTER:
+			position.y = GetTextHeight();
+			break;
+		case AlignmentY::BOTTOM:
+			position.y = -1 * y;
+			break;
+		default:
+			break;
+		}
+
+		position.x = x;
+		position.y = y;
+		return;
+	}
+
+	
 
 	Vector2 currentPosition = Vector2(x, y);
 
@@ -284,7 +416,7 @@ void Text::SetPosition(const float x, const float y)
 	int numberOfLines = 0;
 	
 	// Keep track of the last index in the glyph array that goes into each line
-	std::unordered_map<int, int> lineNumToIndex;
+	lineNumToIndex.clear();
 
 	// First, split the text into multiple lines, then align each line
 	for (int i = 0; i < glyphs.size(); i++)
@@ -324,10 +456,6 @@ void Text::SetPosition(const float x, const float y)
 
 		}
 	}
-
-	//lines.push_back(currentLine);
-	//glyphWidths.push_back(currentGlyphWidth);
-	//currentGlyphWidth.clear();
 	
 	int lineNumber = 0;
 	index = 0;
@@ -383,7 +511,7 @@ void Text::SetPosition(const float x, const float y)
 			currentPosition.y = position.y;
 
 			float lineWidth = 0;
-			std::unordered_map<int, float> lineWidths; //TODO: Should this be a map instead?
+			std::unordered_map<int, float> lineWidths;
 
 			// On each line, sum together the width of all glyphs on that line, and subtract half of that from the position
 			for (int i = 0; i < glyphs.size(); i++)
@@ -421,9 +549,7 @@ void Text::SetPosition(const float x, const float y)
 			}
 
 
-		}
-
-		
+		}	
 
 		break;
 	case AlignmentX::RIGHT:

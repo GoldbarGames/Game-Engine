@@ -43,7 +43,8 @@ Game::Game()
 
 	InitSDL();
 
-	spriteManager = new SpriteManager();
+	renderer = new Renderer();
+	spriteManager = new SpriteManager(renderer);
 
 	InitOpenGL();
 
@@ -268,8 +269,6 @@ void Game::InitSDL()
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
 	SDL_SetWindowIcon(window, IMG_Load(windowIconFilepath.c_str()));
-
-	renderer = new Renderer();
 }
 
 void Game::EndSDL()
@@ -731,7 +730,7 @@ Player* Game::SpawnPlayer(Vector2 position)
 	player->game = this;
 
 	std::vector<AnimState*> animStates;
-	cutscene->commands.ReadAnimData("data/animators/player.machine", animStates);
+	spriteManager->ReadAnimData("data/animators/player/player.machine", animStates);
 
 	Animator* anim1 = new Animator(AnimType::Player, animStates, "idle");
 	anim1->SetBool("isGrounded", true);

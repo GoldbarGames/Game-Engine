@@ -49,7 +49,6 @@ public:
 	bool keepScaleRelativeToCamera = false;
 
 	float lastAnimTime = -1;
-	float animSpeed = 1.0f;
 
 	int frameWidth = 0;
 	int frameHeight = 0;
@@ -81,7 +80,7 @@ public:
 	Sprite(Texture* t, ShaderProgram* s);
 	Sprite(Vector2 frame, Texture* image, ShaderProgram* shader);
 	Sprite(int numFrames, SpriteManager* manager, std::string filepath, ShaderProgram* shader, Vector2 newPivot);
-	glm::vec2 CalculateRenderFrame(Renderer* renderer);
+	glm::vec2 CalculateRenderFrame(Renderer* renderer, float animSpeed);
 	void CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* renderer, SDL_RendererFlip flip);
 
 	//TODO: What should we do here?

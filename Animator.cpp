@@ -11,9 +11,9 @@ AnimatorInfo::AnimatorInfo(std::string name)
 	std::ifstream fin;
 
 	//TODO: Refactor this so that you can have custom paths for these files
-	std::string animatorFile = "data/animators/" + name + ".animator";
-	std::string statesFile = "data/animators/" + name + ".states";
-	std::string varsFile = "data/animators/" + name + ".vars";
+	std::string animatorFile = "data/animators/" + name + "/" + name + ".animator";
+	std::string statesFile = "data/animators/" + name + "/" + name + ".states";
+	std::string varsFile = "data/animators/" + name + "/" + name + ".vars";
 
 	//TODO: Deal with issues involving extra whitespace (it breaks things)
 
@@ -173,11 +173,16 @@ Animator::Animator(AnimType animType, std::vector<AnimState*> states, std::strin
 	if (mapTypeToInfo.count(animType) != 1)
 	{
 		// Parse the animator state info here
+		//TODO: Maybe change from enums to ints, and map these ints in an external file,
+		// that way we don't have to add any enums for new animations
 		//TODO: We want to map the animType to the vars/states and parse its file here
 		switch (animType)
 		{
 		case AnimType::Player:
 			mapTypeToInfo[animType] = new AnimatorInfo("player");
+			break;
+		case AnimType::Cursor:
+			mapTypeToInfo[animType] = new AnimatorInfo("cursor");
 			break;
 		default:
 			mapTypeToInfo[animType] = new AnimatorInfo("");
@@ -383,6 +388,29 @@ Sprite* Animator::GetCurrentSprite()
 int Animator::GetSpeed()
 {
 	return currentState->speed;
+}
+
+void Animator::SetScaleAllStates(Vector2 newScale)
+{
+	for (auto const& [key, val] : mapNamesToStates)
+	{
+		if (val->sprite != nullptr)
+		{
+			val->sprite->SetScale(newScale);
+		}
+	}
+}
+
+void  Animator::SetRelativeAllStates(bool b)
+{
+	for (auto const& [key, val] : mapNamesToStates)
+	{
+		if (val->sprite != nullptr)
+		{
+			val->sprite->keepPositionRelativeToCamera = b;
+			val->sprite->keepScaleRelativeToCamera = b;
+		}
+	}
 }
 
 void Animator::SetState(const char* state)

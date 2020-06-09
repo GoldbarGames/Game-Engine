@@ -28,6 +28,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"choice", &CutsceneCommands::DisplayChoice },
 	{"cl", &CutsceneCommands::ClearSprite },
 	{"concat", &CutsceneCommands::ConcatenateStringVariables},
+	{"ctc", &CutsceneCommands::SetClickToContinue},
 	{"defsub", &CutsceneCommands::DefineUserFunction},
 	{"div", &CutsceneCommands::DivideNumberVariables},
 	{"end", &CutsceneCommands::EndGame },
@@ -42,8 +43,10 @@ std::vector<FuncLUT>cmd_lut = {
 	{"keybind", &CutsceneCommands::BindKeyToLabel },
 	{"ld", &CutsceneCommands::LoadSprite },
 	{"loadgame",&CutsceneCommands::LoadGame },
+	{"lua", &CutsceneCommands::LuaCommand},
 	{"me", &CutsceneCommands::MusicEffectCommand},
 	{"mod", &CutsceneCommands::ModNumberVariables},
+	{"mov", &CutsceneCommands::MoveVariables},
 	{"mul", &CutsceneCommands::MultiplyNumberVariables},
 	{"namebox", &CutsceneCommands::Namebox},
 	{"numalias", &CutsceneCommands::SetNumAlias },
@@ -52,6 +55,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"resolution", &CutsceneCommands::SetResolution },
 	{"return", &CutsceneCommands::ReturnFromSubroutine },
 	{"savegame",&CutsceneCommands::SaveGame },
+	{"screenshot",&CutsceneCommands::ScreenshotCommand },
 	{"se", &CutsceneCommands::SoundCommand },
 	{"set_velocity", &CutsceneCommands::SetVelocity },
 	{"setnumvar", &CutsceneCommands::SetNumberVariable },
@@ -70,62 +74,44 @@ std::vector<FuncLUT>cmd_lut = {
 
 
 // TODO: Implement these commands:
-// * Store/retrieve/display values via variables
-// * Variable operations (add, sub, mul, div, mod)
-// * Jump to labels
-// * If/else control flow, compare strings/numbers/variables
+
 // For loops, while loops
-// * Jump forward/back
 
-// * Display text on the screen as an image/entity
-// * Set images as clickable buttons
-// * Dialogue options / choices
-// * Music effects (ME) - works just like SE but with a loop
-// * Ending the game window / restarting the game window
-
-// - Save/load
+// - Save/load (save backlog)
 // - Save screenshot as image
-// * Playing animations (use state machines, set variables, etc.)
 // - what about animations that involve each frame being its own file?
 // - custom timers (we'll deal with this when we handle blinking animations)
 
-// * Randomize a variable and re-seed the randomness
-// * User-defined functions 
-// * Get parameters (defsub myfunction %param1 $param2 %param3)
-// * gosub (goto and return)
 // * Change screen resolution (TODO: See camera.cpp constructor)
 // Settings screen (sound volume, text speed, etc.)
 // Check if a file exists (fileexist assets/myfile.png %0)
-// * Change text color for menu selection
-
-// * Enable / disable mouse controls (enable mouse, enable keyboard, enable both)
-// * Bind keyboard keys to labels via script
 // Custom key bindings (advance text, backlog, etc.)
 
-// Display sprite of talking character in the textbox
-// Highlight/dim speaking characters (map name of the character to the sprite via folder path)
-// * Change textbox & namebox: position, sprite (animation), text, font type, font color
+// + Change textbox & namebox: position, sprite (animation), text, font type, font color
 // font (size, style)
 
-// Set the click to continue button image / animation
-// Automatically position the CTC image
+// Bold, italics, colors for portions of text
+// Custom colors for backlog text
+// Bool for whether a line of text has been previously read
 
-// Flip images horizontal/vertical
-// * Change window caption and icon
+// + Set the click to continue button image / animation
+
 // Change location of save data
 // Alpha image effects
-// * Skip button to skip text
-// * Log button to read old text (in box vs. scroll)
-// * Automode, adjust automode speeds (per letter and per line)
+// Click mid-sentence to complete the text
+// Adjust automode speeds (per letter and per line)
 // Adjustable text speed (!sd)
-// * Right-click (escape) subroutine
 // Click-wait subroutine
 // Keyboard input for variables
-// * Global/persistent variables
+// Save globals to a single file
 
 // Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
 // - set the position, rotation, just like anything else
 // - set the zoom factor, the projection stuff, perspective, etc.
+
+// Get name of BGM currently playing (or just names of files being used in the scene)
+// Name save file and add custom notes to them
+// Multiple textboxes on the screen at once
 
 // Output error logs
 // Proper syntax checking and error handling
@@ -134,16 +120,16 @@ std::vector<FuncLUT>cmd_lut = {
 // Physics functions (position, velocity, acceleration, collision detection)
 // Visual Editor, modify cutscene as it is running, replay it
 // Declare arrays and lists of variables, more complex stuff
-// * Timers, set/reset/stop/pause/unpause them
-// Pop up a box with text for a time limit
-// Get name of BGM currently playing (or just names of files being used in the scene)
+// Pop up a box with text, disappears after a time limit
+// Draw points, lines, and shapes with colors and size
 
-
+// Display sprite of talking character in the textbox (map name of character to face sprite)
+// - function to map the name to a sprite (facesprite butler assets/sprites/butlerface1.png)
+// Highlight/dim speaking characters (map name of the character to the sprite via folder path)
 
 // * Can assign color to a character's dialogue
 // - TODO: Can use variables to get the color,
 // - and can embed colors into text (## returns it to normal)
-// - (this requires drawing the text one letter per sprite)
 //textcolor default #ffffff ;
 //textcolor BUTLER #ff0000 ;
 //`:BUTLER: This is #ff0000red text ## and this is not.`
@@ -206,8 +192,28 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 	std::istream_iterator<std::string> end;
 
 	std::vector<std::string> parameters(begin, end);
-	//std::cout << command << std::endl;
-	//std::copy(parameters.begin(), parameters.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
+
+	/*
+	std::vector<std::string> parameters;
+	std::string param = "";
+	for (int i = 0; i < command.size(); i++)
+	{
+		if (command[i] == ' ')
+		{
+			parameters.push_back(param);
+			param = "";
+		}
+		else
+		{
+			param += command[i];
+		}
+	}
+
+	if (param != "")
+	{
+		parameters.push_back(param);
+	}
+	*/
 
 	if (parameters.size() > 0)
 	{
@@ -308,7 +314,7 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 
 			if (!commandFound)
 			{
-				std::cout << "ERROR: Command " << parameters[0] << " not found." << std::endl;
+				//std::cout << "ERROR: Command " << parameters[0] << " not found." << std::endl;
 			}			
 		}
 	}
@@ -411,12 +417,12 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		case '$': // string variable
 			leftHandIsNumber = false;
 			word = parameters[index].substr(1, word.size() - 1);
-			leftValueStr = GetStringVariable(GetNumAlias(word));
+			leftValueStr = ParseStringValue(word);
 			break;
 		case '%': // number variable
 			leftHandIsNumber = true;
 			word = parameters[index].substr(1, word.size() - 1);
-			leftValueNum = GetNumberVariable(GetNumAlias(word));
+			leftValueNum = ParseNumberValue(word);
 			break;
 		default:
 			if (parameters[index].find_first_not_of("-0123456789") == std::string::npos)
@@ -440,12 +446,12 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		case '$': // string variable
 			rightHandIsNumber = false;
 			word = parameters[index].substr(1, word.size() - 1);
-			rightValueStr = GetStringVariable(GetNumAlias(word));
+			rightValueStr = ParseStringValue(word);
 			break;
 		case '%': // number variable
 			rightHandIsNumber = true;
 			word = parameters[index].substr(1, word.size() - 1);
-			rightValueNum = GetNumberVariable(GetNumAlias(word));
+			rightValueNum = ParseNumberValue(word);
 			break;
 		default:
 			if (parameters[index].find_first_not_of("-0123456789") == std::string::npos)
@@ -986,6 +992,24 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 	return 0;
 }
 
+int CutsceneCommands::MoveVariables(CutsceneParameters parameters)
+{
+	if (parameters[1][0] == '$')
+	{
+		SetStringVariable(parameters);
+	}
+	else if (parameters[1][0] == '%')
+	{
+		SetNumberVariable(parameters);
+	}
+	else
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
 int CutsceneCommands::SetNumberVariable(CutsceneParameters parameters)
 {
 	unsigned int key = ParseNumberValue(parameters[1]);
@@ -1056,9 +1080,7 @@ std::string CutsceneCommands::GetStringVariable(const unsigned int key)
 
 int CutsceneCommands::SetStringAlias(CutsceneParameters parameters)
 {
-	std::string key = parameters[1];
-	std::string value = parameters[2];
-	stralias[key] = value;
+	stralias[parameters[1]] = parameters[2];
 	return 0;
 }
 
@@ -1076,10 +1098,7 @@ std::string CutsceneCommands::GetStringAlias(const std::string& key)
 
 int CutsceneCommands::SetNumAlias(CutsceneParameters parameters)
 {
-	std::string key = parameters[1];
-	unsigned int value = ParseNumberValue(parameters[2]);
-	//TODO: Check for errors
-	numalias[key] = value;
+	numalias[parameters[1]] = ParseNumberValue(parameters[2]);
 	return 0;
 }
 
@@ -1281,8 +1300,12 @@ int CutsceneCommands::LoadTextFromSaveFile(CutsceneParameters parameters)
 		delete manager->images[imageNumber];
 
 	//TODO: Also save/load in the font type/size/style for this text object
-	manager->images[imageNumber] = new Text(manager->game->renderer,
+	Text* newText = new Text(manager->game->renderer,
 		manager->game->theFont, text, textColor);
+
+	newText->isRichText = false;
+
+	manager->images[imageNumber] = newText;
 
 	manager->images[imageNumber]->SetPosition(pos);
 	manager->images[imageNumber]->rotation = rotation;
@@ -1330,8 +1353,10 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	{
 		newText = new Text(manager->game->renderer,
 			manager->game->theFont, text, textColor);
+		
 	}
 
+	newText->isRichText = false;
 	newText->SetPosition(pos.x, pos.y); // use the Text SetPosition function, not Entity
 
 	manager->images[imageNumber] = newText;
@@ -1443,7 +1468,7 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 			Sprite* test = entity->GetSprite();
 
 			std::vector<AnimState*> animStates;
-			ReadAnimData(ParseStringValue(parameters[4]), animStates);
+			manager->game->spriteManager->ReadAnimData(ParseStringValue(parameters[4]), animStates);
 
 			for (int i = 0; i < animStates.size(); i++)
 			{
@@ -1952,64 +1977,26 @@ int CutsceneCommands::BindKeyToLabel(CutsceneParameters parameters)
 	return 0;
 }
 
-
-//TODO: Only read this data once at the beginning and then store it for lookup later
-void CutsceneCommands::ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates)
+int CutsceneCommands::SetClickToContinue(CutsceneParameters parameters)
 {
-	// Get anim data from the file
-	std::ifstream fin;
-	fin.open(dataFilePath);
-
-	std::string animData = "";
-	for (std::string line; std::getline(fin, line); )
+	if (parameters[1] == "icon1") // same page
 	{
-		animData += line + "\n";
+
+	}
+	else if (parameters[1] == "icon2") // next page
+	{
+
 	}
 
-	fin.close();
+	return 0;
+}
 
-	// Go through the data and add all states
+int CutsceneCommands::ScreenshotCommand(CutsceneParameters parameters)
+{
+	return 0;
+}
 
-	std::stringstream ss{ animData };
-
-	char lineChar[256];
-	ss.getline(lineChar, 256);
-
-	try
-	{
-		while (ss.good() && !ss.eof())
-		{
-			std::istringstream buf(lineChar);
-			std::istream_iterator<std::string> beg(buf), end;
-			std::vector<std::string> tokens(beg, end);
-
-			int index = 0;
-
-			std::string stateName = tokens[index++];
-			int stateSpeed = std::stoi(tokens[index++]);
-			int spriteStartFrame = std::stoi(tokens[index++]);
-			int spriteEndFrame = std::stoi(tokens[index++]);
-			int spriteFrameWidth = std::stoi(tokens[index++]);
-			int spriteFrameHeight = std::stoi(tokens[index++]);
-
-			std::string spriteFilePath = tokens[index++];
-			int spritePivotX = std::stoi(tokens[index++]);
-			int spritePivotY = std::stoi(tokens[index++]);
-
-			animStates.push_back(new AnimState(stateName, stateSpeed,
-				new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
-					manager->game->spriteManager, spriteFilePath,
-					manager->game->renderer->shaders[ShaderName::Default],
-					Vector2(spritePivotX, spritePivotY))));
-
-			ss.getline(lineChar, 256);
-		}
-	}
-	catch (const std::exception& ex)
-	{
-		const char* message = ex.what();
-		std::cout << message << std::endl;
-	}
-
-	
+int CutsceneCommands::LuaCommand(CutsceneParameters parameters)
+{
+	return 0;
 }

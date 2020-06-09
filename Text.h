@@ -88,27 +88,28 @@ class Text : public Entity
 private:
 	Renderer* renderer;
 	TTF_Font* font;
-	// The key = font + letter + color (turned into numbers)
-	//std::vector<GlyphSurfaceData*>,
 
 	//TODO: Maybe move this to a location where multiple text objects can all share the same memory
 	std::unordered_map<GlyphSurfaceData, std::unique_ptr<Texture, ImageDeleter>, GlyphHashFunction> glyphTextures;
+	void SetTextAsOneSprite(string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth = 0);
+
 public:
 	std::string id = ""; // this will always be english
 	std::string txt = "ERROR"; // this might get translated
 	Color textColor = { 255, 255, 255, 255 };
 
+	bool isRichText = false;
+
 	std::vector<Glyph*> glyphs;
+	std::unordered_map<int, int> lineNumToIndex;
 
 	AlignmentX alignX = AlignmentX::LEFT;
 	AlignmentY alignY = AlignmentY::TOP;
 	Uint32 wrapWidth = 0;
 
-	//Sprite* textSprite = nullptr;
-
 	int GetTextWidth();
 	int GetTextHeight();
-	//Sprite* GetSprite() { return textSprite; };
+	Vector2 GetLastGlyphPosition();
 
 	std::string GetTextString();
 
@@ -116,14 +117,16 @@ public:
 
 	void SetScale(Vector2 newScale);
 
-	//Vector2 position = Vector2(0,0);
 	Text(Renderer* newRenderer, TTF_Font* newFont);
+	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color);
 	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt,
 		bool relPos = false, bool relScale = false);
-	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color);
+
 	~Text();
+
 	void SetText(string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth=0);
 	void AddText(char c, Color color = { 255, 255, 255, 255 });
+
 	void Render(Renderer* renderer);
 	void Render(Renderer* renderer, Vector2 offset);
 	void SetPosition(const float x, const float y);
