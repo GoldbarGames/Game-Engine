@@ -1979,13 +1979,31 @@ int CutsceneCommands::BindKeyToLabel(CutsceneParameters parameters)
 
 int CutsceneCommands::SetClickToContinue(CutsceneParameters parameters)
 {
-	if (parameters[1] == "icon1") // same page
+	if (parameters[1] == "state")
 	{
+		AnimState* state = manager->textbox->clickToContinue->GetAnimator()->GetState(parameters[2]);
+		
+		int index = 2;
+		std::string stateName = parameters[index++];
+		int stateSpeed = std::stoi(parameters[index++]);
+		int spriteStartFrame = std::stoi(parameters[index++]);
+		int spriteEndFrame = std::stoi(parameters[index++]);
+		int spriteFrameWidth = std::stoi(parameters[index++]);
+		int spriteFrameHeight = std::stoi(parameters[index++]);
 
-	}
-	else if (parameters[1] == "icon2") // next page
-	{
+		std::string spriteFilePath = parameters[index++];
+		int spritePivotX = std::stoi(parameters[index++]);
+		int spritePivotY = std::stoi(parameters[index++]);
 
+		if (state->sprite != nullptr)
+			delete state->sprite;
+
+		state->sprite = new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
+			manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
+			Vector2(spritePivotX, spritePivotY));
+
+		state->sprite->keepPositionRelativeToCamera = true;
+		state->sprite->keepScaleRelativeToCamera = true;
 	}
 
 	return 0;

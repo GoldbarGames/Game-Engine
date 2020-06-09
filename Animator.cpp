@@ -240,6 +240,11 @@ void Animator::MapStateNameToState(const std::string& name, AnimState* state)
 	mapNamesToStates[name] = state;
 }
 
+AnimState* Animator::GetState(const std::string& name)
+{
+	return mapNamesToStates[name];
+}
+
 void Animator::OnEnter(AnimState state)
 {
 
@@ -347,31 +352,6 @@ void Animator::Update(Entity* entity)
 //TODO: The IDs and parsing could probably be static, 
 // or done by a singleton so that each entity
 // does not need to have the parsing logic in it
-
-void Animator::CheckStateKaneko()
-{
-	
-}
-
-bool Animator::IsStateDebugSpell()
-{
-	return (currentState->name == "debug" || currentState->name == "debug_up" ||
-		currentState->name == "debug_down" || currentState->name == "debug_air" ||
-		currentState->name == "debug_air_up" || currentState->name == "debug_air_down");
-}
-
-void Animator::StateKanekoDebugSpell()
-{
-	if (animationTimer.HasElapsed())
-	{
-		SetBool("isCastingDebug", false);
-
-		if (GetBool("isGrounded"))
-			SetState("idle");
-		else
-			SetState("jump");
-	}
-}
 
 void Animator::StartTimer()
 {

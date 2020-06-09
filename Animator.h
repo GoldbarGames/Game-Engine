@@ -113,14 +113,12 @@ public:
 	void SetScaleAllStates(Vector2 newScale);
 	void SetRelativeAllStates(bool b);
 
+	AnimState* GetState(const std::string& name);
+
 	Animator(std::vector<Sprite*> sprites);
 	Animator(AnimType animType, std::vector<AnimState*> states, std::string initialState = "");
 	~Animator();
 
 	int GetSpeed();
-
-	void CheckStateKaneko();
-	void StateKanekoDebugSpell();
-	bool IsStateDebugSpell();
 };
 
