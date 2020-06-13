@@ -85,7 +85,7 @@ void Path::Render(Renderer * renderer, GLuint uniformModel)
 	}
 }
 
-void Path::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
+void Path::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 

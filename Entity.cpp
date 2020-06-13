@@ -323,7 +323,7 @@ void Entity::OnTriggerExit(Entity* other, Game& game)
 
 }
 
-void Entity::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
+void Entity::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::DeleteProperties(properties);
 	std::string id_string = "ID: " + std::to_string(id);

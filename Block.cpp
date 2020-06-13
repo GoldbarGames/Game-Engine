@@ -26,7 +26,7 @@ void Block::Render(Renderer * renderer)
 	Entity::Render(renderer);
 }
 
-void Block::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
+void Block::GetProperties(Renderer * renderer, FontInfo * font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 

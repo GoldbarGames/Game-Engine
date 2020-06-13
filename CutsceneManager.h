@@ -148,7 +148,7 @@ public:
 	void JumpBack();
 	void PushCurrentSceneDataToStack();
 	SceneData* PopSceneDataFromStack();
-
+	std::string ParseText(const std::string& originalString, int& letterIndex, Color& textColor, Text* text);
 	~CutsceneManager();
 
 	void CheckKeys();

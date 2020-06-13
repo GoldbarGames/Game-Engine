@@ -15,16 +15,29 @@ FontInfo::FontInfo(const char* f, int s)
 FontInfo::~FontInfo()
 {
 	if (regular != nullptr)
+	{
+		TTF_CloseFont(regular);
 		delete regular;
+	}
 
 	if (bold != nullptr)
+	{
+		TTF_CloseFont(regular);
 		delete bold;
+	}
 
 	if (italics != nullptr)
+	{
+		TTF_CloseFont(regular);
 		delete italics;
+	}
 
 	if (boldItalics != nullptr)
+	{
+		TTF_CloseFont(regular);
 		delete boldItalics;
+	}
+	
 }
 
 const int FontInfo::GetFontSize()

@@ -12,6 +12,10 @@
 class Game;
 class PhysicsEntity;
 class Property;
+#ifndef STRUCT_FONT_INFO
+#define STRUCT_FONT_INFO
+struct FontInfo;
+#endif
 
 class Entity
 {
@@ -85,7 +89,7 @@ public:
 	virtual void OnTriggerEnter(Entity* other, Game& game);
 	virtual void OnTriggerExit(Entity* other, Game& game);
 
-	virtual void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties);
+	virtual void GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties);
 	void DeleteProperties(std::vector<Property*>& properties);
 	virtual void SetProperty(std::string prop, std::string newValue);
 

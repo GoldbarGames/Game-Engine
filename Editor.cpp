@@ -12,8 +12,6 @@ using std::string;
 
 Editor::Editor(Game& g)
 {
-	theFont = g.theFont;
-
 	game = &g;
 
 	CreateEditorText(EditorText::cursorPositionInScreen, 200, 50);
@@ -23,8 +21,8 @@ Editor::Editor(Game& g)
 	CreateEditorText(EditorText::updateCalls, 200, 400);
 	CreateEditorText(EditorText::collisionChecks, 200, 500);
 
-	dialogText = new Text(game->renderer, theFont, "");
-	dialogInput = new Text(game->renderer, theFont, "");
+	dialogText = new Text(game->renderer, game->theFont, "");
+	dialogInput = new Text(game->renderer, game->theFont, "");
 	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
 	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
 
@@ -58,7 +56,7 @@ Editor::~Editor()
 
 void Editor::CreateEditorText(const EditorText textName, const int x, const int y)
 {
-	editorText[textName] = new Text(game->renderer, theFont);
+	editorText[textName] = new Text(game->renderer, game->theFont);
 	editorText[textName]->SetPosition(x, y);
 	editorText[textName]->SetText("");
 	editorText[textName]->GetSprite()->keepPositionRelativeToCamera = true;
@@ -544,7 +542,7 @@ void Editor::InspectObject(int mouseX, int mouseY)
 		// If selected entity was found, then generate text for all properties of it
 		if (selectedEntity != nullptr)
 		{
-			selectedEntity->GetProperties(game->renderer, theFont, properties);
+			selectedEntity->GetProperties(game->renderer, game->theFont, properties);
 			SetPropertyPositions();
 		}
 	}
@@ -571,7 +569,7 @@ std::string Editor::GetCurrentPropertyOptionString(int diff)
 void Editor::SetPropertyText()
 {	
 	selectedEntity->SetProperty(properties[propertyIndex]->text->txt, game->inputText);
-	selectedEntity->GetProperties(game->renderer, theFont, properties);
+	selectedEntity->GetProperties(game->renderer, game->theFont, properties);
 	SetPropertyPositions();
 }
 

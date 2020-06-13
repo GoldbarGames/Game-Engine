@@ -49,8 +49,6 @@ private:
 
 	Uint32 previousMouseState = 0;
 
-	TTF_Font* theFont = nullptr;
-
 	std::vector<EditorButton*> buttons;
 	std::vector<EditorButton*> layerButtons;
 	std::vector<EditorButton*> layerVisibleButtons;

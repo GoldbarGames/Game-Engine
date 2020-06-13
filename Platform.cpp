@@ -188,7 +188,7 @@ void Platform::Render(Renderer * renderer)
 	Entity::Render(renderer);
 }
 
-void Platform::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
+void Platform::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 	

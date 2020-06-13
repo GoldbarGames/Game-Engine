@@ -56,7 +56,7 @@ void NPC::OnTriggerExit(Entity* other, Game& game)
 	}
 }
 
-void NPC::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
+void NPC::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 

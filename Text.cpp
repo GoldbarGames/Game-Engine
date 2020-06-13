@@ -1,6 +1,7 @@
 #include "Text.h"
 #include "Renderer.h"
 #include "Sprite.h"
+#include "FontInfo.h"
 
 int Text::GetTextWidth() 
 { 
@@ -78,20 +79,21 @@ std::string Text::GetTextString()
 }
 
 //TODO: Refactor these constructors a little bit
-Text::Text(Renderer* newRenderer, TTF_Font* newFont) : Entity(Vector2(0,0))
+Text::Text(Renderer* newRenderer, FontInfo* newFontInfo) : Entity(Vector2(0,0))
 {
 	renderer = newRenderer;
-	font = newFont;
+	currentFontInfo = newFontInfo;
+	font = currentFontInfo->GetRegularFont();
 	position.x = 0;
 	position.y = 0;
 	SetPosition(0, 0);
 }
 
-Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, 
-	bool relPos, bool relScale) : Entity(Vector2(0, 0))
+Text::Text(Renderer* newRenderer, FontInfo* newFontInfo, std::string txt, bool relPos, bool relScale) : Entity(Vector2(0, 0))
 {
 	renderer = newRenderer;
-	font = newFont;
+	currentFontInfo = newFontInfo;
+	font = currentFontInfo->GetRegularFont();
 	position.x = 0;
 	position.y = 0;
 	SetPosition(0, 0);
@@ -104,10 +106,11 @@ Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt,
 	}
 }
 
-Text::Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color) : Entity(Vector2(0, 0))
+Text::Text(Renderer* newRenderer, FontInfo* newFontInfo, std::string txt, Color color) : Entity(Vector2(0, 0))
 {
 	renderer = newRenderer;
-	font = newFont;
+	currentFontInfo = newFontInfo;
+	font = currentFontInfo->GetRegularFont();
 	position.x = 0;
 	position.y = 0;
 	SetPosition(0, 0);

@@ -45,7 +45,7 @@ void Goal::OnTriggerExit(Entity* other, Game& game)
 	}
 }
 
-void Goal::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
+void Goal::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 

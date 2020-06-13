@@ -19,7 +19,7 @@ public:
 
 	void Save(std::ostringstream& level);
 
-	void GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties);
+	void GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties);
 	void SetProperty(std::string prop, std::string newValue);
 };
 

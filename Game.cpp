@@ -54,8 +54,17 @@ Game::Game()
 	const char* fontSourceCodePro = "fonts/source-code-pro/SourceCodePro-Regular.ttf";
 	const char* fontDejaVuSansMono = "fonts/dejavu-sans-mono/DejaVuSansMono.ttf";
 	const char* fontSpaceMono = "fonts/space-mono/SpaceMono-Regular.ttf";
-	theFont = TTF_OpenFont(fontDejaVuSansMono, 20);
-	headerFont = TTF_OpenFont(fontDejaVuSansMono, 32);
+
+	theFont = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+	theFont->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
+	theFont->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
+	theFont->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
+
+	//TODO: Header font should be different, at least a bigger size
+	headerFont = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+	headerFont->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
+	headerFont->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
+	headerFont->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 
 	soundManager = new SoundManager();
 
@@ -281,7 +290,8 @@ void Game::EndSDL()
 	SDL_DestroyWindow(window);	
 	window = nullptr;
 	
-	TTF_CloseFont(theFont);
+	delete theFont;
+	delete headerFont;
 	
 	TTF_Quit();
 	SDL_Quit();

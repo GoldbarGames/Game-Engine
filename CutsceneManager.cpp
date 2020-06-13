@@ -743,153 +743,18 @@ void CutsceneManager::Update()
 		}
 		else if (isReadingNextLine)
 		{
-			SceneLine* line = currentLabel->lines[lineIndex];
+			std::string result = ParseText(currentLabel->lines[lineIndex]->text, letterIndex, currentColor, textbox->text);
 
-			// Handle word replacements here
-			if (line->text[letterIndex] == '[') 
+			if (result.size() > 1)
 			{
-				letterIndex++;
-				
-				// Get everything until the next ] symbol
-				int varNameIndex = letterIndex;
-				std::string word = ParseWord(line->text, ']', letterIndex);
-
-				// at this point we have the $variablename, check the first character to get the type
-
-				if (word.length() != 0)
+				for (int i = 0; i < result.size(); i++)
 				{
-					varNameIndex++;
-					std::string variableName = ParseWord(line->text, ']', varNameIndex);
-					std::string variableValue = "";
-					switch (word[0])
-					{
-					case '$': // string
-						variableValue = commands.GetStringVariable(commands.GetNumAlias(variableName));
-						break;
-					case '%': // number
-						variableValue = std::to_string(commands.GetNumberVariable(commands.GetNumAlias(variableName)));
-						break;
-					default:
-						break;
-					}
-
-					for (int valueIndex = 0; valueIndex < variableValue.length(); valueIndex++)
-					{
-						textbox->UpdateText(variableValue[valueIndex], currentColor);
-					}
-
-					letterIndex--;
+					textbox->UpdateText(result[i], currentColor);
 				}
 			}
-			// Handle color changes here
-			else if (line->text[letterIndex] == '#')
+			else if (result.size() == 1)
 			{
-				if (line->text.size() > letterIndex + 1 && line->text[letterIndex + 1] == '#')
-				{
-					FlushCurrentColor();
-					letterIndex++;
-				}
-				else
-				{
-					// Parse the hexadecimal color string
-					currentColor = ParseColorHexadecimal(line->text.substr(letterIndex, letterIndex+8).c_str());
-					letterIndex += 6;
-				}
-			}
-			else if (line->text[letterIndex] == '<')
-			{
-				bool active = (line->text[letterIndex + 1] != '/');
-
-				int tagIndex = active ? letterIndex + 1 : letterIndex + 2;
-
-				std::string tagName = "";
-				while (line->text[tagIndex] != '>')
-				{
-					tagName += line->text[tagIndex];
-					tagIndex++;
-
-					if (tagIndex >= line->text.size())
-						break;
-				}
-
-
-
-				if (tags.count(tagName) == 1) // de/activate the tag
-				{
-					letterIndex = tagIndex;
-					tags[tagName]->active = active;
-
-					// Reset to regular font, then apply all changes one by one
-					textbox->textFont = textbox->currentFontInfo->GetRegularFont();
-
-					if (tags["b"]->active && tags["i"]->active)
-					{
-						textbox->textFont = textbox->currentFontInfo->GetBoldItalicsFont();
-					}
-					else if (tags["i"]->active)
-					{
-						textbox->textFont = textbox->currentFontInfo->GetItalicsFont();
-					}
-					else if (tags["b"]->active)
-					{
-						textbox->textFont = textbox->currentFontInfo->GetBoldFont();
-					}
-					else if (tags["s"]->active)
-					{
-						textbox->currentFontInfo->ChangeFontSize(48);
-						textbox->textFont = textbox->currentFontInfo->GetRegularFont();
-					}
-
-					// Now loop through all tags
-					// If tag is active, change the font accordingly
-					/*
-					for (auto const& [key, val] : tags)
-					{
-						if (val->active)
-						{
-							// TODO: Handle custom tags
-							// TODO: Handle nested tags properly
-
-							// Note: Keep these tag names unique, otherwise bad things might happen
-							if (key == "b")
-							{
-								textbox->textFont = textbox->currentFontInfo->GetBoldFont();
-							}
-							else if (key == "i")
-							{
-								textbox->textFont = textbox->currentFontInfo->GetItalicsFont();
-							}
-							else if (key == "bi")
-							{
-								textbox->textFont = textbox->currentFontInfo->GetBoldItalicsFont();
-							}
-						}
-					}*/
-
-					textbox->text->SetFont(textbox->textFont);
-
-				}
-				else if (tagName[0] == 's')
-				{
-					std::string fontSize = "";
-					for (int i = 1; i < tagName.size(); i++)
-					{
-						fontSize += tagName[i];
-					}
-
-					letterIndex = tagIndex;
-					textbox->SetFontSize(std::stoi(fontSize));
-				}
-				else // do nothing different
-				{
-					textbox->UpdateText(line->text[letterIndex], currentColor);
-				}
-			}
-			else 
-			{
-				//currentText += line->text[letterIndex];
-				//textbox->UpdateText(currentText, currentColor);
-				textbox->UpdateText(line->text[letterIndex], currentColor);
+				textbox->UpdateText(result[0], currentColor);
 			}
 
 			if (currentText.length() == 1)
@@ -898,10 +763,10 @@ void CutsceneManager::Update()
 			}
 
 			//nextLetterTimer.Start(lettersPerFrame * delay);
-			letterIndex++;
+
 
 			// Reached the 'click to continue' point
-			if (letterIndex >= line->text.length())
+			if (letterIndex >= currentLabel->lines[lineIndex]->text.length())
 			{
 				isReadingNextLine = false;
 				
@@ -914,7 +779,7 @@ void CutsceneManager::Update()
 			
 				return;
 			}
-			else if (line->text[letterIndex] == '@')
+			else if (currentLabel->lines[lineIndex]->text[letterIndex] == '@')
 			{
 				readingSameLine = true;
 				isReadingNextLine = false;
@@ -932,6 +797,151 @@ void CutsceneManager::Update()
 		}
 	}	
 
+}
+
+std::string CutsceneManager::ParseText(const std::string& originalString, int& letterIndex, Color& textColor, Text* text)
+{
+	std::string result = "";
+
+	// Handle word replacements here
+	if (originalString[letterIndex] == '[')
+	{
+		letterIndex++;
+
+		// Get everything until the next ] symbol
+		int varNameIndex = letterIndex;
+		std::string word = ParseWord(originalString, ']', letterIndex);
+
+		// at this point we have the $variablename, check the first character to get the type
+
+		if (word.length() != 0)
+		{
+			varNameIndex++;
+			std::string variableName = ParseWord(originalString, ']', varNameIndex);
+			std::string variableValue = "";
+			switch (word[0])
+			{
+			case '$': // string
+				variableValue = commands.GetStringVariable(commands.GetNumAlias(variableName));
+				break;
+			case '%': // number
+				variableValue = std::to_string(commands.GetNumberVariable(commands.GetNumAlias(variableName)));
+				break;
+			default:
+				break;
+			}
+
+			letterIndex--;
+
+			for (int valueIndex = 0; valueIndex < variableValue.length(); valueIndex++)
+			{
+				result += variableValue[valueIndex];
+			}
+			return result;
+			
+		}
+	}
+	// Handle color changes here
+	else if (originalString[letterIndex] == '#')
+	{
+		if (originalString.size() > letterIndex + 1 && originalString[letterIndex + 1] == '#')
+		{
+			if (currentLabel != nullptr)
+			{
+				if (namesToColors.count(currentLabel->lines[lineIndex]->speaker))
+				{
+					textColor = namesToColors[currentLabel->lines[lineIndex]->speaker];
+				}
+				else
+				{
+					textColor = namesToColors[""];
+				}
+			}
+			letterIndex++;
+		}
+		else
+		{
+			int finalColorIndex = letterIndex;
+			do
+			{
+				finalColorIndex++;
+				if (finalColorIndex >= originalString.size())
+					break;
+
+			}while (originalString[finalColorIndex] != '#');
+
+			// Parse the hexadecimal color string
+			textColor = ParseColorHexadecimal(originalString.substr(letterIndex, finalColorIndex).c_str());
+			letterIndex = finalColorIndex;
+		}
+	}
+	else if (originalString[letterIndex] == '<')
+	{
+		bool active = (originalString[letterIndex + 1] != '/');
+
+		int tagIndex = active ? letterIndex + 1 : letterIndex + 2;
+
+		std::string tagName = "";
+		while (originalString[tagIndex] != '>')
+		{
+			tagName += originalString[tagIndex];
+			tagIndex++;
+
+			if (tagIndex >= originalString.size())
+				break;
+		}
+
+		if (tags.count(tagName) == 1) // de/activate the tag
+		{
+			letterIndex = tagIndex;
+			tags[tagName]->active = active;
+
+			// Reset to regular font, then apply all changes one by one
+			textbox->text->SetFont(text->currentFontInfo->GetRegularFont());
+
+			if (tags["b"]->active && tags["i"]->active)
+			{
+				text->SetFont(text->currentFontInfo->GetBoldItalicsFont());
+			}
+			else if (tags["i"]->active)
+			{
+				text->SetFont(text->currentFontInfo->GetItalicsFont());
+			}
+			else if (tags["b"]->active)
+			{
+				text->SetFont(text->currentFontInfo->GetBoldFont());
+			}
+			else if (tags["s"]->active)
+			{
+				text->currentFontInfo->ChangeFontSize(48);
+				text->SetFont(text->currentFontInfo->GetRegularFont());
+			}
+
+		}
+		else if (tagName[0] == 's')
+		{
+			std::string fontSize = "";
+			for (int i = 1; i < tagName.size(); i++)
+			{
+				fontSize += tagName[i];
+			}
+
+			letterIndex = tagIndex;
+			textbox->SetFontSize(std::stoi(fontSize));
+		}
+		else // do nothing different
+		{
+			result = originalString[letterIndex];
+		}
+	}
+	else
+	{
+		result = originalString[letterIndex];
+	}
+
+	letterIndex++;
+	
+	return result;
 }
 
 std::vector<string> CutsceneManager::GetVectorOfStringsFromFile(const char* filepath)

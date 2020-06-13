@@ -19,9 +19,8 @@ public:
 	//TODO: Minimize string allocations, use a map of ints to strings
 	std::unordered_map<std::string, FontInfo*> fonts;
 
+	//TODO: Different font info for name?
 	FontInfo* currentFontInfo = nullptr;
-	TTF_Font* textFont = nullptr;
-	TTF_Font* speakerFont = nullptr;
 	Text* text = nullptr;
 	Text* speaker = nullptr;
 

@@ -157,8 +157,8 @@ public:
 	Renderer* renderer = nullptr;
 	SpriteManager* spriteManager = nullptr;
 	SoundManager* soundManager = nullptr;
-	TTF_Font* theFont = nullptr;
-	TTF_Font* headerFont = nullptr;
+	FontInfo* theFont = nullptr;
+	FontInfo* headerFont = nullptr;
 	
 	Text* fpsText = nullptr;
 	Text* timerText = nullptr;

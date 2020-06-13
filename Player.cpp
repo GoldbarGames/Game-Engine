@@ -372,7 +372,7 @@ void Player::ResetPosition()
 	position = startPosition;
 }
 
-void Player::GetProperties(Renderer * renderer, TTF_Font * font, std::vector<Property*>& properties)
+void Player::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 

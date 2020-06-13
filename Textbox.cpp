@@ -22,8 +22,6 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	fonts["fontSpaceMono"]->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 
 	currentFontInfo = fonts["fontSpaceMono"];
-	textFont = currentFontInfo->GetRegularFont();
-	speakerFont = currentFontInfo->GetRegularFont();
 
 	//TODO: Should we have a way to define the starting box position?
 	boxObject = new Entity(Vector2(1280, 720));
@@ -46,9 +44,8 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
 
 
-
-	text = new Text(renderer, textFont, "...", true, true);
-	speaker = new Text(renderer, speakerFont, "...", true, true);
+	text = new Text(renderer, currentFontInfo, "...", true, true);
+	speaker = new Text(renderer, currentFontInfo, "...", true, true);
 
 	text->SetPosition(1080, 1040);
 	speaker->SetPosition(235, 985);
@@ -106,8 +103,7 @@ void Textbox::ChangeBoxFont(const std::string& fontName)
 	if (fonts.count(fontName) == 1)
 	{
 		currentFontInfo = fonts[fontName];
-		textFont = currentFontInfo->GetRegularFont();
-		text->SetFont(textFont);
+		text->SetFont(currentFontInfo->GetRegularFont());
 	}		
 }
 
@@ -119,8 +115,7 @@ void Textbox::ChangeNameFont(const std::string& fontName)
 	if (fonts.count(fontName) == 1)
 	{
 		currentFontInfo = fonts[fontName];
-		speakerFont = currentFontInfo->GetRegularFont();
-		speaker->SetFont(speakerFont);
+		speaker->SetFont(currentFontInfo->GetRegularFont());
 	}		
 }
 

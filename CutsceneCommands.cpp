@@ -1322,8 +1322,7 @@ int CutsceneCommands::LoadTextFromSaveFile(CutsceneParameters parameters)
 		delete manager->images[imageNumber];
 
 	//TODO: Also save/load in the font type/size/style for this text object
-	Text* newText = new Text(manager->game->renderer,
-		manager->game->theFont, text, textColor);
+	Text* newText = new Text(manager->game->renderer, manager->game->theFont, text, textColor);
 
 	newText->isRichText = false;
 
@@ -1364,23 +1363,26 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 
 	//TODO: Parse text string to get and set the color
 	//TODO: Deal with individual glyphs
+
 	Color textColor = { 255, 255, 255, 255 };
-	if (text.size() > 1 && text[0] == '#')
-	{
-		textColor = ParseColorHexadecimal(text.substr(0, 8).c_str());
-		newText = new Text(manager->game->renderer,
-			manager->game->theFont, text.substr(9, text.size()-8), textColor);
-	}
-	else
-	{
-		newText = new Text(manager->game->renderer,
-			manager->game->theFont, text, textColor);
-		
-	}
 
-	newText->isRichText = false;
+	int letterIndex = 0;
+	std::string finalText = "";
+
+	newText = new Text(manager->game->renderer, manager->game->theFont, "", textColor);
 	newText->SetPosition(pos.x, pos.y); // use the Text SetPosition function, not Entity
+	newText->isRichText = true;
 
+	while (letterIndex < text.size())
+	{		
+		finalText = manager->ParseText(text, letterIndex, textColor, newText);
+		for (int i = 0; i < finalText.size(); i++)
+		{
+			newText->AddText(finalText[i], textColor);
+			newText->SetPosition(pos.x, pos.y);
+		}
+	}
+	
 	manager->images[imageNumber] = newText;
 	manager->images[imageNumber]->drawOrder = imageNumber;
 	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;

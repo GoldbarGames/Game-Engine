@@ -19,6 +19,12 @@ using std::string;
 
 class Renderer;
 class Sprite;
+class Entity;
+
+#ifndef STRUCT_FONT_INFO
+#define STRUCT_FONT_INFO
+struct FontInfo;
+#endif
 
 enum class AlignmentX { LEFT, CENTER, RIGHT };
 enum class AlignmentY { TOP, CENTER, BOTTOM };
@@ -86,8 +92,8 @@ public:
 class Text : public Entity
 {
 private:
-	Renderer* renderer;
-	TTF_Font* font;
+	Renderer* renderer = nullptr;
+	TTF_Font* font = nullptr;
 
 	//TODO: Maybe move this to a location where multiple text objects can all share the same memory
 	std::unordered_map<GlyphSurfaceData, std::unique_ptr<Texture, ImageDeleter>, GlyphHashFunction> glyphTextures;
@@ -97,6 +103,7 @@ public:
 	std::string id = ""; // this will always be english
 	std::string txt = "ERROR"; // this might get translated
 	Color textColor = { 255, 255, 255, 255 };
+	FontInfo* currentFontInfo = nullptr;
 
 	bool isRichText = false;
 
@@ -118,9 +125,9 @@ public:
 	void SetScale(Vector2 newScale);
 	Vector2 currentScale = Vector2(1, 1);
 
-	Text(Renderer* newRenderer, TTF_Font* newFont);
-	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color);
-	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt,
+	Text(Renderer* newRenderer, FontInfo* newFontInfo);
+	Text(Renderer* newRenderer, FontInfo* newFontInfo, std::string txt, Color color);
+	Text(Renderer* newRenderer, FontInfo* newFontInfo, std::string txt,
 		bool relPos = false, bool relScale = false);
 
 	~Text();
