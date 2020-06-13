@@ -12,6 +12,7 @@ struct UserDefinedFunction
 	std::vector<std::string> parameters;
 };
 
+
 typedef const std::vector<std::string>& CutsceneParameters;
 class CutsceneCommands
 {
@@ -19,7 +20,7 @@ public:
 	std::unordered_map<std::string, std::string> stralias;
 	std::unordered_map<std::string, unsigned int> numalias;
 	std::unordered_map<unsigned int, std::string> stringVariables;
-	std::vector<UserDefinedFunction*> userDefinedFunctions; //TODO: Implement these
+	std::vector<UserDefinedFunction*> userDefinedFunctions;
 
 	//TODO: Make this only accessible to the manager
 	std::unordered_map<unsigned int, int> numberVariables;
@@ -124,6 +125,9 @@ public:
 	int SetClickToContinue(CutsceneParameters parameters);
 
 	int ScreenshotCommand(CutsceneParameters parameters);
+	int ErrorLog(CutsceneParameters parameters);
+
+	int FontCommand(CutsceneParameters parameters);
 	
 };
 

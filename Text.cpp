@@ -192,6 +192,7 @@ void Text::SetText(string text, Color color, Uint32 wrapWidth)
 			newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 			newSprite->keepPositionRelativeToCamera = renderRelative;
 			newSprite->filename = txt[i];
+			newSprite-> SetScale(currentScale);
 
 			Glyph* newGlyph = new Glyph;
 			newGlyph->sprite = newSprite;
@@ -245,6 +246,7 @@ void Text::AddText(char c, Color color)
 		newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		newSprite->keepPositionRelativeToCamera = renderRelative;
 		newSprite->filename = c;
+		newSprite->SetScale(currentScale);
 
 		Glyph* newGlyph = new Glyph;
 		newGlyph->sprite = newSprite;

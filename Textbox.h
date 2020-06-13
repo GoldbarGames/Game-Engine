@@ -3,21 +3,23 @@
 #include "Sprite.h"
 #include "Text.h"
 #include <unordered_map>
+#include "FontInfo.h"
 
 class Textbox
 {
 private:
-	Vector2 position = Vector2(0, 0);
-	Vector2 offset = Vector2(0, 0);
+	//Vector2 position = Vector2(0, 0);
+	//Vector2 offset = Vector2(0, 0);
 public:
 	Animator* animator = nullptr;
-	Sprite* boxSprite = nullptr;
-	Sprite* nameSprite = nullptr;
+	Entity* boxObject = nullptr;
+	Entity* nameObject = nullptr;
 	Entity* clickToContinue = nullptr;
 
 	//TODO: Minimize string allocations, use a map of ints to strings
-	std::unordered_map<std::string, TTF_Font*> fonts;
+	std::unordered_map<std::string, FontInfo*> fonts;
 
+	FontInfo* currentFontInfo = nullptr;
 	TTF_Font* textFont = nullptr;
 	TTF_Font* speakerFont = nullptr;
 	Text* text = nullptr;
@@ -42,6 +44,7 @@ public:
 	void Render(Renderer* renderer, const int& screenWidth, const int& screenHeight);
 
 	void SetCursorPosition(bool endOfPage);
+	void SetFontSize(int newSize);
 
 	Textbox(SpriteManager* m, Renderer* r);
 	~Textbox();

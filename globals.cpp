@@ -1,9 +1,29 @@
 #include "globals.h"
 #include <iostream>
+#include <time.h>
 
 std::string GetDrawingLayerName(DrawingLayer layer)
 {
 	return "";
+}
+
+std::string CurrentDate() {
+	time_t now = time(NULL);
+	struct tm tstruct;
+	char buf[40];
+	tstruct = *localtime(&now);
+	//format: day DD-MM-YYYY
+	strftime(buf, sizeof(buf), "%d-%m-%Y", &tstruct);
+	return buf;
+}
+std::string CurrentTime() {
+	time_t now = time(NULL);
+	struct tm tstruct;
+	char buf[40];
+	tstruct = *localtime(&now);
+	//format: HH:mm:ss
+	strftime(buf, sizeof(buf), "%X", &tstruct);
+	return buf;
 }
 
 std::vector<std::string> SplitString(const std::string& str, char delim) 

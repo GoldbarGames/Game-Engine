@@ -73,6 +73,14 @@ struct BacklogData
 };
 
 
+struct TextTag
+{
+	bool active = false;
+	//TODO: How will we allow for custom tags?
+	//std::string name = "";
+	//TextTag(std::string n) : name(n) { }
+};
+
 
 class CutsceneManager
 {
@@ -121,6 +129,7 @@ public:
 	std::map<unsigned int, Entity*> images; // needs to be in order for rendering
 	std::map<unsigned int, Entity*>::iterator imageIterator;
 	std::unordered_map<std::string, Color> namesToColors;
+	std::unordered_map<std::string, TextTag*> tags;
 	std::unordered_map<unsigned int, Timer*> timers;
 	float timer = 0;
 	bool isCarryingOutCommands = false;

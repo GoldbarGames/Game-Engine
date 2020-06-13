@@ -116,6 +116,7 @@ public:
 	Texture* GetTexture(TTF_Font* f, char c, SDL_Color col);
 
 	void SetScale(Vector2 newScale);
+	Vector2 currentScale = Vector2(1, 1);
 
 	Text(Renderer* newRenderer, TTF_Font* newFont);
 	Text(Renderer* newRenderer, TTF_Font* newFont, std::string txt, Color color);

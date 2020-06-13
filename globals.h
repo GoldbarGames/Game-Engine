@@ -26,6 +26,8 @@ struct Color {
 	}
 };
 
+std::string CurrentDate();
+std::string CurrentTime();
 std::string GetDrawingLayerName(DrawingLayer layer);
 std::string ParseWord(const std::string& text, char limit, int& index);
 std::vector<std::string> SplitString(const std::string& str, char delim);

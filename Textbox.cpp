@@ -9,21 +9,43 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 
 	//TODO: Replace these with the real fonts
 	//TODO: How to deal with font sizes? Maybe map from string to map<int, TTF*>
-	fonts["default"] = TTF_OpenFont("fonts/default.ttf", 24);
-	fonts["fontSourceCodePro"] = TTF_OpenFont("fonts/source-code-pro/SourceCodePro-Regular.ttf", 24);
-	fonts["fontDejaVuSansMono"] = TTF_OpenFont("fonts/dejavu-sans-mono/DejaVuSansMono.ttf", 24);
-	fonts["fontSpaceMono"] = TTF_OpenFont("fonts/space-mono/SpaceMono-Regular.ttf", 24);
 
-	textFont = fonts["fontSourceCodePro"];
-	speakerFont = fonts["fontSourceCodePro"];
+	fonts["default"] = new FontInfo("fonts/default.ttf", 24);
 
-	position = Vector2(1280, 720);
+	fonts["fontSourceCodePro"] = new FontInfo("fonts/source-code-pro/SourceCodePro-Regular.ttf", 24);
+
+	fonts["fontDejaVuSansMono"] = new FontInfo("fonts/dejavu-sans-mono/DejaVuSansMono.ttf", 24);
+
+	fonts["fontSpaceMono"] = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+	fonts["fontSpaceMono"]->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
+	fonts["fontSpaceMono"]->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
+	fonts["fontSpaceMono"]->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
+
+	currentFontInfo = fonts["fontSpaceMono"];
+	textFont = currentFontInfo->GetRegularFont();
+	speakerFont = currentFontInfo->GetRegularFont();
+
+	//TODO: Should we have a way to define the starting box position?
+	boxObject = new Entity(Vector2(1280, 720));
 	
-	boxSprite = new Sprite(0, 0, 1, spriteManager, "assets/gui/textbox.png",
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
+	//TODO: Have a way to specify the image for the box
+	boxObject->SetSprite(new Sprite(0, 0, 1, spriteManager, "assets/gui/textbox1.png",
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0)));
 
-	boxSprite->keepScaleRelativeToCamera = true;
-	boxSprite->keepPositionRelativeToCamera = true;
+	boxObject->GetSprite()->keepScaleRelativeToCamera = true;
+	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
+
+	//TODO: Should we have a way to define the starting box position?
+	nameObject = new Entity(Vector2(1280, 720));
+
+	//TODO: Have a way to specify the image for the box
+	nameObject->SetSprite(new Sprite(0, 0, 1, spriteManager, "assets/gui/namebox1.png",
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0)));
+
+	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
+	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
+
+
 
 	text = new Text(renderer, textFont, "...", true, true);
 	speaker = new Text(renderer, speakerFont, "...", true, true);
@@ -32,6 +54,8 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	speaker->SetPosition(235, 985);
 
 	text->isRichText = true;
+	speaker->isRichText = false;
+
 	clickToContinue = new Entity(Vector2(0,0));
 
 	std::vector<AnimState*> animStates;
@@ -56,6 +80,12 @@ Textbox::~Textbox()
 		delete clickToContinue;
 }
 
+void Textbox::SetFontSize(int newSize)
+{
+	float newValue = newSize / (float)currentFontInfo->GetFontSize();
+	text->currentScale = Vector2(newValue, newValue);
+}
+
 void Textbox::SetCursorPosition(bool endOfPage)
 {
 	clickToContinue->GetAnimator()->SetBool("endOfPage", endOfPage);
@@ -75,7 +105,8 @@ void Textbox::ChangeBoxFont(const std::string& fontName)
 	//TODO: Make another map that takes the filepath as the key and has the short name as the value
 	if (fonts.count(fontName) == 1)
 	{
-		textFont = fonts[fontName];
+		currentFontInfo = fonts[fontName];
+		textFont = currentFontInfo->GetRegularFont();
 		text->SetFont(textFont);
 	}		
 }
@@ -87,29 +118,36 @@ void Textbox::ChangeNameFont(const std::string& fontName)
 	//TODO: Make another map that takes the filepath as the key and has the short name as the value
 	if (fonts.count(fontName) == 1)
 	{
-		speakerFont = fonts[fontName];
+		currentFontInfo = fonts[fontName];
+		speakerFont = currentFontInfo->GetRegularFont();
 		speaker->SetFont(speakerFont);
 	}		
 }
 
 void Textbox::ChangeNameSprite(const std::string& filepath)
 {
-	if (nameSprite != nullptr)
-		delete nameSprite;
+	if (nameObject->GetSprite() != nullptr)
+		delete nameObject->GetSprite();
 
 	//TODO: Allow for animations by dissecting the filepath name
-	nameSprite = new Sprite(0, 0, 1, spriteManager, filepath,
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
+	nameObject->SetSprite(new Sprite(0, 0, 1, spriteManager, filepath,
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0)));
+
+	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
+	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
 }
 
 void Textbox::ChangeBoxSprite(const std::string& filepath)
 {
-	if (boxSprite != nullptr)
-		delete boxSprite;
+	if (boxObject->GetSprite() != nullptr)
+		delete boxObject->GetSprite();
 
 	//TODO: Allow for animations by dissecting the filepath name
-	boxSprite = new Sprite(0, 0, 1, spriteManager, filepath,
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
+	boxObject->SetSprite(new Sprite(0, 0, 1, spriteManager, filepath,
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0)));
+
+	boxObject->GetSprite()->keepScaleRelativeToCamera = true;
+	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
 }
 
 void Textbox::UpdateText(const char c, const Color& color)
@@ -141,13 +179,16 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 	if (shouldRender && isReading)
 	{
 		//TODO: Make sure the position is in the center of the screen
-		boxSprite->Render(position, renderer);
-		speaker->Render(renderer);
-
+		boxObject->Render(renderer);
 		if (text != nullptr)
 		{
 			text->Render(renderer);
 		}
-			
+
+		if (speaker->txt != "")
+		{
+			nameObject->Render(renderer);
+			speaker->Render(renderer);
+		}			
 	}	
 }

@@ -235,6 +235,7 @@ void Game::InitOpenGL()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glViewport(0, 0, screenWidth, screenHeight);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	SDL_GL_SwapWindow(window);
 
@@ -1285,24 +1286,19 @@ bool Game::HandleEvent(SDL_Event& event)
 }
 
 
-void Game::SaveScreenshot()
+void Game::SaveScreenshot(std::string filepath)
 {
-	const std::string counterfilepath = "screenshots/counter.txt";
+	if (filepath == "")
+	{
+		std::string timestamp = CurrentDate() + "-" + CurrentTime();
+		for (int i = 0; i < timestamp.size(); i++)
+		{
+			if (timestamp[i] == ':')
+				timestamp[i] = '-';
+		}
 
-	std::ifstream fin;
-	fin.open(counterfilepath);
-	std::string timestamp = "";
-	fin >> timestamp;
-	fin.close();
-
-	std::ofstream fout;
-	fout.open(counterfilepath);
-	fout << (std::stoi(timestamp) + 1) << std::endl;
-	fout.close();
-	
-	//TODO: Can we get this working based on a date time?
-
-	std::string filepath = "screenshots/screenshot-" + timestamp + ".bmp";
+		filepath = "screenshots/screenshot-" + timestamp + ".bmp";
+	}		
 
 	const unsigned int bytesPerPixel = 3;
 
@@ -1411,8 +1407,7 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 
 void Game::Render()
 {
-	// Clear window
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	// Clear window	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Render editor grid

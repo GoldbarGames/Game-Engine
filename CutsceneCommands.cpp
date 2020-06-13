@@ -32,8 +32,10 @@ std::vector<FuncLUT>cmd_lut = {
 	{"defsub", &CutsceneCommands::DefineUserFunction},
 	{"div", &CutsceneCommands::DivideNumberVariables},
 	{"end", &CutsceneCommands::EndGame },
+	{"errorlog", &CutsceneCommands::ErrorLog },
 	{"fade", &CutsceneCommands::Fade },
 	{"flip", &CutsceneCommands::FlipSprite },
+	{"font", &CutsceneCommands::FontCommand},
 	{"global", &CutsceneCommands::SetGlobalNumber},
 	{"gosub", &CutsceneCommands::GoSubroutine },
 	{"goto", &CutsceneCommands::GoToLabel },
@@ -77,8 +79,7 @@ std::vector<FuncLUT>cmd_lut = {
 
 // For loops, while loops
 
-// - Save/load (save backlog)
-// - Save screenshot as image
+// - Save/load (save backlog, erase savefiles, thumbnails, custom save notes)
 // - what about animations that involve each frame being its own file?
 // - custom timers (we'll deal with this when we handle blinking animations)
 
@@ -87,17 +88,15 @@ std::vector<FuncLUT>cmd_lut = {
 // Check if a file exists (fileexist assets/myfile.png %0)
 // Custom key bindings (advance text, backlog, etc.)
 
-// + Change textbox & namebox: position, sprite (animation), text, font type, font color
-// font (size, style)
+// + Change textbox & namebox: animation, font type, (size)
 
-// Bold, italics, colors for portions of text
+// Create new font from file
+// + Bold, italics, colors for portions of text
 // Custom colors for backlog text
 // Bool for whether a line of text has been previously read
 
-// + Set the click to continue button image / animation
-
 // Change location of save data
-// Alpha image effects
+// Alpha image effects (apply alpha mask using shader to texture, entire screen?)
 // Click mid-sentence to complete the text
 // Adjust automode speeds (per letter and per line)
 // Adjustable text speed (!sd)
@@ -108,12 +107,19 @@ std::vector<FuncLUT>cmd_lut = {
 // Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
 // - set the position, rotation, just like anything else
 // - set the zoom factor, the projection stuff, perspective, etc.
+// Quake horizontal, vertical, both
 
-// Get name of BGM currently playing (or just names of files being used in the scene)
-// Name save file and add custom notes to them
-// Multiple textboxes on the screen at once
+// Get name of active resources:
+// - filename of bgm playing
+// - filename of sound in channel
+// - filename of sprite in loaded entity
+// - filename of current script
+// - name of current level
+// - name of current label
+// - current text
 
-// Output error logs
+
+// + Output error logs
 // Proper syntax checking and error handling
 // Math functions (abs, sin, cos, tan, etc.)
 // Changing the file/directory where the script file is read from
@@ -123,9 +129,16 @@ std::vector<FuncLUT>cmd_lut = {
 // Pop up a box with text, disappears after a time limit
 // Draw points, lines, and shapes with colors and size
 
-// Display sprite of talking character in the textbox (map name of character to face sprite)
-// - function to map the name to a sprite (facesprite butler assets/sprites/butlerface1.png)
+// Multiple textboxes on the screen at once
+// - maybe an image (or images) for each textbox
+
+// Display sprite of talking character in the textbox (map name of character/expression to face sprite)
+// - function to map the name to a sprite (face assets/sprites/butlerface1.png)
+// (this is really no different from loading a sprite and positioning it near the textbox)
+// (however, this image should appear/disappear alongside the textbox)
+
 // Highlight/dim speaking characters (map name of the character to the sprite via folder path)
+// - it'd have to go through all currently displayed sprites and check if that sprite is in the map
 
 // * Can assign color to a character's dialogue
 // - TODO: Can use variables to get the color,
@@ -256,14 +269,23 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 			if (cmd.command == parameters[0])
 			{
 				commandFound = true;
-				int errorCode = (this->*cmd.method)(parameters);
 
-				if (errorCode != 0)
+				try
 				{
-					std::cout << "ERROR " << errorCode << ": ";
-					for (int i = 0; i < parameters.size(); i++)
-						std::cout << parameters[i] << " ";
-					std::cout << std::endl;
+					int errorCode = (this->*cmd.method)(parameters);
+
+					if (errorCode != 0)
+					{
+						std::cout << "ERROR " << errorCode << ": ";
+						for (int i = 0; i < parameters.size(); i++)
+							std::cout << parameters[i] << " ";
+						std::cout << std::endl;
+					}
+				}
+				catch (const std::exception &e)
+				{
+					std::cout << "EXCEPTION: " << e.what() << std::endl;
+					manager->game->logger->Log(e.what());
 				}
 
 				break;
@@ -1579,20 +1601,21 @@ int CutsceneCommands::Namebox(CutsceneParameters parameters)
 			}
 			else if (parameters[3] == "style")
 			{
-
+				// probably just do this using text tags < >
 			}
 		}
 	}
 	else if (parameters[1] == "color")
 	{
-		manager->textbox->nameSprite->color = ParseColorFromParameters(parameters, 2);
+		manager->textbox->nameObject->GetSprite()->color = ParseColorFromParameters(parameters, 2);
 	}
 	else if (parameters[1] == "position")
 	{
-		manager->textbox->speaker->SetPosition((int)ParseNumberValue(parameters[2]),
-			(int)ParseNumberValue(parameters[3]));
+		Vector2 newPos = Vector2(ParseNumberValue(parameters[2]), ParseNumberValue(parameters[3]));
+		manager->textbox->speaker->SetPosition(newPos.x, newPos.y);
+		manager->textbox->nameObject->SetPosition(newPos);
 	}
-	else if (parameters[1] == "image")
+	else if (parameters[1] == "sprite")
 	{
 		manager->textbox->ChangeNameSprite(ParseStringValue(parameters[2]));
 	}
@@ -1631,24 +1654,26 @@ int CutsceneCommands::Textbox(CutsceneParameters parameters)
 			}
 			else if (parameters[3] == "size")
 			{
-
+				manager->textbox->currentFontInfo->ChangeFontSize(ParseNumberValue(parameters[4]));
+				//manager->textbox->textFont = manager->textbox->currentFontInfo->GetRegularFont();
 			}
 			else if (parameters[3] == "style")
 			{
-
+				// probably just do this using text tags < >
 			}
 		}
 	}
 	else if (parameters[1] == "color")
 	{
-		manager->textbox->boxSprite->color = ParseColorFromParameters(parameters, 2);
+		manager->textbox->boxObject->GetSprite()->color = ParseColorFromParameters(parameters, 2);
 	}
 	else if (parameters[1] == "position")
 	{
-		manager->textbox->text->SetPosition((int)ParseNumberValue(parameters[2]),
-			(int)ParseNumberValue(parameters[3]));
+		Vector2 newPos = Vector2(ParseNumberValue(parameters[2]), ParseNumberValue(parameters[3]));
+		manager->textbox->text->SetPosition(newPos.x, newPos.y);
+		manager->textbox->boxObject->SetPosition(newPos);
 	}
-	else if (parameters[1] == "image")
+	else if (parameters[1] == "sprite")
 	{
 		manager->textbox->ChangeBoxSprite(ParseStringValue(parameters[2]));
 	}
@@ -1998,6 +2023,8 @@ int CutsceneCommands::SetClickToContinue(CutsceneParameters parameters)
 		if (state->sprite != nullptr)
 			delete state->sprite;
 
+		state->name = stateName;
+		state->speed = stateSpeed;
 		state->sprite = new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
 			manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
 			Vector2(spritePivotX, spritePivotY));
@@ -2005,16 +2032,46 @@ int CutsceneCommands::SetClickToContinue(CutsceneParameters parameters)
 		state->sprite->keepPositionRelativeToCamera = true;
 		state->sprite->keepScaleRelativeToCamera = true;
 	}
+	else if (parameters[1] == "animator")
+	{
+		//TODO: Swap out the animator
+	}
 
 	return 0;
 }
 
 int CutsceneCommands::ScreenshotCommand(CutsceneParameters parameters)
 {
+	if (parameters.size() > 1)
+	{
+		manager->game->SaveScreenshot(parameters[1]);
+	}
+	else
+	{
+		manager->game->SaveScreenshot();
+	}
+
 	return 0;
 }
 
 int CutsceneCommands::LuaCommand(CutsceneParameters parameters)
 {
+	return 0;
+}
+
+int CutsceneCommands::ErrorLog(CutsceneParameters parameters)
+{
+	if (parameters.size() > 1)
+	{
+		manager->game->logger->Log(parameters[1].c_str());
+	}
+	
+	return 0;
+}
+
+int CutsceneCommands::FontCommand(CutsceneParameters parameters)
+{
+	//TODO: Load fonts from files
+
 	return 0;
 }

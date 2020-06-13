@@ -5,7 +5,6 @@
 #include <SDL_ttf.h>
 #include <GL/glew.h>
 
-
 #include <stdio.h>
 #include <GL/glew.h>
 
@@ -254,8 +253,6 @@ public:
 	void StartTextInput(std::string reason);
 	void StopTextInput();
 
-	void UpdateOverlayColor(int& color, const int& target);
-
 	void EscapeMenu();
 
 	void SaveSettings();
@@ -264,7 +261,6 @@ public:
 	void SaveEditorSettings();
 	void LoadEditorSettings();
 
-	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*> & animStates);
-	void SaveScreenshot();
+	void SaveScreenshot(std::string filepath="");
 };
 
