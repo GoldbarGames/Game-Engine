@@ -235,6 +235,42 @@ Texture* Text::GetTexture(TTF_Font* f, char c, SDL_Color col)
 	return glyphTextures[data].get();
 }
 
+void Text::AddImage(Sprite* newSprite)
+{
+	bool keepScaleRelative = true;
+	bool renderRelative = true;
+
+	if (newSprite != nullptr)
+	{
+		newSprite->keepScaleRelativeToCamera = keepScaleRelative;
+		newSprite->keepPositionRelativeToCamera = renderRelative;
+		newSprite->SetScale(currentScale);
+
+		Glyph* newGlyph = new Glyph;
+		newGlyph->sprite = newSprite;
+
+		if (glyphs.size() > 0)
+		{
+			Sprite* previousSprite = glyphs[glyphs.size() - 1]->sprite;
+
+			float oldRatioX = (previousSprite->frameWidth * previousSprite->scale.x);
+			float oldRatioY = (previousSprite->frameHeight * previousSprite->scale.y);
+
+			float newRatioX = (newSprite->frameWidth * newSprite->scale.x);
+			float newRatioY = (newSprite->frameHeight * newSprite->scale.y);
+
+			float scaleX = oldRatioX / (float)newRatioX;
+			float scaleY = oldRatioY / (float)newRatioY;
+
+			newGlyph->sprite->SetScale(Vector2(scaleY, scaleY));
+		}
+
+		glyphs.push_back(newGlyph);
+	}
+
+	SetPosition(position.x, position.y);
+}
+
 void Text::AddText(char c, Color color)
 {
 	bool keepScaleRelative = true;
@@ -409,8 +445,6 @@ void Text::SetPosition(const float x, const float y)
 		position.y = y;
 		return;
 	}
-
-	
 
 	Vector2 currentPosition = Vector2(x, y);
 

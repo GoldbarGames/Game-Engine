@@ -88,10 +88,8 @@ std::vector<FuncLUT>cmd_lut = {
 // Check if a file exists (fileexist assets/myfile.png %0)
 // Custom key bindings (advance text, backlog, etc.)
 
-// + Change textbox & namebox: animation, font type, (size)
-
+// Animations for images in the textbox, as well as the textbox and namebox themselves
 // Create new font from file
-// + Bold, italics, colors for portions of text
 // Custom colors for backlog text
 // Bool for whether a line of text has been previously read
 
@@ -118,7 +116,6 @@ std::vector<FuncLUT>cmd_lut = {
 // - name of current label
 // - current text
 
-
 // + Output error logs
 // Proper syntax checking and error handling
 // Math functions (abs, sin, cos, tan, etc.)
@@ -140,12 +137,7 @@ std::vector<FuncLUT>cmd_lut = {
 // Highlight/dim speaking characters (map name of the character to the sprite via folder path)
 // - it'd have to go through all currently displayed sprites and check if that sprite is in the map
 
-// * Can assign color to a character's dialogue
-// - TODO: Can use variables to get the color,
-// - and can embed colors into text (## returns it to normal)
-//textcolor default #ffffff ;
-//textcolor BUTLER #ff0000 ;
-//`:BUTLER: This is #ff0000red text ## and this is not.`
+// - TODO: Can use variables to get the color
 
 // Special features:
 // - picture gallery

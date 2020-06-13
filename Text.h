@@ -33,6 +33,8 @@ struct Glyph
 {
 	Sprite* sprite = nullptr;
 	Vector2 position = Vector2(0,0);
+	//float width = 0; Should we save width and height to avoid calculations?
+	// Maybe if the value is negative, recalculate, otherwise use what is there?
 
 	~Glyph() 
 	{
@@ -134,6 +136,7 @@ public:
 
 	void SetText(string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth=0);
 	void AddText(char c, Color color = { 255, 255, 255, 255 });
+	void AddImage(Sprite* newSprite);
 
 	void Render(Renderer* renderer);
 	void Render(Renderer* renderer, Vector2 offset);

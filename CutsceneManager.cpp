@@ -911,14 +911,34 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 			{
 				text->SetFont(text->currentFontInfo->GetBoldFont());
 			}
-			else if (tags["s"]->active)
+		}
+		else if (tagName == "img")
+		{
+			std::string imageName = "";
+			int imageIndex = tagIndex + 1;
+			while(originalString[imageIndex] != '<')
 			{
-				text->currentFontInfo->ChangeFontSize(48);
-				text->SetFont(text->currentFontInfo->GetRegularFont());
+				imageName += originalString[imageIndex];
+				imageIndex++;
+				if (imageIndex >= originalString.size())
+					break;
 			}
 
+			// Add the image to the text here
+			//TODO: Add animations too
+			//TODO: Check this for memory leaks!
+			Sprite* sprite = new Sprite(game->spriteManager->GetImage(commands.ParseStringValue(imageName)),
+				game->renderer->shaders[ShaderName::Default]);
+
+			text->AddImage(sprite);
+
+			letterIndex = imageIndex;
+			
+			letterIndex += 6; // /img>
+
+			return result;
 		}
-		else if (tagName[0] == 's')
+		else if (tagName[0] == 's' && tagName.size() > 1)
 		{
 			std::string fontSize = "";
 			for (int i = 1; i < tagName.size(); i++)
