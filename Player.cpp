@@ -1,10 +1,11 @@
 #include "Player.h"
 #include "Game.h"
-#include "debug_state.h"
 #include <string>
-#include "Physics.h"
+#include "PhysicsInfo.h"
 #include "SpellPush.h"
 #include "SpellPop.h"
+#include "Animator.h"
+#include "Physics.h"
 
 Player::Player(Vector2 pos) : Entity(pos)
 {
@@ -16,13 +17,11 @@ Player::Player(Vector2 pos) : Entity(pos)
 	
 	trigger = false;
 
-	physics = new PhysicsEntity(this);
+	physics = new PhysicsInfo(this);
 	physics->standAboveGround = true;
 
 	// Initialize the spells here
-	spells.clear();
-	spells.push_back(new SpellPush("PUSH"));
-	spells.push_back(new SpellPop("POP"));
+	spell = Spell("PUSH");
 
 	//TODO: Pause all timers when game is paused
 	missileTimer.Start(1);
@@ -172,22 +171,22 @@ void Player::UpdateNormally(Game& game)
 	}
 	else if (game.pressedSpellButton && spellTimer.HasElapsed() && !castingSpell)
 	{
-		spells[spellIndex]->Cast(game);
+		spell.Cast(game);
 		// TODO: Reset the spell timer somehow
 	}
 
 	//TODO: What should happen if multiple buttons are pressed at the same time?
 	if (game.pressedLeftTrigger)
 	{
-		spellIndex--;
-		if (spellIndex < 0)
-			spellIndex = 0;
+		spell.activeSpell--;
+		if (spell.activeSpell < 0)
+			spell.activeSpell = 0;
 	}
 	else if (game.pressedRightTrigger)
 	{
-		spellIndex++;
-		if (spellIndex > spells.size() - 1)
-			spellIndex = spells.size() - 1;
+		spell.activeSpell++;
+		//if (spell.activeSpell > spells.size() - 1)
+		//	spell.activeSpell = spells.size() - 1;
 	}
 
 	// If on the ladder, only move up or down

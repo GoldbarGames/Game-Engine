@@ -1,4 +1,7 @@
+#ifndef TEXTBOX_H
+#define TEXTBOX_H
 #pragma once
+
 #include "Animator.h"
 #include "Sprite.h"
 #include "Text.h"
@@ -49,3 +52,4 @@ public:
 	~Textbox();
 };
 
+#endif

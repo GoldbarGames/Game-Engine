@@ -1,7 +1,6 @@
 #include "Sprite.h"
 #include "globals.h"
 #include "Renderer.h"
-#include "debug_state.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

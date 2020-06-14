@@ -1,3 +1,5 @@
+#ifndef FONTINFO_H
+#define FONTINFO_H
 #pragma once
 
 #include <string>
@@ -45,3 +47,5 @@ public:
 
 
 };
+
+#endif

@@ -57,7 +57,7 @@ void Renderer::Update()
 	}
 }
 
-void Renderer::UpdateOverlayColor(int& color, const int& target)
+void Renderer::UpdateOverlayColor(uint8_t& color, const int& target)
 {
 	if (color != target)
 	{

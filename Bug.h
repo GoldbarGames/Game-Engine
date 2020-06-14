@@ -1,11 +1,12 @@
+#ifndef BUG_H
+#define BUG_H
 #pragma once
-#include "PhysicsEntity.h"
+
+#include "Entity.h"
 
 class Bug : public Entity
 {
 public:
-	int spriteIndex = 0;
-
 	Bug(Vector2 pos);
 	~Bug();
 
@@ -16,3 +17,4 @@ public:
 	void Save(std::ostringstream& level);
 };
 
+#endif

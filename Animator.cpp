@@ -3,6 +3,7 @@
 #include "globals.h"
 #include <utility>
 #include <fstream>
+#include "Sprite.h"
 
 std::unordered_map<AnimType, AnimatorInfo*> Animator::mapTypeToInfo;
 

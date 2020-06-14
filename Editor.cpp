@@ -5,8 +5,8 @@
 #include <sstream>
 #include <iterator>
 #include "Tile.h"
-#include "debug_state.h"
 #include "CutsceneTrigger.h"
+#include "PhysicsInfo.h"
 
 using std::string;
 

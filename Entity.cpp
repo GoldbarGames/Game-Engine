@@ -1,10 +1,11 @@
 #include "Entity.h"
-#include "PhysicsEntity.h"
-#include "debug_state.h"
+#include "PhysicsInfo.h"
 #include <iostream>
 #include "Renderer.h"
 #include <sstream>
 #include "Game.h"
+#include "Sprite.h"
+
 
 unsigned int Entity::nextValidID = 0;
 
@@ -22,7 +23,6 @@ unsigned int Entity::Size()
 	//totalSize += sizeof(colliderWidth);
 	//totalSize += sizeof(colliderHeight);
 	totalSize += sizeof(nextValidID);
-	//totalSize += sizeof(isPhysicsEntity);
 	totalSize += sizeof(drawDebugRect);
 	totalSize += sizeof(name);
 	totalSize += sizeof(flip);

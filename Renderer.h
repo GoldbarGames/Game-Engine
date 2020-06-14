@@ -1,4 +1,7 @@
+#ifndef RENDERER_H
+#define RENDERER_H
 #pragma once
+
 #include "SDL.h"
 #include "SDL_image.h"
 #include <unordered_map>
@@ -15,7 +18,7 @@ class Renderer
 {
 private:
 	std::unordered_map<DrawingLayer, bool> layersVisible;
-	void UpdateOverlayColor(int& color, const int& target);
+	void UpdateOverlayColor(uint8_t& color, const int& target);
 public:
 	Camera camera;
 	Camera guiCamera;
@@ -47,3 +50,5 @@ public:
 	Renderer();
 	~Renderer();
 };
+
+#endif

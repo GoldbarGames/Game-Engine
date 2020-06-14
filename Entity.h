@@ -1,8 +1,10 @@
-#pragma once
+#ifndef ENTITY_H
+#define ENTITY_H
+
 #include "SDL.h"
 #include "SDL_ttf.h"
-
-#include "Sprite.h"
+#include "Vector2.h"
+#include "globals.h"
 #include "Animator.h"
 
 #include <glm/glm.hpp>
@@ -10,8 +12,10 @@
 #include <glm/gtc/type_ptr.hpp>
 
 class Game;
-class PhysicsEntity;
+class PhysicsInfo;
 class Property;
+class Renderer;
+
 #ifndef STRUCT_FONT_INFO
 #define STRUCT_FONT_INFO
 struct FontInfo;
@@ -27,8 +31,9 @@ public:
 	Vector2 position = Vector2(0, 0);
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	Vector2 scale = Vector2(1, 1);
+	int spriteIndex = 0;
 
-	PhysicsEntity* physics;
+	PhysicsInfo* physics;
 
 	unsigned int Size();
 
@@ -97,3 +102,4 @@ public:
 
 };
 
+#endif 

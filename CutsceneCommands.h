@@ -1,8 +1,12 @@
+#ifndef CUTSCENECOMMANDS_H
+#define CUTSCENECOMMANDS_H
 #pragma once
+
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include "Animator.h"
+#include "globals.h"
 
 class CutsceneManager;
 
@@ -131,3 +135,4 @@ public:
 	
 };
 
+#endif

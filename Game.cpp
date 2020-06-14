@@ -1,8 +1,6 @@
 #include "Game.h"
 #include "Sprite.h"
 #include "Player.h"
-#include "debug_state.h"
-#include "editor_state.h"
 #include "Tile.h"
 #include "SettingsButton.h"
 #include "globals.h"
@@ -12,6 +10,7 @@
 #include <stdio.h>
 #include <time.h>
 #include "sdl_helpers.h"
+#include "PhysicsInfo.h"
 
 using std::string;
 
@@ -73,6 +72,8 @@ Game::Game()
 	cutscene->ParseScene();
 
 	logger = new Logger("logs/output.log");
+
+	//ShaderProgram* shader = renderer->shaders[ShaderName::Default];
 
 	// Initialize debug stuff
 	renderer->debugSprite = new Sprite(0, 0, 24, 24, spriteManager,

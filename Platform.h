@@ -1,10 +1,12 @@
+#ifndef PLATFORM_H
+#define PLATFORM_H
 #pragma once
+
 #include "Path.h"
-#include "PhysicsEntity.h"
+
 class Platform : public Entity
 {
 public:
-	int spriteIndex = 0;
 	std::string platformType = "Idle";
 	int tilesToMove = 3;
 	bool shouldLoop = true;
@@ -33,3 +35,4 @@ public:
 	std::string CalcDirection(bool x);
 };
 
+#endif

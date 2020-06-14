@@ -45,7 +45,7 @@ bool Path::IsPointInPath(Vector2 point)
 	return false;
 }
 
-void Path::Render(Renderer * renderer, GLuint uniformModel)
+void Path::Render(Renderer * renderer, unsigned int uniformModel)
 {
 	// Draw a red square for every point in the path
 	

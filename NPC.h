@@ -1,3 +1,5 @@
+#ifndef NPC_H
+#define NPC_H
 #pragma once
 #include "Entity.h"
 
@@ -18,3 +20,4 @@ public:
 	void Save(std::ostringstream& level);
 };
 
+#endif

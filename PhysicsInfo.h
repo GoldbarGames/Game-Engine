@@ -1,14 +1,20 @@
+#ifndef PHYSICSINFO_H
+#define PHYSICSINFO_H
 #pragma once
-#include "Entity.h"
 
-class PhysicsEntity
+#include <vector>
+#include "Vector2.h"
+
+class Entity;
+class Game;
+
+class PhysicsInfo
 {
 protected:
 	Entity* our = nullptr;
 	
 	Vector2 acceleration = Vector2(0, 0);
 
-	
 	std::vector<Entity*> thisFrameCollisions;
 	std::vector<Entity*> prevFrameCollisions;
 	
@@ -42,8 +48,8 @@ public:
 	bool shouldStickToGround = false;
 
 
-	PhysicsEntity(Entity* entity);
-	~PhysicsEntity();
+	PhysicsInfo(Entity* entity);
+	~PhysicsInfo();
 
 	void PreviousFrameCollisions(Game& game);
 
@@ -58,7 +64,7 @@ public:
 
 	void Push(Vector2 pushVelocity);
 
-	float CalcCollisionVelocity(PhysicsEntity* their, bool x);
+	float CalcCollisionVelocity(PhysicsInfo* their, bool x);
 	bool IsEntityPushingOther(Entity* their, bool x);
 
 	Entity* CheckPrevParent();
@@ -74,3 +80,4 @@ public:
 	void Jump(Game& game);
 };
 
+#endif

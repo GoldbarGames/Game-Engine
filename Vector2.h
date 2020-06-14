@@ -1,11 +1,11 @@
-#pragma once
+#ifndef VECTOR2_H
+#define VECTOR2_H
+
 #include <iostream>
 
 #include <glm/vec2.hpp>
 
 //using Vector2 = glm::vec2;
-
-
 
 class Vector2
 {
@@ -44,4 +44,4 @@ inline std::ostream& operator<<(std::ostream& output, Vector2 value)
 	return output << value.x << "," << value.y;
 }
 
-
+#endif

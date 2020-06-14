@@ -1,3 +1,5 @@
+#ifndef BACKGROUNDLAYER_H
+#define BACKGROUNDLAYER_H
 #pragma once
 
 #include "Entity.h"
@@ -11,3 +13,4 @@ public:
 	void Render(Renderer* renderer);
 };
 
+#endif

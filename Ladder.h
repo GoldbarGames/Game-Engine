@@ -1,4 +1,7 @@
+#ifndef LADDER_H
+#define LADDER_H
 #pragma once
+
 #include "Entity.h"
 
 class Ladder : public Entity
@@ -7,7 +10,7 @@ public:
 
 	int spriteIndex = 0;
 
-	void Render(Renderer * renderer, GLuint uniformModel);
+	void Render(Renderer * renderer, unsigned int uniformModel);
 
 	Ladder(Vector2 pos);
 	~Ladder();
@@ -21,4 +24,4 @@ public:
 	void Save(std::ostringstream& level);
 };
 
-
+#endif

@@ -1,4 +1,7 @@
+#ifndef SOUNDMANAGER_H
+#define SOUNDMANAGER_H
 #pragma once
+
 #include <SDL_mixer.h>
 #include <string>
 #include <vector>
@@ -71,3 +74,4 @@ public:
 	void SetVolumeSound(int index);
 };
 
+#endif

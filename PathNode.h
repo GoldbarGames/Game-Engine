@@ -1,4 +1,7 @@
+#ifndef PATHNODE_H
+#define PATHNODE_H
 #pragma once
+
 #include "Vector2.h"
 #include <SDL.h>
 class PathNode
@@ -15,3 +18,4 @@ public:
 	const SDL_Rect* CalcRenderRect(Vector2 cameraOffset);
 };
 
+#endif

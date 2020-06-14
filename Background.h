@@ -1,12 +1,19 @@
+#ifndef BACKGROUND_H
+#define BACKGROUND_H
 #pragma once
 
 #include <vector>
-#include "Entity.h"
+#include "Vector2.h"
+
+class Entity;
+class SpriteManager;
+class Renderer;
+class Game;
 
 class Background
 {
 public:
-	Vector2 position = Vector2(0, 0);
+	Vector2 position;
 	std::string name = "";
 	std::vector<Entity*> layers;
 	Background(std::string n, Vector2 pos);
@@ -20,3 +27,4 @@ public:
 	void Save(std::ostringstream& level);
 };
 
+#endif

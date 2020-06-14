@@ -1,6 +1,6 @@
 #include "NPC.h"
 #include "Game.h"
-
+#include "PhysicsInfo.h"
 
 NPC::NPC(std::string n, Vector2 pos) : Entity(pos)
 {
@@ -10,7 +10,7 @@ NPC::NPC(std::string n, Vector2 pos) : Entity(pos)
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 20;
 
-	physics = new PhysicsEntity(this);
+	physics = new PhysicsInfo(this);
 	physics->standAboveGround = true;
 	physics->useGravity = true;
 	physics->startPosition = pos;

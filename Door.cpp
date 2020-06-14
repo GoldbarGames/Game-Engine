@@ -1,6 +1,6 @@
 #include "Door.h"
 #include "Game.h"
-#include "debug_state.h"
+#include "globals.h"
 
 Door::Door(Vector2 pos, Vector2 dest) : Entity(pos)
 {

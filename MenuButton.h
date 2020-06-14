@@ -1,3 +1,5 @@
+#ifndef MENUBUTTON_H
+#define MENUBUTTON_H
 #pragma once
 
 #include <SDL.h>
@@ -19,3 +21,5 @@ public:
 	BaseButton* Update(Game& game, const Uint8* currentKeyStates);
 	void SetOptionColors(Color color);
 };
+
+#endif

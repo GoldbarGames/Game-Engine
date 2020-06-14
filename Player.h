@@ -1,5 +1,8 @@
+#ifndef PLAYER_H
+#define PLAYER_H
 #pragma once
-#include "PhysicsEntity.h"
+
+#include "Entity.h"
 #include "Vector2.h"
 #include "Timer.h"
 #include "Spell.h"
@@ -29,9 +32,7 @@ public:
 	
 	Vector2 startPosition;
 
-	//TODO: Make this more of a proper data structure
-	std::vector<Spell*> spells;
-	int spellIndex = 0;
+	Spell spell;
 
 
 
@@ -59,3 +60,4 @@ public:
 	void Save(std::ostringstream& level);
 };
 
+#endif

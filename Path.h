@@ -1,6 +1,10 @@
+#ifndef PATH_H
+#define PATH_H
 #pragma once
+
 #include "PathNode.h"
 #include "Entity.h"
+
 class Path : public Entity
 {
 	// TODO: Move nodes around, insert into the middle, and insert onto the end of an existing path
@@ -14,7 +18,7 @@ public:
 	void RemovePointFromPath(Vector2 point);	
 	bool IsPointInPath(Vector2 point);
 
-	void Render(Renderer * renderer, GLuint uniformModel);
+	void Render(Renderer * renderer, unsigned int uniformModel);
 	const SDL_Rect* GetBounds();
 
 	void Save(std::ostringstream& level);
@@ -23,3 +27,4 @@ public:
 	void SetProperty(std::string prop, std::string newValue);
 };
 
+#endif

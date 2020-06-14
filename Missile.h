@@ -1,5 +1,8 @@
-#pragma once
-#include "PhysicsEntity.h"
+#ifndef MISSILE_H
+#define MISSILE_H
+
+#include "Entity.h"
+#include "Timer.h"
 
 class Missile : public Entity
 {
@@ -15,3 +18,4 @@ public:
 	void Destroy();
 };
 
+#endif

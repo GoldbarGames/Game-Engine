@@ -1,4 +1,7 @@
+#ifndef ETHER_H
+#define ETHER_H
 #pragma once
+
 #include "Entity.h"
 
 class Ether : public Entity
@@ -17,3 +20,4 @@ public:
 	void Save(std::ostringstream& level);
 };
 
+#endif

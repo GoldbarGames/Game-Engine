@@ -1,6 +1,6 @@
 #include "Ladder.h"
 #include "Player.h"
-#include "debug_state.h"
+#include "globals.h"
 #include "Renderer.h"
 #include "Game.h"
 
@@ -45,7 +45,7 @@ void Ladder::OnTriggerExit(Entity* other, Game& game)
 	}
 }
 
-void Ladder::Render(Renderer * renderer, GLuint uniformModel)
+void Ladder::Render(Renderer * renderer, unsigned int uniformModel)
 {
 	Entity::Render(renderer);
 }

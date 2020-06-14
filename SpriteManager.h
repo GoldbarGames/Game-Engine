@@ -1,4 +1,7 @@
+#ifndef SPRITEMANAGER_H
+#define SPRITEMANAGER_H
 #pragma once
+
 #include "SDL.h"
 #include <SDL_image.h>
 #include <vector>
@@ -27,3 +30,4 @@ public:
 	~SpriteManager();
 };
 
+#endif

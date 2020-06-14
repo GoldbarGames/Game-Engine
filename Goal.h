@@ -1,4 +1,7 @@
+#ifndef GOAL_H
+#define GOAL_H
 #pragma once
+
 #include "Entity.h"
 
 class Goal : public Entity
@@ -22,3 +25,4 @@ public:
 	void Save(std::ostringstream& level);
 };
 
+#endif

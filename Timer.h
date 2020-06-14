@@ -1,4 +1,7 @@
+#ifndef TIMER_H
+#define TIMER_H
 #pragma once
+
 #include "SDL.h"
 
 class Timer
@@ -27,3 +30,4 @@ public:
 	void Reset();
 };
 
+#endif

@@ -1,3 +1,5 @@
+#ifndef LOGGER_H
+#define LOGGER_H
 #pragma once
 
 #include <fstream>
@@ -12,3 +14,4 @@ public:
 	void Log(const char* message);
 };
 
+#endif

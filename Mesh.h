@@ -1,3 +1,5 @@
+#ifndef MESH_H
+#define MESH_H
 #pragma once
 
 #include <GL/glew.h>
@@ -21,3 +23,4 @@ private:
 	GLenum mode = GL_TRIANGLES;
 };
 
+#endif

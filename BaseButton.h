@@ -1,3 +1,5 @@
+#ifndef BASEBUTTON_H
+#define BASEBUTTON_H
 #pragma once
 
 #include <SDL.h>
@@ -32,3 +34,5 @@ public:
 	virtual void SetOptionColors(Color color);
 };
 
+
+#endif

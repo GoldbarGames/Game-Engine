@@ -1,3 +1,5 @@
+#ifndef MENUSCREEN_H
+#define MENUSCREEN_H
 #pragma once
 
 #include <vector>
@@ -25,3 +27,4 @@ public:
 	void AssignButtons(bool useLeftRight);
 };
 
+#endif

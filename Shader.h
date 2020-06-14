@@ -1,3 +1,5 @@
+#ifndef SHADER_H
+#define SHADER_H
 #pragma once
 
 #include <stdio.h>
@@ -44,3 +46,4 @@ private:
 	void AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType);
 };
 
+#endif

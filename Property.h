@@ -1,7 +1,11 @@
+#ifndef PROPERTY_H
+#define PROPERY_H
 #pragma once
 
 #include <vector>
-#include "Text.h"
+#include <string>
+
+class Text;
 
 class Property
 {
@@ -13,3 +17,4 @@ public:
 	~Property();
 };
 
+#endif

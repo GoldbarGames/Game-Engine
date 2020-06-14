@@ -1,4 +1,7 @@
+#ifndef SETTINGSBUTTON_H
+#define SETTINGSBUTTON_H
 #pragma once
+
 #include <vector>
 #include "Text.h"
 #include "Vector2.h"
@@ -25,3 +28,4 @@ public:
 	void SetOptionColors(Color color);
 };
 
+#endif

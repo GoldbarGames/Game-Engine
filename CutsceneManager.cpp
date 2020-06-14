@@ -1472,10 +1472,10 @@ void CutsceneManager::LoadGame()
 				}
 
 				namesToColors[lineParams[0]] = {
-				std::stoi(lineParams[1]),
-				std::stoi(lineParams[2]),
-				std::stoi(lineParams[3]),
-				std::stoi(lineParams[4])
+				(uint8_t)std::stoi(lineParams[1]),
+				(uint8_t)std::stoi(lineParams[2]),
+				(uint8_t)std::stoi(lineParams[3]),
+				(uint8_t)std::stoi(lineParams[4])
 				};
 
 				break;

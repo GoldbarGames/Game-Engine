@@ -1,4 +1,7 @@
+#ifndef DOOR_H
+#define DOOR_H
 #pragma once
+
 #include "Entity.h"
 
 class Door : public Entity
@@ -6,7 +9,6 @@ class Door : public Entity
 	Vector2 destination = Vector2(0, 0);
 	bool isLocked = false;
 public:	
-	int spriteIndex = 0;
 	Door(Vector2 pos, Vector2 dest);
 	~Door();
 	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
@@ -20,3 +22,4 @@ public:
 	void Save(std::ostringstream& level);
 };
 
+#endif

@@ -1,4 +1,7 @@
+#ifndef CUTSCENETRIGGER_H
+#define CUTSCENETRIGGER_H
 #pragma once
+
 #include "Entity.h"
 
 class CutsceneTrigger : public Entity
@@ -17,3 +20,4 @@ public:
 	const SDL_Rect* GetBounds();
 };
 
+#endif

@@ -1,10 +1,12 @@
+#ifndef BLOCK_H
+#define BLOCK_H
 #pragma once
+
 #include "Entity.h"
 
 class Block : public Entity
 {
 public:
-	int spriteIndex = 0;
 	Block(Vector2 pos);
 	~Block();
 
@@ -15,3 +17,5 @@ public:
 
 	void Save(std::ostringstream& level);
 };
+
+#endif

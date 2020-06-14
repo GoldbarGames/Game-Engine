@@ -1,10 +1,12 @@
+#ifndef SHROOM_H
+#define SHROOM_H
 #pragma once
-#include "PhysicsEntity.h"
+
+#include "Entity.h"
+
 class Shroom : public Entity
 {
 public:
-	int spriteIndex = 0;
-
 	Shroom(Vector2 pos);
 	~Shroom();
 
@@ -13,3 +15,4 @@ public:
 	void OnTriggerEnter(Entity* other, Game& game);
 };
 
+#endif

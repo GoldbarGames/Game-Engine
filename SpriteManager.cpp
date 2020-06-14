@@ -2,6 +2,7 @@
 #include "SpriteManager.h"
 #include "physfs.h"
 #include "Animator.h"
+#include "Sprite.h"
 #include <sstream>
 #include <iterator>
 

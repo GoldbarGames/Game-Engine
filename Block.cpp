@@ -1,6 +1,7 @@
 #include "Block.h"
 #include "Renderer.h"
 #include "Game.h"
+#include "PhysicsInfo.h"
 
 Block::Block(Vector2 pos) : Entity(pos)
 {
@@ -10,7 +11,7 @@ Block::Block(Vector2 pos) : Entity(pos)
 	drawOrder = 10;
 	impassable = true;
 	
-	physics = new PhysicsEntity(this);
+	physics = new PhysicsInfo(this);
 	physics->mass = 5;
 	physics->canBePushed = true;
 	physics->useGravity = true;

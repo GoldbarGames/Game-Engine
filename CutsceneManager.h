@@ -1,4 +1,7 @@
+#ifndef CUTSCENEMANAGER_H
+#define CUTSCENEMANAGER_H
 #pragma once
+
 #include "Textbox.h"
 #include <fstream>
 #include <iostream>
@@ -164,3 +167,5 @@ public:
 	void SaveGlobalVariable(unsigned int key, const std::string& value);
 	std::vector<string> GetVectorOfStringsFromFile(const char* filepath);
 };
+
+#endif

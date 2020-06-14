@@ -1,3 +1,5 @@
+#ifndef GAME_H
+#define GAME_H
 #pragma once
 
 #include "SDL.h"
@@ -264,3 +266,4 @@ public:
 	void SaveScreenshot(std::string filepath="");
 };
 
+#endif

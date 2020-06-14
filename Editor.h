@@ -1,9 +1,10 @@
+#ifndef EDITOR_H
+#define EDITOR_H
 #pragma once
+
 #include "SDL.h"
 #include <SDL_image.h>
 #include <SDL_ttf.h>
-#include <GL/glew.h>
-#include "editor_state.h"
 #include "globals.h"
 #include <string>
 #include <vector>
@@ -159,3 +160,4 @@ public:
 	void CreateLevelFromString(std::string level);
 };
 
+#endif

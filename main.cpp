@@ -7,6 +7,7 @@
 
 #include "Game.h"
 #include "Test.h"
+#include "globals.h"
 
 static unsigned int allocationCount = 0;
 

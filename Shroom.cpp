@@ -1,5 +1,6 @@
 #include "Shroom.h"
 #include "Game.h"
+#include "PhysicsInfo.h"
 
 Shroom::Shroom(Vector2 pos) : Entity(pos)
 {
@@ -11,7 +12,7 @@ Shroom::Shroom(Vector2 pos) : Entity(pos)
 	impassable = false;
 	trigger = true;
 
-	physics = new PhysicsEntity(this);
+	physics = new PhysicsInfo(this);
 	physics->canBePushed = false;
 	physics->standAboveGround = true;
 	physics->mass = 5;

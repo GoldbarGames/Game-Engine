@@ -1,3 +1,5 @@
+#ifndef EDITORBUTTON_H
+#define EDITORBUTTON_H
 #pragma once
 
 #include <SDL.h>
@@ -38,3 +40,4 @@ public:
 	bool IsPointInsideButton(const int& x, const int& y);
 };
 
+#endif

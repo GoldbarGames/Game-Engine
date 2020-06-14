@@ -1,3 +1,5 @@
+#ifndef GLOBALS_H
+#define GLOBALS_H
 #pragma once
 
 #include <vector>
@@ -9,11 +11,14 @@ const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
 enum class DrawingLayer { BACK = 0, MIDDLE = 10, OBJECT = 20, COLLISION = 30, COLLISION2 = 35, FRONT = 40 };
 
+static bool modeDebug = false;
+static bool modeEdit = false;
+
 struct Color {
-	int r = 0;
-	int g = 0;
-	int b = 0;
-	int a = 0;
+	uint8_t r = 0;
+	uint8_t g = 0;
+	uint8_t b = 0;
+	uint8_t a = 0;
 
 	bool operator==(const Color& other) const
 	{
@@ -62,3 +67,20 @@ inline std::string& Trim(std::string& s, const char* t = " \t\n\r\f\v")
 	return LTrim(RTrim(s, t), t);
 }
 
+inline void SetModeEdit(bool b) {
+	modeEdit = b;
+}
+
+inline bool GetModeEdit() {
+	return modeEdit;
+}
+
+inline void SetModeDebug(bool b) {
+	modeDebug = b;
+}
+
+inline bool GetModeDebug() {
+	return modeDebug;
+}
+
+#endif

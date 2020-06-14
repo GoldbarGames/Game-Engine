@@ -1,4 +1,7 @@
+#ifndef SDL_HELPERS_H
+#define SDL_HELPERS_H
 #pragma once
+
 #include <stdio.h>
 #include <string>
 #include <SDL.h>
@@ -62,3 +65,5 @@ int invertSDLSurfaceVertically(SDL_Surface* surface)
 
 	return 0;
 }
+
+#endif

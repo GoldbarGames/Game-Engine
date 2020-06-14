@@ -64,7 +64,7 @@ void EditorButton::Render(Renderer* renderer)
 	if (isClicked)
 		image->color = { 128, 128, 128, 255 };
 	else if (isHovered)
-		image->color = { 384, 384, 384, 255 };
+		image->color = { 184, 184, 184, 255 };
 	else
 		image->color = { 255, 255, 255, 255 };
 

@@ -1,6 +1,9 @@
 #include "Background.h"
 #include "BackgroundLayer.h"
 #include "Game.h"
+#include "SpriteManager.h"
+#include "Entity.h"
+#include "Vector2.h"
 
 //TODO: Probably remove this entire class, refactor it away
 

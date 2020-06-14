@@ -1,7 +1,7 @@
 #include "tile.h"
-#include "debug_state.h"
 #include "globals.h"
 #include "Game.h"
+#include "Texture.h"
 
 using std::string;
 

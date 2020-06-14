@@ -1,12 +1,15 @@
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <stdexcept>
+
 #include "CutsceneCommands.h"
 #include "CutsceneManager.h"
 #include "Game.h"
 #include "Timer.h"
 #include "Animator.h"
-#include <iostream>
-#include <iterator>
-#include <sstream>
-#include <stdexcept>
+#include "PhysicsInfo.h"
+
 
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 
@@ -1304,10 +1307,10 @@ int CutsceneCommands::LoadTextFromSaveFile(CutsceneParameters parameters)
 	index++;
 
 	Color textColor = {
-		std::stoi(parameters[index]),
-		std::stoi(parameters[index + 1]),
-		std::stoi(parameters[index + 2]),
-		std::stoi(parameters[index + 3]),
+		(uint8_t)std::stoi(parameters[index]),
+		(uint8_t)std::stoi(parameters[index + 1]),
+		(uint8_t)std::stoi(parameters[index + 2]),
+		(uint8_t)std::stoi(parameters[index + 3]),
 	};
 
 	if (manager->images[imageNumber] != nullptr)
@@ -1446,8 +1449,10 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 
 	if (spriteProperty == "color")
 	{
-		Color color = { ParseNumberValue(parameters[3]), ParseNumberValue(parameters[4]),
-			ParseNumberValue(parameters[5]), ParseNumberValue(parameters[6]) };
+		Color color = { (uint8_t)ParseNumberValue(parameters[3]), 
+			(uint8_t)ParseNumberValue(parameters[4]),
+			(uint8_t)ParseNumberValue(parameters[5]), 
+			(uint8_t)ParseNumberValue(parameters[6]) };
 
 		entity->GetSprite()->color = color;
 	}
@@ -1531,13 +1536,13 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 // both by the cutscene system and the level editor properties?
 int CutsceneCommands::SetVelocity(CutsceneParameters parameters)
 {
-	PhysicsEntity* entity = nullptr;
+	PhysicsInfo* entity = nullptr;
 
 	for (unsigned int i = 0; i < manager->game->entities.size(); i++)
 	{
 		if (manager->game->entities[i]->name == parameters[1])
 		{
-			entity = dynamic_cast<PhysicsEntity*>(manager->game->entities[i]);
+			entity = dynamic_cast<PhysicsInfo*>(manager->game->entities[i]);
 
 			if (entity != nullptr)
 			{
@@ -1695,16 +1700,18 @@ int CutsceneCommands::Fade(CutsceneParameters parameters)
 	{
 		if (parameters.size() > 5)
 		{
-			manager->game->renderer->targetColor = { (int)ParseNumberValue(parameters[2]),
-				(int)ParseNumberValue(parameters[3]),
-				(int)ParseNumberValue(parameters[4]),
-				(int)ParseNumberValue(parameters[5])};
+			manager->game->renderer->targetColor = { 
+				(uint8_t)ParseNumberValue(parameters[2]),
+				(uint8_t)ParseNumberValue(parameters[3]),
+				(uint8_t)ParseNumberValue(parameters[4]),
+				(uint8_t)ParseNumberValue(parameters[5])};
 		}
 		else
 		{
-			manager->game->renderer->targetColor = { (int)ParseNumberValue(parameters[2]),
-				(int)ParseNumberValue(parameters[3]),
-				(int)ParseNumberValue(parameters[4]),
+			manager->game->renderer->targetColor = { 
+				(uint8_t)ParseNumberValue(parameters[2]),
+				(uint8_t)ParseNumberValue(parameters[3]),
+				(uint8_t)ParseNumberValue(parameters[4]),
 				255 };
 		}
 
@@ -1752,17 +1759,19 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 			}
 			else if (parameters.size() == 5)
 			{
-				manager->backlogColor = { (int)ParseNumberValue(parameters[2]),
-					(int)ParseNumberValue(parameters[3]) ,
-					(int)ParseNumberValue(parameters[4]),
+				manager->backlogColor = { 
+					(uint8_t)ParseNumberValue(parameters[2]),
+					(uint8_t)ParseNumberValue(parameters[3]) ,
+					(uint8_t)ParseNumberValue(parameters[4]),
 					255 };
 			}
 			else if(parameters.size() == 6)
 			{
-				manager->backlogColor = { (int)ParseNumberValue(parameters[2]),
-					(int)ParseNumberValue(parameters[3]) ,
-					(int)ParseNumberValue(parameters[4]),
-					(int)ParseNumberValue(parameters[5]) };
+				manager->backlogColor = { 
+					(uint8_t)ParseNumberValue(parameters[2]),
+					(uint8_t)ParseNumberValue(parameters[3]) ,
+					(uint8_t)ParseNumberValue(parameters[4]),
+					(uint8_t)ParseNumberValue(parameters[5]) };
 			}
 		}
 	}

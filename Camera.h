@@ -1,3 +1,5 @@
+#ifndef CAMERA_H
+#define CAMERA_H
 #pragma once
 
 #include <SDL_stdinc.h>
@@ -57,6 +59,7 @@ private:
 	GLfloat movementSpeed = 0;
 	GLfloat turnSpeed = 0;
 
-
 };
+
+#endif
 
