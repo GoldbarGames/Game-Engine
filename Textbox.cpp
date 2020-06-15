@@ -12,16 +12,16 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 
 	fonts["default"] = new FontInfo("fonts/default.ttf", 24);
 
-	fonts["fontSourceCodePro"] = new FontInfo("fonts/source-code-pro/SourceCodePro-Regular.ttf", 24);
+	fonts["SourceCodePro"] = new FontInfo("fonts/source-code-pro/SourceCodePro-Regular.ttf", 24);
 
-	fonts["fontDejaVuSansMono"] = new FontInfo("fonts/dejavu-sans-mono/DejaVuSansMono.ttf", 24);
+	fonts["DejaVuSansMono"] = new FontInfo("fonts/dejavu-sans-mono/DejaVuSansMono.ttf", 24);
 
-	fonts["fontSpaceMono"] = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
-	fonts["fontSpaceMono"]->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
-	fonts["fontSpaceMono"]->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
-	fonts["fontSpaceMono"]->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
+	fonts["SpaceMono"] = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+	fonts["SpaceMono"]->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
+	fonts["SpaceMono"]->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
+	fonts["SpaceMono"]->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 
-	currentFontInfo = fonts["fontSpaceMono"];
+	currentFontInfo = fonts["SpaceMono"];
 
 	//TODO: Should we have a way to define the starting box position?
 	boxObject = new Entity(Vector2(1280, 720));

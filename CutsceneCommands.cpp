@@ -86,15 +86,17 @@ std::vector<FuncLUT>cmd_lut = {
 // - what about animations that involve each frame being its own file?
 // - custom timers (we'll deal with this when we handle blinking animations)
 
+// Set text alignment via command (textbox and text-sprite)
+// Y alignment (top / center / bottom)
 // * Change screen resolution (TODO: See camera.cpp constructor)
 // Settings screen (sound volume, text speed, etc.)
 // Check if a file exists (fileexist assets/myfile.png %0)
 // Custom key bindings (advance text, backlog, etc.)
 
 // Animations for images in the textbox, as well as the textbox and namebox themselves
-// Create new font from file
-// Custom colors for backlog text
-// Bool for whether a line of text has been previously read
+// + Create new font from file
+// + Custom colors for backlog text
+// + Bool for whether a line of text has been previously read (TODO: Save/load it)
 
 // Change location of save data
 // Alpha image effects (apply alpha mask using shader to texture, entire screen?)
@@ -658,6 +660,12 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 
 int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 {
+	if (parameters[1] == "bg")
+	{
+		choiceBGFilePath = ParseStringValue(parameters[2]);
+		return 0;
+	}
+
 	unsigned int numberOfChoices = ParseNumberValue(parameters[1]);
 
 	int index = 2;
@@ -1137,7 +1145,7 @@ unsigned int CutsceneCommands::ParseNumberValue(const std::string& parameter)
 	unsigned int value = 0;
 
 	// Get the variable number to store the result in
-	if (parameter[0] == '%')
+	if (parameter[0] == '%' || parameter[0] == '$')
 		value = GetNumberVariable(GetNumAlias(parameter.substr(1, parameter.size() - 1)));
 	else
 		value = GetNumAlias(parameter);
@@ -1751,6 +1759,10 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 			manager->backlogMaxSize = ParseNumberValue(parameters[2]);
 			//TODO: Save this to a settings file
 		}
+		else if (parameters[1] == "pages")
+		{
+			manager->backlogMaxSize = ParseNumberValue(parameters[2]);
+		}
 		else if (parameters[1] == "color")
 		{
 			if (parameters[2][0] == '#')
@@ -2074,7 +2086,54 @@ int CutsceneCommands::ErrorLog(CutsceneParameters parameters)
 
 int CutsceneCommands::FontCommand(CutsceneParameters parameters)
 {
-	//TODO: Load fonts from files
+	// Load fonts from files
+
+	if (manager->textbox->fonts.count(parameters[1]) == 1)
+	{
+		delete manager->textbox->fonts[parameters[1]];
+	}
+
+	manager->textbox->fonts[parameters[1]] = new FontInfo((parameters[2] + "/" + parameters[1] + "-Regular.ttf").c_str(), 24);
+	manager->textbox->fonts[parameters[1]]->SetBoldFont((parameters[2] + "/" + parameters[1] + "-Bold.ttf").c_str());
+	manager->textbox->fonts[parameters[1]]->SetItalicsFont((parameters[2] + "/" + parameters[1] + "-Italic.ttf").c_str());
+	manager->textbox->fonts[parameters[1]]->SetBoldItalicsFont((parameters[2] + "/" + parameters[1] + "-BoldItalic.ttf").c_str());
+
+	return 0;
+}
+
+int CutsceneCommands::GetResourceFilename(CutsceneParameters parameters)
+{
+	// getfilename $myvar bgm
+	unsigned int varNum = ParseNumberValue(parameters[1]);
+
+	if (parameters[2] == "bgm")
+	{
+		stringVariables[varNum] = manager->game->soundManager->bgmFilepath;
+	}
+	else if (parameters[2] == "sound")
+	{
+		stringVariables[varNum] = manager->game->soundManager->sounds[ParseNumberValue(parameters[3])]->sound->filepath;
+	}
+	else if (parameters[2] == "sprite")
+	{
+		stringVariables[varNum] = manager->images[ParseNumberValue(parameters[3])]->GetSprite()->filename;
+	}
+	else if (parameters[2] == "script")
+	{
+		stringVariables[varNum] = manager->currentScript;
+	}
+	else if (parameters[2] == "level")
+	{
+		stringVariables[varNum] = manager->game->currentLevel;
+	}
+	else if (parameters[2] == "label")
+	{
+		stringVariables[varNum] = manager->currentLabel->name;
+	}
+	else if (parameters[2] == "text")
+	{
+		stringVariables[varNum] = manager->textbox->text->txt;
+	}
 
 	return 0;
 }

@@ -26,6 +26,7 @@ public:
 	std::string text = "";
 	std::string speaker = "";
 	std::vector<std::string> commands;
+	bool seen = false;
 
 	SceneLine(std::string txt = "", std::string name = "")
 	{
@@ -91,6 +92,7 @@ class CutsceneManager
 	std::string data = "";
 	std::string currentText = "";
 public:	 
+	std::string currentScript = "";
 	CutsceneCommands commands;
 	bool useMouseControls = true;
 	bool useKeyboardControls = true;
@@ -140,6 +142,7 @@ public:
 	Timer nextLetterTimer;
 	CutsceneManager(Game& g);
 	void ParseScene();
+	void ParseConfig(const char* configName);
 	void Update();
 	void Render(Renderer* renderer);
 	SceneLabel* JumpToLabel(const char* newLabelName);

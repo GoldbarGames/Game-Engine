@@ -32,6 +32,7 @@ public:
 	// When you press the button, jump to the corresponding label
 	std::unordered_map<unsigned int, std::string> buttonLabels;
 
+	std::string choiceBGFilePath = "";
 	std::string pathPrefix = "";
 	int randomSeed = 0;
 
@@ -132,6 +133,8 @@ public:
 	int ErrorLog(CutsceneParameters parameters);
 
 	int FontCommand(CutsceneParameters parameters);
+
+	int GetResourceFilename(CutsceneParameters parameters);
 	
 };
 

@@ -22,7 +22,7 @@ CutsceneManager::CutsceneManager(Game& g)
 
 	std::ifstream fin;
 
-	bool testVN = false;
+	bool testVN = true;
 	std::string directory = "";
 	std::string line = "";
 
@@ -36,7 +36,8 @@ CutsceneManager::CutsceneManager(Game& g)
 	if (testVN)
 	{
 		commands.pathPrefix = "assets\\arc\\";
-		directory = "data/" + language + "/butler1.txt";
+		currentScript = "butler1";
+		directory = "data/" + language + "/" + currentScript + ".txt";
 
 		fin.open(directory);
 
@@ -57,7 +58,8 @@ CutsceneManager::CutsceneManager(Game& g)
 	else
 	{
 		commands.pathPrefix = "";
-		directory = "data/" + language + "/cutscenes.txt";
+		currentScript = "cutscenes";
+		directory = "data/" + language + "/" + currentScript + ".txt";
 
 		fin.open(directory);
 
@@ -324,7 +326,25 @@ void CutsceneManager::ParseScene()
 		}			
 
 	} while (index < data.length());
+
+	ParseConfig("define");
 }
+
+
+
+void CutsceneManager::ParseConfig(const char* configName)
+{
+	int cmdIndex = 0;
+
+	SceneLabel* configLabel = JumpToLabel(configName);
+
+	while (cmdIndex < configLabel->lines[0]->commands.size())
+	{
+		commands.ExecuteCommand(configLabel->lines[0]->commands[cmdIndex]);
+		cmdIndex++;
+	}
+}
+
 
 
 void CutsceneManager::Render(Renderer * renderer)
@@ -517,19 +537,24 @@ void CutsceneManager::ReadNextLine()
 
 	if (currentLabel != nullptr)
 	{
+		//TODO: Save this data somehow
+		if (lineIndex >= 0 && lineIndex < currentLabel->lines.size())
+		{
+			currentLabel->lines[lineIndex]->seen = true;
+		}
+			
+
 		//TODO: Make sure to save the backlog when we save the game
 		if (lineIndex >= 0 && labelIndex >= 0)
 		{
 			backlog.push_back(new BacklogData(labelIndex, lineIndex, currentText.c_str()));
 		}
-			
 
 		if (backlog.size() > backlogMaxSize)
 		{
 			delete backlog[0];
 			backlog.erase(backlog.begin());
 		}
-			
 		
 		lineIndex++;	
 		currentText = "";
