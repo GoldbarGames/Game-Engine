@@ -3,6 +3,22 @@
 #include "Sprite.h"
 #include "FontInfo.h"
 
+void Text::SetColor(Color newColor)
+{
+	if (isRichText)
+	{
+		for (int i = 0; i < glyphs.size(); i++)
+		{
+			if (glyphs[i]->sprite != nullptr)
+				glyphs[i]->sprite->color = newColor;
+		}
+	}
+	else if (currentSprite != nullptr)
+	{
+		currentSprite->color = newColor;
+	}
+}
+
 int Text::GetTextWidth() 
 { 
 	int width = 1;
@@ -215,7 +231,7 @@ Texture* Text::GetTexture(TTF_Font* f, char c, SDL_Color col)
 {	
 	GlyphSurfaceData data;
 	data.fontName = TTF_FontFaceStyleName(f);
-	data.glyph = c;
+	data.glyph = c; //TODO: What happens if this is /0?
 	data.color = col;
 
 	if (glyphTextures[data].get() == nullptr)

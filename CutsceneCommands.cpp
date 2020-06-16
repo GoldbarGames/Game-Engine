@@ -112,14 +112,14 @@ std::vector<FuncLUT>cmd_lut = {
 // - set the zoom factor, the projection stuff, perspective, etc.
 // Quake horizontal, vertical, both
 
-// Get name of active resources:
-// - filename of bgm playing
-// - filename of sound in channel
-// - filename of sprite in loaded entity
-// - filename of current script
-// - name of current level
-// - name of current label
-// - current text
+// + Get name of active resources:
+// + filename of bgm playing
+// + filename of sound in channel
+// + filename of sprite in loaded entity
+// + filename of current script
+// + name of current level
+// + name of current label
+// + current text
 
 // + Output error logs
 // Proper syntax checking and error handling
@@ -299,32 +299,45 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 				{
 					commandFound = true;
 
-					//			myfunction 123 [test] 456  <-- parameters
-					// defsub	myfunction %0  $45	  %33  <-- definition
-
-					// Grab parameters and place their values in the corresponding variables
-					for (int i = 0; i < userDefinedFunctions[k]->parameters.size(); i++)
+					bool foundLabel = false;
+					for (int i = 0; i < manager->labels.size(); i++)
 					{
-						int index = GetNumAlias(userDefinedFunctions[k]->parameters[i].substr(1, 
-							userDefinedFunctions[k]->parameters[i].size() - 1));
-
-						// Set values for each variable as defined in the function definition
-						switch (userDefinedFunctions[k]->parameters[i][0])
+						if (manager->labels[i]->name == parameters[0])
 						{
-						case '$':
-							stringVariables[index] = ParseStringValue(parameters[i + 1]);
-							break;
-						case '%':
-							numberVariables[index] = ParseNumberValue(parameters[i + 1]);
-							break;
-						default:
-							// Do nothing, maybe error message?
-							std::cout << "Invalid parameter definition for " << parameters[0] << " function";
+							foundLabel = true;
 							break;
 						}
 					}
 
-					GoSubroutine({ parameters[0], parameters[0] });
+					if (foundLabel)
+					{
+						//			myfunction 123 [test] 456  <-- parameters
+						// defsub	myfunction %0  $45	  %33  <-- definition
+
+						// Grab parameters and place their values in the corresponding variables
+						for (int i = 0; i < userDefinedFunctions[k]->parameters.size(); i++)
+						{
+							int index = GetNumAlias(userDefinedFunctions[k]->parameters[i].substr(1,
+								userDefinedFunctions[k]->parameters[i].size() - 1));
+
+							// Set values for each variable as defined in the function definition
+							switch (userDefinedFunctions[k]->parameters[i][0])
+							{
+							case '$':
+								stringVariables[index] = ParseStringValue(parameters[i + 1]);
+								break;
+							case '%':
+								numberVariables[index] = ParseNumberValue(parameters[i + 1]);
+								break;
+							default:
+								// Do nothing, maybe error message?
+								std::cout << "Invalid parameter definition for " << parameters[0] << " function";
+								break;
+							}
+						}
+
+						GoSubroutine({ parameters[0], parameters[0] });
+					}
 
 					break;
 				}
@@ -435,12 +448,10 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		{
 		case '$': // string variable
 			leftHandIsNumber = false;
-			word = parameters[index].substr(1, word.size() - 1);
 			leftValueStr = ParseStringValue(word);
 			break;
 		case '%': // number variable
 			leftHandIsNumber = true;
-			word = parameters[index].substr(1, word.size() - 1);
 			leftValueNum = ParseNumberValue(word);
 			break;
 		default:
@@ -464,12 +475,10 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		{
 		case '$': // string variable
 			rightHandIsNumber = false;
-			word = parameters[index].substr(1, word.size() - 1);
 			rightValueStr = ParseStringValue(word);
 			break;
 		case '%': // number variable
 			rightHandIsNumber = true;
-			word = parameters[index].substr(1, word.size() - 1);
 			rightValueNum = ParseNumberValue(word);
 			break;
 		default:
@@ -641,6 +650,12 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 {
 	SceneData* data = manager->PopSceneDataFromStack();
 
+	if (data == nullptr)
+	{		
+		manager->game->logger->Log("ERROR: Nowhere to return to!");
+		return -3;
+	}
+
 	// Check the label name to see if it is a variable
 	const std::string labelName = ParseStringValue(data->labelName);
 
@@ -696,8 +711,13 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 
 		// Make the text sprite act as a button
 		SetSpriteButton({ "", choiceNumber , choiceNumber });
+		if (i == 0)
+		{
+			manager->images[std::stoi(choiceNumber)]->SetColor({ 255, 255, 0, 255 });
+		}
 
 		// Wait for button input
+		//TODO: Why is this number hard-coded to 42?
 		std::string variableNumber = std::to_string(42);
 		WaitForButton({ "",  variableNumber });
 
@@ -758,20 +778,15 @@ int CutsceneCommands::SetSpriteButton(CutsceneParameters parameters)
 
 int CutsceneCommands::GoToLabel(CutsceneParameters parameters)
 {
-	// Check the label name to see if it is a variable
-	manager->PlayCutscene(ParseStringValue(parameters[1]).c_str());
-
-	/*
-	switch (parameters[1][0])
+	if (parameters[1][0] == '*') // remove leading * if there is one
 	{
-	case '$': // string variable
-		manager->PlayCutscene(GetStringVariable(GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1))).c_str());
-		break;
-	default:
-		manager->PlayCutscene(parameters[1].c_str());
-		break;
+		manager->PlayCutscene(ParseStringValue(parameters[1].substr(1, parameters[1].size() - 1)).c_str());
 	}
-	*/
+	else
+	{
+		// Check the label name to see if it is a variable
+		manager->PlayCutscene(ParseStringValue(parameters[1]).c_str());
+	}
 
 	return 0;
 }

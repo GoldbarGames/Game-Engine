@@ -100,6 +100,8 @@ public:
 
 	virtual void Save(std::ostringstream& level);
 
+	virtual void SetColor(Color newColor);
+
 };
 
 #endif 

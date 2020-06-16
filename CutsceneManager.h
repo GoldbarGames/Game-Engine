@@ -108,7 +108,7 @@ public:
 	unsigned int globalStart = 1000; //TODO: Should this be a config variable?
 	//TODO: Move these button configurations to some place more relevant
 	// This class should have a reference to the controller and get the bindings from it
-	SDL_Scancode skipButton = SDL_Scancode::SDL_SCANCODE_LCTRL;
+	SDL_Scancode skipButton = SDL_Scancode::SDL_SCANCODE_LCTRL; //TODO: multiple buttons?
 	SDL_Scancode autoButton = SDL_Scancode::SDL_SCANCODE_A;
 	std::vector<SceneLabel*> labels;
 	SceneLabel* currentLabel = nullptr;

@@ -40,6 +40,8 @@ Game::Game()
 {
 	startOfGame = std::chrono::steady_clock::now();
 
+	logger = new Logger("logs/output.log");
+
 	InitSDL();
 
 	renderer = new Renderer();
@@ -70,8 +72,6 @@ Game::Game()
 	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager)
 	cutscene = new CutsceneManager(*this);
 	cutscene->ParseScene();
-
-	logger = new Logger("logs/output.log");
 
 	//ShaderProgram* shader = renderer->shaders[ShaderName::Default];
 

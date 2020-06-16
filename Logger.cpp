@@ -2,6 +2,7 @@
 #include <chrono>
 #include <ctime> 
 #include <string>
+#include <iostream>
 
 Logger::Logger(const char* filename)
 {
@@ -20,6 +21,11 @@ Logger::~Logger()
 
 void Logger::Log(const char* message)
 {
+	if (shouldPrintMessage)
+	{
+		std::cout << message << std::endl;
+	}
+
 	if (file.is_open())
 	{
 		std::time_t endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());

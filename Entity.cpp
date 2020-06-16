@@ -162,6 +162,11 @@ Sprite* Entity::GetSprite()
 	return currentSprite;
 }
 
+void Entity::SetColor(Color newColor)
+{
+	currentSprite->color = newColor;
+}
+
 const SDL_Rect* Entity::GetBounds()
 {
 	//if (collisionBounds == nullptr)

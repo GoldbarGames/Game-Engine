@@ -307,7 +307,7 @@ void CutsceneManager::ParseScene()
 		// add an empty text to that line
 		if (commands.size() > 0)
 		{
-			SceneLine* tempLine = new SceneLine("", "");
+			SceneLine* tempLine = new SceneLine(" ", " ");
 			for (unsigned int i = 0; i < commands.size(); i++)
 			{
 				//std::cout << tempCommands[i] << std::endl;
@@ -338,10 +338,17 @@ void CutsceneManager::ParseConfig(const char* configName)
 
 	SceneLabel* configLabel = JumpToLabel(configName);
 
-	while (cmdIndex < configLabel->lines[0]->commands.size())
+	if (configLabel != nullptr)
 	{
-		commands.ExecuteCommand(configLabel->lines[0]->commands[cmdIndex]);
-		cmdIndex++;
+		while (cmdIndex < configLabel->lines[0]->commands.size())
+		{
+			commands.ExecuteCommand(configLabel->lines[0]->commands[cmdIndex]);
+			cmdIndex++;
+		}
+	}
+	else
+	{
+		game->logger->Log("No configuration label found!");
 	}
 }
 
@@ -460,7 +467,9 @@ void CutsceneManager::PlayCutscene(const char* labelName)
 
 		// if failed to load label, exit cutscenes
 		if (currentLabel == nullptr)
+		{
 			watchingCutscene = false;
+		}			
 
 		lineIndex = -1;
 
@@ -491,6 +500,11 @@ void CutsceneManager::PushCurrentSceneDataToStack()
 
 SceneData* CutsceneManager::PopSceneDataFromStack()
 {
+	if (gosubStack.size() == 0)
+	{
+		return nullptr;
+	}		
+
 	SceneData* data = gosubStack[gosubStack.size() - 1];
 	gosubStack.pop_back();
 
@@ -541,8 +555,7 @@ void CutsceneManager::ReadNextLine()
 		if (lineIndex >= 0 && lineIndex < currentLabel->lines.size())
 		{
 			currentLabel->lines[lineIndex]->seen = true;
-		}
-			
+		}			
 
 		//TODO: Make sure to save the backlog when we save the game
 		if (lineIndex >= 0 && labelIndex >= 0)
@@ -562,9 +575,19 @@ void CutsceneManager::ReadNextLine()
 
 		if (lineIndex >= currentLabel->lines.size())
 		{
-			watchingCutscene = false;
+			//watchingCutscene = false;
+
 			//TODO: Maybe instead of ending the cutscene,
 			// go to the next label in sequence?
+			//TODO: Set a variable to toggle between these modes
+
+			if (labelIndex < labels.size() - 1)
+			{
+				labelIndex++;
+				currentLabel = JumpToLabel(labels[labelIndex]->name.c_str());
+				lineIndex = -1;
+				ReadNextLine();
+			}
 		}
 		else
 		{
@@ -676,23 +699,23 @@ void CutsceneManager::Update()
 		{
 			if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
 			{
-				images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 255, 255 };
+				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 255, 255 });
 				buttonIndex--;
 				if (buttonIndex < 0)
 					buttonIndex = activeButtons.size() - 1;
-				images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 0, 255 };
+				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
 				inputTimer.Start(inputTimeToWait);
 			}
 			else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
 			{
-				images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 255, 255 };
+				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 255, 255 });
 				buttonIndex++;
 				if (buttonIndex >= activeButtons.size())
 					buttonIndex = 0;
-				images[activeButtons[buttonIndex]]->GetSprite()->color = { 255, 255, 0, 255 };
+				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
 				inputTimer.Start(inputTimeToWait);
 			}
-			else if (input[SDL_SCANCODE_SPACE])
+			else if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN])
 			{
 				// Return the result in the specified variable and resume reading
 				// TODO: This can be buggy if the btnwait variable is not reset beforehand

@@ -8,7 +8,7 @@ class Logger
 {
 public:
 	std::ofstream file;
-
+	bool shouldPrintMessage = true;
 	Logger(const char* filename);
 	~Logger();
 	void Log(const char* message);
