@@ -92,6 +92,7 @@ class CutsceneManager
 	std::string data = "";
 	std::string currentText = "";
 public:	 
+	bool overwriteName = true;
 	std::string currentScript = "";
 	CutsceneCommands commands;
 	bool useMouseControls = true;
@@ -169,6 +170,9 @@ public:
 	void SaveGlobalVariable(unsigned int key, unsigned int value);
 	void SaveGlobalVariable(unsigned int key, const std::string& value);
 	std::vector<string> GetVectorOfStringsFromFile(const char* filepath);
+
+	SceneLabel* GetCurrentLabel();
+	SceneLine* GetCurrentLine();
 };
 
 #endif

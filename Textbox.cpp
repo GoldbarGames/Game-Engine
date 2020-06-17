@@ -175,7 +175,11 @@ void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& scr
 	{
 		//TODO: Make sure the position is in the center of the screen
 		boxObject->Render(renderer);
-		nameObject->Render(renderer);
+		
+		if (speaker->txt != "" && speaker->txt != " ")
+		{
+			nameObject->Render(renderer);
+		}
 
 		if (text != nullptr)
 		{

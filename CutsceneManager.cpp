@@ -640,6 +640,30 @@ void CutsceneManager::ReadBacklog()
 	}
 }
 
+SceneLabel* CutsceneManager::GetCurrentLabel()
+{
+	if (labelIndex >= 0 && labelIndex < labels.size())
+		return labels[labelIndex];
+	else
+		return nullptr;
+}
+
+SceneLine* CutsceneManager::GetCurrentLine()
+{
+	SceneLabel* label = GetCurrentLabel();
+	if (label != nullptr)
+	{
+		if (lineIndex >= 0 && lineIndex < label->lines.size())
+			return label->lines[lineIndex];
+		else
+			nullptr;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 void CutsceneManager::Update()
 {
 	for (auto const& [key, image] : images)

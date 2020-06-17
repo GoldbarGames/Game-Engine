@@ -135,7 +135,14 @@ public:
 	int FontCommand(CutsceneParameters parameters);
 
 	int GetResourceFilename(CutsceneParameters parameters);
-	
+	int NameCommand(CutsceneParameters parameters);
+
+	int IntToString(CutsceneParameters parameters);
+
+	int IncrementVariable(CutsceneParameters parameters);
+	int DecrementVariable(CutsceneParameters parameters);
+
+	int Output(CutsceneParameters parameters);
 };
 
 #endif

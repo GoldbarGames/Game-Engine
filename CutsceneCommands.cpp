@@ -32,6 +32,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"cl", &CutsceneCommands::ClearSprite },
 	{"concat", &CutsceneCommands::ConcatenateStringVariables},
 	{"ctc", &CutsceneCommands::SetClickToContinue},
+	{"dec", &CutsceneCommands::DecrementVariable},
 	{"defsub", &CutsceneCommands::DefineUserFunction},
 	{"div", &CutsceneCommands::DivideNumberVariables},
 	{"end", &CutsceneCommands::EndGame },
@@ -43,6 +44,8 @@ std::vector<FuncLUT>cmd_lut = {
 	{"gosub", &CutsceneCommands::GoSubroutine },
 	{"goto", &CutsceneCommands::GoToLabel },
 	{"if", &CutsceneCommands::IfCondition },
+	{"inc", &CutsceneCommands::IncrementVariable},
+	{"itoa", &CutsceneCommands::IntToString },
 	{"jumpb", &CutsceneCommands::JumpBack },
 	{"jumpf", &CutsceneCommands::JumpForward },
 	{"keybind", &CutsceneCommands::BindKeyToLabel },
@@ -53,6 +56,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"mod", &CutsceneCommands::ModNumberVariables},
 	{"mov", &CutsceneCommands::MoveVariables},
 	{"mul", &CutsceneCommands::MultiplyNumberVariables},
+	{"name", &CutsceneCommands::NameCommand},
 	{"namebox", &CutsceneCommands::Namebox},
 	{"numalias", &CutsceneCommands::SetNumAlias },
 	{"random", &CutsceneCommands::RandomNumberVariable },
@@ -66,7 +70,8 @@ std::vector<FuncLUT>cmd_lut = {
 	{"setnumvar", &CutsceneCommands::SetNumberVariable },
 	{"setstrvar", &CutsceneCommands::SetStringVariable },
 	{"spbtn", &CutsceneCommands::SetSpriteButton},
-	{"sprite", &CutsceneCommands::SetSpriteProperty },	
+	{"sprite", &CutsceneCommands::SetSpriteProperty },
+	{"stdout", &CutsceneCommands::Output },
 	{"stralias", &CutsceneCommands::SetStringAlias },
 	{"sub", &CutsceneCommands::SubtractNumberVariables},
 	{"text", &CutsceneCommands::LoadText },
@@ -77,6 +82,16 @@ std::vector<FuncLUT>cmd_lut = {
 	{"window", &CutsceneCommands::WindowFunction }
 };
 
+//TODO: Issues:
+// * parse commas as well as spaces
+// - parse multiple commands on the same line with :
+// * parse quotes/brackets for strings
+// - use concat when add is called on a string
+// - global variables not getting updated properly
+// - name in box should grab from a map of shorthand to full name (namedef but Butler; namedef bu2 Butler;)
+
+// TODO: If a global variable (or maybe even local) is saved when the value is empty string
+// this causes a vector subscript out of range issue when loading it
 
 // TODO: Implement these commands:
 
@@ -197,11 +212,23 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 
 	// Break up the command string into a vector of strings, one word each
 	//TODO: Is this the best way to do this?
-	std::stringstream ss(command);
-	std::istream_iterator<std::string> begin(ss);
-	std::istream_iterator<std::string> end;
+	//std::stringstream ss(command);
+	//std::istream_iterator<std::string> begin(ss);
+	//std::istream_iterator<std::string> end;
+	//std::vector<std::string> parameters(begin, end);
 
-	std::vector<std::string> parameters(begin, end);
+	std::istringstream ss(command);
+	std::string token;
+	std::vector<std::string> parameters;
+	char delimit = (command.find(',') != std::string::npos) ? ',' : ' ';
+
+	while (std::getline(ss, token, delimit))
+	{
+		if (token != "")
+		{
+			parameters.push_back(token);
+		}
+	}
 
 	/*
 	std::vector<std::string> parameters;
@@ -594,7 +621,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		}
 		else // else exit, do nothing
 		{
-			return -2;
+			return 0;
 		}
 
 	} while (!conditionIsTrue);
@@ -879,7 +906,8 @@ int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 	return 0;
 }
 
-
+//TODO: Check and see if both parameters are strings.
+// If so, then call the function that adds strings together
 int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 {
 	unsigned int key = 0;
@@ -1151,6 +1179,8 @@ std::string CutsceneCommands::ParseStringValue(const std::string& parameter)
 		value = GetStringVariable(GetNumAlias(parameter.substr(1, parameter.size() - 1)));
 	else
 		value = GetStringAlias(parameter);
+
+	value.erase(std::remove(value.begin(), value.end(), '\"'), value.end());
 
 	return value;
 }
@@ -1585,6 +1615,21 @@ int CutsceneCommands::Wait(CutsceneParameters parameters)
 	int ms = ParseNumberValue(parameters[1]);
 	manager->timer -= ms;
 	manager->textbox->isReading = false;
+	return 0;
+}
+
+// name NAME
+int CutsceneCommands::NameCommand(CutsceneParameters parameters)
+{
+	manager->overwriteName = false;
+	manager->textbox->speaker->SetText(ParseStringValue(parameters[1]));
+
+	SceneLine* line = manager->GetCurrentLine();
+	if (line != nullptr)
+	{
+		line->speaker = ParseStringValue(parameters[1]);
+	}
+
 	return 0;
 }
 
@@ -2148,6 +2193,39 @@ int CutsceneCommands::GetResourceFilename(CutsceneParameters parameters)
 	else if (parameters[2] == "text")
 	{
 		stringVariables[varNum] = manager->textbox->text->txt;
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::IntToString(CutsceneParameters parameters)
+{
+	int stringVariableIndex = ParseNumberValue(parameters[1]);
+	stringVariables[stringVariableIndex] = std::to_string(ParseNumberValue(parameters[2]));
+	return 0;
+}
+
+int CutsceneCommands::IncrementVariable(CutsceneParameters parameters)
+{
+	numberVariables[ParseNumberValue(parameters[1])]++;
+	return 0;
+}
+
+int CutsceneCommands::DecrementVariable(CutsceneParameters parameters)
+{
+	numberVariables[ParseNumberValue(parameters[1])]--;
+	return 0;
+}
+
+int CutsceneCommands::Output(CutsceneParameters parameters)
+{
+	if (parameters[1] == "str")
+	{
+		std::cout << parameters[2] << ": " << ParseStringValue(parameters[2]) << std::endl;
+	}
+	else if (parameters[1] == "num")
+	{
+		std::cout << parameters[2] << ": " << ParseNumberValue(parameters[2]) << std::endl;
 	}
 
 	return 0;
