@@ -85,6 +85,7 @@ public:
 	int ModNumberVariables(CutsceneParameters parameters);
 	int RandomNumberVariable(CutsceneParameters parameters);
 	int MoveVariables(CutsceneParameters parameters);
+	int SubstringVariables(CutsceneParameters parameters);
 
 	// Control Flow
 	int GoToLabel(CutsceneParameters parameters);
@@ -136,6 +137,7 @@ public:
 
 	int GetResourceFilename(CutsceneParameters parameters);
 	int NameCommand(CutsceneParameters parameters);
+	int NameDefineCommand(CutsceneParameters parameters);
 
 	int IntToString(CutsceneParameters parameters);
 

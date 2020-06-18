@@ -57,6 +57,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"mov", &CutsceneCommands::MoveVariables},
 	{"mul", &CutsceneCommands::MultiplyNumberVariables},
 	{"name", &CutsceneCommands::NameCommand},
+	{"namedef", &CutsceneCommands::NameDefineCommand},
 	{"namebox", &CutsceneCommands::Namebox},
 	{"numalias", &CutsceneCommands::SetNumAlias },
 	{"random", &CutsceneCommands::RandomNumberVariable },
@@ -74,6 +75,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"stdout", &CutsceneCommands::Output },
 	{"stralias", &CutsceneCommands::SetStringAlias },
 	{"sub", &CutsceneCommands::SubtractNumberVariables},
+	{"substr", &CutsceneCommands::SubstringVariables},
 	{"text", &CutsceneCommands::LoadText },
 	{"textbox", &CutsceneCommands::Textbox },
 	{"textcolor", &CutsceneCommands::TextColor },
@@ -82,13 +84,15 @@ std::vector<FuncLUT>cmd_lut = {
 	{"window", &CutsceneCommands::WindowFunction }
 };
 
-//TODO: Issues:
+// TODO: Need to handle instances of : in other spots (like in strings)
 // * parse commas as well as spaces
-// - parse multiple commands on the same line with :
+// * parse multiple commands on the same line with :
 // * parse quotes/brackets for strings
-// - use concat when add is called on a string
-// - global variables not getting updated properly
-// - name in box should grab from a map of shorthand to full name (namedef but Butler; namedef bu2 Butler;)
+// * use concat when add is called on a string
+// * global variables not getting updated properly
+// * name in box should grab from a map of shorthand to full name (namedef but Butler; namedef bu2 Butler;)
+
+//TODO: Commands executed during the same textbox `like`@`this`
 
 // TODO: If a global variable (or maybe even local) is saved when the value is empty string
 // this causes a vector subscript out of range issue when loading it
@@ -573,7 +577,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 				conditionIsTrue = (leftValueStr <= rightValueStr);
 			}
 		}
-		else if (parameters[index] == "==")
+		else if (parameters[index] == "==" || parameters[index] == "=")
 		{
 			if (leftHandIsNumber)
 			{
@@ -601,17 +605,49 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		{
 			index += 2;
 
-			// If all conditions are true, execute the following command
+			// If all conditions are true, execute the following commands
 			if (parameters[index] != "&&")
 			{
 				std::string nextCommand = "";
 				for (int i = index; i < parameters.size(); i++)
 					nextCommand += (parameters[i] + " ");
 
-				// If this is from a choice, don't evaluate any more
-				manager->choiceIfStatements.clear();
+				// split the command into multiple commands if necessary
+				if (nextCommand.find(':') != std::string::npos)
+				{
+					std::vector<std::string> commands;
+					int cmdLetterIndex = 0;
+					int cmdLetterLength = 0;
+					while (cmdLetterIndex < nextCommand.size())
+					{
+						cmdLetterIndex++;
+						cmdLetterLength++;
+						if (nextCommand[cmdLetterIndex] == ':' || cmdLetterIndex >= nextCommand.size())
+						{
+							if (nextCommand != "" && nextCommand != " ")
+							{
+								std::string str = nextCommand.substr((cmdLetterIndex - cmdLetterLength), cmdLetterLength);
+								commands.emplace_back(str);
+								cmdLetterIndex++;
+							}
+							cmdLetterLength = 0;
+						}
+					}
 
-				ExecuteCommand(nextCommand);
+					for (int i = 0; i < commands.size(); i++)
+					{
+						ExecuteCommand(commands[i]);
+					}
+				}
+				else
+				{
+					// If this is from a choice, don't evaluate any more
+					manager->choiceIfStatements.clear();
+
+					ExecuteCommand(nextCommand);
+				}
+
+				
 			}
 			else
 			{
@@ -910,6 +946,12 @@ int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 // If so, then call the function that adds strings together
 int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 {
+	if (parameters[1][0] == '$')
+	{
+		ConcatenateStringVariables({ "concat", parameters[1], parameters[2] });
+		return 0;
+	}
+
 	unsigned int key = 0;
 	unsigned int number1 = 0;
 	unsigned int number2 = 0;
@@ -1060,15 +1102,35 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 	return 0;
 }
 
+int CutsceneCommands::SubstringVariables(CutsceneParameters parameters)
+{
+	unsigned int key = 0;
+
+	if (parameters[1][0] == '$')
+	{
+		key = numalias[parameters[1].substr(1, parameters[1].size() - 1)];
+	}
+	else
+	{
+		key = numalias[parameters[1]];
+	}
+
+	std::string value = ParseStringValue(parameters[2]);
+
+	stringVariables[key] = value.substr(std::stoi(parameters[3]), std::stoi(parameters[4]));
+
+	return 0;
+}
+
 int CutsceneCommands::MoveVariables(CutsceneParameters parameters)
 {
 	if (parameters[1][0] == '$')
 	{
-		SetStringVariable(parameters);
+		SetStringVariable({ "mov", parameters[1].substr(1, parameters[1].size() - 1), parameters[2] });
 	}
 	else if (parameters[1][0] == '%')
 	{
-		SetNumberVariable(parameters);
+		SetNumberVariable({ "mov", parameters[1].substr(1, parameters[1].size() - 1), parameters[2] });
 	}
 	else
 	{
@@ -1618,11 +1680,20 @@ int CutsceneCommands::Wait(CutsceneParameters parameters)
 	return 0;
 }
 
+// namedef but Butler
+// namedef bu2 Butler
+// TODO: How to handle multiple textboxes? Add a function for setting the speaker's text?
+int CutsceneCommands::NameDefineCommand(CutsceneParameters parameters)
+{
+	manager->namesToNames[ParseStringValue(parameters[1])] = ParseStringValue(parameters[2]);
+	return 0;
+}
+
 // name NAME
 int CutsceneCommands::NameCommand(CutsceneParameters parameters)
 {
 	manager->overwriteName = false;
-	manager->textbox->speaker->SetText(ParseStringValue(parameters[1]));
+	manager->SetSpeakerText(ParseStringValue(parameters[1]));
 
 	SceneLine* line = manager->GetCurrentLine();
 	if (line != nullptr)
@@ -2226,6 +2297,10 @@ int CutsceneCommands::Output(CutsceneParameters parameters)
 	else if (parameters[1] == "num")
 	{
 		std::cout << parameters[2] << ": " << ParseNumberValue(parameters[2]) << std::endl;
+	}
+	else
+	{
+		std::cout << "ERROR: Failed to define output type (str/num); cannot log output." << std::endl;
 	}
 
 	return 0;

@@ -114,6 +114,18 @@ CutsceneManager::~CutsceneManager()
 	}
 }
 
+void CutsceneManager::SetSpeakerText(const std::string& name)
+{
+	if (namesToNames.count(name) == 1)
+	{
+		textbox->speaker->SetText(namesToNames[name]);
+	}
+	else
+	{
+		textbox->speaker->SetText(name);
+	}
+}
+
 // Check input after textbox line has been fully read
 void CutsceneManager::CheckKeys()
 {
@@ -217,6 +229,8 @@ void CutsceneManager::ParseScene()
 	labels.clear();
 
 	int index = 0;
+	int cmdLetterIndex = 0;
+	int cmdLetterLength = 0;
 
 	do
 	{
@@ -298,8 +312,45 @@ void CutsceneManager::ParseScene()
 
 				index++;
 
-				if (commandLine != "" && commandLine != " ")
-					commands.emplace_back(commandLine);
+				if (commandLine.find(':') != std::string::npos)
+				{
+					// don't split this up if we are evaluating an if-statement; split it later
+					if (commandLine.size() > 2 && commandLine[0] == 'i' && commandLine[1] == 'f')
+					{
+						if (commandLine != "" && commandLine != " ")
+						{
+							commands.emplace_back(commandLine);
+						}
+					}
+					else
+					{
+						cmdLetterIndex = 0;
+						cmdLetterLength = 0;
+						while (cmdLetterIndex < commandLine.size())
+						{
+							cmdLetterIndex++;
+							cmdLetterLength++;
+							if (commandLine[cmdLetterIndex] == ':' || cmdLetterIndex >= commandLine.size())
+							{
+								if (commandLine != "" && commandLine != " ")
+								{
+									std::string str = commandLine.substr((cmdLetterIndex - cmdLetterLength), cmdLetterLength);
+									commands.emplace_back(str);
+									cmdLetterIndex++;
+								}
+								cmdLetterLength = 0;
+							}
+						}
+					}					
+				}
+				else
+				{
+					if (commandLine != "" && commandLine != " ")
+					{
+						commands.emplace_back(commandLine);
+					}
+				}				
+						
 			}
 		}
 
