@@ -1116,6 +1116,8 @@ void CutsceneManager::LoadGlobalVariables()
 	for (int i = 0; i < globalData.size(); i += 2)
 	{
 		commands.SetNumberVariable({ "", globalData[i], globalData[i+1] });
+		if (globalData.size() < i + 1)
+			break;
 	}
 
 	globalData = GetVectorOfStringsFromFile("saves/globals-str.dat");
@@ -1123,6 +1125,8 @@ void CutsceneManager::LoadGlobalVariables()
 	for (int i = 0; i < globalData.size(); i += 2)
 	{
 		commands.SetStringVariable({ "", globalData[i], globalData[i + 1] });
+		if (globalData.size() < i + 1)
+			break;
 	}
 }
 

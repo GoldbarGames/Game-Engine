@@ -84,15 +84,10 @@ std::vector<FuncLUT>cmd_lut = {
 	{"window", &CutsceneCommands::WindowFunction }
 };
 
-// TODO: Need to handle instances of : in other spots (like in strings)
-// * parse commas as well as spaces
-// * parse multiple commands on the same line with :
-// * parse quotes/brackets for strings
-// * use concat when add is called on a string
-// * global variables not getting updated properly
-// * name in box should grab from a map of shorthand to full name (namedef but Butler; namedef bu2 Butler;)
+// TODO: Tabs should act like whitespace, just ignore them
 
-//TODO: Commands executed during the same textbox `like`@`this`
+// TODO: Need to handle instances of : in other spots (like in strings)
+// TODO: Commands executed during the same textbox `like`@`this`
 
 // TODO: If a global variable (or maybe even local) is saved when the value is empty string
 // this causes a vector subscript out of range issue when loading it
@@ -224,15 +219,59 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 	std::istringstream ss(command);
 	std::string token;
 	std::vector<std::string> parameters;
+
 	char delimit = (command.find(',') != std::string::npos) ? ',' : ' ';
 
-	while (std::getline(ss, token, delimit))
+	// function param1,param2,param3
+	// function param1 param2 param3
+
+	// if there is a comma in the command, then the first word is the command name,
+	// and all of the parameters are comma separated. otherwise, they are all space separated
+
+	//TODO: Maybe instead of using getline, just check for COMMA or SPACE and accept either one
+
+	if (delimit == ',')
 	{
-		if (token != "")
+		std::getline(ss, token, ' ');
+		parameters.push_back(token);
+
+		//TODO: if commands -- you can't mix space separated and comma separated,
+		// so just force space separated (it breaks if it uses commas)
+		if (token != "if" && token != "choice")
 		{
-			parameters.push_back(token);
+			while (std::getline(ss, token, delimit))
+			{
+				if (token != "")
+				{
+					parameters.push_back(token);
+				}
+			}
+		}
+		else
+		{
+			while (std::getline(ss, token, ' '))
+			{
+				if (token != "")
+				{
+					parameters.push_back(token);
+				}
+			}
 		}
 	}
+	else
+	{
+		while (std::getline(ss, token, delimit))
+		{
+			if (token != "")
+			{
+				parameters.push_back(token);
+			}
+		}
+	}
+
+
+
+
 
 	/*
 	std::vector<std::string> parameters;
@@ -488,12 +527,12 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		default:
 			if (parameters[index].find_first_not_of("-0123456789") == std::string::npos)
 			{
-				leftValueNum = std::stoi(parameters[index]);
+				leftValueNum = ParseNumberValue(parameters[index]);
 				leftHandIsNumber = true;
 			}
 			else
 			{
-				leftValueStr = parameters[index];
+				leftValueStr = ParseStringValue(parameters[index]);
 				leftHandIsNumber = false;
 			}
 
@@ -515,12 +554,12 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		default:
 			if (parameters[index].find_first_not_of("-0123456789") == std::string::npos)
 			{
-				rightValueNum = std::stoi(parameters[index]);
+				rightValueNum = ParseNumberValue(parameters[index]);
 				rightHandIsNumber = true;
 			}
 			else
 			{
-				rightValueStr = parameters[index];
+				rightValueStr = ParseStringValue(parameters[index]);
 				rightHandIsNumber = false;
 			}
 
@@ -925,10 +964,11 @@ int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 	unsigned int key = 0;
 	std::string word1 = "";
 	std::string word2 = "";
-
-	key = GetNumAlias(parameters[1]);
+	
 	if (parameters[1][0] == '$')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+	else
+		key = GetNumAlias(parameters[1]);
 
 	word1 = ParseStringValue(parameters[1]);
 	word2 = ParseStringValue(parameters[2]);
@@ -955,10 +995,11 @@ int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 	unsigned int key = 0;
 	unsigned int number1 = 0;
 	unsigned int number2 = 0;
-
-	key = GetNumAlias(parameters[1]);
+	
 	if (parameters[1][0] == '%')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+	else
+		key = GetNumAlias(parameters[1]);
 
 	number1 = ParseNumberValue(parameters[1]);
 	number2 = ParseNumberValue(parameters[2]);		
@@ -1284,6 +1325,7 @@ unsigned int CutsceneCommands::GetNumAlias(const std::string& key)
 int CutsceneCommands::LoadBackground(CutsceneParameters parameters)
 {
 	LoadSprite({ "", parameters[0], parameters[1] });
+
 	return 0;
 }
 
@@ -2290,17 +2332,22 @@ int CutsceneCommands::DecrementVariable(CutsceneParameters parameters)
 
 int CutsceneCommands::Output(CutsceneParameters parameters)
 {
-	if (parameters[1] == "str")
+	bool shouldOutput = false;
+
+	if (shouldOutput)
 	{
-		std::cout << parameters[2] << ": " << ParseStringValue(parameters[2]) << std::endl;
-	}
-	else if (parameters[1] == "num")
-	{
-		std::cout << parameters[2] << ": " << ParseNumberValue(parameters[2]) << std::endl;
-	}
-	else
-	{
-		std::cout << "ERROR: Failed to define output type (str/num); cannot log output." << std::endl;
+		if (parameters[1] == "str")
+		{
+			std::cout << parameters[2] << ": " << ParseStringValue(parameters[2]) << std::endl;
+		}
+		else if (parameters[1] == "num")
+		{
+			std::cout << parameters[2] << ": " << ParseNumberValue(parameters[2]) << std::endl;
+		}
+		else
+		{
+			std::cout << "ERROR: Failed to define output type (str/num); cannot log output." << std::endl;
+		}
 	}
 
 	return 0;
