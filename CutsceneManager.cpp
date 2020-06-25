@@ -234,11 +234,11 @@ void CutsceneManager::CheckKeys()
 #if _DEBUG
 		else if (input[SDL_SCANCODE_S]) // save game
 		{
-			SaveGame();
+			SaveGame("file1.sav");
 		}
 		else if (input[SDL_SCANCODE_L]) // load game
 		{
-			LoadGame();
+			LoadGame("saves/file1.sav");
 			ReadNextLine();
 			isCarryingOutCommands = false;
 		}
@@ -651,7 +651,7 @@ void CutsceneManager::ReadNextLine()
 		//TODO: Save this data somehow
 		if (lineIndex >= 0 && lineIndex < currentLabel->lines.size())
 		{
-			currentLabel->lines[lineIndex]->seen = true;
+			seenLabelsToMostRecentLine[labelIndex] = lineIndex;
 		}			
 
 		//TODO: Make sure to save the backlog when we save the game
@@ -699,6 +699,11 @@ void CutsceneManager::ReadNextLine()
 
 			// If speaker of this line is same as last, instantly show it
 			textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
+
+			if (autosave)
+			{
+				SaveGame("auto.sav");
+			}
 		}
 	}	
 }
@@ -916,7 +921,6 @@ void CutsceneManager::Update()
 
 			do
 			{
-
 				std::string result = ParseText(currentLabel->lines[lineIndex]->text, letterIndex, currentColor, textbox->text);
 
 				if (result.size() > 1)
@@ -1158,62 +1162,137 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 	return result;
 }
 
-std::vector<string> CutsceneManager::GetVectorOfStringsFromFile(const char* filepath)
+void CutsceneManager::LoadGlobalVariables()
 {
 	std::ifstream fin;
-	std::string data = "";
+	std::vector<std::string> globalDataNumbers;
+	std::vector<std::string> globalDataStrings;
 
-	fin.open(filepath);
+	int globalSection = 0;
+
+	fin.open("saves/globals.sav");
 	for (std::string line; std::getline(fin, line); )
 	{
-		data += line + "\n";
+		if (line == "@ GLOBAL_STRINGS")
+		{
+			globalSection = 1;
+			continue;
+		}
+		else if (line == "@ GLOBAL_NUMBERS")
+		{
+			globalSection = 2;
+			continue;
+		}
+
+		switch (globalSection)
+		{
+		case 1:
+			globalDataStrings.push_back(line + "\n");
+			break;
+		case 2:
+			globalDataNumbers.push_back(line + "\n");
+			break;
+		default:
+			break;
+		}
+
 	}
 	fin.close();
 
-	std::stringstream ss(data);
-	std::istream_iterator<std::string> begin(ss);
-	std::istream_iterator<std::string> end;
 
-	std::vector<std::string> globalData(begin, end);
-	std::copy(globalData.begin(), globalData.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
+	// 2. Parse the vectors of strings and put them into the variable maps
 
-	return globalData;
-}
+	std::string dataKey = "";
+	std::string dataValue = "";
+	int index = 0;
 
-void CutsceneManager::LoadGlobalVariables()
-{
-	std::vector<std::string> globalData = GetVectorOfStringsFromFile("saves/globals-num.dat");
-
-	for (int i = 0; i < globalData.size(); i += 2)
+	for (int i = 0; i < globalDataStrings.size(); i++)
 	{
-		if (globalData.size() <= i + 1)
-			break;
-		commands.SetNumberVariable({ "", globalData[i], globalData[i+1] });
+		index = 0;
+		dataKey = ParseWord(globalDataStrings[i], ' ', index);
+		dataValue = ParseWord(globalDataStrings[i], '\n', index);
+		commands.SetStringVariable({ "", dataKey, dataValue });
 	}
 
-	globalData = GetVectorOfStringsFromFile("saves/globals-str.dat");
-
-	for (int i = 0; i < globalData.size(); i += 2)
+	for (int i = 0; i < globalDataNumbers.size(); i++)
 	{
-		if (globalData.size() <= i + 1)
-			break;
-		commands.SetStringVariable({ "", globalData[i], globalData[i + 1] });		
+		index = 0;
+		dataKey = ParseWord(globalDataNumbers[i], ' ', index);
+		dataValue = ParseWord(globalDataNumbers[i], '\n', index);
+		commands.SetNumberVariable({ "", dataKey, dataValue, "no_alias" });
 	}
+
 }
 
-void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& value)
+void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& value, bool isNumber)
 {
 	// 1. Load the global variables into a data structure from the file
 	std::ifstream fin;
-	std::vector<std::string> globalData;
+	std::vector<std::string> globalDataNumbers;
+	std::vector<std::string> globalDataStrings;
 
-	fin.open("saves/globals-str.dat");
+	int globalSection = 0;
+
+	fin.open("saves/globals.sav");
 	for (std::string line; std::getline(fin, line); )
 	{
-		globalData.push_back(line + "\n");
+		if (line == "@ GLOBAL_STRINGS")
+		{
+			globalSection = 1;
+			continue;
+		}			
+		else if (line == "@ GLOBAL_NUMBERS")
+		{
+			globalSection = 2;
+			continue;
+		}			
+
+		switch (globalSection)
+		{
+		case 1:
+			globalDataStrings.push_back(line + "\n");
+			break;
+		case 2:
+			globalDataNumbers.push_back(line + "\n");
+			break;
+		default:
+			break;
+		}
+		
 	}
 	fin.close();
 
+	if (isNumber)
+	{
+		ModifyGlobalVariableVector(globalDataNumbers, key, value);
+	}
+	else
+	{
+		ModifyGlobalVariableVector(globalDataStrings, key, value);
+	}
+
+	// 4. Save the DS to the file
+	std::ofstream fout;
+	fout.open("saves/globals.sav");
+
+	fout << "@ GLOBAL_STRINGS" << std::endl;
+	for (int i = 0; i < globalDataStrings.size(); i++)
+	{
+		fout << globalDataStrings[i];
+	}
+
+	fout << "@ GLOBAL_NUMBERS" << std::endl;
+	for (int i = 0; i < globalDataNumbers.size(); i++)
+	{
+		fout << globalDataNumbers[i];
+	}
+
+	fout.close();
+
+}
+
+void CutsceneManager::ModifyGlobalVariableVector(std::vector<string>& globalData, unsigned int key, const std::string& value)
+{
 	bool foundData = false;
 	int index = 0;
 	for (int i = 0; i < globalData.size(); i++)
@@ -1233,63 +1312,8 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& va
 		// 3. Else, add the global variable and its value to the DS
 		globalData.push_back(std::to_string(key) + " " + value + "\n");
 	}
-
-	// 4. Save the DS to the file
-	std::ofstream fout;
-	fout.open("saves/globals-str.dat");
-
-	for (int i = 0; i < globalData.size(); i++)
-	{
-		fout << globalData[i];
-	}
-
-	fout.close();
 }
 
-void CutsceneManager::SaveGlobalVariable(unsigned int key, unsigned int value)
-{
-	// 1. Load the global variables into a data structure from the file
-	std::ifstream fin;
-	std::vector<std::string> globalData;
-
-	fin.open("saves/globals-num.dat");
-	for (std::string line; std::getline(fin, line); )
-	{
-		globalData.push_back(line + "\n");
-	}
-	fin.close();
-
-	bool foundData = false;
-	int index = 0;
-	for (int i = 0; i < globalData.size(); i++)
-	{
-		index = 0;
-		if (ParseWord(globalData[i], ' ', index) == std::to_string(key))
-		{
-			// 2. If the global variable is already in the DS, update its value in the DS
-			globalData[i] = std::to_string(key) + " " + std::to_string(value) + "\n";
-			foundData = true;
-			break;
-		}
-	}
-
-	if (!foundData)
-	{
-		// 3. Else, add the global variable and its value to the DS
-		globalData.push_back(std::to_string(key) + " " + std::to_string(value) + "\n");
-	}
-
-	// 4. Save the DS to the file
-	std::ofstream fout;
-	fout.open("saves/globals-num.dat");
-
-	for (int i = 0; i < globalData.size(); i++)
-	{
-		fout << globalData[i];
-	}
-
-	fout.close();
-}
 
 //TODO: Regarding saving/loading...
 // * Window title/icon
@@ -1302,6 +1326,7 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, unsigned int value)
 // Textbox customization
 // Backlog customization
 // Window resolution
+// Other variables in the manager
 
 void CutsceneManager::SaveGame(const char* filename, const char* path)
 {
@@ -1316,6 +1341,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 	std::map<SaveSections, std::string> sections = {
 		{ SaveSections::CONFIG_OPTIONS, "@ CONFIG_OPTIONS"},
 		{ SaveSections::STORY_DATA, "@ STORY_DATA"},
+		{ SaveSections::SEEN_LINES, "@ SEEN_LINES"},
 		{ SaveSections::GOSUB_STACK, "@ GOSUB_STACK"},
 		{ SaveSections::ALIAS_STRINGS, "@ ALIAS_STRINGS"},
 		{ SaveSections::ALIAS_NUMBERS, "@ ALIAS_NUMBERS"},
@@ -1341,6 +1367,14 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			fout << lineIndex << " ";
 			fout << commandIndex << std::endl;
 			break;
+		case SaveSections::SEEN_LINES:
+
+			for (auto const& var : seenLabelsToMostRecentLine)
+			{
+				fout << var.first << " " << var.second << std::endl;
+			}
+
+			break;
 		case SaveSections::GOSUB_STACK:
 
 			for (int i = gosubStack.size() - 1; i >= 0; i--)
@@ -1356,20 +1390,14 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			// 4. Save string aliases (keys and values)
 			for (auto const& var : commands.stralias)
 			{
-				fout << var.first  // key
-					<< " "
-					<< var.second  // value 
-					<< std::endl;
+				fout << var.first << " " << var.second << std::endl;
 			}
 			break;
 		case SaveSections::ALIAS_NUMBERS:
 			// 5. Save number aliases (keys and values)
 			for (auto const& var : commands.numalias)
 			{
-				fout << var.first  // key
-					<< " "
-					<< var.second  // value 
-					<< std::endl;
+				fout << var.first << " " << var.second << std::endl;
 			}
 			break;
 		case SaveSections::LOCAL_STRINGS:
@@ -1534,13 +1562,13 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 
 }
 
-void CutsceneManager::LoadGame()
+void CutsceneManager::LoadGame(const char* filename, const char* path)
 {
 	std::ifstream fin;
 	//std::string data = "";
 	std::vector<std::string> dataLines;
 
-	fin.open("saves/file1.sav");
+	fin.open(std::string(path) + filename);
 	for (std::string line; std::getline(fin, line); )
 	{
 		//data += line + "\n";
@@ -1558,6 +1586,7 @@ void CutsceneManager::LoadGame()
 	std::map<std::string, SaveSections> sections = {
 		{ "@ CONFIG_OPTIONS", SaveSections::CONFIG_OPTIONS},
 		{ "@ STORY_DATA", SaveSections::STORY_DATA},
+		{ "@ SEEN_LINES", SaveSections::SEEN_LINES},
 		{ "@ GOSUB_STACK", SaveSections::GOSUB_STACK},
 		{ "@ ALIAS_STRINGS", SaveSections::ALIAS_STRINGS},
 		{ "@ ALIAS_NUMBERS", SaveSections::ALIAS_NUMBERS},
@@ -1617,6 +1646,9 @@ void CutsceneManager::LoadGame()
 					else
 						std::cout << "ERROR: Could not find label " << labelName << std::endl;
 				}
+				break;
+			case SaveSections::SEEN_LINES:
+				seenLabelsToMostRecentLine[std::stoi(lineParams[0])] = std::stoi(lineParams[1]);
 				break;
 			case SaveSections::GOSUB_STACK:
 

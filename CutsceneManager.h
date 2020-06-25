@@ -14,8 +14,9 @@
 #include "CutsceneCommands.h"
 #include <map>
 
-enum class SaveSections { CONFIG_OPTIONS, STORY_DATA, GOSUB_STACK, ALIAS_STRINGS, ALIAS_NUMBERS, 
-	LOCAL_STRINGS, LOCAL_NUMBERS, LOCAL_OBJECTS, NAMES_TO_COLORS, OTHER_STUFF
+enum class SaveSections { CONFIG_OPTIONS, STORY_DATA, SEEN_LINES, GOSUB_STACK, 
+	ALIAS_STRINGS, ALIAS_NUMBERS, LOCAL_STRINGS, LOCAL_NUMBERS, LOCAL_OBJECTS, 
+	NAMES_TO_COLORS, OTHER_STUFF
 };
 
 class Game;
@@ -26,7 +27,6 @@ public:
 	std::string text = "";
 	std::string speaker = "";
 	std::vector<std::string> commands;
-	bool seen = false;
 
 	SceneLine(std::string txt = "", std::string name = "")
 	{
@@ -96,6 +96,7 @@ class CutsceneManager
 	std::string data = "";
 	std::string currentText = "";
 public:	 
+	bool autosave = false;
 	bool overwriteName = true;
 	std::string currentScript = "";
 	CutsceneCommands commands;
@@ -140,6 +141,7 @@ public:
 	std::unordered_map<unsigned int, unsigned int> spriteButtons;
 	std::map<unsigned int, Entity*> images; // needs to be in order for rendering
 	std::map<unsigned int, Entity*>::iterator imageIterator;
+	std::map<unsigned int, unsigned int> seenLabelsToMostRecentLine;
 	std::unordered_map<std::string, std::string> namesToNames;
 	std::unordered_map<std::string, Color> namesToColors;
 	std::unordered_map<std::string, TextTag*> tags;
@@ -174,14 +176,15 @@ public:
 	void ReadBacklog();
 
 	void SaveGame(const char* filename, const char* path = "saves/");
-	void LoadGame();
+	void LoadGame(const char* filename, const char* path = "saves/");
 
 	void FlushCurrentColor();
 
 	void LoadGlobalVariables();
-	void SaveGlobalVariable(unsigned int key, unsigned int value);
-	void SaveGlobalVariable(unsigned int key, const std::string& value);
-	std::vector<string> GetVectorOfStringsFromFile(const char* filepath);
+
+	void SaveGlobalVariable(unsigned int key, const std::string& value, bool isNumber);
+
+	void ModifyGlobalVariableVector(std::vector<string>& globalData, unsigned int key, const std::string& value);
 
 	void SetSpeakerText(const std::string& name);
 

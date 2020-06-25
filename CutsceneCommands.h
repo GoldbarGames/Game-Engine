@@ -150,6 +150,7 @@ public:
 	int FileExist(CutsceneParameters parameters);
 	int TextSpeed(CutsceneParameters parameters);
 	int AutoMode(CutsceneParameters parameters);
+	int AutoSave(CutsceneParameters parameters);
 	int AlignCommand(CutsceneParameters parameters);
 	int InputCommand(CutsceneParameters parameters);
 };

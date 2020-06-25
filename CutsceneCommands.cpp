@@ -24,6 +24,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"add", &CutsceneCommands::AddNumberVariables},
 	{"align", &CutsceneCommands::AlignCommand},
 	{"automode", &CutsceneCommands::AutoMode},
+	{"autosave", &CutsceneCommands::AutoSave},
 	{"backlog", &CutsceneCommands::OpenBacklog},
 	{"bg", &CutsceneCommands::LoadBackground },
 	{"bgm", &CutsceneCommands::MusicCommand },
@@ -93,30 +94,36 @@ std::vector<FuncLUT>cmd_lut = {
 
 // TODO: Need to handle instances of : in other spots (like in strings)
 // TODO: Commands executed during the same textbox `like`@`this`
-// TODO: If a global variable (or maybe even local) is saved when the value is empty string
-// this causes a vector subscript out of range issue when loading it
 
-// TODO: Implement these commands:
 // For loops, while loops
 
-// - Save/load (save backlog, erase savefiles, thumbnails, custom save notes)
-// - what about animations that involve each frame being its own file?
-// - custom timers (we'll deal with this when we handle blinking animations)
-
 // Alpha image effects (apply alpha mask using shader to texture, entire screen?)
+// Save/load (save backlog, erase savefiles, thumbnails, custom save notes)
 
 // Animations for images in the textbox, as well as the textbox and namebox themselves
-// + Bool for whether a line of text has been previously read (TODO: Save/load it)
+// - what about animations that involve each frame being its own file?
+	// 1. construct the animation with a list of filenames in the order they will be drawn
+	// 2. when rendering the sprite, don't divide the texture; instead, use the whole frame
+// - custom timers (we'll deal with this when we handle blinking animations)
 
-// Click-wait subroutine
-// Keyboard input for variables
-// Save globals to a single file
-// Custom key bindings (advance text, backlog, etc.)
+// Custom key bindings
+// - button to advance text
+// - button to open menu
+// - button to skip text
+// - button to auto read text
+// - button to hide textbox
+// - button to take screenshot
+// - button to open backlog
+// - button to scroll up/down backlog
+// - buttons to select choices
+// ...more?
 
 // Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
 // - set the position, rotation, just like anything else
 // - set the zoom factor, the projection stuff, perspective, etc.
 // Quake horizontal, vertical, both
+
+//TODO: CSS-style Layout system (padding, margin, rows, columns, layout boxes, etc.)
 
 CutsceneCommands::CutsceneCommands()
 {
@@ -730,6 +737,8 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 	return 0;
 }
 
+//TODO: Change properties of the choices
+// (font type, size, color, position, alignment, etc.)
 int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 {
 	if (parameters[1] == "bg")
@@ -744,8 +753,9 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 	int spriteNumber = manager->choiceQuestionNumber;
 	std::string choiceQuestion = ParseStringValue(parameters[index]);
 
-	int choiceYPos = 100;
+	int choiceYPos = 280;
 	LoadText({"", std::to_string(spriteNumber), "1280", std::to_string(choiceYPos), choiceQuestion });
+	AlignCommand({ "align", "x", "center", std::to_string(spriteNumber) });
 	spriteNumber++;
 
 	manager->choiceIfStatements.clear();
@@ -760,11 +770,14 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 
 		// Display the choice as a text sprite on the screen
 		std::string choiceNumber = std::to_string(spriteNumber + i);
-		choiceYPos = 300 + (200 * i);
-		//TODO: Set the width to the center of the screen
+
+		//TODO: Set the y pos relative to the screen resolution, don't hard-code these numbers
+		choiceYPos = 400 + (120 * i);
 
 		LoadText({"", choiceNumber, "1280",
 			std::to_string(choiceYPos), choiceText });
+
+		AlignCommand({ "align", "x", "center", choiceNumber });
 
 		// Make the text sprite act as a button
 		SetSpriteButton({ "", choiceNumber , choiceNumber });
@@ -909,7 +922,12 @@ int CutsceneCommands::LoadGame(CutsceneParameters parameters)
 {
 	//TODO: Load everything that was saved from a file
 
-	manager->LoadGame();
+	if (parameters.size() > 2)
+		manager->LoadGame(parameters[2].c_str(), parameters[1].c_str());
+	else if (parameters.size() > 1)
+		manager->LoadGame(parameters[1].c_str());
+	else
+		manager->LoadGame("file1.sav");
 
 	return 0;
 }
@@ -940,7 +958,7 @@ int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, stringVariables[key]);
+		manager->SaveGlobalVariable(key, stringVariables[key], true);
 
 	return 0;
 }
@@ -971,7 +989,7 @@ int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, numberVariables[key]);
+		manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
 
 	return 0;
 }
@@ -993,7 +1011,7 @@ int CutsceneCommands::SubtractNumberVariables(CutsceneParameters parameters)
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, numberVariables[key]);
+		manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
 
 	return 0;
 }
@@ -1015,7 +1033,7 @@ int CutsceneCommands::MultiplyNumberVariables(CutsceneParameters parameters)
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, numberVariables[key]);
+		manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
 
 	return 0;
 }
@@ -1037,7 +1055,7 @@ int CutsceneCommands::DivideNumberVariables(CutsceneParameters parameters)
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, numberVariables[key]);
+		manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
 
 	return 0;
 }
@@ -1059,7 +1077,7 @@ int CutsceneCommands::ModNumberVariables(CutsceneParameters parameters)
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, numberVariables[key]);
+		manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
 
 	return 0;
 }
@@ -1089,7 +1107,7 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 
 		// If global variable, save change to file
 		if (key >= manager->globalStart)
-			manager->SaveGlobalVariable(key, numberVariables[key]);
+			manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
 	}
 	else // no offset
 	{
@@ -1100,7 +1118,7 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 
 		// If global variable, save change to file
 		if (key >= manager->globalStart)
-			manager->SaveGlobalVariable(key, numberVariables[key]);
+			manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
 	}
 
 	return 0;
@@ -1149,17 +1167,16 @@ int CutsceneCommands::SetNumberVariable(CutsceneParameters parameters)
 	unsigned int key = ParseNumberValue(parameters[1]);
 	unsigned int value = ParseNumberValue(parameters[2]);
 
-	if (GetNumberVariable(value) == 0)
-		numberVariables[key] = value;
-	else
-		numberVariables[key] = value; // GetNumberVariable(value);
+	if (parameters.size() > 3 && parameters[3] == "no_alias")
+	{
+		value = std::stoi(parameters[2]);
+	}
 
-	//TODO: To set a variable to the value of another variable,
-	// check if the number starts with % or it is a string
+	numberVariables[key] = value;
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, numberVariables[key]);
+		manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
 
 	return 0;
 }
@@ -1183,7 +1200,7 @@ int CutsceneCommands::SetStringVariable(CutsceneParameters parameters)
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, stringVariables[key]);
+		manager->SaveGlobalVariable(key, stringVariables[key], false);
 
 	return 0;
 }
@@ -1475,10 +1492,6 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 		delete manager->images[imageNumber];
 
 	Text* newText = nullptr;
-
-	//TODO: Parse text string to get and set the color
-	//TODO: Deal with individual glyphs
-
 	Color textColor = { 255, 255, 255, 255 };
 
 	int letterIndex = 0;
@@ -2423,5 +2436,23 @@ int CutsceneCommands::AlignCommand(CutsceneParameters parameters)
 
 int CutsceneCommands::InputCommand(CutsceneParameters parameters)
 {
+	return 0;
+}
+
+int CutsceneCommands::AutoSave(CutsceneParameters parameters)
+{
+	//TODO: Save this setting and remember it when you load the game
+	// (Should probably just create a save function for the manager
+	// and look through the manager's variables and save the important ones)
+
+	if (parameters[1] == "on")
+	{
+		manager->autosave = true;
+	}
+	else if (parameters[1] == "off")
+	{
+		manager->autosave = false;
+	}
+
 	return 0;
 }
