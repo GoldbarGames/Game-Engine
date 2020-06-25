@@ -46,6 +46,8 @@ public:
 	void Render(Renderer* renderer, const int& screenWidth, const int& screenHeight);
 
 	void SetCursorPosition(bool endOfPage);
+	void SetCursorPosition(bool endOfPage, Vector2 cursorPos);
+
 	void SetFontSize(int newSize);
 
 	Textbox(SpriteManager* m, Renderer* r);

@@ -95,11 +95,6 @@ void Entity::CreateCollider(float x, float y, float w, float h)
 
 void Entity::CalculateCollider()
 {
-	if (etype == "door")
-	{
-		int test = 0;
-	}
-
 	if (currentSprite != nullptr)
 	{
 		collisionBounds->w = colliderScale.x; //currentSprite->frameWidth;

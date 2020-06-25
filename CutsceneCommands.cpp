@@ -2,6 +2,7 @@
 #include <iterator>
 #include <sstream>
 #include <stdexcept>
+#include <filesystem>
 
 #include "CutsceneCommands.h"
 #include "CutsceneManager.h"
@@ -9,7 +10,6 @@
 #include "Timer.h"
 #include "Animator.h"
 #include "PhysicsInfo.h"
-
 
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 
@@ -22,6 +22,8 @@ struct FuncLUT {
 std::vector<FuncLUT>cmd_lut = {
 	{"~", &CutsceneCommands::DoNothing},
 	{"add", &CutsceneCommands::AddNumberVariables},
+	{"align", &CutsceneCommands::AlignCommand},
+	{"automode", &CutsceneCommands::AutoMode},
 	{"backlog", &CutsceneCommands::OpenBacklog},
 	{"bg", &CutsceneCommands::LoadBackground },
 	{"bgm", &CutsceneCommands::MusicCommand },
@@ -38,13 +40,16 @@ std::vector<FuncLUT>cmd_lut = {
 	{"end", &CutsceneCommands::EndGame },
 	{"errorlog", &CutsceneCommands::ErrorLog },
 	{"fade", &CutsceneCommands::Fade },
+	{"fileexist", &CutsceneCommands::FileExist},
 	{"flip", &CutsceneCommands::FlipSprite },
 	{"font", &CutsceneCommands::FontCommand},
+	{"getname", &CutsceneCommands::GetResourceFilename},
 	{"global", &CutsceneCommands::SetGlobalNumber},
 	{"gosub", &CutsceneCommands::GoSubroutine },
 	{"goto", &CutsceneCommands::GoToLabel },
 	{"if", &CutsceneCommands::IfCondition },
 	{"inc", &CutsceneCommands::IncrementVariable},
+	{"input", &CutsceneCommands::InputCommand},
 	{"itoa", &CutsceneCommands::IntToString },
 	{"jumpb", &CutsceneCommands::JumpBack },
 	{"jumpf", &CutsceneCommands::JumpForward },
@@ -76,92 +81,42 @@ std::vector<FuncLUT>cmd_lut = {
 	{"stralias", &CutsceneCommands::SetStringAlias },
 	{"sub", &CutsceneCommands::SubtractNumberVariables},
 	{"substr", &CutsceneCommands::SubstringVariables},
+	{"tag", &CutsceneCommands::TagCommand},
 	{"text", &CutsceneCommands::LoadText },
 	{"textbox", &CutsceneCommands::Textbox },
 	{"textcolor", &CutsceneCommands::TextColor },
+	{"textspeed", &CutsceneCommands::TextSpeed },
 	{"timer", &CutsceneCommands::TimerFunction},
 	{"wait",& CutsceneCommands::Wait },
 	{"window", &CutsceneCommands::WindowFunction }
 };
 
-// TODO: Tabs should act like whitespace, just ignore them
-
 // TODO: Need to handle instances of : in other spots (like in strings)
 // TODO: Commands executed during the same textbox `like`@`this`
-
 // TODO: If a global variable (or maybe even local) is saved when the value is empty string
 // this causes a vector subscript out of range issue when loading it
 
 // TODO: Implement these commands:
-
 // For loops, while loops
 
 // - Save/load (save backlog, erase savefiles, thumbnails, custom save notes)
 // - what about animations that involve each frame being its own file?
 // - custom timers (we'll deal with this when we handle blinking animations)
 
-// Set text alignment via command (textbox and text-sprite)
-// Y alignment (top / center / bottom)
-// * Change screen resolution (TODO: See camera.cpp constructor)
-// Settings screen (sound volume, text speed, etc.)
-// Check if a file exists (fileexist assets/myfile.png %0)
-// Custom key bindings (advance text, backlog, etc.)
+// Alpha image effects (apply alpha mask using shader to texture, entire screen?)
 
 // Animations for images in the textbox, as well as the textbox and namebox themselves
-// + Create new font from file
-// + Custom colors for backlog text
 // + Bool for whether a line of text has been previously read (TODO: Save/load it)
 
-// Change location of save data
-// Alpha image effects (apply alpha mask using shader to texture, entire screen?)
-// Click mid-sentence to complete the text
-// Adjust automode speeds (per letter and per line)
-// Adjustable text speed (!sd)
 // Click-wait subroutine
 // Keyboard input for variables
 // Save globals to a single file
+// Custom key bindings (advance text, backlog, etc.)
 
 // Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
 // - set the position, rotation, just like anything else
 // - set the zoom factor, the projection stuff, perspective, etc.
 // Quake horizontal, vertical, both
-
-// + Get name of active resources:
-// + filename of bgm playing
-// + filename of sound in channel
-// + filename of sprite in loaded entity
-// + filename of current script
-// + name of current level
-// + name of current label
-// + current text
-
-// + Output error logs
-// Proper syntax checking and error handling
-// Math functions (abs, sin, cos, tan, etc.)
-// Changing the file/directory where the script file is read from
-// Physics functions (position, velocity, acceleration, collision detection)
-// Visual Editor, modify cutscene as it is running, replay it
-// Declare arrays and lists of variables, more complex stuff
-// Pop up a box with text, disappears after a time limit
-// Draw points, lines, and shapes with colors and size
-
-// Multiple textboxes on the screen at once
-// - maybe an image (or images) for each textbox
-
-// Display sprite of talking character in the textbox (map name of character/expression to face sprite)
-// - function to map the name to a sprite (face assets/sprites/butlerface1.png)
-// (this is really no different from loading a sprite and positioning it near the textbox)
-// (however, this image should appear/disappear alongside the textbox)
-
-// Highlight/dim speaking characters (map name of the character to the sprite via folder path)
-// - it'd have to go through all currently displayed sprites and check if that sprite is in the map
-
-// - TODO: Can use variables to get the color
-
-// Special features:
-// - picture gallery
-// - music player
-// - encyclopedia
 
 CutsceneCommands::CutsceneCommands()
 {
@@ -828,7 +783,7 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 
 		manager->choiceIfStatements.push_back("if %" + variableNumber + " == " + choiceNumber + " goto " + choiceLabel + " ;");
 
-		manager->inputTimer.Start(1000);
+		manager->inputTimer.Start(manager->inputTimeToWait);
 	}
 
 	return 0;
@@ -936,8 +891,16 @@ int CutsceneCommands::SaveGame(CutsceneParameters parameters)
 	// For example, on the game's startup we load the config file and read it in
 	// Then, when the player loads a save file, we don't have to deal with the stuff in the config file
 
+	// savegame saves/ file1.sav
+	// savegame file1.sav
+	// savegame
 
-	manager->SaveGame();
+	if (parameters.size() > 2)
+		manager->SaveGame(parameters[2].c_str(), parameters[1].c_str());
+	else if (parameters.size() > 1)
+		manager->SaveGame(parameters[1].c_str());
+	else
+		manager->SaveGame("file1.sav");
 
 	return 0;
 }
@@ -1716,9 +1679,8 @@ int CutsceneCommands::SetVelocity(CutsceneParameters parameters)
 
 int CutsceneCommands::Wait(CutsceneParameters parameters)
 {
-	int ms = ParseNumberValue(parameters[1]);
-	manager->timer -= ms;
-	manager->textbox->isReading = false;
+	manager->msGlyphTime -= ParseNumberValue(parameters[1]); // wait for a certain amount of time (milliseconds)
+	manager->textbox->isReading = false; // don't render the textbox while waiting
 	return 0;
 }
 
@@ -1936,7 +1898,7 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 		{
 			manager->backlogMaxSize = ParseNumberValue(parameters[2]);
 		}
-		else if (parameters[1] == "color")
+		else if (parameters[1] == "color") //TODO: Should this be the same for both name and text?
 		{
 			if (parameters[2][0] == '#')
 			{
@@ -1945,18 +1907,18 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 			else if (parameters.size() == 5)
 			{
 				manager->backlogColor = { 
-					(uint8_t)ParseNumberValue(parameters[2]),
-					(uint8_t)ParseNumberValue(parameters[3]) ,
 					(uint8_t)ParseNumberValue(parameters[4]),
+					(uint8_t)ParseNumberValue(parameters[3]),
+					(uint8_t)ParseNumberValue(parameters[2]),
 					255 };
 			}
 			else if(parameters.size() == 6)
 			{
 				manager->backlogColor = { 
-					(uint8_t)ParseNumberValue(parameters[2]),
-					(uint8_t)ParseNumberValue(parameters[3]) ,
 					(uint8_t)ParseNumberValue(parameters[4]),
-					(uint8_t)ParseNumberValue(parameters[5]) };
+					(uint8_t)ParseNumberValue(parameters[3]),
+					(uint8_t)ParseNumberValue(parameters[2]),
+					(uint8_t)ParseNumberValue(parameters[5])};
 			}
 		}
 	}
@@ -2257,6 +2219,7 @@ int CutsceneCommands::ErrorLog(CutsceneParameters parameters)
 	return 0;
 }
 
+// font name path
 int CutsceneCommands::FontCommand(CutsceneParameters parameters)
 {
 	// Load fonts from files
@@ -2311,6 +2274,19 @@ int CutsceneCommands::GetResourceFilename(CutsceneParameters parameters)
 	return 0;
 }
 
+int CutsceneCommands::TagCommand(CutsceneParameters parameters)
+{
+	if (parameters[1] == "define")
+	{
+		if (manager->tags.count(parameters[2]) != 1)
+		{
+			manager->tags[parameters[2]] = new TextTag();
+		}		
+	}
+
+	return 0;
+}
+
 int CutsceneCommands::IntToString(CutsceneParameters parameters)
 {
 	int stringVariableIndex = ParseNumberValue(parameters[1]);
@@ -2350,5 +2326,102 @@ int CutsceneCommands::Output(CutsceneParameters parameters)
 		}
 	}
 
+	return 0;
+}
+
+int CutsceneCommands::FileExist(CutsceneParameters parameters)
+{
+	numberVariables[ParseNumberValue(parameters[1])] = std::filesystem::exists(parameters[2]);
+
+	return 0;
+}
+
+int CutsceneCommands::TextSpeed(CutsceneParameters parameters)
+{
+	manager->msDelayBetweenGlyphs = ParseNumberValue(parameters[1]);
+
+	return 0;
+}
+
+int CutsceneCommands::AutoMode(CutsceneParameters parameters)
+{
+	if (parameters.size() > 1)
+	{
+		if (parameters[1] == "on")
+		{
+			manager->automaticallyRead = true;
+		}
+		else if (parameters[1] == "off")
+		{
+			manager->automaticallyRead = false;
+		}
+		else if (parameters[1] == "speed")
+		{
+			manager->autoTimeToWaitPerGlyph = ParseNumberValue(parameters[2]);
+		}
+	}	
+
+	return 0;
+}
+
+// align x center textbox
+// align x left 1
+int CutsceneCommands::AlignCommand(CutsceneParameters parameters)
+{
+	Text* text = manager->textbox->text;
+
+	if (parameters[3] != "textbox")
+	{
+		if (parameters[3] == "namebox")
+		{
+			text = manager->textbox->speaker;
+		}
+		else
+		{
+			text = static_cast<Text*>(manager->images[ParseNumberValue(parameters[3])]);
+		}		
+	}	 
+
+	if (text == nullptr)
+		return -1;
+
+	if (parameters[1] == "x")
+	{
+		if (parameters[2] == "left")
+		{
+			text->alignX = AlignmentX::LEFT;
+		}
+		else if (parameters[2] == "center")
+		{
+			text->alignX = AlignmentX::CENTER;
+		}
+		else if (parameters[2] == "right")
+		{
+			text->alignX = AlignmentX::RIGHT;
+		}
+	}
+	else if (parameters[1] == "y")
+	{
+		if (parameters[2] == "top")
+		{
+			text->alignY = AlignmentY::TOP;
+		}
+		else if (parameters[2] == "center")
+		{
+			text->alignY = AlignmentY::CENTER;
+		}
+		else if (parameters[2] == "bottom")
+		{
+			text->alignY = AlignmentY::BOTTOM;
+		}
+	}
+
+	text->SetPosition(text->GetPosition().x, text->GetPosition().y);
+
+	return 0;
+}
+
+int CutsceneCommands::InputCommand(CutsceneParameters parameters)
+{
 	return 0;
 }

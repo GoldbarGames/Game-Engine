@@ -145,6 +145,13 @@ public:
 	int DecrementVariable(CutsceneParameters parameters);
 
 	int Output(CutsceneParameters parameters);
+
+	int TagCommand(CutsceneParameters parameters);
+	int FileExist(CutsceneParameters parameters);
+	int TextSpeed(CutsceneParameters parameters);
+	int AutoMode(CutsceneParameters parameters);
+	int AlignCommand(CutsceneParameters parameters);
+	int InputCommand(CutsceneParameters parameters);
 };
 
 #endif

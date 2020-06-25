@@ -64,15 +64,19 @@ public:
 
 struct BacklogData
 {
-	int labelIndex = 0;
-	int lineIndex = 0;
 	std::string text = "";
+	int labelIndex = 0;
+	int lineIndex = 0;	
+	float lastX = 0;
+	float lastY = 0;
 
-	BacklogData(int l, int i, const char* t)
+	BacklogData(int l, int i, const char* t, float lx = 0, float ly = 0)
 	{
 		labelIndex = l;
 		lineIndex = i;
 		text = t;
+		lastX = lx;
+		lastY = ly;
 	}
 };
 
@@ -121,7 +125,9 @@ public:
 	bool waitingForButton = false;
 	bool automaticallyRead = false;
 	bool readingSameLine = false;
-	float autoTimeToWait[3] = { 500, 2000, 8000 };
+	float autoTimesToWait[3] = { 500, 2000, 8000 };
+	float autoTimeToWait = 1000;
+	float autoTimeToWaitPerGlyph = 100;
 	int autoTimeIndex = 0;
 	Timer autoReaderTimer;
 	Timer inputTimer;
@@ -138,10 +144,14 @@ public:
 	std::unordered_map<std::string, Color> namesToColors;
 	std::unordered_map<std::string, TextTag*> tags;
 	std::unordered_map<unsigned int, Timer*> timers;
-	float timer = 0;
+	float msGlyphTime = 0;
+	float msDelayBetweenGlyphs = 10.0f;
 	bool isCarryingOutCommands = false;
 	bool isReadingNextLine = false;
 	Timer nextLetterTimer;
+	Uint32 previousMouseState = 0;
+	bool clickedMidPage = false;
+
 	CutsceneManager(Game& g);
 	void ParseScene();
 	void ParseConfig(const char* configName);
@@ -160,9 +170,10 @@ public:
 	~CutsceneManager();
 
 	void CheckKeys();
+	void CheckKeysWhileReading();
 	void ReadBacklog();
 
-	void SaveGame();
+	void SaveGame(const char* filename, const char* path = "saves/");
 	void LoadGame();
 
 	void FlushCurrentColor();

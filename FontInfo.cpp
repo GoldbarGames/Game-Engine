@@ -17,25 +17,25 @@ FontInfo::~FontInfo()
 	if (regular != nullptr)
 	{
 		TTF_CloseFont(regular);
-		delete regular;
+		//delete regular;
 	}
 
 	if (bold != nullptr)
 	{
 		TTF_CloseFont(regular);
-		delete bold;
+		//delete bold;
 	}
 
 	if (italics != nullptr)
 	{
 		TTF_CloseFont(regular);
-		delete italics;
+		//delete italics;
 	}
 
 	if (boldItalics != nullptr)
 	{
 		TTF_CloseFont(regular);
-		delete boldItalics;
+		//delete boldItalics;
 	}
 	
 }

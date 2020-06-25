@@ -861,8 +861,10 @@ bool Game::CheckInputs()
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
 	{
-		//if (event.type == SDL_MOUSEBUTTONDOWN)
-		//	clickedMouse = true;
+		if (event.type == SDL_MOUSEBUTTONUP)
+		{
+			cutscene->previousMouseState = 0;
+		}
 
 		if (openedMenus.size() > 0)
 			quit = HandleMenuEvent(event);
@@ -1362,8 +1364,6 @@ void Game::UpdateTextInput()
 	}
 }
 
-
-
 void Game::Update()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
@@ -1382,6 +1382,7 @@ void Game::Update()
 		{
 			//TODO: If we press the button before the line has finished displaying,
 			// then instantly show all the text (maybe a different button)
+			cutscene->CheckKeysWhileReading();
 		}
 	}
 		

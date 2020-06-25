@@ -149,7 +149,7 @@ void Text::SetFont(TTF_Font* newFont)
 }
 
 //TODO: Maybe modify this or make another function to pass in a shader?
-void Text::SetText(string text, Color color, Uint32 wrapWidth)
+void Text::SetText(std::string text, Color color, Uint32 wrapWidth)
 {
 	// don't do anything if it would result in the same thing
 	if (txt == text && textColor == color)
@@ -307,6 +307,7 @@ void Text::AddText(char c, Color color)
 		newGlyph->sprite = newSprite;
 
 		glyphs.push_back(newGlyph);
+		txt += c;
 	}
 
 	SetPosition(position.x, position.y);
@@ -337,7 +338,6 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 	// so a blank space guarantees that the surface pointer will not be null
 	if (txt == "")
 		txt = " ";
-
 
 	SDL_Surface* textSurface = nullptr;
 	SDL_Color textColor = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
@@ -422,8 +422,6 @@ void Text::SetScale(Vector2 newScale)
 //TODO: Make sure to account for offsetting all the letters
 void Text::SetPosition(const float x, const float y)
 {
-	alignX = AlignmentX::LEFT;
-
 	//TODO: Make this work for aligning non-rich text as well
 	if (!isRichText)
 	{

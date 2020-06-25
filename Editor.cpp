@@ -260,7 +260,9 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
 	{
 		if (layerVisibleButtons[i]->IsPointInsideButton(mouseX, mouseY))
+		{
 			clickedLayerVisibleButton = layerButtons[i]->text->txt;
+		}
 	}
 
 	mouseX /= 2;

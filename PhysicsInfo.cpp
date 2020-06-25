@@ -174,9 +174,6 @@ bool PhysicsInfo::CheckCollisionCeiling(Entity* other, Game& game)
 
 void PhysicsInfo::CheckCollisions(Game& game)
 {	
-	if (our->etype == "player")
-		int test = 0;
-
 	shouldStickToGround = false;
 
 	// copy this frame into previous frame list (could be done at beginning or end)

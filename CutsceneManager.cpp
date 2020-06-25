@@ -73,13 +73,7 @@ CutsceneManager::CutsceneManager(Game& g)
 			fin.close();
 			//PlayCutscene("define");
 		}
-	}
-
-	
-
-
-
-	
+	}	
 }
 
 CutsceneManager::~CutsceneManager()
@@ -126,6 +120,43 @@ void CutsceneManager::SetSpeakerText(const std::string& name)
 	}
 }
 
+//TODO: Find a way to make this less redundant
+// in the case that the keys/conditions change
+void CutsceneManager::CheckKeysWhileReading()
+{
+	const Uint8* input = SDL_GetKeyboardState(NULL);
+
+	if (useMouseControls)
+	{
+		int mouseX, mouseY = 0;
+		const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+
+		if (!readingBacklog)
+		{
+			// Note: In order to clear the mouse state, we check the SDL event in the main game loop
+			if (mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_LEFT))
+			{
+				previousMouseState = SDL_BUTTON_LEFT;
+				clickedMidPage = true;
+			}
+		}
+	}
+
+	if (useKeyboardControls)
+	{
+		if (!readingBacklog)
+		{
+			if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN] || input[skipButton]
+				|| (automaticallyRead && autoReaderTimer.HasElapsed()))
+			{
+				clickedMidPage = true;
+			}
+		}
+	}
+
+
+}
+
 // Check input after textbox line has been fully read
 void CutsceneManager::CheckKeys()
 {
@@ -136,14 +167,24 @@ void CutsceneManager::CheckKeys()
 		int mouseX, mouseY = 0;
 		const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
-		if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+		if (readingBacklog)
 		{
-			ReadNextLine();
+			// TODO: Use mouse wheel here?
 		}
-		else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT))
+		else
 		{
-			commandIndex--;
-			commands.GoSubroutine({ "", commands.buttonLabels[(unsigned int)SDL_SCANCODE_ESCAPE] });
+			// Note: In order to clear the mouse state, we check the SDL event in the main game loop
+			if ( mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_LEFT) )
+			{
+				previousMouseState = SDL_BUTTON_LEFT;
+				ReadNextLine();
+			}
+			else if (mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_RIGHT))
+			{
+				previousMouseState = SDL_BUTTON_RIGHT;
+				commandIndex--;
+				commands.GoSubroutine({ "", commands.buttonLabels[(unsigned int)SDL_SCANCODE_ESCAPE] });
+			}
 		}
 	}
 
@@ -167,6 +208,8 @@ void CutsceneManager::CheckKeys()
 					readingBacklog = false;
 					textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
 					textbox->text->SetText(currentText, currentColor);
+
+					textbox->SetCursorPosition(letterIndex < currentLabel->lines[lineIndex]->text.length());
 				}
 				else
 				{
@@ -178,6 +221,7 @@ void CutsceneManager::CheckKeys()
 		else if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN] || input[skipButton]
 			|| (automaticallyRead && autoReaderTimer.HasElapsed()))
 		{
+			// TODO: Make sure that you can't hold space/enter to advance the text
 			ReadNextLine();
 		}
 		else if (input[SDL_SCANCODE_UP])
@@ -231,6 +275,8 @@ void CutsceneManager::ParseScene()
 	int index = 0;
 	int cmdLetterIndex = 0;
 	int cmdLetterLength = 0;
+
+	data.erase(std::remove(data.begin(), data.end(), '\t'), data.end());
 
 	do
 	{
@@ -611,7 +657,8 @@ void CutsceneManager::ReadNextLine()
 		//TODO: Make sure to save the backlog when we save the game
 		if (lineIndex >= 0 && labelIndex >= 0)
 		{
-			backlog.push_back(new BacklogData(labelIndex, lineIndex, currentText.c_str()));
+			Vector2 lastPos = textbox->text->GetLastGlyphPosition();
+			backlog.push_back(new BacklogData(labelIndex, lineIndex, textbox->text->txt.c_str(), lastPos.x, lastPos.y));
 		}
 
 		if (backlog.size() > backlogMaxSize)
@@ -684,10 +731,14 @@ void CutsceneManager::ReadBacklog()
 				SceneLine* line = label->lines[backlog[backlogIndex]->lineIndex];
 				textbox->speaker->SetText(line->speaker, backlogColor);
 				textbox->text->SetText(line->text, backlogColor);
+
+				textbox->SetCursorPosition(true, Vector2(backlog[backlogIndex]->lastX, backlog[backlogIndex]->lastY));
 			}
 		}	
-
-		textbox->text->SetText(backlog[backlogIndex]->text, backlogColor);
+		else
+		{
+			textbox->text->SetText(backlog[backlogIndex]->text, backlogColor);
+		}		
 	}
 }
 
@@ -723,9 +774,6 @@ void CutsceneManager::Update()
 			image->Update(*game);
 	}
 
-	//int lettersPerFrame = 2;
-	float delay = 10.0f;
-
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
 	if (input[autoButton] && inputTimer.HasElapsed())
@@ -738,8 +786,6 @@ void CutsceneManager::Update()
 	// And also allow mouse control alternatives
 
 	//TODO: Make this more customizable
-	//TODO: Add a delay between letters as well.
-	//TODO: Try to estimate the length of text to match human reading speed
 	if (input[SDL_SCANCODE_0])
 	{
 		autoTimeIndex++;
@@ -759,15 +805,16 @@ void CutsceneManager::Update()
 		autoTimeIndex = 2;
 	}
 		
-	//nextLetterTimer.Start(lettersPerFrame * delay);
-
 	//TODO: Fix this, it no longer works properly with the corrected dt
-	timer += (float)game->dt;
+	msGlyphTime += (float)game->dt;
 
-	if (waitingForButton && timer > delay)
+	// If waiting for a button press... 
+	// (the delay is so that the player doesn't press a button too quickly)
+	if (waitingForButton && msGlyphTime > msDelayBetweenGlyphs)
 	{
-		timer -= delay;
+		msGlyphTime -= msDelayBetweenGlyphs;
 
+		//TODO: Get mouse input for picking a choice
 		//TODO: We want to get the mouse/keyboard input here
 
 		if (inputTimer.HasElapsed())
@@ -826,15 +873,14 @@ void CutsceneManager::Update()
 		return;
 	}
 
-	textbox->isReading = (timer > 0);
+	// render the textbox when not waiting
+	textbox->isReading = (msGlyphTime > 0); 
 
 	if (input[skipButton])
-		delay = 0.0f;
+		msDelayBetweenGlyphs = 0.0f;
 
-	while (timer > delay)
+	if (msGlyphTime > msDelayBetweenGlyphs)
 	{
-		timer -= delay;
-
 		if (currentLabel == nullptr)
 		{
 			std::cout << "ERROR - current label is null!" << std::endl;
@@ -866,59 +912,84 @@ void CutsceneManager::Update()
 		}
 		else if (isReadingNextLine)
 		{
-			std::string result = ParseText(currentLabel->lines[lineIndex]->text, letterIndex, currentColor, textbox->text);
+			bool displayAllText = (msDelayBetweenGlyphs == 0) || clickedMidPage;
 
-			if (result.size() > 1)
+			do
 			{
-				for (int i = 0; i < result.size(); i++)
+
+				std::string result = ParseText(currentLabel->lines[lineIndex]->text, letterIndex, currentColor, textbox->text);
+
+				if (result.size() > 1)
 				{
-					textbox->UpdateText(result[i], currentColor);
+					for (int i = 0; i < result.size(); i++)
+					{
+						textbox->UpdateText(result[i], currentColor);
+					}
 				}
-			}
-			else if (result.size() == 1)
-			{
-				textbox->UpdateText(result[0], currentColor);
-			}
+				else if (result.size() == 1)
+				{
+					textbox->UpdateText(result[0], currentColor);
+				}
 
-			if (currentText.length() == 1)
-			{
-				textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
-			}
+				if (currentText.length() == 1)
+				{
+					textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
+				}
 
-			//nextLetterTimer.Start(lettersPerFrame * delay);
+				//nextLetterTimer.Start(lettersPerFrame * delay);
+
+				// Reached the 'click to continue' point
+				if (letterIndex >= currentLabel->lines[lineIndex]->text.length())
+				{
+					currentText = textbox->text->txt;
+					isReadingNextLine = false;
+					displayAllText = false;
+					clickedMidPage = false;
+
+					textbox->SetCursorPosition(true);
+					//textbox->clickToContinue->Update(*game);
+					//game->player->cutsceneInputTimer.Start(100);
+
+					if (automaticallyRead)
+					{
+						autoTimeToWait = (textbox->text->glyphs.size() * autoTimeToWaitPerGlyph);
+						autoReaderTimer.Start(autoTimeToWait);
+					}
+						
+
+					return;
+				}
+				else if (currentLabel->lines[lineIndex]->text[letterIndex] == '@')
+				{
+					currentText = textbox->text->txt;
+					readingSameLine = true;
+					isReadingNextLine = false;
+					displayAllText = false;
+					clickedMidPage = false;
+
+					textbox->SetCursorPosition(false);
+					//textbox->clickToContinue->Update(*game);
+
+					if (automaticallyRead)
+					{
+						autoTimeToWait = (textbox->text->glyphs.size() * autoTimeToWaitPerGlyph);
+						autoReaderTimer.Start(autoTimeToWait);
+					}
+				}
 
 
-			// Reached the 'click to continue' point
-			if (letterIndex >= currentLabel->lines[lineIndex]->text.length())
-			{
-				isReadingNextLine = false;
-				
-				textbox->SetCursorPosition(true);
-				//textbox->clickToContinue->Update(*game);
-				//game->player->cutsceneInputTimer.Start(100);
+			} while (displayAllText);
 
-				if (automaticallyRead)
-					autoReaderTimer.Start(autoTimeToWait[autoTimeIndex]);
-			
-				return;
-			}
-			else if (currentLabel->lines[lineIndex]->text[letterIndex] == '@')
-			{
-				readingSameLine = true;
-				isReadingNextLine = false;
-				
-				textbox->SetCursorPosition(false);
-				//textbox->clickToContinue->Update(*game);
-
-				if (automaticallyRead)
-					autoReaderTimer.Start(autoTimeToWait[autoTimeIndex]);
-			}
 		}
-		else if (delay == 0.0f)
+	}
+
+	if (msDelayBetweenGlyphs > 0)
+	{
+		while (msGlyphTime > msDelayBetweenGlyphs)
 		{
-			break;
+			msGlyphTime -= msDelayBetweenGlyphs;
 		}
-	}	
+	}
 
 }
 
@@ -1115,18 +1186,18 @@ void CutsceneManager::LoadGlobalVariables()
 
 	for (int i = 0; i < globalData.size(); i += 2)
 	{
-		commands.SetNumberVariable({ "", globalData[i], globalData[i+1] });
-		if (globalData.size() < i + 1)
+		if (globalData.size() <= i + 1)
 			break;
+		commands.SetNumberVariable({ "", globalData[i], globalData[i+1] });
 	}
 
 	globalData = GetVectorOfStringsFromFile("saves/globals-str.dat");
 
 	for (int i = 0; i < globalData.size(); i += 2)
 	{
-		commands.SetStringVariable({ "", globalData[i], globalData[i + 1] });
-		if (globalData.size() < i + 1)
+		if (globalData.size() <= i + 1)
 			break;
+		commands.SetStringVariable({ "", globalData[i], globalData[i + 1] });		
 	}
 }
 
@@ -1232,7 +1303,7 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, unsigned int value)
 // Backlog customization
 // Window resolution
 
-void CutsceneManager::SaveGame()
+void CutsceneManager::SaveGame(const char* filename, const char* path)
 {
 	std::ofstream fout;
 
@@ -1240,7 +1311,7 @@ void CutsceneManager::SaveGame()
 	// (the information necessary for us to find our place in the story)
 
 	//TODO: Make sure to save the gosub stack as well
-	fout.open("saves/file1.sav");
+	fout.open(std::string(path) + filename);
 
 	std::map<SaveSections, std::string> sections = {
 		{ SaveSections::CONFIG_OPTIONS, "@ CONFIG_OPTIONS"},

@@ -95,6 +95,17 @@ void Textbox::SetCursorPosition(bool endOfPage)
 	clickToContinue->SetPosition(cursorPos);
 }
 
+void Textbox::SetCursorPosition(bool endOfPage, Vector2 cursorPos)
+{
+	clickToContinue->GetAnimator()->SetBool("endOfPage", endOfPage);
+	clickToContinue->GetAnimator()->Update(clickToContinue);
+	clickToContinue->GetAnimator()->DoState(clickToContinue);
+	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+
+	cursorPos.x += clickToContinue->GetSprite()->frameWidth;
+	clickToContinue->SetPosition(cursorPos);
+}
+
 void Textbox::ChangeBoxFont(const std::string& fontName)
 {
 	//TODO: What about the backlog font?

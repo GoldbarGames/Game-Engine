@@ -76,7 +76,7 @@ public:
 
 	~Text();
 
-	void SetText(string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth=0);
+	void SetText(std::string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth=0);
 	void AddText(char c, Color color = { 255, 255, 255, 255 });
 	void AddImage(Sprite* newSprite);
 
