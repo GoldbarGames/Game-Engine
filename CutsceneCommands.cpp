@@ -24,6 +24,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"add", &CutsceneCommands::AddNumberVariables},
 	{"align", &CutsceneCommands::AlignCommand},
 	{"automode", &CutsceneCommands::AutoMode},
+	{"autoreturn", &CutsceneCommands::AutoReturn},
 	{"autosave", &CutsceneCommands::AutoSave},
 	{"backlog", &CutsceneCommands::OpenBacklog},
 	{"bg", &CutsceneCommands::LoadBackground },
@@ -118,12 +119,7 @@ std::vector<FuncLUT>cmd_lut = {
 // - buttons to select choices
 // ...more?
 
-// Camera operations (pan, zoom, rotate, orthographic/perspective, other stuff)
-// - set the position, rotation, just like anything else
-// - set the zoom factor, the projection stuff, perspective, etc.
 // Quake horizontal, vertical, both
-
-//TODO: CSS-style Layout system (padding, margin, rows, columns, layout boxes, etc.)
 
 CutsceneCommands::CutsceneCommands()
 {
@@ -151,8 +147,9 @@ CutsceneCommands::~CutsceneCommands()
 
 }
 
-void CutsceneCommands::ExecuteCommand(std::string command)
+bool CutsceneCommands::ExecuteCommand(std::string command)
 {
+	bool finished = true;
 	// Replace all the bracketed spaces with underscores
 	bool shouldReplace = false;
 	for (int i = 0; i < command.size(); i++)
@@ -171,27 +168,13 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 		}
 	}
 
-	// Break up the command string into a vector of strings, one word each
-	//TODO: Is this the best way to do this?
-	//std::stringstream ss(command);
-	//std::istream_iterator<std::string> begin(ss);
-	//std::istream_iterator<std::string> end;
-	//std::vector<std::string> parameters(begin, end);
-
 	std::istringstream ss(command);
 	std::string token;
 	std::vector<std::string> parameters;
 
 	char delimit = (command.find(',') != std::string::npos) ? ',' : ' ';
 
-	// function param1,param2,param3
-	// function param1 param2 param3
-
-	// if there is a comma in the command, then the first word is the command name,
-	// and all of the parameters are comma separated. otherwise, they are all space separated
-
 	//TODO: Maybe instead of using getline, just check for COMMA or SPACE and accept either one
-
 	if (delimit == ',')
 	{
 		std::getline(ss, token, ' ');
@@ -230,32 +213,6 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 			}
 		}
 	}
-
-
-
-
-
-	/*
-	std::vector<std::string> parameters;
-	std::string param = "";
-	for (int i = 0; i < command.size(); i++)
-	{
-		if (command[i] == ' ')
-		{
-			parameters.push_back(param);
-			param = "";
-		}
-		else
-		{
-			param += command[i];
-		}
-	}
-
-	if (param != "")
-	{
-		parameters.push_back(param);
-	}
-	*/
 
 	if (parameters.size() > 0)
 	{
@@ -305,10 +262,22 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 
 					if (errorCode != 0)
 					{
-						std::cout << "ERROR " << errorCode << ": ";
-						for (int i = 0; i < parameters.size(); i++)
-							std::cout << parameters[i] << " ";
-						std::cout << std::endl;
+						if (errorCode == -99)
+						{
+							manager->EndCutscene();
+							return true;
+						}
+						else if (errorCode == -199) //TODO: Use enums
+						{
+							finished = false;
+						}
+						else
+						{
+							std::cout << "ERROR " << errorCode << ": ";
+							for (int i = 0; i < parameters.size(); i++)
+								std::cout << parameters[i] << " ";
+							std::cout << std::endl;
+						}
 					}
 				}
 				catch (const std::exception &e)
@@ -382,6 +351,8 @@ void CutsceneCommands::ExecuteCommand(std::string command)
 			}			
 		}
 	}
+
+	return finished;
 }
 
 int CutsceneCommands::DoNothing(CutsceneParameters parameters)
@@ -717,7 +688,7 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 	if (data == nullptr)
 	{		
 		manager->game->logger->Log("ERROR: Nowhere to return to!");
-		return -3;
+		return -99;
 	}
 
 	// Check the label name to see if it is a variable
@@ -1268,9 +1239,9 @@ std::string CutsceneCommands::ParseStringValue(const std::string& parameter)
 	return value;
 }
 
-unsigned int CutsceneCommands::ParseNumberValue(const std::string& parameter)
+int CutsceneCommands::ParseNumberValue(const std::string& parameter)
 {
-	unsigned int value = 0;
+	int value = 0;
 
 	// Get the variable number to store the result in
 	if (parameter[0] == '%' || parameter[0] == '$')
@@ -1281,7 +1252,7 @@ unsigned int CutsceneCommands::ParseNumberValue(const std::string& parameter)
 	return value;
 }
 
-unsigned int CutsceneCommands::GetNumAlias(const std::string& key)
+int CutsceneCommands::GetNumAlias(const std::string& key)
 {
 	if (numalias.find(key) == numalias.end())
 	{
@@ -1879,7 +1850,6 @@ int CutsceneCommands::Fade(CutsceneParameters parameters)
 int CutsceneCommands::SetResolution(CutsceneParameters parameters)
 {
 	//TODO: Maybe place this command in a config file to start the window in a certain resolution?
-	//TEST: Allow setting resolution based on variable values
 	const int width = ParseNumberValue(parameters[1]);
 	const int height = ParseNumberValue(parameters[2]);
 
@@ -1911,6 +1881,20 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 		{
 			manager->backlogMaxSize = ParseNumberValue(parameters[2]);
 		}
+		else if (parameters[1] == "open")
+		{
+			manager->readingBacklog = true;
+			manager->backlogIndex = manager->backlog.size() - 1;
+			manager->ReadBacklog();
+		}
+		else if (parameters[1] == "enable")
+		{
+			manager->backlogEnabled = true;
+		}
+		else if (parameters[1] == "disable")
+		{
+			manager->backlogEnabled = false;
+		}
 		else if (parameters[1] == "color") //TODO: Should this be the same for both name and text?
 		{
 			if (parameters[2][0] == '#')
@@ -1934,13 +1918,6 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 					(uint8_t)ParseNumberValue(parameters[5])};
 			}
 		}
-	}
-	else
-	{
-		//TODO: Allow the script to set other backlog properties
-		manager->readingBacklog = true;
-		manager->backlogIndex = manager->backlog.size() - 1;
-		manager->ReadBacklog();
 	}
 
 	return 0;
@@ -2029,31 +2006,183 @@ int CutsceneCommands::TimerFunction(CutsceneParameters parameters)
 
 int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 {
-	if (parameters[1] == "zoom")
+	if (parameters[1] == "target")
 	{
-
+		//TODO
 	}
-	else if (parameters[1] == "set")
+	else if (parameters[1] == "zoom")
 	{
-		if (parameters[2] == "position")
+		//TODO: Refactor the camera.Zoom function to make orthoZoom private
+		if (parameters[2] == "set")
 		{
-
+			manager->game->renderer->camera.orthoZoom = ParseNumberValue(parameters[3]);
+			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
-		else if (parameters[2] == "rotation")
+		else if (parameters[2] == "add")
 		{
-
+			manager->game->renderer->camera.orthoZoom += ParseNumberValue(parameters[3]);
+			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
-		else if (parameters[2] == "pitch")
+		else if (parameters[2] == "sub")
 		{
-
+			manager->game->renderer->camera.orthoZoom -= ParseNumberValue(parameters[3]);
+			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
-		else if (parameters[2] == "yaw")
+		else if (parameters[2] == "lerp")
 		{
-
+			//TODO
 		}
-		else if (parameters[2] == "projection")
+	}
+	else if (parameters[1] == "position")
+	{
+		if (parameters[2] == "set")
 		{
-		if (parameters[3] == "orthographic")
+			manager->game->renderer->camera.position = glm::vec3(ParseNumberValue(parameters[3]), 
+				ParseNumberValue(parameters[4]), ParseNumberValue(parameters[5]));
+		}
+		else if (parameters[2] == "moveto") //TODO: Last parameter is time or speed?
+		{
+			const float SPEED = std::stof(parameters[6]);
+
+			if (manager->game->renderer->camera.position.x != ParseNumberValue(parameters[3]))
+			{
+				if (ParseNumberValue(parameters[3]) > manager->game->renderer->camera.position.x)
+					manager->game->renderer->camera.position.x += SPEED;
+				else
+					manager->game->renderer->camera.position.x -= SPEED;
+			}
+
+			if (manager->game->renderer->camera.position.y != ParseNumberValue(parameters[4]))
+			{
+				if (ParseNumberValue(parameters[4]) > manager->game->renderer->camera.position.y)
+					manager->game->renderer->camera.position.y += SPEED;
+				else
+					manager->game->renderer->camera.position.y -= SPEED;
+			}
+
+			if (manager->game->renderer->camera.position.z != ParseNumberValue(parameters[5]))
+			{
+				if (ParseNumberValue(parameters[5]) > manager->game->renderer->camera.position.z)
+					manager->game->renderer->camera.position.z += SPEED;
+				else
+					manager->game->renderer->camera.position.z -= SPEED;
+			}
+
+			//TODO: Round these to ints if they are not even
+			glm::vec3 intPos = manager->game->renderer->camera.position;
+
+			intPos.x = (int)intPos.x;
+			intPos.y = (int)intPos.y;
+			intPos.z = (int)intPos.z;
+
+			if (intPos != glm::vec3((int)ParseNumberValue(parameters[3]),
+				(int)ParseNumberValue(parameters[4]), (int)ParseNumberValue(parameters[5])))
+			{
+				return -199;
+			}
+			else
+			{
+				manager->game->renderer->camera.position = intPos;
+			}
+		}
+		else if (parameters[2] == "add")
+		{
+			manager->game->renderer->camera.position += glm::vec3(ParseNumberValue(parameters[3]),
+				ParseNumberValue(parameters[4]), ParseNumberValue(parameters[5]));
+		}
+		else if (parameters[2] == "sub")
+		{
+			manager->game->renderer->camera.position -= glm::vec3(ParseNumberValue(parameters[3]),
+				ParseNumberValue(parameters[4]), ParseNumberValue(parameters[5]));
+		}
+		else if (parameters[2] == "lerp")
+		{
+			//TODO
+		}
+	}
+	else if (parameters[1] == "rotation")
+	{
+		//TODO: Refactor the camera.Zoom function to make angle private
+		if (parameters[2] == "set")
+		{
+			manager->game->renderer->camera.angle = ParseNumberValue(parameters[3]);
+			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+		}
+		else if (parameters[2] == "add")
+		{
+			manager->game->renderer->camera.angle += ParseNumberValue(parameters[3]);
+			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+		}
+		else if (parameters[2] == "sub")
+		{
+			manager->game->renderer->camera.angle -= ParseNumberValue(parameters[3]);
+			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+		}
+		else if (parameters[2] == "lerp")
+		{
+			//TODO
+		}
+	}
+	else if (parameters[1] == "pitch")
+	{
+		if (parameters[2] == "set")
+		{
+			manager->game->renderer->camera.pitch = ParseNumberValue(parameters[3]);
+		}
+		else if (parameters[2] == "add")
+		{
+			manager->game->renderer->camera.pitch += ParseNumberValue(parameters[3]);
+		}
+		else if (parameters[2] == "sub")
+		{
+			manager->game->renderer->camera.pitch -= ParseNumberValue(parameters[3]);
+		}
+		else if (parameters[2] == "lerp")
+		{
+			//TODO
+		}
+	}
+	else if (parameters[1] == "yaw")
+	{
+		if (parameters[2] == "set")
+		{
+			manager->game->renderer->camera.yaw = ParseNumberValue(parameters[3]);
+		}
+		else if (parameters[2] == "add")
+		{
+			manager->game->renderer->camera.yaw += ParseNumberValue(parameters[3]);
+		}
+		else if (parameters[2] == "sub")
+		{
+			manager->game->renderer->camera.yaw -= ParseNumberValue(parameters[3]);
+		}
+		else if (parameters[2] == "lerp")
+		{
+			//TODO
+		}
+	}
+	else if (parameters[1] == "roll")
+	{
+		if (parameters[2] == "set")
+		{
+			manager->game->renderer->camera.roll = ParseNumberValue(parameters[3]);
+		}
+		else if (parameters[2] == "add")
+		{
+			manager->game->renderer->camera.roll += ParseNumberValue(parameters[3]);
+		}
+		else if (parameters[2] == "sub")
+		{
+			manager->game->renderer->camera.roll -= ParseNumberValue(parameters[3]);
+		}
+		else if (parameters[2] == "lerp")
+		{
+			//TODO
+		}
+	}
+	else if (parameters[1] == "projection")
+	{
+		if (parameters[2] == "orthographic")
 		{
 			manager->game->renderer->camera.useOrthoCamera = true;
 			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
@@ -2063,15 +2192,6 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 			manager->game->renderer->camera.useOrthoCamera = false;
 			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
-		}
-	}
-	else if (parameters[1] == "pan")
-	{
-
-	}
-	else if (parameters[1] == "rotate")
-	{
-
 	}
 
 	return 0;
@@ -2393,7 +2513,7 @@ int CutsceneCommands::AlignCommand(CutsceneParameters parameters)
 		{
 			text = static_cast<Text*>(manager->images[ParseNumberValue(parameters[3])]);
 		}		
-	}	 
+	}	
 
 	if (text == nullptr)
 		return -1;
@@ -2452,6 +2572,22 @@ int CutsceneCommands::AutoSave(CutsceneParameters parameters)
 	else if (parameters[1] == "off")
 	{
 		manager->autosave = false;
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::AutoReturn(CutsceneParameters parameters)
+{
+	//TODO: Save this setting and remember it when you load the game
+
+	if (parameters[1] == "on")
+	{
+		manager->autoreturn = true;
+	}
+	else if (parameters[1] == "off")
+	{
+		manager->autoreturn = false;
 	}
 
 	return 0;

@@ -4,9 +4,9 @@
 #include "globals.h"
 
 Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, 
-	GLfloat startYaw, GLfloat startPitch, 
-	GLfloat startMovementSpeed, GLfloat startTurnSpeed,
-	GLfloat startZoom, float width, float height, bool useOrtho)
+	float startYaw, float startPitch,
+	float startMovementSpeed, float startTurnSpeed,
+	float startZoom, float width, float height, bool useOrtho)
 {
 	useOrthoCamera = useOrtho;
 	
@@ -72,7 +72,7 @@ glm::mat4 Camera::CalculateViewMatrix()
 	return glm::lookAt(position, position - front, up);
 }
 
-void Camera::MouseControl(GLfloat xChange, GLfloat yChange)
+void Camera::MouseControl(float xChange, float yChange)
 {
 	xChange *= turnSpeed;
 	yChange *= turnSpeed;

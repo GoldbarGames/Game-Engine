@@ -115,6 +115,7 @@ Game::Game()
 	entities.clear();
 
 	ResetText();
+	SetScreenResolution(1280, 720);
 
 	// Initialize all the menus
 	allMenus["Title"] = new MenuScreen("Title", *this);
@@ -754,6 +755,9 @@ Player* Game::SpawnPlayer(Vector2 position)
 
 	renderer->camera.target = player;
 	renderer->guiCamera.target = player;
+
+	renderer->camera.FollowTarget(1280, 720);
+	renderer->guiCamera.FollowTarget(1280, 720);
 
 	return player;
 }
@@ -1397,11 +1401,13 @@ void Game::Update()
 	// Update the camera last
 	// We need to use the original screen resolution here (for some reason)
 	// which in our case is 1280 x 720
+	if (!cutscene->watchingCutscene)
+	{
+		if (renderer->camera.useOrthoCamera)
+			renderer->camera.FollowTarget(1280, 720);
 
-	if (renderer->camera.useOrthoCamera)
-		renderer->camera.FollowTarget(1280, 720);
-
-	renderer->guiCamera.FollowTarget(1280, 720);
+		renderer->guiCamera.FollowTarget(1280, 720);
+	}
 }
 
 void Game::SetScreenResolution(const unsigned int width, const unsigned int height)

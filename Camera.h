@@ -16,15 +16,15 @@ class Camera
 {
 public:
 	Camera();
-	Camera(glm::vec3 startPosition, glm::vec3 startUp, GLfloat startYaw, GLfloat startPitch,
-		GLfloat startMovementSpeed, GLfloat startTurnSpeed, GLfloat startZoom, 
+	Camera(glm::vec3 startPosition, glm::vec3 startUp, float startYaw, float startPitch,
+		float startMovementSpeed, float startTurnSpeed, float startZoom,
 		float width, float height, bool useOrtho);
 	~Camera();
 
 	void KeyControl(const Uint8* input, const float& dt,
 		const float& screenWidth, const float& screenHeight);
 
-	void MouseControl(GLfloat xChange, GLfloat yChange);
+	void MouseControl(float xChange, float yChange);
 	glm::mat4 projection = glm::mat4();
 	glm::mat4 guiProjection = glm::mat4();
 	glm::mat4 CalculateViewMatrix();
@@ -39,7 +39,11 @@ public:
 	bool useOrthoCamera = true;
 	void FollowTarget(const float& screenWidth, const float& screenHeight);
 	void Update();
-
+	float orthoZoom = 4.0f;
+	float angle = -45.0f;
+	float yaw = 0;
+	float pitch = 0;
+	float roll = 0;
 private:
 	
 	glm::vec3 front = glm::vec3(0, 0, 0);
@@ -47,18 +51,9 @@ private:
 	glm::vec3 right = glm::vec3(0, 0, 0);
 	glm::vec3 worldUp = glm::vec3(0, 0, 0);
 
-	float orthoZoom = 4.0f;
 	float startingZoom = 4.0f;
-	
-	float angle = -45.0f;
-
-	GLfloat yaw = 0;
-	GLfloat pitch = 0;
-	//GLfloat roll;
-
-	GLfloat movementSpeed = 0;
-	GLfloat turnSpeed = 0;
-
+	float movementSpeed = 0;
+	float turnSpeed = 0;
 };
 
 #endif

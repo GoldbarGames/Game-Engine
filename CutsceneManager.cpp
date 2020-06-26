@@ -22,7 +22,7 @@ CutsceneManager::CutsceneManager(Game& g)
 
 	std::ifstream fin;
 
-	bool testVN = true;
+	bool testVN = false;
 	std::string directory = "";
 	std::string line = "";
 
@@ -226,10 +226,13 @@ void CutsceneManager::CheckKeys()
 		}
 		else if (input[SDL_SCANCODE_UP])
 		{
-			readingBacklog = true;
-			backlogIndex = backlog.size() - 1;
-			ReadBacklog();
-			inputTimer.Start(inputTimeToWait);
+			if (backlogEnabled)
+			{
+				readingBacklog = true;
+				backlogIndex = backlog.size() - 1;
+				ReadBacklog();
+				inputTimer.Start(inputTimeToWait);
+			}
 		}
 #if _DEBUG
 		else if (input[SDL_SCANCODE_S]) // save game
@@ -672,19 +675,20 @@ void CutsceneManager::ReadNextLine()
 		textbox->text->SetText(currentText);
 
 		if (lineIndex >= currentLabel->lines.size())
-		{
-			//watchingCutscene = false;
-
-			//TODO: Maybe instead of ending the cutscene,
-			// go to the next label in sequence?
-			//TODO: Set a variable to toggle between these modes
-
+		{			
 			if (labelIndex < labels.size() - 1)
 			{
-				labelIndex++;
-				currentLabel = JumpToLabel(labels[labelIndex]->name.c_str());
-				lineIndex = -1;
-				ReadNextLine();
+				if (autoreturn)
+				{
+					EndCutscene();
+				}
+				else // go to the next label in sequence
+				{
+					labelIndex++;
+					currentLabel = JumpToLabel(labels[labelIndex]->name.c_str());
+					lineIndex = -1;
+					ReadNextLine();
+				}
 			}
 		}
 		else
@@ -884,6 +888,23 @@ void CutsceneManager::Update()
 	if (input[skipButton])
 		msDelayBetweenGlyphs = 0.0f;
 
+	//TODO: Continue to execute functions that have not finished yet (moveto, lerp) (multi-threading?)
+
+	int unfinishedIndex = 0;
+	while (unfinishedIndex < unfinishedCommands.size())
+	{
+		bool finished = commands.ExecuteCommand(unfinishedCommands[unfinishedIndex]);
+
+		if (finished)
+		{
+			unfinishedCommands.erase(unfinishedCommands.begin() + unfinishedIndex);
+		}
+		else
+		{
+			unfinishedIndex++;
+		}
+	}
+
 	if (msGlyphTime > msDelayBetweenGlyphs)
 	{
 		if (currentLabel == nullptr)
@@ -907,7 +928,10 @@ void CutsceneManager::Update()
 		{
 			if (commandIndex >= 0 && commandIndex < currentLabel->lines[lineIndex]->commands.size())
 			{
-				commands.ExecuteCommand(currentLabel->lines[lineIndex]->commands[commandIndex]);
+				if (!commands.ExecuteCommand(currentLabel->lines[lineIndex]->commands[commandIndex]))
+				{
+					unfinishedCommands.push_back(currentLabel->lines[lineIndex]->commands[commandIndex]);
+				}
 				commandIndex++;
 			}
 			else

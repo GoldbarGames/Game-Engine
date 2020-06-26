@@ -96,6 +96,7 @@ class CutsceneManager
 	std::string data = "";
 	std::string currentText = "";
 public:	 
+	bool autoreturn = false;
 	bool autosave = false;
 	bool overwriteName = true;
 	std::string currentScript = "";
@@ -107,8 +108,10 @@ public:
 	int letterIndex = 0;
 	int commandIndex = 0;
 	int backlogIndex = 0;
+	bool backlogEnabled = false;
 	bool readingBacklog = false;
 	Color backlogColor = { 255, 255, 0, 255 };
+	std::vector<std::string> unfinishedCommands;
 	std::vector<BacklogData*> backlog;
 	int backlogMaxSize = 3;
 	unsigned int globalStart = 1000; //TODO: Should this be a config variable?

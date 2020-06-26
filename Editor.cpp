@@ -1932,4 +1932,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 			game->cutscene->PlayCutscene(game->levelStartCutscene.c_str());
 		}
 	}
+
+	//TODO: Figure out why this is glitching out at the start
+	game->SetScreenResolution(game->screenWidth, game->screenHeight);
 }

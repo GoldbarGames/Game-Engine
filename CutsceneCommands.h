@@ -40,7 +40,7 @@ public:
 	CutsceneCommands();
 	~CutsceneCommands();
 
-	void ExecuteCommand(std::string command);
+	bool ExecuteCommand(std::string command);
 	
 	// Load graphics
 	int LoadSprite(CutsceneParameters parameters);
@@ -73,7 +73,7 @@ public:
 	int SetStringVariable(CutsceneParameters parameters);
 	std::string GetStringVariable(const unsigned int key);
 	std::string GetStringAlias(const std::string& key);
-	unsigned int GetNumAlias(const std::string& key);
+	int GetNumAlias(const std::string& key);
 
 	int ConcatenateStringVariables(CutsceneParameters parameters);
 
@@ -109,7 +109,7 @@ public:
 
 	int DoNothing(CutsceneParameters parameters);
 
-	unsigned int ParseNumberValue(const std::string& parameter);
+	int ParseNumberValue(const std::string& parameter);
 	std::string ParseStringValue(const std::string& parameter);
 
 	int SetGlobalNumber(CutsceneParameters parameters);
@@ -150,6 +150,7 @@ public:
 	int FileExist(CutsceneParameters parameters);
 	int TextSpeed(CutsceneParameters parameters);
 	int AutoMode(CutsceneParameters parameters);
+	int AutoReturn(CutsceneParameters parameters);
 	int AutoSave(CutsceneParameters parameters);
 	int AlignCommand(CutsceneParameters parameters);
 	int InputCommand(CutsceneParameters parameters);
