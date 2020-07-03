@@ -22,19 +22,19 @@ FontInfo::~FontInfo()
 
 	if (bold != nullptr)
 	{
-		TTF_CloseFont(regular);
+		TTF_CloseFont(bold);
 		//delete bold;
 	}
 
 	if (italics != nullptr)
 	{
-		TTF_CloseFont(regular);
+		TTF_CloseFont(italics);
 		//delete italics;
 	}
 
 	if (boldItalics != nullptr)
 	{
-		TTF_CloseFont(regular);
+		TTF_CloseFont(boldItalics);
 		//delete boldItalics;
 	}
 	

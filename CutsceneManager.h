@@ -122,7 +122,7 @@ public:
 	std::vector<SceneLabel*> labels;
 	SceneLabel* currentLabel = nullptr;
 	std::vector<SceneData*> gosubStack;
-	const int choiceQuestionNumber = 10000;
+	const int choiceSpriteStartNumber = 10000;
 	int buttonIndex = 0;
 	int buttonResult = 0;
 	bool watchingCutscene = false;
@@ -142,6 +142,7 @@ public:
 	std::vector<std::string> choiceIfStatements;
 	std::vector<unsigned int> activeButtons;
 	std::unordered_map<unsigned int, unsigned int> spriteButtons;
+	std::map<std::string, Entity*> animatedImages;
 	std::map<unsigned int, Entity*> images; // needs to be in order for rendering
 	std::map<unsigned int, Entity*>::iterator imageIterator;
 	std::map<unsigned int, unsigned int> seenLabelsToMostRecentLine;

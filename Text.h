@@ -54,6 +54,8 @@ public:
 	std::vector<Glyph*> glyphs;
 	std::unordered_map<int, int> lineNumToIndex;
 
+	Glyph* GetLastGlyph();
+
 	AlignmentX alignX = AlignmentX::LEFT;
 	AlignmentY alignY = AlignmentY::TOP;
 	Uint32 wrapWidth = 0;

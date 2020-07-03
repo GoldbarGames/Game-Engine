@@ -47,6 +47,7 @@ public:
 	int ClearSprite(CutsceneParameters parameters);
 	int SetSpriteProperty(CutsceneParameters parameters);
 	int LoadBackground(CutsceneParameters parameters);
+	int AnimationCommand(CutsceneParameters parameters);
 
 	// Text
 	int LoadText(CutsceneParameters parameters);

@@ -23,6 +23,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"~", &CutsceneCommands::DoNothing},
 	{"add", &CutsceneCommands::AddNumberVariables},
 	{"align", &CutsceneCommands::AlignCommand},
+	{"animation", &CutsceneCommands::AnimationCommand},
 	{"automode", &CutsceneCommands::AutoMode},
 	{"autoreturn", &CutsceneCommands::AutoReturn},
 	{"autosave", &CutsceneCommands::AutoSave},
@@ -94,30 +95,26 @@ std::vector<FuncLUT>cmd_lut = {
 };
 
 // TODO: Need to handle instances of : in other spots (like in strings)
-// TODO: Commands executed during the same textbox `like`@`this`
+// TODO: Commands executed during the same textbox `like`@`this`\
 
 // For loops, while loops
 
 // Alpha image effects (apply alpha mask using shader to texture, entire screen?)
 // Save/load (save backlog, erase savefiles, thumbnails, custom save notes)
 
-// Animations for images in the textbox, as well as the textbox and namebox themselves
+// Animations for textbox and namebox
+
 // - what about animations that involve each frame being its own file?
 	// 1. construct the animation with a list of filenames in the order they will be drawn
 	// 2. when rendering the sprite, don't divide the texture; instead, use the whole frame
+
 // - custom timers (we'll deal with this when we handle blinking animations)
 
-// Custom key bindings
-// - button to advance text
-// - button to open menu
-// - button to skip text
-// - button to auto read text
-// - button to hide textbox
-// - button to take screenshot
-// - button to open backlog
-// - button to scroll up/down backlog
-// - buttons to select choices
-// ...more?
+// map actions to buttons
+// -> map buttons to keys
+
+// Check if any physical buttons in the list have been pressed
+// in order to carry out the action specified by the button
 
 // Quake horizontal, vertical, both
 
@@ -721,10 +718,15 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 	unsigned int numberOfChoices = ParseNumberValue(parameters[1]);
 
 	int index = 2;
-	int spriteNumber = manager->choiceQuestionNumber;
+	int spriteNumber = manager->choiceSpriteStartNumber;
 	std::string choiceQuestion = ParseStringValue(parameters[index]);
 
+	//TODO: Don't hardcode 1280 x 720
+	LoadSprite({ "ld", std::to_string(spriteNumber), choiceBGFilePath, "1280", "720" });
+
+	spriteNumber++;
 	int choiceYPos = 280;
+	//TODO: Don't hardcode 1280
 	LoadText({"", std::to_string(spriteNumber), "1280", std::to_string(choiceYPos), choiceQuestion });
 	AlignCommand({ "align", "x", "center", std::to_string(spriteNumber) });
 	spriteNumber++;
@@ -745,6 +747,7 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 		//TODO: Set the y pos relative to the screen resolution, don't hard-code these numbers
 		choiceYPos = 400 + (120 * i);
 
+		//TODO: Don't hardcode 1280
 		LoadText({"", choiceNumber, "1280",
 			std::to_string(choiceYPos), choiceText });
 
@@ -2588,6 +2591,78 @@ int CutsceneCommands::AutoReturn(CutsceneParameters parameters)
 	else if (parameters[1] == "off")
 	{
 		manager->autoreturn = false;
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
+{
+	const std::string animationName = parameters[1];
+
+	if (manager->animatedImages.count(animationName) != 1)
+	{
+		manager->animatedImages[animationName] = new Entity(Vector2(0, 0));
+	}
+
+	if (parameters[2] == "state")
+	{
+		int index = 3;
+		std::string stateName = parameters[index++];
+		AnimState* state = manager->animatedImages[animationName]->GetAnimator()->GetState(stateName);		
+		int stateSpeed = std::stoi(parameters[index++]);
+		int spriteStartFrame = std::stoi(parameters[index++]);
+		int spriteEndFrame = std::stoi(parameters[index++]);
+		int spriteFrameWidth = std::stoi(parameters[index++]);
+		int spriteFrameHeight = std::stoi(parameters[index++]);
+
+		std::string spriteFilePath = parameters[index++];
+		int spritePivotX = std::stoi(parameters[index++]);
+		int spritePivotY = std::stoi(parameters[index++]);
+
+		if (state->sprite != nullptr)
+			delete state->sprite;
+
+		state->name = stateName;
+		state->speed = stateSpeed;
+		state->sprite = new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
+			manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
+			Vector2(spritePivotX, spritePivotY));
+
+		state->sprite->keepPositionRelativeToCamera = true;
+		state->sprite->keepScaleRelativeToCamera = true;
+	}
+	else if (parameters[2] == "set")
+	{
+		//TODO: This will never work as long as the state machine is active
+		// because unless you also set the conditions to get to this state,
+		// it will just flow back into whatever state it was in before (or can get to)
+		if (parameters[3] == "state") 
+		{
+			manager->animatedImages[animationName]->GetAnimator()->SetState(parameters[4].c_str());
+			manager->animatedImages[animationName]->GetAnimator()->Update(manager->animatedImages[animationName]);
+		}
+		else if (parameters[3] == "bool")
+		{
+			manager->animatedImages[animationName]->GetAnimator()->SetBool(parameters[4].c_str(), parameters[5] == "true");
+			manager->animatedImages[animationName]->GetAnimator()->Update(manager->animatedImages[animationName]);
+		}
+		else if (parameters[3] == "machine")
+		{
+			std::vector<AnimState*> animStates;
+			manager->game->spriteManager->ReadAnimData(parameters[4], animStates);
+
+			Animator* anim1 = new Animator(AnimType::Cursor, animStates, parameters[5]);
+			anim1->SetBool("endOfPage", false);
+			anim1->SetRelativeAllStates(true);
+			//anim1->SetScaleAllStates(Vector2(0.5f, 0.5f));
+
+			manager->animatedImages[animationName]->SetAnimator(anim1);
+			manager->animatedImages[animationName]->GetAnimator()->Update(manager->animatedImages[animationName]);
+			manager->animatedImages[animationName]->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+
+			
+		}
 	}
 
 	return 0;

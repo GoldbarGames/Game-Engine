@@ -783,6 +783,12 @@ void CutsceneManager::Update()
 			image->Update(*game);
 	}
 
+	for (auto const& [key, image] : animatedImages)
+	{
+		if (image != nullptr)
+			image->Update(*game);
+	}
+
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
 	if (input[autoButton] && inputTimer.HasElapsed())
@@ -858,7 +864,8 @@ void CutsceneManager::Update()
 				textbox->isReading = true;
 
 				// Remove the sprite buttons from the screen
-				commands.ClearSprite({ "", std::to_string(choiceQuestionNumber) });
+				commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber) });   // bg
+				commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber+1) }); // question
 				for (int i = 0; i < activeButtons.size(); i++)
 				{
 					commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
@@ -1147,16 +1154,46 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 			}
 
 			// Add the image to the text here
-			//TODO: Add animations too
 			//TODO: Check this for memory leaks!
 			Sprite* sprite = new Sprite(game->spriteManager->GetImage(commands.ParseStringValue(imageName)),
 				game->renderer->shaders[ShaderName::Default]);
 
 			text->AddImage(sprite);
-
 			letterIndex = imageIndex;
-			
 			letterIndex += 6; // /img>
+
+			return result;
+		}
+		else if (tagName == "anim")
+		{
+			std::string animName = "";
+			int animIndex = tagIndex + 1;
+			while (originalString[animIndex] != '<')
+			{
+				animName += originalString[animIndex];
+				animIndex++;
+				if (animIndex >= originalString.size())
+					break;
+			}
+
+			if (animatedImages[animName] != nullptr)
+			{
+				// Add the image to the text here
+				//TODO: Check this for memory leaks!
+				Sprite* sprite = animatedImages[animName]->GetSprite();
+				text->AddImage(sprite);		
+				text->GetLastGlyph()->animator = animatedImages[animName]->GetAnimator();
+			}
+			else
+			{
+				commands.ErrorLog({ "", "Error loading animation " + animName });
+			}
+
+			letterIndex = animIndex;
+			while (originalString[letterIndex] != '>')
+				letterIndex++;
+			letterIndex++;
+			//letterIndex += 7; // /anim>
 
 			return result;
 		}

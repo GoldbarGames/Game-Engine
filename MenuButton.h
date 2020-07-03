@@ -14,8 +14,10 @@ class MenuButton : public BaseButton
 private:
 	int thickness = 2;
 	Vector2 position = Vector2(0, 0);	
+	Vector2 imagePosition = Vector2(0, 0);
 public:	
-	MenuButton(std::string txt, std::string filepath, std::string function, Vector2 pos, Game& game);
+	MenuButton(const std::string& txt, const std::string& filepath, 
+		const std::string& function, Vector2 pos, Game& game);
 	~MenuButton();
 	void Render(Renderer* renderer);
 	BaseButton* Update(Game& game, const Uint8* currentKeyStates);

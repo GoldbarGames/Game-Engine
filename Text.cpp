@@ -89,6 +89,18 @@ Vector2 Text::GetLastGlyphPosition()
 	return position;
 }
 
+Glyph* Text::GetLastGlyph()
+{
+	if (isRichText && glyphs.size() > 0)
+	{
+		return glyphs[glyphs.size() - 1];
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 std::string Text::GetTextString()
 {
 	return "[" + txt + "]";
@@ -182,7 +194,8 @@ void Text::SetText(std::string text, Color color, Uint32 wrapWidth)
 	// So make some kind of manager where we can grab that texture.
 	for (int i = 0; i < glyphs.size(); i++)
 	{
-		delete_it(glyphs[i]);
+		if (glyphs[i] != nullptr && glyphs[i]->shouldDeleteSprite)
+			delete_it(glyphs[i]);
 	}
 
 	glyphs.clear();
@@ -264,6 +277,7 @@ void Text::AddImage(Sprite* newSprite)
 
 		Glyph* newGlyph = new Glyph;
 		newGlyph->sprite = newSprite;
+		newGlyph->shouldDeleteSprite = false; //TODO: Probably refactor this
 
 		if (glyphs.size() > 0)
 		{
@@ -374,7 +388,18 @@ void Text::Render(Renderer* renderer)
 		{
 			if (glyphs[i]->sprite != nullptr)
 			{
-				glyphs[i]->sprite->Render(glyphs[i]->position, renderer);
+				if (glyphs[i]->animator != nullptr)
+				{
+					glyphs[i]->sprite->Render(glyphs[i]->position,
+						glyphs[i]->animator->GetSpeed(),
+						glyphs[i]->animator->animationTimer.GetTicks(),
+						flip, renderer, rotation);
+				}
+				else
+				{
+					glyphs[i]->sprite->Render(glyphs[i]->position, 0, -1, flip, renderer, rotation);
+				}
+					
 			}
 		}
 	}

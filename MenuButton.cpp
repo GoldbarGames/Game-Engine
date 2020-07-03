@@ -1,36 +1,22 @@
 #include "MenuButton.h"
 #include "Game.h"
 
-MenuButton::MenuButton(std::string txt, std::string filepath, std::string function, Vector2 pos, Game& game)
+MenuButton::MenuButton(const std::string& txt, const std::string& filepath, const std::string& function, Vector2 pos, Game& game)
 {
 	image = new Sprite(1, game.spriteManager, filepath, game.renderer->shaders[ShaderName::GUI], Vector2(0,0));
 
 	text = new Text(game.renderer, game.theFont);
+
+	text->alignX = AlignmentX::CENTER;
+	text->isRichText = false;
 	text->SetText(txt);
+
 	//text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->GetTextHeight()/2));
 	text->SetPosition(pos.x, pos.y - (text->GetTextHeight() / 4));
+	text->SetScale(Vector2(2, 2));	
 
-	text->SetScale(Vector2(2, 2));
-
-	switch (text->alignX)
-	{
-	case AlignmentX::LEFT:
-		image->SetScale(game.renderer->CalculateScale(image, text->GetTextWidth(),
-			text->GetTextHeight(), text->scale));
-		break;
-	case AlignmentX::CENTER:
-		image->SetScale(game.renderer->CalculateScale(image, text->GetTextWidth(),
-			text->GetTextHeight(), text->scale));
-		break;
-	case AlignmentX::RIGHT:
-		image->SetScale(game.renderer->CalculateScale(image, -text->GetTextWidth(),
-			text->GetTextHeight(), text->scale));
-		break;
-	default:
-		break;
-	}
-
-
+	image->SetScale(game.renderer->CalculateScale(image, text->GetTextWidth(),
+		text->GetTextHeight(), text->scale));
 	
 	name = function;
 
@@ -41,6 +27,7 @@ MenuButton::MenuButton(std::string txt, std::string filepath, std::string functi
 
 	image->keepPositionRelativeToCamera = true;
 	image->keepScaleRelativeToCamera = true;
+	
 	text->GetSprite()->keepPositionRelativeToCamera = true;
 	text->GetSprite()->keepScaleRelativeToCamera = true;
 }
@@ -53,12 +40,30 @@ MenuButton::~MenuButton()
 
 void MenuButton::Render(Renderer* renderer)
 {	
-	//TODO: Add padding, maybe move this somewhere more efficient
-	Vector2 imagePosition = Vector2(position.x + (image->frameWidth * image->scale.x), position.y);
+	//TODO: Add padding to center the text inside the aligned image
+
+	if (text != nullptr && text->isRichText)
+	{		
 		//position.y + (image->frameHeight * image->scale.y));
 
-	if (text->alignX == AlignmentX::CENTER) //TODO: This isn't quite right
-		imagePosition.x -= text->GetTextWidth() * image->scale.x * 0.5f;
+		switch (text->alignX)
+		{
+		default:
+		case AlignmentX::LEFT:
+			imagePosition = Vector2(position.x + (image->frameWidth * image->scale.x), position.y);
+			break;
+		case AlignmentX::CENTER:
+			imagePosition = position;
+			break;
+		case AlignmentX::RIGHT:
+			imagePosition = Vector2(position.x - (image->frameWidth * image->scale.x), position.y);
+			break;
+		}
+	}
+	else
+	{
+		imagePosition = position;
+	}	
 
 	image->Render(imagePosition, renderer);
 	text->Render(renderer);
