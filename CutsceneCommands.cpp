@@ -2616,7 +2616,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 		int spriteFrameWidth = std::stoi(parameters[index++]);
 		int spriteFrameHeight = std::stoi(parameters[index++]);
 
-		std::string spriteFilePath = parameters[index++];
+		std::string spriteFilePath = ParseStringValue(parameters[index++]);
 		int spritePivotX = std::stoi(parameters[index++]);
 		int spritePivotY = std::stoi(parameters[index++]);
 

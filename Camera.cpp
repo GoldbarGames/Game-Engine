@@ -186,17 +186,19 @@ void Camera::KeyControl(const Uint8* input, const float& dt,
 	}
 	else // 2D Zoom
 	{
-		if (!GetModeEdit())
-		{
-			if (input[SDL_SCANCODE_N])
-			{
-				Zoom(-0.025f, screenWidth, screenHeight);
-			}
+		//if (!editMode)
+		//{
+		//	
+		//}
 
-			if (input[SDL_SCANCODE_M])
-			{
-				Zoom(0.025f, screenWidth, screenHeight);
-			}
+		if (input[SDL_SCANCODE_N])
+		{
+			Zoom(-0.025f, screenWidth, screenHeight);
+		}
+
+		if (input[SDL_SCANCODE_M])
+		{
+			Zoom(0.025f, screenWidth, screenHeight);
 		}
 	}
 }

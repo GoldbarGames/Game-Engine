@@ -397,9 +397,6 @@ void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip f
 
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
 		break;
-	case ShaderName::NoAlpha:
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer->now);
-		break;
 	case ShaderName::Glow:
 		fadePoint = abs(sin(renderer->now / 1000));
 		fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);

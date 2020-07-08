@@ -1,8 +1,10 @@
 #include "Renderer.h"
 #include "Sprite.h"
 
-Renderer::Renderer()
+Renderer::Renderer(Game* g)
 {
+	game = g;
+
 	layersVisible[DrawingLayer::BACK] = true;
 	layersVisible[DrawingLayer::MIDDLE] = true;
 	layersVisible[DrawingLayer::OBJECT] = true;

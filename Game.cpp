@@ -44,7 +44,7 @@ Game::Game()
 
 	InitSDL();
 
-	renderer = new Renderer();
+	renderer = new Renderer(this);
 	spriteManager = new SpriteManager(renderer);
 
 	InitOpenGL();
@@ -271,8 +271,34 @@ void Game::InitOpenGL()
 
 void Game::InitSDL()
 {
-	SDL_Init(SDL_INIT_VIDEO);
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
 	TTF_Init();
+
+	if (SDL_NumJoysticks() < 1)
+	{
+		std::cout << "No controller connected." << std::endl;
+	}
+	else
+	{
+		for (int i = 0; i < SDL_NumJoysticks(); i++)
+		{
+			if (SDL_IsGameController(i))
+			{
+				std::cout << "Controller connected!" << std::endl;				
+				controller = SDL_GameControllerOpen(i);
+				std::cout << SDL_GameControllerMapping(controller) << std::endl;
+				break;
+			}
+		}
+
+		SDL_Joystick* joystick = SDL_JoystickOpen(0);
+		std::cout << "Controller Name: " << SDL_JoystickName(joystick) << std::endl;
+		std::cout << "Num Axes: " << SDL_JoystickNumAxes(joystick) << std::endl;
+		std::cout << "Num Buttons: " << SDL_JoystickNumButtons(joystick) << std::endl;
+		SDL_JoystickClose(joystick);
+	}
+
+	
 
 	windowTitle = "Witch Doctor Kaneko";
 	windowIconFilepath = "assets/gui/icon.png";
@@ -291,6 +317,11 @@ void Game::EndSDL()
 	//SDL_DestroyRenderer(renderer->renderer);	
 	SDL_DestroyWindow(window);	
 	window = nullptr;
+
+	if (controller != nullptr)
+	{
+		SDL_GameControllerClose(controller);
+	}
 	
 	delete theFont;
 	delete headerFont;
@@ -311,17 +342,20 @@ Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
 	newLadder->spriteIndex = spriteIndex;
 
 	std::vector<AnimState*> animStates;
+	spriteManager->ReadAnimData("data/animators/ladder/ladder.machine", animStates);
 
 	//ReadAnimData("data/animations/ladder.anim", animStates);
 
+	/*
 	animStates.push_back(new AnimState("middle", 0, new Sprite(2, 2, 24, 24, spriteManager,
-		spriteMap["ladder"][spriteIndex], renderer->shaders[ShaderName::Default], Vector2(0, 0))));
+		spriteMap["ladder"][spriteIndex], renderer->shaders[ShaderName::NoAlpha], Vector2(0, 0))));
 
 	animStates.push_back(new AnimState("bottom", 0, new Sprite(4, 4, 24, 24, spriteManager,
 		spriteMap["ladder"][spriteIndex], renderer->shaders[ShaderName::Default], Vector2(0, 0))));
 
 	animStates.push_back(new AnimState("top", 0, new Sprite(0, 0, 24, 24, spriteManager,
 		spriteMap["ladder"][spriteIndex], renderer->shaders[ShaderName::Default], Vector2(0, 0))));
+		*/
 
 	Animator* anim = new Animator(AnimType::Ladder, animStates, "middle");
 	newLadder->SetAnimator(anim);
@@ -869,6 +903,17 @@ bool Game::CheckInputs()
 		{
 			cutscene->previousMouseState = 0;
 		}
+		else if (event.type == SDL_CONTROLLERBUTTONDOWN)
+		{
+			if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A)
+			{
+				std::cout << "PRESSED A" << std::endl;
+			}
+			else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_B)
+			{
+				std::cout << "PRESSED B" << std::endl;
+			}
+		}
 
 		if (openedMenus.size() > 0)
 			quit = HandleMenuEvent(event);
@@ -1215,7 +1260,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			switch (event.key.keysym.sym)
 			{
 			case SDLK_ESCAPE:
-				if (!GetModeEdit() && !cutscene->watchingCutscene)
+				if (!editMode && !cutscene->watchingCutscene)
 				{
 					openedMenus.emplace_back(allMenus["Pause"]);
 					Uint32 ticks = SDL_GetTicks();
@@ -1251,11 +1296,12 @@ bool Game::HandleEvent(SDL_Event& event)
 				LoadNextLevel();
 				break;
 			case SDLK_1: // toggle Debug mode
-				SetModeDebug(!GetModeDebug());
+				debugMode = !debugMode;
 				break;
 			case SDLK_2: // toggle Editor mode
-				SetModeEdit(!GetModeEdit());
-				if (GetModeEdit())
+				editMode = !editMode;
+				
+				if (editMode)
 				{
 					editor->StartEdit();
 				}
@@ -1265,7 +1311,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				}
 				break;
 			case SDLK_3: // toggle Editor settings
-				if (GetModeEdit())
+				if (editMode)
 				{
 					openedMenus.emplace_back(allMenus["EditorSettings"]);
 				}
@@ -1337,7 +1383,7 @@ void Game::GetMenuInput()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	if (GetModeDebug())
+	if (debugMode)
 	{
 		renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
 		renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
@@ -1429,7 +1475,7 @@ void Game::Render()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Render editor grid
-	if (GetModeEdit())
+	if (editMode)
 	{
 		//editor->DrawGrid();
 	}
@@ -1448,7 +1494,7 @@ void Game::Render()
 			entities[i]->position.y < renderer->camera.position.y + maxHeight + TILE_SIZE)
 		{
 			entities[i]->Render(renderer);
-			if (GetModeDebug())
+			if (debugMode)
 				entities[i]->RenderDebug(renderer);
 		}
 	}
@@ -1486,7 +1532,7 @@ void Game::Render()
 	cutscene->Render(renderer); // includes the overlay
 
 	// Render editor toolbox
-	if (GetModeEdit())
+	if (editMode)
 	{
 		editor->Render(renderer);		
 	}

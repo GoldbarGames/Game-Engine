@@ -45,7 +45,7 @@ void Ladder::OnTriggerExit(Entity* other, Game& game)
 	}
 }
 
-void Ladder::Render(Renderer * renderer, unsigned int uniformModel)
+void Ladder::Render(Renderer * renderer)
 {
 	Entity::Render(renderer);
 }

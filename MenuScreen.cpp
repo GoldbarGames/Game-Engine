@@ -356,8 +356,17 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	{
 		game.openedMenus.clear();
 		//game.openedMenus.emplace_back(game.allMenus["File Select"]);
-		//game.PlayLevel("demo");
-		game.PlayLevel("test-vn");
+
+		std::string currentGame = "WDK";
+
+		if (currentGame == "WDK")
+		{
+			game.PlayLevel("demo");
+		}
+		else if (currentGame == "DB2")
+		{
+			game.PlayLevel("test-vn");
+		}
 	}
 	else if (selectedButton->name == "Title Screen")
 	{

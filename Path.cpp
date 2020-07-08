@@ -55,7 +55,7 @@ void Path::Render(Renderer * renderer, unsigned int uniformModel)
 		const SDL_Rect* pointRect = nodes[i]->CalcRenderRect(Vector2(0,0));
 
 		// Only show the points in the editor
-		if (GetModeEdit())
+		if (renderer->game->editMode)
 		{		
 			/*
 			if (i == 0)

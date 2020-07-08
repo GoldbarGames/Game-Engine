@@ -112,7 +112,7 @@ void Editor::CreateEditorButtons()
 	buttons.emplace_back(previousButton);
 	
 	EditorButton* nextButton = new EditorButton("", "NextPage", 
-		Vector2((buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1))*2,
+		Vector2((buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1)) * 2,
 		(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing)*2), *game);
 	
 	nextButton->image->keepScaleRelativeToCamera = true;
@@ -123,7 +123,7 @@ void Editor::StartEdit()
 {
 	game->LoadEditorSettings();
 
-	game->renderer->camera.ResetProjection();
+	//game->renderer->camera.ResetProjection();
 
 	// TILE SHEET FOR TOOLBOX
 	if (tilesheetSprites.empty())
@@ -213,9 +213,9 @@ void Editor::StartEdit()
 
 void Editor::StopEdit()
 {
-	game->renderer->camera.Zoom(0.0f, game->screenWidth, game->screenHeight);
-	selectedEntity = nullptr;
+	//game->renderer->camera.Zoom(0.0f, game->screenWidth, game->screenHeight);	
 	//inspectionMode = false;	
+	selectedEntity = nullptr;
 	propertyIndex = -1;
 }
 
@@ -1395,7 +1395,7 @@ void Editor::Render(Renderer* renderer)
 	// Draw the object or tile that will be placed here, if any
 	if (objectPreview != nullptr && objectPreview->GetSprite() != nullptr)
 	{	
-		if (GetModeDebug())
+		if (game->debugMode)
 		{
 			//SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
 			

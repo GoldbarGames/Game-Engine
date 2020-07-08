@@ -110,7 +110,7 @@ int main(int argc, char *args[])
 		{
 			game.GetMenuInput();
 		}
-		else if (GetModeEdit())
+		else if (game.editMode)
 		{
 			game.HandleEditMode();
 		}

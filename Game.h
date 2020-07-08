@@ -84,9 +84,13 @@ public:
 	std::string windowTitle = "";
 
 	Logger* logger;
+	SDL_GameController* controller;
 
 	int screenWidth = 1280;
 	int screenHeight = 720;
+
+	bool debugMode = false;
+	bool editMode = false;
 
 	unsigned int collisionChecks = 0;
 	unsigned int updateCalls = 0;

@@ -194,7 +194,7 @@ void Entity::SetAnimator(Animator * anim)
 
 void Entity::RenderDebug(Renderer * renderer)
 {
-	if (GetModeDebug() && drawDebugRect && GetSprite() != nullptr)
+	if (renderer->game->debugMode && drawDebugRect && GetSprite() != nullptr)
 	{
 		if (debugSprite == nullptr)
 			debugSprite = new Sprite(renderer->debugSprite->texture, renderer->debugSprite->shader);
@@ -253,7 +253,7 @@ void Entity::Render(Renderer * renderer)
 		Vector2 scaledPivot = physics->CalcScaledPivot();
 		Vector2 offset = collisionCenter - scaledPivot;
 
-		if (GetModeEdit())
+		if (renderer->game->editMode)
 		{
 			if (animator != nullptr)
 				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);

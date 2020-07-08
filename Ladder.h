@@ -7,10 +7,7 @@
 class Ladder : public Entity
 {
 public:
-
-	int spriteIndex = 0;
-
-	void Render(Renderer * renderer, unsigned int uniformModel);
+	void Render(Renderer * renderer);
 
 	Ladder(Vector2 pos);
 	~Ladder();

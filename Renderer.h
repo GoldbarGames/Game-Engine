@@ -12,6 +12,7 @@
 #include "Timer.h"
 
 class Sprite;
+class Game;
 
 
 class Renderer
@@ -25,8 +26,8 @@ public:
 	Sprite* debugSprite = nullptr;
 	Sprite* overlaySprite = nullptr;
 	int drawCallsPerFrame = 0;
-
 	float now = 0;
+	Game* game;
 
 	void Update();
 
@@ -47,7 +48,7 @@ public:
 
 	void CreateShader(const ShaderName shaderName, const char* vertexFilePath, const char* fragmentFilePath);
 
-	Renderer();
+	Renderer(Game* g);
 	~Renderer();
 };
 
