@@ -102,6 +102,7 @@ public:
 
 	virtual void SetColor(Color newColor);
 
+	static Entity* __stdcall Create(const Vector2& pos) { return new Entity(pos); };
 };
 
 #endif 

@@ -767,7 +767,7 @@ SceneLine* CutsceneManager::GetCurrentLine()
 		if (lineIndex >= 0 && lineIndex < label->lines.size())
 			return label->lines[lineIndex];
 		else
-			nullptr;
+			return nullptr;
 	}
 	else
 	{

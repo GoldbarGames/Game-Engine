@@ -89,6 +89,14 @@ Vector2 SpriteManager::GetPivotPoint(std::string const& filename)
 //TODO: Only read this data once at the beginning and then store it for lookup later
 void SpriteManager::ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates)
 {
+	std::unordered_map<std::string, std::string> args;
+	ReadAnimData(dataFilePath, animStates, args);
+}
+
+//TODO: Only read this data once at the beginning and then store it for lookup later
+void SpriteManager::ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates, 
+	std::unordered_map<std::string, std::string>& args)
+{
 	// Get anim data from the file
 	std::ifstream fin;
 	fin.open(dataFilePath);
@@ -102,11 +110,27 @@ void SpriteManager::ReadAnimData(std::string dataFilePath, std::vector<AnimState
 	fin.close();
 
 	// Go through the data and add all states
-
 	std::stringstream ss{ animData };
 
 	char lineChar[256];
 	ss.getline(lineChar, 256);
+
+	std::string stateName = "";
+	int stateSpeed = 0;
+	int spriteStartFrame = 0;
+	int spriteEndFrame = 0;
+	int spriteFrameWidth = 0;
+	int spriteFrameHeight = 0;
+
+	int spritePivotX = 0;
+	int spritePivotY = 0;
+	int filePathIndex = 0;
+
+	int index = 0;
+
+	std::string filePathInput = "";
+	std::string argumentNumber = "";
+	std::string spriteFilePath = "";
 
 	try
 	{
@@ -116,18 +140,48 @@ void SpriteManager::ReadAnimData(std::string dataFilePath, std::vector<AnimState
 			std::istream_iterator<std::string> beg(buf), end;
 			std::vector<std::string> tokens(beg, end);
 
-			int index = 0;
+			index = 0;
 
-			std::string stateName = tokens[index++];
-			int stateSpeed = std::stoi(tokens[index++]);
-			int spriteStartFrame = std::stoi(tokens[index++]);
-			int spriteEndFrame = std::stoi(tokens[index++]);
-			int spriteFrameWidth = std::stoi(tokens[index++]);
-			int spriteFrameHeight = std::stoi(tokens[index++]);
+			stateName = tokens[index++];
+			stateSpeed = std::stoi(tokens[index++]);
+			spriteStartFrame = std::stoi(tokens[index++]);
+			spriteEndFrame = std::stoi(tokens[index++]);
+			spriteFrameWidth = std::stoi(tokens[index++]);
+			spriteFrameHeight = std::stoi(tokens[index++]);
 
-			std::string spriteFilePath = tokens[index++];
-			int spritePivotX = std::stoi(tokens[index++]);
-			int spritePivotY = std::stoi(tokens[index++]);
+			filePathInput = tokens[index++];
+			spriteFilePath = "";
+
+			//TODO: Parse this filepath and check for {0}, {1}, etc., and replace them
+			filePathIndex = 0;
+
+			while (filePathIndex < filePathInput.size())
+			{
+				if (filePathInput[filePathIndex] == '{')
+				{
+					filePathIndex++;
+					argumentNumber = "";
+					while (filePathIndex < filePathInput.size() && filePathInput[filePathIndex] != '}')
+					{
+						argumentNumber += filePathInput[filePathIndex];
+						filePathIndex++;
+					}
+
+					filePathIndex++;
+					if (args.count(argumentNumber) == 1)
+					{
+						spriteFilePath += args[argumentNumber];
+					}					
+				}
+				else
+				{
+					spriteFilePath += filePathInput[filePathIndex];
+					filePathIndex++;
+				}
+			}
+
+			spritePivotX = std::stoi(tokens[index++]);
+			spritePivotY = std::stoi(tokens[index++]);
 
 			animStates.push_back(new AnimState(stateName, stateSpeed,
 				new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,

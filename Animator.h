@@ -2,6 +2,7 @@
 #define ANIMATOR_H
 #pragma once
 
+#include <map>
 #include <unordered_map>
 #include <SDL.h>
 
@@ -17,15 +18,14 @@ struct AnimatorInfo;
 class Sprite;
 class Vector2;
 
-enum class AnimType { None, Player, Cursor, Block, Bug, DebugMissile, Door, Ether, Ladder, Platform, NPC, Shroom };
-
 class Animator
 {
 private:
 	//std::unordered_map<std::string, Sprite*> mapStateToSprite;
 
 	// These are the keys for the below maps
-	static std::unordered_map<AnimType, AnimatorInfo*> mapTypeToInfo;
+	static std::map<unsigned int, AnimatorInfo*> mapTypeToInfo;
+	static std::unordered_map<std::string, unsigned int> mapNamesToAnimType;
 
 	// parameters for triggering transitions between states
 	std::unordered_map<unsigned int, bool> mapParamsBool;
@@ -41,7 +41,7 @@ public:
 
 	Sprite* GetCurrentSprite();
 	Timer animationTimer;
-	AnimType animatorType = AnimType::None;
+	int animatorType = 0;
 	AnimState* currentState;
 	AnimState* previousState;
 	AnimState* beforePreviousState;
@@ -68,7 +68,7 @@ public:
 	AnimState* GetState(const std::string& name);
 
 	Animator(std::vector<Sprite*> sprites);
-	Animator(AnimType animType, std::vector<AnimState*> states, std::string initialState = "");
+	Animator(const std::string& entityName, std::vector<AnimState*> states, std::string initialState = "");
 	~Animator();
 
 	int GetSpeed();

@@ -51,6 +51,8 @@
 #include "Platform.h"
 #include "Shroom.h"
 
+#include "EntityFactory.h"
+
 
 #include "CutsceneManager.h"
 #include "SoundManager.h"
@@ -63,7 +65,7 @@ enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL 
 class Game
 {
 private:
-	SDL_Surface * screenSurface = nullptr;
+	SDL_Surface* screenSurface = nullptr;
 	
 	SDL_GLContext mainContext = nullptr;
 
@@ -85,6 +87,8 @@ public:
 
 	Logger* logger;
 	SDL_GameController* controller;
+
+	EntityFactory* entityFactory;
 
 	int screenWidth = 1280;
 	int screenHeight = 720;
@@ -143,7 +147,8 @@ public:
 	void ResetText();
 
 	void SetScreenResolution(const unsigned int width, const unsigned int height);
-	 
+	Entity* CreateEntity(const std::string& entityName, const Vector2& position, int spriteIndex);
+	Entity* SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex);
 
 	Timer timer;
 	Timer fpsLimit;
@@ -156,9 +161,9 @@ public:
 
 	Uint32 lastPressedKeyTicks = 0;
 	//std::vector<Background*> backgrounds;
-	Background* background;
+	Background* background = nullptr;
 
-	CutsceneManager* cutscene;
+	CutsceneManager* cutscene = nullptr;
 
 	Renderer* renderer = nullptr;
 	SpriteManager* spriteManager = nullptr;
@@ -192,12 +197,10 @@ public:
 	int indexScreenResolution = 0;
 	
 	//TODO: Make an input class maybe
-	bool pressedDebugButton;
-	bool pressedSpellButton;
-	bool pressedLeftTrigger;
-	bool pressedRightTrigger;
-
-
+	bool pressedDebugButton = false;
+	bool pressedSpellButton = false;
+	bool pressedLeftTrigger = false;
+	bool pressedRightTrigger = false;
 
 	std::vector<Entity*> entities;
 	std::vector<Entity*> bgEntities;

@@ -44,6 +44,8 @@ Editor::Editor(Game& g)
 	//TODO: Make the indexes different numbers for the names and sprite sheets?
 	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 
+	objectPreview = previewMap["tile"];
+
 	game->entities.clear();	
 
 	SetLayer(DrawingLayer::BACK);
@@ -296,6 +298,17 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		// Set the location of the yellow rectangle indicating which tile will be drawn
 		selectedTilePosition.x = topLeftX + TILE_SIZE + moveRight;
 		selectedTilePosition.y = topLeftY + TILE_SIZE + moveDown;
+
+		//TODO: Make this section a function we can call to refresh the current tile preview
+		Entity*& prev = previewMap[objectMode];
+		if (prev != nullptr)
+			delete_it(prev);
+
+		prev = game->CreateTile(spriteSheetTileFrame,
+			"assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png",
+			Vector2(0, 0), DrawingLayer::FRONT);
+
+		objectPreview = prev;
 	}
 	else if (clickedNewButton && clickedButton != nullptr)
 	{
@@ -702,7 +715,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (!placingLadder)
 			{
 				std::cout << "trying to spawn ladder start" << std::endl;
-				currentLadder = game->SpawnLadder(snappedPosition, spriteMapIndex);
+				currentLadder = static_cast<Ladder*>(game->SpawnEntity("Ladder", snappedPosition, spriteMapIndex));
 				if (currentLadder != nullptr)
 				{
 					std::cout << "placing ladder set true" << std::endl;
@@ -716,7 +729,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 				if (snappedPosition.x == currentLadder->GetPosition().x)
 				{
 					std::cout << "trying to spawn ladder end" << std::endl;
-					Ladder* ladderEnd = game->SpawnLadder(snappedPosition, spriteMapIndex);
+					Ladder* ladderEnd = static_cast<Ladder*>(game->SpawnEntity("Ladder", snappedPosition, spriteMapIndex));
 					if (ladderEnd != nullptr)
 					{
 						std::cout << "placing ladder set false" << std::endl;
@@ -741,7 +754,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 							// Connect the two edges by spawning the middle parts
 							while (snappedPosition.y < currentLadder->GetPosition().y)
 							{
-								game->SpawnLadder(snappedPosition, spriteMapIndex);
+								game->SpawnEntity("Ladder", snappedPosition, spriteMapIndex);
 								snappedPosition.y += TILE_SIZE * 2;
 							}
 						}
@@ -750,7 +763,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 							// Connect the two edges by spawning the middle parts
 							while (snappedPosition.y > currentLadder->GetPosition().y)
 							{
-								game->SpawnLadder(snappedPosition, spriteMapIndex);
+								game->SpawnEntity("Ladder", snappedPosition, spriteMapIndex);
 								snappedPosition.y -= TILE_SIZE * 2;
 							}
 						}
@@ -1200,36 +1213,47 @@ void Editor::ToggleSpriteMap()
 	if (game->spriteMap.count(objectMode) > 0 && spriteMapIndex >= game->spriteMap[objectMode].size())
 		spriteMapIndex = 0;
 
-	if (previewMap.count(objectMode) > 0 && previewMap[objectMode] != nullptr)
-		delete_it(previewMap[objectMode]);
+	Entity*& prev = previewMap[objectMode];
+
+	// Delete the current preview object
+	if (prev != nullptr)
+		delete_it(prev);
 
 	// Update the preview sprites accordingly
-	if (objectMode == "door")
+	if (objectMode == "tile")
 	{
-		previewMap[objectMode] = game->CreateDoor(Vector2(0, 0), spriteMapIndex);
+		prev = game->CreateTile(spriteSheetTileFrame,
+			"assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png",
+			Vector2(0, 0), DrawingLayer::FRONT);
+
+		prev->GetSprite()->color = { 255, 255, 255, 64 };
+	}
+	else if (objectMode == "door")
+	{
+		prev = game->CreateDoor(Vector2(0, 0), spriteMapIndex);
 	}
 	else if (objectMode == "ladder")
 	{
-		previewMap[objectMode] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
+		prev = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
 	}
 	else if (objectMode == "npc")
 	{
-		previewMap[objectMode] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
+		prev = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 	}
 	else if (objectMode == "goal")
 	{
-		previewMap[objectMode] = game->CreateGoal(Vector2(0, 0), spriteMapIndex);
+		prev = game->CreateGoal(Vector2(0, 0), spriteMapIndex);
 	}
 	else if (objectMode == "bug")
 	{
-		previewMap[objectMode] = game->CreateBug(Vector2(0, 0), spriteMapIndex);
+		prev = game->CreateBug(Vector2(0, 0), spriteMapIndex);
 	}
 	else if (objectMode == "shroom")
 	{
-		previewMap[objectMode] = game->CreateShroom(Vector2(0, 0), spriteMapIndex);
+		prev = game->CreateShroom(Vector2(0, 0), spriteMapIndex);
 	}
 
-	objectPreview = previewMap[objectMode];
+	objectPreview = prev;
 }
 
 
@@ -1368,8 +1392,6 @@ void Editor::RenderDebug(Renderer* renderer)
 {
 	//TODO: Only set each text if the number has changed from last time
 
-	return;
-
 	editorText[EditorText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer->drawCallsPerFrame));
 	editorText[EditorText::drawCalls]->GetSprite()->keepScaleRelativeToCamera = true;
 	editorText[EditorText::drawCalls]->Render(renderer);
@@ -1410,6 +1432,9 @@ void Editor::Render(Renderer* renderer)
 			//SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
 			//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
+
+		if (objectMode == "tile")
+			int test = 0;
 
 		objectPreview->GetSprite()->Render(Vector2(objPreviewPosition.x, objPreviewPosition.y),
 			0, -1, SDL_FLIP_NONE, renderer, objectPreview->rotation);
@@ -1722,7 +1747,7 @@ void Editor::CreateLevelFromString(std::string level)
 		{
 			std::string ladderState = tokens[index++];
 			int spriteIndex = std::stoi(tokens[index++]);
-			Ladder* newLadder = game->SpawnLadder(Vector2(positionX, positionY), spriteIndex);
+			Ladder* newLadder = static_cast<Ladder*>(game->SpawnEntity("Ladder", Vector2(positionX, positionY), spriteMapIndex));
 			newLadder->GetAnimator()->SetState(ladderState.c_str());
 		}
 		else if (etype == "player")

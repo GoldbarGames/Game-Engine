@@ -5,7 +5,8 @@
 #include <fstream>
 #include "Sprite.h"
 
-std::unordered_map<AnimType, AnimatorInfo*> Animator::mapTypeToInfo;
+std::map<unsigned int, AnimatorInfo*> Animator::mapTypeToInfo;
+std::unordered_map<std::string, unsigned int> Animator::mapNamesToAnimType;
 
 AnimatorInfo::AnimatorInfo(std::string name)
 {
@@ -166,33 +167,34 @@ unsigned int Animator::GetNumberOfStateFromName(const char* name)
 }
 
 // PRE-CONDITION: The list of states is not empty
-Animator::Animator(AnimType animType, std::vector<AnimState*> states, std::string initialState)
+Animator::Animator(const std::string& entityName, std::vector<AnimState*> states, std::string initialState)
 {
 	MapStateNameToState("", new AnimState("", 0, nullptr));
 
+	if (mapNamesToAnimType.count(entityName) != 1)
+	{
+		if (mapNamesToAnimType.size() > 0)
+		{
+			mapNamesToAnimType[entityName] = (--mapNamesToAnimType.end())->second + 1;
+		}
+		else
+		{
+			mapNamesToAnimType[entityName] = 0;
+		}		
+	}
+
+	animatorType = mapNamesToAnimType[entityName];
+
 	// If this animator type has not been initalized, do so here
-	if (mapTypeToInfo.count(animType) != 1)
+	if (mapTypeToInfo.count(animatorType) != 1)
 	{
 		// Parse the animator state info here
 		//TODO: Maybe change from enums to ints, and map these ints in an external file,
 		// that way we don't have to add any enums for new animations
 		//TODO: We want to map the animType to the vars/states and parse its file here
-		switch (animType)
-		{
-		case AnimType::Player:
-			mapTypeToInfo[animType] = new AnimatorInfo("player");
-			break;
-		case AnimType::Cursor:
-			mapTypeToInfo[animType] = new AnimatorInfo("cursor");
-			break;
-		default:
-			mapTypeToInfo[animType] = new AnimatorInfo("");
-			break;
-		}
-		
-	}
 
-	animatorType = animType;
+		mapTypeToInfo[animatorType] = new AnimatorInfo(entityName);
+	}
 
 	// Save the vector of states as a map
 	for (unsigned int i = 0; i < states.size(); i++)
@@ -269,7 +271,7 @@ void Animator::Update(Entity* entity)
 	// Else, stay in current state
 
 	AnimatorInfo* info = mapTypeToInfo[animatorType];
-	AnimStateMachine* stateMachine = mapTypeToInfo[animatorType]->states[currentState->name];
+	AnimStateMachine* stateMachine = info->states[currentState->name];
 
 	//TODO: Make sure to run through each condition, and if the whole expression is true,
 	// then we go to the first state that has the whole expression true

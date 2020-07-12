@@ -58,6 +58,8 @@ public:
 	void CheckJumpButton(const Uint8* input);
 
 	void Save(std::ostringstream& level);
+
+	static Entity* __stdcall Create(const Vector2& pos) { return new Player(pos); };
 };
 
 #endif

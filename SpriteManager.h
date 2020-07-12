@@ -24,6 +24,7 @@ private:
 public:
 	Renderer* renderer = nullptr;
 	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates);
+	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates, std::unordered_map<std::string, std::string>& args);
 	Texture* GetImage(std::string const& imagePath);
 	Vector2 GetPivotPoint(std::string const& filename);
 	SpriteManager(Renderer* r);

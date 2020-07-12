@@ -42,6 +42,8 @@ Game::Game()
 
 	logger = new Logger("logs/output.log");
 
+	entityFactory = EntityFactory::Get();
+
 	InitSDL();
 
 	renderer = new Renderer(this);
@@ -336,33 +338,6 @@ bool Game::SetOpenGLAttributes()
 	return true;
 }
 
-Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
-{
-	Ladder* newLadder = new Ladder(position);
-	newLadder->spriteIndex = spriteIndex;
-
-	std::vector<AnimState*> animStates;
-	spriteManager->ReadAnimData("data/animators/ladder/ladder.machine", animStates);
-
-	//ReadAnimData("data/animations/ladder.anim", animStates);
-
-	/*
-	animStates.push_back(new AnimState("middle", 0, new Sprite(2, 2, 24, 24, spriteManager,
-		spriteMap["ladder"][spriteIndex], renderer->shaders[ShaderName::NoAlpha], Vector2(0, 0))));
-
-	animStates.push_back(new AnimState("bottom", 0, new Sprite(4, 4, 24, 24, spriteManager,
-		spriteMap["ladder"][spriteIndex], renderer->shaders[ShaderName::Default], Vector2(0, 0))));
-
-	animStates.push_back(new AnimState("top", 0, new Sprite(0, 0, 24, 24, spriteManager,
-		spriteMap["ladder"][spriteIndex], renderer->shaders[ShaderName::Default], Vector2(0, 0))));
-		*/
-
-	Animator* anim = new Animator(AnimType::Ladder, animStates, "middle");
-	newLadder->SetAnimator(anim);
-
-	return newLadder;
-}
-
 Vector2 Game::SnapToGrid(Vector2 position)
 {
 	int x = position.x - ((int)(position.x) % (editor->GRID_SIZE));
@@ -375,6 +350,66 @@ Vector2 Game::SnapToGrid(Vector2 position)
 		y++;
 
 	return Vector2(x, y);
+}
+
+Entity* Game::CreateEntity(const std::string& entityName, const Vector2& position, int spriteIndex)
+{
+	Entity* newEntity = entityFactory->Create(entityName, position);
+
+	if (newEntity != nullptr)
+	{
+		newEntity->spriteIndex = spriteIndex;
+
+		std::vector<AnimState*> animStates;
+		std::unordered_map<std::string, std::string> args;
+		args["0"] = std::to_string(spriteIndex);
+
+		spriteManager->ReadAnimData("data/animators/" + entityName  + "/" + entityName + ".machine", animStates, args);
+
+		Animator* anim = new Animator(entityName, animStates, "middle");
+		newEntity->SetAnimator(anim);
+	}
+
+	return newEntity;
+}
+
+Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex)
+{
+	Entity* entity = CreateEntity(entityName, position, spriteIndex); //entityFactory->Create(entityName, position);
+
+	if (entity != nullptr)
+	{
+		entity->spriteIndex = spriteIndex;
+		if (!entity->CanSpawnHere(position, *this))
+		{
+			delete entity;
+			return nullptr;
+		}
+		else
+		{
+			entities.emplace_back(entity);
+			return entity;
+		}
+	}
+
+	return nullptr;
+}
+
+Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
+{
+	Ladder* newLadder = new Ladder(position);
+	newLadder->spriteIndex = spriteIndex;
+
+	std::vector<AnimState*> animStates;
+	std::unordered_map<std::string, std::string> args;
+	args["0"] = std::to_string(spriteIndex);
+
+	spriteManager->ReadAnimData("data/animators/ladder/ladder.machine", animStates, args);
+
+	Animator* anim = new Animator("ladder", animStates, "middle");
+	newLadder->SetAnimator(anim);
+
+	return newLadder;
 }
 
 Ladder* Game::SpawnLadder(Vector2 position, int spriteIndex)
@@ -400,14 +435,13 @@ Door* Game::CreateDoor(Vector2 position, int spriteIndex)
 	Door* newDoor = new Door(position, Vector2(0, 0));
 	newDoor->spriteIndex = spriteIndex;
 
-	Vector2 pivotPoint = Vector2(0, 0);
 	std::vector<AnimState*> animStates;
-	//ReadAnimData("data/animations/door.anim", animStates);
-	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 48, 96, spriteManager, spriteMap["door"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 48, 96, spriteManager, spriteMap["door"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-	
-	//TODO: How to make this work for doors that will be related to other tilesets?
-	Animator* anim = new Animator(AnimType::Door, animStates, "closed");
+	std::unordered_map<std::string, std::string> args;
+	args["0"] = std::to_string(spriteIndex);
+
+	spriteManager->ReadAnimData("data/animators/door/door.machine", animStates, args);
+
+	Animator* anim = new Animator("door", animStates, "closed");
 	newDoor->SetAnimator(anim);
 
 	return newDoor;
@@ -443,8 +477,7 @@ NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 		pivotPoint = Vector2(12, 28);
 		animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 27, 46, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
 		animStates.push_back(new AnimState("sad", 100, new Sprite(1, 1, 27, 46, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-		animStates.push_back(new AnimState("confused", 100, new Sprite(2, 2, 27, 46, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-		
+		animStates.push_back(new AnimState("confused", 100, new Sprite(2, 2, 27, 46, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));		
 	}
 	else if (name == "the_man")
 	{
@@ -453,7 +486,7 @@ NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
 		animStates.push_back(new AnimState("idle", 200, new Sprite(0, 7, 50, 70, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
 	}
 
-	Animator* anim = new Animator(AnimType::NPC, animStates, "idle");
+	Animator* anim = new Animator("npc", animStates, "idle");
 	newNPC->SetAnimator(anim);
 	newNPC->trigger = true;
 
@@ -492,7 +525,7 @@ Goal* Game::CreateGoal(Vector2 position, int spriteIndex)
 	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 48, 96, spriteManager, spriteMap["goal"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
 	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 48, 96, spriteManager, spriteMap["goal"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
 	
-	Animator* anim = new Animator(AnimType::Door, animStates, "closed");
+	Animator* anim = new Animator("door", animStates, "closed");
 	newGoal->SetAnimator(anim);
 
 	return newGoal;
@@ -524,7 +557,7 @@ Bug* Game::CreateBug(Vector2 position, int spriteIndex)
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/bug.anim", animStates);
 	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 32, 32, spriteManager, spriteMap["bug"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-	Animator* anim = new Animator(AnimType::Bug, animStates, "idle");
+	Animator* anim = new Animator("bug", animStates, "idle");
 	newBug->SetAnimator(anim);
 
 	return newBug;
@@ -557,7 +590,7 @@ Ether* Game::CreateEther(Vector2 position, int spriteIndex)
 	//ReadAnimData("data/animations/ether.anim", animStates);
 	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/spells/ether.png", renderer->shaders[ShaderName::Default], pivotPoint)));
 
-	Animator* anim = new Animator(AnimType::Ether, animStates, "idle");
+	Animator* anim = new Animator("ether", animStates, "idle");
 	newEther->SetAnimator(anim);
 
 	return newEther;
@@ -590,7 +623,7 @@ Block* Game::CreateBlock(Vector2 position, int spriteIndex)
 	//ReadAnimData("data/animations/block.anim", animStates);
 	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/big_block.png", renderer->shaders[ShaderName::Default], pivotPoint)));
 	
-	Animator* anim = new Animator(AnimType::Block, animStates, "idle");
+	Animator* anim = new Animator("block", animStates, "idle");
 	newBlock->SetAnimator(anim);
 
 	return newBlock;
@@ -620,14 +653,13 @@ Platform* Game::CreatePlatform(Vector2 position, int spriteIndex)
 	newPlatform->spriteIndex = spriteIndex;
 
 	//TODO: How to make this work for doors that will be related to other tilesets?
-	
 
 	Vector2 pivotPoint = Vector2(36, 12);
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/platform.anim", animStates);
 	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/platform.png", renderer->shaders[ShaderName::Default], pivotPoint)));
 
-	Animator* anim = new Animator(AnimType::Platform, animStates, "idle");
+	Animator* anim = new Animator("platform", animStates, "idle");
 	newPlatform->SetAnimator(anim);
 
 	return newPlatform;
@@ -661,7 +693,7 @@ Shroom* Game::CreateShroom(Vector2 position, int spriteIndex)
 	animStates.push_back(new AnimState("idle", 200, new Sprite(0, 3, 32, 48, spriteManager, 
 		spriteMap["shroom"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
 
-	newObject->SetAnimator(new Animator(AnimType::Shroom, animStates));
+	newObject->SetAnimator(new Animator("shroom", animStates));
 	newObject->physics->canBePushed = (spriteIndex == 1); // can push if it is in the pot
 
 	return newObject;
@@ -696,7 +728,7 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 
 	Missile* missile = new Missile(position - pivotPoint);
 
-	Animator* anim = new Animator(AnimType::DebugMissile, animStates, "moving");
+	Animator* anim = new Animator("debugmissile", animStates, "moving");
 	anim->SetBool("destroyed", false);
 
 	missile->SetAnimator(anim);
@@ -779,7 +811,7 @@ Player* Game::SpawnPlayer(Vector2 position)
 	std::vector<AnimState*> animStates;
 	spriteManager->ReadAnimData("data/animators/player/player.machine", animStates);
 
-	Animator* anim1 = new Animator(AnimType::Player, animStates, "idle");
+	Animator* anim1 = new Animator("player", animStates, "idle");
 	anim1->SetBool("isGrounded", true);
 	player->SetAnimator(anim1);
 	player->SetPosition(position);

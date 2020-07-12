@@ -33,6 +33,8 @@ public:
 	void Save(std::ostringstream& level);
 
 	std::string CalcDirection(bool x);
+
+	static Entity* __stdcall Create(const Vector2& pos) { return new Platform(pos); };
 };
 
 #endif

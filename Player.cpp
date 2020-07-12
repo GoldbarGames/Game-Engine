@@ -131,6 +131,7 @@ void Player::UpdateNormally(Game& game)
 			else if (currentDoor != nullptr && doorTimer.HasElapsed())
 			{
 				//TODO: Make this look better later
+				// Should this play a cutscene here?
 				SetPosition(currentDoor->GetDestination() + physics->CalcScaledPivot());
 				doorTimer.Start(500);
 			}

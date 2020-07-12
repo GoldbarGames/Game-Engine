@@ -1604,7 +1604,7 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 				animStates[i]->sprite->keepScaleRelativeToCamera = true;
 			}
 
-			Animator* newAnim = new Animator(AnimType::Player, animStates, ParseStringValue(parameters[5]));
+			Animator* newAnim = new Animator("player", animStates, ParseStringValue(parameters[5]));
 			entity->SetAnimator(newAnim);
 		}
 		else if (entity->GetAnimator() == nullptr)
@@ -2652,7 +2652,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 			std::vector<AnimState*> animStates;
 			manager->game->spriteManager->ReadAnimData(parameters[4], animStates);
 
-			Animator* anim1 = new Animator(AnimType::Cursor, animStates, parameters[5]);
+			Animator* anim1 = new Animator("cursor", animStates, parameters[5]);
 			anim1->SetBool("endOfPage", false);
 			anim1->SetRelativeAllStates(true);
 			//anim1->SetScaleAllStates(Vector2(0.5f, 0.5f));

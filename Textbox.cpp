@@ -58,7 +58,7 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	std::vector<AnimState*> animStates;
 	spriteManager->ReadAnimData("data/animators/cursor/cursor.machine", animStates);
 
-	Animator* anim1 = new Animator(AnimType::Cursor, animStates, "samepage");
+	Animator* anim1 = new Animator("cursor", animStates, "samepage");
 	anim1->SetBool("endOfPage", false);
 	anim1->SetRelativeAllStates(true);
 	//anim1->SetScaleAllStates(Vector2(0.5f, 0.5f));
