@@ -80,6 +80,7 @@ private:
 	std::unordered_map<std::string, Mesh*> meshes;
 
 	Mesh* CreateSpriteMesh();
+	std::vector<std::string> npcNames;
 public:
 
 	std::string windowIconFilepath = "";
@@ -220,35 +221,9 @@ public:
 	// Spawn functions
 	Tile* CreateTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer);
 	Tile* SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer);
+
 	Player* SpawnPlayer(Vector2 position);
 	Missile* SpawnMissile(Vector2 position, Vector2 velocity, float angle);
-
-	Door* CreateDoor(Vector2 position, int spriteIndex); // returns the Door entity with default parameters
-	Door* SpawnDoor(Vector2 position, int spriteIndex=0); // only returns Door if it can be spawned successfully in-game, else null
-
-	Ladder* CreateLadder(Vector2 position, int spriteIndex);
-	Ladder* SpawnLadder(Vector2 position, int spriteIndex=0);
-
-	NPC* CreateNPC(std::string name, Vector2 position, int spriteIndex);
-	NPC* SpawnNPC(std::string name, Vector2 position, int spriteIndex = 0);
-
-	Bug* CreateBug(Vector2 position, int spriteIndex);
-	Bug* SpawnBug(Vector2 position, int spriteIndex = 0);
-
-	Ether* CreateEther(Vector2 position, int spriteIndex);
-	Ether* SpawnEther(Vector2 position, int spriteIndex = 0);
-
-	Goal* CreateGoal(Vector2 position, int spriteIndex);
-	Goal* SpawnGoal(Vector2 position, int spriteIndex = 0);
-
-	Block* CreateBlock(Vector2 position, int spriteIndex);
-	Block* SpawnBlock(Vector2 position, int spriteIndex = 0);
-
-	Platform* CreatePlatform(Vector2 position, int spriteIndex);
-	Platform* SpawnPlatform(Vector2 position, int spriteIndex = 0);
-
-	Shroom* CreateShroom(Vector2 position, int spriteIndex);
-	Shroom* SpawnShroom(Vector2 position, int spriteIndex = 0);
 
 	void LoadTitleScreen();
 	void PlayLevel(string levelName);

@@ -18,6 +18,8 @@ public:
 	void GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties);
 	void SetProperty(std::string prop, std::string newValue);
 	void Save(std::ostringstream& level);
+
+	static Entity* __stdcall Create(const Vector2& pos) { return new NPC("", pos); };
 };
 
 #endif

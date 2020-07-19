@@ -92,6 +92,9 @@ Game::Game()
 
 	std::vector<std::string> mapNames = { "door", "ladder" };
 
+	//TODO: We don't really need the spriteMap anymore, but we still need the number of sprites
+	// (we don't need to know the actual files, just the number of possible choices)
+
 	spriteMap["door"].push_back("assets/sprites/objects/door1.png");
 	spriteMap["door"].push_back("assets/sprites/objects/door_house.png");
 	spriteMap["door"].push_back("assets/sprites/objects/door_house_outside.png");
@@ -112,6 +115,8 @@ Game::Game()
 
 	spriteMap["shroom"].push_back("assets/sprites/objects/shroom.png");
 	spriteMap["shroom"].push_back("assets/sprites/objects/shroom_potted.png");
+
+	npcNames = { "gramps", "the_man" };
 
 	editor = new Editor(*this);
 	entities.clear();
@@ -363,8 +368,17 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		std::vector<AnimState*> animStates;
 		std::unordered_map<std::string, std::string> args;
 		args["0"] = std::to_string(spriteIndex);
+		
+		if (entityName != "npc")
+		{
+			spriteManager->ReadAnimData("data/animators/" + entityName + "/" + entityName + ".machine", animStates, args);
+		}
+		else
+		{
+			args["1"] = npcNames[spriteIndex];
+			spriteManager->ReadAnimData("data/animators/npc/" + args["1"] + "/" + args["1"] + ".machine", animStates, args);
+		}
 
-		spriteManager->ReadAnimData("data/animators/" + entityName  + "/" + entityName + ".machine", animStates, args);
 
 		Animator* anim = new Animator(entityName, animStates, "middle");
 		newEntity->SetAnimator(anim);
@@ -395,325 +409,6 @@ Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position
 	return nullptr;
 }
 
-Ladder* Game::CreateLadder(Vector2 position, int spriteIndex)
-{
-	Ladder* newLadder = new Ladder(position);
-	newLadder->spriteIndex = spriteIndex;
-
-	std::vector<AnimState*> animStates;
-	std::unordered_map<std::string, std::string> args;
-	args["0"] = std::to_string(spriteIndex);
-
-	spriteManager->ReadAnimData("data/animators/ladder/ladder.machine", animStates, args);
-
-	Animator* anim = new Animator("ladder", animStates, "middle");
-	newLadder->SetAnimator(anim);
-
-	return newLadder;
-}
-
-Ladder* Game::SpawnLadder(Vector2 position, int spriteIndex)
-{
-	Ladder* newLadder = CreateLadder(position, spriteIndex);
-
-	if (!newLadder->CanSpawnHere(position, *this))
-	{
-		delete newLadder;
-		return nullptr;
-	}
-	else
-	{
-		entities.emplace_back(newLadder);
-		return newLadder;
-	}
-
-	return newLadder;
-}
-
-Door* Game::CreateDoor(Vector2 position, int spriteIndex)
-{
-	Door* newDoor = new Door(position, Vector2(0, 0));
-	newDoor->spriteIndex = spriteIndex;
-
-	std::vector<AnimState*> animStates;
-	std::unordered_map<std::string, std::string> args;
-	args["0"] = std::to_string(spriteIndex);
-
-	spriteManager->ReadAnimData("data/animators/door/door.machine", animStates, args);
-
-	Animator* anim = new Animator("door", animStates, "closed");
-	newDoor->SetAnimator(anim);
-
-	return newDoor;
-}
-
-Door* Game::SpawnDoor(Vector2 position, int spriteIndex)
-{
-	Door* newDoor = CreateDoor(position, spriteIndex);
-
-	if (!newDoor->CanSpawnHere(position, *this))
-	{
-		delete newDoor;
-		return nullptr;
-	}
-	else
-	{
-		entities.emplace_back(newDoor);
-		return newDoor;
-	}	
-}
-
-NPC* Game::CreateNPC(std::string name, Vector2 position, int spriteIndex)
-{
-	NPC* newNPC = new NPC(name, position);
-	newNPC->spriteIndex = spriteIndex;
-
-	Vector2 pivotPoint = Vector2(0, 0);
-	std::vector<AnimState*> animStates;
-
-	if (name == "gramps")
-	{
-		//ReadAnimData("data/animations/gramps.anim", animStates);
-		pivotPoint = Vector2(12, 28);
-		animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 27, 46, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-		animStates.push_back(new AnimState("sad", 100, new Sprite(1, 1, 27, 46, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-		animStates.push_back(new AnimState("confused", 100, new Sprite(2, 2, 27, 46, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));		
-	}
-	else if (name == "the_man")
-	{
-		//ReadAnimData("data/animations/the_man.anim", animStates);
-		pivotPoint = Vector2(23, 36);
-		animStates.push_back(new AnimState("idle", 200, new Sprite(0, 7, 50, 70, spriteManager, spriteMap["npc"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-	}
-
-	Animator* anim = new Animator("npc", animStates, "idle");
-	newNPC->SetAnimator(anim);
-	newNPC->trigger = true;
-
-	float w = anim->GetCurrentSprite()->frameWidth;
-	float h = anim->GetCurrentSprite()->frameHeight;
-	newNPC->ChangeCollider(0, 0, w, h);
-
-	return newNPC;
-}
-
-NPC* Game::SpawnNPC(std::string name, Vector2 position, int spriteIndex)
-{
-	NPC* newNPC = CreateNPC(name, position, spriteIndex);
-
-	if (!newNPC->CanSpawnHere(position, *this))
-	{
-		delete newNPC;
-		return nullptr;
-	}
-	else
-	{
-		entities.emplace_back(newNPC);
-		return newNPC;
-	}
-}
-
-
-Goal* Game::CreateGoal(Vector2 position, int spriteIndex)
-{
-	Goal* newGoal = new Goal(position);
-	newGoal->spriteIndex = spriteIndex;
-
-	Vector2 pivotPoint = Vector2(0, 0);
-	std::vector<AnimState*> animStates;
-	//ReadAnimData("data/animations/goal.anim", animStates);
-	animStates.push_back(new AnimState("closed", 100, new Sprite(0, 0, 48, 96, spriteManager, spriteMap["goal"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-	animStates.push_back(new AnimState("opened", 100, new Sprite(1, 1, 48, 96, spriteManager, spriteMap["goal"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-	
-	Animator* anim = new Animator("door", animStates, "closed");
-	newGoal->SetAnimator(anim);
-
-	return newGoal;
-}
-
-Goal* Game::SpawnGoal(Vector2 position, int spriteIndex)
-{
-	Goal* newGoal = CreateGoal(position, spriteIndex);
-
-	if (!newGoal->CanSpawnHere(position, *this))
-	{
-		delete newGoal;
-		return nullptr;
-	}
-	else
-	{
-		entities.emplace_back(newGoal);
-		return newGoal;
-	}
-}
-
-
-Bug* Game::CreateBug(Vector2 position, int spriteIndex)
-{
-	Bug* newBug = new Bug(position);
-	newBug->spriteIndex = spriteIndex;
-
-	Vector2 pivotPoint = Vector2(16, 16);
-	std::vector<AnimState*> animStates;
-	//ReadAnimData("data/animations/bug.anim", animStates);
-	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 32, 32, spriteManager, spriteMap["bug"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-	Animator* anim = new Animator("bug", animStates, "idle");
-	newBug->SetAnimator(anim);
-
-	return newBug;
-}
-
-Bug* Game::SpawnBug(Vector2 position, int spriteIndex)
-{
-	Bug* newBug = CreateBug(position, spriteIndex);
-
-	if (!newBug->CanSpawnHere(position, *this))
-	{
-		delete newBug;
-		return nullptr;
-	}
-	else
-	{
-		entities.emplace_back(newBug);
-		return newBug;
-	}
-}
-
-
-Ether* Game::CreateEther(Vector2 position, int spriteIndex)
-{
-	Ether* newEther = new Ether(position);
-	newEther->spriteIndex = spriteIndex;
-
-	Vector2 pivotPoint = Vector2(0, 0);
-	std::vector<AnimState*> animStates;
-	//ReadAnimData("data/animations/ether.anim", animStates);
-	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/spells/ether.png", renderer->shaders[ShaderName::Default], pivotPoint)));
-
-	Animator* anim = new Animator("ether", animStates, "idle");
-	newEther->SetAnimator(anim);
-
-	return newEther;
-}
-
-Ether* Game::SpawnEther(Vector2 position, int spriteIndex)
-{
-	Ether* newEther = CreateEther(position, spriteIndex);
-
-	if (!newEther->CanSpawnHere(position, *this))
-	{
-		delete newEther;
-		return nullptr;
-	}
-	else
-	{
-		entities.emplace_back(newEther);
-		return newEther;
-	}
-}
-
-
-Block* Game::CreateBlock(Vector2 position, int spriteIndex)
-{
-	Block* newBlock = new Block(position);
-	//newBlock->spriteIndex = spriteIndex;
-
-	Vector2 pivotPoint = Vector2(24, 32);
-	std::vector<AnimState*> animStates;
-	//ReadAnimData("data/animations/block.anim", animStates);
-	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/big_block.png", renderer->shaders[ShaderName::Default], pivotPoint)));
-	
-	Animator* anim = new Animator("block", animStates, "idle");
-	newBlock->SetAnimator(anim);
-
-	return newBlock;
-}
-
-Block* Game::SpawnBlock(Vector2 position, int spriteIndex)
-{
-	Block* newBlock = CreateBlock(position, spriteIndex);
-
-	if (!newBlock->CanSpawnHere(position, *this))
-	{
-		delete newBlock;
-		return nullptr;
-	}
-	else
-	{
-		entities.emplace_back(newBlock);
-		return newBlock;
-	}
-}
-
-
-
-Platform* Game::CreatePlatform(Vector2 position, int spriteIndex)
-{
-	Platform* newPlatform = new Platform(position);
-	newPlatform->spriteIndex = spriteIndex;
-
-	//TODO: How to make this work for doors that will be related to other tilesets?
-
-	Vector2 pivotPoint = Vector2(36, 12);
-	std::vector<AnimState*> animStates;
-	//ReadAnimData("data/animations/platform.anim", animStates);
-	animStates.push_back(new AnimState("idle", 100, new Sprite(0, 0, 1, spriteManager, "assets/sprites/objects/platform.png", renderer->shaders[ShaderName::Default], pivotPoint)));
-
-	Animator* anim = new Animator("platform", animStates, "idle");
-	newPlatform->SetAnimator(anim);
-
-	return newPlatform;
-}
-
-Platform* Game::SpawnPlatform(Vector2 position, int spriteIndex)
-{
-	Platform* newPlatform = CreatePlatform(position, spriteIndex);
-
-	if (!newPlatform->CanSpawnHere(position, *this))
-	{
-		delete newPlatform;
-		return nullptr;
-	}
-	else
-	{
-		entities.emplace_back(newPlatform);
-		return newPlatform;
-	}
-}
-
-Shroom* Game::CreateShroom(Vector2 position, int spriteIndex)
-{
-	Shroom* newObject = new Shroom(position);
-	newObject->spriteIndex = spriteIndex;
-	
-	Vector2 pivotPoint = Vector2(15, 30);
-
-	std::vector<AnimState*> animStates;
-	//ReadAnimData("data/animations/shroom.anim", animStates);
-	animStates.push_back(new AnimState("idle", 200, new Sprite(0, 3, 32, 48, spriteManager, 
-		spriteMap["shroom"][spriteIndex], renderer->shaders[ShaderName::Default], pivotPoint)));
-
-	newObject->SetAnimator(new Animator("shroom", animStates));
-	newObject->physics->canBePushed = (spriteIndex == 1); // can push if it is in the pot
-
-	return newObject;
-}
-
-Shroom* Game::SpawnShroom(Vector2 position, int spriteIndex)
-{
-	Shroom* newObject = CreateShroom(position, spriteIndex);
-
-	if (!newObject->CanSpawnHere(position, *this))
-	{
-		delete newObject;
-		return nullptr;
-	}
-	else
-	{
-		entities.emplace_back(newObject);
-		return newObject;
-	}
-}
 
 Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 {

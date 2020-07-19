@@ -18,6 +18,8 @@ public:
 	void OnTriggerExit(Entity* other, Game& game);
 
 	void Save(std::ostringstream& level);
+
+	static Entity* __stdcall Create(const Vector2& pos) { return new Ether(pos); };
 };
 
 #endif

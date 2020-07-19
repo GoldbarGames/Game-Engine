@@ -13,6 +13,8 @@ public:
 	void Save(std::ostringstream& level);
 
 	void OnTriggerEnter(Entity* other, Game& game);
+
+	static Entity* __stdcall Create(const Vector2& pos) { return new Shroom(pos); };
 };
 
 #endif

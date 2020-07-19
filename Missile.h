@@ -16,6 +16,8 @@ public:
 	bool CheckCollisions(Game& game);
 	void SetVelocity(Vector2 newVelocity);
 	void Destroy();
+
+	static Entity* __stdcall Create(const Vector2& pos) { return new Missile(pos); };
 };
 
 #endif

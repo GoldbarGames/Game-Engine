@@ -16,6 +16,8 @@ public:
 	void Render(Renderer * renderer);
 
 	void Save(std::ostringstream& level);
+
+	static Entity* __stdcall Create(const Vector2& pos) { return new Block(pos); };
 };
 
 #endif

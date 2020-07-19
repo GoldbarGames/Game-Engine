@@ -26,23 +26,22 @@ Editor::Editor(Game& g)
 	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
 	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
 
-	npcNames = { "gramps", "the_man" };
-
 	previewMap["tile"] = game->CreateTile(Vector2(0,0), "assets/editor/rect-outline.png", Vector2(0,0), DrawingLayer::FRONT);
 	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 
-	previewMap["door"] = game->CreateDoor(Vector2(0,0), spriteMapIndex);
-	previewMap["ladder"] = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
+	previewMap["door"] = game->CreateEntity("door", Vector2(0,0), spriteMapIndex);
+	previewMap["ladder"] = game->CreateEntity("ladder", Vector2(0, 0), spriteMapIndex);
 
-	previewMap["goal"] = game->CreateGoal(Vector2(0, 0), spriteMapIndex);
-	previewMap["bug"] = game->CreateBug(Vector2(0, 0), spriteMapIndex);
-	previewMap["ether"] = game->CreateEther(Vector2(0, 0), spriteMapIndex);
-	previewMap["block"] = game->CreateBlock(Vector2(0, 0), spriteMapIndex);
-	previewMap["platform"] = game->CreatePlatform(Vector2(0, 0), spriteMapIndex);
-	previewMap["shroom"] = game->CreateShroom(Vector2(0, 0), spriteMapIndex);
+	previewMap["goal"] = game->CreateEntity("goal", Vector2(0, 0), spriteMapIndex);
+	previewMap["bug"] = game->CreateEntity("bug", Vector2(0, 0), spriteMapIndex);
+	previewMap["ether"] = game->CreateEntity("ether", Vector2(0, 0), spriteMapIndex);
+	previewMap["block"] = game->CreateEntity("block", Vector2(0, 0), spriteMapIndex);
+	previewMap["platform"] = game->CreateEntity("platform", Vector2(0, 0), spriteMapIndex);
+	previewMap["shroom"] = game->CreateEntity("shroom", Vector2(0, 0), spriteMapIndex);
 
 	//TODO: Make the indexes different numbers for the names and sprite sheets?
-	previewMap["npc"] = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
+	//previewMap["npc"] = game->CreateEntity(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
+	previewMap["npc"] = game->CreateEntity("npc", Vector2(0, 0), spriteMapIndex);
 
 	objectPreview = previewMap["tile"];
 
@@ -621,47 +620,11 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 	{
 		if (objectMode == "npc")
 		{
-			currentNPC = game->SpawnNPC(npcNames[spriteMapIndex], snappedPosition, spriteMapIndex);
+			currentNPC = static_cast<NPC*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 			if (currentNPC != nullptr)
 			{
 				game->SortEntities(game->entities);
 			}
-		}
-		else if (objectMode == "goal")
-		{
-			Goal* currentGoal = game->SpawnGoal(snappedPosition, spriteMapIndex);
-			if (currentGoal != nullptr)
-				game->SortEntities(game->entities);
-		}
-		else if (objectMode == "bug")
-		{
-			Bug* currentBug = game->SpawnBug(snappedPosition, spriteMapIndex);
-			if (currentBug != nullptr)
-				game->SortEntities(game->entities);
-		}
-		else if (objectMode == "ether")
-		{
-			Ether* currentEther = game->SpawnEther(snappedPosition, spriteMapIndex);
-			if (currentEther != nullptr)
-				game->SortEntities(game->entities);
-		}
-		else if (objectMode == "block")
-		{
-			Block* currentblock = game->SpawnBlock(snappedPosition, spriteMapIndex);
-			if (currentblock != nullptr)
-				game->SortEntities(game->entities);
-		}
-		else if (objectMode == "platform")
-		{
-			Platform* currentPlatform = game->SpawnPlatform(snappedPosition, spriteMapIndex);
-			if (currentPlatform != nullptr)
-				game->SortEntities(game->entities);
-		}
-		else if (objectMode == "shroom")
-		{
-			Shroom* currentShroom = game->SpawnShroom(snappedPosition, spriteMapIndex);
-			if (currentShroom != nullptr)
-				game->SortEntities(game->entities);
 		}
 		else if (objectMode == "path")
 		{
@@ -683,7 +646,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (!placingDoor)
 			{
 				std::cout << "trying to spawn entrance" << std::endl;
-				currentDoor = game->SpawnDoor(snappedPosition, spriteMapIndex);
+				currentDoor = static_cast<Door*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 				if (currentDoor != nullptr)
 				{
 					std::cout << "placing door set true" << std::endl;
@@ -695,7 +658,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			else
 			{
 				std::cout << "trying to spawn destination" << std::endl;
-				Door* destination = game->SpawnDoor(snappedPosition, spriteMapIndex);
+				Door* destination = static_cast<Door*>(game->SpawnEntity("door", snappedPosition, spriteMapIndex));
 				if (destination != nullptr)
 				{
 					std::cout << "placing door set false" << std::endl;
@@ -715,7 +678,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (!placingLadder)
 			{
 				std::cout << "trying to spawn ladder start" << std::endl;
-				currentLadder = static_cast<Ladder*>(game->SpawnEntity("Ladder", snappedPosition, spriteMapIndex));
+				currentLadder = static_cast<Ladder*>(game->SpawnEntity("ladder", snappedPosition, spriteMapIndex));
 				if (currentLadder != nullptr)
 				{
 					std::cout << "placing ladder set true" << std::endl;
@@ -729,7 +692,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 				if (snappedPosition.x == currentLadder->GetPosition().x)
 				{
 					std::cout << "trying to spawn ladder end" << std::endl;
-					Ladder* ladderEnd = static_cast<Ladder*>(game->SpawnEntity("Ladder", snappedPosition, spriteMapIndex));
+					Ladder* ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder", snappedPosition, spriteMapIndex));
 					if (ladderEnd != nullptr)
 					{
 						std::cout << "placing ladder set false" << std::endl;
@@ -754,7 +717,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 							// Connect the two edges by spawning the middle parts
 							while (snappedPosition.y < currentLadder->GetPosition().y)
 							{
-								game->SpawnEntity("Ladder", snappedPosition, spriteMapIndex);
+								game->SpawnEntity("ladder", snappedPosition, spriteMapIndex);
 								snappedPosition.y += TILE_SIZE * 2;
 							}
 						}
@@ -763,7 +726,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 							// Connect the two edges by spawning the middle parts
 							while (snappedPosition.y > currentLadder->GetPosition().y)
 							{
-								game->SpawnEntity("Ladder", snappedPosition, spriteMapIndex);
+								game->SpawnEntity("ladder", snappedPosition, spriteMapIndex);
 								snappedPosition.y -= TILE_SIZE * 2;
 							}
 						}
@@ -774,6 +737,12 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 					}
 				}
 			}
+		}
+		else
+		{
+			Entity* entity = game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex);
+			if (entity != nullptr)
+				game->SortEntities(game->entities);
 		}
 	}
 }
@@ -1228,30 +1197,14 @@ void Editor::ToggleSpriteMap()
 
 		prev->GetSprite()->color = { 255, 255, 255, 64 };
 	}
-	else if (objectMode == "door")
-	{
-		prev = game->CreateDoor(Vector2(0, 0), spriteMapIndex);
+	else
+	{		
+		prev = game->CreateEntity(objectMode, Vector2(0, 0), spriteMapIndex);
 	}
-	else if (objectMode == "ladder")
-	{
-		prev = game->CreateLadder(Vector2(0, 0), spriteMapIndex);
-	}
-	else if (objectMode == "npc")
-	{
-		prev = game->CreateNPC(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
-	}
-	else if (objectMode == "goal")
-	{
-		prev = game->CreateGoal(Vector2(0, 0), spriteMapIndex);
-	}
-	else if (objectMode == "bug")
-	{
-		prev = game->CreateBug(Vector2(0, 0), spriteMapIndex);
-	}
-	else if (objectMode == "shroom")
-	{
-		prev = game->CreateShroom(Vector2(0, 0), spriteMapIndex);
-	}
+
+	//TODO: How to deal with object modes that return nullptr?
+	//if (prev == nullptr)
+	//	prev = previewMap[objectMode];
 
 	objectPreview = prev;
 }
@@ -1740,14 +1693,14 @@ void Editor::CreateLevelFromString(std::string level)
 			int destX = std::stoi(tokens[index++]);
 			int destY = std::stoi(tokens[index++]);
 			int spriteIndex = std::stoi(tokens[index++]);
-			Door* newDoor = game->SpawnDoor(Vector2(positionX, positionY), spriteIndex);			
+			Door* newDoor = static_cast<Door*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
 			newDoor->SetDestination(Vector2(destX, destY));
 		}
 		else if (etype == "ladder")
 		{
 			std::string ladderState = tokens[index++];
 			int spriteIndex = std::stoi(tokens[index++]);
-			Ladder* newLadder = static_cast<Ladder*>(game->SpawnEntity("Ladder", Vector2(positionX, positionY), spriteMapIndex));
+			Ladder* newLadder = static_cast<Ladder*>(game->SpawnEntity("ladder", Vector2(positionX, positionY), spriteMapIndex));
 			newLadder->GetAnimator()->SetState(ladderState.c_str());
 		}
 		else if (etype == "player")
@@ -1759,7 +1712,9 @@ void Editor::CreateLevelFromString(std::string level)
 			std::string npcName = tokens[index++];
 			std::string npcCutscene = tokens[index++];
 			int spriteIndex = std::stoi(tokens[index++]);
-			NPC* newNPC = game->SpawnNPC(npcName, Vector2(positionX, positionY), spriteIndex);
+
+			NPC* newNPC = static_cast<NPC*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
+			newNPC->name = npcName;
 			newNPC->cutsceneLabel = npcCutscene;
 
 			newNPC->drawOrder = std::stoi(tokens[index++]);
@@ -1769,27 +1724,27 @@ void Editor::CreateLevelFromString(std::string level)
 		else if (etype == "goal")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Goal* entity = game->SpawnGoal(Vector2(positionX, positionY), spriteIndex);
+			Entity* entity = game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex);
 		}
 		else if (etype == "bug")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Bug* entity = game->SpawnBug(Vector2(positionX, positionY), spriteIndex);
+			Entity* entity = game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex);
 		}
 		else if (etype == "ether")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Ether* entity = game->SpawnEther(Vector2(positionX, positionY), spriteIndex);
+			Entity* entity = game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex);
 		}
 		else if (etype == "block")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Block* block = game->SpawnBlock(Vector2(positionX, positionY), spriteIndex);
+			Entity* block = game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex);
 		}
 		else if (etype == "shroom")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Shroom* entity = game->SpawnShroom(Vector2(positionX, positionY), spriteIndex);
+			Entity* entity = game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex);
 		}
 		else if (etype == "cutscene-trigger")
 		{
@@ -1826,7 +1781,7 @@ void Editor::CreateLevelFromString(std::string level)
 		else if (etype == "platform")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
-			Platform* platform = game->SpawnPlatform(Vector2(positionX, positionY), spriteIndex);
+			Platform* platform = static_cast<Platform*>(game->SpawnEntity("platform", Vector2(positionX, positionY), spriteIndex));
 
 			platform->platformType = tokens[index++];
 

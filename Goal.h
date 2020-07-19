@@ -23,6 +23,8 @@ public:
 	void SetProperty(std::string prop, std::string newValue);
 
 	void Save(std::ostringstream& level);
+
+	static Entity* __stdcall Create(const Vector2& pos) { return new Goal(pos); };
 };
 
 #endif

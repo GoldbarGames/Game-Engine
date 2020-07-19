@@ -54,7 +54,7 @@ private:
 	std::vector<EditorButton*> layerButtons;
 	std::vector<EditorButton*> layerVisibleButtons;
 
-	std::vector<std::string> npcNames;
+	
 
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;
