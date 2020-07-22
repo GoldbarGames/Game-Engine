@@ -17,9 +17,10 @@ Editor::Editor(Game& g)
 	CreateEditorText(EditorText::cursorPositionInScreen, 200, 50);
 	CreateEditorText(EditorText::cursorPositionInWorld, 200, 100);
 	CreateEditorText(EditorText::currentEditModeLayer, 200, 200);
-	CreateEditorText(EditorText::drawCalls, 200, 300);
-	CreateEditorText(EditorText::updateCalls, 200, 400);
-	CreateEditorText(EditorText::collisionChecks, 200, 500);
+	CreateEditorText(EditorText::drawCalls, 400, 1100);
+	CreateEditorText(EditorText::updateCalls, 400, 1200);
+	CreateEditorText(EditorText::collisionChecks, 400, 1300);
+	CreateEditorText(EditorText::hoveredEntityID, 500, 50);
 
 	dialogText = new Text(game->renderer, game->theFont, "");
 	dialogInput = new Text(game->renderer, game->theFont, "");
@@ -29,20 +30,16 @@ Editor::Editor(Game& g)
 	previewMap["tile"] = game->CreateTile(Vector2(0,0), "assets/editor/rect-outline.png", Vector2(0,0), DrawingLayer::FRONT);
 	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 
-	previewMap["door"] = game->CreateEntity("door", Vector2(0,0), spriteMapIndex);
-	previewMap["ladder"] = game->CreateEntity("ladder", Vector2(0, 0), spriteMapIndex);
+	//TODO: Read this in from a file (maybe)
+	std::vector<std::string> previewMapObjectNames = {  "door", "ladder", "goal", "bug", 
+		"ether", "block", "platform", "shroom" };
 
-	previewMap["goal"] = game->CreateEntity("goal", Vector2(0, 0), spriteMapIndex);
-	previewMap["bug"] = game->CreateEntity("bug", Vector2(0, 0), spriteMapIndex);
-	previewMap["ether"] = game->CreateEntity("ether", Vector2(0, 0), spriteMapIndex);
-	previewMap["block"] = game->CreateEntity("block", Vector2(0, 0), spriteMapIndex);
-	previewMap["platform"] = game->CreateEntity("platform", Vector2(0, 0), spriteMapIndex);
-	previewMap["shroom"] = game->CreateEntity("shroom", Vector2(0, 0), spriteMapIndex);
+	for (int i = 0; i < previewMapObjectNames.size(); i++)
+	{
+		previewMap[previewMapObjectNames[i]] = game->CreateEntity(previewMapObjectNames[i], Vector2(0, 0), spriteMapIndex);
+	}
 
-	//TODO: Make the indexes different numbers for the names and sprite sheets?
-	//previewMap["npc"] = game->CreateEntity(npcNames[spriteMapIndex], Vector2(0, 0), spriteMapIndex);
 	previewMap["npc"] = game->CreateEntity("npc", Vector2(0, 0), spriteMapIndex);
-
 	objectPreview = previewMap["tile"];
 
 	game->entities.clear();	
@@ -742,7 +739,9 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 		{
 			Entity* entity = game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex);
 			if (entity != nullptr)
+			{
 				game->SortEntities(game->entities);
+			}				
 		}
 	}
 }
@@ -1001,6 +1000,19 @@ void Editor::HandleEdit()
 	std::string clickedText2 = std::to_string((int)spawnPos.x) + " " + std::to_string((int)spawnPos.y);
 	editorText[EditorText::cursorPositionInWorld]->SetText("Mouse World: " + clickedText2);
 	editorText[EditorText::cursorPositionInWorld]->GetSprite()->keepScaleRelativeToCamera = true;
+
+	// Find the hovered entity ID
+	SDL_Point point;
+	point.x = objPreviewPosition.x;
+	point.y = objPreviewPosition.y;
+	for (unsigned int i = 0; i < game->entities.size(); i++)
+	{
+		if (SDL_PointInRect(&point, game->entities[i]->GetBounds()))
+		{
+			hoveredEntityID = game->entities[i]->id;
+			break;
+		}
+	}
 
 	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 	{
@@ -1345,17 +1357,26 @@ void Editor::RenderDebug(Renderer* renderer)
 {
 	//TODO: Only set each text if the number has changed from last time
 
-	editorText[EditorText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer->drawCallsPerFrame));
-	editorText[EditorText::drawCalls]->GetSprite()->keepScaleRelativeToCamera = true;
-	editorText[EditorText::drawCalls]->Render(renderer);
+	if (renderer->game->debugMode)
+	{
+		editorText[EditorText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer->drawCallsPerFrame));
+		editorText[EditorText::drawCalls]->GetSprite()->keepScaleRelativeToCamera = true;
+		editorText[EditorText::drawCalls]->Render(renderer);
 
-	editorText[EditorText::updateCalls]->SetText("Update Calls: " + std::to_string(game->updateCalls));
-	editorText[EditorText::updateCalls]->GetSprite()->keepScaleRelativeToCamera = true;
-	editorText[EditorText::updateCalls]->Render(renderer);
+		editorText[EditorText::updateCalls]->SetText("Update Calls: " + std::to_string(game->updateCalls));
+		editorText[EditorText::updateCalls]->GetSprite()->keepScaleRelativeToCamera = true;
+		editorText[EditorText::updateCalls]->Render(renderer);
 
-	editorText[EditorText::collisionChecks]->SetText("Collision Checks: " + std::to_string(game->collisionChecks));
-	editorText[EditorText::collisionChecks]->GetSprite()->keepScaleRelativeToCamera = true;
-	editorText[EditorText::collisionChecks]->Render(renderer);
+		editorText[EditorText::collisionChecks]->SetText("Collision Checks: " + std::to_string(game->collisionChecks));
+		editorText[EditorText::collisionChecks]->GetSprite()->keepScaleRelativeToCamera = true;
+		editorText[EditorText::collisionChecks]->Render(renderer);
+
+		editorText[EditorText::hoveredEntityID]->SetText("Hovered ID: " + std::to_string(hoveredEntityID));
+		editorText[EditorText::hoveredEntityID]->GetSprite()->keepScaleRelativeToCamera = true;
+		editorText[EditorText::hoveredEntityID]->Render(renderer);
+	}
+
+	
 }
 
 void Editor::Render(Renderer* renderer)
@@ -1661,8 +1682,9 @@ void Editor::CreateLevelFromString(std::string level)
 		std::vector<std::string> tokens(beg, end);
 
 		int index = 0;
-		const int id = std::stoi(tokens[index++]);
-		Entity::nextValidID = id;
+		index++;
+		const int id = Entity::GetNextValidID();  //std::stoi(tokens[index++]);
+		//Entity::nextValidID = id;
 
 		const std::string etype = tokens[index++];
 
@@ -1721,31 +1743,6 @@ void Editor::CreateLevelFromString(std::string level)
 			newNPC->layer = (DrawingLayer)std::stoi(tokens[index++]);
 			newNPC->impassable = std::stoi(tokens[index++]);
 		}
-		else if (etype == "goal")
-		{
-			int spriteIndex = std::stoi(tokens[index++]);
-			Entity* entity = game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex);
-		}
-		else if (etype == "bug")
-		{
-			int spriteIndex = std::stoi(tokens[index++]);
-			Entity* entity = game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex);
-		}
-		else if (etype == "ether")
-		{
-			int spriteIndex = std::stoi(tokens[index++]);
-			Entity* entity = game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex);
-		}
-		else if (etype == "block")
-		{
-			int spriteIndex = std::stoi(tokens[index++]);
-			Entity* block = game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex);
-		}
-		else if (etype == "shroom")
-		{
-			int spriteIndex = std::stoi(tokens[index++]);
-			Entity* entity = game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex);
-		}
 		else if (etype == "cutscene-trigger")
 		{
 			const std::string label = tokens[index++];
@@ -1756,10 +1753,7 @@ void Editor::CreateLevelFromString(std::string level)
 		}
 		else if (etype == "cutscene-start")
 		{
-//#if _RELEASE
-			const std::string label = tokens[index++];
-			game->levelStartCutscene = label;
-//#endif
+			game->levelStartCutscene = tokens[index++];
 		}
 		else if (etype == "path")
 		{
@@ -1831,6 +1825,10 @@ void Editor::CreateLevelFromString(std::string level)
 
 			game->SortEntities(game->background->layers);
 		}
+		else // create all other types of entities that don't require special stuff
+		{
+			game->SpawnEntity(etype, Vector2(positionX, positionY), std::stoi(tokens[index++]));
+		}
 
 		ss.getline(lineChar, 256);
 	}
@@ -1867,7 +1865,6 @@ void Editor::InitLevelFromFile(std::string levelName)
 
 	//const int OFFSET = -4;
 	//game->camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
-
 	//std::cout << game->camera.y << std::endl;
 
 	game->levelStartCutscene = "";

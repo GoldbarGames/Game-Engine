@@ -371,12 +371,12 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		
 		if (entityName != "npc")
 		{
-			spriteManager->ReadAnimData("data/animators/" + entityName + "/" + entityName + ".machine", animStates, args);
+			spriteManager->ReadAnimData("data/animators/" + entityName + "/" + entityName + ".animations", animStates, args);
 		}
 		else
 		{
 			args["1"] = npcNames[spriteIndex];
-			spriteManager->ReadAnimData("data/animators/npc/" + args["1"] + "/" + args["1"] + ".machine", animStates, args);
+			spriteManager->ReadAnimData("data/animators/npc/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
 		}
 
 
@@ -504,7 +504,7 @@ Player* Game::SpawnPlayer(Vector2 position)
 	player->game = this;
 
 	std::vector<AnimState*> animStates;
-	spriteManager->ReadAnimData("data/animators/player/player.machine", animStates);
+	spriteManager->ReadAnimData("data/animators/player/player.animations", animStates);
 
 	Animator* anim1 = new Animator("player", animStates, "idle");
 	anim1->SetBool("isGrounded", true);

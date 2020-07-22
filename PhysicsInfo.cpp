@@ -197,27 +197,28 @@ void PhysicsInfo::CheckCollisions(Game& game)
 	// Get bounds assuming the move is valid
 	SDL_Rect myBounds = *(our->GetBounds());
 	myBounds.x -= (myBounds.w / 2);
-	myBounds.y += (myBounds.h / 2);
+	//myBounds.y += (myBounds.h / 2);
 
 	SDL_Rect newBoundsHorizontal = myBounds;
 	newBoundsHorizontal.x = (int)(myBounds.x + (velocity.x * game.dt));
 
 	SDL_Rect newBoundsVertical = myBounds;
-	newBoundsVertical.y = (int)(myBounds.y + (velocity.y * game.dt));
+	newBoundsVertical.y += (myBounds.h / 2);
+	newBoundsVertical.y = (int)(newBoundsVertical.y + (velocity.y * game.dt));
 
 	// THIS NEEDS TO BE HERE BECAUSE OTHERWISE THE INTERSECTION CODE WILL NOT WORK
 	// SDL's intersection code returns false if our y + h = their y, but we want it to return true!
 	newBoundsVertical.y += 1;
 
+	// 2.5D look
 	SDL_Rect floorBounds = newBoundsVertical;
 	floorBounds.y += 20;
 
-	// 2.5D look
 	const int FLOOR_SIZE = 16;
-
 	if (standAboveGround)
 		floorBounds.h += FLOOR_SIZE; // (int)(newBoundsVertical.h * 0.25f);
 
+	//TODO: Re-implement this
 	bool fallThru = false;
 
 	for (unsigned int i = 0; i < game.entities.size(); i++)
@@ -232,6 +233,9 @@ void PhysicsInfo::CheckCollisions(Game& game)
 
 		if (entity == our)
 			continue;
+
+		if (our->etype == "player" && entity->id == 2799)
+			int test = 0;
 
 		if (entity->impassable || entity->jumpThru)
 		{	

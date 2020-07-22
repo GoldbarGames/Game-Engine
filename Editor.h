@@ -26,7 +26,7 @@ class Path;
 class Text;
 
 enum class EditorText { cursorPositionInScreen, cursorPositionInWorld, currentEditModeLayer, 
-	drawCalls, updateCalls, collisionChecks
+	drawCalls, updateCalls, collisionChecks, hoveredEntityID
 };
 
 class Editor
@@ -102,6 +102,8 @@ public:
 
 	std::deque<string> levelStrings;
 	int levelStringIndex = -1;
+
+	unsigned int hoveredEntityID = 0;
 
 	Editor(Game &g);
 	~Editor();

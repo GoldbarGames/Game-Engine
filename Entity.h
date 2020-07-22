@@ -37,7 +37,9 @@ public:
 
 	unsigned int Size();
 
+	static unsigned int GetNextValidID();
 	static unsigned int nextValidID;
+	
 	virtual ~Entity();
 	Entity(Vector2 pos);
 	Entity(Vector2 pos, Sprite* sprite);

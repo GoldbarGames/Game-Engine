@@ -37,5 +37,5 @@ Entity* EntityFactory::Create(const std::string& entityName, const Vector2& posi
 {   
     if (entities.count(entityName) == 1)
         return entities[entityName](position);
-    return entities["entity"](position);
+    return nullptr;
 }

@@ -56,7 +56,7 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	clickToContinue = new Entity(Vector2(0,0));
 
 	std::vector<AnimState*> animStates;
-	spriteManager->ReadAnimData("data/animators/cursor/cursor.machine", animStates);
+	spriteManager->ReadAnimData("data/animators/cursor/cursor.animations", animStates);
 
 	Animator* anim1 = new Animator("cursor", animStates, "samepage");
 	anim1->SetBool("endOfPage", false);
@@ -66,7 +66,6 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	clickToContinue->SetAnimator(anim1);
 	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 
-	//TODO: Should we create one texture for each alphabet letter and show the ones relevant to the string?
 	speaker->SetText(" ");
 	text->SetText(" ", text->textColor, boxWidth);
 }

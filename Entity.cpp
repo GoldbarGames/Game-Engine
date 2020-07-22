@@ -47,6 +47,10 @@ unsigned int Entity::Size()
 	return totalSize;
 }
 
+unsigned int Entity::GetNextValidID()
+{
+	return nextValidID++;
+}
 
 //TODO: Figure out what to do with the background layers
 // since they will offset the next valid ID every time we save the level
@@ -91,6 +95,10 @@ void Entity::CreateCollider(float x, float y, float w, float h)
 
 	colliderScale.x = w;
 	colliderScale.y = h;
+
+	if (newCollisionBounds != nullptr)
+		delete_it(newCollisionBounds);
+	newCollisionBounds = new SDL_Rect();
 }
 
 void Entity::CalculateCollider()

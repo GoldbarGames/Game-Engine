@@ -19,54 +19,7 @@ AnimatorInfo::AnimatorInfo(std::string name)
 
 	//TODO: Deal with issues involving extra whitespace (it breaks things)
 
-	// Read in all the states for this animator type
-	//TODO: These can probably be inferred from the state machine
-
-	std::cout << "Reading states file:" << std::endl;
-	fin.open(statesFile);
-	if (fin.is_open())
-	{
-		mapStateNamesToNumbers[""] = 0;
-		int i = 1;
-		for (std::string line; std::getline(fin, line); )
-		{
-			mapStateNamesToNumbers[line] = i;
-			i++;
-		}
-	}
-	fin.close();
-
-	// Read in all the variables for this animator type
-	//TODO: These can probably be inferred from the state machine
-	std::cout << "Reading vars file:" << std::endl;
-	fin.open(varsFile);
-	if (fin.is_open())
-	{
-		int i = 1;
-		for (std::string line; std::getline(fin, line); )
-		{
-			int index = 0;
-			std::string variableType = ParseWord(line, ' ', index);
-			std::string variableName = ParseWord(line, ' ', index);
-
-			if (variableType == "bool")
-			{
-				mapKeysBool[variableName] = i;
-			}
-			else if (variableType == "float")
-			{
-				mapKeysBool[variableName] = i;
-			}
-			else if (variableType == "int")
-			{
-				mapKeysBool[variableName] = i;
-			}
-			
-			i++;
-		}
-	}
-	fin.close();
-
+	mapStateNamesToNumbers[""] = 0;
 	states[""] = new AnimStateMachine();
 
 	// Read in the state machine animator file
@@ -85,6 +38,16 @@ AnimatorInfo::AnimatorInfo(std::string name)
 		// expected value
 
 		std::string stateName = "";
+		int stateIndex = 1;
+		int variableIndex = 0;
+		int index = 0;
+
+		std::vector<AnimCondition*> conditions;
+		std::string variableType = "";
+		std::string variableName = "";
+		std::string conditionCheck = "";
+		std::string expectedValue = "";
+		std::string nextStateName = "";
 
 		for (std::string line; std::getline(fin, line); )
 		{
@@ -103,36 +66,48 @@ AnimatorInfo::AnimatorInfo(std::string name)
 					// before moving on to the next one
 				}
 
-				int index = 1;
+				index = 1;
 				stateName = ParseWord(line, '*', index);
+				mapStateNamesToNumbers[stateName] = stateIndex++;
 			}
 			else
-			{
-				int index = 0;
+			{				
 				bool readLine = true;
+				index = 0;
 
-				std::string nextStateName = ParseWord(line, ':', index);
+				nextStateName = ParseWord(line, ':', index);
 				index++;
 
-				std::vector<AnimCondition*> conditions;
+				conditions.clear();
 
 				while (readLine)
 				{
-					std::string variableType = ParseWord(line, ' ', index);
-					std::string variableName = ParseWord(line, ' ', index);
-					std::string conditionCheck = ParseWord(line, ' ', index);
-					std::string expectedValue = ParseWord(line, ' ', index);
+					variableType = ParseWord(line, ' ', index);
+					variableName = ParseWord(line, ' ', index);
+					conditionCheck = ParseWord(line, ' ', index);
+					expectedValue = ParseWord(line, ' ', index);
 
 					//TODO: If we really want to do this the right way
 					// we just need to use a binary search tree (abstract syntax tree)
 
-					std::string endOfLine = ParseWord(line, ' ', index);
-
-					readLine = (endOfLine == "&&");
+					readLine = (ParseWord(line, ' ', index) == "&&");
 
 					if (states.count(stateName) != 1)
 					{
 						states[stateName] = new AnimStateMachine();
+					}
+
+					if (variableType == "bool")
+					{
+						mapKeysBool[variableName] = variableIndex++;
+					}
+					else if (variableType == "float")
+					{
+						mapKeysBool[variableName] = variableIndex++;
+					}
+					else if (variableType == "int")
+					{
+						mapKeysBool[variableName] = variableIndex++;
 					}
 
 					// Add this condition to the list of conditions for this state
