@@ -18,7 +18,7 @@ Timer::~Timer()
 bool Timer::HasElapsed()
 {
 	// is calling this function multiple times per frame really a good idea?
-	//Uint32 totalTime = SDL_GetTicks();
+	Uint32 totalTime = SDL_GetTicks();
 	return SDL_GetTicks() >= endTime;
 }
 

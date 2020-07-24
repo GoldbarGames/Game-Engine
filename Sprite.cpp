@@ -201,7 +201,7 @@ Sprite::~Sprite()
 
 void Sprite::Render(Vector2 position, Renderer* renderer)
 {
-	Render(position, 0, -1, SDL_FLIP_NONE, renderer, glm::vec3(0,0,0));
+	Render(position, 0, SDL_FLIP_NONE, renderer, glm::vec3(0,0,0));
 }
 
 bool Sprite::ShouldAnimate(float time)
@@ -225,6 +225,7 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
 		// Only go to the next frame when enough time has passed
 		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + animSpeed)
 		{
+			previousFrame = currentFrame;
 			currentFrame++;
 
 			if (currentFrame > ((currentRow + 1) * framesPerRow))
@@ -250,6 +251,7 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
 		// Only go to the next frame when enough time has passed
 		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + 100)
 		{
+			previousFrame = currentFrame;
 			currentFrame++;
 
 			if (currentFrame > endFrame)
@@ -332,7 +334,7 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* rend
 	}	
 }
 
-void Sprite::Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer * renderer, glm::vec3 rotation)
+void Sprite::Render(Vector2 position, int speed, SDL_RendererFlip flip, Renderer * renderer, glm::vec3 rotation)
 {
 	renderer->drawCallsPerFrame++;
 
@@ -515,4 +517,9 @@ const SDL_Rect* Sprite::GetRect()
 void Sprite::SetScale(Vector2 s)
 {
 	scale = s;
+}
+
+bool Sprite::HasAnimationElapsed()
+{
+	return (previousFrame > currentFrame);
 }

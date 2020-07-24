@@ -1411,7 +1411,7 @@ void Editor::Render(Renderer* renderer)
 			int test = 0;
 
 		objectPreview->GetSprite()->Render(Vector2(objPreviewPosition.x, objPreviewPosition.y),
-			0, -1, SDL_FLIP_NONE, renderer, objectPreview->rotation);
+			0, SDL_FLIP_NONE, renderer, objectPreview->rotation);
 
 		if (placingDoor && currentDoor != nullptr)
 		{

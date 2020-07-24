@@ -39,8 +39,11 @@ public:
 
 	void AnimateMesh(float time);
 
+	unsigned int previousFrame = 0;
 	unsigned int currentFrame = 0;
 	unsigned int currentRow = 0;
+
+	bool HasAnimationElapsed();
 	
 	static Mesh* mesh;
 	ShaderProgram* shader;	
@@ -77,7 +80,7 @@ public:
 	const SDL_Rect* GetRect();
 
 	void Render(Vector2 position, Renderer* renderer);
-	void Render(Vector2 position, int speed, Uint32 time, SDL_RendererFlip flip, Renderer* renderer, glm::vec3 rotation);
+	void Render(Vector2 position, int speed, SDL_RendererFlip flip, Renderer* renderer, glm::vec3 rotation);
 	void SetScale(Vector2 s);
 	bool ShouldAnimate(float time);
 	void CreateMesh();

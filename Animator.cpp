@@ -14,14 +14,14 @@ AnimatorInfo::AnimatorInfo(std::string name)
 
 	//TODO: Refactor this so that you can have custom paths for these files
 	std::string animatorFile = "data/animators/" + name + "/" + name + ".animator";
-	std::string statesFile = "data/animators/" + name + "/" + name + ".states";
-	std::string varsFile = "data/animators/" + name + "/" + name + ".vars";
 
 	//TODO: Deal with issues involving extra whitespace (it breaks things)
 
+	std::vector<std::string> stateNames;
 	mapStateNamesToNumbers[""] = 0;
 	states[""] = new AnimStateMachine();
 
+	bool readingInConditions = false;
 	// Read in the state machine animator file
 	std::cout << "Reading animator file:" << std::endl;
 	fin.open(animatorFile);
@@ -60,6 +60,12 @@ AnimatorInfo::AnimatorInfo(std::string name)
 
 			if (line.front() == '*') // entering a new state
 			{ 
+				if (readingInConditions)
+				{
+					stateNames.clear();
+					readingInConditions = false;
+				}
+				
 				if (stateName != "")
 				{
 					//TODO: Save info for this state
@@ -68,10 +74,12 @@ AnimatorInfo::AnimatorInfo(std::string name)
 
 				index = 1;
 				stateName = ParseWord(line, '*', index);
+				stateNames.push_back(stateName);
 				mapStateNamesToNumbers[stateName] = stateIndex++;
 			}
 			else
 			{				
+				readingInConditions = true;
 				bool readLine = true;
 				index = 0;
 
@@ -91,11 +99,6 @@ AnimatorInfo::AnimatorInfo(std::string name)
 					// we just need to use a binary search tree (abstract syntax tree)
 
 					readLine = (ParseWord(line, ' ', index) == "&&");
-
-					if (states.count(stateName) != 1)
-					{
-						states[stateName] = new AnimStateMachine();
-					}
 
 					if (variableType == "bool")
 					{
@@ -121,8 +124,24 @@ AnimatorInfo::AnimatorInfo(std::string name)
 				}
 
 				// after parsing all conditions, assign them to the next state
-				states[stateName]->conditions[nextStateName] = conditions;				
+
+				/*
+				if (states.count(stateName) != 1)
+					states[stateName] = new AnimStateMachine();
+				states[stateName]->conditions[nextStateName] = conditions;
+				*/
+
+				for (int i = 0; i < stateNames.size(); i++)
+				{
+					if (states.count(stateNames[i]) != 1)
+					{
+						states[stateNames[i]] = new AnimStateMachine();
+					}
+					states[stateNames[i]]->conditions[nextStateName] = conditions;
+				}
 			}
+
+			
 		}
 	}
 
@@ -284,9 +303,13 @@ void Animator::Update(Entity* entity)
 
 			if (allConditionsTrue) // then go to the next state
 			{
+				
 				if (condition != nullptr && currentState->name != condition->nextState.c_str())
 				{
-					int test = 0;
+					if (currentState->name == "debug")
+						int test = 0;
+					if (currentState->name == "idle")
+						int test = 0;
 				}
 
 				SetState(condition->nextState.c_str());
@@ -334,8 +357,7 @@ void Animator::Update(Entity* entity)
 void Animator::StartTimer()
 {
 	// set duration of the animation based on the playback speed and number of frames
-	animationTimer.Start(currentState->speed * GetCurrentSprite()->endFrame,
-		GetCurrentSprite()->shouldLoop);
+	//animationTimer.Start(currentState->speed * GetCurrentSprite()->endFrame, GetCurrentSprite()->shouldLoop);
 }
 
 Sprite* Animator::GetCurrentSprite()

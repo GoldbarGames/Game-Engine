@@ -58,9 +58,7 @@ public:
 
 	// maybe move this to the Tile class
 	int tilesheetIndex = 0;
-	Vector2 tileCoordinates = Vector2(0, 0);
-
-	
+	Vector2 tileCoordinates = Vector2(0, 0);	
 	SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
 
 	Vector2 colliderOffset = Vector2(0, 0);        // adjust the bounds this way

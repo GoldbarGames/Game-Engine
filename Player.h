@@ -27,7 +27,6 @@ public:
 	NPC* currentNPC = nullptr;
 	Goal* currentGoal = nullptr;
 
-	bool castingDebug;
 	bool castingSpell;
 	
 	Vector2 startPosition;

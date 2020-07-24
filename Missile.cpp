@@ -26,7 +26,8 @@ void Missile::Update(Game& game)
 {
 	if (timeToLive.HasElapsed())
 	{
-		if (animator->GetBool("destroyed") && animator->animationTimer.HasElapsed())
+		if (animator->GetBool("destroyed") && 
+			currentSprite->HasAnimationElapsed())
 		{
 			shouldDelete = true;
 		}
@@ -69,7 +70,7 @@ void Missile::UpdatePhysics(Game& game)
 	// check for collisions, and destroy if it hits a wall or an enemy'
 	if (CheckCollisions(game))
 	{
-		if (animator->GetBool("destroyed") && animator->animationTimer.HasElapsed())
+		if (animator->GetBool("destroyed") && currentSprite->HasAnimationElapsed())
 		{
 			shouldDelete = true;
 		}

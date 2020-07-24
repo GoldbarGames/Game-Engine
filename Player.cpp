@@ -74,13 +74,20 @@ void Player::Update(Game& game)
 
 void Player::UpdateAnimator()
 {
-	if (castingDebug && animator->animationTimer.HasElapsed())
+	if (  (animator->currentState->name == "debug" 
+		|| animator->currentState->name == "debugUp"
+		|| animator->currentState->name == "debugDown"
+		|| animator->currentState->name == "debugAir"
+		|| animator->currentState->name == "debugAirUp"
+		|| animator->currentState->name == "debugAirDown"
+		)			
+		&& animator->GetBool("isCastingDebug"))
 	{
-		animator->SetBool("isCastingDebug", false);
-		castingDebug = false;
+		if (currentSprite->HasAnimationElapsed())
+			animator->SetBool("isCastingDebug", false);
 	}
 
-	if (castingSpell && animator->animationTimer.HasElapsed())
+	if (castingSpell && currentSprite->HasAnimationElapsed())
 	{
 		animator->SetBool("isCastingSpell", false);
 		castingSpell = false;
@@ -98,6 +105,7 @@ void Player::UpdateNormally(Game& game)
 	bool wasHoldingUp = animator->GetBool("holdingUp");
 
 	animator->SetBool("walking", false);
+	animator->SetBool("animationTimerHasElapsed", false);
 	animator->SetBool("holdingUp", input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
 	animator->SetBool("holdingDown", input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
 
@@ -166,7 +174,7 @@ void Player::UpdateNormally(Game& game)
 
 	//TODO: Should we limit the number that can be spawned?
 	//TODO: Add a time limit between shots
-	if (game.pressedDebugButton && missileTimer.HasElapsed() && !castingDebug)
+	if (game.pressedDebugButton && missileTimer.HasElapsed() && !animator->GetBool("isCastingDebug"))
 	{
 		CastSpellDebug(game, input);
 	}
@@ -226,8 +234,6 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 	if (game.currentEther <= 0)
 		return;
 
-	castingDebug = true;
-
 	Vector2 missilePosition = this->position;
 	//missilePosition.x += (this->currentSprite->GetRect()->w / 2);
 	//missilePosition.y += (this->currentSprite->GetRect()->h / 2);
@@ -267,6 +273,12 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 		game.soundManager->PlaySound("se/shoot.wav", 1);
 		animator->SetBool("isCastingDebug", true);
 		missileTimer.Start(750);
+
+		if (currentSprite != nullptr)
+		{
+			currentSprite->previousFrame = 0;
+			currentSprite->currentFrame = 0;
+		}
 	}
 }
 

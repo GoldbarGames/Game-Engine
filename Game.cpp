@@ -305,8 +305,6 @@ void Game::InitSDL()
 		SDL_JoystickClose(joystick);
 	}
 
-	
-
 	windowTitle = "Witch Doctor Kaneko";
 	windowIconFilepath = "assets/gui/icon.png";
 

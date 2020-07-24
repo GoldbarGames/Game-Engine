@@ -34,10 +34,8 @@ private:
 
 	//TODO: Remove this?
 	std::unordered_map<std::string, AnimState*> mapNamesToStates;	
-
 	std::unordered_map<unsigned int, AnimState*> mapNumbersToStates;
 public:
-
 
 	Sprite* GetCurrentSprite();
 	Timer animationTimer;

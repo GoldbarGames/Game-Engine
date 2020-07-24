@@ -392,12 +392,11 @@ void Text::Render(Renderer* renderer)
 				{
 					glyphs[i]->sprite->Render(glyphs[i]->position,
 						glyphs[i]->animator->GetSpeed(),
-						glyphs[i]->animator->animationTimer.GetTicks(),
 						flip, renderer, rotation);
 				}
 				else
 				{
-					glyphs[i]->sprite->Render(glyphs[i]->position, 0, -1, flip, renderer, rotation);
+					glyphs[i]->sprite->Render(glyphs[i]->position, 0, flip, renderer, rotation);
 				}
 					
 			}

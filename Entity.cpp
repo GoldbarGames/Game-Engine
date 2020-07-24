@@ -95,10 +95,6 @@ void Entity::CreateCollider(float x, float y, float w, float h)
 
 	colliderScale.x = w;
 	colliderScale.y = h;
-
-	if (newCollisionBounds != nullptr)
-		delete_it(newCollisionBounds);
-	newCollisionBounds = new SDL_Rect();
 }
 
 void Entity::CalculateCollider()
@@ -129,7 +125,7 @@ void Entity::Pause(Uint32 ticks)
 	if (animator != nullptr)
 	{
 		//std::cout << "-- pausing --" << std::endl;
-		animator->animationTimer.Pause();
+		//animator->animationTimer.Pause();
 	}	
 }
 
@@ -139,7 +135,7 @@ void Entity::Unpause(Uint32 ticks)
 	if (animator != nullptr)
 	{
 		//std::cout << "-- unpausing --" << std::endl;
-		animator->animationTimer.Unpause();
+		//animator->animationTimer.Unpause();
 	}
 }
 
@@ -264,16 +260,16 @@ void Entity::Render(Renderer * renderer)
 		if (renderer->game->editMode)
 		{
 			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
+				currentSprite->Render(position, animator->GetSpeed(), flip, renderer, rotation);
 			else
-				currentSprite->Render(position, 0, -1, flip, renderer, rotation);
+				currentSprite->Render(position, 0, flip, renderer, rotation);
 		}
 		else // use offset here?
 		{
 			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
+				currentSprite->Render(position, animator->GetSpeed(), flip, renderer, rotation);
 			else
-				currentSprite->Render(position, 0, -1, flip, renderer, rotation);
+				currentSprite->Render(position, 0, flip, renderer, rotation);
 		}
 
 	}
@@ -285,9 +281,9 @@ void Entity::Render(Renderer * renderer)
 		if (currentSprite != nullptr && renderer->IsVisible(layer))
 		{
 			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
+				currentSprite->Render(position, animator->GetSpeed(), flip, renderer, rotation);
 			else
-				currentSprite->Render(position, 0, -1, flip, renderer, rotation);
+				currentSprite->Render(position, 0, flip, renderer, rotation);
 		}
 	}
 }
@@ -299,9 +295,9 @@ void Entity::RenderParallax(Renderer* renderer, float p)
 	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite->Render(renderPosition, animator->GetSpeed(), animator->animationTimer.GetTicks(), flip, renderer, rotation);
+			currentSprite->Render(renderPosition, animator->GetSpeed(), flip, renderer, rotation);
 		else
-			currentSprite->Render(renderPosition, 0, -1, flip, renderer, rotation);
+			currentSprite->Render(renderPosition, 0, flip, renderer, rotation);
 	}
 }
 
