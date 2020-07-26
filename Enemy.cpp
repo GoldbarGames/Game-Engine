@@ -6,7 +6,7 @@
 Enemy::Enemy(Vector2 pos) : Entity(pos)
 {
 	layer = DrawingLayer::COLLISION;
-	drawOrder = 100;
+	drawOrder = 90;
 	etype = "enemy";
 	trigger = true;
 

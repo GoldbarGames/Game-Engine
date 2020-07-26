@@ -17,7 +17,7 @@ class Player : public Entity
 {
 private:	
 	
-	Timer missileTimer;
+	Timer timerSpellDebug;
 	Timer doorTimer;		
 	Timer spellTimer;
 public:

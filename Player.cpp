@@ -24,7 +24,7 @@ Player::Player(Vector2 pos) : Entity(pos)
 	spell = Spell("PUSH");
 
 	//TODO: Pause all timers when game is paused
-	missileTimer.Start(1);
+	timerSpellDebug.Start(1);
 	doorTimer.Start(1);	
 	spellTimer.Start(1);
 
@@ -36,7 +36,7 @@ Player::~Player()
 
 }
 
-void Player::Render(Renderer * renderer)
+void Player::Render(Renderer* renderer)
 {
 	Entity::Render(renderer);
 }
@@ -173,7 +173,7 @@ void Player::UpdateNormally(Game& game)
 
 	//TODO: Should we limit the number that can be spawned?
 	//TODO: Add a time limit between shots
-	if (game.pressedDebugButton && missileTimer.HasElapsed() && !animator->GetBool("isCastingDebug"))
+	if (game.pressedDebugButton && timerSpellDebug.HasElapsed() && !animator->GetBool("isCastingDebug"))
 	{
 		CastSpellDebug(game, input);
 	}
@@ -219,7 +219,7 @@ void Player::UpdateNormally(Game& game)
 		}
 
 		// Update Physics
-		if (physics->velocity.y < 1)
+		if (physics->velocity.y < physics->CalcTerminalVelocity())
 			physics->velocity.y += Physics::GRAVITY * game.dt;
 
 		CheckJumpButton(input);
@@ -233,51 +233,60 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 	if (game.currentEther <= 0)
 		return;
 
-	Vector2 missilePosition = this->position;
-	//missilePosition.x += (this->currentSprite->GetRect()->w / 2);
-	missilePosition.y += (this->collisionBounds->h / 2);
+	bool createMissile = false;
 
-	const float missileSpeed = 0.25f;
-	Vector2 missileVelocity = Vector2(0, 0);
-	float angle = 0;
+	if (createMissile)
+	{
+		Vector2 missilePosition = this->position;
+		//missilePosition.x += (this->currentSprite->GetRect()->w / 2);
+		missilePosition.y += (this->collisionBounds->h / 2);
 
-	if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
-	{
-		missileVelocity.y = -missileSpeed;
-		angle = 270;
-	}
-	else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
-	{
-		missileVelocity.y = missileSpeed;
-		angle = 90;
-	}
-	else if (flip == SDL_FLIP_NONE)
-	{
-		missileVelocity.x = missileSpeed;
-	}
-	else if (flip == SDL_FLIP_HORIZONTAL)
-	{
-		missileVelocity.x = -missileSpeed;
-		angle = 180;
-	}
+		const float missileSpeed = 0.25f;
+		Vector2 missileVelocity = Vector2(0, 0);
+		float angle = 0;
 
-	Missile* missile = game.SpawnMissile(missilePosition, missileVelocity, angle);
-	if (missile != nullptr)
-	{
-		game.currentEther--;
-		game.etherText->SetText("Ether: " + std::to_string(game.currentEther));
-
-		missile->etype = "debug_missile";
-		game.soundManager->PlaySound("se/shoot.wav", 1);
-		animator->SetBool("isCastingDebug", true);
-		missileTimer.Start(750);
-
-		if (currentSprite != nullptr)
+		if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
 		{
-			currentSprite->previousFrame = 0;
-			currentSprite->currentFrame = 0;
+			missileVelocity.y = -missileSpeed;
+			angle = 270;
+		}
+		else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
+		{
+			missileVelocity.y = missileSpeed;
+			angle = 90;
+		}
+		else if (flip == SDL_FLIP_NONE)
+		{
+			missileVelocity.x = missileSpeed;
+		}
+		else if (flip == SDL_FLIP_HORIZONTAL)
+		{
+			missileVelocity.x = -missileSpeed;
+			angle = 180;
+		}
+
+		Missile* missile = game.SpawnMissile(missilePosition, missileVelocity, angle);
+		if (missile != nullptr)
+		{
+			game.currentEther--;
+			game.etherText->SetText("Ether: " + std::to_string(game.currentEther));
+			missile->etype = "debug_missile";						
 		}
 	}
+	else
+	{
+		//TODO: Spawn colliders in the correct spots for close-range attacks
+	}
+
+	if (currentSprite != nullptr)
+	{
+		currentSprite->previousFrame = 0;
+		currentSprite->currentFrame = 0;
+	}
+	animator->SetBool("isCastingDebug", true);
+	animator->Update(this); // We need to update here in order to know how long to run the timer
+	timerSpellDebug.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
+	game.soundManager->PlaySound("se/shoot.wav", 1);	
 }
 
 void Player::GetLadderInput(const Uint8* input)

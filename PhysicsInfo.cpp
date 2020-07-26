@@ -19,6 +19,14 @@ void PhysicsInfo::SetVelocity(Vector2 newVelocity)
 	velocity = newVelocity;
 }
 
+
+float PhysicsInfo::CalcTerminalVelocity()
+{
+	//float density = 1.225f; // for air
+	//float terminalVelocity = (2 * mass * Physics::GRAVITY) / (density * 0.294);
+	return 1.5f;
+}
+
 float PhysicsInfo::CalcCollisionVelocity(PhysicsInfo* their, bool x)
 {
 	if (x)
@@ -540,7 +548,8 @@ void PhysicsInfo::Update(Game& game)
 {
 	if (useGravity)
 	{
-		velocity.y += Physics::GRAVITY;
+		if (velocity.y < CalcTerminalVelocity())
+			velocity.y += Physics::GRAVITY * game.dt;
 	}
 
 	CheckCollisions(game);

@@ -123,13 +123,7 @@ AnimatorInfo::AnimatorInfo(std::string name)
 					// state name associated with a vector of structs (conditions)
 				}
 
-				// after parsing all conditions, assign them to the next state
-
-				/*
-				if (states.count(stateName) != 1)
-					states[stateName] = new AnimStateMachine();
-				states[stateName]->conditions[nextStateName] = conditions;
-				*/
+				// after parsing all conditions, assign them to the state(s)
 
 				for (int i = 0; i < stateNames.size(); i++)
 				{
@@ -259,8 +253,6 @@ void Animator::OnExit(AnimState state)
 
 void Animator::Update(Entity* entity)
 {
-	//TODO: How to check if the animation has played exactly once?
-
 	// If conditions met, set current state to next state
 	// Else, stay in current state
 
@@ -316,29 +308,7 @@ void Animator::Update(Entity* entity)
 				return; // set state to the first one that matches
 			}
 		}
-
- 
-
 	}	
-
-	/*
-	else if (animatorType == "debug_missile")
-	{
-		if (currentState->name == "moving")
-		{
-			if (GetBool("destroyed"))
-				SetState("destroyed");
-		}
-	}
-	else if (animatorType == "door")
-	{
-		if (currentState->name == "closed")
-		{
-			if (GetBool("opened"))
-				SetState("opened");
-		}
-	}
-	*/
 
 	// Then, carry out whatever the current state is
 	DoState(entity);

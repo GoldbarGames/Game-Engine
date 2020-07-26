@@ -54,6 +54,7 @@ public:
 	void PreviousFrameCollisions(Game& game);
 
 	void SetVelocity(Vector2 newVelocity);
+	float CalcTerminalVelocity();
 
 	bool CheckCollisions(Game& game);
 	bool CheckCollisionTrigger(Entity* collidedEntity, Game& game);

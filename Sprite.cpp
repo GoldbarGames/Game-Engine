@@ -249,7 +249,7 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
 	else
 	{
 		// Only go to the next frame when enough time has passed
-		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + 100)
+		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + animSpeed)
 		{
 			previousFrame = currentFrame;
 			currentFrame++;
