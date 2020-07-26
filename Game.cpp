@@ -173,8 +173,8 @@ void Game::ResetText()
 		bugText->GetSprite()->keepPositionRelativeToCamera = true;
 	}
 	
-	bugText->SetText("Bugs Remaining: " + std::to_string(bugsRemaining));
-	bugText->SetPosition(bugText->GetTextWidth() * 1.25f, bugText->GetTextHeight() * 1.25f);
+	//bugText->SetText("Bugs Remaining: " + std::to_string(bugsRemaining));
+	//bugText->SetPosition(bugText->GetTextWidth() * 1.25f, bugText->GetTextHeight() * 1.25f);
 
 	if (etherText == nullptr)
 	{
@@ -508,7 +508,7 @@ Player* Game::SpawnPlayer(Vector2 position)
 	anim1->SetBool("isGrounded", true);
 	player->SetAnimator(anim1);
 	player->SetPosition(position);
-	player->startPosition = position;
+	player->physics->startPosition = position;
 
 	entities.emplace_back(player);
 
@@ -1249,7 +1249,7 @@ void Game::Render()
 
 	if (currentLevel != "title" && !cutscene->watchingCutscene)
 	{
-		bugText->Render(renderer);
+		//bugText->Render(renderer);
 		//etherText->Render(renderer);
 	}	
 

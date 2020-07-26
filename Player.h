@@ -28,12 +28,9 @@ public:
 	Goal* currentGoal = nullptr;
 
 	bool castingSpell;
-	
-	Vector2 startPosition;
-
 	Spell spell;
 
-
+	bool updatedAnimator = false;
 
 	Player(Vector2 pos);
 	~Player();

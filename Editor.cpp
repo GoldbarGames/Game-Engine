@@ -784,7 +784,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 		//glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
 
 		game->SpawnTile(spriteSheetTileFrame, "assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png",
-			Vector2(spawnPos.x, spawnPos.y), drawingLayer);
+			spawnPos, drawingLayer);
 		game->SortEntities(game->entities);
 
 		std::cout << "Spawned at (" << spawnPos.x << "," << spawnPos.y << "!" << std::endl;
@@ -988,7 +988,7 @@ void Editor::HandleEdit()
 	// snapped position in screen space (0,0) to (1280,720)
 	Vector2 clickedScreenPosition(clickedX, clickedY); 
 
-	objPreviewPosition = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
+	objPreviewPosition = game->CalculateObjectSpawnPosition(clickedScreenPosition, GRID_SIZE);
 
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
 	editorText[EditorText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);
@@ -1407,11 +1407,8 @@ void Editor::Render(Renderer* renderer)
 			//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 		}
 
-		if (objectMode == "tile")
-			int test = 0;
-
-		objectPreview->GetSprite()->Render(Vector2(objPreviewPosition.x, objPreviewPosition.y),
-			0, SDL_FLIP_NONE, renderer, objectPreview->rotation);
+		//Vector2 spawnPos = game->CalculateObjectSpawnPosition(objPreviewPosition, GRID_SIZE);
+		objectPreview->GetSprite()->Render(objPreviewPosition, 0, SDL_FLIP_NONE, renderer, objectPreview->rotation);
 
 		if (placingDoor && currentDoor != nullptr)
 		{

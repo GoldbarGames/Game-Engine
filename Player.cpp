@@ -44,6 +44,7 @@ void Player::Render(Renderer * renderer)
 void Player::Update(Game& game)
 {	
 	static unsigned int count = 0;
+	updatedAnimator = false;
 
 	//TODO: Change this so that we collide with an object instead of hard-coding a number
 	// Also, maybe draw an outline of the death barrier so the player can see where this is
@@ -74,14 +75,12 @@ void Player::Update(Game& game)
 
 void Player::UpdateAnimator()
 {
-	if (  (animator->currentState->name == "debug" 
-		|| animator->currentState->name == "debugUp"
-		|| animator->currentState->name == "debugDown"
-		|| animator->currentState->name == "debugAir"
-		|| animator->currentState->name == "debugAirUp"
-		|| animator->currentState->name == "debugAirDown"
-		)			
-		&& animator->GetBool("isCastingDebug"))
+	if (updatedAnimator)
+		return;
+
+	updatedAnimator = true;
+
+	if (animator->GetBool("isCastingDebug"))
 	{
 		if (currentSprite->HasAnimationElapsed())
 			animator->SetBool("isCastingDebug", false);
@@ -240,7 +239,6 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 
 	const float missileSpeed = physics->maxHorizontalSpeed;
 	Vector2 missileVelocity = Vector2(0, 0);
-
 	float angle = 0;
 
 	if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
@@ -381,15 +379,15 @@ void Player::CheckJumpButton(const Uint8* input)
 
 void Player::ResetPosition()
 {
-	position = startPosition;
+	position = physics->startPosition;
 }
 
 void Player::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(renderer, font, properties);
 
-	properties.emplace_back(new Property(new Text(renderer, font, "Start Pos X: " + std::to_string((int)startPosition.x))));
-	properties.emplace_back(new Property(new Text(renderer, font, "Start Pos Y: " + std::to_string((int)startPosition.y))));
+	properties.emplace_back(new Property(new Text(renderer, font, "Start Pos X: " + std::to_string((int)physics->startPosition.x))));
+	properties.emplace_back(new Property(new Text(renderer, font, "Start Pos Y: " + std::to_string((int)physics->startPosition.y))));
 }
 
 void Player::SetProperty(std::string prop, std::string newValue)
@@ -409,17 +407,18 @@ void Player::SetProperty(std::string prop, std::string newValue)
 	if (key == "Start Pos X")
 	{
 		if (newValue != "")
-			startPosition.x = std::stof(newValue);
+			physics->startPosition.x = std::stof(newValue);
 	}
 	else if (key == "Start Pos Y")
 	{
 		if (newValue != "")
-			startPosition.y = std::stof(newValue);
+			physics->startPosition.y = std::stof(newValue);
 	}
 }
 
 void Player::Save(std::ostringstream& level)
 {
-	level << std::to_string(id) << " " << etype << " " << startPosition.x << " " << startPosition.y << " " << drawOrder <<
+	level << std::to_string(id) << " " << etype << " " << 
+		physics->startPosition.x << " " << physics->startPosition.y << " " << drawOrder <<
 		" " << (int)layer << " " << impassable << std::endl;
 }
