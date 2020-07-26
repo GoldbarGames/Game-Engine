@@ -81,6 +81,7 @@ private:
 
 	Mesh* CreateSpriteMesh();
 	std::vector<std::string> npcNames;
+	std::vector<std::string> enemyNames;
 public:
 
 	std::string windowIconFilepath = "";

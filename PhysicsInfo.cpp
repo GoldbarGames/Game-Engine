@@ -172,8 +172,9 @@ bool PhysicsInfo::CheckCollisionCeiling(Entity* other, Game& game)
 }
 
 
-void PhysicsInfo::CheckCollisions(Game& game)
+bool PhysicsInfo::CheckCollisions(Game& game)
 {	
+	bool hadCollision = false;
 	shouldStickToGround = false;
 
 	// copy this frame into previous frame list (could be done at beginning or end)
@@ -260,6 +261,7 @@ void PhysicsInfo::CheckCollisions(Game& game)
 					int test = 0;
 
 				horizontalCollision = CheckCollisionHorizontal(entity, game);
+				hadCollision = hadCollision || horizontalCollision;
 
 				if (velocity.x > 0)
 					our->position.x = (float)(theirBounds.x - myBounds.w - our->colliderOffset.x);
@@ -284,6 +286,7 @@ void PhysicsInfo::CheckCollisions(Game& game)
 			// checks the ground (using a rect that is a little bit larger
 			if (!verticalCollision && SDL_HasIntersection(&floorBounds, &theirBounds))
 			{
+				hadCollision = true;
 				verticalCollision = true;
 				CheckCollisionTrigger(entity, game);
 
@@ -294,7 +297,7 @@ void PhysicsInfo::CheckCollisions(Game& game)
 				{
 					if (isGrounded != wasGrounded)
 						our->GetAnimator()->SetBool("isGrounded", isGrounded);
-					return;
+					return hadCollision;
 				}
 					
 
@@ -384,7 +387,7 @@ void PhysicsInfo::CheckCollisions(Game& game)
 	{
 		game.soundManager->PlaySound("se/Jump.wav", 0);
 		jumpsRemaining--;
-		velocity.y = JUMP_SPEED;
+		velocity.y = jumpSpeed;
 		shouldStickToGround = false;
 		//std::cout << "jump!" << std::endl;
 		jumped = true;
@@ -432,6 +435,8 @@ void PhysicsInfo::CheckCollisions(Game& game)
 		our->GetAnimator()->SetBool("isGrounded", isGrounded);
 
 	PreviousFrameCollisions(game);
+
+	return hadCollision;
 }
 
 void PhysicsInfo::Jump(Game& game)
@@ -439,7 +444,7 @@ void PhysicsInfo::Jump(Game& game)
 	std::cout << "jump 1" << std::endl;
 	game.soundManager->PlaySound("se/Jump.wav", 0);
 	jumpsRemaining--;
-	our->position.y -= JUMP_SPEED * game.dt;
+	our->position.y -= jumpSpeed * game.dt;
 }
 
 void PhysicsInfo::PreviousFrameCollisions(Game& game)
@@ -478,14 +483,16 @@ void PhysicsInfo::PreviousFrameCollisions(Game& game)
 	}
 }
 
-void PhysicsInfo::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
+bool PhysicsInfo::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 {
 	// Each frame, when we are in this function, we check to see if the collided entity is in a list.
 	// If it is not, then we do OnTriggerEnter and add it to the list
 	// If it is in the list, then we do OnTriggerStay
+	bool hadCollision = false;
 
 	if (collidedEntity->trigger)
 	{
+		hadCollision = true;
 		bool collisionStay = false;
 		for (unsigned int i = 0; i < thisFrameCollisions.size(); i++)
 		{
@@ -507,6 +514,8 @@ void PhysicsInfo::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 
 		thisFrameCollisions.emplace_back(collidedEntity);
 	}
+
+	return hadCollision;
 }
 
 Vector2 PhysicsInfo::CalcScaledPivot()

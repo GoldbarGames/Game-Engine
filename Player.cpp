@@ -235,9 +235,9 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 
 	Vector2 missilePosition = this->position;
 	//missilePosition.x += (this->currentSprite->GetRect()->w / 2);
-	//missilePosition.y += (this->currentSprite->GetRect()->h / 2);
+	missilePosition.y += (this->collisionBounds->h / 2);
 
-	const float missileSpeed = physics->maxHorizontalSpeed;
+	const float missileSpeed = 0.25f;
 	Vector2 missileVelocity = Vector2(0, 0);
 	float angle = 0;
 

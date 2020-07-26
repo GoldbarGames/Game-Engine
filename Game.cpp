@@ -103,8 +103,7 @@ Game::Game()
 	spriteMap["ladder"].push_back("assets/sprites/objects/ladder_house.png");
 	spriteMap["ladder"].push_back("assets/sprites/objects/ladder_b.png");
 
-	spriteMap["npc"].push_back("assets/sprites/npcs/gramps.png");
-	spriteMap["npc"].push_back("assets/sprites/npcs/the_man.png");
+
 
 	spriteMap["bug"].push_back("assets/sprites/bugs/bug1.png");
 	spriteMap["bug"].push_back("assets/sprites/bugs/bug2.png");
@@ -117,6 +116,17 @@ Game::Game()
 	spriteMap["shroom"].push_back("assets/sprites/objects/shroom_potted.png");
 
 	npcNames = { "gramps", "the_man" };
+	enemyNames = { "crawler" };
+
+	for (int i = 0; i < npcNames.size(); i++)
+	{
+		spriteMap["npc"].push_back("assets/sprites/npcs/" + npcNames[i] + ".png");
+	}
+
+	for (int i = 0; i < enemyNames.size(); i++)
+	{
+		spriteMap["npc"].push_back("assets/sprites/enemies/" + enemyNames[i] + ".png");
+	}
 
 	editor = new Editor(*this);
 	entities.clear();
@@ -367,14 +377,19 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		std::unordered_map<std::string, std::string> args;
 		args["0"] = std::to_string(spriteIndex);
 		
-		if (entityName != "npc")
-		{
-			spriteManager->ReadAnimData("data/animators/" + entityName + "/" + entityName + ".animations", animStates, args);
-		}
-		else
+		if (entityName == "npc")
 		{
 			args["1"] = npcNames[spriteIndex];
 			spriteManager->ReadAnimData("data/animators/npc/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
+		}
+		else if (entityName == "enemy")
+		{
+			args["1"] = enemyNames[spriteIndex];
+			spriteManager->ReadAnimData("data/animators/enemies/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
+		}
+		else
+		{
+			spriteManager->ReadAnimData("data/animators/" + entityName + "/" + entityName + ".animations", animStates, args);
 		}
 
 

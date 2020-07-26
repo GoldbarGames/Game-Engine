@@ -7,6 +7,7 @@
 #include "Tile.h"
 #include "CutsceneTrigger.h"
 #include "PhysicsInfo.h"
+#include "Enemy.h"
 
 using std::string;
 
@@ -40,6 +41,7 @@ Editor::Editor(Game& g)
 	}
 
 	previewMap["npc"] = game->CreateEntity("npc", Vector2(0, 0), spriteMapIndex);
+	previewMap["enemy"] = game->CreateEntity("enemy", Vector2(0, 0), spriteMapIndex);
 	objectPreview = previewMap["tile"];
 
 	game->entities.clear();	
@@ -79,7 +81,7 @@ void Editor::CreateEditorButtons()
 	const int buttonSpacing = 20;
 
 	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", 
-		"Grid", "Map", "Door", "Ladder", "NPC", "Goal", "Bug", "Ether", "Undo", "Redo", 
+		"Grid", "Map", "Door", "Ladder", "NPC", "Enemy", "Goal", "Bug", "Ether", "Undo", "Redo", 
 		"Replace", "Copy", "Block", "Grab", "Platform", "Path", "Shroom" };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
@@ -619,6 +621,14 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 		{
 			currentNPC = static_cast<NPC*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 			if (currentNPC != nullptr)
+			{
+				game->SortEntities(game->entities);
+			}
+		}
+		else if (objectMode == "enemy")
+		{
+			Enemy* enemy = static_cast<Enemy*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
+			if (enemy != nullptr)
 			{
 				game->SortEntities(game->entities);
 			}
@@ -1185,6 +1195,10 @@ void Editor::ClickedButton()
 	{
 		ToggleObjectMode("shroom");
 	}
+	else if (clickedButton->name == "Enemy")
+	{
+		ToggleObjectMode("enemy");
+	}
 }
 
 void Editor::ToggleSpriteMap()
@@ -1273,7 +1287,7 @@ void Editor::ToggleObjectMode(std::string mode)
 	}
 	else
 	{
-		if (mode == "npc")
+		if (mode == "npc" || mode == "enemy")
 			SetLayer(DrawingLayer::COLLISION);
 		else
 			SetLayer(DrawingLayer::OBJECT);

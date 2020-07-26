@@ -34,7 +34,7 @@ public:
 	bool canBePushed = false;
 	bool standAboveGround = false;
 
-	const float JUMP_SPEED = -0.75f;
+	float jumpSpeed = -1.0f;
 
 	Entity* prevParent = nullptr;
 	Entity* parent = nullptr;
@@ -55,8 +55,8 @@ public:
 
 	void SetVelocity(Vector2 newVelocity);
 
-	void CheckCollisions(Game& game);
-	void CheckCollisionTrigger(Entity* collidedEntity, Game& game);
+	bool CheckCollisions(Game& game);
+	bool CheckCollisionTrigger(Entity* collidedEntity, Game& game);
 
 	void Update(Game& game);
 

@@ -10,6 +10,7 @@
 #include "Goal.h"
 #include "Shroom.h"
 #include "Missile.h"
+#include "Enemy.h"
 
 EntityFactory::EntityFactory()
 {
@@ -26,6 +27,7 @@ EntityFactory::EntityFactory()
     Register("goal", &Goal::Create);
     Register("shroom", &Shroom::Create);
     Register("missile", &Missile::Create);
+    Register("enemy", &Enemy::Create);
 }
 
 void EntityFactory::Register(const std::string& entityName, CreateEntity pfnCreate)
