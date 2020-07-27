@@ -18,7 +18,7 @@ class Player : public Entity
 private:	
 	
 	Timer timerSpellDebug;
-	Timer doorTimer;		
+	Timer doorTimer;
 	Timer spellTimer;
 public:
 	Game* game = nullptr;
@@ -26,6 +26,8 @@ public:
 	Ladder* currentLadder = nullptr;
 	NPC* currentNPC = nullptr;
 	Goal* currentGoal = nullptr;
+
+	Collider* closeRangeAttackCollider = nullptr;
 
 	bool castingSpell;
 	Spell spell;
@@ -37,7 +39,9 @@ public:
 	void Update(Game& game);
 	void UpdateNormally(Game& game);
 	void UpdateAnimator();
+	void UpdateSpellAnimation(const char* spellName);
 
+	void RenderDebug(Renderer* renderer);
 	void Render(Renderer* renderer);
 
 	void ResetPosition();

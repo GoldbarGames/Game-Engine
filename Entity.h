@@ -6,6 +6,7 @@
 #include "Vector2.h"
 #include "globals.h"
 #include "Animator.h"
+#include "Collider.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -59,10 +60,11 @@ public:
 	// maybe move this to the Tile class
 	int tilesheetIndex = 0;
 	Vector2 tileCoordinates = Vector2(0, 0);	
-	SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
 
-	Vector2 colliderOffset = Vector2(0, 0);        // adjust the bounds this way
-	Vector2 colliderScale = Vector2(1, 1);
+	Collider* collider = nullptr;
+	//SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
+	//Vector2 colliderOffset = Vector2(0, 0);        // adjust the bounds this way
+	//Vector2 colliderScale = Vector2(1, 1);
 
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
 	bool trigger = false;	
@@ -77,10 +79,9 @@ public:
 	void SetAnimator(Animator* anim);
 	void SetSprite(Sprite* sprite);
 	virtual void Update(Game& game);
-	virtual void Render(Renderer * renderer);
+	virtual void Render(Renderer* renderer);
 	virtual void RenderParallax(Renderer* renderer, float p);
-
-	void RenderDebug(Renderer * renderer);
+	virtual void RenderDebug(Renderer* renderer);
 
 	void CreateCollider(float x, float y, float w, float h);
 	void CalculateCollider();

@@ -21,7 +21,7 @@ protected:
 public:
 	Vector2 startPosition = Vector2(0, 0);
 	Vector2 velocity = Vector2(0, 0);
-	const float maxHorizontalSpeed = 0.5f;
+	float maxHorizontalSpeed = 0.5f;
 	float horizontalSpeed = 0.5f;
 	int jumpsRemaining = 2;
 	bool isGrounded = false;

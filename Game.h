@@ -80,9 +80,9 @@ private:
 	std::unordered_map<std::string, Mesh*> meshes;
 
 	Mesh* CreateSpriteMesh();
+public:
 	std::vector<std::string> npcNames;
 	std::vector<std::string> enemyNames;
-public:
 
 	std::string windowIconFilepath = "";
 	std::string windowTitle = "";

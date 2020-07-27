@@ -52,7 +52,10 @@ void Ladder::Render(Renderer * renderer)
 
 const SDL_Rect* Ladder::GetBounds()
 {
-	return collisionBounds;
+	if (collider == nullptr)
+		return currentSprite->GetRect();
+	else
+		return collider->bounds;
 }
 
 void Ladder::Save(std::ostringstream& level)

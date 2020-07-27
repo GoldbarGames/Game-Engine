@@ -22,9 +22,31 @@ Enemy::~Enemy()
 
 }
 
+void Enemy::Update(Game& game)
+{
+	if (name == "crawler")
+	{
+		if (physics->isGrounded)
+		{
+			//TODO: Only move if the player is nearby
+			//TODO: Don't move off ledges
+
+			if (game.player->position.x > position.x)
+				physics->velocity.x = 0.1f;
+			else
+				physics->velocity.x = -0.1f;
+		}		
+	}
+
+	physics->Update(game);
+}
+
 void Enemy::OnTriggerStay(Entity* other, Game& game)
 {
-
+	if (other->etype == "debug_missile")
+	{
+		shouldDelete = true;
+	}
 }
 
 void Enemy::OnTriggerEnter(Entity* other, Game& game)

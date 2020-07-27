@@ -622,6 +622,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			currentNPC = static_cast<NPC*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 			if (currentNPC != nullptr)
 			{
+				currentNPC->name = game->npcNames[spriteMapIndex];
 				game->SortEntities(game->entities);
 			}
 		}
@@ -630,6 +631,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			Enemy* enemy = static_cast<Enemy*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 			if (enemy != nullptr)
 			{
+				enemy->name = game->enemyNames[spriteMapIndex];
 				game->SortEntities(game->entities);
 			}
 		}
@@ -1753,6 +1755,19 @@ void Editor::CreateLevelFromString(std::string level)
 			newNPC->drawOrder = std::stoi(tokens[index++]);
 			newNPC->layer = (DrawingLayer)std::stoi(tokens[index++]);
 			newNPC->impassable = std::stoi(tokens[index++]);
+		}
+		else if (etype == "enemy")
+		{
+			std::string npcName = tokens[index++];
+			std::string npcCutscene = tokens[index++];
+			int spriteIndex = std::stoi(tokens[index++]);
+
+			Enemy* entity = static_cast<Enemy*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
+			entity->name = npcName;
+
+			entity->drawOrder = std::stoi(tokens[index++]);
+			entity->layer = (DrawingLayer)std::stoi(tokens[index++]);
+			entity->impassable = std::stoi(tokens[index++]);
 		}
 		else if (etype == "cutscene-trigger")
 		{

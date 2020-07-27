@@ -19,6 +19,8 @@ Player::Player(Vector2 pos) : Entity(pos)
 
 	physics = new PhysicsInfo(this);
 	physics->standAboveGround = true;
+	physics->horizontalSpeed = 0.25f;
+	physics->maxHorizontalSpeed = 0.25f;
 
 	// Initialize the spells here
 	spell = Spell("PUSH");
@@ -34,6 +36,39 @@ Player::Player(Vector2 pos) : Entity(pos)
 Player::~Player()
 {
 
+}
+
+void Player::RenderDebug(Renderer* renderer)
+{
+	Entity::RenderDebug(renderer);
+	
+	if (closeRangeAttackCollider != nullptr)
+	{
+		if (renderer->game->debugMode && drawDebugRect)
+		{
+			if (debugSprite == nullptr)
+				debugSprite = new Sprite(renderer->debugSprite->texture, renderer->debugSprite->shader);
+
+			if (renderer->IsVisible(layer))
+			{
+				//TODO: Make this a function inside the renderer
+				float rWidth = debugSprite->texture->GetWidth();
+				float rHeight = debugSprite->texture->GetHeight();
+
+				float targetWidth = closeRangeAttackCollider->bounds->w;
+				float targetHeight = closeRangeAttackCollider->bounds->h;
+
+				debugSprite->color = { 255, 255, 255, 255 };
+				debugSprite->pivot = GetSprite()->pivot;
+				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+
+				Vector2 colliderPosition = Vector2(position.x + closeRangeAttackCollider->offset.x, 
+					position.y + closeRangeAttackCollider->offset.y);
+
+				debugSprite->Render(colliderPosition, renderer);
+			}
+		}
+	}
 }
 
 void Player::Render(Renderer* renderer)
@@ -63,6 +98,38 @@ void Player::Update(Game& game)
 	{
 		if (!castingSpell)
 			UpdateNormally(game);
+
+		if (closeRangeAttackCollider != nullptr)
+		{
+			etype = "debug_missile";
+			closeRangeAttackCollider->CalculateCollider(position);
+
+			for (unsigned int i = 0; i < game.entities.size(); i++)
+			{
+				game.collisionChecks++;
+
+				Entity* entity = game.entities[i];
+
+				if (entity == this)
+					continue;
+
+				SDL_Rect theirBounds = *(entity->GetBounds());
+				theirBounds.w *= 2;
+				theirBounds.x -= (theirBounds.w / 2);
+
+				if (SDL_HasIntersection(closeRangeAttackCollider->bounds, &theirBounds))
+				{
+					if (entity->trigger)
+					{
+						entity->OnTriggerStay(this, game);
+					}
+				}
+
+
+			}
+
+			etype = "player";
+		}
 	}
 
 	//std::cout << "--" << count << "--" << std::endl;
@@ -81,9 +148,12 @@ void Player::UpdateAnimator()
 	updatedAnimator = true;
 
 	if (animator->GetBool("isCastingDebug"))
-	{
+	{		
 		if (currentSprite->HasAnimationElapsed())
+		{
+			delete_it(closeRangeAttackCollider);
 			animator->SetBool("isCastingDebug", false);
+		}			
 	}
 
 	if (castingSpell && currentSprite->HasAnimationElapsed())
@@ -179,23 +249,24 @@ void Player::UpdateNormally(Game& game)
 	}
 	else if (game.pressedSpellButton && spellTimer.HasElapsed() && !castingSpell)
 	{
-		spell.Cast(game);
-		// TODO: Reset the spell timer somehow
+		castingSpell = spell.Cast(game);
 	}
 
 	//TODO: What should happen if multiple buttons are pressed at the same time?
 	if (game.pressedLeftTrigger)
 	{
 		spell.activeSpell--;
-		if (spell.activeSpell < 0)
-			spell.activeSpell = 0;
 	}
 	else if (game.pressedRightTrigger)
 	{
 		spell.activeSpell++;
-		//if (spell.activeSpell > spells.size() - 1)
-		//	spell.activeSpell = spells.size() - 1;
 	}
+
+	if (spell.activeSpell < 0)
+		spell.activeSpell = 0;
+
+	//if (spell.activeSpell > spells.size() - 1)
+//	spell.activeSpell = spells.size() - 1;
 
 	// If on the ladder, only move up or down
 	if (animator->GetBool("onLadder"))
@@ -228,6 +299,21 @@ void Player::UpdateNormally(Game& game)
 	}
 }
 
+void Player::UpdateSpellAnimation(const char* spellName)
+{
+	// 1. Set the player's animation to the PUSH spell casting animation
+	animator->SetState(spellName);
+
+	// 2. Prevent the player from pressing any other buttons during this time
+	animator->SetBool("isCastingSpell", true);
+
+	// 3. Actually set the player's sprite to the casting sprite
+	animator->Update(this);
+
+	// 4. Set the timer to the length of the casting animation
+	spellTimer.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
+}
+
 void Player::CastSpellDebug(Game &game, const Uint8* input)
 {
 	if (game.currentEther <= 0)
@@ -239,7 +325,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 	{
 		Vector2 missilePosition = this->position;
 		//missilePosition.x += (this->currentSprite->GetRect()->w / 2);
-		missilePosition.y += (this->collisionBounds->h / 2);
+		missilePosition.y += (this->collider->bounds->h / 2);
 
 		const float missileSpeed = 0.25f;
 		Vector2 missileVelocity = Vector2(0, 0);
@@ -276,16 +362,25 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 	else
 	{
 		//TODO: Spawn colliders in the correct spots for close-range attacks
+		if (closeRangeAttackCollider != nullptr)
+		{
+			delete_it(closeRangeAttackCollider);
+		}
+
+		closeRangeAttackCollider = new Collider(32, 0, 16, 32);
+		closeRangeAttackCollider->CalculateCollider(position);
 	}
 
 	if (currentSprite != nullptr)
 	{
 		currentSprite->previousFrame = 0;
 		currentSprite->currentFrame = 0;
+
+		animator->SetBool("isCastingDebug", true);
+		animator->Update(this); // We need to update here in order to know how long to run the timer
+		timerSpellDebug.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
 	}
-	animator->SetBool("isCastingDebug", true);
-	animator->Update(this); // We need to update here in order to know how long to run the timer
-	timerSpellDebug.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
+	
 	game.soundManager->PlaySound("se/shoot.wav", 1);	
 }
 
@@ -295,6 +390,7 @@ void Player::GetLadderInput(const Uint8* input)
 
 	if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
 	{
+		//TODO: If going up brings us above the ladder, don't move
 		animator->SetBool("climbing", true);
 		physics->velocity.y -= physics->horizontalSpeed * 0.5f;
 	}
@@ -370,19 +466,6 @@ void Player::CheckJumpButton(const Uint8* input)
 	//	std::cout << "!!!!" << std::endl;
 
 	physics->canJump = ((!physics->hadPressedJump && physics->pressingJumpButton) && physics->jumpsRemaining > 0);
-
-	/*
-	if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0)
-	{
-		if (animator->GetBool("holdingUp") || animator->GetBool("holdingDown"))
-		{
-			canJump = false;
-		}
-		else
-		{
-			canJump = true;
-		}
-	}*/
 }
 
 

@@ -13,8 +13,8 @@ public:
 	std::string name = "";
 	bool isUnlocked = true;
 
-	void Cast(Game &game);
-	void CastPush(Game& game);
+	bool Cast(Game &game);
+	bool CastPush(Game& game);
 
 	Spell();
 	Spell(std::string n);

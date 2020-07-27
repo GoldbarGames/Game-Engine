@@ -11,30 +11,27 @@ Spell::~Spell()
 
 }
 
-void Spell::Cast(Game& game)
+bool Spell::Cast(Game& game)
 {
+	bool success = false;
+
 	switch (activeSpell)
 	{
 	case 0:
-		CastPush(game);
+		success = CastPush(game);
 		break;
 	default:
 		break;
 	}
+
+	return success;
 }
 
-void Spell::CastPush(Game& game)
+bool Spell::CastPush(Game& game)
 {
-	// 1. Set the player's animation to the PUSH spell casting animation
-	game.player->GetAnimator()->SetState("PUSH");
+	game.player->UpdateSpellAnimation("push");
 
-	// 2. Prevent the player from pressing any other buttons during this time
-	game.player->GetAnimator()->SetBool("isCastingSpell", true);
-
-	// 3. Actually set the player's sprite to the PUSH casting sprite
-	game.player->UpdateAnimator();
-
-	// 3. Create a rectangle collider in front of the player (direction facing)
+	// Create a rectangle collider in front of the player (direction facing)
 	SDL_Rect* spellRange = new SDL_Rect;
 
 	spellRange->x = (int)game.player->GetCenter().x;
@@ -113,4 +110,6 @@ void Spell::CastPush(Game& game)
 			}
 		}
 	}
+
+	return true;
 }

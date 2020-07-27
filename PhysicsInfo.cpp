@@ -236,12 +236,12 @@ bool PhysicsInfo::CheckCollisions(Game& game)
 
 		Entity* entity = game.entities[i];
 
+		if (entity == our)
+			continue;
+
 		SDL_Rect theirBounds = *(entity->GetBounds());
 		theirBounds.w *= 2;
 		theirBounds.x -= (theirBounds.w/2);
-
-		if (entity == our)
-			continue;
 
 		if (our->etype == "player" && entity->id == 2799)
 			int test = 0;
@@ -272,9 +272,9 @@ bool PhysicsInfo::CheckCollisions(Game& game)
 				hadCollision = hadCollision || horizontalCollision;
 
 				if (velocity.x > 0)
-					our->position.x = (float)(theirBounds.x - myBounds.w - our->colliderOffset.x);
+					our->position.x = (float)(theirBounds.x - myBounds.w - our->collider->offset.x);
 				else if (velocity.x < 0)
-					our->position.x = (float)(theirBounds.x + theirBounds.w + our->colliderOffset.x);
+					our->position.x = (float)(theirBounds.x + theirBounds.w + our->collider->offset.x);
 			}
 
 			// checks the ceiling
@@ -306,8 +306,7 @@ bool PhysicsInfo::CheckCollisions(Game& game)
 					if (isGrounded != wasGrounded)
 						our->GetAnimator()->SetBool("isGrounded", isGrounded);
 					return hadCollision;
-				}
-					
+				}					
 
 				bool jumped = MoveVerticallyWithParent(entity, game);
 
@@ -332,9 +331,9 @@ bool PhysicsInfo::CheckCollisions(Game& game)
 					{
 						velocity.y = 0;
 						if (standAboveGround)
-							our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - FLOOR_SIZE - our->colliderOffset.y);
+							our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - FLOOR_SIZE - our->collider->offset.y);
 						else
-							our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - our->colliderOffset.y);
+							our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - our->collider->offset.y);
 						shouldStickToGround = true;
 					}						
 				}
@@ -491,6 +490,7 @@ void PhysicsInfo::PreviousFrameCollisions(Game& game)
 	}
 }
 
+//TODO: Move this function/logic to the Collider class?
 bool PhysicsInfo::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 {
 	// Each frame, when we are in this function, we check to see if the collided entity is in a list.

@@ -78,45 +78,22 @@ Entity::~Entity()
 		delete_it(animator);
 	if (currentSprite != nullptr)
 		delete_it(currentSprite);
-	if (collisionBounds != nullptr)
-		delete_it(collisionBounds);
+	if (collider != nullptr)
+		delete_it(collider);
 }
 
 void Entity::CreateCollider(float x, float y, float w, float h)
 {
-	if (collisionBounds != nullptr)
-		delete_it(collisionBounds);
-
-	collisionBounds = new SDL_Rect();
-	collisionBounds->x = (int)x;
-	collisionBounds->y = (int)y;
-	collisionBounds->w = w;
-	collisionBounds->h = h;
-
-	colliderScale.x = w;
-	colliderScale.y = h;
+	if (collider != nullptr)
+		collider->CreateCollider(x, y, w, h);
+	else
+		collider = new Collider(x, y, w, h);
 }
 
 void Entity::CalculateCollider()
 {
-	if (currentSprite != nullptr)
-	{
-		collisionBounds->w = colliderScale.x; //currentSprite->frameWidth;
-		collisionBounds->h = colliderScale.y; //currentSprite->frameHeight;
-	}
-	else
-	{
-		collisionBounds->w = 1;
-		collisionBounds->h = 1;
-	}
-
-	// TODO: Do we need this anymore? Not sure this is the right idea
-	//collisionBounds->x = (int)(position.x - (collisionBounds->w / 2) + colliderOffset.x);
-	//collisionBounds->y = (int)(position.y - (collisionBounds->h / 2) + colliderOffset.y);
-
-	// set the collision bounds to the position
-	collisionBounds->x = (int)(position.x);
-	collisionBounds->y = (int)(position.y);
+	if (collider != nullptr)
+		collider->CalculateCollider(position);
 }
 
 
@@ -168,10 +145,10 @@ void Entity::SetColor(Color newColor)
 
 const SDL_Rect* Entity::GetBounds()
 {
-	//if (collisionBounds == nullptr)
-	//	return currentSprite->GetRect();
-	//else
-	return collisionBounds;
+	if (collider == nullptr)
+		return currentSprite->GetRect();
+	else
+		return collider->bounds;
 }
 
 Vector2 Entity::GetPosition()
@@ -223,18 +200,17 @@ void Entity::RenderDebug(Renderer * renderer)
 			debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 			debugSprite->Render(position, renderer);
 
-			if (physics != nullptr)
+			if (collider != nullptr && physics != nullptr)
 			{
 				// draw collider
-				targetWidth = collisionBounds->w;
-				targetHeight = collisionBounds->h;
+				targetWidth = collider->bounds->w;
+				targetHeight = collider->bounds->h;
 
 				debugSprite->color = { 255, 255, 255, 255 };
 				debugSprite->pivot = GetSprite()->pivot;
 				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 
-				Vector2 colliderPosition = Vector2(position.x + colliderOffset.x,
-					position.y + colliderOffset.y);
+				Vector2 colliderPosition = Vector2(position.x + collider->offset.x, position.y + collider->offset.y);
 				debugSprite->Render(colliderPosition, renderer);
 			}
 		}
@@ -245,39 +221,16 @@ void Entity::Render(Renderer * renderer)
 {
 	if (physics != nullptr)
 	{
-		//TODO: What is all of this code for? Why do we need this offset?
-		// Is it so that when you turn around, the collision box always stays centered?
+		//TODO: What is this code for?
 		entityPivot = currentSprite->pivot;
 
-		// Get center of the white collision box, and use it as a vector2
-		float collisionCenterX = (collisionBounds->x + (collisionBounds->w / 2.0f));
-		float collisionCenterY = (collisionBounds->y + (collisionBounds->h / 2.0f));
-		Vector2 collisionCenter = Vector2(collisionCenterX + colliderOffset.x, collisionCenterY + colliderOffset.y);
-
-		Vector2 scaledPivot = physics->CalcScaledPivot();
-		Vector2 offset = collisionCenter - scaledPivot;
-
-		if (renderer->game->editMode)
-		{
-			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), flip, renderer, rotation);
-			else
-				currentSprite->Render(position, 0, flip, renderer, rotation);
-		}
-		else // use offset here?
-		{
-			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), flip, renderer, rotation);
-			else
-				currentSprite->Render(position, 0, flip, renderer, rotation);
-		}
-
+		if (animator != nullptr)
+			currentSprite->Render(position, animator->GetSpeed(), flip, renderer, rotation);
+		else
+			currentSprite->Render(position, 0, flip, renderer, rotation);
 	}
 	else
 	{
-		if (layer == DrawingLayer::COLLISION2)
-			int test = 0;
-
 		if (currentSprite != nullptr && renderer->IsVisible(layer))
 		{
 			if (animator != nullptr)

@@ -33,8 +33,10 @@ void Tile::Animate()
 
 const SDL_Rect* Tile::GetBounds()
 {
-	return collisionBounds;
-	//return currentSprite->GetRect();
+	if (collider == nullptr)
+		return currentSprite->GetRect();
+	else
+		return collider->bounds;
 }
 
 void Tile::Destroy()

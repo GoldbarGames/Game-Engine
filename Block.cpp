@@ -31,8 +31,8 @@ void Block::GetProperties(Renderer * renderer, FontInfo * font, std::vector<Prop
 {
 	Entity::GetProperties(renderer, font, properties);
 
-	properties.emplace_back(new Property(new Text(renderer, font, "Collider Pos X: " + std::to_string((int)colliderOffset.x))));
-	properties.emplace_back(new Property(new Text(renderer, font, "Collider Pos Y: " + std::to_string((int)colliderOffset.y))));
+	properties.emplace_back(new Property(new Text(renderer, font, "Collider Pos X: " + std::to_string((int)collider->offset.x))));
+	properties.emplace_back(new Property(new Text(renderer, font, "Collider Pos Y: " + std::to_string((int)collider->offset.y))));
 	//properties.emplace_back(new Property(new Text(renderer, font, "Collider Width: " + std::to_string(colliderWidth))));
 	//properties.emplace_back(new Property(new Text(renderer, font, "Collider Height: " + std::to_string(colliderHeight))));
 }
@@ -53,12 +53,12 @@ void Block::SetProperty(std::string prop, std::string newValue)
 	if (key == "Collider Pos X")
 	{
 		if (newValue != "")
-			colliderOffset.x = std::stoi(newValue);
+			collider->offset.x = std::stoi(newValue);
 	}
 	else if (key == "Collider Pos Y")
 	{
 		if (newValue != "")
-			colliderOffset.y = std::stoi(newValue);
+			collider->offset.y = std::stoi(newValue);
 	}
 	else if (key == "Collider Width")
 	{
