@@ -52,8 +52,9 @@ public:
 
 	void GetMoveInput(const Uint8* input);
 	void GetLadderInput(const Uint8* input);
-	
 
+	void OnClickPressed(Uint32 mouseState, Game& game);
+	
 	void CastSpellDebug(Game &game, const Uint8* input);
 	void CheckJumpButton(const Uint8* input);
 

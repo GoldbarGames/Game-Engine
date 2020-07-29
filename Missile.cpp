@@ -1,6 +1,6 @@
 #include "Missile.h"
 #include "Game.h"
-#include "PhysicsInfo.h"
+#include "PhysicsComponent.h"
 
 Missile::Missile(Vector2 pos) : Entity(pos)
 {
@@ -10,7 +10,7 @@ Missile::Missile(Vector2 pos) : Entity(pos)
 	timeToLive.Start(2000);
 
 	etype = "missile";
-	physics = new PhysicsInfo(this);
+	physics = new PhysicsComponent(this);
 
 	//TODO: Is there a good way to do this from within the constructor?
 	//animator = new Animator("missile", "moving"); //TODO: Make these parameters?

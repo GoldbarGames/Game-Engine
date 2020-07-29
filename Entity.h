@@ -13,7 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 class Game;
-class PhysicsInfo;
+class PhysicsComponent;
 class Property;
 class Renderer;
 
@@ -34,7 +34,8 @@ public:
 	Vector2 scale = Vector2(1, 1);
 	int spriteIndex = 0;
 
-	PhysicsInfo* physics;
+	PhysicsComponent* physics = nullptr;
+	bool clickable = false;
 
 	unsigned int Size();
 

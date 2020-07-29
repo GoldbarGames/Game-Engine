@@ -6,7 +6,7 @@
 #include <iterator>
 #include "Tile.h"
 #include "CutsceneTrigger.h"
-#include "PhysicsInfo.h"
+#include "PhysicsComponent.h"
 #include "Enemy.h"
 
 using std::string;

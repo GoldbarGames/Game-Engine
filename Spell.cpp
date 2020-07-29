@@ -1,6 +1,6 @@
 #include "Spell.h"
 #include "Game.h"
-#include "PhysicsInfo.h"
+#include "PhysicsComponent.h"
 
 Spell::Spell(std::string n) : name(n) {}
 
@@ -100,7 +100,7 @@ bool Spell::CastPush(Game& game)
 		if (HasIntersection(*spellRange, *theirBounds))
 		{
 			//TODO: Is there a better way to do this than to check the type?
-			PhysicsInfo* entity = dynamic_cast<PhysicsInfo*>(game.entities[i]);
+			PhysicsComponent* entity = dynamic_cast<PhysicsComponent*>(game.entities[i]);
 			if (entity != nullptr)
 			{
 				// 5. Then make that object move until it hits a wall

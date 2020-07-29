@@ -1,9 +1,7 @@
 #include "Player.h"
 #include "Game.h"
 #include <string>
-#include "PhysicsInfo.h"
-#include "SpellPush.h"
-#include "SpellPop.h"
+#include "PhysicsComponent.h"
 #include "Animator.h"
 #include "Physics.h"
 
@@ -14,10 +12,11 @@ Player::Player(Vector2 pos) : Entity(pos)
 	CreateCollider(0, 0, 20.25f, 41.40f);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 99;
-	
-	trigger = false;
 
-	physics = new PhysicsInfo(this);
+	trigger = false;
+	clickable = true;
+
+	physics = new PhysicsComponent(this);
 	physics->standAboveGround = true;
 	physics->horizontalSpeed = 0.35f;
 	physics->maxHorizontalSpeed = 0.35f;
@@ -36,6 +35,11 @@ Player::Player(Vector2 pos) : Entity(pos)
 Player::~Player()
 {
 
+}
+
+void Player::OnClickPressed(Uint32 mouseState, Game& game)
+{
+	std::cout << "Clicked, pressed down on " << etype << "!" << std::endl;
 }
 
 void Player::RenderDebug(Renderer* renderer)

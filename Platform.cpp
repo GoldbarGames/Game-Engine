@@ -1,7 +1,7 @@
 #include "Platform.h"
 #include "Renderer.h"
 #include "Game.h"
-#include "PhysicsInfo.h"
+#include "PhysicsComponent.h"
 
 Platform::Platform(Vector2 pos) : Entity(pos)
 {
@@ -16,7 +16,7 @@ Platform::Platform(Vector2 pos) : Entity(pos)
 	impassable = true;
 	
 
-	physics = new PhysicsInfo(this);
+	physics = new PhysicsComponent(this);
 	physics->canBePushed = false; // TODO: Is there some potential here?
 	physics->useGravity = false;
 	physics->mass = 10;

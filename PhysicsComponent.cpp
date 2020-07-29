@@ -1,33 +1,33 @@
-#include "PhysicsInfo.h"
+#include "PhysicsComponent.h"
 #include "Game.h"
 #include "globals.h"
 #include "Physics.h"
 
-PhysicsInfo::PhysicsInfo(Entity* entity)
+PhysicsComponent::PhysicsComponent(Entity* entity)
 {
 	our = entity;
 	startPosition = entity->position;
 }
 
-PhysicsInfo::~PhysicsInfo()
+PhysicsComponent::~PhysicsComponent()
 {
 
 }
 
-void PhysicsInfo::SetVelocity(Vector2 newVelocity)
+void PhysicsComponent::SetVelocity(Vector2 newVelocity)
 {
 	velocity = newVelocity;
 }
 
 
-float PhysicsInfo::CalcTerminalVelocity()
+float PhysicsComponent::CalcTerminalVelocity()
 {
 	//float density = 1.225f; // for air
 	//float terminalVelocity = (2 * mass * Physics::GRAVITY) / (density * 0.294);
 	return 1.5f;
 }
 
-float PhysicsInfo::CalcCollisionVelocity(PhysicsInfo* their, bool x)
+float PhysicsComponent::CalcCollisionVelocity(PhysicsComponent* their, bool x)
 {
 	if (x)
 	{
@@ -50,7 +50,7 @@ float PhysicsInfo::CalcCollisionVelocity(PhysicsInfo* their, bool x)
 	
 }
 
-bool PhysicsInfo::IsEntityPushingOther(Entity* their, bool x)
+bool PhysicsComponent::IsEntityPushingOther(Entity* their, bool x)
 {
 	if (x)
 	{
@@ -63,7 +63,7 @@ bool PhysicsInfo::IsEntityPushingOther(Entity* their, bool x)
 	}	
 }
 
-Entity* PhysicsInfo::CheckPrevParent()
+Entity* PhysicsComponent::CheckPrevParent()
 {
 	our->GetAnimator()->SetBool("hasParent", false);
 
@@ -99,7 +99,7 @@ Entity* PhysicsInfo::CheckPrevParent()
 	return prevParent;
 }
 
-bool PhysicsInfo::CheckCollisionHorizontal(Entity* their, Game& game)
+bool PhysicsComponent::CheckCollisionHorizontal(Entity* their, Game& game)
 {
 	if (their->physics == nullptr)
 	{
@@ -116,7 +116,7 @@ bool PhysicsInfo::CheckCollisionHorizontal(Entity* their, Game& game)
 	return false;
 }
 
-bool PhysicsInfo::CheckVerticalJumpThru(Entity* their, Game& game)
+bool PhysicsComponent::CheckVerticalJumpThru(Entity* their, Game& game)
 {
 	// TODO: If we don't have NPCs using this, put it in the player script
 	if (our->etype == "player" && their->jumpThru)
@@ -137,7 +137,7 @@ bool PhysicsInfo::CheckVerticalJumpThru(Entity* their, Game& game)
 	return false;
 }
 
-bool PhysicsInfo::MoveVerticallyWithParent(Entity* their, Game& game)
+bool PhysicsComponent::MoveVerticallyWithParent(Entity* their, Game& game)
 {
 	// Move vertically with the parent if there was one (keep this outside of the if)
 	// WARNING: Do not place a vertically moving platform next to a ceiling
@@ -163,7 +163,7 @@ bool PhysicsInfo::MoveVerticallyWithParent(Entity* their, Game& game)
 	return false;
 }
 
-bool PhysicsInfo::CheckCollisionCeiling(Entity* other, Game& game)
+bool PhysicsComponent::CheckCollisionCeiling(Entity* other, Game& game)
 {
 	CheckCollisionTrigger(our, game);
 
@@ -180,7 +180,7 @@ bool PhysicsInfo::CheckCollisionCeiling(Entity* other, Game& game)
 }
 
 
-bool PhysicsInfo::CheckCollisions(Game& game)
+bool PhysicsComponent::CheckCollisions(Game& game)
 {	
 	bool hadCollision = false;
 	shouldStickToGround = false;
@@ -433,7 +433,7 @@ bool PhysicsInfo::CheckCollisions(Game& game)
 	return hadCollision;
 }
 
-void PhysicsInfo::Jump(Game& game)
+void PhysicsComponent::Jump(Game& game)
 {
 	std::cout << "jump 1" << std::endl;
 	game.soundManager->PlaySound("se/Jump.wav", 0);
@@ -441,7 +441,7 @@ void PhysicsInfo::Jump(Game& game)
 	our->position.y -= jumpSpeed * game.dt;
 }
 
-void PhysicsInfo::PreviousFrameCollisions(Game& game)
+void PhysicsComponent::PreviousFrameCollisions(Game& game)
 {
 	// Remove deleted objects from prevFrameCollisions
 	unsigned int k = 0;
@@ -478,7 +478,7 @@ void PhysicsInfo::PreviousFrameCollisions(Game& game)
 }
 
 //TODO: Move this function/logic to the Collider class?
-bool PhysicsInfo::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
+bool PhysicsComponent::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 {
 	// Each frame, when we are in this function, we check to see if the collided entity is in a list.
 	// If it is not, then we do OnTriggerEnter and add it to the list
@@ -513,20 +513,20 @@ bool PhysicsInfo::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 	return hadCollision;
 }
 
-Vector2 PhysicsInfo::CalcScaledPivot()
+Vector2 PhysicsComponent::CalcScaledPivot()
 {
 	// scale the pivot and subtract it from the collision center
 	return Vector2(our->entityPivot.x, our->GetSprite()->pivot.y);
 }
 
-void PhysicsInfo::Push(Vector2 pushVelocity)
+void PhysicsComponent::Push(Vector2 pushVelocity)
 {
 	velocity = pushVelocity;
 	hitByPushSpell = true;
 	totalDistancePushed = 0;
 }
 
-void PhysicsInfo::Update(Game& game)
+void PhysicsComponent::Update(Game& game)
 {
 	if (useGravity)
 	{

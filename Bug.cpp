@@ -1,7 +1,7 @@
 #include "Bug.h"
 #include "Player.h"
 #include "Game.h"
-#include "PhysicsInfo.h"
+#include "PhysicsComponent.h"
 
 Bug::Bug(Vector2 pos) : Entity(pos)
 {
@@ -12,7 +12,7 @@ Bug::Bug(Vector2 pos) : Entity(pos)
 	
 	CreateCollider(0, -4, 15, 18);
 
-	physics = new PhysicsInfo(this);
+	physics = new PhysicsComponent(this);
 	physics->useGravity = false;
 	physics->startPosition = pos;
 }

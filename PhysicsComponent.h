@@ -1,5 +1,5 @@
-#ifndef PHYSICSINFO_H
-#define PHYSICSINFO_H
+#ifndef PHYSICSCOMPONENT_H
+#define PHYSICSCOMPONENT_H
 #pragma once
 
 #include <vector>
@@ -8,7 +8,7 @@
 class Entity;
 class Game;
 
-class PhysicsInfo
+class PhysicsComponent
 {
 protected:
 	Entity* our = nullptr;
@@ -48,8 +48,8 @@ public:
 	bool shouldStickToGround = false;
 
 
-	PhysicsInfo(Entity* entity);
-	~PhysicsInfo();
+	PhysicsComponent(Entity* entity);
+	~PhysicsComponent();
 
 	void PreviousFrameCollisions(Game& game);
 
@@ -65,7 +65,7 @@ public:
 
 	void Push(Vector2 pushVelocity);
 
-	float CalcCollisionVelocity(PhysicsInfo* their, bool x);
+	float CalcCollisionVelocity(PhysicsComponent* their, bool x);
 	bool IsEntityPushingOther(Entity* their, bool x);
 
 	Entity* CheckPrevParent();

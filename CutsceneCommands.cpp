@@ -9,7 +9,7 @@
 #include "Game.h"
 #include "Timer.h"
 #include "Animator.h"
-#include "PhysicsInfo.h"
+#include "PhysicsComponent.h"
 
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 
@@ -1643,13 +1643,13 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 // both by the cutscene system and the level editor properties?
 int CutsceneCommands::SetVelocity(CutsceneParameters parameters)
 {
-	PhysicsInfo* entity = nullptr;
+	PhysicsComponent* entity = nullptr;
 
 	for (unsigned int i = 0; i < manager->game->entities.size(); i++)
 	{
 		if (manager->game->entities[i]->name == parameters[1])
 		{
-			entity = dynamic_cast<PhysicsInfo*>(manager->game->entities[i]);
+			entity = dynamic_cast<PhysicsComponent*>(manager->game->entities[i]);
 
 			if (entity != nullptr)
 			{

@@ -1,7 +1,7 @@
 #include "Enemy.h"
 #include "Player.h"
 #include "Game.h"
-#include "PhysicsInfo.h"
+#include "PhysicsComponent.h"
 
 Enemy::Enemy(Vector2 pos) : Entity(pos)
 {
@@ -12,7 +12,7 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 
 	CreateCollider(0, -4, 54, 32);
 
-	physics = new PhysicsInfo(this);
+	physics = new PhysicsComponent(this);
 	physics->useGravity = true;
 	physics->startPosition = pos;
 }

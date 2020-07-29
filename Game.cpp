@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <time.h>
 #include "sdl_helpers.h"
-#include "PhysicsInfo.h"
+#include "PhysicsComponent.h"
 
 using std::string;
 
@@ -1197,19 +1197,17 @@ void Game::Update()
 			mouseRect.x = worldPosition.x;
 			mouseRect.y = worldPosition.y;
 
-			Entity* entity = nullptr;
+			//TODO: Only iterate over entities that are clickable
 			for (unsigned int i = 0; i < entities.size(); i++)
 			{
-				entity = entities[i];
-				if (entity->etype == "player")
-					int test = 0;
-
-				const SDL_Rect* bounds = entity->GetBounds();
-				if (HasIntersection(mouseRect, *bounds))
-				{					
-					entity->OnClickPressed(mouseState, *this);
-					break;
-				}
+				if (entities[i]->clickable)
+				{
+					if (HasIntersection(mouseRect, *entities[i]->GetBounds()))
+					{
+						entities[i]->OnClickPressed(mouseState, *this);
+						break;
+					}
+				}				
 			}
 		}
 

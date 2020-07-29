@@ -1,5 +1,5 @@
 #include "Entity.h"
-#include "PhysicsInfo.h"
+#include "PhysicsComponent.h"
 #include <iostream>
 #include "Renderer.h"
 #include <sstream>
