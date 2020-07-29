@@ -80,7 +80,7 @@ public:
 	const SDL_Rect* GetRect();
 
 	void Render(Vector2 position, Renderer* renderer);
-	void Render(Vector2 position, int speed, SDL_RendererFlip flip, Renderer* renderer, glm::vec3 rotation);
+	void Render(Vector2 position, int speed, Renderer* renderer, glm::vec3 rotation);
 	void SetScale(Vector2 s);
 	bool ShouldAnimate(float time);
 	void CreateMesh();
@@ -90,7 +90,7 @@ public:
 	Sprite(int numFrames, SpriteManager* manager, const std::string& filepath, ShaderProgram* shader, Vector2 newPivot);
 
 	glm::vec2 CalculateRenderFrame(Renderer* renderer, float animSpeed);
-	void CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* renderer, SDL_RendererFlip flip);
+	void CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* renderer);
 
 	//TODO: What should we do here?
 	// start = first frame of animation

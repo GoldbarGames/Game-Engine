@@ -91,7 +91,7 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 		// 1. Check to make sure that this door does NOT intersect with any other doors
 		if (game.entities[i]->etype == "door")
 		{
-			if (SDL_HasIntersection(&myBounds, theirBounds))
+			if (HasIntersection(myBounds, *theirBounds))
 			{
 				shouldSpawn = false;
 			}
@@ -102,12 +102,12 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 		// 2. Check to make sure that this door is one tile above a tile on the foreground layer
 		if (game.entities[i]->impassable)
 		{
-			if (SDL_HasIntersection(&tileBelowMyBoundsLeft, theirBounds))
+			if (HasIntersection(tileBelowMyBoundsLeft, *theirBounds))
 			{
 				hasGroundLeft = true;
 			}
 
-			if (SDL_HasIntersection(&tileBelowMyBoundsRight, theirBounds))
+			if (HasIntersection(tileBelowMyBoundsRight, *theirBounds))
 			{
 				hasGroundRight = true;
 			}

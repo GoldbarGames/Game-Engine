@@ -19,8 +19,8 @@ Player::Player(Vector2 pos) : Entity(pos)
 
 	physics = new PhysicsInfo(this);
 	physics->standAboveGround = true;
-	physics->horizontalSpeed = 0.25f;
-	physics->maxHorizontalSpeed = 0.25f;
+	physics->horizontalSpeed = 0.35f;
+	physics->maxHorizontalSpeed = 0.35f;
 
 	// Initialize the spells here
 	spell = Spell("PUSH");
@@ -102,6 +102,13 @@ void Player::Update(Game& game)
 		if (closeRangeAttackCollider != nullptr)
 		{
 			etype = "debug_missile";
+
+			if (closeRangeAttackCollider->offset.x == 32 || closeRangeAttackCollider->offset.x == -32)
+			{
+				closeRangeAttackCollider->offset.x = 32 * scale.x;
+				closeRangeAttackCollider->scale.x = 16 * scale.x;
+			}
+
 			closeRangeAttackCollider->CalculateCollider(position);
 
 			for (unsigned int i = 0; i < game.entities.size(); i++)
@@ -110,6 +117,9 @@ void Player::Update(Game& game)
 
 				Entity* entity = game.entities[i];
 
+				if (entity->name == "crawler")
+					int test = 0;
+
 				if (entity == this)
 					continue;
 
@@ -117,15 +127,13 @@ void Player::Update(Game& game)
 				theirBounds.w *= 2;
 				theirBounds.x -= (theirBounds.w / 2);
 
-				if (SDL_HasIntersection(closeRangeAttackCollider->bounds, &theirBounds))
+				if (HasIntersection(*closeRangeAttackCollider->bounds, theirBounds))
 				{
 					if (entity->trigger)
 					{
 						entity->OnTriggerStay(this, game);
 					}
 				}
-
-
 			}
 
 			etype = "player";
@@ -266,7 +274,7 @@ void Player::UpdateNormally(Game& game)
 		spell.activeSpell = 0;
 
 	//if (spell.activeSpell > spells.size() - 1)
-//	spell.activeSpell = spells.size() - 1;
+	//	spell.activeSpell = spells.size() - 1;
 
 	// If on the ladder, only move up or down
 	if (animator->GetBool("onLadder"))
@@ -321,6 +329,9 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 
 	bool createMissile = false;
 
+	bool pressingUp = (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
+	bool pressingDown = (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
+
 	if (createMissile)
 	{
 		Vector2 missilePosition = this->position;
@@ -331,21 +342,21 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 		Vector2 missileVelocity = Vector2(0, 0);
 		float angle = 0;
 
-		if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
+		if (pressingUp)
 		{
 			missileVelocity.y = -missileSpeed;
 			angle = 270;
 		}
-		else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
+		else if (pressingDown)
 		{
 			missileVelocity.y = missileSpeed;
 			angle = 90;
 		}
-		else if (flip == SDL_FLIP_NONE)
+		else if (scale.x > 0)
 		{
 			missileVelocity.x = missileSpeed;
 		}
-		else if (flip == SDL_FLIP_HORIZONTAL)
+		else if (scale.x < 0)
 		{
 			missileVelocity.x = -missileSpeed;
 			angle = 180;
@@ -367,7 +378,19 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 			delete_it(closeRangeAttackCollider);
 		}
 
-		closeRangeAttackCollider = new Collider(32, 0, 16, 32);
+		if (pressingUp)
+		{
+			closeRangeAttackCollider = new Collider(0, -32, 32, 16);
+		}
+		else if (pressingDown)
+		{
+			closeRangeAttackCollider = new Collider(0, 32, 32, 16);
+		}
+		else
+		{
+			closeRangeAttackCollider = new Collider(32 * scale.x, 0, 16 * scale.x, 32);
+		}
+
 		closeRangeAttackCollider->CalculateCollider(position);
 	}
 
@@ -408,13 +431,13 @@ void Player::GetLadderInput(const Uint8* input)
 	{
 		animator->SetBool("climbing", true);
 		physics->velocity.x -= physics->horizontalSpeed * 0.15f;
-		flip = SDL_FLIP_HORIZONTAL;
+		scale.x = -1;
 	}
 	else if (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D])
 	{
 		animator->SetBool("climbing", true);
 		physics->velocity.x += physics->horizontalSpeed * 0.15f;
-		flip = SDL_FLIP_NONE;
+		scale.x = 1;
 	}
 	else
 	{
@@ -438,13 +461,13 @@ void Player::GetMoveInput(const Uint8* input)
 	{
 		animator->SetBool("walking", true);
 		physics->velocity.x -= physics->horizontalSpeed;
-		flip = SDL_FLIP_HORIZONTAL;
+		scale.x = -1;
 	}
 	else if (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D])
 	{
 		animator->SetBool("walking", true);
 		physics->velocity.x += physics->horizontalSpeed;
-		flip = SDL_FLIP_NONE;
+		scale.x = 1;
 	}
 	else
 	{

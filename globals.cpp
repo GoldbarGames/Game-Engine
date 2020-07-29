@@ -2,6 +2,18 @@
 #include <iostream>
 #include <time.h>
 
+// This is better than SDL_HasIntersection because it works with negative numbers
+bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2)
+{
+	bool b1 = rect1.x < (rect2.x + rect2.w);
+	bool b2 = (rect1.x + rect1.w) > rect2.x;
+
+	bool b3 = rect1.y < (rect2.y + rect2.h);
+	bool b4 = (rect1.y + rect1.h) > rect2.y;
+
+	return b1 && b2 && b3 && b4;
+}
+
 std::string GetDrawingLayerName(DrawingLayer layer)
 {
 	return "";

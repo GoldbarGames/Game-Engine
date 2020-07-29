@@ -62,7 +62,7 @@ bool Spell::CastPush(Game& game)
 
 	// Add distance to the center so that it covers the entire cloud of wind
 
-	if (game.player->flip == SDL_FLIP_HORIZONTAL)
+	if (game.player->scale.x < 0)
 	{
 		spellRange->w *= -1;
 		spellRange->x -= DISTANCE_FROM_CENTER_X;
@@ -89,7 +89,7 @@ bool Spell::CastPush(Game& game)
 	const float PUSH_SPEED = 0.5f;
 
 	Vector2 pushVelocity = Vector2(PUSH_SPEED, 0.0f);
-	if (game.player->flip == SDL_FLIP_HORIZONTAL)
+	if (game.player->scale.x < 0)
 		pushVelocity = Vector2(-1 * PUSH_SPEED, 0.0f);
 
 	// 4. If the collider intersects with anything that can be pushed,
@@ -97,8 +97,7 @@ bool Spell::CastPush(Game& game)
 	{
 		const SDL_Rect* theirBounds = game.entities[i]->GetBounds();
 
-		// IMPORTANT: SDL_HasIntersection only works on positive rectangles!
-		if (SDL_HasIntersection(spellRange, theirBounds))
+		if (HasIntersection(*spellRange, *theirBounds))
 		{
 			//TODO: Is there a better way to do this than to check the type?
 			PhysicsInfo* entity = dynamic_cast<PhysicsInfo*>(game.entities[i]);

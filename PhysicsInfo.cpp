@@ -213,7 +213,7 @@ bool PhysicsInfo::CheckCollisions(Game& game)
 
 	SDL_Rect newBoundsVertical = myBounds;
 	newBoundsVertical.y += (myBounds.h / 2);
-	newBoundsVertical.y = (int)(newBoundsVertical.y + (velocity.y * game.dt));
+	newBoundsVertical.y = (int)(newBoundsVertical.y + (velocity.y * game.dt)); 
 
 	// THIS NEEDS TO BE HERE BECAUSE OTHERWISE THE INTERSECTION CODE WILL NOT WORK
 	// SDL's intersection code returns false if our y + h = their y, but we want it to return true!
@@ -262,7 +262,7 @@ bool PhysicsInfo::CheckCollisions(Game& game)
 				}
 			}
 
-			if (!horizontalCollision && SDL_HasIntersection(&newBoundsHorizontal, &theirBounds))
+			if (!horizontalCollision && HasIntersection(newBoundsHorizontal, theirBounds))
 			{		
 
 				if (our->etype == "player")
@@ -278,21 +278,17 @@ bool PhysicsInfo::CheckCollisions(Game& game)
 			}
 
 			// checks the ceiling
-			//TODO: To check for ceiling collisions, use a collider that is closer to the top rather than the bottom
-			
-			/*
+			//TODO: This causes issues with the floor
 			newBoundsVertical.h -= 4;
-			if (!verticalCollision && SDL_HasIntersection(&newBoundsVertical, theirBounds))
+			if (!verticalCollision && HasIntersection(newBoundsVertical, theirBounds))
 			{
-				verticalCollision = CheckCollisionCeiling(entity, game);
-				if (verticalCollision && etype == "player")
-					std::cout << "ceiling collision!" << std::endl;
+				//verticalCollision = CheckCollisionCeiling(entity, game);
+				//our->position.y = (float)(theirBounds.y + (theirBounds.h) + myBounds.h + our->collider->offset.y);
 			}
 			newBoundsVertical.h += 4;
-			*/
 
 			// checks the ground (using a rect that is a little bit larger
-			if (!verticalCollision && SDL_HasIntersection(&floorBounds, &theirBounds))
+			if (!verticalCollision && HasIntersection(floorBounds, theirBounds))
 			{
 				hadCollision = true;
 				verticalCollision = true;
@@ -339,16 +335,7 @@ bool PhysicsInfo::CheckCollisions(Game& game)
 				}
 				else
 				{
-					// push Kaneko out of a ceiling just in case she gets stuck there
-					// TODO: Make it so that we don't need to do this!
-					/*
-					if (SDL_HasIntersection(&newBoundsVertical, theirBounds))
-					{
-						velocity.y = 60 * Physics::GRAVITY;
-						CheckCollisionTrigger(entity, game);
-						position.y += (velocity.y * game.dt);
-					}
-					*/
+
 				}		
 			}
 			else if (!verticalCollision)
@@ -367,11 +354,11 @@ bool PhysicsInfo::CheckCollisions(Game& game)
 			if (our->etype == "player")
 				int test = 0;
 
-			if (SDL_HasIntersection(&newBoundsHorizontal, &theirBounds))
+			if (HasIntersection(newBoundsHorizontal, theirBounds))
 			{
 				CheckCollisionTrigger(entity, game);
 			}
-			else if (SDL_HasIntersection(&newBoundsVertical, &theirBounds))
+			else if (HasIntersection(newBoundsVertical, theirBounds))
 			{
 				CheckCollisionTrigger(entity, game);
 			}
@@ -528,11 +515,6 @@ bool PhysicsInfo::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 
 Vector2 PhysicsInfo::CalcScaledPivot()
 {
-	if (our->flip == SDL_FLIP_HORIZONTAL)
-	{
-		//entityPivot.x = (currentSprite->windowRect.w) - currentSprite->pivot.x;
-	}
-
 	// scale the pivot and subtract it from the collision center
 	return Vector2(our->entityPivot.x, our->GetSprite()->pivot.y);
 }

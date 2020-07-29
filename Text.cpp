@@ -391,12 +391,11 @@ void Text::Render(Renderer* renderer)
 				if (glyphs[i]->animator != nullptr)
 				{
 					glyphs[i]->sprite->Render(glyphs[i]->position,
-						glyphs[i]->animator->GetSpeed(),
-						flip, renderer, rotation);
+						glyphs[i]->animator->GetSpeed(), renderer, rotation);
 				}
 				else
 				{
-					glyphs[i]->sprite->Render(glyphs[i]->position, 0, flip, renderer, rotation);
+					glyphs[i]->sprite->Render(glyphs[i]->position, 0, renderer, rotation);
 				}
 					
 			}

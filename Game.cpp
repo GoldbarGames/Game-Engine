@@ -115,6 +115,7 @@ Game::Game()
 	spriteMap["shroom"].push_back("assets/sprites/objects/shroom.png");
 	spriteMap["shroom"].push_back("assets/sprites/objects/shroom_potted.png");
 
+	//TODO: Read these in from a text file
 	npcNames = { "gramps", "the_man" };
 	enemyNames = { "crawler" };
 
@@ -125,7 +126,7 @@ Game::Game()
 
 	for (int i = 0; i < enemyNames.size(); i++)
 	{
-		spriteMap["npc"].push_back("assets/sprites/enemies/" + enemyNames[i] + ".png");
+		spriteMap["enemy"].push_back("assets/sprites/enemies/" + enemyNames[i] + ".png");
 	}
 
 	editor = new Editor(*this);

@@ -25,7 +25,7 @@ unsigned int Entity::Size()
 	totalSize += sizeof(nextValidID);
 	totalSize += sizeof(drawDebugRect);
 	totalSize += sizeof(name);
-	totalSize += sizeof(flip);
+	//totalSize += sizeof(flip);
 	totalSize += sizeof(entityPivot);
 	totalSize += sizeof(shouldDelete);
 	totalSize += sizeof(etype);
@@ -223,21 +223,14 @@ void Entity::Render(Renderer * renderer)
 	{
 		//TODO: What is this code for?
 		entityPivot = currentSprite->pivot;
-
-		if (animator != nullptr)
-			currentSprite->Render(position, animator->GetSpeed(), flip, renderer, rotation);
-		else
-			currentSprite->Render(position, 0, flip, renderer, rotation);
 	}
-	else
+
+	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
-		if (currentSprite != nullptr && renderer->IsVisible(layer))
-		{
-			if (animator != nullptr)
-				currentSprite->Render(position, animator->GetSpeed(), flip, renderer, rotation);
-			else
-				currentSprite->Render(position, 0, flip, renderer, rotation);
-		}
+		if (animator != nullptr)
+			currentSprite->Render(position, animator->GetSpeed(), renderer, rotation);
+		else
+			currentSprite->Render(position, 0, renderer, rotation);
 	}
 }
 
@@ -248,9 +241,9 @@ void Entity::RenderParallax(Renderer* renderer, float p)
 	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite->Render(renderPosition, animator->GetSpeed(), flip, renderer, rotation);
+			currentSprite->Render(renderPosition, animator->GetSpeed(), renderer, rotation);
 		else
-			currentSprite->Render(renderPosition, 0, flip, renderer, rotation);
+			currentSprite->Render(renderPosition, 0, renderer, rotation);
 	}
 }
 

@@ -49,7 +49,6 @@ public:
 
 	std::string name = "";
 
-	SDL_RendererFlip flip = SDL_FLIP_NONE;
 	Vector2 entityPivot = Vector2(0, 0);
 	bool shouldDelete = false;
 	std::string etype = "entity";
@@ -62,9 +61,6 @@ public:
 	Vector2 tileCoordinates = Vector2(0, 0);	
 
 	Collider* collider = nullptr;
-	//SDL_Rect* collisionBounds = nullptr; // do not touch this until render time
-	//Vector2 colliderOffset = Vector2(0, 0);        // adjust the bounds this way
-	//Vector2 colliderScale = Vector2(1, 1);
 
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
 	bool trigger = false;	

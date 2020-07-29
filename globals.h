@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <string>
+#include <SDL.h>
 
 const int TILE_SIZE = 24;
 const int SCREEN_FPS = 60;
@@ -63,5 +64,7 @@ inline std::string& Trim(std::string& s, const char* t = " \t\n\r\f\v")
 {
 	return LTrim(RTrim(s, t), t);
 }
+
+bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2);
 
 #endif

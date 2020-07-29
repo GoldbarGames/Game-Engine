@@ -1424,7 +1424,7 @@ void Editor::Render(Renderer* renderer)
 		}
 
 		//Vector2 spawnPos = game->CalculateObjectSpawnPosition(objPreviewPosition, GRID_SIZE);
-		objectPreview->GetSprite()->Render(objPreviewPosition, 0, SDL_FLIP_NONE, renderer, objectPreview->rotation);
+		objectPreview->GetSprite()->Render(objPreviewPosition, 0, renderer, objectPreview->rotation);
 
 		if (placingDoor && currentDoor != nullptr)
 		{

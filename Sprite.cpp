@@ -201,7 +201,7 @@ Sprite::~Sprite()
 
 void Sprite::Render(Vector2 position, Renderer* renderer)
 {
-	Render(position, 0, SDL_FLIP_NONE, renderer, glm::vec3(0,0,0));
+	Render(position, 0, renderer, glm::vec3(0,0,0));
 }
 
 bool Sprite::ShouldAnimate(float time)
@@ -270,7 +270,7 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
 	return texOffset;
 }
 
-void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* renderer, SDL_RendererFlip flip)
+void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* renderer)
 {
 	if (rotation.x >= 89)
 		int test = 0;
@@ -320,21 +320,12 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* rend
 		model = glm::rotate(model, rotation.z * toRadians, glm::vec3(0.0f, 0.0f, -1.0f));
 
 		// Scale
-		// TODO: Remove the enum, just change the scale
-		if (flip != SDL_FLIP_HORIZONTAL)
-		{
-			model = glm::scale(model, glm::vec3(-1 * scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
-				scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
-		}
-		else
-		{
-			model = glm::scale(model, glm::vec3(scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
-				scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
-		}
+		model = glm::scale(model, glm::vec3(-1 * scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
+			scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
 	}	
 }
 
-void Sprite::Render(Vector2 position, int speed, SDL_RendererFlip flip, Renderer * renderer, glm::vec3 rotation)
+void Sprite::Render(Vector2 position, int speed, Renderer * renderer, glm::vec3 rotation)
 {
 	renderer->drawCallsPerFrame++;
 
@@ -440,7 +431,7 @@ void Sprite::Render(Vector2 position, int speed, SDL_RendererFlip flip, Renderer
 		break;
 	}
 
-	CalculateModel(position, rotation, renderer, flip);
+	CalculateModel(position, rotation, renderer);
 
 	// Projection
 	if (keepScaleRelativeToCamera)
