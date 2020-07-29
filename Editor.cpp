@@ -15,14 +15,6 @@ Editor::Editor(Game& g)
 {
 	game = &g;
 
-	CreateEditorText(EditorText::cursorPositionInScreen, 200, 50);
-	CreateEditorText(EditorText::cursorPositionInWorld, 200, 100);
-	CreateEditorText(EditorText::currentEditModeLayer, 200, 200);
-	CreateEditorText(EditorText::drawCalls, 400, 1100);
-	CreateEditorText(EditorText::updateCalls, 400, 1200);
-	CreateEditorText(EditorText::collisionChecks, 400, 1300);
-	CreateEditorText(EditorText::hoveredEntityID, 500, 50);
-
 	dialogText = new Text(game->renderer, game->theFont, "");
 	dialogInput = new Text(game->renderer, game->theFont, "");
 	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
@@ -52,14 +44,6 @@ Editor::Editor(Game& g)
 Editor::~Editor()
 {
 
-}
-
-void Editor::CreateEditorText(const EditorText textName, const int x, const int y)
-{
-	editorText[textName] = new Text(game->renderer, game->theFont);
-	editorText[textName]->SetPosition(x, y);
-	editorText[textName]->SetText("");
-	editorText[textName]->GetSprite()->keepPositionRelativeToCamera = true;
 }
 
 void Editor::CreateEditorButtons()
@@ -1003,28 +987,11 @@ void Editor::HandleEdit()
 	objPreviewPosition = game->CalculateObjectSpawnPosition(clickedScreenPosition, GRID_SIZE);
 
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
-	editorText[EditorText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);
-	editorText[EditorText::cursorPositionInScreen]->GetSprite()->keepScaleRelativeToCamera = true;
+	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);
+	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->GetSprite()->keepScaleRelativeToCamera = true;
 
 	glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
 	glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
-
-	std::string clickedText2 = std::to_string((int)spawnPos.x) + " " + std::to_string((int)spawnPos.y);
-	editorText[EditorText::cursorPositionInWorld]->SetText("Mouse World: " + clickedText2);
-	editorText[EditorText::cursorPositionInWorld]->GetSprite()->keepScaleRelativeToCamera = true;
-
-	// Find the hovered entity ID
-	SDL_Point point;
-	point.x = objPreviewPosition.x;
-	point.y = objPreviewPosition.y;
-	for (unsigned int i = 0; i < game->entities.size(); i++)
-	{
-		if (SDL_PointInRect(&point, game->entities[i]->GetBounds()))
-		{
-			hoveredEntityID = game->entities[i]->id;
-			break;
-		}
-	}
 
 	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 	{
@@ -1297,8 +1264,8 @@ void Editor::ToggleObjectMode(std::string mode)
 		objectMode = mode;
 	}
 
-	editorText[EditorText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
-	editorText[EditorText::currentEditModeLayer]->GetSprite()->keepScaleRelativeToCamera = true;
+	game->debugScreen->debugText[DebugText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
+	game->debugScreen->debugText[DebugText::currentEditModeLayer]->GetSprite()->keepScaleRelativeToCamera = true;
 }
 
 void Editor::ToggleGridSize()
@@ -1326,7 +1293,7 @@ void Editor::ToggleInspectionMode()
 		selectedEntity = nullptr;
 	}
 
-	editorText[EditorText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
+	game->debugScreen->debugText[DebugText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
 	//inspectionMode = !inspectionMode;
 }
 
@@ -1373,24 +1340,7 @@ void Editor::RenderDebug(Renderer* renderer)
 {
 	//TODO: Only set each text if the number has changed from last time
 
-	if (renderer->game->debugMode)
-	{
-		editorText[EditorText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer->drawCallsPerFrame));
-		editorText[EditorText::drawCalls]->GetSprite()->keepScaleRelativeToCamera = true;
-		editorText[EditorText::drawCalls]->Render(renderer);
 
-		editorText[EditorText::updateCalls]->SetText("Update Calls: " + std::to_string(game->updateCalls));
-		editorText[EditorText::updateCalls]->GetSprite()->keepScaleRelativeToCamera = true;
-		editorText[EditorText::updateCalls]->Render(renderer);
-
-		editorText[EditorText::collisionChecks]->SetText("Collision Checks: " + std::to_string(game->collisionChecks));
-		editorText[EditorText::collisionChecks]->GetSprite()->keepScaleRelativeToCamera = true;
-		editorText[EditorText::collisionChecks]->Render(renderer);
-
-		editorText[EditorText::hoveredEntityID]->SetText("Hovered ID: " + std::to_string(hoveredEntityID));
-		editorText[EditorText::hoveredEntityID]->GetSprite()->keepScaleRelativeToCamera = true;
-		editorText[EditorText::hoveredEntityID]->Render(renderer);
-	}
 
 	
 }
@@ -1504,10 +1454,6 @@ void Editor::Render(Renderer* renderer)
 			game->renderer->debugSprite->keepScaleRelativeToCamera = false;
 		}
 	}	
-
-	// Draw text
-	editorText[EditorText::cursorPositionInScreen]->Render(renderer);
-	editorText[EditorText::cursorPositionInWorld]->Render(renderer);
 
 	// Draw all buttons
 	for (unsigned int i = 0; i < buttons.size(); i++)

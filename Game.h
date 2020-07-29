@@ -51,8 +51,8 @@
 #include "Platform.h"
 #include "Shroom.h"
 
+#include "DebugScreen.h"
 #include "EntityFactory.h"
-
 
 #include "CutsceneManager.h"
 #include "SoundManager.h"
@@ -91,6 +91,10 @@ public:
 	SDL_GameController* controller;
 
 	EntityFactory* entityFactory;
+
+	SDL_Rect mouseRect;
+	Uint32 mouseState;
+	Uint32 previousMouseState;
 
 	int screenWidth = 1280;
 	int screenHeight = 720;
@@ -189,6 +193,7 @@ public:
 	std::string currentLevel = "";
 	int levelNumber = 1;
 
+	DebugScreen* debugScreen = nullptr;
 	Editor* editor = nullptr;
 	SDL_Window* window = nullptr;
 	Player* player = nullptr;

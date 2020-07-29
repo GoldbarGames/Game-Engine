@@ -80,6 +80,8 @@ Entity::~Entity()
 		delete_it(currentSprite);
 	if (collider != nullptr)
 		delete_it(collider);
+	if (bounds != nullptr)
+		delete_it(bounds);
 }
 
 void Entity::CreateCollider(float x, float y, float w, float h)
@@ -146,9 +148,21 @@ void Entity::SetColor(Color newColor)
 const SDL_Rect* Entity::GetBounds()
 {
 	if (collider == nullptr)
-		return currentSprite->GetRect();
+	{
+		if (bounds == nullptr)
+		{
+			bounds = new SDL_Rect();		
+		}
+		bounds->x = position.x;
+		bounds->y = position.y;
+		bounds->w = currentSprite->frameWidth;
+		bounds->h = currentSprite->frameHeight;
+		return bounds;
+	}
 	else
+	{
 		return collider->bounds;
+	}		
 }
 
 Vector2 Entity::GetPosition()
@@ -296,4 +310,19 @@ void Entity::SetProperty(std::string prop, std::string newValue)
 void Entity::Save(std::ostringstream& level)
 {
 	// By default, save nothing, because they are probably temp objects like missiles, etc.
+}
+
+void Entity::OnClick(Uint32 mouseState, Game& game)
+{
+
+}
+
+void Entity::OnClickPressed(Uint32 mouseState, Game& game) 
+{
+	std::cout << "Clicked, pressed down on " << etype << "!" << std::endl;
+}
+
+void Entity::OnClickReleased(Uint32 mouseState, Game& game)
+{
+
 }

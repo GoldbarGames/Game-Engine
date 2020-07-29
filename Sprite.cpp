@@ -502,7 +502,7 @@ void Sprite::Render(Vector2 position, int speed, Renderer * renderer, glm::vec3 
 
 const SDL_Rect* Sprite::GetRect()
 {
-	return &windowRect;
+	return &rect;
 }
 
 void Sprite::SetScale(Vector2 s)

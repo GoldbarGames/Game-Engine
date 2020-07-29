@@ -61,6 +61,7 @@ public:
 	Vector2 tileCoordinates = Vector2(0, 0);	
 
 	Collider* collider = nullptr;
+	SDL_Rect* bounds = nullptr;
 
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
 	bool trigger = false;	
@@ -90,6 +91,10 @@ public:
 	virtual void OnTriggerStay(Entity* other, Game& game);
 	virtual void OnTriggerEnter(Entity* other, Game& game);
 	virtual void OnTriggerExit(Entity* other, Game& game);
+
+	virtual void OnClick(Uint32 mouseState, Game& game);
+	virtual void OnClickPressed(Uint32 mouseState, Game& game);
+	virtual void OnClickReleased(Uint32 mouseState, Game& game);
 
 	virtual void GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties);
 	void DeleteProperties(std::vector<Property*>& properties);

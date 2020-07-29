@@ -129,6 +129,7 @@ Game::Game()
 		spriteMap["enemy"].push_back("assets/sprites/enemies/" + enemyNames[i] + ".png");
 	}
 
+	debugScreen = new DebugScreen(*this);
 	editor = new Editor(*this);
 	entities.clear();
 
@@ -1161,6 +1162,11 @@ void Game::Update()
 
 	renderer->Update();
 
+	if (debugMode)
+	{
+		debugScreen->Update();
+	}
+
 	if (cutscene->watchingCutscene)
 	{
 		cutscene->Update();
@@ -1175,6 +1181,39 @@ void Game::Update()
 			// then instantly show all the text (maybe a different button)
 			cutscene->CheckKeysWhileReading();
 		}
+	}
+	else
+	{
+		// Get position of mouse and any clicks
+		previousMouseState = mouseState;
+		mouseState = SDL_GetMouseState(&mouseRect.x, &mouseRect.y);
+
+		// If left click
+		if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT) && 
+			!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+		{
+			Vector2 worldPosition = Vector2(mouseRect.x + renderer->camera.position.x, mouseRect.y + renderer->camera.position.y);
+
+			mouseRect.x = worldPosition.x;
+			mouseRect.y = worldPosition.y;
+
+			Entity* entity = nullptr;
+			for (unsigned int i = 0; i < entities.size(); i++)
+			{
+				entity = entities[i];
+				if (entity->etype == "player")
+					int test = 0;
+
+				const SDL_Rect* bounds = entity->GetBounds();
+				if (HasIntersection(mouseRect, *bounds))
+				{					
+					entity->OnClickPressed(mouseState, *this);
+					break;
+				}
+			}
+		}
+
+
 	}
 		
 	// Update all entities
@@ -1240,16 +1279,6 @@ void Game::Render()
 		}
 	}
 
-	/*
-	if (GetModeDebug())
-	{
-		for (unsigned int i = 0; i < entities.size(); i++)
-		{
-			
-		}
-	}
-	*/
-
 	// LAST THING
 	// Render all menu screens
 	if (openedMenus.size() > 0)
@@ -1276,6 +1305,11 @@ void Game::Render()
 	if (editMode)
 	{
 		editor->Render(renderer);		
+	}
+
+	if (debugMode)
+	{
+		debugScreen->Render(renderer);
 	}
 
 	//if (GetModeDebug())

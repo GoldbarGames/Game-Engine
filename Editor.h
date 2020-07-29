@@ -25,10 +25,6 @@ class NPC;
 class Path;
 class Text;
 
-enum class EditorText { cursorPositionInScreen, cursorPositionInWorld, currentEditModeLayer, 
-	drawCalls, updateCalls, collisionChecks, hoveredEntityID
-};
-
 class Editor
 {
 private:
@@ -86,7 +82,6 @@ public:
 	unsigned int currentButtonPage = 0;
 	int propertyIndex = -1;
 	int GRID_SIZE = 24;
-	std::unordered_map<EditorText, Text*> editorText;
 
 	std::string objectMode = "tile";
 
@@ -128,7 +123,7 @@ public:
 	void ToggleSpriteMap();
 	void ToggleInspectionMode();
 
-	void CreateEditorText(const EditorText textName, const int x, const int y);
+	
 	void CreateEditorButtons();
 
 	//TODO: Make these return bools, and if true, DoAction()?

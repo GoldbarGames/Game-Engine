@@ -76,7 +76,7 @@ public:
 	Vector2 pivot = Vector2(0, 0);
 	std::string filename = "";
 	
-	SDL_Rect windowRect; //TODO: Get rid of this?
+	SDL_Rect rect; //TODO: Get rid of this?
 	const SDL_Rect* GetRect();
 
 	void Render(Vector2 position, Renderer* renderer);
