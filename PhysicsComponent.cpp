@@ -230,11 +230,14 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	//TODO: Re-implement this
 	bool fallThru = false;
 
+	Entity* entity = nullptr;
+
+	//TODO: Use a quadtree instead of looping over everything
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
 		game.collisionChecks++;
 
-		Entity* entity = game.entities[i];
+		entity = game.entities[i];
 
 		if (entity == our)
 			continue;
@@ -264,7 +267,6 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 
 			if (!horizontalCollision && HasIntersection(newBoundsHorizontal, theirBounds))
 			{		
-
 				if (our->etype == "player")
 					int test = 0;
 
@@ -277,77 +279,87 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 					our->position.x = (float)(theirBounds.x + theirBounds.w + our->collider->offset.x);
 			}
 
-			// checks the ceiling
-			//TODO: This causes issues with the floor
-			newBoundsVertical.h -= 4;
-			if (!verticalCollision && HasIntersection(newBoundsVertical, theirBounds))
+			// Separate checking the ceiling vs. the floor 
+			// (because we can't go up and down at the same time)
+			if (velocity.y < 0)
 			{
-				//verticalCollision = CheckCollisionCeiling(entity, game);
-				//our->position.y = (float)(theirBounds.y + (theirBounds.h) + myBounds.h + our->collider->offset.y);
-			}
-			newBoundsVertical.h += 4;
-
-			// checks the ground (using a rect that is a little bit larger
-			if (!verticalCollision && HasIntersection(floorBounds, theirBounds))
-			{
-				hadCollision = true;
-				verticalCollision = true;
-				CheckCollisionTrigger(entity, game);
-
-				//our->GetAnimator()->SetBool("isGrounded", true);
-				isGrounded = true;
-
-				if (CheckVerticalJumpThru(entity, game))
+				// Moving up
+				if (!verticalCollision && HasIntersection(newBoundsVertical, theirBounds))
 				{
-					if (isGrounded != wasGrounded)
-						our->GetAnimator()->SetBool("isGrounded", isGrounded);
-					return hadCollision;
-				}					
-
-				bool jumped = MoveVerticallyWithParent(entity, game);
-
-				// if colliding with ground, set velocity.y to zero (we need this if statement!)				
-				if (velocity.y >= 0)
-				{
-					//our->GetAnimator()->SetBool("isGrounded", true);
-					isGrounded = true;
-
-					//TODO: Can we do this without casting?
-					// Sets the parent object that the player is standing on, if there is one, if we have not jumped
-					if (entity->physics != nullptr && !jumped)
-					{
-						//std::cout << "set parent!" << std::endl;
-						parent = entity;
-						our->GetAnimator()->SetBool("hasParent", true);
-					}
-
-					jumpsRemaining = 1;
-
-					if (useGravity)
-					{
-						velocity.y = 0;
-						if (standAboveGround)
-							our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - FLOOR_SIZE - our->collider->offset.y);
-						else
-							our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - our->collider->offset.y);
-						shouldStickToGround = true;
-					}						
+					verticalCollision = CheckCollisionCeiling(entity, game);
+					hadCollision = hadCollision || verticalCollision;
+					our->position.y = (float)(theirBounds.y + (theirBounds.h) + myBounds.h + our->collider->offset.y);
 				}
-				else
-				{
-
-				}		
-			}
-			else if (!verticalCollision)
-			{
-				if (our->etype == "player")
-					int test = 0;
 			}
 			else
 			{
-				if (our->etype == "player")
-					int test = 0;
+				// Moving down
+				// checks the ground (using a rect that is a little bit larger
+				if (!verticalCollision && HasIntersection(floorBounds, theirBounds))
+				{
+					hadCollision = true;
+					verticalCollision = true;
+					CheckCollisionTrigger(entity, game);
+
+					//our->GetAnimator()->SetBool("isGrounded", true);
+					isGrounded = true;
+
+					if (CheckVerticalJumpThru(entity, game))
+					{
+						if (isGrounded != wasGrounded)
+							our->GetAnimator()->SetBool("isGrounded", isGrounded);
+						return hadCollision;
+					}
+
+					bool jumped = MoveVerticallyWithParent(entity, game);
+
+					// if colliding with ground, set velocity.y to zero (we need this if statement!)				
+					if (velocity.y >= 0)
+					{
+						//our->GetAnimator()->SetBool("isGrounded", true);
+						isGrounded = true;
+
+						//TODO: Can we do this without casting?
+						// Sets the parent object that the player is standing on, if there is one, if we have not jumped
+						if (entity->physics != nullptr && !jumped)
+						{
+							//std::cout << "set parent!" << std::endl;
+							parent = entity;
+							our->GetAnimator()->SetBool("hasParent", true);
+						}
+
+						jumpsRemaining = 1;
+
+						if (useGravity)
+						{
+							velocity.y = 0;
+							if (standAboveGround)
+								our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - FLOOR_SIZE - our->collider->offset.y);
+							else
+								our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - our->collider->offset.y);
+							shouldStickToGround = true;
+						}
+					}
+					else
+					{
+
+					}
+				}
+				else if (!verticalCollision)
+				{
+					if (our->etype == "player")
+						int test = 0;
+				}
+				else
+				{
+					if (our->etype == "player")
+						int test = 0;
+				}
 			}
+
+
+
+			
 		}
 		else if (entity->trigger)
 		{

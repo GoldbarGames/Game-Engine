@@ -366,9 +366,11 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 			angle = 180;
 		}
 
-		Missile* missile = game.SpawnMissile(missilePosition, missileVelocity, angle);
+		Missile* missile = game.SpawnMissile(missilePosition);
 		if (missile != nullptr)
 		{
+			missile->SetVelocity(missileVelocity);
+			// also set the angle here
 			game.currentEther--;
 			game.etherText->SetText("Ether: " + std::to_string(game.currentEther));
 			missile->etype = "debug_missile";						

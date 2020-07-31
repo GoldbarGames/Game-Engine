@@ -229,7 +229,7 @@ public:
 	Tile* SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer);
 
 	Player* SpawnPlayer(Vector2 position);
-	Missile* SpawnMissile(Vector2 position, Vector2 velocity, float angle);
+	Missile* SpawnMissile(Vector2 position);
 
 	void LoadTitleScreen();
 	void PlayLevel(string levelName);

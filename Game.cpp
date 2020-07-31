@@ -86,11 +86,6 @@ Game::Game()
 		"assets/gui/white.png", renderer->shaders[ShaderName::Default], Vector2(0, 0));
 
 	// Initialize the sprite map (do this BEFORE the editor)
-	//TODO: Can this be done automatically by grabbing all files in each folder?
-	//(hard-code an array of strings for folder names, then iterate each of them)
-	//(turn each spritemap(vector) into a dictionary entry (spritemap["door"])
-
-	std::vector<std::string> mapNames = { "door", "ladder" };
 
 	//TODO: We don't really need the spriteMap anymore, but we still need the number of sprites
 	// (we don't need to know the actual files, just the number of possible choices)
@@ -102,8 +97,6 @@ Game::Game()
 	spriteMap["ladder"].push_back("assets/sprites/objects/ladder1.png");
 	spriteMap["ladder"].push_back("assets/sprites/objects/ladder_house.png");
 	spriteMap["ladder"].push_back("assets/sprites/objects/ladder_b.png");
-
-
 
 	spriteMap["bug"].push_back("assets/sprites/bugs/bug1.png");
 	spriteMap["bug"].push_back("assets/sprites/bugs/bug2.png");
@@ -425,7 +418,7 @@ Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position
 }
 
 
-Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
+Missile* Game::SpawnMissile(Vector2 position)
 {
 	//TODO: Make a way for this to return false
 
@@ -442,7 +435,6 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 	anim->SetBool("destroyed", false);
 
 	missile->SetAnimator(anim);
-	missile->SetVelocity(velocity);
 	missile->GetAnimator()->SetState("moving");
 
 	entities.emplace_back(missile);
@@ -450,9 +442,8 @@ Missile* Game::SpawnMissile(Vector2 position, Vector2 velocity, float angle)
 	return missile;
 }
 
-// TODO: Possibly rename this function to something more general like ConvertScreenToGameCoordinates
-// Calculate the object's location in game coordinates
-// based on the mouse's position in screen coordinates
+// This function converts from screen to world coordinates
+// and then immediately aligns the object on the grid
 Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE)
 {
 	mousePos.x += renderer->camera.position.x;
@@ -606,14 +597,22 @@ void Game::LoadTitleScreen()
 	soundManager->PlayBGM("bgm/Witchs_Waltz.ogg");
 }
 
+// If we have a name for the next level, then load that level
+// Otherwise, load the level corresponding to the number
 void Game::LoadNextLevel()
 {
-	levelNumber++; //TODO: What should we do with this number? Should we always increase it, or not?
+	//TODO: What happens if the level fails to load, or the file does not exist?
+	// Should it load the same level again, an error screen, or something else?
 
 	if (nextLevel == "")
+	{
+		levelNumber++;
 		editor->InitLevelFromFile("test" + std::to_string(levelNumber));
+	}
 	else
+	{
 		editor->InitLevelFromFile(nextLevel);
+	}
 }
 
 void Game::PlayLevel(string levelName)
@@ -622,7 +621,6 @@ void Game::PlayLevel(string levelName)
 	editor->InitLevelFromFile(levelName);
 
 	//TODO: Load different music based on each level
-
 	soundManager->PlayBGM("bgm/Forest.ogg");
 }
 
