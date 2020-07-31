@@ -4,40 +4,117 @@
 #include "SpriteManager.h"
 #include "Entity.h"
 #include "Vector2.h"
+#include <iterator>
+
+//TODO: Create a way to import backgrounds via text files / level editor
+// (different levels should use different backgrounds, etc.)
 
 //TODO: Probably remove this entire class, refactor it away
+
+std::unordered_map<std::string, BackgroundData*> Background::bgData;
 
 Background::Background(std::string n, Vector2 pos)
 {
 	name = n;
 	position = pos;
+	ReadBackgroundData("data/bg.dat");
+}
+
+void Background::ReadBackgroundData(const std::string& dataFilePath)
+{
+	// Get data from the file
+	std::ifstream fin;
+	fin.open(dataFilePath);
+
+	std::string data = "";
+	for (std::string line; std::getline(fin, line); )
+	{
+		data += line + "\n";
+	}
+
+	fin.close();
+
+	// Go through the data and add all states
+	std::stringstream ss{ data };
+
+	char lineChar[256];
+	ss.getline(lineChar, 256);
+
+	std::string backgroundName = "";
+	std::string layerName = "";
+
+	int offsetX, offsetY, drawOrder = 0;
+	std::string filepath = "";
+	float parallax = 0.0f;
+	int index = 0;
+
+	while (ss.good() && !ss.eof())
+	{
+		std::istringstream buf(lineChar);
+		std::istream_iterator<std::string> beg(buf), end;
+		std::vector<std::string> tokens(beg, end);
+
+		index = 0;
+
+		if (tokens.size() == 0)
+			break;
+
+		if (tokens[0][0] == '*')
+		{
+			index++;
+			backgroundName = tokens[index++];
+			BackgroundData* newBackgroundData = new BackgroundData();
+			newBackgroundData->name = backgroundName;
+			bgData[backgroundName] = newBackgroundData;
+		}
+		else
+		{
+			//layerName = tokens[index++];
+
+			offsetX = std::stoi(tokens[index++]);
+			offsetY = std::stoi(tokens[index++]);
+			filepath = tokens[index++];
+			drawOrder = std::stoi(tokens[index++]);
+			parallax = std::stof(tokens[index++]);
+
+			BackgroundLayerData* newLayerData = new BackgroundLayerData();
+			newLayerData->offsetX = offsetX;
+			newLayerData->offsetY = offsetY;
+			newLayerData->filepath = filepath;
+			newLayerData->drawOrder = drawOrder;
+			newLayerData->parallax = parallax;
+
+			bgData[backgroundName]->layers.push_back(newLayerData);
+		}
+
+		ss.getline(lineChar, 256);
+	}
+
+	
 }
 
 void Background::CreateBackground(std::string n, Vector2 pos, SpriteManager* spriteManager, Renderer* renderer)
 {
 	name = n;
 
+	BackgroundData* data = bgData[name];
+
+	for (int i = 0; i < data->layers.size(); i++)
+	{
+		BackgroundLayerData* ld = data->layers[i];
+		AddLayer(Vector2(pos.x + ld->offsetX, pos.y + ld->offsetY), spriteManager, renderer,
+			ld->filepath, ld->drawOrder, ld->parallax);
+	}
+
 	//TODO: Should this stuff go inside the Background class constructor?
 	if (name == "forest")
 	{
+		// SPECIAL CASE (TODO: Deal with special cases)
+		// This is the blue sky (taking a white square and coloring it blue and increasing its size)
 		Entity* blueBG = AddLayer(pos + Vector2(0, 0), spriteManager, renderer, "assets/gui/white.png", -99, 0.0f);
 		blueBG->GetSprite()->color = { 0, 0, 83, 255 };
 		blueBG->GetSprite()->SetScale(Vector2(19.875f, 11.2f * 4));
 		blueBG->position.y -= (358 * 4);
-
-		AddLayer(pos + Vector2(0, 0), spriteManager, renderer, "assets/bg/forest/forest_sky1.png", -98, 0.0f);
-		//background->layers[0]->GetSprite()->renderRelativeToCamera = true;
-		//background->layers[0]->GetSprite()->keepScaleRelativeToCamera = true;
-
-		AddLayer(pos + Vector2(0, 0), spriteManager, renderer, "assets/bg/forest/forest_ground.png", -90, 1.0f);
-		AddLayer(pos + Vector2(0, 0), spriteManager, renderer, "assets/bg/forest/forest_trees_back_curved.png", -21, 0.7f);
-		AddLayer(pos + Vector2(0, 0), spriteManager, renderer, "assets/bg/forest/forest_trees_back.png", -20, 0.6f);
-		AddLayer(pos + Vector2(0, 0), spriteManager, renderer, "assets/bg/forest/forest_trees_front_curved.png", -11, 0.5f);
-		AddLayer(pos + Vector2(0, 100), spriteManager, renderer, "assets/bg/forest/forest_trees_front.png", -10, 0.4f);
-	}
-	else if (name == "title")
-	{
-		AddLayer(pos + Vector2(0, 0), spriteManager, renderer, "assets/bg/title/title.png", -98, 0.0f);
 	}
 }
 

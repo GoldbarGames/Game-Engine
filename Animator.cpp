@@ -16,7 +16,6 @@ AnimatorInfo::AnimatorInfo(std::string name)
 	std::string animatorFile = "data/animators/" + name + "/" + name + ".animator";
 
 	//TODO: Deal with issues involving extra whitespace (it breaks things)
-
 	std::vector<std::string> stateNames;
 	mapStateNamesToNumbers[""] = 0;
 	states[""] = new AnimStateMachine();
