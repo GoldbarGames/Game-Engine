@@ -26,7 +26,7 @@ unsigned int Entity::Size()
 	totalSize += sizeof(drawDebugRect);
 	totalSize += sizeof(name);
 	//totalSize += sizeof(flip);
-	totalSize += sizeof(entityPivot);
+	//totalSize += sizeof(entityPivot);
 	totalSize += sizeof(shouldDelete);
 	totalSize += sizeof(etype);
 	totalSize += sizeof(id);
@@ -197,28 +197,36 @@ void Entity::RenderDebug(Renderer * renderer)
 		if (renderer->IsVisible(layer))
 		{
 			//TODO: Make this a function inside the renderer
+
 			float rWidth = debugSprite->texture->GetWidth();
 			float rHeight = debugSprite->texture->GetHeight();
 
 			float targetWidth = GetSprite()->frameWidth;
 			float targetHeight = GetSprite()->frameHeight;
 
-			if (jumpThru)
-				debugSprite->color = { 255, 255, 0, 255 };
-			else if (impassable)
+			if (impassable)
+			{
 				debugSprite->color = { 255, 0, 0, 255 };
-			else
+				debugSprite->pivot = GetSprite()->pivot;
+				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+				debugSprite->Render(position, renderer);
+			}
+			else if (trigger)
+			{
 				debugSprite->color = { 0, 255, 0, 255 };
+				debugSprite->pivot = GetSprite()->pivot;
+				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+				debugSprite->Render(position, renderer);
+			}
 
-			debugSprite->pivot = GetSprite()->pivot;
-			debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-			debugSprite->Render(position, renderer);
+			//if (jumpThru)
+			//	debugSprite->color = { 255, 255, 0, 255 };
 
 			if (collider != nullptr && physics != nullptr)
 			{
 				// draw collider
-				targetWidth = collider->bounds->w;
-				targetHeight = collider->bounds->h;
+				float targetWidth = collider->bounds->w;
+				float targetHeight = collider->bounds->h;
 
 				debugSprite->color = { 255, 255, 255, 255 };
 				debugSprite->pivot = GetSprite()->pivot;
@@ -233,12 +241,6 @@ void Entity::RenderDebug(Renderer * renderer)
 
 void Entity::Render(Renderer * renderer)
 {
-	if (physics != nullptr)
-	{
-		//TODO: What is this code for?
-		entityPivot = currentSprite->pivot;
-	}
-
 	if (currentSprite != nullptr && renderer->IsVisible(layer))
 	{
 		if (animator != nullptr)
@@ -269,7 +271,77 @@ void Entity::SetSprite(Sprite* sprite)
 
 bool Entity::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 {
-	return true;
+	if (currentSprite == nullptr)
+		return false;
+
+	bool shouldSpawn = true;
+
+	if (etype == "door")
+	{
+		//TODO: Maybe there's a better way to initialize the bounds for the sprite
+		SDL_Rect myBounds = *(GetBounds());
+		myBounds.x = (int)spawnPosition.x;
+		myBounds.y = (int)spawnPosition.y;
+
+		SDL_Rect tileBelowMyBoundsLeft = myBounds;
+		tileBelowMyBoundsLeft.y += myBounds.h;
+		tileBelowMyBoundsLeft.w = game.editor->GRID_SIZE;
+		tileBelowMyBoundsLeft.h = game.editor->GRID_SIZE;
+
+		SDL_Rect tileBelowMyBoundsRight = myBounds;
+		tileBelowMyBoundsRight.x += game.editor->GRID_SIZE;
+		tileBelowMyBoundsRight.y += myBounds.h;
+		tileBelowMyBoundsRight.w = game.editor->GRID_SIZE;
+		tileBelowMyBoundsRight.h = game.editor->GRID_SIZE;
+
+		bool hasGroundLeft = false;
+		bool hasGroundRight = false;
+
+		for (unsigned int i = 0; i < game.entities.size(); i++)
+		{
+			const SDL_Rect* theirBounds = game.entities[i]->GetBounds();
+
+			// 1. Check to make sure that this door does NOT intersect with any other doors
+			// Check to make sure that we can't place inside a solid tile
+			if (game.entities[i]->etype == etype || game.entities[i]->impassable)
+			{
+				if (HasIntersection(myBounds, *theirBounds))
+				{
+					shouldSpawn = false;
+				}
+			}
+
+			// 2. Check to make sure that this door is one tile above a tile on the foreground layer
+			if (game.entities[i]->impassable)
+			{
+				if (HasIntersection(tileBelowMyBoundsLeft, *theirBounds))
+				{
+					hasGroundLeft = true;
+				}
+
+				if (HasIntersection(tileBelowMyBoundsRight, *theirBounds))
+				{
+					hasGroundRight = true;
+				}
+			}
+		}
+
+		shouldSpawn = !hasGroundLeft || !hasGroundRight;
+	}
+	else
+	{
+		for (unsigned int i = 0; i < game.entities.size(); i++)
+		{
+			if (game.entities[i]->GetPosition() == spawnPosition &&
+				game.entities[i]->layer == layer &&
+				game.entities[i]->etype == etype)
+			{
+				return false;
+			}
+		}
+	}
+
+	return shouldSpawn;
 }
 
 void Entity::OnTriggerStay(Entity* other, Game& game)

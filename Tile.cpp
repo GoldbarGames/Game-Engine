@@ -46,6 +46,8 @@ void Tile::Destroy()
 
 bool Tile::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 {
+	return Entity::CanSpawnHere(spawnPosition, game, useCamera);
+
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
 		if (game.entities[i]->GetPosition() == spawnPosition &&

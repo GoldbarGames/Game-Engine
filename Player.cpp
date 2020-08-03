@@ -27,7 +27,7 @@ Player::Player(Vector2 pos) : Entity(pos)
 	//TODO: Pause all timers when game is paused
 	timerSpellDebug.Start(1);
 	doorTimer.Start(1);	
-	spellTimer.Start(1);
+	timerSpellOther.Start(1);
 
 	//rotation = glm::vec3(90.0f, 0.0f, 0.0f);
 }
@@ -185,10 +185,17 @@ void Player::UpdateNormally(Game& game)
 
 	bool wasHoldingUp = animator->GetBool("holdingUp");
 
+	pressingUp = (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
+	pressingDown = (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
+	pressingLeft = (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A]);
+	pressingRight = (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D]);
+	physics->hadPressedJump = physics->pressingJumpButton;
+	physics->pressingJumpButton = input[SDL_SCANCODE_X];
+
 	animator->SetBool("walking", false);
 	animator->SetBool("animationTimerHasElapsed", false);
-	animator->SetBool("holdingUp", input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
-	animator->SetBool("holdingDown", input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
+	animator->SetBool("holdingUp", pressingUp);
+	animator->SetBool("holdingDown", pressingDown);
 
 	if (currentLadder != nullptr && !physics->hadPressedJump && physics->pressingJumpButton)
 	{
@@ -221,7 +228,7 @@ void Player::UpdateNormally(Game& game)
 			{
 				//TODO: Make this look better later
 				// Should this play a cutscene here?
-				SetPosition(currentDoor->GetDestination() + physics->CalcScaledPivot());
+				SetPosition(currentDoor->GetDestination() + currentSprite->pivot);
 				doorTimer.Start(500);
 			}
 			else if (currentLadder != nullptr)
@@ -259,7 +266,7 @@ void Player::UpdateNormally(Game& game)
 	{
 		CastSpellDebug(game, input);
 	}
-	else if (game.pressedSpellButton && spellTimer.HasElapsed() && !castingSpell)
+	else if (game.pressedSpellButton && timerSpellOther.HasElapsed() && !castingSpell)
 	{
 		castingSpell = spell.Cast(game);
 	}
@@ -323,7 +330,7 @@ void Player::UpdateSpellAnimation(const char* spellName)
 	animator->Update(this);
 
 	// 4. Set the timer to the length of the casting animation
-	spellTimer.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
+	timerSpellOther.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
 }
 
 void Player::CastSpellDebug(Game &game, const Uint8* input)
@@ -332,9 +339,6 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 		return;
 
 	bool createMissile = false;
-
-	bool pressingUp = (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
-	bool pressingDown = (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
 
 	if (createMissile)
 	{
@@ -378,7 +382,6 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 	}
 	else
 	{
-		//TODO: Spawn colliders in the correct spots for close-range attacks
 		if (closeRangeAttackCollider != nullptr)
 		{
 			delete_it(closeRangeAttackCollider);
@@ -417,13 +420,12 @@ void Player::GetLadderInput(const Uint8* input)
 {
 	animator->SetBool("climbing", false);
 
-	if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
+	if (pressingUp)
 	{
-		//TODO: If going up brings us above the ladder, don't move
 		animator->SetBool("climbing", true);
 		physics->velocity.y -= physics->horizontalSpeed * 0.5f;
 	}
-	else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
+	else if (pressingDown)
 	{
 		animator->SetBool("climbing", true);
 		physics->velocity.y += physics->horizontalSpeed * 0.5f;
@@ -433,13 +435,13 @@ void Player::GetLadderInput(const Uint8* input)
 		physics->velocity.y = 0;
 	}
 
-	if (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A])
+	if (pressingLeft)
 	{
 		animator->SetBool("climbing", true);
 		physics->velocity.x -= physics->horizontalSpeed * 0.15f;
 		scale.x = -1;
 	}
-	else if (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D])
+	else if (pressingRight)
 	{
 		animator->SetBool("climbing", true);
 		physics->velocity.x += physics->horizontalSpeed * 0.15f;
@@ -463,13 +465,13 @@ void Player::GetLadderInput(const Uint8* input)
 
 void Player::GetMoveInput(const Uint8* input)
 {
-	if (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A])
+	if (pressingLeft)
 	{
 		animator->SetBool("walking", true);
 		physics->velocity.x -= physics->horizontalSpeed;
 		scale.x = -1;
 	}
-	else if (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D])
+	else if (pressingRight)
 	{
 		animator->SetBool("walking", true);
 		physics->velocity.x += physics->horizontalSpeed;
@@ -489,8 +491,6 @@ void Player::GetMoveInput(const Uint8* input)
 
 void Player::CheckJumpButton(const Uint8* input)
 {
-	physics->hadPressedJump = physics->pressingJumpButton;
-	physics->pressingJumpButton = input[SDL_SCANCODE_X];
 	//if (pressingJumpButton)
 	//	std::cout << "!!!!" << std::endl;
 

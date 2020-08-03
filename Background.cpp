@@ -6,10 +6,8 @@
 #include "Vector2.h"
 #include <iterator>
 
-//TODO: Create a way to import backgrounds via text files / level editor
+//TODO: Create a way to import backgrounds via level editor
 // (different levels should use different backgrounds, etc.)
-
-//TODO: Probably remove this entire class, refactor it away
 
 std::unordered_map<std::string, BackgroundData*> Background::bgData;
 

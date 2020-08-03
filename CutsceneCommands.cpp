@@ -122,6 +122,7 @@ CutsceneCommands::CutsceneCommands()
 {
 	//TODO: Add a command to define this via scripting
 	buttonLabels[(unsigned int)SDL_SCANCODE_ESCAPE] = "pause_menu";
+	buttonLabelsActive[(unsigned int)SDL_SCANCODE_ESCAPE] = true;
 
 	numalias["bg"] = 0;
 	numalias["l"] = 1;
@@ -721,13 +722,12 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 	int spriteNumber = manager->choiceSpriteStartNumber;
 	std::string choiceQuestion = ParseStringValue(parameters[index]);
 
-	//TODO: Don't hardcode 1280 x 720
-	LoadSprite({ "ld", std::to_string(spriteNumber), choiceBGFilePath, "1280", "720" });
+	LoadSprite({ "ld", std::to_string(spriteNumber), choiceBGFilePath, 
+		std::to_string(manager->game->screenWidth), std::to_string(manager->game->screenHeight) });
 
 	spriteNumber++;
 	int choiceYPos = 280;
-	//TODO: Don't hardcode 1280
-	LoadText({"", std::to_string(spriteNumber), "1280", std::to_string(choiceYPos), choiceQuestion });
+	LoadText({"", std::to_string(spriteNumber), std::to_string(manager->game->screenWidth), std::to_string(choiceYPos), choiceQuestion });
 	AlignCommand({ "align", "x", "center", std::to_string(spriteNumber) });
 	spriteNumber++;
 
@@ -2242,17 +2242,18 @@ int CutsceneCommands::BindKeyToLabel(CutsceneParameters parameters)
 	if (parameters.size() > 2)
 	{
 		std::string labelName = ParseStringValue(parameters[2]);
+		unsigned int letter = 999999;
 
 		if (parameters[1].size() > 1)
 		{
 			// Handle special cases / full words here (spacebar, enter, etc.)
 			if (parameters[1] == "spacebar")
 			{
-				buttonLabels[SDL_SCANCODE_SPACE] = labelName;
+				letter = (unsigned int)SDL_SCANCODE_SPACE;
 			}
 			else if (parameters[1] == "enter" || parameters[1] == "return")
 			{
-				buttonLabels[SDL_SCANCODE_RETURN] = labelName;
+				letter = (unsigned int)SDL_SCANCODE_RETURN;
 			}
 		}
 		else
@@ -2260,7 +2261,7 @@ int CutsceneCommands::BindKeyToLabel(CutsceneParameters parameters)
 			//TODO: Handle other single character keys
 
 			// Get the ASCII value of the character
-			int letter = parameters[1][0];
+			letter = parameters[1][0];
 
 			// ASCII A starts at 65, SDL starts at 4, so 65-4 = 61 = offset
 			// ASCII a starts at 97, SDL starts at 4, so 97-4 = 93 = offset
@@ -2268,20 +2269,26 @@ int CutsceneCommands::BindKeyToLabel(CutsceneParameters parameters)
 			
 			if (letter > 64 && letter < 91) // A
 			{
-				buttonLabels[letter - 61] = labelName;
+				letter = letter - 61;
 			}
 			else if (letter > 96 && letter < 123) // a
 			{
-				buttonLabels[letter - 93] = labelName;
+				letter = letter - 93;
 			}
 			else if (letter > 48 && letter < 58) // 1
 			{
-				buttonLabels[letter - 19] = labelName;
+				letter = letter - 19;
 			}
 			else if (letter == 48) // 0
 			{
-				buttonLabels[SDL_SCANCODE_0] = labelName;
+				letter = (unsigned int)SDL_SCANCODE_0;
 			}
+		}
+
+		if (letter != 999999)
+		{
+			buttonLabels[letter] = labelName;
+			buttonLabelsActive[letter] = true;
 		}
 	}
 

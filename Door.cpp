@@ -52,70 +52,17 @@ void Door::SetDestination(Vector2 dest)
 
 bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 {
+	return Entity::CanSpawnHere(spawnPosition, game, useCamera);
+
+
+
+
 	bool shouldSpawn = true;
 
 	if (currentSprite == nullptr)
 		return false;
 
-	//TODO: Maybe there's a better way to initialize the bounds for the sprite
-	SDL_Rect myBounds = *(GetBounds());
-	if (useCamera)
-	{
-		myBounds.x = (int)spawnPosition.x;
-		myBounds.y = (int)spawnPosition.y;
-	}
-	else
-	{
-		myBounds.x = (int)spawnPosition.x;
-		myBounds.y = (int)spawnPosition.y;
-	}
-
-	SDL_Rect tileBelowMyBoundsLeft = myBounds;
-	tileBelowMyBoundsLeft.y += myBounds.h;
-	tileBelowMyBoundsLeft.w = game.editor->GRID_SIZE;
-	tileBelowMyBoundsLeft.h = game.editor->GRID_SIZE;
-
-	SDL_Rect tileBelowMyBoundsRight = myBounds;
-	tileBelowMyBoundsRight.x += game.editor->GRID_SIZE;
-	tileBelowMyBoundsRight.y += myBounds.h;
-	tileBelowMyBoundsRight.w = game.editor->GRID_SIZE;
-	tileBelowMyBoundsRight.h = game.editor->GRID_SIZE;
-
-	bool hasGroundLeft = false;
-	bool hasGroundRight = false;
-
-	for (unsigned int i = 0; i < game.entities.size(); i++)
-	{
-		const SDL_Rect * theirBounds = game.entities[i]->GetBounds();
-
-		// 1. Check to make sure that this door does NOT intersect with any other doors
-		if (game.entities[i]->etype == "door")
-		{
-			if (HasIntersection(myBounds, *theirBounds))
-			{
-				shouldSpawn = false;
-			}
-		}
-
-		//TODO: Check to make sure that we can't place a door inside a solid tile
-
-		// 2. Check to make sure that this door is one tile above a tile on the foreground layer
-		if (game.entities[i]->impassable)
-		{
-			if (HasIntersection(tileBelowMyBoundsLeft, *theirBounds))
-			{
-				hasGroundLeft = true;
-			}
-
-			if (HasIntersection(tileBelowMyBoundsRight, *theirBounds))
-			{
-				hasGroundRight = true;
-			}
-		}
-	}
-
-	if (!hasGroundLeft || !hasGroundRight)
-		shouldSpawn = true; 
+	
 
 	//TODO: Set this to false. It fails right now because the other entities sprites
 	// have not had their window rects set, so they are at 0,0 which would always fail

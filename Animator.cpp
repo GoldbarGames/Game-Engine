@@ -220,11 +220,6 @@ Animator::~Animator()
 
 }
 
-void Animator::MapNumbersToState(unsigned int number, AnimState* state)
-{
-	mapNumbersToStates[number] = state;
-}
-
 void Animator::MapStateNameToState(const std::string& name, AnimState* state)
 {
 	mapNamesToStates[name] = state;

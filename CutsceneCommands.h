@@ -31,6 +31,7 @@ public:
 
 	// When you press the button, jump to the corresponding label
 	std::unordered_map<unsigned int, std::string> buttonLabels;
+	std::unordered_map<unsigned int, bool> buttonLabelsActive;
 
 	std::string choiceBGFilePath = "";
 	std::string pathPrefix = "";

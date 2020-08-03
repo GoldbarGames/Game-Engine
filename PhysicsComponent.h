@@ -61,8 +61,6 @@ public:
 
 	void Update(Game& game);
 
-	Vector2 CalcScaledPivot();
-
 	void Push(Vector2 pushVelocity);
 
 	float CalcCollisionVelocity(PhysicsComponent* their, bool x);

@@ -36,7 +36,7 @@ public:
 	void CreateBackground(std::string n, Vector2 pos, SpriteManager* spriteManager, Renderer* renderer);
 	void ResetBackground();
 	~Background();
-	void Render(Renderer * renderer);
+	void Render(Renderer* renderer);
 	Entity* AddLayer(Vector2 offset, SpriteManager* spriteManager, Renderer* renderer,
 		std::string filepath, int drawOrder, float parallax);
 	void DeleteLayers(Game& game);

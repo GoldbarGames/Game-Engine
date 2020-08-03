@@ -32,9 +32,7 @@ private:
 	std::unordered_map<unsigned int, float> mapParamsFloat;
 	std::unordered_map<unsigned int, int> mapParamsInt;
 
-	//TODO: Remove this?
-	std::unordered_map<std::string, AnimState*> mapNamesToStates;	
-	std::unordered_map<unsigned int, AnimState*> mapNumbersToStates;
+	std::unordered_map<std::string, AnimState*> mapNamesToStates;
 public:
 
 	Sprite* GetCurrentSprite();
@@ -56,7 +54,6 @@ public:
 
 	void StartTimer();
 	void MapStateNameToState(const std::string& name, AnimState* state);
-	void MapNumbersToState(unsigned int number, AnimState* state);
 
 	unsigned int GetNumberOfStateFromName(const char* name);
 

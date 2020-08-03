@@ -31,8 +31,6 @@ CutsceneManager::CutsceneManager(Game& g)
 	tags["bi"] = new TextTag();
 	tags["s"] = new TextTag();
 
-	//TODO: Read in the define block stuff at the very beginning to save time
-
 	if (testVN)
 	{
 		commands.pathPrefix = "assets\\arc\\";
@@ -256,7 +254,7 @@ void CutsceneManager::CheckKeys()
 		{
 			for (auto const& button : commands.buttonLabels)
 			{
-				if (input[button.first]) //TODO: Also check if button is active
+				if (input[button.first] && commands.buttonLabelsActive[button.first])
 				{
 					commandIndex--;
 					commands.GoSubroutine({ button.second, button.second });

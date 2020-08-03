@@ -380,6 +380,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 
 	if (our->etype == "player")
 	{
+		//TODO: Get this from an Input Manager or something
 		const Uint8* input = SDL_GetKeyboardState(NULL);
 		pressingJumpButton = input[SDL_SCANCODE_X];
 		//TODO: In release mode, if you have two monitors with different refresh rates,
@@ -523,12 +524,6 @@ bool PhysicsComponent::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 	}
 
 	return hadCollision;
-}
-
-Vector2 PhysicsComponent::CalcScaledPivot()
-{
-	// scale the pivot and subtract it from the collision center
-	return Vector2(our->entityPivot.x, our->GetSprite()->pivot.y);
 }
 
 void PhysicsComponent::Push(Vector2 pushVelocity)

@@ -1675,14 +1675,20 @@ void Editor::CreateLevelFromString(std::string level)
 			int destY = std::stoi(tokens[index++]);
 			int spriteIndex = std::stoi(tokens[index++]);
 			Door* newDoor = static_cast<Door*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
-			newDoor->SetDestination(Vector2(destX, destY));
+			if (newDoor != nullptr)
+			{
+				newDoor->SetDestination(Vector2(destX, destY));
+			}			
 		}
 		else if (etype == "ladder")
 		{
 			std::string ladderState = tokens[index++];
 			int spriteIndex = std::stoi(tokens[index++]);
 			Ladder* newLadder = static_cast<Ladder*>(game->SpawnEntity("ladder", Vector2(positionX, positionY), spriteMapIndex));
-			newLadder->GetAnimator()->SetState(ladderState.c_str());
+			if (newLadder != nullptr)
+			{
+				newLadder->GetAnimator()->SetState(ladderState.c_str());
+			}			
 		}
 		else if (etype == "player")
 		{
@@ -1695,12 +1701,15 @@ void Editor::CreateLevelFromString(std::string level)
 			int spriteIndex = std::stoi(tokens[index++]);
 
 			NPC* newNPC = static_cast<NPC*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
-			newNPC->name = npcName;
-			newNPC->cutsceneLabel = npcCutscene;
+			if (newNPC != nullptr)
+			{
+				newNPC->name = npcName;
+				newNPC->cutsceneLabel = npcCutscene;
 
-			newNPC->drawOrder = std::stoi(tokens[index++]);
-			newNPC->layer = (DrawingLayer)std::stoi(tokens[index++]);
-			newNPC->impassable = std::stoi(tokens[index++]);
+				newNPC->drawOrder = std::stoi(tokens[index++]);
+				newNPC->layer = (DrawingLayer)std::stoi(tokens[index++]);
+				newNPC->impassable = std::stoi(tokens[index++]);
+			}
 		}
 		else if (etype == "enemy")
 		{
@@ -1709,11 +1718,16 @@ void Editor::CreateLevelFromString(std::string level)
 			int spriteIndex = std::stoi(tokens[index++]);
 
 			Enemy* entity = static_cast<Enemy*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
-			entity->name = npcName;
 
-			entity->drawOrder = std::stoi(tokens[index++]);
-			entity->layer = (DrawingLayer)std::stoi(tokens[index++]);
-			entity->impassable = std::stoi(tokens[index++]);
+			if (entity != nullptr)
+			{
+				entity->name = npcName;
+
+				entity->drawOrder = std::stoi(tokens[index++]);
+				entity->layer = (DrawingLayer)std::stoi(tokens[index++]);
+				entity->impassable = std::stoi(tokens[index++]);
+			}
+
 		}
 		else if (etype == "cutscene-trigger")
 		{
@@ -1749,24 +1763,29 @@ void Editor::CreateLevelFromString(std::string level)
 			int spriteIndex = std::stoi(tokens[index++]);
 			Platform* platform = static_cast<Platform*>(game->SpawnEntity("platform", Vector2(positionX, positionY), spriteIndex));
 
-			platform->platformType = tokens[index++];
-
-			if (platform->platformType == "Path")
-			{				
-				platform->pathID = std::stoi(tokens[index++]);
-				platform->pathSpeed = std::stof(tokens[index++]);
-				platform->endPathBehavior = tokens[index++];
-				movingPlatforms.emplace_back(platform);
-			}
-			else
+			if (platform != nullptr)
 			{
-				float vx = std::stof(tokens[index++]);
-				float vy = std::stof(tokens[index++]);
-				platform->startVelocity = Vector2(vx, vy);
-				platform->tilesToMove = std::stoi(tokens[index++]);
-				platform->shouldLoop = std::stoi(tokens[index++]);
-				platform->physics->SetVelocity(platform->startVelocity);
-			}	
+				platform->platformType = tokens[index++];
+
+				if (platform->platformType == "Path")
+				{
+					platform->pathID = std::stoi(tokens[index++]);
+					platform->pathSpeed = std::stof(tokens[index++]);
+					platform->endPathBehavior = tokens[index++];
+					movingPlatforms.emplace_back(platform);
+				}
+				else
+				{
+					float vx = std::stof(tokens[index++]);
+					float vy = std::stof(tokens[index++]);
+					platform->startVelocity = Vector2(vx, vy);
+					platform->tilesToMove = std::stoi(tokens[index++]);
+					platform->shouldLoop = std::stoi(tokens[index++]);
+					platform->physics->SetVelocity(platform->startVelocity);
+				}
+			}
+
+			
 		}
 		else if (etype == "bg")
 		{
