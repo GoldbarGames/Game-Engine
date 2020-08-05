@@ -203,33 +203,17 @@ void Player::UpdateNormally(Game& game)
 		currentLadder = nullptr;
 	}
 
-	// if we are holding up now and were not before...
-	if (animator->GetBool("holdingUp"))
+	// if we are holding up
+	if (pressingUp)
 	{
+	
+		// for when up is pressed, not held
 		// if we are in front of a door, ladder, or NPC...
-
-		// for when up is pressed
 		if (!wasHoldingUp)
 		{
 			if (currentNPC != nullptr)
 			{
 				game.cutscene->PlayCutscene(currentNPC->cutsceneLabel.c_str());
-			}
-			else if (currentGoal != nullptr)
-			{
-				if (currentGoal->isOpen)
-				{
-					game.state = GameState::LOAD_NEXT_LEVEL;
-					game.nextLevel = currentGoal->nextLevelName;
-					return;
-				}
-			}
-			else if (currentDoor != nullptr && doorTimer.HasElapsed())
-			{
-				//TODO: Make this look better later
-				// Should this play a cutscene here?
-				SetPosition(currentDoor->GetDestination() + currentSprite->pivot);
-				doorTimer.Start(500);
 			}
 			else if (currentLadder != nullptr)
 			{
@@ -241,6 +225,25 @@ void Player::UpdateNormally(Game& game)
 					physics->velocity.y = 0;
 					physics->velocity.x = 0;
 					animator->SetBool("onLadder", true);
+
+					// snap player to center of the ladder
+					position.x = currentLadder->position.x;
+				}
+			}
+			else if (currentDoor != nullptr && doorTimer.HasElapsed())
+			{
+				//TODO: Make this look better later
+				// Should this play a cutscene here?
+				SetPosition(currentDoor->GetDestination() + currentSprite->pivot);
+				doorTimer.Start(500);
+			}
+			else if (currentGoal != nullptr)
+			{
+				if (currentGoal->isOpen)
+				{
+					game.state = GameState::LOAD_NEXT_LEVEL;
+					game.nextLevel = currentGoal->nextLevelName;
+					return;
 				}
 			}
 		}
@@ -248,11 +251,9 @@ void Player::UpdateNormally(Game& game)
 		// for when up is being held
 		if (currentLadder != nullptr)
 		{
-			//std::cout << "ladder NOT null" << std::endl;
 			// TODO: What if there is a door and a ladder at the same spot?
 			if (currentLadder->GetAnimator()->currentState->name != "top")
 			{
-				//std::cout << "ladder 2" << std::endl;
 				physics->velocity.y = 0;
 				physics->velocity.x = 0;
 				animator->SetBool("onLadder", true);
@@ -420,7 +421,7 @@ void Player::GetLadderInput(const Uint8* input)
 {
 	animator->SetBool("climbing", false);
 
-	if (pressingUp)
+	if (pressingUp && currentLadder != currentLadder->top)
 	{
 		animator->SetBool("climbing", true);
 		physics->velocity.y -= physics->horizontalSpeed * 0.5f;
@@ -437,13 +438,15 @@ void Player::GetLadderInput(const Uint8* input)
 
 	if (pressingLeft)
 	{
-		animator->SetBool("climbing", true);
+		//animator->SetBool("climbing", true);
+		animator->SetBool("onLadder", false);
 		physics->velocity.x -= physics->horizontalSpeed * 0.15f;
 		scale.x = -1;
 	}
 	else if (pressingRight)
 	{
-		animator->SetBool("climbing", true);
+		//animator->SetBool("climbing", true);
+		animator->SetBool("onLadder", false);
 		physics->velocity.x += physics->horizontalSpeed * 0.15f;
 		scale.x = 1;
 	}

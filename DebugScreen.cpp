@@ -9,6 +9,7 @@ DebugScreen::DebugScreen(Game& g)
 {
 	game = &g;
 	sprite = new Sprite(0, 0, 1, game->spriteManager, "assets/editor/1pixel.png", game->renderer->shaders[ShaderName::Default], Vector2(0, 0));
+	camera = &game->renderer->camera;
 	CreateDebugText(DebugText::cursorPositionInScreen, 400, 50);
 	CreateDebugText(DebugText::cursorPositionInWorld, 400, 100);
 	CreateDebugText(DebugText::currentEditModeLayer, 400, 200);
@@ -16,6 +17,11 @@ DebugScreen::DebugScreen(Game& g)
 	CreateDebugText(DebugText::updateCalls, 400, 1200);
 	CreateDebugText(DebugText::collisionChecks, 400, 1300);
 	CreateDebugText(DebugText::hoveredEntityID, 1200, 50);
+	CreateDebugText(DebugText::cameraPosition, 1400, 100);
+	CreateDebugText(DebugText::cameraAngle, 2000, 450);
+	CreateDebugText(DebugText::cameraYaw, 2000, 550);
+	CreateDebugText(DebugText::cameraPitch, 2000, 650);
+	CreateDebugText(DebugText::cameraRoll, 2000, 750);
 }
 
 void DebugScreen::CreateDebugText(const DebugText textName, const int x, const int y)
@@ -74,13 +80,38 @@ void DebugScreen::Render(Renderer* renderer)
 		debugText[DebugText::hoveredEntityID]->GetSprite()->keepScaleRelativeToCamera = true;
 		debugText[DebugText::hoveredEntityID]->Render(renderer);
 
-		// Draw text
 		debugText[DebugText::cursorPositionInScreen]->Render(renderer);
 		debugText[DebugText::cursorPositionInWorld]->Render(renderer);
 
 		if (sprite != nullptr)
 		{
 			sprite->Render(worldPosition, renderer);
+		}
+
+		if (camera != nullptr && !camera->useOrthoCamera)
+		{
+			debugText[DebugText::cameraPosition]->SetText("Cam Pos: (x: " + 
+				std::to_string((int)camera->position.x) + ", y: " + 
+				std::to_string((int)camera->position.y) + ", z: " +
+				std::to_string((int)camera->position.z) + ")");
+			debugText[DebugText::cameraPosition]->GetSprite()->keepScaleRelativeToCamera = true;
+			debugText[DebugText::cameraPosition]->Render(renderer);
+
+			debugText[DebugText::cameraAngle]->SetText("Angle: " + std::to_string(camera->angle));
+			debugText[DebugText::cameraAngle]->GetSprite()->keepScaleRelativeToCamera = true;
+			debugText[DebugText::cameraAngle]->Render(renderer);
+
+			debugText[DebugText::cameraYaw]->SetText("Yaw: " + std::to_string(camera->yaw));
+			debugText[DebugText::cameraYaw]->GetSprite()->keepScaleRelativeToCamera = true;
+			debugText[DebugText::cameraYaw]->Render(renderer);
+
+			debugText[DebugText::cameraPitch]->SetText("Pitch: " + std::to_string(camera->pitch));
+			debugText[DebugText::cameraPitch]->GetSprite()->keepScaleRelativeToCamera = true;
+			debugText[DebugText::cameraPitch]->Render(renderer);
+
+			debugText[DebugText::cameraRoll]->SetText("Roll: " + std::to_string(camera->roll));
+			debugText[DebugText::cameraRoll]->GetSprite()->keepScaleRelativeToCamera = true;
+			debugText[DebugText::cameraRoll]->Render(renderer);
 		}
 	}
 }

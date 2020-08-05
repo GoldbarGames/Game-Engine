@@ -20,16 +20,19 @@ Editor::Editor(Game& g)
 	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
 	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
 
-	previewMap["tile"] = game->CreateTile(Vector2(0,0), "assets/editor/rect-outline.png", Vector2(0,0), DrawingLayer::FRONT);
+	previewMap["tile"] = game->CreateTile(Vector2(0,0), "assets/editor/rect-outline.png", 
+		Vector2(0,0), DrawingLayer::FRONT);
+
 	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 
 	//TODO: Read this in from a file (maybe)
-	std::vector<std::string> previewMapObjectNames = {  "door", "ladder", "goal", "bug", 
+	std::vector<std::string> previewMapObjectNames = { "door", "ladder", "goal", "bug", 
 		"ether", "block", "platform", "shroom" };
 
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
 	{
-		previewMap[previewMapObjectNames[i]] = game->CreateEntity(previewMapObjectNames[i], Vector2(0, 0), spriteMapIndex);
+		previewMap[previewMapObjectNames[i]] = game->CreateEntity(previewMapObjectNames[i], 
+			Vector2(0, 0), spriteMapIndex);
 	}
 
 	previewMap["npc"] = game->CreateEntity("npc", Vector2(0, 0), spriteMapIndex);
@@ -686,6 +689,9 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 				{
 					std::cout << "trying to spawn ladder end" << std::endl;
 					Ladder* ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder", snappedPosition, spriteMapIndex));
+					
+					std::vector<Ladder*> ladderGroup;
+					
 					if (ladderEnd != nullptr)
 					{
 						std::cout << "placing ladder set false" << std::endl;
@@ -705,12 +711,18 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 							ladderGoesUp = true;
 						}
 
+						ladderGroup.push_back(currentLadder);
+						ladderGroup.push_back(ladderEnd);
+
 						if (ladderGoesUp)
 						{
 							// Connect the two edges by spawning the middle parts
 							while (snappedPosition.y < currentLadder->GetPosition().y)
 							{
-								game->SpawnEntity("ladder", snappedPosition, spriteMapIndex);
+								ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder", 
+									snappedPosition, spriteMapIndex));
+								if (ladderEnd != nullptr)
+									ladderGroup.push_back(ladderEnd);
 								snappedPosition.y += TILE_SIZE * 2;
 							}
 						}
@@ -719,12 +731,28 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 							// Connect the two edges by spawning the middle parts
 							while (snappedPosition.y > currentLadder->GetPosition().y)
 							{
-								game->SpawnEntity("ladder", snappedPosition, spriteMapIndex);
+								ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder",
+									snappedPosition, spriteMapIndex));
+								if (ladderEnd != nullptr)
+									ladderGroup.push_back(ladderEnd);
 								snappedPosition.y -= TILE_SIZE * 2;
 							}
 						}
 
 						currentLadder = nullptr;
+
+						Ladder* topLadder = nullptr;
+						for (unsigned int i = 0; i < ladderGroup.size(); i++)
+						{
+							if (topLadder == nullptr || ladderGroup[i]->position.y < topLadder->position.y)
+							{
+								topLadder = ladderGroup[i];
+							}
+						}
+						for (unsigned int i = 0; i < ladderGroup.size(); i++)
+						{
+							ladderGroup[i]->top = topLadder;
+						}
 
 						game->SortEntities(game->entities);
 					}
@@ -793,26 +821,27 @@ void Editor::MiddleClick(Vector2 clickedPosition)
 	if (previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE))
 		return;
 
-	//clickedPosition.x += (int)game->camera.x;
-	//clickedPosition.y += (int)game->camera.y;
+	Vector2 worldPosition = Vector2(clickedPosition.x + game->renderer->camera.position.x,
+		clickedPosition.y + game->renderer->camera.position.y);
 
-	for (int i = game->entities.size() - 1; i >= 0; i--)
+	SDL_Rect mouseRect;
+	mouseRect.x = worldPosition.x;
+	mouseRect.y = worldPosition.y;
+	mouseRect.w = TILE_SIZE;
+	mouseRect.h = TILE_SIZE;
+
+	// NOTE: You will need to exit out of edit mode and then go back in
+	// to change tiles that are being placed via the editor
+	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
-		Vector2 entityPosition = RoundToInt(game->entities[i]->GetPosition());
-		Vector2 clickedInt = RoundToInt(clickedPosition);
-
-		bool samePosition = entityPosition.x >= clickedInt.x - 1 &&
-			entityPosition.x <= clickedInt.x + 1 &&
-			entityPosition.y >= clickedInt.y - 1 &&
-			entityPosition.y <= clickedInt.y + 1;
-
-		if (samePosition)
+		if (HasIntersection(mouseRect, *game->entities[i]->GetBounds()))
 		{
 			// Toggle the jump thru property of tiles
 			if (game->entities[i]->etype == "tile")
 			{
 				game->entities[i]->jumpThru = !game->entities[i]->jumpThru;
 			}
+			break;
 		}
 	}
 }
@@ -1628,6 +1657,7 @@ void Editor::CreateLevelFromString(std::string level)
 
 	std::vector<Path*> paths;
 	std::vector<Platform*> movingPlatforms;
+	std::map<int, std::vector<Ladder*>> ladderGroups;
 
 	std::stringstream ss{ level };
 
@@ -1688,6 +1718,12 @@ void Editor::CreateLevelFromString(std::string level)
 			if (newLadder != nullptr)
 			{
 				newLadder->GetAnimator()->SetState(ladderState.c_str());
+
+				if (ladderGroups.count(positionX) == 0)
+				{
+					ladderGroups[positionX] = std::vector<Ladder*>();
+				}
+				ladderGroups[positionX].push_back(newLadder);
 			}			
 		}
 		else if (etype == "player")
@@ -1825,6 +1861,22 @@ void Editor::CreateLevelFromString(std::string level)
 	}
 
 	int id2 = Entity::nextValidID;
+
+	for (auto const& [key, ladderGroup] : ladderGroups)
+	{
+		Ladder* topLadder = nullptr;
+		for (unsigned int i = 0; i < ladderGroup.size(); i++)
+		{
+			if (topLadder == nullptr || ladderGroup[i]->position.y < topLadder->position.y)
+			{
+				topLadder = ladderGroup[i];
+			}
+		}
+		for (unsigned int i = 0; i < ladderGroup.size(); i++)
+		{
+			ladderGroup[i]->top = topLadder;
+		}
+	}
 
 	// Match all platforms moving on paths with their assigned path
 	for (unsigned int i = 0; i < movingPlatforms.size(); i++)

@@ -50,7 +50,7 @@ public:
 	Texture* texture;
 
 	Color color { 255, 255, 255, 255 };
-	std::string selectedColor = "clear";
+	static std::string selectedColor;
 
 	bool keepPositionRelativeToCamera = false;
 	bool keepScaleRelativeToCamera = false;

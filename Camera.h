@@ -25,25 +25,29 @@ public:
 		const float& screenWidth, const float& screenHeight);
 
 	void MouseControl(float xChange, float yChange);
-	glm::mat4 projection = glm::mat4();
-	glm::mat4 guiProjection = glm::mat4();
-	glm::mat4 CalculateViewMatrix();
+
 	void Zoom(float amount, float screenWidth, float screenHeight);
 	void ResetProjection();
 	void ResetCamera();
 
-	glm::vec3 position;
+	glm::mat4 projection = glm::mat4();
+	glm::mat4 guiProjection = glm::mat4();
+	glm::mat4 CalculateViewMatrix();
 
-	Entity* target = nullptr;
-	bool shouldUpdate = true;
-	bool useOrthoCamera = true;
-	void FollowTarget(const float& screenWidth, const float& screenHeight);
-	void Update();
+	glm::vec3 position;
 	float orthoZoom = 4.0f;
 	float angle = -45.0f;
 	float yaw = 0;
 	float pitch = 0;
 	float roll = 0;
+	Entity* target = nullptr;
+	bool shouldUpdate = true;
+	bool useOrthoCamera = true;
+	
+	void FollowTarget(const float& screenWidth, const float& screenHeight);
+	void Update();
+
+
 private:
 	
 	glm::vec3 front = glm::vec3(0, 0, 0);

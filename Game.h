@@ -80,6 +80,7 @@ private:
 	std::unordered_map<std::string, Mesh*> meshes;
 
 	Mesh* CreateSpriteMesh();
+	Mesh* CreateCubeMesh();
 public:
 	std::vector<std::string> npcNames;
 	std::vector<std::string> enemyNames;
@@ -101,6 +102,8 @@ public:
 
 	bool debugMode = false;
 	bool editMode = false;
+
+	Mesh* cubeMesh;
 
 	unsigned int collisionChecks = 0;
 	unsigned int updateCalls = 0;

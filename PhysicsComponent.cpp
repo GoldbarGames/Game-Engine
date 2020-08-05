@@ -284,7 +284,8 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 			if (velocity.y < 0)
 			{
 				// Moving up
-				if (!verticalCollision && HasIntersection(newBoundsVertical, theirBounds))
+				if (!entity->jumpThru && !verticalCollision && 
+					HasIntersection(newBoundsVertical, theirBounds))
 				{
 					verticalCollision = CheckCollisionCeiling(entity, game);
 					hadCollision = hadCollision || verticalCollision;
@@ -293,9 +294,13 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 			}
 			else
 			{
+				bool shouldIgnoreJumpThru = (entity->jumpThru &&
+					our->GetAnimator()->GetBool("onLadder"));
+
 				// Moving down
 				// checks the ground (using a rect that is a little bit larger
-				if (!verticalCollision && HasIntersection(floorBounds, theirBounds))
+				if (!verticalCollision && !shouldIgnoreJumpThru && 
+					HasIntersection(floorBounds, theirBounds))
 				{
 					hadCollision = true;
 					verticalCollision = true;

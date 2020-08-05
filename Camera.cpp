@@ -141,12 +141,12 @@ void Camera::KeyControl(const Uint8* input, const float& dt,
 	{
 		if (input[SDL_SCANCODE_N])
 		{
-			angle += 0.05f;
+			angle += 0.01f;
 			Zoom(0.0f, screenWidth, screenHeight);
 		}
 		if (input[SDL_SCANCODE_M])
 		{
-			angle -= 0.05f;
+			angle -= 0.01f;
 			Zoom(0.0f, screenWidth, screenHeight);
 		}
 

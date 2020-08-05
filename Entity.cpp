@@ -218,9 +218,13 @@ void Entity::RenderDebug(Renderer * renderer)
 				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 				debugSprite->Render(position, renderer);
 			}
-
-			//if (jumpThru)
-			//	debugSprite->color = { 255, 255, 0, 255 };
+			else if (jumpThru)
+			{
+				debugSprite->color = { 255, 255, 0, 255 };
+				debugSprite->pivot = GetSprite()->pivot;
+				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+				debugSprite->Render(position, renderer);
+			}
 
 			if (collider != nullptr && physics != nullptr)
 			{

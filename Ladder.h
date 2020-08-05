@@ -12,6 +12,8 @@ public:
 	Ladder(Vector2 pos);
 	~Ladder();
 
+	Ladder* top = nullptr;
+
 	const SDL_Rect* GetBounds();
 
 	void OnTriggerStay(Entity* other, Game& game);

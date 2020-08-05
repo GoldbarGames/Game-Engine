@@ -36,6 +36,28 @@ Mesh* Game::CreateSpriteMesh()
 	return mesh;
 }
 
+Mesh* Game::CreateCubeMesh()
+{
+	unsigned int quadIndices[] = {
+	0, 3, 1,
+	1, 3, 2,
+	2, 3, 0,
+	0, 1, 2
+	};
+
+	GLfloat quadVertices[] = {
+		-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
+		-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
+		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
+	};
+
+	Mesh* mesh = new Mesh();
+	mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
+
+	return mesh;
+}
+
 Game::Game()
 {
 	startOfGame = std::chrono::steady_clock::now();
@@ -52,6 +74,7 @@ Game::Game()
 	InitOpenGL();
 
 	Sprite::mesh = CreateSpriteMesh();
+	cubeMesh = CreateCubeMesh();
 
 	// Initialize the font before all text
 	const char* fontSourceCodePro = "fonts/source-code-pro/SourceCodePro-Regular.ttf";
@@ -272,7 +295,7 @@ void Game::InitOpenGL()
 		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
 		screenWidth, screenHeight, use2DCamera);
 
-	renderer->guiCamera.shouldUpdate = false;
+	renderer->guiCamera.shouldUpdate = true;
 	renderer->guiCamera.useOrthoCamera = true;
 
 	renderer->camera.Update();
@@ -1260,14 +1283,26 @@ void Game::Render()
 	background->Render(renderer);
 
 	// Render all entities
-	const int maxWidth = (30 * TILE_SIZE) * 2;
-	const int maxHeight = (17 * TILE_SIZE) * 2;
-	for (unsigned int i = 0; i < entities.size(); i++)
+	if (renderer->camera.useOrthoCamera)
 	{
-		if (entities[i]->position.x > renderer->camera.position.x - TILE_SIZE &&
-			entities[i]->position.y > renderer->camera.position.y - TILE_SIZE &&
-			entities[i]->position.x < renderer->camera.position.x + maxWidth + TILE_SIZE &&
-			entities[i]->position.y < renderer->camera.position.y + maxHeight + TILE_SIZE)
+		const int maxWidth = (30 * TILE_SIZE) * 2;
+		const int maxHeight = (17 * TILE_SIZE) * 2;
+		for (unsigned int i = 0; i < entities.size(); i++)
+		{
+			if (entities[i]->position.x > renderer->camera.position.x - TILE_SIZE &&
+				entities[i]->position.y > renderer->camera.position.y - TILE_SIZE &&
+				entities[i]->position.x < renderer->camera.position.x + maxWidth + TILE_SIZE &&
+				entities[i]->position.y < renderer->camera.position.y + maxHeight + TILE_SIZE)
+			{
+				entities[i]->Render(renderer);
+				if (debugMode)
+					entities[i]->RenderDebug(renderer);
+			}
+		}
+	}
+	else
+	{
+		for (unsigned int i = 0; i < entities.size(); i++)
 		{
 			entities[i]->Render(renderer);
 			if (debugMode)
@@ -1303,15 +1338,15 @@ void Game::Render()
 		editor->Render(renderer);		
 	}
 
-	if (debugMode)
-	{
-		debugScreen->Render(renderer);
-	}
-
 	//if (GetModeDebug())
 #if _DEBUG
 	editor->RenderDebug(renderer);
 #endif
+
+	if (debugMode)
+	{
+		debugScreen->Render(renderer);
+	}
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);

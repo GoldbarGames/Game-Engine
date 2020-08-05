@@ -9,6 +9,7 @@
 using std::string;
 
 Mesh* Sprite::mesh = nullptr;
+std::string Sprite::selectedColor = "clear";
 
 unsigned int Sprite::Size()
 {
@@ -469,16 +470,7 @@ void Sprite::Render(Vector2 position, int speed, Renderer * renderer, glm::vec3 
 	}
 	*/
 
-
-	// Update this rectangle for calculating physics
-	//windowRect.x = position.x;
-	//windowRect.y = position.y;
-	//windowRect.w = frameWidth;
-	//windowRect.h = frameHeight;
-
 	//TODO: Draw a rectangle around the sprite's bounds
-
-
 
 	/*
 

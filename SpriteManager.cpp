@@ -67,7 +67,6 @@ Texture* SpriteManager::GetImage(std::string const& imagePath)
 				surface = IMG_Load("assets/gui/white.png");
 				std::cout << "FAILED TO LOAD SPRITE: " << imagePath << std::endl;
 			}
-				
 		}	
 
 		Texture* newTexture = new Texture(imagePath.c_str());
