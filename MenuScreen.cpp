@@ -350,22 +350,25 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	else if (selectedButton->name == "Load Game")
 	{
 		//TODO: Make this different when loading a save file with actual data in it
-		game.PlayLevel("demo");
+		game.LoadLevel("demo");
 	}
 	else if (selectedButton->name == "Play Game")
 	{
 		game.openedMenus.clear();
 		//game.openedMenus.emplace_back(game.allMenus["File Select"]);
 
+		//game.cutscene->commands.ExecuteCommand("fade black 1000");
+		//game.cutscene->commands.ExecuteCommand("wait 1000");
+
 		std::string currentGame = "WDK";
 
 		if (currentGame == "WDK")
 		{
-			game.PlayLevel("demo");
+			game.LoadLevel("demo", 1, 1);
 		}
 		else if (currentGame == "DB2")
 		{
-			game.PlayLevel("test-vn");
+			game.LoadLevel("test-vn");
 		}
 	}
 	else if (selectedButton->name == "Title Screen")

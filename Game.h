@@ -195,6 +195,10 @@ public:
 
 	std::string currentLevel = "";
 	int levelNumber = 1;
+	float dt = 0;
+	int transitionExit = -1;
+	int transitionEnter = -1;
+	int transitionState = 0;
 
 	DebugScreen* debugScreen = nullptr;
 	Editor* editor = nullptr;
@@ -220,8 +224,6 @@ public:
 
 	Game();
 	~Game();
-	float dt = 0;
-
 
 	void InitSDL();
 	void EndSDL();
@@ -234,9 +236,10 @@ public:
 	Player* SpawnPlayer(Vector2 position);
 	Missile* SpawnMissile(Vector2 position);
 
+	void TransitionLevel();
+
 	void LoadTitleScreen();
-	void PlayLevel(string levelName);
-	void LoadNextLevel();
+	void LoadLevel(const std::string& level, int onExit=0, int onEnter=0);
 
 	Vector2 CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE);
 

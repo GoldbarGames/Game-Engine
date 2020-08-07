@@ -467,7 +467,8 @@ void CutsceneManager::Render(Renderer * renderer)
 		renderer->FadeOverlay(game->screenWidth, game->screenHeight);
 
 		// Render the textbox above everything
-		textbox->Render(renderer, game->screenWidth, game->screenHeight);
+		if (currentLabel->name != "title")
+			textbox->Render(renderer, game->screenWidth, game->screenHeight);
 
 		if (!isCarryingOutCommands && !isReadingNextLine)
 		{

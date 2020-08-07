@@ -1884,14 +1884,7 @@ void Editor::ClearLevelEntities()
 
 void Editor::InitLevelFromFile(std::string levelName)
 {
-	//std::cout << game->camera.y << std::endl;
-
 	game->debugRectangles.clear();
-
-	//const int OFFSET = -4;
-	//game->camera = Vector2(0, OFFSET * TILE_SIZE * Renderer::GetScale());
-	//std::cout << game->camera.y << std::endl;
-
 	game->levelStartCutscene = "";
 
 	ClearLevelEntities();
@@ -1904,9 +1897,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 	levelStrings.clear();
 	levelStringIndex = -1;
 
-	std::string level = ReadLevelFromFile(levelName);	
-	
-	CreateLevelFromString(level);
+	CreateLevelFromString(ReadLevelFromFile(levelName));
 
 	DoAction();
 	game->SortEntities(game->entities);
@@ -1935,6 +1926,6 @@ void Editor::InitLevelFromFile(std::string levelName)
 		}
 	}
 
-	//TODO: Figure out why this is glitching out at the start
+	//NOTE: Figure out why removing this glitches out at the start
 	game->SetScreenResolution(game->screenWidth, game->screenHeight);
 }

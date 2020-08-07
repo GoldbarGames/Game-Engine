@@ -82,6 +82,9 @@ void Renderer::UpdateOverlayColor(uint8_t& color, const int& start, const int& t
 	{
 		changingOverlayColor = true;
 		color = start + (t * (target - start));
+
+		if ((color - target) * (color - target) < 3)
+			color = target;
 	}
 }
 

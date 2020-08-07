@@ -93,30 +93,14 @@ int main(int argc, char *args[])
 			game.state = GameState::NORMAL;
 			break;
 		case GameState::LOAD_NEXT_LEVEL:
-			game.LoadNextLevel();
+			game.LoadLevel(game.nextLevel);
 			game.state = GameState::NORMAL;
 			break;
 		default:
 			break;
 		}
 
-		game.shouldQuit = game.CheckInputs();
-		game.CheckDeleteEntities();
-
-		game.renderer->Update();
-
-		if (game.openedMenus.size() > 0)
-		{
-			game.GetMenuInput();
-		}
-		else if (game.editMode)
-		{
-			game.HandleEditMode();
-		}
-		else
-		{
-			game.Update();
-		}
+		game.Update();
 
 		game.Render();
 

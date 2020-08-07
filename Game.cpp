@@ -619,29 +619,116 @@ void Game::LoadTitleScreen()
 
 // If we have a name for the next level, then load that level
 // Otherwise, load the level corresponding to the number
-void Game::LoadNextLevel()
+void Game::LoadLevel(const std::string& level, int onExit, int onEnter)
 {
 	//TODO: What happens if the level fails to load, or the file does not exist?
 	// Should it load the same level again, an error screen, or something else?
 
-	if (nextLevel == "")
-	{
-		levelNumber++;
-		editor->InitLevelFromFile("test" + std::to_string(levelNumber));
-	}
-	else
-	{
-		editor->InitLevelFromFile(nextLevel);
-	}
+	transitionExit = onExit;
+	transitionEnter = onEnter;
+	transitionState = 1; // exit state
+
+	nextLevel = level;
 }
 
-void Game::PlayLevel(string levelName)
+void Game::TransitionLevel()
 {
-	openedMenus.clear();
-	editor->InitLevelFromFile(levelName);
+	bool conditionMet = false;
 
-	//TODO: Load different music based on each level
-	soundManager->PlayBGM("bgm/Forest.ogg");
+	if (transitionState == 1) // exit the old level, start condition
+	{
+		std::cout << "t1" << std::endl;
+
+		if (transitionExit == 0)
+		{
+			conditionMet = true;
+		}
+		else if (transitionExit == 1)
+		{
+			renderer->changingOverlayColor = true;
+			renderer->overlayStartTime = timer.GetTicks();
+			renderer->overlayEndTime = renderer->overlayStartTime + 1000;
+			renderer->startColor = renderer->overlayColor;
+			renderer->targetColor = Color{ 0, 0, 0, 255 };
+
+			soundManager->FadeOutBGM(1000);
+		}
+
+		transitionState = 2;
+	}
+	else if (transitionState == 2) // check exit condition
+	{
+		std::cout << "t2" << std::endl;
+
+		if (transitionExit == 0)
+		{
+			conditionMet = true;
+		}
+		else if (transitionExit == 1)
+		{
+			conditionMet = !renderer->changingOverlayColor;
+		}
+
+		// if condition is met, go to next state
+		if (conditionMet)
+		{
+			transitionState = 3;
+			if (nextLevel == "")
+			{
+				levelNumber++;
+				editor->InitLevelFromFile("test" + std::to_string(levelNumber));
+			}
+			else
+			{
+				openedMenus.clear();
+				editor->InitLevelFromFile(nextLevel);
+			}
+		}
+	}
+	else if (transitionState == 3) // enter the new level, start condition
+	{
+		std::cout << "t3" << std::endl;
+
+		if (transitionEnter == 0)
+		{
+			conditionMet = true;
+		}
+		else if (transitionEnter == 1)
+		{
+			renderer->changingOverlayColor = true;
+			renderer->overlayStartTime = timer.GetTicks();
+			renderer->overlayEndTime = renderer->overlayStartTime + 1000;
+			renderer->startColor = renderer->overlayColor;
+			renderer->targetColor = Color{ 0, 0, 0, 0 };
+
+			//TODO: Load different music based on each level
+			soundManager->PlayBGM("bgm/Forest.ogg");
+		}
+
+		transitionState = 4;
+	}
+	else if (transitionState == 4) // check enter condition
+	{
+		std::cout << "t4" << std::endl;
+
+		if (transitionEnter == 0)
+		{
+			conditionMet = true;
+		}
+		else if (transitionEnter == 1)
+		{
+			conditionMet = !renderer->changingOverlayColor;
+		}
+
+		// if condition is met, go to next state
+		// player resumes control
+		if (conditionMet)
+		{
+			transitionState = 0;
+			transitionEnter = -1;
+			transitionExit = -1;
+		}
+	}
 }
 
 bool Game::CheckInputs()
@@ -676,9 +763,14 @@ bool Game::CheckInputs()
 		}
 
 		if (openedMenus.size() > 0)
-			quit = HandleMenuEvent(event);
+		{
+			if (!cutscene->watchingCutscene)
+				quit = HandleMenuEvent(event);
+		}			
 		else
+		{
 			quit = HandleEvent(event);
+		}
 
 		if (quit)
 			break;
@@ -1053,7 +1145,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				editor->InitLevelFromFile(currentLevel);
 				break;
 			case SDLK_t:
-				LoadNextLevel();
+				LoadLevel(nextLevel);
 				break;
 			case SDLK_1: // toggle Debug mode
 				debugMode = !debugMode;
@@ -1185,6 +1277,26 @@ void Game::UpdateTextInput()
 
 void Game::Update()
 {
+	shouldQuit = CheckInputs();
+	CheckDeleteEntities();
+	renderer->Update();
+
+	if (openedMenus.size() > 0)
+	{
+		GetMenuInput();
+		return;
+	}
+	else if (editMode)
+	{
+		HandleEditMode();
+		return;
+	}
+	else if (transitionState > 0)
+	{
+		TransitionLevel();
+		return;
+	}
+
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
 	if (debugMode)
