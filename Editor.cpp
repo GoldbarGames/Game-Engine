@@ -23,6 +23,8 @@ Editor::Editor(Game& g)
 	dialog->text->SetPosition(dialog->position.x, dialog->position.y + 20);
 	dialog->input->SetPosition(dialog->position.x, dialog->position.y + 70);
 
+	dialog->sprite->SetShader(game->renderer->shaders[ShaderName::SolidColor]);
+	dialog->sprite->color = { 255, 0, 0, 255 };
 	dialog->sprite->keepPositionRelativeToCamera = true;
 	dialog->sprite->keepScaleRelativeToCamera = true;
 	dialog->sprite->SetScale(game->renderer->CalculateScale(dialog->sprite, 

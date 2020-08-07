@@ -37,6 +37,9 @@ Vector2 Renderer::CalculateScale(Sprite* sourceSprite, Sprite* targetSprite)
 
 Vector2 Renderer::CalculateScale(Sprite* sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale)
 {
+	if (sourceSprite->texture == nullptr)
+		return Vector2(targetWidth * targetScale.x, targetHeight * targetScale.y);
+
 	float sourceWidth = sourceSprite->texture->GetWidth();
 	float sourceHeight = sourceSprite->texture->GetHeight();
 

@@ -14,7 +14,7 @@
 class Renderer;
 
 enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, };
-enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha };
+enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, SolidColor };
 
 class ShaderProgram
 {

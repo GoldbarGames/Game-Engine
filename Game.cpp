@@ -78,10 +78,6 @@ Game::Game()
 	cubeMesh = CreateCubeMesh();
 
 	// Initialize the font before all text
-	const char* fontSourceCodePro = "fonts/source-code-pro/SourceCodePro-Regular.ttf";
-	const char* fontDejaVuSansMono = "fonts/dejavu-sans-mono/DejaVuSansMono.ttf";
-	const char* fontSpaceMono = "fonts/space-mono/SpaceMono-Regular.ttf";
-
 	theFont = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
 	theFont->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
 	theFont->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
@@ -249,6 +245,7 @@ void Game::CreateShaders()
 	renderer->CreateShader(ShaderName::Glow, "data/shaders/default.vert", "data/shaders/glow.frag");
 	renderer->CreateShader(ShaderName::GUI, "data/shaders/gui.vert", "data/shaders/gui.frag");
 	renderer->CreateShader(ShaderName::NoAlpha, "data/shaders/default.vert", "data/shaders/noalpha.frag");
+	renderer->CreateShader(ShaderName::SolidColor, "data/shaders/default.vert", "data/shaders/solidcolor.frag");
 }
 
 void Game::InitOpenGL()

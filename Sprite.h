@@ -31,20 +31,16 @@ private:
 public:	
 
 	unsigned int Size();
-
 	void SetShader(ShaderProgram* s) { shader = s; }
 	ShaderProgram* GetShader() { return shader; }
-
 	void SetTexture(Texture* t) { texture = t; }
-
 	void AnimateMesh(float time);
+	bool HasAnimationElapsed();
 
 	unsigned int previousFrame = 0;
 	unsigned int currentFrame = 0;
 	unsigned int currentRow = 0;
 
-	bool HasAnimationElapsed();
-	
 	static Mesh* mesh;
 	ShaderProgram* shader;	
 	Texture* texture;
@@ -85,6 +81,7 @@ public:
 	bool ShouldAnimate(float time);
 	void CreateMesh();
 	
+	Sprite(ShaderProgram* s);
 	Sprite(Texture* t, ShaderProgram* s);
 	Sprite(Vector2 frame, Texture* image, ShaderProgram* shader);
 	Sprite(int numFrames, SpriteManager* manager, const std::string& filepath, ShaderProgram* shader, Vector2 newPivot);
@@ -118,7 +115,7 @@ struct AnimCondition
 	std::string nextState;
 	std::string variable;         // name
 	std::string check;            // ==
-	bool expectedValue;    // false
+	bool expectedValue;           // false
 
 	AnimCondition(const std::string n, const std::string& v, const std::string& c, bool e)
 		: nextState(n), variable(v), check(c), expectedValue(e) { }

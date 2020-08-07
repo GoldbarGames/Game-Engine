@@ -47,6 +47,7 @@ unsigned int Sprite::Size()
 
 void Sprite::CreateMesh()
 {
+	//TODO: This assumes every mesh is a quad, allow for other shapes
 	if (mesh == nullptr)
 	{
 		unsigned int quadIndices[] = {
@@ -66,6 +67,20 @@ void Sprite::CreateMesh()
 		mesh = new Mesh();
 		mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
 	}
+}
+
+Sprite::Sprite(ShaderProgram* s)
+{
+	model = glm::mat4(1.0f);
+	shader = s;
+
+	numberFramesInTexture = 1;
+	framesPerRow = numberFramesInTexture;
+	startFrame = 0;
+	endFrame = numberFramesInTexture;
+
+	CreateMesh();
+	currentFrame = 0;
 }
 
 Sprite::Sprite(Texture* t, ShaderProgram* s)
@@ -321,8 +336,16 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* rend
 		model = glm::rotate(model, rotation.z * toRadians, glm::vec3(0.0f, 0.0f, -1.0f));
 
 		// Scale
-		model = glm::scale(model, glm::vec3(-1 * scale.x * texture->GetWidth() / (GLfloat)(framesPerRow),
-			scale.y * texture->GetHeight() / (GLfloat)numberRows, 1.0f));
+		int width = 1;
+		if (texture != nullptr)
+			width = texture->GetWidth();
+
+		int height = 1;
+		if (texture != nullptr)
+			height = texture->GetHeight();
+
+		model = glm::scale(model, glm::vec3(-1 * scale.x * width / (GLfloat)(framesPerRow),
+			scale.y * height / (GLfloat)numberRows, 1.0f));
 	}	
 }
 
@@ -344,9 +367,18 @@ void Sprite::Render(Vector2 position, int speed, Renderer * renderer, glm::vec3 
 			glm::value_ptr(renderer->camera.CalculateViewMatrix()));
 	}
 
+	float height = frameHeight;
+	if (texture != nullptr)
+		height = texture->GetHeight();
+
 	GLfloat totalFrames = (endFrame - startFrame) + 1;
-	glm::vec2 texFrame = glm::vec2((1.0f / framesPerRow), frameHeight/(GLfloat)texture->GetHeight());
-	glm::vec2 texOffset = CalculateRenderFrame(renderer, speed);
+	glm::vec2 texFrame = glm::vec2((1.0f / framesPerRow), frameHeight/height);
+	glm::vec2 texOffset = glm::vec2(0, 0);
+	
+	if (texture != nullptr)
+		texOffset = CalculateRenderFrame(renderer, speed);
+	else
+		int test = 0;
 	
 	// Send the info to the shader
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
@@ -450,7 +482,8 @@ void Sprite::Render(Vector2 position, int speed, Renderer * renderer, glm::vec3 
 	glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::model), 1, GL_FALSE, glm::value_ptr(model));
 
 	// Use Texture
-	texture->UseTexture();
+	if (texture != nullptr)
+		texture->UseTexture();
 
 	// Render Mesh
 	mesh->RenderMesh();
