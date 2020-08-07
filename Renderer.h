@@ -19,7 +19,7 @@ class Renderer
 {
 private:
 	std::unordered_map<DrawingLayer, bool> layersVisible;
-	void UpdateOverlayColor(uint8_t& color, const int& target);
+	void UpdateOverlayColor(uint8_t& color, const int& start, const int& target, const float& t);
 public:
 	Camera camera;
 	Camera guiCamera;
@@ -33,8 +33,11 @@ public:
 
 	Color overlayColor{ 0, 0, 0, 0 };
 	Color targetColor{ 0, 0, 0, 0 };
+	Color startColor{ 0, 0, 0, 0 };
 	bool changingOverlayColor = false;
 	Timer timerOverlayColor;
+	Uint32 overlayStartTime = 0;
+	Uint32 overlayEndTime = 0;
 
 	Vector2 CalculateScale(Sprite* sourceSprite, Sprite* targetSprite);
 	Vector2 CalculateScale(Sprite* sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale);

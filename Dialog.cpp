@@ -6,8 +6,7 @@
 Dialog::Dialog(const Vector2& pos, SpriteManager* manager)
 {
 	position = pos;
-	sprite = new Sprite(manager->GetImage("assets/gui/menu.png"), 
-		manager->renderer->shaders[ShaderName::Default]);
+	sprite = new Sprite(manager->renderer->shaders[ShaderName::Default]);
 }
 
 Dialog::~Dialog()

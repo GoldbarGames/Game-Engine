@@ -178,6 +178,7 @@ public:
 	void CheckKeys();
 	void CheckKeysWhileReading();
 	void ReadBacklog();
+	void UpdateText();
 
 	void SaveGame(const char* filename, const char* path = "saves/");
 	void LoadGame(const char* filename, const char* path = "saves/");

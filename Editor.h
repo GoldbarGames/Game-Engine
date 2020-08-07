@@ -83,6 +83,7 @@ public:
 	std::string objectMode = "tile";
 
 	Entity* objectPreview = nullptr;
+	Sprite* grid = nullptr;
 
 
 	Dialog* dialog;
@@ -133,7 +134,6 @@ public:
 
 	void SetLayer(DrawingLayer layer);
 	void DestroyLadder(std::string startingState, Vector2 lastPosition);
-	void DrawGrid();
 
 	void DestroyDialog();
 	void CreateDialog(const std::string& txt);

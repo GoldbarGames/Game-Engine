@@ -74,7 +74,7 @@ Game::Game()
 
 	InitOpenGL();
 
-	Sprite::mesh = CreateSpriteMesh();
+	//Sprite::mesh = CreateSpriteMesh();
 	cubeMesh = CreateCubeMesh();
 
 	// Initialize the font before all text
@@ -246,6 +246,7 @@ void Game::CreateShaders()
 	renderer->CreateShader(ShaderName::GUI, "data/shaders/gui.vert", "data/shaders/gui.frag");
 	renderer->CreateShader(ShaderName::NoAlpha, "data/shaders/default.vert", "data/shaders/noalpha.frag");
 	renderer->CreateShader(ShaderName::SolidColor, "data/shaders/default.vert", "data/shaders/solidcolor.frag");
+	renderer->CreateShader(ShaderName::Grid, "data/shaders/default.vert", "data/shaders/grid.frag");
 }
 
 void Game::InitOpenGL()
@@ -614,8 +615,6 @@ void Game::LoadTitleScreen()
 	openedMenus.clear();
 	editor->InitLevelFromFile("title");
 	openedMenus.emplace_back(allMenus["Title"]);
-
-	soundManager->PlayBGM("bgm/Witchs_Waltz.ogg");
 }
 
 // If we have a name for the next level, then load that level
@@ -1144,19 +1143,28 @@ void Game::GetMenuInput()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	if (debugMode)
+	if (cutscene->watchingCutscene && cutscene->currentLabel->name == "title")
 	{
-		renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
-		renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
+		cutscene->Update();
+	}
+	else
+	{
+		if (debugMode)
+		{
+			renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
+			renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
+		}
+
+		Uint32 ticks = timer.GetTicks();
+		if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
+		{
+			// If we have pressed any key on the menu, add a delay between presses
+			if (openedMenus[openedMenus.size() - 1]->Update(*this))
+				lastPressedKeyTicks = ticks;
+		}
 	}
 
-	Uint32 ticks = timer.GetTicks();
-	if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
-	{
-		// If we have pressed any key on the menu, add a delay between presses
-		if (openedMenus[openedMenus.size() - 1]->Update(*this))
-			lastPressedKeyTicks = ticks;
-	}
+
 }
 
 void Game::UpdateTextInput()
@@ -1179,8 +1187,6 @@ void Game::Update()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	renderer->Update();
-
 	if (debugMode)
 	{
 		debugScreen->Update();
@@ -1189,17 +1195,6 @@ void Game::Update()
 	if (cutscene->watchingCutscene)
 	{
 		cutscene->Update();
-		
-		if (!cutscene->isReadingNextLine && cutscene->inputTimer.HasElapsed())
-		{
-			cutscene->CheckKeys();
-		}
-		else
-		{
-			//TODO: If we press the button before the line has finished displaying,
-			// then instantly show all the text (maybe a different button)
-			cutscene->CheckKeysWhileReading();
-		}
 	}
 	else
 	{

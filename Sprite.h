@@ -41,7 +41,12 @@ public:
 	unsigned int currentFrame = 0;
 	unsigned int currentRow = 0;
 
-	static Mesh* mesh;
+	//TODO: Maybe a MeshManager?
+	Mesh* mesh = nullptr;
+	static Mesh* meshQuad;
+	static Mesh* meshTri;
+	static Mesh* meshLine;
+
 	ShaderProgram* shader;	
 	Texture* texture;
 
@@ -79,7 +84,7 @@ public:
 	void Render(Vector2 position, int speed, Renderer* renderer, glm::vec3 rotation);
 	void SetScale(Vector2 s);
 	bool ShouldAnimate(float time);
-	void CreateMesh();
+	void CreateMesh(MeshType meshType = MeshType::Quad);
 	
 	Sprite(ShaderProgram* s);
 	Sprite(Texture* t, ShaderProgram* s);

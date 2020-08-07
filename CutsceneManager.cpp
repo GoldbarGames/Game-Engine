@@ -787,6 +787,22 @@ void CutsceneManager::Update()
 			image->Update(*game);
 	}
 
+	UpdateText();
+
+	if (!isReadingNextLine && inputTimer.HasElapsed())
+	{
+		CheckKeys();
+	}
+	else
+	{
+		//TODO: If we press the button before the line has finished displaying,
+		// then instantly show all the text (maybe a different button)
+		CheckKeysWhileReading();
+	}
+}
+
+void CutsceneManager::UpdateText()
+{
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
 	if (input[autoButton] && inputTimer.HasElapsed())
@@ -817,7 +833,7 @@ void CutsceneManager::Update()
 	{
 		autoTimeIndex = 2;
 	}
-		
+
 	//TODO: Fix this, it no longer works properly with the corrected dt
 	msGlyphTime += (float)game->dt;
 
@@ -863,7 +879,7 @@ void CutsceneManager::Update()
 
 				// Remove the sprite buttons from the screen
 				commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber) });   // bg
-				commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber+1) }); // question
+				commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber + 1) }); // question
 				for (int i = 0; i < activeButtons.size(); i++)
 				{
 					commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
@@ -888,7 +904,7 @@ void CutsceneManager::Update()
 	}
 
 	// render the textbox when not waiting
-	textbox->isReading = (msGlyphTime > 0); 
+	textbox->isReading = (msGlyphTime > 0);
 
 	if (input[skipButton])
 		msDelayBetweenGlyphs = 0.0f;
@@ -921,7 +937,7 @@ void CutsceneManager::Update()
 		if (commandIndex < 0)
 		{
 			commandIndex = 0;
-		}			
+		}
 
 		if (lineIndex < 0)
 		{
@@ -988,7 +1004,7 @@ void CutsceneManager::Update()
 						autoTimeToWait = (textbox->text->glyphs.size() * autoTimeToWaitPerGlyph);
 						autoReaderTimer.Start(autoTimeToWait);
 					}
-						
+
 
 					return;
 				}
@@ -1023,7 +1039,6 @@ void CutsceneManager::Update()
 			msGlyphTime -= msDelayBetweenGlyphs;
 		}
 	}
-
 }
 
 std::string CutsceneManager::ParseText(const std::string& originalString, int& letterIndex, Color& textColor, Text* text)

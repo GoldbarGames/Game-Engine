@@ -1,5 +1,7 @@
 #include "Renderer.h"
 #include "Sprite.h"
+#include "Game.h"
+#include <algorithm>
 
 Renderer::Renderer(Game* g)
 {
@@ -49,28 +51,37 @@ Vector2 Renderer::CalculateScale(Sprite* sourceSprite, int targetWidth, int targ
 
 void Renderer::Update()
 {
-	if (changingOverlayColor && timerOverlayColor.HasElapsed())
+	if (changingOverlayColor) // && timerOverlayColor.HasElapsed())
 	{		
 		changingOverlayColor = false;
-		UpdateOverlayColor(overlayColor.r, targetColor.r);
-		UpdateOverlayColor(overlayColor.g, targetColor.g);
-		UpdateOverlayColor(overlayColor.b, targetColor.b);
-		UpdateOverlayColor(overlayColor.a, targetColor.a);
+
+		float difference = 0;
+		float currentTime = game->timer.GetTicks() - overlayStartTime;
+		float t = 1.0f;
+		if (overlayEndTime != 0)
+		{
+			difference = overlayEndTime - overlayStartTime;
+			t = currentTime / difference;
+		}
+
+		std::cout << currentTime << " / " << difference << " = " << t << std::endl;
+
+		UpdateOverlayColor(overlayColor.r, startColor.r, targetColor.r, t);
+		UpdateOverlayColor(overlayColor.g, startColor.g, targetColor.g, t);
+		UpdateOverlayColor(overlayColor.b, startColor.b, targetColor.b, t);
+		UpdateOverlayColor(overlayColor.a, startColor.a, targetColor.a, t);
 		//std::cout << overlayColor.a << std::endl;
 		//std::cout << timerOverlayColor.GetTicks() << std::endl;
-		timerOverlayColor.Start(1);
+		//timerOverlayColor.Start(1);
 	}
 }
 
-void Renderer::UpdateOverlayColor(uint8_t& color, const int& target)
+void Renderer::UpdateOverlayColor(uint8_t& color, const int& start, const int& target, const float& t)
 {
 	if (color != target)
 	{
 		changingOverlayColor = true;
-		if (target > color)
-			color++;
-		else
-			color--;
+		color = start + (t * (target - start));
 	}
 }
 

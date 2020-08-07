@@ -1814,6 +1814,14 @@ int CutsceneCommands::Fade(CutsceneParameters parameters)
 {
 	manager->game->renderer->changingOverlayColor = true;
 
+	if (parameters.size() == 3)
+	{
+		manager->game->renderer->overlayStartTime = manager->game->timer.GetTicks();
+		manager->game->renderer->overlayEndTime = manager->game->renderer->overlayStartTime + std::stoi(parameters[2]);
+	}
+
+	manager->game->renderer->startColor = manager->game->renderer->overlayColor;
+
 	if (parameters[1] == "clear")
 	{
 		manager->game->renderer->targetColor = Color { 0, 0, 0, 0 };

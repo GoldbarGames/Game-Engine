@@ -4,6 +4,8 @@
 
 #include <GL/glew.h>
 
+enum class MeshType { Quad, Triangle, Line, Cube };
+
 class Mesh
 {
 public:

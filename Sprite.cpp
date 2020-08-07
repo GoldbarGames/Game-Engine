@@ -8,7 +8,10 @@
 
 using std::string;
 
-Mesh* Sprite::mesh = nullptr;
+//Mesh* Sprite::mesh = nullptr;
+Mesh* Sprite::meshQuad = nullptr;
+Mesh* Sprite::meshTri = nullptr;
+Mesh* Sprite::meshLine = nullptr;
 std::string Sprite::selectedColor = "clear";
 
 unsigned int Sprite::Size()
@@ -45,27 +48,85 @@ unsigned int Sprite::Size()
 }
 
 
-void Sprite::CreateMesh()
+void Sprite::CreateMesh(MeshType meshType)
 {
 	//TODO: This assumes every mesh is a quad, allow for other shapes
 	if (mesh == nullptr)
 	{
-		unsigned int quadIndices[] = {
-		0, 3, 1,
-		1, 3, 2,
-		2, 3, 0,
-		0, 1, 2
-			};
+		if (meshType == MeshType::Quad)
+		{
+			if (meshQuad == nullptr)
+			{
 
-		GLfloat quadVertices[] = {
-			-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-			1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
-			-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
-			1.0f, 1.0f, 0.0f,    0.0f, 1.0f
-		};
+				unsigned int quadIndices[] = {
+					0, 3, 1,
+					1, 3, 2,
+					2, 3, 0,
+					0, 1, 2
+				};
 
-		mesh = new Mesh();
-		mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
+				GLfloat quadVertices[] = {
+					-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+					1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
+					-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
+					1.0f, 1.0f, 0.0f,    0.0f, 1.0f
+				};
+
+				meshQuad = new Mesh();
+				meshQuad->CreateMesh(quadVertices, quadIndices, 20, 12);
+			}
+
+			mesh = meshQuad;
+
+		}
+		else if (meshType == MeshType::Triangle)
+		{
+			if (meshTri == nullptr)
+			{
+				unsigned int triIndices[] = {
+					0, 3, 1,
+					1, 3, 2,
+					2, 3, 0,
+					0, 1, 2
+				};
+
+				GLfloat triVertices[] = {
+					-1.0f, -1.0f, 0.0f,
+					0.0f, -1.0f, 1.0f,
+					1.0f, -1.0f, 0.0f,
+					0.0f, 1.0f, 0.0f
+				};
+
+				meshTri = new Mesh();
+				meshTri->CreateMesh(triVertices, triIndices, 12, 6);
+			}
+
+			mesh = meshTri;
+		}
+		else if (meshType == MeshType::Line)
+		{
+			if (meshLine == nullptr)
+			{
+				unsigned int lineIndices[] = {
+					0, 3, 1,
+					1, 3, 2,
+					2, 3, 0,
+					0, 1, 2
+				};
+
+				GLfloat lineVertices[] = {
+					-1.0f, 0.0f, 0.0f,  1.0f, 0.0f,
+					1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
+					-1.0f, 0.01f, 0.0f,   1.0f, 1.0f,
+					1.0f, 0.01f, 0.0f,    0.0f, 1.0f
+				};
+
+				meshLine = new Mesh();
+				meshLine->CreateMesh(lineVertices, lineIndices, 20, 12);
+			}
+
+			mesh = meshLine;
+		}
 	}
 }
 
@@ -79,7 +140,7 @@ Sprite::Sprite(ShaderProgram* s)
 	startFrame = 0;
 	endFrame = numberFramesInTexture;
 
-	CreateMesh();
+	CreateMesh(MeshType::Quad);
 	currentFrame = 0;
 }
 

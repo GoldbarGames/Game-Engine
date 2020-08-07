@@ -38,11 +38,8 @@ int main(int argc, char *args[])
 
 	// Load settings
 	game.LoadSettings();
-
 	game.LoadTitleScreen();
-
 	game.SortEntities(game.entities);
-
 	game.timer.Start();
 
 	const int updateInterval = 500; // update fps every X ms
@@ -105,6 +102,8 @@ int main(int argc, char *args[])
 
 		game.shouldQuit = game.CheckInputs();
 		game.CheckDeleteEntities();
+
+		game.renderer->Update();
 
 		if (game.openedMenus.size() > 0)
 		{

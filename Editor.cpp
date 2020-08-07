@@ -35,6 +35,10 @@ Editor::Editor(Game& g)
 	dialog->text->GetSprite()->keepScaleRelativeToCamera = true;
 	dialog->input->GetSprite()->keepScaleRelativeToCamera = true;
 
+
+	grid = new Sprite(game->renderer->shaders[ShaderName::Grid]);
+	grid->SetScale(Vector2(game->screenWidth, game->screenHeight));
+
 	previewMap["tile"] = game->CreateTile(Vector2(0,0), "assets/editor/rect-outline.png", 
 		Vector2(0,0), DrawingLayer::FRONT);
 
@@ -1354,23 +1358,6 @@ void Editor::ToggleTileset()
 	StartEdit();	
 }
 
-void Editor::DrawGrid()
-{
-	//SDL_SetRenderDrawColor(game->renderer->renderer, 64, 64, 64, 64);
-
-	for (int x = 0; x < 100; x++)
-	{
-		for (int y = 0; y < 100; y++)
-		{
-			SDL_Rect rect;
-			rect.x = x * GRID_SIZE;
-			rect.y = y * GRID_SIZE;
-			//SDL_RenderDrawRect(game->renderer->renderer, &rect);
-		}
-	}
-
-	//SDL_SetRenderDrawColor(game->renderer->renderer, 0, 0, 0, 255);
-}
 void Editor::RenderDebug(Renderer* renderer)
 {
 	//TODO: Only set each text if the number has changed from last time
@@ -1386,6 +1373,8 @@ void Editor::Render(Renderer* renderer)
 	//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 	//SDL_RenderDrawRect(renderer->renderer, &hoveredTileRect);
 	//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+
+	//grid->Render(Vector2(0, 0), game->renderer);
 
 	// Draw the object or tile that will be placed here, if any
 	if (objectPreview != nullptr && objectPreview->GetSprite() != nullptr)
