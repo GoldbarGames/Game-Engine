@@ -8,6 +8,7 @@
 #include "CutsceneTrigger.h"
 #include "PhysicsComponent.h"
 #include "Enemy.h"
+#include "Dialog.h"
 
 using std::string;
 
@@ -15,10 +16,22 @@ Editor::Editor(Game& g)
 {
 	game = &g;
 
-	dialogText = new Text(game->renderer, game->theFont, "");
-	dialogInput = new Text(game->renderer, game->theFont, "");
-	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
-	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
+	dialog = new Dialog(Vector2(g.screenWidth, g.screenHeight), g.spriteManager);
+	dialog->text = new Text(game->renderer, game->theFont, "");
+	dialog->input = new Text(game->renderer, game->theFont, "");
+
+	dialog->text->SetPosition(dialog->position.x, dialog->position.y + 20);
+	dialog->input->SetPosition(dialog->position.x, dialog->position.y + 70);
+
+	dialog->sprite->keepPositionRelativeToCamera = true;
+	dialog->sprite->keepScaleRelativeToCamera = true;
+	dialog->sprite->SetScale(game->renderer->CalculateScale(dialog->sprite, 
+		dialog->text->GetTextWidth(), dialog->text->GetTextHeight() * 4, dialog->text->scale));
+
+	dialog->text->GetSprite()->keepPositionRelativeToCamera = true;
+	dialog->input->GetSprite()->keepPositionRelativeToCamera = true;
+	dialog->text->GetSprite()->keepScaleRelativeToCamera = true;
+	dialog->input->GetSprite()->keepScaleRelativeToCamera = true;
 
 	previewMap["tile"] = game->CreateTile(Vector2(0,0), "assets/editor/rect-outline.png", 
 		Vector2(0,0), DrawingLayer::FRONT);
@@ -139,15 +152,6 @@ void Editor::StartEdit()
 	objectPropertiesRect.h = 600;
 	objectPropertiesRect.x = (game->screenWidth * 2) - objectPropertiesRect.w;
 	objectPropertiesRect.y = 100;
-
-	dialogRect.x = (game->screenWidth / 2) - (objectPropertiesRect.w / 2);
-	dialogRect.y = (game->screenHeight / 2) - (objectPropertiesRect.h / 2);
-	dialogRect.w = 400;
-	dialogRect.h = 200;
-
-	dialogText->SetPosition(dialogRect.x, dialogRect.y + 20);
-	dialogInput->SetPosition(dialogRect.x, dialogRect.y + 70);
-
 
 	CreateEditorButtons();
 
@@ -519,7 +523,7 @@ void Editor::InspectObject(int mouseX, int mouseY)
 					{
 						propertyIndex = i;
 						game->StartTextInput("properties");
-						SetPropertyText();
+						SetPropertyText(game->inputText);
 					}					
 				}
 				break;
@@ -566,9 +570,9 @@ std::string Editor::GetCurrentPropertyOptionString(int diff)
 		return properties[propertyIndex]->options[propertyOptionIndex];
 }
 
-void Editor::SetPropertyText()
+void Editor::SetPropertyText(const std::string& newText)
 {	
-	selectedEntity->SetProperty(properties[propertyIndex]->text->txt, game->inputText);
+	selectedEntity->SetProperty(properties[propertyIndex]->text->txt, newText);
 	selectedEntity->GetProperties(game->renderer, game->theFont, properties);
 	SetPropertyPositions();
 }
@@ -1376,8 +1380,6 @@ void Editor::RenderDebug(Renderer* renderer)
 
 void Editor::Render(Renderer* renderer)
 {
-	Vector2 cameraOffset = Vector2(renderer->camera.position.x, renderer->camera.position.y);
-
 	// Draw a white rectangle around the currently highlighted grid tile
 	//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 	//SDL_RenderDrawRect(renderer->renderer, &hoveredTileRect);
@@ -1514,39 +1516,28 @@ void Editor::Render(Renderer* renderer)
 		layerVisibleButtons[i]->Render(renderer);
 	}
 
-	if (showDialogPopup)
+	if (dialog != nullptr && dialog->visible)
 	{
-		// Draw the box that goes underneath the popup dialog
-		//SDL_SetRenderDrawColor(renderer->renderer, 128, 128, 128, 255);
-		//SDL_RenderFillRect(renderer->renderer, &dialogRect);
-
-		// Draw the text for the popup dialog
-		//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-		dialogText->Render(renderer);
-		dialogInput->Render(renderer);
-		//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
+		dialog->Render(renderer);
 	}
 }
 
 void Editor::DestroyDialog()
 {
-	if (dialogText != nullptr)
-		delete dialogText;
-
-	if (dialogInput != nullptr)
-		delete dialogInput;
+	if (dialog != nullptr)
+		dialog->visible = false;
 }
 
-void Editor::CreateDialog(std::string txt)
+void Editor::CreateDialog(const std::string& txt)
 {
-	//DestroyDialog();
-
-	//TODO: There might be a small memory leak here, but it's not too bad right now.
-
-	dialogText->SetText(txt);
-	dialogInput->SetText("");
-
-	showDialogPopup = true;
+	if (dialog != nullptr)
+	{
+		dialog->text->SetText(txt);
+		dialog->input->SetText("");
+		dialog->visible = true;
+		dialog->sprite->SetScale(game->renderer->CalculateScale(dialog->sprite,
+			dialog->text->GetTextWidth(), dialog->text->GetTextHeight() * 4, dialog->text->scale));
+	}
 }
 
 void Editor::NewLevel()

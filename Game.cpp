@@ -11,6 +11,7 @@
 #include <time.h>
 #include "sdl_helpers.h"
 #include "PhysicsComponent.h"
+#include "Dialog.h"
 
 using std::string;
 
@@ -593,18 +594,18 @@ void Game::StopTextInput()
 
 	if (inputType == "properties")
 	{		
-		editor->SetPropertyText();
+		editor->SetPropertyText(inputText);
 		editor->propertyIndex = -1;
 		editor->DoAction();
 	}
 	else if (inputType == "new_level")
 	{
-		editor->showDialogPopup = false;
+		editor->DestroyDialog();
 		editor->SaveLevel(inputText);
 	}
 	else if (inputType == "load_file_as")
 	{
-		editor->showDialogPopup = false;
+		editor->DestroyDialog();
 		editor->InitLevelFromFile(inputText);
 	}
 }
@@ -1165,15 +1166,15 @@ void Game::UpdateTextInput()
 {
 	if (inputType == "properties")
 	{
-		editor->SetPropertyText();
+		editor->SetPropertyText(inputText);
 	}
 	else if (inputType == "new_level")
 	{
-		editor->dialogInput->SetText(inputText);
+		editor->dialog->input->SetText(inputText);
 	}
 	else if (inputType == "load_file_as")
 	{
-		editor->dialogInput->SetText(inputText);
+		editor->dialog->input->SetText(inputText);
 	}
 }
 

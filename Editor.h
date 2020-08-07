@@ -24,6 +24,7 @@ class Renderer;
 class NPC;
 class Path;
 class Text;
+class Dialog;
 
 class Editor
 {
@@ -40,16 +41,12 @@ private:
 	Vector2 objPreviewPosition = Vector2(0,0);
 
 	SDL_Rect objectPropertiesRect;
-	SDL_Rect dialogRect;
-
-	Text* dialogText = nullptr;	
 
 	Uint32 previousMouseState = 0;
 
 	std::vector<EditorButton*> buttons;
 	std::vector<EditorButton*> layerButtons;
 	std::vector<EditorButton*> layerVisibleButtons;
-
 	
 
 	Door* currentDoor = nullptr;
@@ -87,8 +84,11 @@ public:
 
 	Entity* objectPreview = nullptr;
 
-	Text* dialogInput = nullptr;
-	bool showDialogPopup = false;
+
+	Dialog* dialog;
+	//Text* dialogText = nullptr;
+	//Text* dialogInput = nullptr;
+	//bool showDialogPopup = false;
 
 	// Settings
 	int replaceSettingIndex = 0;
@@ -136,14 +136,14 @@ public:
 	void DrawGrid();
 
 	void DestroyDialog();
-	void CreateDialog(std::string txt);
+	void CreateDialog(const std::string& txt);
 
 	void PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY);
 	void PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY);
 	void InspectObject(int mouseX, int mouseY);
 	void SetPropertyPositions();
 
-	void SetPropertyText();
+	void SetPropertyText(const std::string& newText);
 
 	std::string GetCurrentPropertyOptionString(int diff);
 
