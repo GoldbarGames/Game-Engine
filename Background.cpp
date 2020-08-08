@@ -91,9 +91,20 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 	
 }
 
+//TODO: Should this stuff go inside the Background class constructor?
 void Background::CreateBackground(std::string n, Vector2 pos, SpriteManager* spriteManager, Renderer* renderer)
 {
 	name = n;
+
+	// SPECIAL CASE (TODO: Deal with special cases)
+	if (name == "forest")
+	{
+		pos.y -= 200;
+		// This is the blue sky (taking a white square and coloring it blue and increasing its size)
+		Entity* blueBG = AddLayer(pos + Vector2(0, -1440), spriteManager, renderer, "assets/gui/white.png", -99, 0.0f);
+		blueBG->GetSprite()->color = { 0, 0, 83, 255 };
+		blueBG->GetSprite()->SetScale(Vector2(19.875f, 11.2f * 4));
+	}
 
 	BackgroundData* data = bgData[name];
 
@@ -102,17 +113,6 @@ void Background::CreateBackground(std::string n, Vector2 pos, SpriteManager* spr
 		BackgroundLayerData* ld = data->layers[i];
 		AddLayer(Vector2(pos.x + ld->offsetX, pos.y + ld->offsetY), spriteManager, renderer,
 			ld->filepath, ld->drawOrder, ld->parallax);
-	}
-
-	//TODO: Should this stuff go inside the Background class constructor?
-	if (name == "forest")
-	{
-		// SPECIAL CASE (TODO: Deal with special cases)
-		// This is the blue sky (taking a white square and coloring it blue and increasing its size)
-		Entity* blueBG = AddLayer(pos + Vector2(0, 0), spriteManager, renderer, "assets/gui/white.png", -99, 0.0f);
-		blueBG->GetSprite()->color = { 0, 0, 83, 255 };
-		blueBG->GetSprite()->SetScale(Vector2(19.875f, 11.2f * 4));
-		blueBG->position.y -= (358 * 4);
 	}
 }
 

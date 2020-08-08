@@ -64,7 +64,7 @@ void Renderer::Update()
 			t = currentTime / difference;
 		}
 
-		std::cout << currentTime << " / " << difference << " = " << t << std::endl;
+		//std::cout << currentTime << " / " << difference << " = " << t << std::endl;
 
 		UpdateOverlayColor(overlayColor.r, startColor.r, targetColor.r, t);
 		UpdateOverlayColor(overlayColor.g, startColor.g, targetColor.g, t);

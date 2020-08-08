@@ -29,7 +29,7 @@ void operator delete(void* p)
 int main(int argc, char *args[])
 {
 #ifdef _WIN32
-	//TODO: #ifdef MY_ENABLE_LEAK_CHECK /DMYENABLE_LEAK_CHECK
+	//#ifdef MY_ENABLE_LEAK_CHECK /DMYENABLE_LEAK_CHECK
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	//_CrtSetBreakAlloc(5007);
 #endif

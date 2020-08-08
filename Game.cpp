@@ -90,10 +90,11 @@ Game::Game()
 	headerFont->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 
 	soundManager = new SoundManager();
+	soundManager->ReadMusicData("data/bgm.dat");
 
 	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager)
 	cutscene = new CutsceneManager(*this);
-	cutscene->ParseScene();
+	cutscene->ParseScene();	
 
 	//ShaderProgram* shader = renderer->shaders[ShaderName::Default];
 
@@ -524,8 +525,6 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 	return tile;
 }
 
-
-
 Player* Game::SpawnPlayer(Vector2 position)
 {
 	Player* player = new Player(position);
@@ -637,7 +636,7 @@ void Game::TransitionLevel()
 
 	if (transitionState == 1) // exit the old level, start condition
 	{
-		std::cout << "t1" << std::endl;
+		//std::cout << "t1" << std::endl;
 
 		if (transitionExit == 0)
 		{
@@ -658,7 +657,7 @@ void Game::TransitionLevel()
 	}
 	else if (transitionState == 2) // check exit condition
 	{
-		std::cout << "t2" << std::endl;
+		//std::cout << "t2" << std::endl;
 
 		if (transitionExit == 0)
 		{
@@ -687,7 +686,7 @@ void Game::TransitionLevel()
 	}
 	else if (transitionState == 3) // enter the new level, start condition
 	{
-		std::cout << "t3" << std::endl;
+		//std::cout << "t3" << std::endl;
 
 		if (transitionEnter == 0)
 		{
@@ -700,16 +699,15 @@ void Game::TransitionLevel()
 			renderer->overlayEndTime = renderer->overlayStartTime + 1000;
 			renderer->startColor = renderer->overlayColor;
 			renderer->targetColor = Color{ 0, 0, 0, 0 };
-
-			//TODO: Load different music based on each level
-			soundManager->PlayBGM("bgm/Forest.ogg");
 		}
+
+		soundManager->PlayBGM(soundManager->bgmNames[nextBGM]);
 
 		transitionState = 4;
 	}
 	else if (transitionState == 4) // check enter condition
 	{
-		std::cout << "t4" << std::endl;
+		//std::cout << "t4" << std::endl;
 
 		if (transitionEnter == 0)
 		{
@@ -845,7 +843,6 @@ void Game::EscapeMenu()
 		}
 	}
 }
-
 
 void Game::SaveEditorSettings()
 {
@@ -1057,7 +1054,14 @@ bool Game::HandleEvent(SDL_Event& event)
 
 	if (event.type == SDL_MOUSEWHEEL)
 	{
-		//TODO: Zooming in and out
+		if (event.wheel.y > 0)
+		{
+			renderer->camera.Zoom(-0.1f, screenWidth, screenHeight);
+		}
+		else if (event.wheel.y < 0)
+		{
+			renderer->camera.Zoom(0.1f, screenWidth, screenHeight);
+		}
 	}
 
 	if (event.type == SDL_KEYDOWN)

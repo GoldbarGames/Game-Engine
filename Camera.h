@@ -30,6 +30,8 @@ public:
 	void ResetProjection();
 	void ResetCamera();
 
+	static float MULTIPLIER;
+
 	glm::mat4 projection = glm::mat4();
 	glm::mat4 guiProjection = glm::mat4();
 	glm::mat4 CalculateViewMatrix();

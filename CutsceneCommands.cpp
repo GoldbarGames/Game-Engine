@@ -72,6 +72,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"reset", &CutsceneCommands::ResetGame },
 	{"resolution", &CutsceneCommands::SetResolution },
 	{"return", &CutsceneCommands::ReturnFromSubroutine },
+	{"rclick", &CutsceneCommands::RightClickSettings },
 	{"savegame",&CutsceneCommands::SaveGame },
 	{"screenshot",&CutsceneCommands::ScreenshotCommand },
 	{"se", &CutsceneCommands::SoundCommand },
@@ -2678,6 +2679,21 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 
 			
 		}
+	}
+
+	return 0;
+}
+
+
+int CutsceneCommands::RightClickSettings(CutsceneParameters parameters)
+{
+	if (parameters[1] == "off")
+	{
+		manager->rclickEnabled = false;
+	}
+	else if (parameters[1] == "on")
+	{
+		manager->rclickEnabled = true;
 	}
 
 	return 0;

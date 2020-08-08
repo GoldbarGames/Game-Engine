@@ -55,6 +55,7 @@ private:
 
 public:
 	std::unordered_map<int, SoundChannel*> sounds;
+	std::unordered_map<std::string, std::string> bgmNames;
 	Uint32 GetVolumeBGM();
 	Uint32 GetVolumeSound();
 	int bgmVolumeIndex = 0;
@@ -72,6 +73,7 @@ public:
 	void PlaySound(const std::string& filepath, int channel = -1, int loop = 0);
 	void ClearChannel(int channel);
 	void SetVolumeSound(int index);
+	void ReadMusicData(const std::string& dataFilePath);
 };
 
 #endif

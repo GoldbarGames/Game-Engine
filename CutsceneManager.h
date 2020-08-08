@@ -96,6 +96,7 @@ class CutsceneManager
 	std::string data = "";
 	std::string currentText = "";
 public:	 
+	bool rclickEnabled = true;
 	bool autoreturn = false;
 	bool autosave = false;
 	bool overwriteName = true;

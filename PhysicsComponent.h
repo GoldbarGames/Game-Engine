@@ -39,8 +39,6 @@ public:
 	Entity* prevParent = nullptr;
 	Entity* parent = nullptr;
 
-	//TODO: Can we make this so that only the player has this?
-	// OR does this mean that if other characters jump, we use this bool?
 	bool hadPressedJump = false;
 	bool pressingJumpButton = false;
 	bool canJump = true;

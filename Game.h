@@ -167,6 +167,7 @@ public:
 	//GameState previousState;
 
 	std::string nextLevel = "";
+	std::string nextBGM = "";
 
 	Uint32 lastPressedKeyTicks = 0;
 	//std::vector<Background*> backgrounds;

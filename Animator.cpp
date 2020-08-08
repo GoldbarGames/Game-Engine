@@ -64,12 +64,6 @@ AnimatorInfo::AnimatorInfo(std::string name)
 					stateNames.clear();
 					readingInConditions = false;
 				}
-				
-				if (stateName != "")
-				{
-					//TODO: Save info for this state
-					// before moving on to the next one
-				}
 
 				index = 1;
 				stateName = ParseWord(line, '*', index);
@@ -176,10 +170,6 @@ Animator::Animator(const std::string& entityName, std::vector<AnimState*> states
 	if (mapTypeToInfo.count(animatorType) != 1)
 	{
 		// Parse the animator state info here
-		//TODO: Maybe change from enums to ints, and map these ints in an external file,
-		// that way we don't have to add any enums for new animations
-		//TODO: We want to map the animType to the vars/states and parse its file here
-
 		mapTypeToInfo[animatorType] = new AnimatorInfo(entityName);
 	}
 

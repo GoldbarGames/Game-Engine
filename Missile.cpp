@@ -4,17 +4,12 @@
 
 Missile::Missile(Vector2 pos) : Entity(pos)
 {
-	//TODO: Check to see whether this collider exists or if it gets replaced with the base class
 	CreateCollider(0, -3, 10, 10);
 
 	timeToLive.Start(2000);
 
 	etype = "missile";
 	physics = new PhysicsComponent(this);
-
-	//TODO: Is there a good way to do this from within the constructor?
-	//animator = new Animator("missile", "moving"); //TODO: Make these parameters?
-	//animator->SetBool("destroyed", false);
 }
 
 Missile::~Missile()

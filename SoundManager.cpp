@@ -1,4 +1,8 @@
 #include "SoundManager.h"
+#include <iostream>
+#include <fstream>
+#include <iterator>
+#include <sstream>
 
 SoundManager::SoundManager()
 {
@@ -120,4 +124,52 @@ void SoundManager::SetVolumeSound(int index)
 Uint32 SoundManager::GetVolumeSound()
 {
 	return volumeSound;
+}
+
+void SoundManager::ReadMusicData(const std::string& dataFilePath)
+{
+	// Get data from the file
+	std::ifstream fin;
+	fin.open(dataFilePath);
+
+	std::string data = "";
+	for (std::string line; std::getline(fin, line); )
+	{
+		data += line + "\n";
+	}
+
+	fin.close();
+
+	// Go through the data and add all states
+	std::stringstream ss{ data };
+
+	char lineChar[256];
+	ss.getline(lineChar, 256);
+
+	std::string bgmName = "";
+
+	int offsetX, offsetY, drawOrder = 0;
+	std::string filepath = "";
+	float parallax = 0.0f;
+	int index = 0;
+
+
+	while (ss.good() && !ss.eof())
+	{
+		std::istringstream buf(lineChar);
+		std::istream_iterator<std::string> beg(buf), end;
+		std::vector<std::string> tokens(beg, end);
+
+		index = 0;
+		if (tokens.size() == 0)
+			break;
+
+		bgmName = tokens[index + 1];
+		bgmNames[tokens[index]] = bgmName;
+		index++;
+
+		ss.getline(lineChar, 256);
+	}
+
+
 }

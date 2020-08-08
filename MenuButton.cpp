@@ -20,8 +20,8 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath, cons
 	
 	name = function;
 
-	//TODO: What if I want to scale the button to a particular width and height independent of the image?
-	//ANSWER: See the EditorButton
+	//What if I want to scale the button to a particular width and height 
+	// independent of the image? ANSWER: See the EditorButton
 
 	position = pos;
 
@@ -40,12 +40,8 @@ MenuButton::~MenuButton()
 
 void MenuButton::Render(Renderer* renderer)
 {	
-	//TODO: Add padding to center the text inside the aligned image
-
 	if (text != nullptr && text->isRichText)
 	{		
-		//position.y + (image->frameHeight * image->scale.y));
-
 		switch (text->alignX)
 		{
 		default:

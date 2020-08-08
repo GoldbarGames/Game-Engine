@@ -24,10 +24,8 @@ public:
 	std::unordered_map<std::string, std::string> stralias;
 	std::unordered_map<std::string, unsigned int> numalias;
 	std::unordered_map<unsigned int, std::string> stringVariables;
-	std::vector<UserDefinedFunction*> userDefinedFunctions;
-
-	//TODO: Make this only accessible to the manager
 	std::unordered_map<unsigned int, int> numberVariables;
+	std::vector<UserDefinedFunction*> userDefinedFunctions;	
 
 	// When you press the button, jump to the corresponding label
 	std::unordered_map<unsigned int, std::string> buttonLabels;
@@ -125,6 +123,8 @@ public:
 	int BindKeyToLabel(CutsceneParameters parameters);
 
 	int FlipSprite(CutsceneParameters parameters);
+
+	int RightClickSettings(CutsceneParameters parameters);
 
 	
 	Color ParseColorFromParameters(const std::vector<std::string>& parameters, const int index);

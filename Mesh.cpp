@@ -42,13 +42,14 @@ void Mesh::CreateMesh(GLfloat* vertices, unsigned int* indices,
 
 void Mesh::RenderMesh()
 {
-    glBindVertexArray(VAO);
-
-    //TODO: Check if zero, then dont draw anything
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glDrawElements(mode, indexCount, GL_UNSIGNED_INT, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    if (indexCount > 0)
+    {
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+        glDrawElements(mode, indexCount, GL_UNSIGNED_INT, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
 }
 
 void Mesh::ClearMesh()

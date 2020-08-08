@@ -201,8 +201,6 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	bool horizontalCollision = false;
 	bool verticalCollision = false;
 
-	//const int TARGET_FPS = 30;
-
 	// Get bounds assuming the move is valid
 	SDL_Rect myBounds = *(our->GetBounds());
 	myBounds.x -= (myBounds.w / 2);

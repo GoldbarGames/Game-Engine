@@ -36,11 +36,13 @@ private:
 public:
 
 	Sprite* GetCurrentSprite();
+
 	Timer animationTimer;
 	int animatorType = 0;
-	AnimState* currentState;
-	AnimState* previousState;
-	AnimState* beforePreviousState;
+	AnimState* currentState = nullptr;
+	AnimState* previousState = nullptr;
+	AnimState* beforePreviousState = nullptr;
+
 	void SetState(const char* state);
 	void OnEnter(AnimState state);
 	void DoState(Entity* entity);

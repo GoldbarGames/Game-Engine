@@ -167,7 +167,22 @@ void CutsceneManager::CheckKeys()
 
 		if (readingBacklog)
 		{
-			// TODO: Use mouse wheel here?
+			SDL_Event event;
+			while (SDL_PollEvent(&event))
+			{
+				if (event.type == SDL_MOUSEWHEEL)
+				{
+					if (event.wheel.y > 0)
+					{
+						game->renderer->camera.Zoom(-0.1f, game->screenWidth, game->screenHeight);
+					}
+					else if (event.wheel.y < 0)
+					{
+						game->renderer->camera.Zoom(0.1f, game->screenWidth, game->screenHeight);
+					}
+				}
+			}
+			
 		}
 		else
 		{
@@ -177,7 +192,7 @@ void CutsceneManager::CheckKeys()
 				previousMouseState = SDL_BUTTON_LEFT;
 				ReadNextLine();
 			}
-			else if (mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_RIGHT))
+			else if ( (mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_RIGHT)) && rclickEnabled)
 			{
 				previousMouseState = SDL_BUTTON_RIGHT;
 				commandIndex--;

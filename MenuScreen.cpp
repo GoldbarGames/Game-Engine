@@ -364,7 +364,8 @@ bool MenuScreen::PressSelectedButton(Game& game)
 
 		if (currentGame == "WDK")
 		{
-			game.LoadLevel("demo", 1, 1);
+			//game.LoadLevel("demo", 1, 1);
+			game.LoadLevel("demo");
 		}
 		else if (currentGame == "DB2")
 		{
@@ -380,9 +381,10 @@ bool MenuScreen::PressSelectedButton(Game& game)
 		game.openedMenus.clear();
 		game.openedMenus.emplace_back(game.allMenus["Title"]);
 	}
-
-	//TODO: Create enums for button functions and menu screen names
-	// so that we don't reference stuff that doesn't exist
+	else
+	{
+		std::cout << "ERROR: Selected button name " << selectedButton->name << "not found!" << std::endl;
+	}
 
 	return false;
 }

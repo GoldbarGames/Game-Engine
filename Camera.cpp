@@ -3,6 +3,8 @@
 #include <SDL_scancode.h>
 #include "globals.h"
 
+float Camera::MULTIPLIER = 2.0f;
+
 Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, 
 	float startYaw, float startPitch,
 	float startMovementSpeed, float startTurnSpeed,
@@ -32,7 +34,7 @@ Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp,
 
 	//TODO: Replace width and height with startWidth and startHeight
 	// This is what scales the gui-scaled images when we change screen resolutions
-	guiProjection = glm::ortho(0.0f, width * 2.0f, height * 2.0f, 0.0f, -1.0f, 10.0f);
+	guiProjection = glm::ortho(0.0f, width * MULTIPLIER, height * MULTIPLIER, 0.0f, -1.0f, 10.0f);
 
 	Zoom(0.0f, width, height);
 

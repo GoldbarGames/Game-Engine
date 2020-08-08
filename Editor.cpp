@@ -219,7 +219,7 @@ void Editor::StopEdit()
 void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition)
 {
 	bool clickedToolboxWindow = mouseX >= tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth
-		&& mouseY <= tilesheetSprites[tilesheetIndex]->frameHeight * 2;
+		&& mouseY <= tilesheetSprites[tilesheetIndex]->frameHeight * Camera::MULTIPLIER;
 
 	bool clickedNewButton = false;
 	if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
@@ -262,14 +262,14 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		}
 	}
 
-	mouseX /= 2;
-	mouseY /= 2;
+	mouseX /= Camera::MULTIPLIER;
+	mouseY /= Camera::MULTIPLIER;
 
 	// Allow the tile sheet to be clicked when in certain modes
 	if ( (objectMode == "tile" || objectMode == "replace" || objectMode == "copy") && clickedToolboxWindow)
 	{
-		mouseX *= 2;
-		mouseY *= 2;
+		mouseX *= Camera::MULTIPLIER;
+		mouseY *= Camera::MULTIPLIER;
 
 		const int topLeftX = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth;
 		const int topLeftY = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight;
@@ -281,11 +281,11 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		float x2 = (xOffset / (float)(TILE_SIZE));
 		float y2 = (yOffset / (float)(TILE_SIZE));
 
-		spriteSheetTileFrame.x = (int)(roundf(x2)/2.0f) + 1;
-		spriteSheetTileFrame.y = (int)(roundf(y2)/2.0f) + 1;
+		spriteSheetTileFrame.x = (int)(roundf(x2)/ Camera::MULTIPLIER) + 1;
+		spriteSheetTileFrame.y = (int)(roundf(y2)/ Camera::MULTIPLIER) + 1;
 
-		int moveRight = ( (spriteSheetTileFrame.x - 1) * TILE_SIZE * 2);
-		int moveDown = ( (spriteSheetTileFrame.y - 1) * TILE_SIZE * 2);
+		int moveRight = ( (spriteSheetTileFrame.x - 1) * TILE_SIZE * Camera::MULTIPLIER);
+		int moveDown = ( (spriteSheetTileFrame.y - 1) * TILE_SIZE * Camera::MULTIPLIER);
 
 		//std::cout << "(" << x2 << "," << y2 << ")" << std::endl;
 		//std::cout << "(" << spriteSheetTileFrame.x << "," << spriteSheetTileFrame.y << ")" << std::endl;
@@ -404,7 +404,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		}
 		
 	}
-	else if (mouseY < 1290/2) // we clicked somewhere in the game world, so place a tile/object
+	else if (mouseY < 1290/Camera::MULTIPLIER) // we clicked somewhere in the game world, so place a tile/object
 	{
 		//clickedPosition += game->camera;
 
@@ -795,7 +795,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 			game->entities[i]->etype == "tile")
 		{
 
-			if (replaceSettingIndex == 0) //TODO: Can we replace these numbers with strings?
+			if (replaceSettingIndex == 0)
 			{
 				canPlaceTileHere = false;
 			}
@@ -884,7 +884,7 @@ void Editor::RightClick(Vector2 clickedPosition)
 		
 		bool samePosition = (entityPosition == game->CalculateObjectSpawnPosition(clickedInt, GRID_SIZE));
 		
-		if (deleteSettingIndex == 0) // TODO: Can we change this number to a string?
+		if (deleteSettingIndex == 0)
 		{
 			// Same layer, same mode
 			shouldDeleteThis = samePosition && sameLayer && sameMode;
@@ -1036,7 +1036,7 @@ void Editor::HandleEdit()
 	{
 		// We multiply X and Y by 2 because the guiProjection is multiplied by 2
 		// TODO: Maybe remove the multiplier
-		LeftClick(clickedScreenPosition, mouseX*2, mouseY*2, objPreviewPosition);
+		LeftClick(clickedScreenPosition, mouseX*Camera::MULTIPLIER, mouseY* Camera::MULTIPLIER, objPreviewPosition);
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{
@@ -1804,6 +1804,10 @@ void Editor::CreateLevelFromString(std::string level)
 			}
 
 			
+		}
+		else if (etype == "bgm")
+		{
+			game->nextBGM = tokens[index++];
 		}
 		else if (etype == "bg")
 		{
