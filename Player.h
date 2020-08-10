@@ -45,12 +45,12 @@ public:
 	void UpdateAnimator();
 	void UpdateSpellAnimation(const char* spellName);
 
-	void RenderDebug(Renderer* renderer);
-	void Render(Renderer* renderer);
+	void RenderDebug(const Renderer& renderer);
+	void Render(const Renderer& renderer);
 
 	void ResetPosition();
 
-	void GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties);
+	void GetProperties(const Renderer& renderer, FontInfo* font, std::vector<Property*>& properties);
 
 	void SetProperty(std::string prop, std::string newValue);
 

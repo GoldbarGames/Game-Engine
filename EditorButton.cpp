@@ -22,7 +22,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	buttonWindowRect.x = 0;
 	buttonWindowRect.y = 0;
 
-	text = new Text(game.renderer, game.theFont, txt, true, true);
+	text = new Text(game.theFont, txt, true, true);
 
 	if (image == nullptr) // if no image, set the size to 50,50
 	{
@@ -50,7 +50,7 @@ EditorButton::~EditorButton()
 
 }
 
-void EditorButton::Render(Renderer* renderer)
+void EditorButton::Render(const Renderer& renderer)
 {
 	// Set positiion of the button
 

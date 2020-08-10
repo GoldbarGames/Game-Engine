@@ -184,31 +184,31 @@ void Platform::Update(Game& game)
 
 }
 
-void Platform::Render(Renderer * renderer)
+void Platform::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
 }
 
-void Platform::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
+void Platform::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 {
-	Entity::GetProperties(renderer, font, properties);
+	Entity::GetProperties(font, properties);
 	
 	const std::vector<std::string> platformTypes = { "Idle", "Move", "Path" };
-	properties.emplace_back(new Property(new Text(renderer, font, "Platform Type: " + platformType), platformTypes));
+	properties.emplace_back(new Property(new Text(font, "Platform Type: " + platformType), platformTypes));
 
 	if (platformType == "Move" || platformType == "Move")
 	{
-		properties.emplace_back(new Property(new Text(renderer, font, "Velocity X: " + std::to_string(startVelocity.x))));
-		properties.emplace_back(new Property(new Text(renderer, font, "Velocity Y: " + std::to_string(startVelocity.y))));
-		properties.emplace_back(new Property(new Text(renderer, font, "Distance: " + std::to_string(tilesToMove))));
-		properties.emplace_back(new Property(new Text(renderer, font, "Loop: " + std::to_string(shouldLoop))));
+		properties.emplace_back(new Property(new Text(font, "Velocity X: " + std::to_string(startVelocity.x))));
+		properties.emplace_back(new Property(new Text(font, "Velocity Y: " + std::to_string(startVelocity.y))));
+		properties.emplace_back(new Property(new Text(font, "Distance: " + std::to_string(tilesToMove))));
+		properties.emplace_back(new Property(new Text(font, "Loop: " + std::to_string(shouldLoop))));
 	}
 	else if (platformType == "Path")
 	{
 		const std::vector<std::string> behaviorOptions = { "Stop", "Reverse", "Selfdestruct", "Fall" };
-		properties.emplace_back(new Property(new Text(renderer, font, "Path ID: " + std::to_string(pathID))));
-		properties.emplace_back(new Property(new Text(renderer, font, "Speed: " + std::to_string(pathSpeed))));
-		properties.emplace_back(new Property(new Text(renderer, font, "End Behavior: " + endPathBehavior), behaviorOptions));
+		properties.emplace_back(new Property(new Text(font, "Path ID: " + std::to_string(pathID))));
+		properties.emplace_back(new Property(new Text(font, "Speed: " + std::to_string(pathSpeed))));
+		properties.emplace_back(new Property(new Text(font, "End Behavior: " + endPathBehavior), behaviorOptions));
 	}
 	else if (platformType == "Idle")
 	{

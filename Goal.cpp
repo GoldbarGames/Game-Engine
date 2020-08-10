@@ -47,9 +47,9 @@ void Goal::OnTriggerExit(Entity* other, Game& game)
 
 void Goal::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
 {
-	Entity::GetProperties(renderer, font, properties);
+	Entity::GetProperties(font, properties);
 
-	properties.emplace_back(new Property(new Text(renderer, font, "Next Level: " + nextLevelName)) );
+	properties.emplace_back(new Property(new Text(font, "Next Level: " + nextLevelName)) );
 }
 
 void Goal::SetProperty(std::string prop, std::string newValue)

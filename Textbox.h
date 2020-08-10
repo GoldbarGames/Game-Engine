@@ -43,7 +43,7 @@ public:
 
 	void UpdateText(const char c, const Color& color);
 	void UpdateText(const std::string& newText, const Color& color);
-	void Render(Renderer* renderer, const int& screenWidth, const int& screenHeight);
+	void Render(const Renderer& renderer, const int& screenWidth, const int& screenHeight);
 
 	void SetCursorPosition(bool endOfPage);
 	void SetCursorPosition(bool endOfPage, Vector2 cursorPos);

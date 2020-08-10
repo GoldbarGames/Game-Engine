@@ -489,7 +489,7 @@ void PhysicsComponent::PreviousFrameCollisions(Game& game)
 		}
 
 		if (triggerExit && prevFrameCollisions[i] != nullptr)
-			prevFrameCollisions[i]->OnTriggerExit(our, game);
+			prevFrameCollisions[i]->OnTriggerExit(*our, game);
 	}
 }
 
@@ -516,11 +516,11 @@ bool PhysicsComponent::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 
 		if (collisionStay)
 		{
-			collidedEntity->OnTriggerStay(our, game);
+			collidedEntity->OnTriggerStay(*our, game);
 		}
 		else
 		{
-			collidedEntity->OnTriggerEnter(our, game);
+			collidedEntity->OnTriggerEnter(*our, game);
 		}
 
 		thisFrameCollisions.emplace_back(collidedEntity);

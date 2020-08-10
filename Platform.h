@@ -25,9 +25,9 @@ public:
 
 	Platform(Vector2 pos);
 	~Platform();
-	void GetProperties(Renderer* renderer, FontInfo* font, std::vector<Property*>& properties);
+	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
 	void SetProperty(std::string prop, std::string newValue);
-	void Render(Renderer* renderer);
+	void Render(const Renderer& renderer);
 	void Update(Game& game);
 
 	void Save(std::ostringstream& level);

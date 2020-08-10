@@ -19,7 +19,7 @@ public:
 	MenuButton(const std::string& txt, const std::string& filepath, 
 		const std::string& function, Vector2 pos, Game& game);
 	~MenuButton();
-	void Render(Renderer* renderer);
+	void Render(const Renderer& renderer);
 	BaseButton* Update(Game& game, const Uint8* currentKeyStates);
 	void SetOptionColors(Color color);
 };

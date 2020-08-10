@@ -5,7 +5,7 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath, cons
 {
 	image = new Sprite(1, game.spriteManager, filepath, game.renderer->shaders[ShaderName::GUI], Vector2(0,0));
 
-	text = new Text(game.renderer, game.theFont);
+	text = new Text(game.theFont);
 
 	text->alignX = AlignmentX::CENTER;
 	text->isRichText = false;
@@ -38,7 +38,7 @@ MenuButton::~MenuButton()
 
 }
 
-void MenuButton::Render(Renderer* renderer)
+void MenuButton::Render(const Renderer& renderer)
 {	
 	if (text != nullptr && text->isRichText)
 	{		

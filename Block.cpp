@@ -22,22 +22,22 @@ Block::~Block()
 
 }
 
-void Block::Render(Renderer * renderer)
+void Block::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
 }
 
-void Block::GetProperties(Renderer * renderer, FontInfo * font, std::vector<Property*>& properties)
+void Block::GetProperties(FontInfo * font, std::vector<Property*>& properties)
 {
-	Entity::GetProperties(renderer, font, properties);
+	Entity::GetProperties(font, properties);
 
-	properties.emplace_back(new Property(new Text(renderer, font, "Collider Pos X: " + std::to_string((int)collider->offset.x))));
-	properties.emplace_back(new Property(new Text(renderer, font, "Collider Pos Y: " + std::to_string((int)collider->offset.y))));
+	properties.emplace_back(new Property(new Text(font, "Collider Pos X: " + std::to_string((int)collider->offset.x))));
+	properties.emplace_back(new Property(new Text(font, "Collider Pos Y: " + std::to_string((int)collider->offset.y))));
 	//properties.emplace_back(new Property(new Text(renderer, font, "Collider Width: " + std::to_string(colliderWidth))));
 	//properties.emplace_back(new Property(new Text(renderer, font, "Collider Height: " + std::to_string(colliderHeight))));
 }
 
-void Block::SetProperty(std::string prop, std::string newValue)
+void Block::SetProperty(const std::string& prop, const std::string& newValue)
 {
 	// 1. Split the string into two (key and value)
 	std::string key = "";
@@ -50,6 +50,7 @@ void Block::SetProperty(std::string prop, std::string newValue)
 	}
 
 	// 2. Based on the key, change its value
+	//TODO: Make this more robust
 	if (key == "Collider Pos X")
 	{
 		if (newValue != "")

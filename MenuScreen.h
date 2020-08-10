@@ -20,7 +20,7 @@ public:
 	int selectedButtonIndex = 0;
 	MenuScreen(std::string n, Game& game);
 	~MenuScreen();
-	void Render(Renderer* renderer);
+	void Render(const Renderer& renderer);
 	bool Update(Game& game);
 	bool PressSelectedButton(Game& game);
 	BaseButton* GetButtonByName(std::string buttonName);

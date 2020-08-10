@@ -467,7 +467,7 @@ void CutsceneManager::ParseConfig(const char* configName)
 
 
 
-void CutsceneManager::Render(Renderer * renderer)
+void CutsceneManager::Render(const Renderer& renderer)
 {
 	if (watchingCutscene)
 	{
@@ -479,7 +479,8 @@ void CutsceneManager::Render(Renderer * renderer)
 		}
 
 		// Render the overlay above all sprites
-		renderer->FadeOverlay(game->screenWidth, game->screenHeight);
+		renderer.FadeOverlay(game->screenWidth, game->screenHeight);
+		renderer.overlaySprite->Render(Vector2(0, 0), renderer);
 
 		// Render the textbox above everything
 		if (currentLabel->name != "title")
@@ -492,7 +493,8 @@ void CutsceneManager::Render(Renderer * renderer)
 	}
 	else // only draw the overlay, not text or box
 	{
-		renderer->FadeOverlay(game->screenWidth, game->screenHeight);
+		renderer.FadeOverlay(game->screenWidth, game->screenHeight);
+		renderer.overlaySprite->Render(Vector2(0, 0), renderer);
 	}
 }
 
@@ -1782,7 +1784,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 						std::stoi(lineParams[8]), 
 						std::stoi(lineParams[9]));
 
-					entity->SetSprite(entity->GetSprite());
+					entity->SetSprite(*entity->GetSprite());
 				}
 				break;
 			case SaveSections::NAMES_TO_COLORS:

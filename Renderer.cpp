@@ -3,6 +3,13 @@
 #include "Game.h"
 #include <algorithm>
 
+ShaderProgram* Renderer::textShader;
+
+ShaderProgram* Renderer::GetTextShader()
+{
+	return textShader;
+}
+
 Renderer::Renderer(Game* g)
 {
 	game = g;
@@ -15,6 +22,23 @@ Renderer::Renderer(Game* g)
 	layersVisible[DrawingLayer::FRONT] = true;
 
 	timerOverlayColor.Start(1);
+}
+
+void Renderer::CreateShaders()
+{
+	CreateShader(ShaderName::Default, "data/shaders/default.vert", "data/shaders/default.frag");
+	//CreateShader("special", "data/shaders/special.vert", "data/shaders/special.frag");
+	CreateShader(ShaderName::Multiply, "data/shaders/default.vert", "data/shaders/multiply.frag");
+	CreateShader(ShaderName::Add, "data/shaders/default.vert", "data/shaders/add.frag");
+	//CreateShader("hue-shift", "data/shaders/hue-shift.vert", "data/shaders/hue-shift.frag");
+	CreateShader(ShaderName::FadeInOut, "data/shaders/default.vert", "data/shaders/fade-in-out.frag");
+	CreateShader(ShaderName::Glow, "data/shaders/default.vert", "data/shaders/glow.frag");
+	CreateShader(ShaderName::GUI, "data/shaders/gui.vert", "data/shaders/gui.frag");
+	CreateShader(ShaderName::NoAlpha, "data/shaders/default.vert", "data/shaders/noalpha.frag");
+	CreateShader(ShaderName::SolidColor, "data/shaders/default.vert", "data/shaders/solidcolor.frag");
+	CreateShader(ShaderName::Grid, "data/shaders/default.vert", "data/shaders/grid.frag");
+
+	textShader = shaders[ShaderName::GUI];
 }
 
 Renderer::~Renderer()
@@ -88,7 +112,7 @@ void Renderer::UpdateOverlayColor(uint8_t& color, const int& start, const int& t
 	}
 }
 
-void Renderer::FadeOverlay(const int screenWidth, const int screenHeight)
+void Renderer::FadeOverlay(const int screenWidth, const int screenHeight) const
 {
 	// Draw the screen overlay above everything else
 	float rWidth = overlaySprite->texture->GetWidth();
@@ -96,7 +120,6 @@ void Renderer::FadeOverlay(const int screenWidth, const int screenHeight)
 	overlaySprite->color = overlayColor;
 	overlaySprite->pivot = Vector2(0, 0);
 	overlaySprite->SetScale(Vector2(screenWidth / rWidth, screenHeight / rHeight));
-	overlaySprite->Render(Vector2(0, 0), this);
 }
 
 void Renderer::CreateShader(const ShaderName shaderName, const char* vertexFilePath, const char* fragmentFilePath)
@@ -107,10 +130,8 @@ void Renderer::CreateShader(const ShaderName shaderName, const char* vertexFileP
 	shaders[shaderName] = new ShaderProgram(shaderName, vertexFilePath, fragmentFilePath);
 }
 
-bool Renderer::IsVisible(DrawingLayer layer)
+bool Renderer::IsVisible(DrawingLayer layer) const
 {
-	//return layersVisible[GetDrawingLayerName(layer)];
-
 	return layersVisible[layer];
 }
 

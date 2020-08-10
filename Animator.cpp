@@ -227,7 +227,7 @@ void Animator::OnEnter(AnimState state)
 
 void Animator::DoState(Entity* entity)
 {
-	entity->SetSprite(GetCurrentSprite());
+	entity->SetSprite(*GetCurrentSprite());
 }
 
 void Animator::OnExit(AnimState state)

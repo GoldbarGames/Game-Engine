@@ -34,7 +34,7 @@ public:
 
 	glm::mat4 projection = glm::mat4();
 	glm::mat4 guiProjection = glm::mat4();
-	glm::mat4 CalculateViewMatrix();
+	glm::mat4 CalculateViewMatrix() const;
 
 	glm::vec3 position;
 	float orthoZoom = 4.0f;

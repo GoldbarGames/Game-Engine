@@ -17,7 +17,7 @@ public:
 	~Dialog();
 
 	void Update();
-	void Render(Renderer* renderer);
+	void Render(const Renderer& renderer);
 };
 
 #endif

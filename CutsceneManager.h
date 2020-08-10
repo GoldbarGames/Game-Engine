@@ -163,7 +163,7 @@ public:
 	void ParseScene();
 	void ParseConfig(const char* configName);
 	void Update();
-	void Render(Renderer* renderer);
+	void Render(const Renderer& renderer);
 	SceneLabel* JumpToLabel(const char* newLabelName);
 	void PlayCutscene(const char* labelName);
 	void EndCutscene();

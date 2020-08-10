@@ -45,7 +45,7 @@ bool Path::IsPointInPath(Vector2 point)
 	return false;
 }
 
-void Path::Render(Renderer * renderer, unsigned int uniformModel)
+void Path::Render(const Renderer& renderer, unsigned int uniformModel)
 {
 	// Draw a red square for every point in the path
 	
@@ -55,7 +55,7 @@ void Path::Render(Renderer * renderer, unsigned int uniformModel)
 		const SDL_Rect* pointRect = nodes[i]->CalcRenderRect(Vector2(0,0));
 
 		// Only show the points in the editor
-		if (renderer->game->editMode)
+		if (renderer.game->editMode)
 		{		
 			/*
 			if (i == 0)
@@ -85,15 +85,15 @@ void Path::Render(Renderer * renderer, unsigned int uniformModel)
 	}
 }
 
-void Path::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
+void Path::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 {
-	Entity::GetProperties(renderer, font, properties);
+	Entity::GetProperties(font, properties);
 
 	std::string loopString = shouldLoop ? "True" : "False";
-	properties.emplace_back(new Property(new Text(renderer, font, "Should Loop: " + name)));
+	properties.emplace_back(new Property(new Text(font, "Should Loop: " + name)));
 }
 
-void Path::SetProperty(std::string prop, std::string newValue)
+void Path::SetProperty(const std::string& prop, const std::string& newValue)
 {
 	// 1. Split the string into two (key and value)
 	std::string key = "";

@@ -16,7 +16,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		int endPosY = startPosY + (distance * 5);
 		int newStartPosY = startPosY - ((endPosY - startPosY) / 2);
 
-		Text* header = new Text(game.renderer, game.headerFont, "Game Paused", true, true);
+		Text* header = new Text(game.headerFont, "Game Paused", true, true);
 		header->SetPosition(startPosX, newStartPosY);
 		header->GetSprite()->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(header);
@@ -53,7 +53,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		AssignButtons(true);
 
-		Text* creditsHeader = new Text(game.renderer, game.headerFont, "CREDITS", true, true);
+		Text* creditsHeader = new Text(game.headerFont, "CREDITS", true, true);
 		creditsHeader->SetPosition(game.screenWidth - (creditsHeader->GetTextWidth() / 2), 100);
 		creditsHeader->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(creditsHeader);
@@ -76,7 +76,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 			if (i < 4)
 				offsetX = 0;
 
-			Text* textLine = new Text(game.renderer, game.headerFont, textLines[i], true, true);
+			Text* textLine = new Text(game.headerFont, textLines[i], true, true);
 			textLine->SetPosition(game.screenWidth + offsetX - (textLine->GetTextWidth() / 2),
 				startHeight + (distance * (i + 1)));
 
@@ -117,27 +117,35 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		AssignButtons(true);
 
-		Text* textCopyright = new Text(game.renderer, game.headerFont, "Copyright 2020 Goldbar Games LLC", true, true);
+		Text* textCopyright = new Text(game.headerFont, "Copyright 2020 Goldbar Games LLC", true, true);
 		//textCopyright->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
 		textCopyright->SetPosition(startPosX - 400, 1200);
 		textCopyright->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textCopyright);
 
-		Text* textVersion = new Text(game.renderer, game.headerFont, "Demo Version 2020-03-20", true, true);
+		Text* textVersion = new Text(game.headerFont, "Demo Version 2020-03-20", true, true);
 		//textVersion->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
 		textVersion->SetPosition(startPosX - 100, 1300);
 		textVersion->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textVersion);
 
 		Entity* titleCharacter = new Entity(Vector2(600, 350));
-		titleCharacter->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_character.png", game.renderer->shaders[ShaderName::FadeInOut], Vector2(222, 370), false));
+
+		Sprite* newSprite = new Sprite(0, 0, 1, game.spriteManager,
+			"assets/gui/wdk_character.png", game.renderer->shaders[ShaderName::FadeInOut],
+			Vector2(222, 370), false);
+
+		titleCharacter->SetSprite(*newSprite);
+
 		titleCharacter->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 		titleCharacter->GetSprite()->keepPositionRelativeToCamera = true;
 		titleCharacter->GetSprite()->keepScaleRelativeToCamera = true;
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = new Entity(Vector2(1600, 350));
-		titleLogo->SetSprite(new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png", game.renderer->shaders[ShaderName::Default], Vector2(320, 137), false));
+		newSprite = new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png",
+			game.renderer->shaders[ShaderName::Default], Vector2(320, 137), false);
+		titleLogo->SetSprite(*newSprite);
 		titleLogo->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
 		titleLogo->GetSprite()->keepPositionRelativeToCamera = true;
 		titleLogo->GetSprite()->keepScaleRelativeToCamera = true;
@@ -155,7 +163,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		int endPosY = startPosY + (distance * buttonNames.size());
 		int newStartPosY = startPosY - ((endPosY - startPosY) / 2);
 
-		Text* header = new Text(game.renderer, game.headerFont, "Settings", true, true);
+		Text* header = new Text(game.headerFont, "Settings", true, true);
 		header->SetPosition(startPosX, newStartPosY);
 		header->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(header);
@@ -182,7 +190,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		int buttonPosX = (game.screenWidth / 2);
 
-		Text* header = new Text(game.renderer, game.headerFont, "Editor Settings", true, true);
+		Text* header = new Text(game.headerFont, "Editor Settings", true, true);
 		header->SetPosition(startWidth - (header->GetTextWidth() / 2), startHeight);
 		texts.emplace_back(header);
 
@@ -235,7 +243,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		AssignButtons(true);
 
-		Text* textHeader = new Text(game.renderer, game.headerFont, "Select a File");
+		Text* textHeader = new Text(game.headerFont, "Select a File");
 		textHeader->SetPosition(startWidth - (textHeader->GetTextWidth() / 2), 60);
 		textHeader->GetSprite()->keepPositionRelativeToCamera = true;
 		textHeader->GetSprite()->keepScaleRelativeToCamera = true;
@@ -282,7 +290,7 @@ MenuScreen::~MenuScreen()
 
 }
 
-void MenuScreen::Render(Renderer* renderer)
+void MenuScreen::Render(const Renderer& renderer)
 {
 	for (unsigned int i = 0; i < images.size(); i++)
 	{

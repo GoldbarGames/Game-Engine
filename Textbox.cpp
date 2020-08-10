@@ -27,8 +27,9 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	boxObject = new Entity(Vector2(1280, 720));
 	
 	//TODO: Have a way to specify the image for the box
-	boxObject->SetSprite(new Sprite(0, 0, 1, spriteManager, "assets/gui/textbox1.png",
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0)));
+	Sprite* newSprite = new Sprite(0, 0, 1, spriteManager, "assets/gui/textbox1.png",
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
+	boxObject->SetSprite(*newSprite);
 
 	boxObject->GetSprite()->keepScaleRelativeToCamera = true;
 	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
@@ -37,15 +38,15 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	nameObject = new Entity(Vector2(1280, 720));
 
 	//TODO: Have a way to specify the image for the box
-	nameObject->SetSprite(new Sprite(0, 0, 1, spriteManager, "assets/gui/namebox1.png",
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0)));
+	newSprite = new Sprite(0, 0, 1, spriteManager, "assets/gui/namebox1.png",
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
+	nameObject->SetSprite(*newSprite);
 
 	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
 	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
 
-
-	text = new Text(renderer, currentFontInfo, "...", true, true);
-	speaker = new Text(renderer, currentFontInfo, "...", true, true);
+	text = new Text(currentFontInfo, "...", true, true);
+	speaker = new Text(currentFontInfo, "...", true, true);
 
 	text->SetPosition(1080, 1040);
 	speaker->SetPosition(235, 985);
@@ -58,12 +59,12 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	std::vector<AnimState*> animStates;
 	spriteManager->ReadAnimData("data/animators/cursor/cursor.animations", animStates);
 
-	Animator* anim1 = new Animator("cursor", animStates, "samepage");
-	anim1->SetBool("endOfPage", false);
-	anim1->SetRelativeAllStates(true);
-	//anim1->SetScaleAllStates(Vector2(0.5f, 0.5f));
+	Animator* newAnimator = new Animator("cursor", animStates, "samepage");
+	newAnimator->SetBool("endOfPage", false);
+	newAnimator->SetRelativeAllStates(true);
+	//newAnimator->SetScaleAllStates(Vector2(0.5f, 0.5f));
 
-	clickToContinue->SetAnimator(anim1);
+	clickToContinue->SetAnimator(*newAnimator);
 	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 
 	speaker->SetText(" ");
@@ -135,8 +136,9 @@ void Textbox::ChangeNameSprite(const std::string& filepath)
 		delete nameObject->GetSprite();
 
 	//TODO: Allow for animations by dissecting the filepath name
-	nameObject->SetSprite(new Sprite(0, 0, 1, spriteManager, filepath,
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0)));
+	Sprite* newSprite = new Sprite(0, 0, 1, spriteManager, filepath,
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
+	nameObject->SetSprite(*newSprite);
 
 	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
 	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
@@ -148,8 +150,9 @@ void Textbox::ChangeBoxSprite(const std::string& filepath)
 		delete boxObject->GetSprite();
 
 	//TODO: Allow for animations by dissecting the filepath name
-	boxObject->SetSprite(new Sprite(0, 0, 1, spriteManager, filepath,
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0)));
+	Sprite* newSprite = new Sprite(0, 0, 1, spriteManager, filepath,
+		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
+	boxObject->SetSprite(*newSprite);
 
 	boxObject->GetSprite()->keepScaleRelativeToCamera = true;
 	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
@@ -179,7 +182,7 @@ void Textbox::UpdateText(const std::string& newText, const Color& color)
 	//text->GetSprite()->SetShader(renderer->shaders["fade-in-out"]);
 }
 
-void Textbox::Render(Renderer * renderer, const int& screenWidth, const int& screenHeight)
+void Textbox::Render(const Renderer& renderer, const int& screenWidth, const int& screenHeight)
 {
 	if (shouldRender && isReading)
 	{

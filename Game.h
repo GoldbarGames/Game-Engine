@@ -136,8 +136,6 @@ public:
 	std::vector<SDL_Rect*> debugRectangles;
 
 	void InitOpenGL();
-	void CreateShaders();
-	void CreateObjects();
 
 	void Update();
 	void Render();

@@ -18,14 +18,15 @@ class Game;
 class Renderer
 {
 private:
-	std::unordered_map<DrawingLayer, bool> layersVisible;
+	static ShaderProgram* textShader;
+	mutable std::unordered_map<DrawingLayer, bool> layersVisible;
 	void UpdateOverlayColor(uint8_t& color, const int& start, const int& target, const float& t);
 public:
 	Camera camera;
 	Camera guiCamera;
 	Sprite* debugSprite = nullptr;
 	Sprite* overlaySprite = nullptr;
-	int drawCallsPerFrame = 0;
+	mutable int drawCallsPerFrame = 0;
 	float now = 0;
 	Game* game;
 
@@ -43,13 +44,16 @@ public:
 	Vector2 CalculateScale(Sprite* sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale);
 	Vector2 screenScale = Vector2(1, 1);
 
-	std::unordered_map<ShaderName, ShaderProgram*> shaders;
+	mutable std::unordered_map<ShaderName, ShaderProgram*> shaders;
 	
-	void FadeOverlay(const int screenWidth, const int screenHeight);
+	void FadeOverlay(const int screenWidth, const int screenHeight) const;
 	void ToggleVisibility(DrawingLayer layer);
-	bool IsVisible(DrawingLayer layer);
+	bool IsVisible(DrawingLayer layer) const;
 
 	void CreateShader(const ShaderName shaderName, const char* vertexFilePath, const char* fragmentFilePath);
+	void CreateShaders();
+
+	static ShaderProgram* GetTextShader();
 
 	Renderer(Game* g);
 	~Renderer();

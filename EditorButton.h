@@ -35,7 +35,7 @@ public:
 
 	~EditorButton();
 
-	void Render(Renderer* renderer);
+	void Render(const Renderer& renderer);
 
 	bool IsPointInsideButton(const int& x, const int& y);
 };

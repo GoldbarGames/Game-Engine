@@ -54,7 +54,7 @@ unsigned int Entity::GetNextValidID()
 
 //TODO: Figure out what to do with the background layers
 // since they will offset the next valid ID every time we save the level
-Entity::Entity(Vector2 pos)
+Entity::Entity(const Vector2& pos)
 {
 	position = Vector2(pos.x, pos.y);
 	//position = pos;
@@ -63,7 +63,7 @@ Entity::Entity(Vector2 pos)
 	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 }
 
-Entity::Entity(Vector2 pos, Sprite* sprite)
+Entity::Entity(const Vector2& pos, Sprite* sprite)
 {
 	position = pos;
 	id = nextValidID;
@@ -175,26 +175,26 @@ Vector2 Entity::GetCenter()
 	return Vector2(currentSprite->frameWidth / 2, currentSprite->frameHeight / 2);
 }
 
-void Entity::SetPosition(Vector2 newPosition)
+void Entity::SetPosition(const Vector2& newPosition)
 {
 	position = newPosition;
 }
 
-void Entity::SetAnimator(Animator * anim)
+void Entity::SetAnimator(Animator& anim)
 {
-	animator = anim;
-	anim->StartTimer();
-	anim->DoState(this);
+	animator = &anim;
+	animator->StartTimer();
+	animator->DoState(this);
 }
 
-void Entity::RenderDebug(Renderer * renderer)
+void Entity::RenderDebug(const Renderer& renderer)
 {
-	if (renderer->game->debugMode && drawDebugRect && GetSprite() != nullptr)
+	if (renderer.game->debugMode && drawDebugRect && GetSprite() != nullptr)
 	{
 		if (debugSprite == nullptr)
-			debugSprite = new Sprite(renderer->debugSprite->texture, renderer->debugSprite->shader);
+			debugSprite = new Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
 
-		if (renderer->IsVisible(layer))
+		if (renderer.IsVisible(layer))
 		{
 			//TODO: Make this a function inside the renderer
 
@@ -243,9 +243,9 @@ void Entity::RenderDebug(Renderer * renderer)
 	}
 }
 
-void Entity::Render(Renderer * renderer)
+void Entity::Render(const Renderer& renderer)
 {
-	if (currentSprite != nullptr && renderer->IsVisible(layer))
+	if (currentSprite != nullptr && renderer.IsVisible(layer))
 	{
 		if (animator != nullptr)
 			currentSprite->Render(position, animator->GetSpeed(), renderer, rotation);
@@ -254,11 +254,11 @@ void Entity::Render(Renderer * renderer)
 	}
 }
 
-void Entity::RenderParallax(Renderer* renderer, float p)
+void Entity::RenderParallax(const Renderer& renderer, float p) const
 {
-	Vector2 renderPosition = Vector2(position.x + (renderer->camera.position.x * p), position.y);
+	Vector2 renderPosition = Vector2(position.x + (renderer.camera.position.x * p), position.y);
 
-	if (currentSprite != nullptr && renderer->IsVisible(layer))
+	if (currentSprite != nullptr && renderer.IsVisible(layer))
 	{
 		if (animator != nullptr)
 			currentSprite->Render(renderPosition, animator->GetSpeed(), renderer, rotation);
@@ -267,13 +267,13 @@ void Entity::RenderParallax(Renderer* renderer, float p)
 	}
 }
 
-void Entity::SetSprite(Sprite* sprite)
+void Entity::SetSprite(Sprite& sprite)
 {
-	currentSprite = sprite;
+	currentSprite = &sprite;
 	currentSprite->scale = scale;
 }
 
-bool Entity::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
+bool Entity::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
 {
 	if (currentSprite == nullptr)
 		return false;
@@ -348,26 +348,26 @@ bool Entity::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 	return shouldSpawn;
 }
 
-void Entity::OnTriggerStay(Entity* other, Game& game)
+void Entity::OnTriggerStay(Entity& other, Game& game)
 {
 
 }
 
-void Entity::OnTriggerEnter(Entity* other, Game& game)
+void Entity::OnTriggerEnter(Entity& other, Game& game)
 {
 
 }
 
-void Entity::OnTriggerExit(Entity* other, Game& game)
+void Entity::OnTriggerExit(Entity& other, Game& game)
 {
 
 }
 
-void Entity::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
+void Entity::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::DeleteProperties(properties);
 	std::string id_string = "ID: " + std::to_string(id);
-	properties.emplace_back(new Property(new Text(renderer, font, id_string, { 0, 0, 255, 255 })));
+	properties.emplace_back(new Property(new Text(font, id_string, { 0, 0, 255, 255 })));
 }
 
 void Entity::DeleteProperties(std::vector<Property*>& properties)

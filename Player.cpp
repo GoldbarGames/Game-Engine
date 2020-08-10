@@ -42,18 +42,18 @@ void Player::OnClickPressed(Uint32 mouseState, Game& game)
 	std::cout << "Clicked, pressed down on " << etype << "!" << std::endl;
 }
 
-void Player::RenderDebug(Renderer* renderer)
+void Player::RenderDebug(const Renderer& renderer)
 {
 	Entity::RenderDebug(renderer);
 	
 	if (closeRangeAttackCollider != nullptr)
 	{
-		if (renderer->game->debugMode && drawDebugRect)
+		if (renderer.game->debugMode && drawDebugRect)
 		{
 			if (debugSprite == nullptr)
-				debugSprite = new Sprite(renderer->debugSprite->texture, renderer->debugSprite->shader);
+				debugSprite = new Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
 
-			if (renderer->IsVisible(layer))
+			if (renderer.IsVisible(layer))
 			{
 				//TODO: Make this a function inside the renderer
 				float rWidth = debugSprite->texture->GetWidth();
@@ -75,7 +75,7 @@ void Player::RenderDebug(Renderer* renderer)
 	}
 }
 
-void Player::Render(Renderer* renderer)
+void Player::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
 }
@@ -135,7 +135,8 @@ void Player::Update(Game& game)
 				{
 					if (entity->trigger)
 					{
-						entity->OnTriggerStay(this, game);
+						Entity* us = this;
+						entity->OnTriggerStay(*us, game);
 					}
 				}
 			}
@@ -506,12 +507,12 @@ void Player::ResetPosition()
 	position = physics->startPosition;
 }
 
-void Player::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
+void Player::GetProperties(const Renderer& renderer, FontInfo* font, std::vector<Property*>& properties)
 {
-	Entity::GetProperties(renderer, font, properties);
+	Entity::GetProperties(font, properties);
 
-	properties.emplace_back(new Property(new Text(renderer, font, "Start Pos X: " + std::to_string((int)physics->startPosition.x))));
-	properties.emplace_back(new Property(new Text(renderer, font, "Start Pos Y: " + std::to_string((int)physics->startPosition.y))));
+	properties.emplace_back(new Property(new Text(font, "Start Pos X: " + std::to_string((int)physics->startPosition.x))));
+	properties.emplace_back(new Property(new Text(font, "Start Pos Y: " + std::to_string((int)physics->startPosition.y))));
 }
 
 void Player::SetProperty(std::string prop, std::string newValue)

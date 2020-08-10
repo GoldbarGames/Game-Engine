@@ -7,7 +7,7 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	name = n;
 	position = pos;
 
-	label = new Text(game.renderer, game.headerFont, name);
+	label = new Text(game.headerFont, name);
 	label->SetPosition(position.x - 400, position.y);
 	position.x += 400;
 
@@ -71,7 +71,7 @@ SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
 	// Actually create all of the text items for each option
 	for (int i = 0; i < optionNames.size(); i++)
 	{
-		Text* text = new Text(game.renderer, game.headerFont, optionNames[i]);
+		Text* text = new Text(game.headerFont, optionNames[i]);
 		text->SetPosition(position.x, position.y);
 		text->GetSprite()->keepPositionRelativeToCamera = true;
 		text->GetSprite()->keepScaleRelativeToCamera = true;
@@ -85,7 +85,7 @@ SettingsButton::~SettingsButton()
 
 }
 
-void SettingsButton::Render(Renderer* renderer)
+void SettingsButton::Render(const Renderer& renderer)
 {
 	label->Render(renderer);
 	options[selectedOption]->Render(renderer);

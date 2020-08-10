@@ -11,9 +11,9 @@ public:
 	~Block();
 
 	//void Push(Vector2 direction, Game &game);
-	void GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties);
-	void SetProperty(std::string prop, std::string newValue);
-	void Render(Renderer * renderer);
+	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
+	void SetProperty(const std::string& prop, const std::string& newValue);
+	void Render(const Renderer& renderer);
 
 	void Save(std::ostringstream& level);
 

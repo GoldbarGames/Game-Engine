@@ -171,7 +171,7 @@ void Game::ResetText()
 {
 	if (fpsText == nullptr)
 	{
-		fpsText = new Text(renderer, theFont);
+		fpsText = new Text(theFont);
 		fpsText->SetText("FPS:");
 		fpsText->GetSprite()->keepScaleRelativeToCamera = true;
 		fpsText->GetSprite()->keepPositionRelativeToCamera = true;
@@ -182,7 +182,7 @@ void Game::ResetText()
 
 	if (timerText == nullptr)
 	{
-		timerText = new Text(renderer, theFont);
+		timerText = new Text(theFont);
 		timerText->SetText("");
 		timerText->GetSprite()->keepScaleRelativeToCamera = true;
 		timerText->GetSprite()->keepPositionRelativeToCamera = true;
@@ -193,7 +193,7 @@ void Game::ResetText()
 
 	if (bugText == nullptr)
 	{
-		bugText = new Text(renderer, theFont);
+		bugText = new Text(theFont);
 		bugText->SetText("");
 		bugText->GetSprite()->keepScaleRelativeToCamera = true;
 		bugText->GetSprite()->keepPositionRelativeToCamera = true;
@@ -204,7 +204,7 @@ void Game::ResetText()
 
 	if (etherText == nullptr)
 	{
-		etherText = new Text(renderer, theFont);
+		etherText = new Text(theFont);
 		etherText->SetText("");
 		etherText->GetSprite()->keepScaleRelativeToCamera = true;
 		etherText->GetSprite()->keepPositionRelativeToCamera = true;
@@ -228,26 +228,6 @@ void Game::CalcDt()
 	// So reset the dt if it becomes too big so that we can debug properly.
 	if (dt > 100)
 		dt = 33;
-}
-
-void Game::CreateObjects()
-{
-
-}
-
-void Game::CreateShaders()
-{
-	renderer->CreateShader(ShaderName::Default, "data/shaders/default.vert", "data/shaders/default.frag");
-	//renderer->CreateShader("special", "data/shaders/special.vert", "data/shaders/special.frag");
-	renderer->CreateShader(ShaderName::Multiply, "data/shaders/default.vert", "data/shaders/multiply.frag");
-	renderer->CreateShader(ShaderName::Add, "data/shaders/default.vert", "data/shaders/add.frag");
-	//renderer->CreateShader("hue-shift", "data/shaders/hue-shift.vert", "data/shaders/hue-shift.frag");
-	renderer->CreateShader(ShaderName::FadeInOut, "data/shaders/default.vert", "data/shaders/fade-in-out.frag");
-	renderer->CreateShader(ShaderName::Glow, "data/shaders/default.vert", "data/shaders/glow.frag");
-	renderer->CreateShader(ShaderName::GUI, "data/shaders/gui.vert", "data/shaders/gui.frag");
-	renderer->CreateShader(ShaderName::NoAlpha, "data/shaders/default.vert", "data/shaders/noalpha.frag");
-	renderer->CreateShader(ShaderName::SolidColor, "data/shaders/default.vert", "data/shaders/solidcolor.frag");
-	renderer->CreateShader(ShaderName::Grid, "data/shaders/default.vert", "data/shaders/grid.frag");
 }
 
 void Game::InitOpenGL()
@@ -301,7 +281,7 @@ void Game::InitOpenGL()
 	renderer->camera.Update();
 	renderer->guiCamera.Update();
 
-	CreateShaders(); // we must create the shaders at this point
+	renderer->CreateShaders(); // we must create the shaders at this point
 }
 
 void Game::InitSDL()
@@ -411,8 +391,8 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		}
 
 
-		Animator* anim = new Animator(entityName, animStates, "middle");
-		newEntity->SetAnimator(anim);
+		Animator* newAnimator = new Animator(entityName, animStates, "middle");
+		newEntity->SetAnimator(*newAnimator);
 	}
 
 	return newEntity;
@@ -454,10 +434,10 @@ Missile* Game::SpawnMissile(Vector2 position)
 
 	Missile* missile = new Missile(position - pivotPoint);
 
-	Animator* anim = new Animator("debugmissile", animStates, "moving");
-	anim->SetBool("destroyed", false);
+	Animator* newAnimator = new Animator("debugmissile", animStates, "moving");
+	newAnimator->SetBool("destroyed", false);
 
-	missile->SetAnimator(anim);
+	missile->SetAnimator(*newAnimator);
 	missile->GetAnimator()->SetState("moving");
 
 	entities.emplace_back(missile);
@@ -533,9 +513,9 @@ Player* Game::SpawnPlayer(Vector2 position)
 	std::vector<AnimState*> animStates;
 	spriteManager->ReadAnimData("data/animators/player/player.animations", animStates);
 
-	Animator* anim1 = new Animator("player", animStates, "idle");
-	anim1->SetBool("isGrounded", true);
-	player->SetAnimator(anim1);
+	Animator* newAnimator = new Animator("player", animStates, "idle");
+	newAnimator->SetBool("isGrounded", true);
+	player->SetAnimator(*newAnimator);
 	player->SetPosition(position);
 	player->physics->startPosition = position;
 
@@ -1389,7 +1369,7 @@ void Game::Render()
 	}
 
 	// Render all backgrounds and their layers
-	background->Render(renderer);
+	background->Render(*renderer);
 
 	// Render all entities
 	if (renderer->camera.useOrthoCamera)
@@ -1403,9 +1383,9 @@ void Game::Render()
 				entities[i]->position.x < renderer->camera.position.x + maxWidth + TILE_SIZE &&
 				entities[i]->position.y < renderer->camera.position.y + maxHeight + TILE_SIZE)
 			{
-				entities[i]->Render(renderer);
+				entities[i]->Render(*renderer);
 				if (debugMode)
-					entities[i]->RenderDebug(renderer);
+					entities[i]->RenderDebug(*renderer);
 			}
 		}
 	}
@@ -1413,9 +1393,9 @@ void Game::Render()
 	{
 		for (unsigned int i = 0; i < entities.size(); i++)
 		{
-			entities[i]->Render(renderer);
+			entities[i]->Render(*renderer);
 			if (debugMode)
-				entities[i]->RenderDebug(renderer);
+				entities[i]->RenderDebug(*renderer);
 		}
 	}
 
@@ -1423,14 +1403,14 @@ void Game::Render()
 	// Render all menu screens
 	if (openedMenus.size() > 0)
 	{
-		openedMenus[openedMenus.size() - 1]->Render(renderer);
+		openedMenus[openedMenus.size() - 1]->Render(*renderer);
 	}
 
 	if (showFPS)
-		fpsText->Render(renderer);
+		fpsText->Render(*renderer);
 	
 	if (showTimer)
-		timerText->Render(renderer);
+		timerText->Render(*renderer);
 
 	if (currentLevel != "title" && !cutscene->watchingCutscene)
 	{
@@ -1439,22 +1419,22 @@ void Game::Render()
 	}	
 
 	// Draw anything in the cutscenes
-	cutscene->Render(renderer); // includes the overlay
+	cutscene->Render(*renderer); // includes the overlay
 
 	// Render editor toolbox
 	if (editMode)
 	{
-		editor->Render(renderer);		
+		editor->Render(*renderer);		
 	}
 
 	//if (GetModeDebug())
 #if _DEBUG
-	editor->RenderDebug(renderer);
+	editor->RenderDebug(*renderer);
 #endif
 
 	if (debugMode)
 	{
-		debugScreen->Render(renderer);
+		debugScreen->Render(*renderer);
 	}
 
 	glUseProgram(0);

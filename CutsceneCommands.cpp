@@ -1325,8 +1325,10 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 
 	manager->images[imageNumber] = new Entity(pos);
 
-	manager->images[imageNumber]->SetSprite(new Sprite(1, manager->game->spriteManager,
-		filepath, manager->game->renderer->shaders[ShaderName::Default], Vector2(0, 0)));
+	Sprite* newSprite = new Sprite(1, manager->game->spriteManager,
+		filepath, manager->game->renderer->shaders[ShaderName::Default], Vector2(0, 0));
+
+	manager->images[imageNumber]->SetSprite(*newSprite);
 
 	if (isStandingImage)
 	{
@@ -1429,7 +1431,7 @@ int CutsceneCommands::LoadTextFromSaveFile(CutsceneParameters parameters)
 		delete manager->images[imageNumber];
 
 	//TODO: Also save/load in the font type/size/style for this text object
-	Text* newText = new Text(manager->game->renderer, manager->game->theFont, text, textColor);
+	Text* newText = new Text(manager->game->theFont, text, textColor);
 
 	newText->isRichText = false;
 
@@ -1472,7 +1474,7 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	int letterIndex = 0;
 	std::string finalText = "";
 
-	newText = new Text(manager->game->renderer, manager->game->theFont, "", textColor);
+	newText = new Text(manager->game->theFont, "", textColor);
 	newText->SetPosition(pos.x, pos.y); // use the Text SetPosition function, not Entity
 	newText->isRichText = true;
 
@@ -1570,13 +1572,13 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 		// we want to change the scale of the entity and then apply that scale
 		// to whatever sprite is currently being animated
 		entity->scale = Vector2(ParseNumberValue(parameters[3]), ParseNumberValue(parameters[4]));
-		entity->SetSprite(entity->GetSprite());
+		entity->SetSprite(*entity->GetSprite());
 	}
 	else if (spriteProperty == "rotate")
 	{
 		entity->rotation = glm::vec3(ParseNumberValue(parameters[3]), 
 			ParseNumberValue(parameters[4]), ParseNumberValue(parameters[5]));
-		entity->SetSprite(entity->GetSprite());
+		entity->SetSprite(*entity->GetSprite());
 	}
 	else if (spriteProperty == "shader")
 	{	
@@ -1594,8 +1596,6 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 			if (entity->GetAnimator() != nullptr)
 				delete entity->GetAnimator();
 
-			Sprite* test = entity->GetSprite();
-
 			std::vector<AnimState*> animStates;
 			manager->game->spriteManager->ReadAnimData(ParseStringValue(parameters[4]), animStates);
 
@@ -1605,8 +1605,8 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 				animStates[i]->sprite->keepScaleRelativeToCamera = true;
 			}
 
-			Animator* newAnim = new Animator("player", animStates, ParseStringValue(parameters[5]));
-			entity->SetAnimator(newAnim);
+			Animator* newAnimator = new Animator("player", animStates, ParseStringValue(parameters[5]));
+			entity->SetAnimator(*newAnimator);
 		}
 		else if (entity->GetAnimator() == nullptr)
 		{
@@ -2673,7 +2673,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 			anim1->SetRelativeAllStates(true);
 			//anim1->SetScaleAllStates(Vector2(0.5f, 0.5f));
 
-			manager->animatedImages[animationName]->SetAnimator(anim1);
+			manager->animatedImages[animationName]->SetAnimator(*anim1);
 			manager->animatedImages[animationName]->GetAnimator()->Update(manager->animatedImages[animationName]);
 			manager->animatedImages[animationName]->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 

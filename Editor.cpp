@@ -17,8 +17,8 @@ Editor::Editor(Game& g)
 	game = &g;
 
 	dialog = new Dialog(Vector2(g.screenWidth, g.screenHeight), g.spriteManager);
-	dialog->text = new Text(game->renderer, game->theFont, "");
-	dialog->input = new Text(game->renderer, game->theFont, "");
+	dialog->text = new Text(game->theFont, "");
+	dialog->input = new Text(game->theFont, "");
 
 	dialog->text->SetPosition(dialog->position.x, dialog->position.y + 20);
 	dialog->input->SetPosition(dialog->position.x, dialog->position.y + 70);
@@ -552,7 +552,7 @@ void Editor::InspectObject(int mouseX, int mouseY)
 		// If selected entity was found, then generate text for all properties of it
 		if (selectedEntity != nullptr)
 		{
-			selectedEntity->GetProperties(game->renderer, game->theFont, properties);
+			selectedEntity->GetProperties(game->theFont, properties);
 			SetPropertyPositions();
 		}
 	}
@@ -579,7 +579,7 @@ std::string Editor::GetCurrentPropertyOptionString(int diff)
 void Editor::SetPropertyText(const std::string& newText)
 {	
 	selectedEntity->SetProperty(properties[propertyIndex]->text->txt, newText);
-	selectedEntity->GetProperties(game->renderer, game->theFont, properties);
+	selectedEntity->GetProperties(game->theFont, properties);
 	SetPropertyPositions();
 }
 
@@ -1358,7 +1358,7 @@ void Editor::ToggleTileset()
 	StartEdit();	
 }
 
-void Editor::RenderDebug(Renderer* renderer)
+void Editor::RenderDebug(const Renderer& renderer)
 {
 	//TODO: Only set each text if the number has changed from last time
 
@@ -1367,7 +1367,7 @@ void Editor::RenderDebug(Renderer* renderer)
 	
 }
 
-void Editor::Render(Renderer* renderer)
+void Editor::Render(const Renderer& renderer)
 {
 	// Draw a white rectangle around the currently highlighted grid tile
 	//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
@@ -1464,7 +1464,7 @@ void Editor::Render(Renderer* renderer)
 		if (objectMode == "tile" || objectMode == "replace" || objectMode == "copy")
 		{
 			// Draw the tilesheet (only if we are placing a tile)
-			tilesheetSprites[tilesheetIndex]->Render(tilesheetPosition, game->renderer);
+			tilesheetSprites[tilesheetIndex]->Render(tilesheetPosition, *game->renderer);
 
 			// Draw a yellow rectangle around the currently selected tileset tile
 			game->renderer->debugSprite->color = { 255, 255, 0, 255 };
@@ -1833,7 +1833,7 @@ void Editor::CreateLevelFromString(std::string level)
 			{
 				//Background* bg = game->SpawnBackground(Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET), bgName);
 				Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
-				game->background->CreateBackground(bgName, bgPos, game->spriteManager, game->renderer);
+				game->background->CreateBackground(bgName, bgPos, game->spriteManager, *game->renderer);
 			}	
 
 			game->SortEntities(game->background->layers);

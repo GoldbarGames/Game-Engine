@@ -26,7 +26,7 @@ DebugScreen::DebugScreen(Game& g)
 
 void DebugScreen::CreateDebugText(const DebugText textName, const int x, const int y)
 {
-	debugText[textName] = new Text(game->renderer, game->theFont);
+	debugText[textName] = new Text(game->theFont);
 	debugText[textName]->SetPosition(x, y);
 	debugText[textName]->SetText("");
 	debugText[textName]->GetSprite()->keepPositionRelativeToCamera = true;
@@ -60,11 +60,11 @@ void DebugScreen::Update()
 	}
 }
 
-void DebugScreen::Render(Renderer* renderer)
+void DebugScreen::Render(const Renderer& renderer)
 {
-	if (renderer->game->debugMode)
+	if (renderer.game->debugMode)
 	{
-		debugText[DebugText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer->drawCallsPerFrame));
+		debugText[DebugText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer.drawCallsPerFrame));
 		debugText[DebugText::drawCalls]->GetSprite()->keepScaleRelativeToCamera = true;
 		debugText[DebugText::drawCalls]->Render(renderer);
 

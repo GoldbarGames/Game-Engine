@@ -36,7 +36,6 @@ enum class AlignmentY { TOP, CENTER, BOTTOM };
 class Text : public Entity
 {
 private:
-	Renderer* renderer = nullptr;
 	TTF_Font* font = nullptr;
 
 	//TODO: Maybe move this to a location where multiple text objects can all share the same memory
@@ -71,9 +70,9 @@ public:
 	void SetScale(Vector2 newScale);
 	Vector2 currentScale = Vector2(1, 1);
 
-	Text(Renderer* newRenderer, FontInfo* newFontInfo);
-	Text(Renderer* newRenderer, FontInfo* newFontInfo, std::string txt, Color color);
-	Text(Renderer* newRenderer, FontInfo* newFontInfo, std::string txt,
+	Text(FontInfo* newFontInfo);
+	Text(FontInfo* newFontInfo, const std::string& txt, Color color);
+	Text(FontInfo* newFontInfo, const std::string& txt,
 		bool relPos = false, bool relScale = false);
 
 	~Text();
@@ -82,8 +81,8 @@ public:
 	void AddText(char c, Color color = { 255, 255, 255, 255 });
 	void AddImage(Sprite* newSprite);
 
-	void Render(Renderer* renderer);
-	void Render(Renderer* renderer, Vector2 offset);
+	void Render(const Renderer& renderer);
+	void Render(const Renderer& renderer, Vector2 offset);
 	void SetPosition(const float x, const float y);
 	void SetPosition(const int x, const int y);
 	void SetFont(TTF_Font* newFont);

@@ -276,7 +276,7 @@ Sprite::~Sprite()
 	}		
 }
 
-void Sprite::Render(Vector2 position, Renderer* renderer)
+void Sprite::Render(const Vector2& position, const Renderer& renderer)
 {
 	Render(position, 0, renderer, glm::vec3(0,0,0));
 }
@@ -291,7 +291,7 @@ void Sprite::AnimateMesh(float time)
 	
 }
 
-glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
+glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed)
 {
 	glm::vec2 texOffset = glm::vec2(0.5f, 0.0f);
 
@@ -300,7 +300,7 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
 	if (numberRows > 1) // this is mainly the code for the tilesheets
 	{
 		// Only go to the next frame when enough time has passed
-		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + animSpeed)
+		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer.now > lastAnimTime + animSpeed)
 		{
 			previousFrame = currentFrame;
 			currentFrame++;
@@ -314,7 +314,7 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
 				currentRow = 0;
 			}
 
-			lastAnimTime = renderer->now;
+			lastAnimTime = renderer.now;
 			//std::cout << currentFrame << std::endl;
 		}
 
@@ -326,7 +326,7 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
 	else
 	{
 		// Only go to the next frame when enough time has passed
-		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer->now > lastAnimTime + animSpeed)
+		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer.now > lastAnimTime + animSpeed)
 		{
 			previousFrame = currentFrame;
 			currentFrame++;
@@ -336,7 +336,7 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
 				currentFrame = startFrame;
 			}
 
-			lastAnimTime = renderer->now;
+			lastAnimTime = renderer.now;
 			//std::cout << currentFrame << std::endl;
 		}
 
@@ -347,7 +347,7 @@ glm::vec2 Sprite::CalculateRenderFrame(Renderer* renderer, float animSpeed)
 	return texOffset;
 }
 
-void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* renderer)
+void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, const Renderer& renderer)
 {
 	if (rotation.x >= 89)
 		int test = 0;
@@ -368,15 +368,15 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* rend
 		// Position
 		if (keepPositionRelativeToCamera)
 		{
-			if (renderer->guiCamera.useOrthoCamera)
+			if (renderer.guiCamera.useOrthoCamera)
 			{
-				model = glm::translate(model, glm::vec3(position.x + renderer->guiCamera.position.x,
-					position.y + renderer->guiCamera.position.y, -2.0f));
+				model = glm::translate(model, glm::vec3(position.x + renderer.guiCamera.position.x,
+					position.y + renderer.guiCamera.position.y, -2.0f));
 			}
 			else
 			{
-				model = glm::translate(model, glm::vec3(position.x + renderer->guiCamera.position.x,
-					position.y + renderer->guiCamera.position.y, renderer->guiCamera.position.z));
+				model = glm::translate(model, glm::vec3(position.x + renderer.guiCamera.position.x,
+					position.y + renderer.guiCamera.position.y, renderer.guiCamera.position.z));
 			}
 		}
 		else
@@ -410,9 +410,9 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* rend
 	}	
 }
 
-void Sprite::Render(Vector2 position, int speed, Renderer * renderer, glm::vec3 rotation)
+void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer, glm::vec3 rotation)
 {
-	renderer->drawCallsPerFrame++;
+	renderer.drawCallsPerFrame++;
 
 	ShaderProgram* shader = GetShader();
 	shader->UseShader();
@@ -420,12 +420,12 @@ void Sprite::Render(Vector2 position, int speed, Renderer * renderer, glm::vec3 
 	if (keepPositionRelativeToCamera)
 	{
 		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
-			glm::value_ptr(renderer->guiCamera.CalculateViewMatrix()));
+			glm::value_ptr(renderer.guiCamera.CalculateViewMatrix()));
 	}
 	else
 	{
 		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
-			glm::value_ptr(renderer->camera.CalculateViewMatrix()));
+			glm::value_ptr(renderer.camera.CalculateViewMatrix()));
 	}
 
 	float height = frameHeight;
@@ -451,71 +451,22 @@ void Sprite::Render(Vector2 position, int speed, Renderer * renderer, glm::vec3 
 	switch (shader->GetName())
 	{
 	case ShaderName::FadeInOut:
-		fadePoint = abs(sin(renderer->now / 1000));
+		fadePoint = abs(sin(renderer.now / 1000));
 		fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
 
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)		
 
-		if (selectedColor == "red")
-		{
-			fadeColor = glm::vec4(1, fadePoint, fadePoint, 1);
-		}
-		else if (selectedColor == "green")
-		{
-			fadeColor = glm::vec4(fadePoint, 1, fadePoint, 1);
-		}
-		else if (selectedColor == "blue")
-		{
-			fadeColor = glm::vec4(fadePoint, fadePoint, 1, 1);
-		}
-		else if (selectedColor == "black")
-		{
-			fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, 1);
-		}
-		else if (selectedColor == "white")
-		{
-			fadeColor = glm::vec4(1, 1, 1, 1);
-		}
-		else if (selectedColor == "clear")
-		{
-			fadeColor = glm::vec4(1, 1, 1, fadePoint);
-		}
-
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
 		break;
 	case ShaderName::Glow:
-		fadePoint = abs(sin(renderer->now / 1000));
+		fadePoint = abs(sin(renderer.now / 1000));
 		fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
 
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer->now);
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer.now);
 
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)
-
-		/*
-		std::string selectedColor = "green";
-
-		if (selectedColor == "red")
-		{
-			fadeColor = glm::vec4(1, 0, 0, 1);
-		}
-		else if (selectedColor == "green")
-		{
-			fadeColor = glm::vec4(0, 1, 0, 1);
-		}
-		else if (selectedColor == "blue")
-		{
-			fadeColor = glm::vec4(0, 0, 1, 1);
-		}
-		else if (selectedColor == "black")
-		{
-			fadeColor = glm::vec4(0, 0, 0, 1);
-		}
-		else if (selectedColor == "white")
-		{
-			fadeColor = glm::vec4(1, 1, 1, 1);
-		}*/
 
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
 		break;
@@ -531,12 +482,12 @@ void Sprite::Render(Vector2 position, int speed, Renderer * renderer, glm::vec3 
 	if (keepScaleRelativeToCamera)
 	{
 		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
-			glm::value_ptr(renderer->camera.guiProjection));
+			glm::value_ptr(renderer.camera.guiProjection));
 	}
 	else
 	{
 		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
-			glm::value_ptr(renderer->camera.projection));
+			glm::value_ptr(renderer.camera.projection));
 	}
 
 	// Set uniform variables
@@ -548,42 +499,6 @@ void Sprite::Render(Vector2 position, int speed, Renderer * renderer, glm::vec3 
 
 	// Render Mesh
 	mesh->RenderMesh();
-
-	// TODO: Only draw these rectangles for game entities and not menu images
-	/*
-	if (GetModeDebug())
-	{
-		spriteColor = glm::vec4(1, 0, 0, 1); //TODO: Maybe make this color a parameter?
-		glUniform4fv(shader->GetUniformVariable("spriteColor"), 1, glm::value_ptr(spriteColor));
-
-		// Use Texture
-		renderer->debugSprite->texture->UseTexture();
-
-		// Render Mesh
-		mesh->RenderMesh();
-	}
-	*/
-
-	//TODO: Draw a rectangle around the sprite's bounds
-
-	/*
-
-
-	glLineWidth(10);
-
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	glBegin(GL_POLYGON);
-	glVertex2i(windowRect.x, windowRect.y);
-	glVertex2i(windowRect.x + windowRect.w, windowRect.y);
-	glVertex2i(windowRect.x + windowRect.w, windowRect.y + windowRect.h);
-	glVertex2i(windowRect.x, windowRect.y + windowRect.h);
-	glEnd();
-
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	//glFlush();
-	*/
 }
 
 const SDL_Rect* Sprite::GetRect()

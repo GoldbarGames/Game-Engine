@@ -45,7 +45,7 @@ void Ladder::OnTriggerExit(Entity* other, Game& game)
 	}
 }
 
-void Ladder::Render(Renderer * renderer)
+void Ladder::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
 }

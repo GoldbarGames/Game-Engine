@@ -59,10 +59,10 @@ void NPC::OnTriggerExit(Entity* other, Game& game)
 
 void NPC::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
 {
-	Entity::GetProperties(renderer, font, properties);
+	Entity::GetProperties(font, properties);
 
-	properties.emplace_back(new Property(new Text(renderer, font, "Name: " + name)));
-	properties.emplace_back(new Property(new Text(renderer, font, "Label: " + cutsceneLabel)));
+	properties.emplace_back(new Property(new Text(font, "Name: " + name)));
+	properties.emplace_back(new Property(new Text(font, "Label: " + cutsceneLabel)));
 }
 
 void NPC::SetProperty(std::string prop, std::string newValue)

@@ -69,7 +69,7 @@ void Camera::FollowTarget(const float& screenWidth, const float& screenHeight)
 	}
 }
 
-glm::mat4 Camera::CalculateViewMatrix()
+glm::mat4 Camera::CalculateViewMatrix() const
 {
 	return glm::lookAt(position, position - front, up);
 }

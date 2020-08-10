@@ -29,7 +29,7 @@ public:
 	std::unordered_map<DebugText, Text*> debugText;
 	DebugScreen(Game& g);
 	void Update();
-	void Render(Renderer* renderer);
+	void Render(const Renderer& renderer);
 	void CreateDebugText(const DebugText textName, const int x, const int y);
 };
 

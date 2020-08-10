@@ -107,9 +107,8 @@ std::string Text::GetTextString()
 }
 
 //TODO: Refactor these constructors a little bit
-Text::Text(Renderer* newRenderer, FontInfo* newFontInfo) : Entity(Vector2(0,0))
+Text::Text(FontInfo* newFontInfo) : Entity(Vector2(0,0))
 {
-	renderer = newRenderer;
 	currentFontInfo = newFontInfo;
 	font = currentFontInfo->GetRegularFont();
 	position.x = 0;
@@ -117,9 +116,8 @@ Text::Text(Renderer* newRenderer, FontInfo* newFontInfo) : Entity(Vector2(0,0))
 	SetPosition(0, 0);
 }
 
-Text::Text(Renderer* newRenderer, FontInfo* newFontInfo, std::string txt, bool relPos, bool relScale) : Entity(Vector2(0, 0))
+Text::Text(FontInfo* newFontInfo, const std::string& txt, bool relPos, bool relScale) : Entity(Vector2(0, 0))
 {
-	renderer = newRenderer;
 	currentFontInfo = newFontInfo;
 	font = currentFontInfo->GetRegularFont();
 	position.x = 0;
@@ -134,9 +132,8 @@ Text::Text(Renderer* newRenderer, FontInfo* newFontInfo, std::string txt, bool r
 	}
 }
 
-Text::Text(Renderer* newRenderer, FontInfo* newFontInfo, std::string txt, Color color) : Entity(Vector2(0, 0))
+Text::Text(FontInfo* newFontInfo, const std::string& txt, Color color) : Entity(Vector2(0, 0))
 {
-	renderer = newRenderer;
 	currentFontInfo = newFontInfo;
 	font = currentFontInfo->GetRegularFont();
 	position.x = 0;
@@ -220,7 +217,7 @@ void Text::SetText(std::string text, Color color, Uint32 wrapWidth)
 
 		if (textTexture != nullptr)
 		{
-			Sprite* newSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
+			Sprite* newSprite = new Sprite(textTexture, Renderer::GetTextShader());
 			newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 			newSprite->keepPositionRelativeToCamera = renderRelative;
 			newSprite->filename = txt[i];
@@ -311,7 +308,7 @@ void Text::AddText(char c, Color color)
 
 	if (textTexture != nullptr)
 	{
-		Sprite* newSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
+		Sprite* newSprite = new Sprite(textTexture, Renderer::GetTextShader());
 		newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		newSprite->keepPositionRelativeToCamera = renderRelative;
 		newSprite->filename = c;
@@ -370,7 +367,7 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 		Texture* textTexture = new Texture(txt.c_str());
 		textTexture->LoadTexture(textSurface);
 
-		currentSprite = new Sprite(textTexture, renderer->shaders[ShaderName::GUI]);
+		currentSprite = new Sprite(textTexture, Renderer::GetTextShader());
 		currentSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		currentSprite->keepPositionRelativeToCamera = renderRelative;
 
@@ -380,7 +377,7 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 }
 
 
-void Text::Render(Renderer* renderer)
+void Text::Render(const Renderer& renderer)
 {
 	if (isRichText)
 	{
@@ -408,7 +405,7 @@ void Text::Render(Renderer* renderer)
 
 }
 
-void Text::Render(Renderer* renderer, Vector2 offset)
+void Text::Render(const Renderer& renderer, Vector2 offset)
 {
 	if (isRichText)
 	{

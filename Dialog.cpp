@@ -27,7 +27,7 @@ void Dialog::Update()
 	// (move relevant stuff from the Game Update to here)
 }
 
-void Dialog::Render(Renderer* renderer)
+void Dialog::Render(const Renderer& renderer)
 {
 	sprite->Render(position, renderer);
 

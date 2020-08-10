@@ -43,8 +43,8 @@ public:
 	static unsigned int nextValidID;
 	
 	virtual ~Entity();
-	Entity(Vector2 pos);
-	Entity(Vector2 pos, Sprite* sprite);
+	Entity(const Vector2& pos);
+	Entity(const Vector2& pos, Sprite* sprite);
 	
 	bool drawDebugRect = true;
 
@@ -71,13 +71,15 @@ public:
 	virtual const SDL_Rect* GetBounds();
 	Vector2 GetPosition();
 	Vector2 GetCenter();
-	void SetPosition(Vector2 newPosition);
-	void SetAnimator(Animator* anim);
-	void SetSprite(Sprite* sprite);
+	
+	void SetPosition(const Vector2& newPosition);
+	void SetAnimator(Animator& anim);
+	void SetSprite(Sprite& sprite);
+
 	virtual void Update(Game& game);
-	virtual void Render(Renderer* renderer);
-	virtual void RenderParallax(Renderer* renderer, float p);
-	virtual void RenderDebug(Renderer* renderer);
+	virtual void Render(const Renderer& renderer);
+	virtual void RenderParallax(const Renderer& renderer, float p) const;
+	virtual void RenderDebug(const Renderer& renderer);
 
 	void CreateCollider(float x, float y, float w, float h);
 	void CalculateCollider();
@@ -85,17 +87,17 @@ public:
 	virtual void Pause(Uint32 ticks);
 	virtual void Unpause(Uint32 ticks);
 
-	virtual bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
+	virtual bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
 
-	virtual void OnTriggerStay(Entity* other, Game& game);
-	virtual void OnTriggerEnter(Entity* other, Game& game);
-	virtual void OnTriggerExit(Entity* other, Game& game);
+	virtual void OnTriggerStay(Entity& other, Game& game);
+	virtual void OnTriggerEnter(Entity& other, Game& game);
+	virtual void OnTriggerExit(Entity& other, Game& game);
 
 	virtual void OnClick(Uint32 mouseState, Game& game);
 	virtual void OnClickPressed(Uint32 mouseState, Game& game);
 	virtual void OnClickReleased(Uint32 mouseState, Game& game);
 
-	virtual void GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties);
+	virtual void GetProperties(FontInfo* font, std::vector<Property*>& properties);
 	void DeleteProperties(std::vector<Property*>& properties);
 	virtual void SetProperty(std::string prop, std::string newValue);
 

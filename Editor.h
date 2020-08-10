@@ -110,8 +110,8 @@ public:
 	std::string SaveLevelAsString();
 	void SaveLevel(std::string levelName = "");
 	void InitLevelFromFile(std::string levelName);
-	void Render(Renderer* renderer);
-	void RenderDebug(Renderer* renderer);
+	void Render(const Renderer& renderer);
+	void RenderDebug(const Renderer& renderer);
 	DrawingLayer drawingLayer = DrawingLayer::BACK;
 
 

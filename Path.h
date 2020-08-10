@@ -18,13 +18,13 @@ public:
 	void RemovePointFromPath(Vector2 point);	
 	bool IsPointInPath(Vector2 point);
 
-	void Render(Renderer * renderer, unsigned int uniformModel);
+	void Render(const Renderer& renderer, unsigned int uniformModel);
 	const SDL_Rect* GetBounds();
 
 	void Save(std::ostringstream& level);
 
-	void GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties);
-	void SetProperty(std::string prop, std::string newValue);
+	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
+	void SetProperty(const std::string& prop, const std::string& newValue);
 };
 
 #endif

@@ -80,8 +80,9 @@ public:
 	SDL_Rect rect; //TODO: Get rid of this?
 	const SDL_Rect* GetRect();
 
-	void Render(Vector2 position, Renderer* renderer);
-	void Render(Vector2 position, int speed, Renderer* renderer, glm::vec3 rotation);
+	void Render(const Vector2& position, const Renderer& renderer);
+	void Render(const Vector2& position, int speed, const Renderer& renderer, glm::vec3 rotation);
+
 	void SetScale(Vector2 s);
 	bool ShouldAnimate(float time);
 	void CreateMesh(MeshType meshType = MeshType::Quad);
@@ -91,8 +92,8 @@ public:
 	Sprite(Vector2 frame, Texture* image, ShaderProgram* shader);
 	Sprite(int numFrames, SpriteManager* manager, const std::string& filepath, ShaderProgram* shader, Vector2 newPivot);
 
-	glm::vec2 CalculateRenderFrame(Renderer* renderer, float animSpeed);
-	void CalculateModel(Vector2 position, glm::vec3 rotation, Renderer* renderer);
+	glm::vec2 CalculateRenderFrame(const Renderer& renderer, float animSpeed);
+	void CalculateModel(Vector2 position, glm::vec3 rotation, const Renderer& renderer);
 
 	//TODO: What should we do here?
 	// start = first frame of animation

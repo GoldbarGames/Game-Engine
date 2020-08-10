@@ -18,7 +18,7 @@ public:
 
 	SettingsButton(std::string n, Vector2 pos, Game& game);
 	~SettingsButton();
-	void Render(Renderer* renderer);
+	void Render(const Renderer& renderer);
 	std::vector<Text*> options;
 	Text* label;
 

@@ -92,7 +92,7 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 }
 
 //TODO: Should this stuff go inside the Background class constructor?
-void Background::CreateBackground(std::string n, Vector2 pos, SpriteManager* spriteManager, Renderer* renderer)
+void Background::CreateBackground(std::string n, Vector2 pos, SpriteManager* spriteManager, const Renderer& renderer)
 {
 	name = n;
 
@@ -101,7 +101,8 @@ void Background::CreateBackground(std::string n, Vector2 pos, SpriteManager* spr
 	{
 		pos.y -= 200;
 		// This is the blue sky (taking a white square and coloring it blue and increasing its size)
-		Entity* blueBG = AddLayer(pos + Vector2(0, -1440), spriteManager, renderer, "assets/gui/white.png", -99, 0.0f);
+		Entity* blueBG = AddLayer(pos + Vector2(0, -1440), spriteManager, 
+			renderer, "assets/gui/white.png", -99, 0.0f);
 		blueBG->GetSprite()->color = { 0, 0, 83, 255 };
 		blueBG->GetSprite()->SetScale(Vector2(19.875f, 11.2f * 4));
 	}
@@ -125,7 +126,7 @@ Background::~Background()
 	}
 }
 
-void Background::Render(Renderer * renderer)
+void Background::Render(const Renderer& renderer)
 {
 	for (unsigned int i = 0; i < layers.size(); i++)
 	{
@@ -133,12 +134,13 @@ void Background::Render(Renderer * renderer)
 	}
 }
 
-Entity* Background::AddLayer(Vector2 offset, SpriteManager* spriteManager, Renderer* renderer, std::string filepath, int drawOrder, float parallax)
+Entity* Background::AddLayer(Vector2 offset, SpriteManager* spriteManager, const Renderer& renderer, std::string filepath, int drawOrder, float parallax)
 {
-	Sprite* layer = new Sprite(1, spriteManager, filepath, renderer->shaders[ShaderName::Default], Vector2(0, 0));
+	Sprite* layer = new Sprite(1, spriteManager, filepath, 
+		renderer.shaders[ShaderName::Default], Vector2(0, 0));
 	Entity* bg = new BackgroundLayer(offset, parallax);
 	bg->drawOrder = drawOrder;
-	bg->SetSprite(layer);
+	bg->SetSprite(*layer);
 	layers.emplace_back(bg);
 	return bg;
 }

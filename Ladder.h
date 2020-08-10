@@ -7,7 +7,7 @@
 class Ladder : public Entity
 {
 public:
-	void Render(Renderer * renderer);
+	void Render(const Renderer& renderer);
 
 	Ladder(Vector2 pos);
 	~Ladder();
