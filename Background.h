@@ -32,13 +32,13 @@ public:
 	Vector2 position;
 	std::string name = "";
 	std::vector<Entity*> layers;
-	Background(std::string n, Vector2 pos);
-	void CreateBackground(std::string n, Vector2 pos, SpriteManager* spriteManager, const Renderer& renderer);
+	Background(const std::string& n, const Vector2& pos);
+	void CreateBackground(const std::string& n, Vector2 pos, SpriteManager* spriteManager, const Renderer& renderer);
 	void ResetBackground();
 	~Background();
 	void Render(const Renderer& renderer);
-	Entity* AddLayer(Vector2 offset, SpriteManager* spriteManager, const Renderer& renderer,
-		std::string filepath, int drawOrder, float parallax);
+	Entity* AddLayer(const Vector2& offset, SpriteManager* spriteManager, const Renderer& renderer,
+		const std::string& filepath, int drawOrder, float parallax);
 	void DeleteLayers(Game& game);
 	void Save(std::ostringstream& level);
 

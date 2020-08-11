@@ -5,7 +5,7 @@
 
 using std::string;
 
-Tile::Tile(Vector2 pos, Vector2 frame, Texture * image, Renderer * renderer) : Entity(pos)
+Tile::Tile(const Vector2& pos, const Vector2& frame, Texture* image, Renderer* renderer) : Entity(pos)
 {	
 	ChangeSprite(frame, image, renderer);
 	etype = "tile";
@@ -17,7 +17,7 @@ Tile::~Tile()
 }
 
 
-void Tile::ChangeSprite(Vector2 frame, Texture * image, Renderer * renderer)
+void Tile::ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer)
 {
 	if (currentSprite != nullptr)
 		delete currentSprite;
@@ -44,7 +44,7 @@ void Tile::Destroy()
 
 }
 
-bool Tile::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
+bool Tile::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
 {
 	return Entity::CanSpawnHere(spawnPosition, game, useCamera);
 

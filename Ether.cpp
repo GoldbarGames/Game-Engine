@@ -15,23 +15,23 @@ Ether::~Ether()
 
 }
 
-void Ether::OnTriggerStay(Entity* other, Game& game)
+void Ether::OnTriggerStay(Entity& other, Game& game)
 {
 
 }
 
-void Ether::OnTriggerEnter(Entity* other, Game& game)
+void Ether::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other->etype == "player")
+	if (other.etype == "player")
 	{
-		Player* player = static_cast<Player*>(other);
+		Player* player = static_cast<Player*>(&other);
 		game.currentEther++;
 		game.etherText->SetText("Ether: " + std::to_string(game.currentEther));
 		shouldDelete = true;
 	}
 }
 
-void Ether::OnTriggerExit(Entity* other, Game& game)
+void Ether::OnTriggerExit(Entity& other, Game& game)
 {
 
 }

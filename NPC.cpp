@@ -2,7 +2,7 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 
-NPC::NPC(std::string n, Vector2 pos) : Entity(pos)
+NPC::NPC(const std::string& n, const Vector2& pos) : Entity(pos)
 {
 	name = n;
 	etype = "npc";
@@ -29,35 +29,35 @@ void NPC::ChangeCollider(float x, float y, float w, float h)
 }
 
 
-bool NPC::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
+bool NPC::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
 {
 	return true; //TODO: Deal with this later. NPCs could have different sizes!
 }
 
-void NPC::OnTriggerStay(Entity* other, Game& game)
+void NPC::OnTriggerStay(Entity& other, Game& game)
 {
 
 }
 
-void NPC::OnTriggerEnter(Entity* other, Game& game)
+void NPC::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other->etype == "player")
+	if (other.etype == "player")
 	{
-		Player* player = static_cast<Player*>(other);
+		Player* player = static_cast<Player*>(&other);
 		player->currentNPC = this;
 	}
 }
 
-void NPC::OnTriggerExit(Entity* other, Game& game)
+void NPC::OnTriggerExit(Entity& other, Game& game)
 {
-	if (other->etype == "player")
+	if (other.etype == "player")
 	{
-		Player* player = static_cast<Player*>(other);
+		Player* player = static_cast<Player*>(&other);
 		player->currentNPC = nullptr;
 	}
 }
 
-void NPC::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties)
+void NPC::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(font, properties);
 
@@ -65,7 +65,7 @@ void NPC::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Propert
 	properties.emplace_back(new Property(new Text(font, "Label: " + cutsceneLabel)));
 }
 
-void NPC::SetProperty(std::string prop, std::string newValue)
+void NPC::SetProperty(const std::string& prop, const std::string& newValue)
 {
 	// 1. Split the string into two (key and value)
 	std::string key = "";

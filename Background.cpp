@@ -11,7 +11,7 @@
 
 std::unordered_map<std::string, BackgroundData*> Background::bgData;
 
-Background::Background(std::string n, Vector2 pos)
+Background::Background(const std::string& n, const Vector2& pos)
 {
 	name = n;
 	position = pos;
@@ -92,7 +92,8 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 }
 
 //TODO: Should this stuff go inside the Background class constructor?
-void Background::CreateBackground(std::string n, Vector2 pos, SpriteManager* spriteManager, const Renderer& renderer)
+void Background::CreateBackground(const std::string& n, Vector2 pos, 
+	SpriteManager* spriteManager, const Renderer& renderer)
 {
 	name = n;
 
@@ -134,7 +135,8 @@ void Background::Render(const Renderer& renderer)
 	}
 }
 
-Entity* Background::AddLayer(Vector2 offset, SpriteManager* spriteManager, const Renderer& renderer, std::string filepath, int drawOrder, float parallax)
+Entity* Background::AddLayer(const Vector2& offset, SpriteManager* spriteManager, 
+	const Renderer& renderer, const std::string& filepath, int drawOrder, float parallax)
 {
 	Sprite* layer = new Sprite(1, spriteManager, filepath, 
 		renderer.shaders[ShaderName::Default], Vector2(0, 0));

@@ -7,12 +7,12 @@
 class Bug : public Entity
 {
 public:
-	Bug(Vector2 pos);
+	Bug(const Vector2& pos);
 	~Bug();
 
-	void OnTriggerStay(Entity* other, Game& game);
-	void OnTriggerEnter(Entity* other, Game& game);
-	void OnTriggerExit(Entity* other, Game& game);
+	void OnTriggerStay(Entity& other, Game& game);
+	void OnTriggerEnter(Entity& other, Game& game);
+	void OnTriggerExit(Entity& other, Game& game);
 
 	void Save(std::ostringstream& level);
 

@@ -16,7 +16,7 @@ public:
 
 	int selectedOption = 0;
 
-	SettingsButton(std::string n, Vector2 pos, Game& game);
+	SettingsButton(const std::string& n, const Vector2& pos, Game& game);
 	~SettingsButton();
 	void Render(const Renderer& renderer);
 	std::vector<Text*> options;

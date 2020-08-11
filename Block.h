@@ -7,7 +7,7 @@
 class Block : public Entity
 {
 public:
-	Block(Vector2 pos);
+	Block(const Vector2& pos);
 	~Block();
 
 	//void Push(Vector2 direction, Game &game);

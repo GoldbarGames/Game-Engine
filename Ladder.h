@@ -9,16 +9,16 @@ class Ladder : public Entity
 public:
 	void Render(const Renderer& renderer);
 
-	Ladder(Vector2 pos);
+	Ladder(const Vector2& pos);
 	~Ladder();
 
 	Ladder* top = nullptr;
 
 	const SDL_Rect* GetBounds();
 
-	void OnTriggerStay(Entity* other, Game& game);
-	void OnTriggerEnter(Entity* other, Game& game);
-	void OnTriggerExit(Entity* other, Game& game);
+	void OnTriggerStay(Entity& other, Game& game);
+	void OnTriggerEnter(Entity& other, Game& game);
+	void OnTriggerExit(Entity& other, Game& game);
 
 	void Save(std::ostringstream& level);
 

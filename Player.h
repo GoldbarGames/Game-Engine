@@ -38,7 +38,7 @@ public:
 
 	bool updatedAnimator = false;
 
-	Player(Vector2 pos);
+	Player(const Vector2& pos);
 	~Player();
 	void Update(Game& game);
 	void UpdateNormally(Game& game);
@@ -50,9 +50,9 @@ public:
 
 	void ResetPosition();
 
-	void GetProperties(const Renderer& renderer, FontInfo* font, std::vector<Property*>& properties);
+	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
 
-	void SetProperty(std::string prop, std::string newValue);
+	void SetProperty(const std::string& prop, const std::string& newValue);
 
 	void GetMoveInput(const Uint8* input);
 	void GetLadderInput(const Uint8* input);

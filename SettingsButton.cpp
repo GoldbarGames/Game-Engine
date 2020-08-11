@@ -2,7 +2,7 @@
 #include "Game.h"
 
 
-SettingsButton::SettingsButton(std::string n, Vector2 pos, Game& game)
+SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& game)
 {
 	name = n;
 	position = pos;

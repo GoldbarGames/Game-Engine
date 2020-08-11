@@ -2,7 +2,7 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 
-Missile::Missile(Vector2 pos) : Entity(pos)
+Missile::Missile(const Vector2& pos) : Entity(pos)
 {
 	CreateCollider(0, -3, 10, 10);
 

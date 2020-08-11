@@ -3,7 +3,7 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 
-Bug::Bug(Vector2 pos) : Entity(pos)
+Bug::Bug(const Vector2& pos) : Entity(pos)
 {
 	layer = DrawingLayer::OBJECT;
 	drawOrder = 90;
@@ -22,16 +22,16 @@ Bug::~Bug()
 
 }
 
-void Bug::OnTriggerStay(Entity* other, Game& game)
+void Bug::OnTriggerStay(Entity& other, Game& game)
 {
 
 }
 
-void Bug::OnTriggerEnter(Entity* other, Game& game)
+void Bug::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other->etype == "debug_missile")
+	if (other.etype == "debug_missile")
 	{		
-		Missile* missile = dynamic_cast<Missile*>(other);
+		Missile* missile = dynamic_cast<Missile*>(&other);
 
 		if (!missile->destroyed)
 		{
@@ -43,7 +43,7 @@ void Bug::OnTriggerEnter(Entity* other, Game& game)
 	}
 }
 
-void Bug::OnTriggerExit(Entity* other, Game& game)
+void Bug::OnTriggerExit(Entity& other, Game& game)
 {
 
 }

@@ -20,10 +20,10 @@ class Tile : public Entity
 public:
 	void Destroy();
 	const SDL_Rect* GetBounds();
-	void ChangeSprite(Vector2 frame, Texture* image, Renderer* renderer);
+	void ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer);
 	void Animate();
-	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
-	Tile(Vector2 pos, Vector2 frame, Texture* image, Renderer* renderer);
+	bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
+	Tile(const Vector2& pos, const Vector2& frame, Texture* image, Renderer* renderer);
 	~Tile();
 
 	void Save(std::ostringstream& level);

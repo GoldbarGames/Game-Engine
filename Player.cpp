@@ -5,7 +5,7 @@
 #include "Animator.h"
 #include "Physics.h"
 
-Player::Player(Vector2 pos) : Entity(pos)
+Player::Player(const Vector2& pos) : Entity(pos)
 {
 	etype = "player";
 	
@@ -235,8 +235,11 @@ void Player::UpdateNormally(Game& game)
 			{
 				//TODO: Make this look better later
 				// Should this play a cutscene here?
-				SetPosition(currentDoor->GetDestination() + currentSprite->pivot);
-				doorTimer.Start(500);
+				if (animator->GetBool("isGrounded"))
+				{
+					SetPosition(currentDoor->GetDestination() + currentSprite->pivot);
+					doorTimer.Start(500);
+				}
 			}
 			else if (currentGoal != nullptr)
 			{
@@ -507,7 +510,7 @@ void Player::ResetPosition()
 	position = physics->startPosition;
 }
 
-void Player::GetProperties(const Renderer& renderer, FontInfo* font, std::vector<Property*>& properties)
+void Player::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(font, properties);
 
@@ -515,7 +518,7 @@ void Player::GetProperties(const Renderer& renderer, FontInfo* font, std::vector
 	properties.emplace_back(new Property(new Text(font, "Start Pos Y: " + std::to_string((int)physics->startPosition.y))));
 }
 
-void Player::SetProperty(std::string prop, std::string newValue)
+void Player::SetProperty(const std::string& prop, const std::string& newValue)
 {
 	// 1. Split the string into two (key and value)
 	std::string key = "";

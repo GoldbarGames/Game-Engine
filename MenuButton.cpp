@@ -1,7 +1,8 @@
 #include "MenuButton.h"
 #include "Game.h"
 
-MenuButton::MenuButton(const std::string& txt, const std::string& filepath, const std::string& function, Vector2 pos, Game& game)
+MenuButton::MenuButton(const std::string& txt, const std::string& filepath, 
+	const std::string& function, Vector2 pos, Game& game)
 {
 	image = new Sprite(1, game.spriteManager, filepath, game.renderer->shaders[ShaderName::GUI], Vector2(0,0));
 

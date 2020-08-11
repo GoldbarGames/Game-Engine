@@ -89,7 +89,7 @@ public:
 	
 	Sprite(ShaderProgram* s);
 	Sprite(Texture* t, ShaderProgram* s);
-	Sprite(Vector2 frame, Texture* image, ShaderProgram* shader);
+	Sprite(const Vector2& frame, Texture* image, ShaderProgram* shader);
 	Sprite(int numFrames, SpriteManager* manager, const std::string& filepath, ShaderProgram* shader, Vector2 newPivot);
 
 	glm::vec2 CalculateRenderFrame(const Renderer& renderer, float animSpeed);
@@ -100,8 +100,8 @@ public:
 	// end = last frame of animation
 	// numFrames = the number of frames in the whole sheet, regardless of the animation
 	// so the total number is used to derive the width and height of a single frame
-	Sprite(int start, int end, int numFrames, SpriteManager* manager, const std::string& filepath, ShaderProgram* s, Vector2 newPivot, bool loop = true);
-	Sprite(int start, int end, int width, int height, SpriteManager* manager, const std::string& filepath, ShaderProgram* s, Vector2 newPivot, bool loop = true);
+	Sprite(int start, int end, int numFrames, SpriteManager* manager, const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop = true);
+	Sprite(int start, int end, int width, int height, SpriteManager* manager, const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop = true);
 	~Sprite();
 };
 

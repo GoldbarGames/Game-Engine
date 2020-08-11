@@ -23,10 +23,10 @@ public:
 	std::string directionX = "none";
 	std::string directionY = "none";
 
-	Platform(Vector2 pos);
+	Platform(const Vector2& pos);
 	~Platform();
 	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
-	void SetProperty(std::string prop, std::string newValue);
+	void SetProperty(const std::string& prop, const std::string& newValue);
 	void Render(const Renderer& renderer);
 	void Update(Game& game);
 

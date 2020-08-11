@@ -7,12 +7,12 @@
 class Shroom : public Entity
 {
 public:
-	Shroom(Vector2 pos);
+	Shroom(const Vector2& pos);
 	~Shroom();
 
 	void Save(std::ostringstream& level);
 
-	void OnTriggerEnter(Entity* other, Game& game);
+	void OnTriggerEnter(Entity& other, Game& game);
 
 	static Entity* __stdcall Create(const Vector2& pos) { return new Shroom(pos); };
 };

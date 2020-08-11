@@ -9,7 +9,7 @@ class Missile : public Entity
 	Timer timeToLive;
 public:
 	bool destroyed = false;
-	Missile(Vector2 pos);
+	Missile(const Vector2& pos);
 	~Missile();
 	void Update(Game& game);
 	void SetVelocity(Vector2 newVelocity);

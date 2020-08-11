@@ -3,7 +3,7 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 
-Platform::Platform(Vector2 pos) : Entity(pos)
+Platform::Platform(const Vector2& pos) : Entity(pos)
 {
 	startPosition = position;
 	etype = "platform";
@@ -11,10 +11,8 @@ Platform::Platform(Vector2 pos) : Entity(pos)
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 10;
 	
-	
 	jumpThru = true;
 	impassable = true;
-	
 
 	physics = new PhysicsComponent(this);
 	physics->canBePushed = false; // TODO: Is there some potential here?
@@ -221,7 +219,7 @@ void Platform::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 	//properties.emplace_back(new Text(renderer, font, "Collider Height: " + std::to_string(colliderHeight)));
 }
 
-void Platform::SetProperty(std::string prop, std::string newValue)
+void Platform::SetProperty(const std::string& prop, const std::string& newValue)
 {
 	// 1. Split the string into two (key and value)
 	std::string key = "";

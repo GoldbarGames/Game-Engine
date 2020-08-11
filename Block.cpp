@@ -3,7 +3,7 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 
-Block::Block(Vector2 pos) : Entity(pos)
+Block::Block(const Vector2& pos) : Entity(pos)
 {
 	etype = "block";
 	CreateCollider(0, -16, 48, 48);

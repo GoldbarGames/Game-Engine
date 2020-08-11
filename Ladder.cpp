@@ -4,7 +4,7 @@
 #include "Renderer.h"
 #include "Game.h"
 
-Ladder::Ladder(Vector2 pos) : Entity(pos)
+Ladder::Ladder(const Vector2& pos) : Entity(pos)
 {
 	etype = "ladder";
 	layer = DrawingLayer::OBJECT;
@@ -18,25 +18,25 @@ Ladder::~Ladder()
 	
 }
 
-void Ladder::OnTriggerStay(Entity* other, Game& game)
+void Ladder::OnTriggerStay(Entity& other, Game& game)
 {
 
 }
 
-void Ladder::OnTriggerEnter(Entity* other, Game& game)
+void Ladder::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other->etype == "player")
+	if (other.etype == "player")
 	{
-		Player* player = static_cast<Player*>(other);
+		Player* player = static_cast<Player*>(&other);
 		player->currentLadder = this;
 	}
 }
 
-void Ladder::OnTriggerExit(Entity* other, Game& game)
+void Ladder::OnTriggerExit(Entity& other, Game& game)
 {
-	if (other->etype == "player")
+	if (other.etype == "player")
 	{
-		Player* player = static_cast<Player*>(other);
+		Player* player = static_cast<Player*>(&other);
 		if (player->currentLadder == this)
 		{			
 			player->GetAnimator()->SetBool("onLadder", false);

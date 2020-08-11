@@ -17,25 +17,25 @@ Door::~Door()
 
 }
 
-void Door::OnTriggerStay(Entity* other, Game& game)
+void Door::OnTriggerStay(Entity& other, Game& game)
 {
 
 }
 
-void Door::OnTriggerEnter(Entity* other, Game& game)
+void Door::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other->etype == "player")
+	if (other.etype == "player")
 	{
-		Player* player = static_cast<Player*>(other);
+		Player* player = static_cast<Player*>(&other);
 		player->currentDoor = this;
 	}
 }
 
-void Door::OnTriggerExit(Entity* other, Game& game)
+void Door::OnTriggerExit(Entity& other, Game& game)
 {
-	if (other->etype == "player")
+	if (other.etype == "player")
 	{
-		Player* player = static_cast<Player*>(other);
+		Player* player = static_cast<Player*>(&other);
 		player->currentDoor = nullptr;
 	}
 }
@@ -54,15 +54,10 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 {
 	return Entity::CanSpawnHere(spawnPosition, game, useCamera);
 
-
-
-
 	bool shouldSpawn = true;
 
 	if (currentSprite == nullptr)
 		return false;
-
-	
 
 	//TODO: Set this to false. It fails right now because the other entities sprites
 	// have not had their window rects set, so they are at 0,0 which would always fail

@@ -163,7 +163,7 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 }
 
 // constructor for tiles from tilesheets
-Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
+Sprite::Sprite(const Vector2& frame, Texture* image, ShaderProgram* s)
 {
 	model = glm::mat4(1.0f);
 	texture = image;
@@ -194,7 +194,7 @@ Sprite::Sprite(Vector2 frame, Texture * image, ShaderProgram * s)
 }
 
 Sprite::Sprite(int numFrames, SpriteManager* manager, const std::string& filepath,
-	ShaderProgram * s, Vector2 newPivot)
+	ShaderProgram* s, Vector2 newPivot)
 {
 	model = glm::mat4(1.0f);
 	filename = filepath;
@@ -216,7 +216,7 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, const std::string& filepat
 }
 
 Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager,
-	const std::string& filepath, ShaderProgram* s, Vector2 newPivot, bool loop)
+	const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop)
 {
 	model = glm::mat4(1.0f);
 	filename = filepath;
@@ -241,7 +241,7 @@ Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager
 }
 
 Sprite::Sprite(int start, int end, int numframes, SpriteManager* manager, 
-	const std::string& filepath, ShaderProgram* s, Vector2 newPivot, bool loop)
+	const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop)
 {
 	model = glm::mat4(1.0f);
 	texture = manager->GetImage(filepath);
