@@ -254,7 +254,7 @@ void Entity::Render(const Renderer& renderer)
 	}
 }
 
-void Entity::RenderParallax(const Renderer& renderer, float p) const
+void Entity::RenderParallax(const Renderer& renderer, float p)
 {
 	Vector2 renderPosition = Vector2(position.x + (renderer.camera.position.x * p), position.y);
 

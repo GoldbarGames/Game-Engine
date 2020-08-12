@@ -578,19 +578,31 @@ void Game::StopTextInput()
 	else if (inputType == "new_level")
 	{
 		editor->DestroyDialog();
-		editor->SaveLevel(inputText);
+
+		if (inputText != "")
+		{
+			for (unsigned int i = 0; i < entities.size(); i++)
+				delete entities[i];
+			entities.clear();
+			player = SpawnPlayer(Vector2(0, 0));
+
+			editor->SaveLevel(inputText);
+		}			
 	}
 	else if (inputType == "load_file_as")
 	{
 		editor->DestroyDialog();
-		editor->InitLevelFromFile(inputText);
+
+		if (inputText != "")
+		{
+			editor->InitLevelFromFile(inputText);
+		}
 	}
 }
 
 void Game::LoadTitleScreen()
 {
 	renderer->camera.ResetCamera();
-
 	openedMenus.clear();
 	editor->InitLevelFromFile("title");
 	openedMenus.emplace_back(allMenus["Title"]);
@@ -1036,11 +1048,25 @@ bool Game::HandleEvent(SDL_Event& event)
 	{
 		if (event.wheel.y > 0)
 		{
-			renderer->camera.Zoom(-0.1f, screenWidth, screenHeight);
+			if (editMode)
+			{
+				editor->ToggleSpriteMap(1);
+			}
+			else
+			{
+				renderer->camera.Zoom(-0.1f, screenWidth, screenHeight);
+			}
 		}
 		else if (event.wheel.y < 0)
 		{
-			renderer->camera.Zoom(0.1f, screenWidth, screenHeight);
+			if (editMode)
+			{
+				editor->ToggleSpriteMap(-1);
+			}
+			else
+			{
+				renderer->camera.Zoom(0.1f, screenWidth, screenHeight);
+			}
 		}
 	}
 
@@ -1436,6 +1462,12 @@ void Game::Render()
 	{
 		debugScreen->Render(*renderer);
 	}
+
+
+
+
+
+
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);

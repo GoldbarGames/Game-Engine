@@ -80,11 +80,11 @@ void Editor::CreateEditorButtons()
 	buttons.clear();
 
 	const int buttonStartX = 50;
-
-	int buttonX = buttonStartX;
 	const int buttonWidth = 50;
 	const int buttonHeight = 50;
 	const int buttonSpacing = 20;
+
+	int buttonX = buttonStartX + buttonWidth + buttonSpacing;
 
 	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", 
 		"Grid", "Map", "Door", "Ladder", "NPC", "Enemy", "Goal", "Bug", "Ether", "Undo", "Redo", 
@@ -112,14 +112,14 @@ void Editor::CreateEditorButtons()
 	}
 
 	EditorButton* previousButton = new EditorButton("", "PrevPage", 
-		Vector2(buttonStartX*2, (game->screenHeight - buttonHeight - buttonHeight - buttonSpacing)*2), *game);
+		Vector2(buttonStartX*2, (game->screenHeight - buttonHeight)*2), *game);
 	
 	previousButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(previousButton);
 	
 	EditorButton* nextButton = new EditorButton("", "NextPage", 
-		Vector2((buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE - 1)) * 2,
-		(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing)*2), *game);
+		Vector2((buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE + 1)) * 2,
+		(game->screenHeight - buttonHeight)*2), *game);
 	
 	nextButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(nextButton);
@@ -850,8 +850,8 @@ void Editor::MiddleClick(Vector2 clickedPosition)
 			if (game->entities[i]->etype == "tile")
 			{
 				game->entities[i]->jumpThru = !game->entities[i]->jumpThru;
-			}
-			break;
+				break;
+			}			
 		}
 	}
 }
@@ -1082,7 +1082,7 @@ void Editor::ClickedButton()
 	else if (clickedButton->name == "Map")
 	{
 		//TODO: Maybe make this use the mouse wheel too?
-		ToggleSpriteMap();
+		ToggleSpriteMap(1);
 	}
 	else if (clickedButton->name == "Grid")
 	{
@@ -1176,15 +1176,21 @@ void Editor::ClickedButton()
 	}
 	else if (clickedButton->name == "PrevPage")
 	{
-		currentButtonPage--;
-		CreateEditorButtons();
-		clickedButton->isClicked = false;
+		if (currentButtonPage > 0)
+		{
+			currentButtonPage--;
+			CreateEditorButtons();
+			clickedButton->isClicked = false;
+		}
 	}
 	else if (clickedButton->name == "NextPage")
 	{
-		currentButtonPage++;
-		CreateEditorButtons();
-		clickedButton->isClicked = false;
+		if (currentButtonPage <= (int)(buttons.size() / BUTTONS_PER_PAGE))
+		{
+			currentButtonPage++;
+			CreateEditorButtons();
+			clickedButton->isClicked = false;
+		}
 	}
 	else if (clickedButton->name == "Platform")
 	{
@@ -1209,11 +1215,17 @@ void Editor::ClickedButton()
 	}
 }
 
-void Editor::ToggleSpriteMap()
+void Editor::ToggleSpriteMap(int num)
 {
-	spriteMapIndex++;
+	if (game->spriteMap.count(objectMode) != 1)
+		return;
 
-	if (game->spriteMap.count(objectMode) > 0 && spriteMapIndex >= game->spriteMap[objectMode].size())
+	spriteMapIndex += num;
+
+	if (spriteMapIndex < 0)
+		spriteMapIndex = game->spriteMap[objectMode].size() - 1;
+
+	if (spriteMapIndex >= game->spriteMap[objectMode].size())
 		spriteMapIndex = 0;
 
 	Entity*& prev = previewMap[objectMode];
@@ -1480,6 +1492,12 @@ void Editor::Render(const Renderer& renderer)
 	// Draw all buttons
 	for (unsigned int i = 0; i < buttons.size(); i++)
 	{
+		// TODO: Maybe offset the buttons
+		// For now, always draw the previous/next page buttons
+		// If we don't, then clicking in the empty space will 
+		// accidentally instantiate something in the level
+
+		/*
 		if (buttons[i]->name == "PrevPage")
 		{
 			if (currentButtonPage == 0)
@@ -1491,6 +1509,7 @@ void Editor::Render(const Renderer& renderer)
 			if (currentButtonPage > (int)(currentButtonPage/BUTTONS_PER_PAGE))
 				continue;
 		}
+		*/
 
 		buttons[i]->Render(renderer);
 	}
@@ -1533,12 +1552,6 @@ void Editor::CreateDialog(const std::string& txt)
 
 void Editor::NewLevel()
 {
-	for (unsigned int i = 0; i < game->entities.size(); i++)
-		delete game->entities[i];
-	game->entities.clear();
-
-	game->player = game->SpawnPlayer(Vector2(0, 0));
-
 	CreateDialog("Type in the filename of the new level:");
 	game->StartTextInput("new_level");
 }

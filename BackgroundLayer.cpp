@@ -11,7 +11,7 @@ BackgroundLayer::~BackgroundLayer()
 
 }
 
-void BackgroundLayer::Render(const Renderer& renderer) const
+void BackgroundLayer::Render(const Renderer& renderer)
 {
 	Entity::RenderParallax(renderer, parallaxAmount);
 }

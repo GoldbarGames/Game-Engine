@@ -41,19 +41,19 @@ void Enemy::Update(Game& game)
 	physics->Update(game);
 }
 
-void Enemy::OnTriggerStay(Entity* other, Game& game)
+void Enemy::OnTriggerStay(Entity& other, Game& game)
 {
-	if (other->etype == "debug_missile")
+	if (other.etype == "debug_missile")
 	{
 		shouldDelete = true;
 	}
 }
 
-void Enemy::OnTriggerEnter(Entity* other, Game& game)
+void Enemy::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other->etype == "debug_missile")
+	if (other.etype == "debug_missile")
 	{
-		Missile* missile = dynamic_cast<Missile*>(other);
+		Missile* missile = dynamic_cast<Missile*>(&other);
 
 		if (!missile->destroyed)
 		{
@@ -63,7 +63,7 @@ void Enemy::OnTriggerEnter(Entity* other, Game& game)
 	}
 }
 
-void Enemy::OnTriggerExit(Entity* other, Game& game)
+void Enemy::OnTriggerExit(Entity& other, Game& game)
 {
 
 }

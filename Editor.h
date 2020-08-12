@@ -70,7 +70,7 @@ private:
 	Entity* grabbedEntity = nullptr;
 	Vector2 oldGrabbedPosition = Vector2(0, 0);
 
-	const unsigned int BUTTONS_PER_PAGE = 18;
+	const unsigned int BUTTONS_PER_PAGE = 16;
 
 	bool playOpeningDemoCutscene = true;
 
@@ -121,7 +121,7 @@ public:
 	void ToggleGridSize();
 	void ToggleTileset();
 	void ToggleObjectMode(std::string mode);
-	void ToggleSpriteMap();
+	void ToggleSpriteMap(int num);
 	void ToggleInspectionMode();
 
 	

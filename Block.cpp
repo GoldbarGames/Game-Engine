@@ -6,7 +6,7 @@
 Block::Block(const Vector2& pos) : Entity(pos)
 {
 	etype = "block";
-	CreateCollider(0, -16, 48, 48);
+	CreateCollider(0, 16, 48, 48);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 10;
 	impassable = true;

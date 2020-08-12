@@ -91,10 +91,10 @@ void Sprite::CreateMesh(MeshType meshType)
 				};
 
 				GLfloat triVertices[] = {
-					-1.0f, -1.0f, 0.0f,
+					-1.0f, -1.0f, -1.0f,
 					0.0f, -1.0f, 1.0f,
 					1.0f, -1.0f, 0.0f,
-					0.0f, 1.0f, 0.0f
+					0.0f, 1.0f, -1.0f
 				};
 
 				meshTri = new Mesh();

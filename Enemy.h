@@ -7,9 +7,9 @@ public:
 	~Enemy();
 
 	void Update(Game& game);
-	void OnTriggerStay(Entity* other, Game& game);
-	void OnTriggerEnter(Entity* other, Game& game);
-	void OnTriggerExit(Entity* other, Game& game);
+	void OnTriggerStay(Entity& other, Game& game);
+	void OnTriggerEnter(Entity& other, Game& game);
+	void OnTriggerExit(Entity& other, Game& game);
 
 	void Save(std::ostringstream& level);
 

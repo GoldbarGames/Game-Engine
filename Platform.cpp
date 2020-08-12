@@ -7,7 +7,7 @@ Platform::Platform(const Vector2& pos) : Entity(pos)
 {
 	startPosition = position;
 	etype = "platform";
-	CreateCollider(0, -48, 72, 24);
+	CreateCollider(0, 24, 72, 24);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 10;
 	

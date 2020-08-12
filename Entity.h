@@ -78,7 +78,7 @@ public:
 
 	virtual void Update(Game& game);
 	virtual void Render(const Renderer& renderer);
-	virtual void RenderParallax(const Renderer& renderer, float p) const;
+	virtual void RenderParallax(const Renderer& renderer, float p);
 	virtual void RenderDebug(const Renderer& renderer);
 
 	void CreateCollider(float x, float y, float w, float h);

@@ -10,6 +10,7 @@ NPC::NPC(const std::string& n, const Vector2& pos) : Entity(pos)
 	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 20;
+	trigger = true;
 
 	physics = new PhysicsComponent(this);
 	physics->standAboveGround = true;

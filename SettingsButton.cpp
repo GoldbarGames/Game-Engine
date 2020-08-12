@@ -207,14 +207,17 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	else if (name == "Replacing")
 	{
 		game.editor->replaceSettingIndex = selectedOption;
+		game.SaveEditorSettings();
 	}
 	else if (name == "Deleting")
 	{
 		game.editor->deleteSettingIndex = selectedOption;
+		game.SaveEditorSettings();
 	}
 	else if (name == "Button Color")
 	{
 		game.editor->colorSettingIndex = selectedOption;
+		game.SaveEditorSettings();
 
 		//TODO: Make sure this works properly with other languages
 		//TODO: Maybe use an unordered map to set the color
@@ -223,5 +226,4 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	}
 
 	game.SaveSettings();
-	game.SaveEditorSettings();
 }
