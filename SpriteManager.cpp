@@ -50,7 +50,7 @@ Texture* SpriteManager::GetImage(std::string const& imagePath)
 			{
 				delete[] m_data;
 				m_data = 0;
-				return false;
+				return nullptr;
 			}
 
 			PHYSFS_close(myfile);

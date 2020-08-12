@@ -121,6 +121,7 @@ void Entity::Unpause(Uint32 ticks)
 void Entity::Update(Game& game)
 {	
 	game.updateCalls++;
+	lastPosition = position;
 
 	if (animator != nullptr)
 		animator->Update(this);

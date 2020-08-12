@@ -147,6 +147,8 @@ Game::Game()
 	editor = new Editor(*this);
 	entities.clear();
 
+	quadTree = new QuadTree();
+
 	ResetText();
 	SetScreenResolution(1280, 720);
 
@@ -1358,6 +1360,18 @@ void Game::Update()
 		entities[i]->Update(*this);
 	}
 
+	if (quadTree != nullptr)
+	{
+		//quadTree->Update();
+		quadTree->Reset();
+		for (int i = 0; i < entities.size(); i++)
+		{
+			if (entities[i]->impassable || entities[i]->trigger)
+				quadTree->Insert(entities[i]);
+		}
+	}
+		
+
 	// Update the camera last
 	// We need to use the original screen resolution here (for some reason)
 	// which in our case is 1280 x 720
@@ -1462,12 +1476,6 @@ void Game::Render()
 	{
 		debugScreen->Render(*renderer);
 	}
-
-
-
-
-
-
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);

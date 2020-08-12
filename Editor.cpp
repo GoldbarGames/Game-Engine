@@ -1904,6 +1904,10 @@ void Editor::InitLevelFromFile(std::string levelName)
 	game->debugRectangles.clear();
 	game->levelStartCutscene = "";
 
+	if (game->quadTree != nullptr)
+		delete game->quadTree;
+	game->quadTree = new QuadTree(-4000, -4000, 8000, 8000);
+
 	ClearLevelEntities();
 
 	if (levelName != "")
@@ -1918,6 +1922,12 @@ void Editor::InitLevelFromFile(std::string levelName)
 
 	DoAction();
 	game->SortEntities(game->entities);
+
+	for (int i = 0; i < game->entities.size(); i++)
+	{
+		//TODO: Only add entities that have colliders or are impassable
+		game->quadTree->Insert(game->entities[i]);
+	}
 
 	// Count all bugs
 	game->bugsRemaining = 0;

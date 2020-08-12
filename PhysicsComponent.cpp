@@ -228,14 +228,29 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	//TODO: Re-implement this
 	bool fallThru = false;
 
-	Entity* entity = nullptr;
+	if (our->quadrant == nullptr)
+		return false;
 
-	//TODO: Use a quadtree instead of looping over everything
-	for (unsigned int i = 0; i < game.entities.size(); i++)
+	if (our->etype == "player")
+		int test = 0;
+
+	Entity* entity = nullptr;
+	std::vector<Entity*> entities;
+	game.quadTree->Retrieve(our, entities);
+
+	if (our->etype == "player")
+	{
+		std::cout << entities.size() << ": ( " << our->GetBounds()->x << "," << our->GetBounds()->y << ")" << std::endl;
+	}
+
+	// TODO: We want to get all quadrants that our collider intersects with,
+	// and then get all of the entities across all quadrants,
+	// rather than just getting the quadrant at our position.
+
+	for (unsigned int i = 0; i < entities.size(); i++)
 	{
 		game.collisionChecks++;
-
-		entity = game.entities[i];
+		entity = entities[i];
 
 		if (entity == our)
 			continue;
@@ -243,9 +258,6 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 		SDL_Rect theirBounds = *(entity->GetBounds());
 		theirBounds.w *= 2;
 		theirBounds.x -= (theirBounds.w/2);
-
-		if (our->etype == "player" && entity->id == 2799)
-			int test = 0;
 
 		if (entity->impassable || entity->jumpThru)
 		{	

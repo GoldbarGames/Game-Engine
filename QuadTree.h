@@ -1,0 +1,43 @@
+#ifndef QUADTREE_H
+#define QUADTREE_H
+#pragma once
+
+#include "Vector2.h"
+#include "Entity.h"
+#include <SDL.h>
+
+class QuadTree
+{
+    // More than one entity can be in the same position
+    // and therefore also within the same subtree
+    std::vector<Entity*> entities;
+
+    // Children of this tree 
+    QuadTree* children[4];
+
+    Vector2 midpoint = Vector2(0, 0);
+    bool smallestSize = false;
+
+public:
+
+    // Hold details of the boundary of this node 
+    SDL_Rect rect;
+    Vector2 topLeft = Vector2(0,0);
+    Vector2 botRight = Vector2(0,0);
+
+    QuadTree();
+    QuadTree(int x, int y, int w, int h);
+    ~QuadTree();
+
+    void Update();
+    void Reset();
+    void Insert(Entity* newEntity);
+    QuadTree* SearchTree(Entity* e);
+    void Retrieve(Entity* e, std::vector<Entity*>& out);
+    bool Contains(Vector2 point);
+    std::vector<Entity*> GetEntities();
+
+    QuadTree* GetInsertedChild(Entity* entity);
+};
+
+#endif

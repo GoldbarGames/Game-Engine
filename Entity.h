@@ -16,6 +16,7 @@ class Game;
 class PhysicsComponent;
 class Property;
 class Renderer;
+class QuadTree;
 
 #ifndef STRUCT_FONT_INFO
 #define STRUCT_FONT_INFO
@@ -30,12 +31,14 @@ protected:
 	Sprite* debugSprite = nullptr;
 public:
 	Vector2 position = Vector2(0, 0);
+	Vector2 lastPosition = Vector2(0, 0);
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	Vector2 scale = Vector2(1, 1);
 	int spriteIndex = 0;
 
 	PhysicsComponent* physics = nullptr;
 	bool clickable = false;
+	QuadTree* quadrant = nullptr;
 
 	unsigned int Size();
 

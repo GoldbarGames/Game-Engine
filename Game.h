@@ -53,6 +53,7 @@
 
 #include "DebugScreen.h"
 #include "EntityFactory.h"
+#include "QuadTree.h"
 
 #include "CutsceneManager.h"
 #include "SoundManager.h"
@@ -104,6 +105,7 @@ public:
 	bool editMode = false;
 
 	Mesh* cubeMesh;
+	QuadTree* quadTree;
 
 	unsigned int collisionChecks = 0;
 	unsigned int updateCalls = 0;

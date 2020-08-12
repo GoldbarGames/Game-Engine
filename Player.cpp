@@ -304,7 +304,8 @@ void Player::UpdateNormally(Game& game)
 	else
 	{
 		// Don't move if we are casting debug, or looking up/down
-		if (!animator->GetBool("holdingUp") && !animator->GetBool("holdingDown"))
+		if (!animator->GetBool("holdingUp") && !animator->GetBool("holdingDown") 
+			&& !animator->GetBool("isCastingDebug"))
 		{
 			GetMoveInput(input);
 		}
