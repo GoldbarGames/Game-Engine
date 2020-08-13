@@ -1,8 +1,8 @@
 #include "QuadTree.h"
 
-QuadTree::QuadTree()
+QuadTree::QuadTree() : QuadTree(0, 0, 0, 0)
 {
-    QuadTree(0, 0, 0, 0);
+   
 }
 
 QuadTree::QuadTree(int x, int y, int w, int h)
@@ -102,7 +102,7 @@ void QuadTree::Insert(Entity* newEntity)
     // then the object is added to the parent node.
     if (children[0] != nullptr)
     {
-        QuadTree* child = GetInsertedChild(newEntity);
+        QuadTree* child = GetInsertedChild(newEntity->GetBounds());
         if (child != nullptr)
         {
             child->Insert(newEntity);
@@ -133,7 +133,7 @@ void QuadTree::Insert(Entity* newEntity)
         int i = 0;
         while (i < entities.size())
         {
-            QuadTree* child = GetInsertedChild(newEntity);
+            QuadTree* child = GetInsertedChild(newEntity->GetBounds());
             if (child != nullptr)
             {
                 child->Insert(entities[i]);
@@ -148,10 +148,9 @@ void QuadTree::Insert(Entity* newEntity)
 
 }
 
-QuadTree* QuadTree::GetInsertedChild(Entity* entity)
+QuadTree* QuadTree::GetInsertedChild(const SDL_Rect* bounds)
 {
     QuadTree* child = nullptr;
-    const SDL_Rect* bounds = entity->GetBounds();
 
     if (children[0] != nullptr)
     {
@@ -164,39 +163,6 @@ QuadTree* QuadTree::GetInsertedChild(Entity* entity)
             }
         }
     }   
-
-    return child;
-
-
-
-
-    bool topQuadrant = (bounds->y < midpoint.x && bounds->y + bounds->h < midpoint.y);
-    bool bottomQuadrant = (bounds->y > midpoint.y);
-
-    // Object can completely fit within the left quadrants
-    if (bounds->x < midpoint.x && bounds->x + bounds->w < midpoint.x)
-    {
-        if (topQuadrant) 
-        {
-            child = children[1];
-        }
-        else if (bottomQuadrant) 
-        {
-            child = children[2];
-        }
-    }
-    // Object can completely fit within the right quadrants
-    else if (bounds->x > midpoint.x)
-    {
-        if (topQuadrant) 
-        {
-            child = children[0];
-        }
-        else if (bottomQuadrant) 
-        {
-            child = children[3];
-        }
-    }
 
     return child;
 }
@@ -222,12 +188,12 @@ QuadTree* QuadTree::SearchTree(Entity* e)
 }
 
 // Returns all entities contained within a point by adding them to the (initially empty) vector
-void QuadTree::Retrieve(Entity* e, std::vector<Entity*>& out)
+void QuadTree::Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out)
 {
-    QuadTree* child = GetInsertedChild(e);
+    QuadTree* child = GetInsertedChild(bounds);
     if (child != nullptr && children[0] != nullptr)
     {
-        child->Retrieve(e, out);
+        child->Retrieve(bounds, out);
     }
     
     if (entities.size() > 0)

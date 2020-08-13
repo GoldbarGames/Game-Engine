@@ -1366,7 +1366,7 @@ void Game::Update()
 		quadTree->Reset();
 		for (int i = 0; i < entities.size(); i++)
 		{
-			if (entities[i]->impassable || entities[i]->trigger)
+			if (entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru)
 				quadTree->Insert(entities[i]);
 		}
 	}

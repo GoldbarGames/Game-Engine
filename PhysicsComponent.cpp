@@ -236,16 +236,13 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 
 	Entity* entity = nullptr;
 	std::vector<Entity*> entities;
-	game.quadTree->Retrieve(our, entities);
 
-	if (our->etype == "player")
-	{
-		std::cout << entities.size() << ": ( " << our->GetBounds()->x << "," << our->GetBounds()->y << ")" << std::endl;
-	}
-
-	// TODO: We want to get all quadrants that our collider intersects with,
-	// and then get all of the entities across all quadrants,
-	// rather than just getting the quadrant at our position.
+	// We want to retrieve all entities testing against all these different bounds,
+	// then remove any duplicates (keep the unique ones) to iterate over.
+	game.quadTree->Retrieve(&newBoundsHorizontal, entities);
+	game.quadTree->Retrieve(&newBoundsVertical, entities);
+	game.quadTree->Retrieve(&floorBounds, entities);
+	entities.erase(std::unique(entities.begin(), entities.end()), entities.end());
 
 	for (unsigned int i = 0; i < entities.size(); i++)
 	{

@@ -56,19 +56,14 @@ unsigned int Entity::GetNextValidID()
 // since they will offset the next valid ID every time we save the level
 Entity::Entity(const Vector2& pos)
 {
-	position = Vector2(pos.x, pos.y);
-	//position = pos;
+	position = pos;
 	id = nextValidID;
 	nextValidID++;
 	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 }
 
-Entity::Entity(const Vector2& pos, Sprite* sprite)
+Entity::Entity(const Vector2& pos, Sprite* sprite) : Entity(pos)
 {
-	position = pos;
-	id = nextValidID;
-	nextValidID++;
-	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 	currentSprite = sprite;
 }
 

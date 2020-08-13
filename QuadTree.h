@@ -33,11 +33,11 @@ public:
     void Reset();
     void Insert(Entity* newEntity);
     QuadTree* SearchTree(Entity* e);
-    void Retrieve(Entity* e, std::vector<Entity*>& out);
+    void Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out);
     bool Contains(Vector2 point);
     std::vector<Entity*> GetEntities();
 
-    QuadTree* GetInsertedChild(Entity* entity);
+    QuadTree* GetInsertedChild(const SDL_Rect* bounds);
 };
 
 #endif
