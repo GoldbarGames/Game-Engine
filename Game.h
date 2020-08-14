@@ -109,6 +109,8 @@ public:
 
 	unsigned int collisionChecks = 0;
 	unsigned int updateCalls = 0;
+
+	std::vector<Entity*> quadrantEntities;
 	
 	std::unordered_map<std::string, std::vector<std::string>> spriteMap;
 

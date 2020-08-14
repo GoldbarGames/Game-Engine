@@ -98,7 +98,7 @@ void Camera::MouseControl(float xChange, float yChange)
 void Camera::KeyControl(const Uint8* input, const float& dt, 
 	const float& screenWidth, const float& screenHeight)
 {
-	GLfloat velocity = movementSpeed * dt;
+	GLfloat velocity = movementSpeed * dt * orthoZoom;
 
 	// 2D Movement
 
@@ -195,12 +195,12 @@ void Camera::KeyControl(const Uint8* input, const float& dt,
 
 		if (input[SDL_SCANCODE_N])
 		{
-			Zoom(-0.025f, screenWidth, screenHeight);
+			Zoom(-0.25f, screenWidth, screenHeight);
 		}
 
 		if (input[SDL_SCANCODE_M])
 		{
-			Zoom(0.025f, screenWidth, screenHeight);
+			Zoom(0.25f, screenWidth, screenHeight);
 		}
 	}
 }

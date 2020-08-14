@@ -6,6 +6,9 @@
 #include "Entity.h"
 #include <SDL.h>
 
+
+class Renderer;
+
 class QuadTree
 {
     // More than one entity can be in the same position
@@ -18,6 +21,8 @@ class QuadTree
     Vector2 midpoint = Vector2(0, 0);
     bool smallestSize = false;
 
+    Sprite* debugSprite = nullptr;
+
 public:
 
     // Hold details of the boundary of this node 
@@ -25,9 +30,15 @@ public:
     Vector2 topLeft = Vector2(0,0);
     Vector2 botRight = Vector2(0,0);
 
+    int depth = 1;
+    Uint8 renderAlpha = 255;
+
     QuadTree();
-    QuadTree(int x, int y, int w, int h);
+    QuadTree(int x, int y, int w, int h, int d=1);
     ~QuadTree();
+
+    void Render(const Renderer& renderer);
+    void RenderEntities(const Renderer& renderer, const std::vector<Entity*>& e);
 
     void Update();
     void Reset();

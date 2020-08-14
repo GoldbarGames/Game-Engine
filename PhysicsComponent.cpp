@@ -244,6 +244,12 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	game.quadTree->Retrieve(&floorBounds, entities);
 	entities.erase(std::unique(entities.begin(), entities.end()), entities.end());
 
+	if (our->etype == "player")
+	{
+		game.quadrantEntities = std::vector<Entity*>(entities);
+		//std::cout << "" << std::endl;
+	}
+
 	for (unsigned int i = 0; i < entities.size(); i++)
 	{
 		game.collisionChecks++;

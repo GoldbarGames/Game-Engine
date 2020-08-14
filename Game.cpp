@@ -1369,8 +1369,7 @@ void Game::Update()
 			if (entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru)
 				quadTree->Insert(entities[i]);
 		}
-	}
-		
+	}		
 
 	// Update the camera last
 	// We need to use the original screen resolution here (for some reason)
@@ -1411,8 +1410,13 @@ void Game::Render()
 	// Render all backgrounds and their layers
 	background->Render(*renderer);
 
+	if (quadTree != nullptr)
+	{
+		quadTree->Render(*renderer);
+	}
+
 	// Render all entities
-	if (renderer->camera.useOrthoCamera)
+	if (renderer->camera.useOrthoCamera && !editMode)
 	{
 		const int maxWidth = (30 * TILE_SIZE) * 2;
 		const int maxHeight = (17 * TILE_SIZE) * 2;
@@ -1470,12 +1474,20 @@ void Game::Render()
 	//if (GetModeDebug())
 #if _DEBUG
 	editor->RenderDebug(*renderer);
-#endif
-
 	if (debugMode)
 	{
+		if (quadTree != nullptr)
+		{
+			//quadTree->Render(*renderer);
+			if (quadrantEntities.size() > 0)
+				quadTree->RenderEntities(*renderer, quadrantEntities);
+		}
+			
 		debugScreen->Render(*renderer);
 	}
+#endif
+
+
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);

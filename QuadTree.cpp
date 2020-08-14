@@ -1,11 +1,14 @@
 #include "QuadTree.h"
+#include "Renderer.h"
+#include "Sprite.h"
+#include "Game.h"
 
 QuadTree::QuadTree() : QuadTree(0, 0, 0, 0)
 {
    
 }
 
-QuadTree::QuadTree(int x, int y, int w, int h)
+QuadTree::QuadTree(int x, int y, int w, int h, int d)
 {
     children[0] = nullptr;
     children[1] = nullptr;
@@ -16,6 +19,7 @@ QuadTree::QuadTree(int x, int y, int w, int h)
     rect.y = y;
     rect.w = w;
     rect.h = h;
+    depth = d;
 
     topLeft.x = rect.x;
     topLeft.y = rect.y;
@@ -25,8 +29,8 @@ QuadTree::QuadTree(int x, int y, int w, int h)
     midpoint.x = (topLeft.x + botRight.x) / 2;
     midpoint.y = (topLeft.y + botRight.y) / 2;
 
-    smallestSize = abs(topLeft.x - botRight.x) <= 1000 &&
-        abs(topLeft.y - botRight.y) <= 1000;
+    smallestSize = abs(topLeft.x - botRight.x) <= 500 &&
+        abs(topLeft.y - botRight.y) <= 500;
 }
 
 QuadTree::~QuadTree()
@@ -35,6 +39,115 @@ QuadTree::~QuadTree()
     {
         if (children[i] != nullptr)
             delete children[i];
+    }
+}
+
+void QuadTree::RenderEntities(const Renderer& renderer, const std::vector<Entity*>& e)
+{
+    if (debugSprite == nullptr)
+        debugSprite = new Sprite(renderer.shaders[ShaderName::SolidColor]);
+
+    for (int i = 0; i < e.size(); i++)
+    {
+        int colorIndex = i % 6;
+        Uint8 c = 255;
+
+        switch (colorIndex)
+        {
+        case 0:
+            debugSprite->color = { c, c, c, 255 };
+            break;
+        case 1:
+            debugSprite->color = { c, 0, 0, 255 };
+            break;
+        case 2:
+            debugSprite->color = { c, 128, 0, 255 };
+            break;
+        case 3:
+            debugSprite->color = { c, c, 0, 255 };
+            break;
+        case 4:
+            debugSprite->color = { 0, c, 0, 255 };
+            break;
+        case 5:
+            debugSprite->color = { 0, c, c, 255 };
+            break;
+        default:
+            debugSprite->color = { c, c, c, 255 };
+            break;
+        }
+
+        float rWidth = 1;
+        float rHeight = 1;
+
+        float targetWidth = e[i]->GetSprite()->frameWidth;
+        float targetHeight = e[i]->GetSprite()->frameHeight;
+
+        debugSprite->pivot = Vector2(0, 0);
+        debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+        debugSprite->Render(Vector2(e[i]->position.x, e[i]->position.y), renderer);
+    }
+
+    /*
+    for (int i = 0; i < 4; i++)
+    {
+        if (children[i] != nullptr)
+        {
+            children[i]->RenderEntities(renderer, e);
+        }
+    }
+    */
+}
+
+void QuadTree::Render(const Renderer& renderer)
+{
+    if (renderer.game->debugMode)
+    {
+        if (debugSprite == nullptr)
+            debugSprite = new Sprite(renderer.shaders[ShaderName::SolidColor]);
+
+        int colorIndex = depth % 6;
+        Uint8 c = (int)renderAlpha;
+
+        switch (colorIndex)
+        {
+        case 0:
+            debugSprite->color = { c, c, c, 255 };
+            break;
+        case 1:
+            debugSprite->color = { c, 0, 0, 255 };
+            break;
+        case 2:
+            debugSprite->color = { c, 128, 0, 255 };
+            break;
+        case 3:
+            debugSprite->color = { c, c, 0, 255 };
+            break;
+        case 4:
+            debugSprite->color = { 0, c, 0, 255 };
+            break;
+        case 5:
+            debugSprite->color = { 0, c, c, 255 };
+            break;
+        default:
+            debugSprite->color = { c, c, c, 255 };
+            break;
+        }
+
+        debugSprite->pivot = Vector2(0, 0);
+        debugSprite->SetScale(Vector2(rect.w, rect.h));
+        debugSprite->Render(Vector2(rect.x, rect.y), renderer);
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (children[i] != nullptr)
+            {
+                children[i]->renderAlpha = renderAlpha - (i*20);
+                children[i]->Render(renderer);
+            }
+        }
+
+
     }
 }
 
@@ -124,10 +237,10 @@ void QuadTree::Insert(Entity* newEntity)
             int x = rect.x;
             int y = rect.y;
 
-            children[0] = new QuadTree(x + subWidth, y, subWidth, subHeight);
-            children[1] = new QuadTree(x, y, subWidth, subHeight);
-            children[2] = new QuadTree(x, y + subHeight, subWidth, subHeight);
-            children[3] = new QuadTree(x + subWidth, y + subHeight, subWidth, subHeight);
+            children[0] = new QuadTree(x + subWidth, y, subWidth, subHeight, depth+1);
+            children[1] = new QuadTree(x, y, subWidth, subHeight, depth + 1);
+            children[2] = new QuadTree(x, y + subHeight, subWidth, subHeight, depth + 1);
+            children[3] = new QuadTree(x + subWidth, y + subHeight, subWidth, subHeight, depth + 1);
         }
 
         int i = 0;

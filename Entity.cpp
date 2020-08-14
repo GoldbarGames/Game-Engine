@@ -187,6 +187,7 @@ void Entity::RenderDebug(const Renderer& renderer)
 {
 	if (renderer.game->debugMode && drawDebugRect && GetSprite() != nullptr)
 	{
+		//TODO: Refactor this? It seems like this is not very efficient
 		if (debugSprite == nullptr)
 			debugSprite = new Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
 
