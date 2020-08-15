@@ -239,9 +239,9 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 
 	// We want to retrieve all entities testing against all these different bounds,
 	// then remove any duplicates (keep the unique ones) to iterate over.
-	game.quadTree->Retrieve(&newBoundsHorizontal, entities);
-	game.quadTree->Retrieve(&newBoundsVertical, entities);
-	game.quadTree->Retrieve(&floorBounds, entities);
+	game.quadTree->Retrieve(&newBoundsHorizontal, entities, game.quadTree);
+	game.quadTree->Retrieve(&newBoundsVertical, entities, game.quadTree);
+	game.quadTree->Retrieve(&floorBounds, entities, game.quadTree);
 	entities.erase(std::unique(entities.begin(), entities.end()), entities.end());
 
 	if (our->etype == "player")

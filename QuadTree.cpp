@@ -301,12 +301,64 @@ QuadTree* QuadTree::SearchTree(Entity* e)
 }
 
 // Returns all entities contained within a point by adding them to the (initially empty) vector
-void QuadTree::Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out)
+void QuadTree::Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out, QuadTree* root)
 {
     QuadTree* child = GetInsertedChild(bounds);
-    if (child != nullptr && children[0] != nullptr)
+    if (child != nullptr)
     {
-        child->Retrieve(bounds, out);
+        child->Retrieve(bounds, out, root);
+    }
+
+    // If no children, we have reached the smallest quadrant containing the entity
+    // so we want to check adjacent quadrants for collisions too
+    if (children[0] == nullptr && root != nullptr)
+    {
+        SDL_Rect newRect;
+        newRect.x = bounds->x;
+        newRect.y = bounds->y;
+        newRect.w = bounds->w;
+        newRect.h = bounds->h;
+
+        SDL_Rect leftBounds = newRect;
+        leftBounds.x -= rect.w / 2;
+
+        SDL_Rect rightBounds = newRect;
+        rightBounds.x += rect.w / 2;
+
+        SDL_Rect topBounds = newRect;
+        topBounds.y -= rect.h / 2;
+
+        SDL_Rect bottomBounds = newRect;
+        bottomBounds.y -= rect.h / 2;
+
+        QuadTree* tree = root;
+
+        tree = tree->GetInsertedChild(&leftBounds);
+        if (tree != nullptr)
+        {
+            tree->Retrieve(&leftBounds, out, nullptr);
+        }
+
+        tree = root;
+        tree = tree->GetInsertedChild(&rightBounds);
+        if (tree != nullptr)
+        {
+            tree->Retrieve(&rightBounds, out, nullptr);
+        }
+
+        tree = root;
+        tree = tree->GetInsertedChild(&topBounds);
+        if (tree != nullptr)
+        {
+            tree->Retrieve(&topBounds, out, nullptr);
+        }
+
+        tree = root;
+        tree = tree->GetInsertedChild(&bottomBounds);
+        if (tree != nullptr)
+        {
+            tree->Retrieve(&bottomBounds, out, nullptr);
+        }
     }
     
     if (entities.size() > 0)

@@ -44,7 +44,7 @@ public:
     void Reset();
     void Insert(Entity* newEntity);
     QuadTree* SearchTree(Entity* e);
-    void Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out);
+    void Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out, QuadTree* root);
     bool Contains(Vector2 point);
     std::vector<Entity*> GetEntities();
 
