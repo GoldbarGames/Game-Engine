@@ -201,11 +201,13 @@ void QuadTree::Reset()
         if (children[i] != nullptr)
         {
             children[i]->Reset();
+            delete children[i];
             children[i] = nullptr;
         }            
     }
 }
 
+//TODO: Improve performance
 void QuadTree::Insert(Entity* newEntity)
 {
     if (newEntity == nullptr)
