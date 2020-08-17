@@ -1381,49 +1381,11 @@ void Editor::RenderDebug(const Renderer& renderer)
 
 void Editor::Render(const Renderer& renderer)
 {
-	// Draw a white rectangle around the currently highlighted grid tile
-	//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-	//SDL_RenderDrawRect(renderer->renderer, &hoveredTileRect);
-	//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-
-	//grid->Render(Vector2(0, 0), game->renderer);
-
 	// Draw the object or tile that will be placed here, if any
 	if (objectPreview != nullptr && objectPreview->GetSprite() != nullptr)
 	{	
-		if (game->debugMode)
-		{
-			//SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_BLEND);
-			
-			/*
-			if (!objectPreview->CanSpawnHere(Vector2(hoveredTileRect.x, hoveredTileRect.y), *game, false))
-				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 128);
-			else
-				SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 0, 128);
-				*/
-
-			//SDL_RenderFillRect(renderer->renderer, objectPreview->GetSprite()->GetRect());
-			//SDL_SetRenderDrawBlendMode(renderer->renderer, SDL_BLENDMODE_NONE);
-			//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-		}
-
-		//Vector2 spawnPos = game->CalculateObjectSpawnPosition(objPreviewPosition, GRID_SIZE);
 		objectPreview->GetSprite()->Render(objPreviewPosition, 0, renderer, objectPreview->rotation);
-
-		if (placingDoor && currentDoor != nullptr)
-		{
-			//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-
-			Vector2 doorCenter = currentDoor->GetCenter();
-			Vector2 doorPos = currentDoor->GetPosition() + doorCenter;
-			//SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, 
-			//hoveredTileRect.x + doorCenter.x, hoveredTileRect.y + doorCenter.y);
-
-			//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
-		}
 	}
-
-	//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{

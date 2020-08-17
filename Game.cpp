@@ -1351,14 +1351,6 @@ void Game::Update()
 
 
 	}
-		
-	// Update all entities
-	updateCalls = 0;
-	collisionChecks = 0;
-	for (unsigned int i = 0; i < entities.size(); i++)
-	{		
-		entities[i]->Update(*this);
-	}
 
 	if (quadTree != nullptr)
 	{
@@ -1369,7 +1361,17 @@ void Game::Update()
 			if (entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru)
 				quadTree->Insert(entities[i]);
 		}
-	}		
+	}
+		
+	// Update all entities
+	updateCalls = 0;
+	collisionChecks = 0;
+	for (unsigned int i = 0; i < entities.size(); i++)
+	{		
+		entities[i]->Update(*this);
+	}
+
+	
 
 	// Update the camera last
 	// We need to use the original screen resolution here (for some reason)

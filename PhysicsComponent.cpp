@@ -254,7 +254,6 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	{
 		game.collisionChecks++;
 		entity = entities[i];
-
 		if (entity == our)
 			continue;
 
