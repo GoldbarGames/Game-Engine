@@ -161,12 +161,12 @@ const SDL_Rect* Entity::GetBounds()
 	}		
 }
 
-Vector2 Entity::GetPosition()
+Vector2 Entity::GetPosition() const
 {
 	return position;
 }
 
-Vector2 Entity::GetCenter()
+Vector2 Entity::GetCenter() const
 {
 	return Vector2(currentSprite->frameWidth / 2, currentSprite->frameHeight / 2);
 }

@@ -23,10 +23,10 @@ public:
 	void Stop();
 	void Pause();
 	void Unpause();
-	Uint32 GetTicks();
-	Uint32 GetAnimationTime();
-	bool IsPaused();
-	bool HasElapsed();
+	Uint32 GetTicks() const;
+	Uint32 GetAnimationTime() const;
+	bool IsPaused() const;
+	bool HasElapsed() const;
 	void Reset();
 };
 

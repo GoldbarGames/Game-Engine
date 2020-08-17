@@ -125,12 +125,13 @@ bool PhysicsComponent::CheckVerticalJumpThru(Entity* their, Game& game)
 
 		if (holdingDown)
 		{
-			if ((!hadPressedJump && pressingJumpButton))
+			if (pressingJumpButton)
 			{
 				Jump(game);
 				PreviousFrameCollisions(game);
 				return true;
 			}
+
 		}
 	}
 	
@@ -194,7 +195,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	Entity* prevParent = CheckPrevParent();	
 
 	// if we were on the ground last frame, and the player wants to jump, then jump
-	bool wasGrounded = isGrounded; // our->GetAnimator()->GetBool("isGrounded");
+	wasGrounded = isGrounded; // our->GetAnimator()->GetBool("isGrounded");
 	//our->GetAnimator()->SetBool("isGrounded", false);
 	isGrounded = false;
 	
@@ -405,16 +406,11 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 		// is on the wrong monitor, then it will not count the button press
 	}
 
-	bool jumped = false;
+	jumped = false;
 
-	if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0 && wasGrounded)
+	if (pressingJumpButton)
 	{
-		game.soundManager->PlaySound("se/Jump.wav", 0);
-		jumpsRemaining--;
-		velocity.y = jumpSpeed;
-		shouldStickToGround = false;
-		//std::cout << "jump!" << std::endl;
-		jumped = true;
+		Jump(game);
 	}
 
 	if (prevParent != nullptr && parent == nullptr)
@@ -432,27 +428,16 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	{
 		if ((!hadPressedJump && pressingJumpButton) && jumpsRemaining > 0)
 		{
-			//std::cout << "j2" << std::endl;
-			//Jump(game);
+
 		}
 		else if (!shouldStickToGround)
 		{
-			//if (our->etype == "player")
-			//	std::cout << "position.y += " << velocity.y << " * " << game.dt << std::endl;
-
 			our->position.y += (velocity.y * game.dt);
-			//if (jumped)
-				//std::cout << "j3" << std::endl;
 		}
-
-		//if (etype == "player")
-		//	std::cout << "v: " << velocity.y << std::endl;
-
 	}
 	else if (jumped)
 	{
 		our->position.y += (velocity.y * game.dt);
-		//std::cout << "j4" << std::endl;
 	}
 
 	if (isGrounded != wasGrounded)
@@ -465,10 +450,27 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 
 void PhysicsComponent::Jump(Game& game)
 {
-	std::cout << "jump 1" << std::endl;
-	game.soundManager->PlaySound("se/Jump.wav", 0);
-	jumpsRemaining--;
-	our->position.y -= jumpSpeed * game.dt;
+	if (!hadPressedJump)
+	{
+		if (jumpsRemaining > 0 && wasGrounded)
+		{
+			currentJumpSpeed = 0.25f;
+			game.soundManager->PlaySound("se/Jump.wav", 0);
+			velocity.y = (jumpSpeed);
+			jumpsRemaining--;
+		}
+	}
+	else
+	{
+		if (currentJumpSpeed > 0)
+		{
+			//velocity.y -= currentJumpSpeed * 0.1f;
+			//std::cout << currentJumpSpeed << " , " << velocity.y << std::endl;
+		}
+	}
+
+	currentJumpSpeed -= 0.05f;
+	jumped = true;
 }
 
 void PhysicsComponent::PreviousFrameCollisions(Game& game)

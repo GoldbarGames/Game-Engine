@@ -24,6 +24,7 @@ public:
 	float maxHorizontalSpeed = 0.5f;
 	float horizontalSpeed = 0.5f;
 	int jumpsRemaining = 2;
+	bool wasGrounded = false;
 	bool isGrounded = false;
 	unsigned int mass = 1;
 
@@ -34,6 +35,7 @@ public:
 	bool canBePushed = false;
 	bool standAboveGround = false;
 
+	float currentJumpSpeed = 0;
 	float jumpSpeed = -1.0f;
 
 	Entity* prevParent = nullptr;
@@ -42,7 +44,7 @@ public:
 	bool hadPressedJump = false;
 	bool pressingJumpButton = false;
 	bool canJump = true;
-
+	bool jumped = false;
 	bool shouldStickToGround = false;
 
 

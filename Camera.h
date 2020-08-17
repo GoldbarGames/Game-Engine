@@ -42,11 +42,18 @@ public:
 	float yaw = 0;
 	float pitch = 0;
 	float roll = 0;
-	Entity* target = nullptr;
+	float startScreenWidth = 1280;
+	float startScreenHeight = 720;
+	const Entity* target = nullptr;
 	bool shouldUpdate = true;
 	bool useOrthoCamera = true;
+	bool switchingTarget = false;
+	glm::vec3 nextPosition;
+	uint32_t startTime = 0;
+	uint32_t endTime = 0;
 	
-	void FollowTarget(const float& screenWidth, const float& screenHeight);
+	void SwitchTarget(const Entity& newTarget);
+	void FollowTarget(const Game& game);
 	void Update();
 
 

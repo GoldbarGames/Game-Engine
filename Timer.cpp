@@ -15,7 +15,7 @@ Timer::~Timer()
 
 }
 
-bool Timer::HasElapsed()
+bool Timer::HasElapsed() const
 {
 	// is calling this function multiple times per frame really a good idea?
 	Uint32 totalTime = SDL_GetTicks();
@@ -117,7 +117,7 @@ void Timer::Unpause()
 	}
 }
 
-Uint32 Timer::GetAnimationTime()
+Uint32 Timer::GetAnimationTime() const
 {
 	if (endTime > 0 && !loopAnimation && HasElapsed())
 	{
@@ -129,7 +129,7 @@ Uint32 Timer::GetAnimationTime()
 	}
 }
 
-Uint32 Timer::GetTicks()
+Uint32 Timer::GetTicks() const
 {
 	//The actual timer time
 	Uint32 time = 0;
@@ -153,7 +153,7 @@ Uint32 Timer::GetTicks()
 	return time;
 }
 
-bool Timer::IsPaused()
+bool Timer::IsPaused() const
 {
 	return paused && started;
 }

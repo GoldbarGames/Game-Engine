@@ -526,8 +526,8 @@ Player* Game::SpawnPlayer(Vector2 position)
 	renderer->camera.target = player;
 	renderer->guiCamera.target = player;
 
-	renderer->camera.FollowTarget(1280, 720);
-	renderer->guiCamera.FollowTarget(1280, 720);
+	renderer->camera.FollowTarget(*this);
+	renderer->guiCamera.FollowTarget(*this);
 
 	return player;
 }
@@ -1379,9 +1379,9 @@ void Game::Update()
 	if (!cutscene->watchingCutscene)
 	{
 		if (renderer->camera.useOrthoCamera)
-			renderer->camera.FollowTarget(1280, 720);
+			renderer->camera.FollowTarget(*this);
 
-		renderer->guiCamera.FollowTarget(1280, 720);
+		renderer->guiCamera.FollowTarget(*this);
 	}
 }
 

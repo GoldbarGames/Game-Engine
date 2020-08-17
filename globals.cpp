@@ -2,6 +2,44 @@
 #include <iostream>
 #include <time.h>
 
+bool LerpVector3(bool finished, glm::vec3& current, const glm::vec3& start, const glm::vec3& target, 
+	const uint32_t currentTime, uint32_t startTime, uint32_t endTime)
+{
+	if (!finished)
+	{
+		finished = false;
+
+		float difference = endTime - startTime;
+		float t = 1.0f;
+		if (difference != 0)
+		{
+			t = (currentTime - startTime) / difference;
+		}
+
+		//std::cout << (currentTime - startTime) << " / " << difference << " = " << t << std::endl;
+		finished = LerpCoord(current.x, start.x, target.x, t);
+		finished = LerpCoord(current.y, start.y, target.y, t);
+		//std::cout << overlayColor.a << std::endl;
+		//std::cout << timerOverlayColor.GetTicks() << std::endl;
+		//timerOverlayColor.Start(1);
+	}
+
+	return finished;
+}
+
+bool LerpCoord(float& current, const float& start, const float& target, const float& t)
+{
+	if (current != target)
+	{
+		current = start + (t * (target - start));
+
+		if ((current - target) * (current - target) < 3)
+			current = target;
+	}
+
+	return (current == target);
+}
+
 // This is better than SDL_HasIntersection because it works with negative numbers
 bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2)
 {

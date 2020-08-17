@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include <SDL_scancode.h>
 #include "globals.h"
+#include "Game.h"
 
 float Camera::MULTIPLIER = 2.0f;
 
@@ -32,9 +33,10 @@ Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp,
 
 	projection = glm::mat4(1.0f);
 
-	//TODO: Replace width and height with startWidth and startHeight
 	// This is what scales the gui-scaled images when we change screen resolutions
-	guiProjection = glm::ortho(0.0f, width * MULTIPLIER, height * MULTIPLIER, 0.0f, -1.0f, 10.0f);
+	startScreenWidth = width;
+	startScreenHeight = height;
+	guiProjection = glm::ortho(0.0f, startScreenWidth * MULTIPLIER, startScreenHeight * MULTIPLIER, 0.0f, -1.0f, 10.0f);
 
 	Zoom(0.0f, width, height);
 
@@ -58,14 +60,89 @@ void Camera::ResetCamera()
 	ResetProjection();
 }
 
-void Camera::FollowTarget(const float& screenWidth, const float& screenHeight)
+void Camera::SwitchTarget(const Entity& newTarget)
 {
+	switchingTarget = true;
+	target = &newTarget;
+	nextPosition = glm::vec3(target->GetPosition().x - (startScreenWidth * 0.5f),
+		target->GetPosition().y - (startScreenHeight * 0.5f), position.z);
+}
+
+void Camera::FollowTarget(const Game& game)
+{
+	static bool finishedLerp = false;
+
 	if (target != nullptr)
 	{
-		// The position is the top left corner, so to get the target in the center
-		// of the screen, we need to offset it by half the screen's width and height
-		position = glm::vec3(target->GetPosition().x - (screenWidth * 0.5f), 
-			target->GetPosition().y - (screenHeight * 0.5f), position.z);
+		if (switchingTarget) // gradually move camera to the new target
+		{
+			bool isX = (int)position.x == (int)nextPosition.x;
+			bool isY = (int)position.y == (int)nextPosition.y;
+
+			if (isX && isY)
+			{
+				position = nextPosition;
+				switchingTarget = false;
+			}
+			else
+			{
+				if (startTime == 0)
+				{
+					startTime = game.timer.GetTicks();
+					endTime = startTime + 3000;
+				}
+
+				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, game.timer.GetTicks(), startTime, endTime);
+			}
+		}
+		else // gradually move camera to current target only if outside bounds
+		{
+			// The position is the top left corner, so to get the target in the center
+			// of the screen, we need to offset it by half the screen's width and height
+
+			glm::vec3 targetCenter = glm::vec3(target->GetPosition().x - (startScreenWidth * 0.5f),
+				target->GetPosition().y - (startScreenHeight * 0.5f),
+				position.z);
+
+			nextPosition = glm::vec3(targetCenter.x, targetCenter.y, position.z);
+
+			startTime = game.timer.GetTicks();
+
+			if (targetCenter.x > position.x + (startScreenWidth * 0.5f))
+			{
+				finishedLerp = false;
+				nextPosition = glm::vec3(targetCenter.x + (startScreenWidth * 0.5f), position.y, position.z);
+				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, startTime, startTime, startTime);
+			}
+			else if (targetCenter.x < position.x - (startScreenWidth * 0.5f))
+			{
+				finishedLerp = false;
+				nextPosition = glm::vec3(targetCenter.x - (startScreenWidth * 0.5f), position.y, position.z);
+				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, startTime, startTime, startTime);
+			}
+			else if (targetCenter.y > position.y + (startScreenHeight * 0.5f))
+			{
+				finishedLerp = false;
+				nextPosition = glm::vec3(position.x, targetCenter.y + (startScreenHeight * 0.5f), position.z);
+				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, startTime, startTime, startTime);
+			}
+			else if (targetCenter.y < position.y - (startScreenHeight * 0.5f))
+			{
+				finishedLerp = false;
+				nextPosition = glm::vec3(position.x, targetCenter.y - (startScreenHeight * 0.5f), position.z);
+				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, startTime, startTime, startTime);
+			}
+			else
+			{
+				//position = nextPosition;
+				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, startTime, startTime, startTime);
+			}
+
+
+		}
+
+
+
 	}
 }
 

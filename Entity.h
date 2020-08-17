@@ -72,8 +72,8 @@ public:
 	Sprite* GetSprite();
 	Animator* GetAnimator();
 	virtual const SDL_Rect* GetBounds();
-	Vector2 GetPosition();
-	Vector2 GetCenter();
+	Vector2 GetPosition() const;
+	Vector2 GetCenter() const;
 	
 	void SetPosition(const Vector2& newPosition);
 	void SetAnimator(Animator& anim);
