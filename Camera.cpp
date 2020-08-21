@@ -70,78 +70,33 @@ void Camera::SwitchTarget(const Entity& newTarget)
 
 void Camera::FollowTarget(const Game& game)
 {
-	static bool finishedLerp = false;
-
 	if (target != nullptr)
 	{
-		if (switchingTarget) // gradually move camera to the new target
+		glm::vec3 targetCenter = glm::vec3(target->GetPosition().x - (startScreenWidth * 0.5f),
+			target->GetPosition().y - (startScreenHeight * 0.5f), position.z);
+
+		const float scrollFactor = 0.15f;
+		const float screenScrollWidth = startScreenWidth * scrollFactor;
+		const float screenScrollHeight = startScreenHeight * scrollFactor;
+
+		if (targetCenter.x > position.x + screenScrollWidth || 
+			targetCenter.x < position.x - screenScrollWidth)
 		{
-			bool isX = (int)position.x == (int)nextPosition.x;
-			bool isY = (int)position.y == (int)nextPosition.y;
-
-			if (isX && isY)
-			{
-				position = nextPosition;
-				switchingTarget = false;
-			}
-			else
-			{
-				if (startTime == 0)
-				{
-					startTime = game.timer.GetTicks();
-					endTime = startTime + 3000;
-				}
-
-				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, game.timer.GetTicks(), startTime, endTime);
-			}
-		}
-		else // gradually move camera to current target only if outside bounds
-		{
-			// The position is the top left corner, so to get the target in the center
-			// of the screen, we need to offset it by half the screen's width and height
-
-			glm::vec3 targetCenter = glm::vec3(target->GetPosition().x - (startScreenWidth * 0.5f),
-				target->GetPosition().y - (startScreenHeight * 0.5f),
-				position.z);
-
-			nextPosition = glm::vec3(targetCenter.x, targetCenter.y, position.z);
-
-			startTime = game.timer.GetTicks();
-
-			if (targetCenter.x > position.x + (startScreenWidth * 0.5f))
-			{
-				finishedLerp = false;
-				nextPosition = glm::vec3(targetCenter.x + (startScreenWidth * 0.5f), position.y, position.z);
-				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, startTime, startTime, startTime);
-			}
-			else if (targetCenter.x < position.x - (startScreenWidth * 0.5f))
-			{
-				finishedLerp = false;
-				nextPosition = glm::vec3(targetCenter.x - (startScreenWidth * 0.5f), position.y, position.z);
-				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, startTime, startTime, startTime);
-			}
-			else if (targetCenter.y > position.y + (startScreenHeight * 0.5f))
-			{
-				finishedLerp = false;
-				nextPosition = glm::vec3(position.x, targetCenter.y + (startScreenHeight * 0.5f), position.z);
-				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, startTime, startTime, startTime);
-			}
-			else if (targetCenter.y < position.y - (startScreenHeight * 0.5f))
-			{
-				finishedLerp = false;
-				nextPosition = glm::vec3(position.x, targetCenter.y - (startScreenHeight * 0.5f), position.z);
-				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, startTime, startTime, startTime);
-			}
-			else
-			{
-				//position = nextPosition;
-				finishedLerp = LerpVector3(finishedLerp, position, position, nextPosition, startTime, startTime, startTime);
-			}
-
-
+			isLerping = true;
 		}
 
+		if (targetCenter.y > position.y + screenScrollHeight || 
+			targetCenter.y < position.y - screenScrollHeight)
+		{
+			isLerping = true;
+		}
 
+		if (isLerping)
+		{
+			//TODO: Seems like when moving right, the target outpaces the camera for some reason?
+			//TODO: This probably needs to be multiplied by game.dt
+			isLerping = !LerpVector3(position, targetCenter, 100.0f, 2.0f);
+		}
 
 	}
 }

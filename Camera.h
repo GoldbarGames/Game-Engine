@@ -48,9 +48,11 @@ public:
 	bool shouldUpdate = true;
 	bool useOrthoCamera = true;
 	bool switchingTarget = false;
+	glm::vec3 startPosition;
 	glm::vec3 nextPosition;
 	uint32_t startTime = 0;
 	uint32_t endTime = 0;
+	bool isLerping = false;
 	
 	void SwitchTarget(const Entity& newTarget);
 	void FollowTarget(const Game& game);

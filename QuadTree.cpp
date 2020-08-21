@@ -201,8 +201,9 @@ void QuadTree::Reset()
         if (children[i] != nullptr)
         {
             children[i]->Reset();
-            delete children[i];
-            children[i] = nullptr;
+            children[i]->active = false;
+            //delete children[i];
+            //children[i] = nullptr;
         }            
     }
 }
@@ -243,6 +244,13 @@ void QuadTree::Insert(Entity* newEntity)
             children[1] = new QuadTree(x, y, subWidth, subHeight, depth + 1);
             children[2] = new QuadTree(x, y + subHeight, subWidth, subHeight, depth + 1);
             children[3] = new QuadTree(x + subWidth, y + subHeight, subWidth, subHeight, depth + 1);
+        }
+        else if (!children[0]->active)
+        {
+            children[0]->active = true;
+            children[1]->active = true;
+            children[2]->active = true;
+            children[3]->active = true;
         }
 
         int i = 0;
@@ -365,6 +373,7 @@ void QuadTree::Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out, QuadT
     
     if (entities.size() > 0)
     {
+        //TODO: Optimize this
         out.insert(std::end(out), std::begin(entities), std::end(entities));
     }
 

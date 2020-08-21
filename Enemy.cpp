@@ -53,13 +53,7 @@ void Enemy::OnTriggerEnter(Entity& other, Game& game)
 {
 	if (other.etype == "debug_missile")
 	{
-		Missile* missile = dynamic_cast<Missile*>(&other);
-
-		if (!missile->destroyed)
-		{
-			shouldDelete = true;
-			missile->Destroy();
-		}
+		shouldDelete = true;
 	}
 }
 

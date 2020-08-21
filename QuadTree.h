@@ -32,6 +32,7 @@ public:
 
     int depth = 1;
     Uint8 renderAlpha = 255;
+    bool active = true;
 
     QuadTree();
     QuadTree(int x, int y, int w, int h, int d=1);

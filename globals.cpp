@@ -2,29 +2,65 @@
 #include <iostream>
 #include <time.h>
 
-bool LerpVector3(bool finished, glm::vec3& current, const glm::vec3& start, const glm::vec3& target, 
+bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxStep, const float minStep)
+{
+	bool xDirectionPositive = (current.x < target.x);
+	bool yDirectionPositive = (current.y < target.y);
+
+	float xStep = std::max((std::abs(target.x - current.x) / std::abs(target.x)) * maxStep, minStep);
+	float yStep = std::max((std::abs(target.y - current.y) / std::abs(target.y)) * maxStep, minStep);
+	//std::cout << xStep << std::endl;
+
+	//TODO: Gradually increase/decrease acceleration based on relation to midpoint
+	// (Let's say we want to go from 0 to 100, so the midpoint is 50.
+	// from 0 to 50, we ramp up, reach max speed at 50, then slow down toward 100)
+
+	//TODO: To reach x and y at the same time, 
+	// step should be two numbers (one for x, one for y)
+
+	if (xDirectionPositive)
+		current.x = std::min(target.x, current.x + xStep);
+	else
+		current.x = std::max(target.x, current.x - xStep);
+
+	if (yDirectionPositive)
+		current.y = std::min(target.y, current.y + yStep);
+	else
+		current.y = std::max(target.y, current.y - yStep);
+
+	bool xFinished = std::abs(current.x - target.x) < 1;
+	bool yFinished = std::abs(current.y - target.y) < 1;
+
+	//std::cout << "x: " << current.x << "/" << target.x << std::endl;
+	//std::cout << "y: " << current.y << "/" << target.y << std::endl;
+
+	return xFinished && yFinished;
+}
+
+// Return whether or not all three values have reached their target values
+bool LerpVector3(glm::vec3& current, const glm::vec3& start, const glm::vec3& target, 
 	const uint32_t currentTime, uint32_t startTime, uint32_t endTime)
 {
-	if (!finished)
+	float difference = endTime - startTime;
+	float t = 1.0f;
+	if (difference != 0)
 	{
-		finished = false;
-
-		float difference = endTime - startTime;
-		float t = 1.0f;
-		if (difference != 0)
-		{
-			t = (currentTime - startTime) / difference;
-		}
-
-		//std::cout << (currentTime - startTime) << " / " << difference << " = " << t << std::endl;
-		finished = LerpCoord(current.x, start.x, target.x, t);
-		finished = LerpCoord(current.y, start.y, target.y, t);
-		//std::cout << overlayColor.a << std::endl;
-		//std::cout << timerOverlayColor.GetTicks() << std::endl;
-		//timerOverlayColor.Start(1);
+		t = (currentTime - startTime) / difference; // percentage of passed time
 	}
 
-	return finished;
+	if (t > 1.0f)
+		t = 1.0f;
+
+	//std::cout << (currentTime - startTime) << " / " << difference << " = " << t << std::endl;
+	
+	bool xFinished = LerpCoord(current.x, start.x, target.x, t);
+	bool yFinished = LerpCoord(current.y, start.y, target.y, t);
+
+	//std::cout << overlayColor.a << std::endl;
+	//std::cout << timerOverlayColor.GetTicks() << std::endl;
+	//timerOverlayColor.Start(1);
+
+	return xFinished && yFinished;
 }
 
 bool LerpCoord(float& current, const float& start, const float& target, const float& t)
@@ -33,7 +69,7 @@ bool LerpCoord(float& current, const float& start, const float& target, const fl
 	{
 		current = start + (t * (target - start));
 
-		if ((current - target) * (current - target) < 3)
+		if ((current - target) * (current - target) < 1)
 			current = target;
 	}
 
