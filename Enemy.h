@@ -6,7 +6,14 @@ public:
 	Enemy(Vector2 pos);
 	~Enemy();
 
+	Collider* bottomLeftGround = nullptr;
+	Collider* bottomRightGround = nullptr;
+
 	void Update(Game& game);
+	void Render(const Renderer& renderer);
+
+	void Init(const std::string& n);
+
 	void OnTriggerStay(Entity& other, Game& game);
 	void OnTriggerEnter(Entity& other, Game& game);
 	void OnTriggerExit(Entity& other, Game& game);

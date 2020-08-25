@@ -186,6 +186,9 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	bool hadCollision = false;
 	shouldStickToGround = false;
 
+	if (our->etype == "player")
+		int test = 0;
+
 	// copy this frame into previous frame list (could be done at beginning or end)
 	prevFrameCollisions = thisFrameCollisions;
 	thisFrameCollisions.clear();
@@ -222,18 +225,14 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	SDL_Rect floorBounds = newBoundsVertical;
 	floorBounds.y += 20;
 
-	const int FLOOR_SIZE = 16;
-	if (standAboveGround)
-		floorBounds.h += FLOOR_SIZE; // (int)(newBoundsVertical.h * 0.25f);
+	const int FLOOR_SIZE = standAboveGround ? 16 : 0;		
+	floorBounds.h += FLOOR_SIZE;
 
 	//TODO: Re-implement this
 	bool fallThru = false;
 
 	if (our->quadrant == nullptr)
 		return false;
-
-	if (our->etype == "player")
-		int test = 0;
 
 	Entity* entity = nullptr;
 	std::vector<Entity*> entities;
@@ -245,6 +244,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	game.quadTree->Retrieve(&floorBounds, entities, game.quadTree);
 	entities.erase(std::unique(entities.begin(), entities.end()), entities.end());
 
+	// This is just for getting the entities so we can render the quadtree for debugging
 	if (our->etype == "player")
 	{
 		game.quadrantEntities = std::vector<Entity*>(entities);
@@ -258,9 +258,12 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 		if (entity == our)
 			continue;
 
+		if (our->etype == "player" && entity->etype == "block")
+			int test = 0;
+
 		SDL_Rect theirBounds = *(entity->GetBounds());
+		theirBounds.x -= theirBounds.w;
 		theirBounds.w *= 2;
-		theirBounds.x -= (theirBounds.w/2);
 
 		if (entity->impassable || entity->jumpThru)
 		{	
@@ -286,10 +289,12 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 				horizontalCollision = CheckCollisionHorizontal(entity, game);
 				hadCollision = hadCollision || horizontalCollision;
 
+				// When moving to the right, we are touching the left side of the wall
+				// When moving to the left, we are touching the right side of the wall
 				if (velocity.x > 0)
-					our->position.x = (float)(theirBounds.x - myBounds.w - our->collider->offset.x);
+					our->position.x = (float)(theirBounds.x - (myBounds.w/2) - our->collider->offset.x);
 				else if (velocity.x < 0)
-					our->position.x = (float)(theirBounds.x + theirBounds.w + our->collider->offset.x);
+					our->position.x = (float)(theirBounds.x + theirBounds.w + myBounds.w + our->collider->offset.x);
 			}
 
 			// Separate checking the ceiling vs. the floor 
@@ -310,11 +315,31 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 				bool shouldIgnoreJumpThru = (entity->jumpThru &&
 					our->GetAnimator()->GetBool("onLadder"));
 
+				// We need to change this here so that when we
+				// check for an intersection it is using coords
+				// using a top-left origin rather than centered
+				if (entity->etype == "block")
+				{
+					theirBounds.y -= theirBounds.h;
+					//theirBounds.h *= 2;
+				}
+
 				// Moving down
 				// checks the ground (using a rect that is a little bit larger
 				if (!verticalCollision && !shouldIgnoreJumpThru && 
 					HasIntersection(floorBounds, theirBounds))
 				{
+					// We want to change this back to the previous value
+					// so that when we reset the player's position
+					// they go to the correct spot
+					// TODO: Maybe make a different function
+					// that takes in centered-origin coordinates?
+					if (entity->etype == "block")
+					{
+						theirBounds.y += theirBounds.h;
+						//theirBounds.h *= 2;
+					}
+
 					hadCollision = true;
 					verticalCollision = true;
 					CheckCollisionTrigger(entity, game);
@@ -351,10 +376,12 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 						if (useGravity)
 						{
 							velocity.y = 0;
-							if (standAboveGround)
-								our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - FLOOR_SIZE - our->collider->offset.y);
-							else
-								our->position.y = (float)(theirBounds.y - (theirBounds.h) - myBounds.h - our->collider->offset.y);
+							// theirBounds.y - theirBounds.h gets the top of the other's bounds (center.y - half height)
+							// then we subtract half our height (myBounds.h) to get our new position on top of the other object
+							// then we subtract any collider offsets (usually zero)
+							// then finally we subtract the floor to get a 2.5D look
+							our->position.y = (float)(theirBounds.y - theirBounds.h - myBounds.h - our->collider->offset.y - FLOOR_SIZE);
+
 							shouldStickToGround = true;
 						}
 					}

@@ -393,7 +393,12 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		}
 
 
-		Animator* newAnimator = new Animator(entityName, animStates, "middle");
+		//TODO: Make this better
+		std::string initialState = "idle";
+		if (newEntity->etype == "ladder")
+			initialState = "middle";
+
+		Animator* newAnimator = new Animator(entityName, animStates, initialState);
 		newEntity->SetAnimator(*newAnimator);
 	}
 

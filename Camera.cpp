@@ -75,29 +75,36 @@ void Camera::FollowTarget(const Game& game)
 		glm::vec3 targetCenter = glm::vec3(target->GetPosition().x - (startScreenWidth * 0.5f),
 			target->GetPosition().y - (startScreenHeight * 0.5f), position.z);
 
-		const float scrollFactor = 0.15f;
-		const float screenScrollWidth = startScreenWidth * scrollFactor;
-		const float screenScrollHeight = startScreenHeight * scrollFactor;
-
-		if (targetCenter.x > position.x + screenScrollWidth || 
-			targetCenter.x < position.x - screenScrollWidth)
+		bool instantFollow = false;
+		if (instantFollow)
 		{
-			isLerping = true;
+			position = targetCenter;
 		}
-
-		if (targetCenter.y > position.y + screenScrollHeight || 
-			targetCenter.y < position.y - screenScrollHeight)
+		else
 		{
-			isLerping = true;
-		}
+			const float scrollFactor = 0.15f;
+			const float screenScrollWidth = startScreenWidth * scrollFactor;
+			const float screenScrollHeight = startScreenHeight * scrollFactor;
 
-		if (isLerping)
-		{
-			//TODO: Seems like when moving right, the target outpaces the camera for some reason?
-			//TODO: This probably needs to be multiplied by game.dt
-			isLerping = !LerpVector3(position, targetCenter, 100.0f, 2.0f);
-		}
+			if (targetCenter.x > position.x + screenScrollWidth ||
+				targetCenter.x < position.x - screenScrollWidth)
+			{
+				isLerping = true;
+			}
 
+			if (targetCenter.y > position.y + screenScrollHeight ||
+				targetCenter.y < position.y - screenScrollHeight)
+			{
+				isLerping = true;
+			}
+
+			if (isLerping)
+			{
+				//TODO: Seems like when moving right, the target outpaces the camera for some reason?
+				//TODO: This probably needs to be multiplied by game.dt
+				isLerping = !LerpVector3(position, targetCenter, 50.0f, 2.0f);
+			}
+		}
 	}
 }
 

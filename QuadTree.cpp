@@ -44,6 +44,8 @@ QuadTree::~QuadTree()
 
 void QuadTree::RenderEntities(const Renderer& renderer, const std::vector<Entity*>& e)
 {
+    return;
+
     if (debugSprite == nullptr)
         debugSprite = new Sprite(renderer.shaders[ShaderName::SolidColor]);
 
@@ -101,6 +103,8 @@ void QuadTree::RenderEntities(const Renderer& renderer, const std::vector<Entity
 
 void QuadTree::Render(const Renderer& renderer)
 {
+    return;
+
     if (renderer.game->debugMode)
     {
         if (debugSprite == nullptr)
@@ -329,6 +333,8 @@ void QuadTree::Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out, QuadT
         newRect.w = bounds->w;
         newRect.h = bounds->h;
 
+        // Recursively retrieve entities from adjacent quadrants
+
         SDL_Rect leftBounds = newRect;
         leftBounds.x -= rect.w / 2;
 
@@ -339,7 +345,7 @@ void QuadTree::Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out, QuadT
         topBounds.y -= rect.h / 2;
 
         SDL_Rect bottomBounds = newRect;
-        bottomBounds.y -= rect.h / 2;
+        bottomBounds.y += rect.h / 2;
 
         QuadTree* tree = root;
 

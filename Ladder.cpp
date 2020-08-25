@@ -50,14 +50,6 @@ void Ladder::Render(const Renderer& renderer)
 	Entity::Render(renderer);
 }
 
-const SDL_Rect* Ladder::GetBounds()
-{
-	if (collider == nullptr)
-		return currentSprite->GetRect();
-	else
-		return collider->bounds;
-}
-
 void Ladder::Save(std::ostringstream& level)
 {
 	Vector2 pos = GetPosition();

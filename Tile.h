@@ -19,7 +19,6 @@ class Tile : public Entity
 {
 public:
 	void Destroy();
-	const SDL_Rect* GetBounds();
 	void ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer);
 	void Animate();
 	bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);

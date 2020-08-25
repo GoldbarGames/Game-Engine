@@ -17,28 +17,119 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 	physics->startPosition = pos;
 }
 
+void Enemy::Init(const std::string& n)
+{
+	name = n;
+
+	if (name == "crawler")
+	{
+		bottomLeftGround = new Collider(-54, 48, 16, 16);
+		bottomRightGround = new Collider(54, 48, 16, 16);
+
+		bottomLeftGround->CalculateCollider(position);
+		bottomRightGround->CalculateCollider(position);
+	}
+}
+
 Enemy::~Enemy()
 {
+	if (bottomLeftGround != nullptr)
+		delete_it(bottomLeftGround);
 
+	if (bottomRightGround != nullptr)
+		delete_it(bottomRightGround);
 }
 
 void Enemy::Update(Game& game)
 {
+	// TODO: Rather than check the name, initialize variables
+	// and then check the individual variables (components)
+
 	if (name == "crawler")
 	{
-		if (physics->isGrounded)
-		{
-			//TODO: Only move if the player is nearby
-			//TODO: Don't move off ledges
+		if (bottomLeftGround != nullptr)
+			bottomLeftGround->CalculateCollider(position);
 
-			if (game.player->position.x > position.x)
-				physics->velocity.x = 0.1f;
+		if (bottomRightGround != nullptr)
+			bottomRightGround->CalculateCollider(position);
+
+		if (physics->isGrounded)
+		{			
+			//TODO: Don't move off ledges
+			// - Get all entities in quadrant
+			// - Compare left or right rectangle against them
+			// - If there is not a collision, don't move there
+
+			float distanceToPlayer = std::abs(position.x - game.player->position.x) + 
+				std::abs(position.y - game.player->position.y);
+
+			// Only move if the player is nearby
+			if (distanceToPlayer < 400.0f)
+			{
+				if (game.player->position.x > position.x)
+					physics->velocity.x = 0.1f;
+				else
+					physics->velocity.x = -0.1f;
+			}
 			else
-				physics->velocity.x = -0.1f;
+			{
+				physics->velocity.x = 0.0f;
+			}
+
 		}		
 	}
 
 	physics->Update(game);
+}
+
+void Enemy::Render(const Renderer& renderer)
+{
+	Entity::Render(renderer);
+
+	if (renderer.game->debugMode && drawDebugRect)
+	{
+		//TODO: Refactor this? It seems like this is not very efficient
+		if (debugSprite == nullptr)
+			debugSprite = new Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
+
+		if (renderer.IsVisible(layer))
+		{
+			//TODO: Make this a function inside the renderer
+
+			float rWidth = debugSprite->texture->GetWidth();
+			float rHeight = debugSprite->texture->GetHeight();
+
+			if (bottomLeftGround != nullptr)
+			{
+				// draw collider
+				float targetWidth = bottomLeftGround->bounds->w;
+				float targetHeight = bottomLeftGround->bounds->h;
+
+				debugSprite->color = { 255, 255, 255, 255 };
+				debugSprite->pivot = GetSprite()->pivot;
+				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+
+				Vector2 colliderPosition = Vector2(position.x + bottomLeftGround->offset.x, 
+					position.y + bottomLeftGround->offset.y);
+				debugSprite->Render(colliderPosition, renderer);
+			}
+
+			if (bottomRightGround != nullptr)
+			{
+				// draw collider
+				float targetWidth = bottomRightGround->bounds->w;
+				float targetHeight = bottomRightGround->bounds->h;
+
+				debugSprite->color = { 255, 255, 255, 255 };
+				debugSprite->pivot = GetSprite()->pivot;
+				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+
+				Vector2 colliderPosition = Vector2(position.x + bottomRightGround->offset.x,
+					position.y + bottomRightGround->offset.y);
+				debugSprite->Render(colliderPosition, renderer);
+			}
+		}
+	}
 }
 
 void Enemy::OnTriggerStay(Entity& other, Game& game)

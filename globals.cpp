@@ -9,14 +9,6 @@ bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxSte
 
 	float xStep = std::max((std::abs(target.x - current.x) / std::abs(target.x)) * maxStep, minStep);
 	float yStep = std::max((std::abs(target.y - current.y) / std::abs(target.y)) * maxStep, minStep);
-	//std::cout << xStep << std::endl;
-
-	//TODO: Gradually increase/decrease acceleration based on relation to midpoint
-	// (Let's say we want to go from 0 to 100, so the midpoint is 50.
-	// from 0 to 50, we ramp up, reach max speed at 50, then slow down toward 100)
-
-	//TODO: To reach x and y at the same time, 
-	// step should be two numbers (one for x, one for y)
 
 	if (xDirectionPositive)
 		current.x = std::min(target.x, current.x + xStep);
@@ -77,6 +69,7 @@ bool LerpCoord(float& current, const float& start, const float& target, const fl
 }
 
 // This is better than SDL_HasIntersection because it works with negative numbers
+// NOTE: This function assumes that x and y are the top-left corners of the rectangle!
 bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2)
 {
 	bool b1 = rect1.x < (rect2.x + rect2.w);
