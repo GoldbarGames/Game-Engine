@@ -61,6 +61,10 @@ Editor::Editor(Game& g)
 	game->entities.clear();	
 
 	SetLayer(DrawingLayer::BACK);
+
+	objectPropertiesRect.w = 400;
+	objectPropertiesRect.h = 600;
+	objectPropertiesRect.y = 100;
 }
 
 Editor::~Editor()
@@ -87,8 +91,8 @@ void Editor::CreateEditorButtons()
 	int buttonX = buttonStartX + buttonWidth + buttonSpacing;
 
 	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", 
-		"Grid", "Map", "Door", "Ladder", "NPC", "Enemy", "Goal", "Bug", "Ether", "Undo", "Redo", 
-		"Replace", "Copy", "Block", "Grab", "Platform", "Path", "Shroom" };
+		"Grid", "Map", "Door", "Ladder", "NPC", "Enemy", "Goal", "Bug", "Block", "Ether", 
+		"Undo", "Redo", "Replace", "Copy", "Grab", "Platform", "Path", "Shroom" };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
 	unsigned int BUTTON_LIST_END = BUTTON_LIST_START + BUTTONS_PER_PAGE;
@@ -154,10 +158,7 @@ void Editor::StartEdit()
 	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + TILE_SIZE;
 	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + TILE_SIZE;
 
-	objectPropertiesRect.w = 400;
-	objectPropertiesRect.h = 600;
 	objectPropertiesRect.x = (game->screenWidth * 2) - objectPropertiesRect.w;
-	objectPropertiesRect.y = 100;
 
 	CreateEditorButtons();
 
@@ -364,7 +365,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	}
 	else if (objectMode == "inspect")
 	{
-		InspectObject(clickedWorldPosition.x, clickedWorldPosition.y);
+		InspectObject(clickedWorldPosition, clickedScreenPosition);
 	}
 	else if (objectMode == "grab")
 	{
@@ -500,43 +501,61 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 }
 
 
-void Editor::InspectObject(int mouseX, int mouseY)
+void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& clickedScreenPosition)
 {
 	SDL_Point point;
-	point.x = mouseX;
-	point.y = mouseY;
+	point.x = clickedWorldPosition.x;
+	point.y = clickedWorldPosition.y;
 
-	//std::cout << "x: " + point.x << std::endl;
-	//std::cout << "y:" + point.y << std::endl;
+	SDL_Point screenPoint;
+	screenPoint.x = clickedScreenPosition.x * Camera::MULTIPLIER;
+	screenPoint.y = clickedScreenPosition.y * Camera::MULTIPLIER;
 
-	if (SDL_PointInRect(&point, &objectPropertiesRect))
+	bool clickedOnProperty = false;
+
+	for (unsigned int i = 0; i < properties.size(); i++)
 	{
-		for (unsigned int i = 0; i < properties.size(); i++)
-		{
-			//TODO: Fix for OpenGL		
-			SDL_Rect textRect;
-			textRect.w = properties[i]->text->GetTextWidth();
-			textRect.h = properties[i]->text->GetTextHeight();
-			textRect.x = properties[i]->text->position.x - (textRect.w/2);
-			textRect.y = properties[i]->text->position.y - (textRect.h/2);			
+		//TODO: Fix for OpenGL		
+		SDL_Rect textRect;
+		textRect.w = properties[i]->text->GetTextWidth();
+		textRect.h = properties[i]->text->GetTextHeight();
+		textRect.x = properties[i]->text->position.x - (textRect.w);
+		textRect.y = properties[i]->text->position.y - (textRect.h);
+		textRect.w *= 2;
 
-			if (SDL_PointInRect(&point, &textRect))
+		if (SDL_PointInRect(&screenPoint, &textRect))
+		{
+			if (selectedEntity != nullptr)
 			{
-				if (selectedEntity != nullptr)
+				clickedOnProperty = true;
+				if (properties[i]->pType != PropertyType::ReadOnly)
 				{
-					Color red = { 255, 0, 0, 255 };
-					if (properties[i]->text->textColor != red)
+					propertyIndex = i;
+					CreateDialog("Edit property '" + properties[i]->key + "': ");
+					game->StartTextInput("properties");
+
+					//TODO: Why not just use the enum directly?
+					switch (properties[i]->pType)
 					{
-						propertyIndex = i;
-						game->StartTextInput("properties");
-						SetPropertyText(game->inputText);
-					}					
+					case PropertyType::String:
+						game->inputType = "String";
+						break;
+					case PropertyType::Integer:
+						game->inputType = "Integer";
+						break;
+					case PropertyType::Float:
+						game->inputType = "Float";
+						break;
+					}
+
+					SetPropertyText(game->inputText);
 				}
-				break;
-			}			
+			}
+			break;
 		}
 	}
-	else
+
+	if (!clickedOnProperty)
 	{
 		// Find the selected entity
 		for (unsigned int i = 0; i < game->entities.size(); i++)
@@ -578,7 +597,7 @@ std::string Editor::GetCurrentPropertyOptionString(int diff)
 
 void Editor::SetPropertyText(const std::string& newText)
 {	
-	selectedEntity->SetProperty(properties[propertyIndex]->text->txt, newText);
+	selectedEntity->SetProperty(properties[propertyIndex]->key, newText);
 	selectedEntity->GetProperties(game->theFont, properties);
 	SetPropertyPositions();
 }
@@ -589,10 +608,12 @@ void Editor::SetPropertyPositions()
 	int propertyX = objectPropertiesRect.x + 10;
 	int propertyY = objectPropertiesRect.y + 10;
 
+	objectPropertiesRect.h = 50;
 	for (unsigned int i = 0; i < properties.size(); i++)
 	{
 		properties[i]->text->SetPosition(propertyX, propertyY);
 		propertyY += 50;
+		objectPropertiesRect.h += 50;
 	}
 }
 
@@ -1406,32 +1427,54 @@ void Editor::Render(const Renderer& renderer)
 	
 	if (objectMode == "inspect" && selectedEntity != nullptr)
 	{
+		if (outlineSprite == nullptr)
+			outlineSprite = new Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
+
+		if (rectSprite == nullptr)
+		{
+			rectSprite = new Sprite(renderer.debugSprite->shader);
+			rectSprite->keepPositionRelativeToCamera = true;
+			rectSprite->keepScaleRelativeToCamera = true;
+		}
+			
+
 		// Draw a yellow rectangle around the currently selected object
-		//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
-		//SDL_RenderDrawRect(renderer->renderer, selectedEntity->GetBounds());
+		outlineSprite->color = { 0, 255, 255, 128 };
+		outlineSprite->SetScale(Vector2(selectedEntity->GetBounds()->w / outlineSprite->texture->GetWidth(),
+			selectedEntity->GetBounds()->h / outlineSprite->texture->GetWidth()));
+		outlineSprite->Render(selectedEntity->position, renderer);
 
 		// Draw the box that goes underneath all the properties
-		//SDL_SetRenderDrawColor(renderer->renderer, 128, 128, 128, 255);
-		//SDL_RenderFillRect(renderer->renderer, &objectPropertiesRect);
-		
-		// Draw the text for all the properties
-		//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
+		rectSprite->color = { 0, 255, 255, 128 };
+		rectSprite->SetScale(Vector2(objectPropertiesRect.w, objectPropertiesRect.h));
+		rectSprite->Render(Vector2(objectPropertiesRect.x, objectPropertiesRect.y), renderer);
 
-		for (unsigned int i = 0; i < properties.size(); i++)
+		for (unsigned int k = 0; k < properties.size(); k++)
 		{
+			float targetWidth = properties[k]->text->GetSprite()->frameWidth;
+			float targetHeight = properties[k]->text->GetSprite()->frameHeight;
+			rectSprite->color = { 0, 0, 255, 128 };
+			rectSprite->SetScale(Vector2(targetWidth, targetHeight));
+
 			if (propertyIndex > -1)
 			{
 				//TODO: Fix for OpenGL
-				//if (i == propertyIndex)
-				//	SDL_RenderDrawRect(renderer->renderer, &properties[i]->text->);
+				if (k == propertyIndex)
+				{
+					rectSprite->color = { 0, 255, 0, 128 };
+				}
 			}
 
+			rectSprite->Render(properties[k]->text->position, renderer);
+		}
+		
+		// Draw the text for all the properties
+		for (unsigned int i = 0; i < properties.size(); i++)
+		{
 			properties[i]->text->GetSprite()->keepPositionRelativeToCamera = true;
 			properties[i]->text->GetSprite()->keepScaleRelativeToCamera = true;
 			properties[i]->text->Render(renderer);
 		}
-
-		//SDL_SetRenderDrawColor(renderer->renderer, 0, 0, 0, 255);
 	}
 	else
 	{

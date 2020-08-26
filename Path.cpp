@@ -12,12 +12,12 @@ Path::~Path()
 
 }
 
-void Path::AddPointToPath(Vector2 point)
+void Path::AddPointToPath(const Vector2& point)
 {
 	nodes.push_back(new PathNode(point));
 }
 
-void Path::RemovePointFromPath(Vector2 point)
+void Path::RemovePointFromPath(const Vector2& point)
 {
 	int index = -1;
 	for (unsigned int i = 0; i < nodes.size(); i++)
@@ -34,7 +34,7 @@ void Path::RemovePointFromPath(Vector2 point)
 	}		
 }
 
-bool Path::IsPointInPath(Vector2 point)
+bool Path::IsPointInPath(const Vector2& point)
 {
 	for (unsigned int i = 0; i < nodes.size(); i++)
 	{
@@ -93,19 +93,9 @@ void Path::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 	properties.emplace_back(new Property(new Text(font, "Should Loop: " + name)));
 }
 
-void Path::SetProperty(const std::string& prop, const std::string& newValue)
+void Path::SetProperty(const std::string& key, const std::string& newValue)
 {
-	// 1. Split the string into two (key and value)
-	std::string key = "";
-
-	int index = 0;
-	while (prop[index] != ':')
-	{
-		key += prop[index];
-		index++;
-	}
-
-	// 2. Based on the key, change its value
+	// Based on the key, change its value
 	if (key == "Should Loop") //TODO: Maybe change this to a more general "end behavior"
 	{
 		shouldLoop = (newValue == "True");

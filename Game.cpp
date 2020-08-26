@@ -6,6 +6,7 @@
 #include "globals.h"
 #include <sstream>
 #include <iterator>
+#include <ctype.h>
 
 #include <stdio.h>
 #include <time.h>
@@ -563,29 +564,29 @@ void Game::DeleteEntity(int index)
 	entities.erase(entities.begin() + index);
 }
 
-void Game::StartTextInput(std::string reason)
+void Game::StartTextInput(const std::string& reason)
 {
 	getKeyboardInput = true;
-	inputType = reason;
+	inputReason = reason;
 	SDL_StartTextInput();
 	inputText = "";
+	inputType = "String";
 }
 
 void Game::StopTextInput()
 {
 	getKeyboardInput = false;
 	SDL_StopTextInput();
+	editor->DestroyDialog();
 
-	if (inputType == "properties")
+	if (inputReason == "properties")
 	{		
 		editor->SetPropertyText(inputText);
 		editor->propertyIndex = -1;
 		editor->DoAction();
 	}
-	else if (inputType == "new_level")
+	else if (inputReason == "new_level")
 	{
-		editor->DestroyDialog();
-
 		if (inputText != "")
 		{
 			for (unsigned int i = 0; i < entities.size(); i++)
@@ -596,10 +597,8 @@ void Game::StopTextInput()
 			editor->SaveLevel(inputText);
 		}			
 	}
-	else if (inputType == "load_file_as")
+	else if (inputReason == "load_file_as")
 	{
-		editor->DestroyDialog();
-
 		if (inputText != "")
 		{
 			editor->InitLevelFromFile(inputText);
@@ -1095,6 +1094,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			//Handle paste
 			else if (event.key.keysym.sym == SDLK_v && SDL_GetModState() & KMOD_CTRL)
 			{
+				//TODO: Handle type checking here
 				inputText += SDL_GetClipboardText();
 				UpdateTextInput();
 			}
@@ -1208,9 +1208,25 @@ bool Game::HandleEvent(SDL_Event& event)
 		if (!(SDL_GetModState() & KMOD_CTRL && (event.text.text[0] == 'c' || event.text.text[0] == 'C' || 
 			event.text.text[0] == 'v' || event.text.text[0] == 'V')))
 		{
-			//Append character
-			inputText += event.text.text;
-			UpdateTextInput();
+			char c = *event.text.text;
+			bool valid = true;
+
+			// Check if the character is valid for the text we are getting
+			if (inputType == "Integer")
+			{
+				valid = std::isdigit(c);
+			}
+			else if (inputType == "Float")
+			{
+				valid = std::isdigit(c) || (c == '.' && inputText.find('.') == string::npos);
+			}
+
+			if (valid)
+			{
+				//Append character
+				inputText += c;
+				UpdateTextInput();
+			}
 		}
 	}
 
@@ -1278,15 +1294,16 @@ void Game::GetMenuInput()
 
 void Game::UpdateTextInput()
 {
-	if (inputType == "properties")
+	if (inputReason == "properties")
 	{
+		editor->dialog->input->SetText(inputText);
 		editor->SetPropertyText(inputText);
 	}
-	else if (inputType == "new_level")
+	else if (inputReason == "new_level")
 	{
 		editor->dialog->input->SetText(inputText);
 	}
-	else if (inputType == "load_file_as")
+	else if (inputReason == "load_file_as")
 	{
 		editor->dialog->input->SetText(inputText);
 	}

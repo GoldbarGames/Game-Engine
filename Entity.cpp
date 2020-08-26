@@ -363,8 +363,9 @@ void Entity::OnTriggerExit(Entity& other, Game& game)
 void Entity::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::DeleteProperties(properties);
-	std::string id_string = "ID: " + std::to_string(id);
-	properties.emplace_back(new Property(new Text(font, id_string, { 0, 0, 255, 255 })));
+	Property* property = new Property("ID", id);
+	property->pType = PropertyType::ReadOnly;
+	properties.emplace_back(property);
 }
 
 void Entity::DeleteProperties(std::vector<Property*>& properties)
@@ -375,7 +376,7 @@ void Entity::DeleteProperties(std::vector<Property*>& properties)
 	properties.clear();
 }	
 
-void Entity::SetProperty(std::string prop, std::string newValue)
+void Entity::SetProperty(const std::string& key, const std::string& newValue)
 {
 
 }

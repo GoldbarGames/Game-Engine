@@ -62,23 +62,17 @@ void NPC::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(font, properties);
 
-	properties.emplace_back(new Property(new Text(font, "Name: " + name)));
-	properties.emplace_back(new Property(new Text(font, "Label: " + cutsceneLabel)));
+	properties.emplace_back(new Property("Name", name));
+	properties.emplace_back(new Property("Label", cutsceneLabel));
+	properties.emplace_back(new Property("Collider Pos X", (int)collider->offset.x));
+	properties.emplace_back(new Property("Collider Pos Y", (int)collider->offset.y));
+	properties.emplace_back(new Property("Collider Width", collider->scale.x));
+	properties.emplace_back(new Property("Collider Height", collider->scale.y));
 }
 
-void NPC::SetProperty(const std::string& prop, const std::string& newValue)
+void NPC::SetProperty(const std::string& key, const std::string& newValue)
 {
-	// 1. Split the string into two (key and value)
-	std::string key = "";
-
-	int index = 0;
-	while (prop[index] != ':')
-	{
-		key += prop[index];
-		index++;
-	}
-
-	// 2. Based on the key, change its value
+	// Based on the key, change its value
 	if (key == "Label")
 	{
 		cutsceneLabel = newValue;
@@ -86,6 +80,26 @@ void NPC::SetProperty(const std::string& prop, const std::string& newValue)
 	else if (key == "Name")
 	{
 		name = newValue;
+	}
+	else if (key == "Collider Pos X")
+	{
+		if (newValue != "")
+			collider->offset.x = std::stoi(newValue);
+	}
+	else if (key == "Collider Pos Y")
+	{
+		if (newValue != "")
+			collider->offset.y = std::stoi(newValue);
+	}
+	else if (key == "Collider Width")
+	{
+		if (newValue != "")
+			collider->scale.x = std::stof(newValue);
+	}
+	else if (key == "Collider Height")
+	{
+		if (newValue != "")
+			collider->scale.y = std::stof(newValue);
 	}
 }
 

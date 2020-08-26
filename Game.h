@@ -194,6 +194,7 @@ public:
 	bool shouldQuit = false;
 
 	std::string inputText = "";
+	std::string inputReason = "";
 	std::string inputType = "";
 
 	std::string currentLevel = "";
@@ -249,7 +250,7 @@ public:
 	Vector2 SnapToGrid(Vector2 position);
 
 	void UpdateTextInput();
-	void StartTextInput(std::string reason);
+	void StartTextInput(const std::string& reason);
 	void StopTextInput();
 
 	void EscapeMenu();

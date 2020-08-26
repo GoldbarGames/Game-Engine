@@ -519,18 +519,8 @@ void Player::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 	properties.emplace_back(new Property(new Text(font, "Start Pos Y: " + std::to_string((int)physics->startPosition.y))));
 }
 
-void Player::SetProperty(const std::string& prop, const std::string& newValue)
+void Player::SetProperty(const std::string& key, const std::string& newValue)
 {
-	// 1. Split the string into two (key and value)
-	std::string key = "";
-
-	int index = 0;
-	while (prop[index] != ':')
-	{
-		key += prop[index];
-		index++;
-	}
-
 	// 2. Based on the key, change its value
 	//TODO: Refactor this to use the physics component start position stuff
 	if (key == "Start Pos X")

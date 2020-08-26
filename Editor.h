@@ -74,6 +74,8 @@ private:
 
 	bool playOpeningDemoCutscene = true;
 
+	Sprite* rectSprite = nullptr;
+	Sprite* outlineSprite = nullptr;
 public:
 	int tilesheetIndex = 0;
 	unsigned int currentButtonPage = 0;
@@ -140,7 +142,7 @@ public:
 
 	void PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY);
 	void PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY);
-	void InspectObject(int mouseX, int mouseY);
+	void InspectObject(const Vector2& clickedWorldPosition, const Vector2& clickedScreenPosition);
 	void SetPropertyPositions();
 
 	void SetPropertyText(const std::string& newText);

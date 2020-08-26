@@ -219,19 +219,9 @@ void Platform::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 	//properties.emplace_back(new Text(renderer, font, "Collider Height: " + std::to_string(colliderHeight)));
 }
 
-void Platform::SetProperty(const std::string& prop, const std::string& newValue)
+void Platform::SetProperty(const std::string& key, const std::string& newValue)
 {
-	// 1. Split the string into two (key and value)
-	std::string key = "";
-
-	int index = 0;
-	while (prop[index] != ':')
-	{
-		key += prop[index];
-		index++;
-	}
-
-	// 2. Based on the key, change its value
+	// Based on the key, change its value
 	if (key == "Velocity X")
 	{
 		if (newValue != "")

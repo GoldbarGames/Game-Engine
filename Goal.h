@@ -20,7 +20,7 @@ public:
 	void OnTriggerEnter(Entity* other, Game& game);
 	void OnTriggerExit(Entity* other, Game& game);
 	void GetProperties(Renderer * renderer, FontInfo* font, std::vector<Property*>& properties);
-	void SetProperty(std::string prop, std::string newValue);
+	void SetProperty(const std::string& key, const std::string& newValue);
 
 	void Save(std::ostringstream& level);
 

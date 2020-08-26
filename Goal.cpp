@@ -52,19 +52,9 @@ void Goal::GetProperties(Renderer * renderer, FontInfo* font, std::vector<Proper
 	properties.emplace_back(new Property(new Text(font, "Next Level: " + nextLevelName)) );
 }
 
-void Goal::SetProperty(std::string prop, std::string newValue)
+void Goal::SetProperty(const std::string& key, const std::string& newValue)
 {
-	// 1. Split the string into two (key and value)
-	std::string key = "";
-
-	int index = 0;
-	while (prop[index] != ':')
-	{
-		key += prop[index];
-		index++;
-	}
-
-	// 2. Based on the key, change its value
+	// Based on the key, change its value
 	if (key == "Next Level")
 	{
 		nextLevelName = newValue;

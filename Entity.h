@@ -102,7 +102,7 @@ public:
 
 	virtual void GetProperties(FontInfo* font, std::vector<Property*>& properties);
 	void DeleteProperties(std::vector<Property*>& properties);
-	virtual void SetProperty(std::string prop, std::string newValue);
+	virtual void SetProperty(const std::string& key, const std::string& newValue);
 
 	virtual void Save(std::ostringstream& level);
 

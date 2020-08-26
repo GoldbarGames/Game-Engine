@@ -14,9 +14,9 @@ public:
 	std::vector<PathNode*> nodes;
 	Path(Vector2 startPoint);
 	~Path();
-	void AddPointToPath(Vector2 point);
-	void RemovePointFromPath(Vector2 point);	
-	bool IsPointInPath(Vector2 point);
+	void AddPointToPath(const Vector2& point);
+	void RemovePointFromPath(const Vector2& point);	
+	bool IsPointInPath(const Vector2& point);
 
 	void Render(const Renderer& renderer, unsigned int uniformModel);
 	const SDL_Rect* GetBounds();
@@ -24,7 +24,7 @@ public:
 	void Save(std::ostringstream& level);
 
 	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
-	void SetProperty(const std::string& prop, const std::string& newValue);
+	void SetProperty(const std::string& key, const std::string& newValue);
 };
 
 #endif

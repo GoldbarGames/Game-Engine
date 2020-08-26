@@ -52,7 +52,7 @@ public:
 
 	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
 
-	void SetProperty(const std::string& prop, const std::string& newValue);
+	void SetProperty(const std::string& key, const std::string& newValue);
 
 	void GetMoveInput(const Uint8* input);
 	void GetLadderInput(const Uint8* input);
