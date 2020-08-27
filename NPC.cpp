@@ -64,6 +64,7 @@ void NPC::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 
 	properties.emplace_back(new Property("Name", name));
 	properties.emplace_back(new Property("Label", cutsceneLabel));
+	//properties.emplace_back(new Property("Shader", ));
 	properties.emplace_back(new Property("Collider Pos X", (int)collider->offset.x));
 	properties.emplace_back(new Property("Collider Pos Y", (int)collider->offset.y));
 	properties.emplace_back(new Property("Collider Width", collider->scale.x));

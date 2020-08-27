@@ -373,7 +373,14 @@ bool MenuScreen::PressSelectedButton(Game& game)
 		if (currentGame == "WDK")
 		{
 			//game.LoadLevel("demo", 1, 1);
+#if _DEBUG
+			if (game.editor->startEditorLevel != "")	
+				game.LoadLevel(game.editor->startEditorLevel);
+			else
+				game.LoadLevel("demo");
+#else
 			game.LoadLevel("demo");
+#endif
 		}
 		else if (currentGame == "DB2")
 		{

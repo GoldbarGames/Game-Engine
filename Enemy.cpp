@@ -15,6 +15,7 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 	physics = new PhysicsComponent(this);
 	physics->useGravity = true;
 	physics->startPosition = pos;
+	physics->standAboveGround = true;
 }
 
 void Enemy::Init(const std::string& n)
@@ -156,5 +157,6 @@ void Enemy::OnTriggerExit(Entity& other, Game& game)
 void Enemy::Save(std::ostringstream& level)
 {
 	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
-		" " << physics->startPosition.y << " " << spriteIndex << std::endl;
+		" " << physics->startPosition.y << " " << name << " " << spriteIndex << " "
+		<< drawOrder << " " << (int)layer << " " << impassable << std::endl;
 }

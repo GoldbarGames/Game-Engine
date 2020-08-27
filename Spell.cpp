@@ -2,8 +2,6 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 
-Spell::Spell(std::string n) : name(n) {}
-
 Spell::Spell() { }
 
 Spell::~Spell()
@@ -14,6 +12,8 @@ Spell::~Spell()
 bool Spell::Cast(Game& game)
 {
 	bool success = false;
+
+	game.player->UpdateSpellAnimation(names[activeSpell].c_str());
 
 	switch (activeSpell)
 	{
@@ -29,8 +29,6 @@ bool Spell::Cast(Game& game)
 
 bool Spell::CastPush(Game& game)
 {
-	game.player->UpdateSpellAnimation("push");
-
 	// Create a rectangle collider in front of the player (direction facing)
 	SDL_Rect* spellRange = new SDL_Rect;
 
@@ -97,15 +95,18 @@ bool Spell::CastPush(Game& game)
 	{
 		const SDL_Rect* theirBounds = game.entities[i]->GetBounds();
 
+		if (game.entities[i]->etype == "block")
+			int test = 0;
+
 		if (HasIntersection(*spellRange, *theirBounds))
 		{
 			//TODO: Is there a better way to do this than to check the type?
-			PhysicsComponent* entity = dynamic_cast<PhysicsComponent*>(game.entities[i]);
-			if (entity != nullptr)
+			Entity* entity = game.entities[i];
+			if (entity->physics != nullptr)
 			{
 				// 5. Then make that object move until it hits a wall
-				if (entity->canBePushed)
-					entity->Push(pushVelocity);
+				if (entity->physics->canBePushed)
+					entity->physics->Push(pushVelocity);
 			}
 		}
 	}

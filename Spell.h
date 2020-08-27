@@ -10,14 +10,13 @@ class Spell
 {
 public:
 	int activeSpell = 0;
-	std::string name = "";
+	std::string names[1] = { "push" };
 	bool isUnlocked = true;
 
 	bool Cast(Game &game);
 	bool CastPush(Game& game);
 
 	Spell();
-	Spell(std::string n);
 	~Spell();
 };
 

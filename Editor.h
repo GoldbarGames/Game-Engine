@@ -82,6 +82,8 @@ public:
 	int propertyIndex = -1;
 	int GRID_SIZE = 24;
 
+	std::string startEditorLevel = "";
+
 	std::string objectMode = "tile";
 
 	Entity* objectPreview = nullptr;

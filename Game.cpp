@@ -145,7 +145,9 @@ Game::Game()
 	}
 
 	debugScreen = new DebugScreen(*this);
+	
 	editor = new Editor(*this);
+	
 	entities.clear();
 
 	quadTree = new QuadTree();
@@ -162,11 +164,14 @@ Game::Game()
 	allMenus["EditorSettings"] = new MenuScreen("EditorSettings", *this);
 	allMenus["Credits"] = new MenuScreen("Credits", *this);
 
+	LoadEditorSettings();
+
 	start_time = clock::now();
 }
 
 Game::~Game()
 {	
+	SaveEditorSettings();
 	EndSDL();
 }
 
@@ -861,6 +866,9 @@ void Game::SaveEditorSettings()
 	// The currently selected tilesheet
 	fout << "tilesheet " << editor->tilesheetIndex << std::endl;
 
+	// The currently opened level
+	fout << "level " << currentLevel << std::endl;
+
 	//fout << "display_fps " << showFPS << std::endl;
 	//fout << "display_timer " << showTimer << std::endl;
 	//fout << "language " << soundManager->soundVolumeIndex << std::endl;
@@ -907,6 +915,10 @@ void Game::LoadEditorSettings()
 		else if (tokens[0] == "tilesheet")
 		{
 			editor->tilesheetIndex = std::stoi(tokens[1]);
+		}
+		else if (tokens[0] == "level")
+		{
+			editor->startEditorLevel = tokens[1];
 		}
 
 		fin.getline(line, 256);

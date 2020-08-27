@@ -16,6 +16,7 @@ Editor::Editor(Game& g)
 {
 	game = &g;
 
+	playOpeningDemoCutscene = false;
 	dialog = new Dialog(Vector2(g.screenWidth, g.screenHeight), g.spriteManager);
 	dialog->text = new Text(game->theFont, "");
 	dialog->input = new Text(game->theFont, "");
@@ -213,6 +214,7 @@ void Editor::StopEdit()
 {
 	//game->renderer->camera.Zoom(0.0f, game->screenWidth, game->screenHeight);	
 	//inspectionMode = false;	
+	game->SaveEditorSettings();
 	selectedEntity = nullptr;
 	propertyIndex = -1;
 }
@@ -515,7 +517,6 @@ void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& c
 
 	for (unsigned int i = 0; i < properties.size(); i++)
 	{
-		//TODO: Fix for OpenGL		
 		SDL_Rect textRect;
 		textRect.w = properties[i]->text->GetTextWidth();
 		textRect.h = properties[i]->text->GetTextHeight();

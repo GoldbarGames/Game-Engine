@@ -581,6 +581,12 @@ void PhysicsComponent::Push(Vector2 pushVelocity)
 
 void PhysicsComponent::Update(Game& game)
 {
+	if (our->etype != "player" && our->position.y > game.deathBarrierY)
+	{
+		our->shouldDelete = true;
+		return;
+	}
+
 	if (useGravity)
 	{
 		if (velocity.y < CalcTerminalVelocity())

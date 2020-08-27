@@ -15,6 +15,7 @@ Block::Block(const Vector2& pos) : Entity(pos)
 	physics->mass = 5;
 	physics->canBePushed = true;
 	physics->useGravity = true;
+	physics->standAboveGround = true;
 }
 
 Block::~Block()

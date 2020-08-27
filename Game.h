@@ -104,6 +104,10 @@ public:
 	bool debugMode = false;
 	bool editMode = false;
 
+	// TODO: Make this more like a bunch of colliders than a solid line
+	// TODO: Also have a way to create these barriers via the editor
+	int deathBarrierY = 500;
+
 	Mesh* cubeMesh;
 	QuadTree* quadTree;
 
@@ -125,7 +129,6 @@ public:
 
 	// play this cutscene on level start
 	std::string levelStartCutscene = "";
-
 
 	using clock = std::chrono::steady_clock;
 	using seconds = std::chrono::seconds;

@@ -22,7 +22,7 @@ Player::Player(const Vector2& pos) : Entity(pos)
 	physics->maxHorizontalSpeed = 0.35f;
 
 	// Initialize the spells here
-	spell = Spell("PUSH");
+	spell = Spell();
 
 	//TODO: Pause all timers when game is paused
 	timerSpellDebug.Start(1);
@@ -87,7 +87,7 @@ void Player::Update(Game& game)
 
 	//TODO: Change this so that we collide with an object instead of hard-coding a number
 	// Also, maybe draw an outline of the death barrier so the player can see where this is
-	if (position.y > 500)
+	if (position.y > game.deathBarrierY)
 	{
 		game.state = GameState::RESET_LEVEL;
 		return;
@@ -194,7 +194,6 @@ void Player::UpdateNormally(Game& game)
 	physics->pressingJumpButton = input[SDL_SCANCODE_X];
 
 	animator->SetBool("walking", false);
-	animator->SetBool("animationTimerHasElapsed", false);
 	animator->SetBool("holdingUp", pressingUp);
 	animator->SetBool("holdingDown", pressingDown);
 
@@ -326,11 +325,11 @@ void Player::UpdateNormally(Game& game)
 
 void Player::UpdateSpellAnimation(const char* spellName)
 {
-	// 1. Set the player's animation to the PUSH spell casting animation
-	animator->SetState(spellName);
-
-	// 2. Prevent the player from pressing any other buttons during this time
+	// 1. Prevent the player from leaving this state and pressing any other buttons during this time
 	animator->SetBool("isCastingSpell", true);
+
+	// 2. Set the player's animation to the PUSH spell casting animation
+	animator->SetState(spellName);
 
 	// 3. Actually set the player's sprite to the casting sprite
 	animator->Update(this);
@@ -425,7 +424,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 void Player::GetLadderInput(const Uint8* input)
 {
 	animator->SetBool("climbing", false);
-
+	
 	if (pressingUp && currentLadder != currentLadder->top)
 	{
 		animator->SetBool("climbing", true);
@@ -443,15 +442,13 @@ void Player::GetLadderInput(const Uint8* input)
 
 	if (pressingLeft)
 	{
-		//animator->SetBool("climbing", true);
-		animator->SetBool("onLadder", false);
+		animator->SetBool("climbing", true);
 		physics->velocity.x -= physics->horizontalSpeed * 0.15f;
 		scale.x = -1;
 	}
 	else if (pressingRight)
 	{
-		//animator->SetBool("climbing", true);
-		animator->SetBool("onLadder", false);
+		animator->SetBool("climbing", true);
 		physics->velocity.x += physics->horizontalSpeed * 0.15f;
 		scale.x = 1;
 	}
