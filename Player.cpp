@@ -45,6 +45,8 @@ void Player::OnClickPressed(Uint32 mouseState, Game& game)
 void Player::RenderDebug(const Renderer& renderer)
 {
 	Entity::RenderDebug(renderer);
+
+	spell.Render(renderer);
 	
 	if (closeRangeAttackCollider != nullptr)
 	{
@@ -100,7 +102,7 @@ void Player::Update(Game& game)
 	}
 	else
 	{
-		if (!castingSpell)
+		if (!spell.isCasting)
 			UpdateNormally(game);
 
 		if (closeRangeAttackCollider != nullptr)
@@ -169,10 +171,10 @@ void Player::UpdateAnimator()
 		}			
 	}
 
-	if (castingSpell && currentSprite->HasAnimationElapsed())
+	if (spell.isCasting && currentSprite->HasAnimationElapsed())
 	{
 		animator->SetBool("isCastingSpell", false);
-		castingSpell = false;
+		spell.isCasting = false;
 	}
 
 	if (animator != nullptr)
@@ -270,9 +272,9 @@ void Player::UpdateNormally(Game& game)
 	{
 		CastSpellDebug(game, input);
 	}
-	else if (game.pressedSpellButton && timerSpellOther.HasElapsed() && !castingSpell)
+	else if (game.pressedSpellButton && timerSpellOther.HasElapsed() && !spell.isCasting && !animator->GetBool("isCastingSpell"))
 	{
-		castingSpell = spell.Cast(game);
+		spell.isCasting = spell.Cast(game);
 	}
 
 	//TODO: What should happen if multiple buttons are pressed at the same time?
@@ -410,9 +412,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 
 	if (currentSprite != nullptr)
 	{
-		currentSprite->previousFrame = 0;
-		currentSprite->currentFrame = 0;
-
+		currentSprite->ResetFrame();
 		animator->SetBool("isCastingDebug", true);
 		animator->Update(this); // We need to update here in order to know how long to run the timer
 		timerSpellDebug.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));

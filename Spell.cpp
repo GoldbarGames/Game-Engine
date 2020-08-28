@@ -2,11 +2,29 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 
-Spell::Spell() { }
+Spell::Spell() 
+{ 
+
+}
 
 Spell::~Spell()
 {
 
+}
+
+void Spell::Render(const Renderer& renderer)
+{
+	if (isCasting)
+	{
+		if (spellRangeSprite == nullptr)
+			spellRangeSprite = new Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
+
+		float rWidth = spellRangeSprite->texture->GetWidth();
+		float rHeight = spellRangeSprite->texture->GetHeight();
+
+		spellRangeSprite->SetScale(Vector2(spellRangeRect.w/rWidth, spellRangeRect.h/rHeight));
+		spellRangeSprite->Render(Vector2(spellRangeRect.x, spellRangeRect.y), renderer);
+	}
 }
 
 bool Spell::Cast(Game& game)
@@ -14,6 +32,7 @@ bool Spell::Cast(Game& game)
 	bool success = false;
 
 	game.player->UpdateSpellAnimation(names[activeSpell].c_str());
+	game.player->GetSprite()->ResetFrame();
 
 	switch (activeSpell)
 	{
@@ -30,12 +49,10 @@ bool Spell::Cast(Game& game)
 bool Spell::CastPush(Game& game)
 {
 	// Create a rectangle collider in front of the player (direction facing)
-	SDL_Rect* spellRange = new SDL_Rect;
-
-	spellRange->x = (int)game.player->GetCenter().x;
-	spellRange->y = (int)game.player->GetCenter().y;
-	spellRange->w = 40;
-	spellRange->h = 52;
+	spellRangeRect.x = (int)game.player->GetCenter().x + game.player->position.x;
+	spellRangeRect.y = (int)game.player->GetCenter().y + game.player->position.y;
+	spellRangeRect.w = 40;
+	spellRangeRect.h = 52;
 
 	// Begin to create a rectangle where the rectangle's center is at the player's center
 
@@ -43,8 +60,8 @@ bool Spell::CastPush(Game& game)
 	Vector2 playerPivot = game.player->GetSprite()->pivot;
 
 	// Get center of the yellow collision box, and use it as a vector2
-	float yellowBoxCenterX = (spellRange->x + (spellRange->w / 2));
-	float yellowBoxCenterY = (spellRange->y + (spellRange->h / 2));
+	float yellowBoxCenterX = (spellRangeRect.x + (spellRangeRect.w / 2));
+	float yellowBoxCenterY = (spellRangeRect.y + (spellRangeRect.h / 2));
 	Vector2 collisionCenter = Vector2(yellowBoxCenterX, yellowBoxCenterY);
 
 	// scale the pivot and subtract it from the collision center
@@ -52,8 +69,8 @@ bool Spell::CastPush(Game& game)
 	Vector2 yellowRectanglePosition = collisionCenter - scaledPivot;
 
 	// Set the final rectangle to be equal to this offset
-	spellRange->x = (int)yellowRectanglePosition.x;
-	spellRange->y = (int)yellowRectanglePosition.y;
+	spellRangeRect.x = (int)yellowRectanglePosition.x;
+	spellRangeRect.y = (int)yellowRectanglePosition.y;
 
 	int DISTANCE_FROM_CENTER_X = 21;
 	int DISTANCE_FROM_CENTER_Y = -26;
@@ -62,21 +79,21 @@ bool Spell::CastPush(Game& game)
 
 	if (game.player->scale.x < 0)
 	{
-		spellRange->w *= -1;
-		spellRange->x -= DISTANCE_FROM_CENTER_X;
+		spellRangeRect.w *= -1;
+		spellRangeRect.x -= DISTANCE_FROM_CENTER_X;
 	}
 	else
 	{
-		spellRange->x += DISTANCE_FROM_CENTER_X;
+		spellRangeRect.x += DISTANCE_FROM_CENTER_X;
 	}
 
-	spellRange->y += DISTANCE_FROM_CENTER_Y;
+	spellRangeRect.y += DISTANCE_FROM_CENTER_Y;
 
 	// This converts the rectangle into a positive one for the intersection code
-	if (spellRange->w < 0)
+	if (spellRangeRect.w < 0)
 	{
-		spellRange->w *= -1;
-		spellRange->x -= spellRange->w;
+		spellRangeRect.w *= -1;
+		spellRangeRect.x -= spellRangeRect.w;
 	}
 
 	//std::cout << "Rect for push spell:" << std::endl;
@@ -98,7 +115,7 @@ bool Spell::CastPush(Game& game)
 		if (game.entities[i]->etype == "block")
 			int test = 0;
 
-		if (HasIntersection(*spellRange, *theirBounds))
+		if (HasIntersection(spellRangeRect, *theirBounds))
 		{
 			//TODO: Is there a better way to do this than to check the type?
 			Entity* entity = game.entities[i];

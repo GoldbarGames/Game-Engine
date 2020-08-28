@@ -133,7 +133,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		Sprite* newSprite = new Sprite(0, 0, 1, game.spriteManager,
 			"assets/gui/wdk_character.png", game.renderer->shaders[ShaderName::FadeInOut],
-			Vector2(222, 370), false);
+			Vector2(0, 0), false);
 
 		titleCharacter->SetSprite(*newSprite);
 
@@ -144,7 +144,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		Entity* titleLogo = new Entity(Vector2(1600, 350));
 		newSprite = new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png",
-			game.renderer->shaders[ShaderName::Default], Vector2(320, 137), false);
+			game.renderer->shaders[ShaderName::Default], Vector2(0, 0), false);
 		titleLogo->SetSprite(*newSprite);
 		titleLogo->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
 		titleLogo->GetSprite()->keepPositionRelativeToCamera = true;
@@ -381,6 +381,10 @@ bool MenuScreen::PressSelectedButton(Game& game)
 #else
 			game.LoadLevel("demo");
 #endif
+		}
+		else if (currentGame == "DB1")
+		{
+			game.LoadLevel("test-vn");
 		}
 		else if (currentGame == "DB2")
 		{

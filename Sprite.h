@@ -36,6 +36,7 @@ public:
 	void SetTexture(Texture* t) { texture = t; }
 	void AnimateMesh(float time);
 	bool HasAnimationElapsed();
+	void ResetFrame();
 
 	unsigned int previousFrame = 0;
 	unsigned int currentFrame = 0;
@@ -74,7 +75,14 @@ public:
 	unsigned int numberRows = 1;
 
 	glm::mat4 model;
+
+	// The pivot point's origin (0,0) is the center of the sprite.
+	// The pivot is added or subtracted based on the direction.
+	// Change this if you want the sprite's center to be offset.
+	// For example, if a sprite is too far to the left by X pixels,
+	// you will want to add X so that it moves to the right.
 	Vector2 pivot = Vector2(0, 0);
+
 	std::string filename = "";
 	
 	SDL_Rect rect; //TODO: Get rid of this?

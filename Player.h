@@ -33,7 +33,6 @@ public:
 
 	Collider* closeRangeAttackCollider = nullptr;
 
-	bool castingSpell;
 	Spell spell;
 
 	bool updatedAnimator = false;

@@ -352,6 +352,12 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, const Renderer
 	if (rotation.x >= 89)
 		int test = 0;
 
+	// TODO: Maybe do a clever multiplication trick instead
+	if (scale.x > 0) // flip the pivot x based on direction
+		position += Vector2(Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y);
+	else
+		position += Vector2(-Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y);
+
 	// Only recalculate the model if position, rotation, or scale have changed
 	if (position != lastPosition || rotation != lastRotation || scale != lastScale || keepPositionRelativeToCamera)
 	{
@@ -362,8 +368,6 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, const Renderer
 		lastScale = scale;
 
 		// Translate, Rotate, Scale
-		//TODO: Translate based on pivot point: (center - pivot)
-		// this will make the sprites look more centered
 
 		// Position
 		if (keepPositionRelativeToCamera)
@@ -438,9 +442,7 @@ void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer
 	
 	if (texture != nullptr)
 		texOffset = CalculateRenderFrame(renderer, speed);
-	else
-		int test = 0;
-	
+
 	// Send the info to the shader
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
@@ -514,4 +516,10 @@ void Sprite::SetScale(Vector2 s)
 bool Sprite::HasAnimationElapsed()
 {
 	return (previousFrame > currentFrame);
+}
+
+void Sprite::ResetFrame()
+{
+	currentFrame = 0;
+	previousFrame = 0;
 }

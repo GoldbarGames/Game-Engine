@@ -85,6 +85,8 @@ void Entity::CreateCollider(float x, float y, float w, float h)
 		collider->CreateCollider(x, y, w, h);
 	else
 		collider = new Collider(x, y, w, h);
+
+	CalculateCollider();
 }
 
 void Entity::CalculateCollider()
