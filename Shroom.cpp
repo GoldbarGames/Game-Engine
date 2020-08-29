@@ -13,8 +13,9 @@ Shroom::Shroom(const Vector2& pos) : Entity(pos)
 	trigger = true;
 
 	physics = new PhysicsComponent(this);
-	physics->canBePushed = false;
+	physics->canBePushed = true;
 	physics->standAboveGround = true;
+	physics->respawnOnDeath = true;
 	physics->mass = 5;
 }
 
@@ -26,12 +27,10 @@ Shroom::~Shroom()
 
 void Shroom::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other.etype == "player")
+	if (other.physics != nullptr)
 	{
-		Player* player = static_cast<Player*>(&other);
-		player->physics->velocity.y = -1.5f;
+		other.physics->velocity.y = -1.5f;
 		game.soundManager->PlaySound("se/Jump.wav", 0);
-		//player->physics->Jump(game);
 	}
 }
 

@@ -9,7 +9,7 @@ Platform::Platform(const Vector2& pos) : Entity(pos)
 	etype = "platform";
 	CreateCollider(0, 24, 72, 24);
 	layer = DrawingLayer::COLLISION;
-	drawOrder = 10;
+	drawOrder = 9;
 	
 	jumpThru = true;
 	impassable = true;

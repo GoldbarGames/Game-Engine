@@ -27,7 +27,7 @@ public:
 	bool wasGrounded = false;
 	bool isGrounded = false;
 	unsigned int mass = 1;
-
+	bool respawnOnDeath = false;
 	bool hitByPushSpell = false;
 	float totalDistancePushed = 0;	
 

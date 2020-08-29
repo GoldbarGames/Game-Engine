@@ -371,6 +371,17 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 							our->GetAnimator()->SetBool("hasParent", true);
 						}
 
+						// apply friction horizontally
+						const float FRICTION = 0.005f;
+						if (velocity.x > 0)
+						{
+							velocity.x = std::max(velocity.x - FRICTION, 0.0f);
+						}
+						else if (velocity.x < 0)
+						{
+							velocity.x = std::min(velocity.x + FRICTION, 0.0f);
+						}
+
 						jumpsRemaining = 1;
 
 						if (useGravity)
@@ -583,7 +594,17 @@ void PhysicsComponent::Update(Game& game)
 {
 	if (our->etype != "player" && our->position.y > game.deathBarrierY)
 	{
-		our->shouldDelete = true;
+		if (respawnOnDeath)
+		{
+			our->position = startPosition;
+			velocity = Vector2(0, 0);
+			acceleration = Vector2(0, 0);
+		}
+		else
+		{
+			our->shouldDelete = true;
+		}
+
 		return;
 	}
 
@@ -595,6 +616,10 @@ void PhysicsComponent::Update(Game& game)
 
 	CheckCollisions(game);
 
+	// TODO: Do we want to do things this way?
+	// This pushes the object X tiles forward and then abruptly stops
+	// rather than letting friction cause the object to slow down and stop
+	/*
 	if (hitByPushSpell)
 	{
 		const int NUM_TILES = 8;
@@ -605,6 +630,7 @@ void PhysicsComponent::Update(Game& game)
 			velocity.x = 0;
 		}
 	}
+	*/
 
 	if (our->GetAnimator() != nullptr)
 		our->GetAnimator()->Update(our);
