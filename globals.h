@@ -72,5 +72,6 @@ inline std::string& Trim(std::string& s, const char* t = " \t\n\r\f\v")
 }
 
 bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2);
+SDL_Rect ConvertCoordsFromCenterToTopLeft(const SDL_Rect& originalRect);
 
 #endif

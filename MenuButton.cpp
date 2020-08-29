@@ -16,7 +16,7 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 	text->SetPosition(pos.x, pos.y - (text->GetTextHeight() / 4));
 	text->SetScale(Vector2(2, 2));	
 
-	image->SetScale(game.renderer->CalculateScale(image, text->GetTextWidth(),
+	image->SetScale(game.renderer->CalculateScale(*image, text->GetTextWidth(),
 		text->GetTextHeight(), text->scale));
 	
 	name = function;

@@ -143,6 +143,8 @@ void Entity::SetColor(Color newColor)
 	currentSprite->color = newColor;
 }
 
+// NOTE: This returns coordinates where x and y are the center of the rectangle!
+// Be careful when using HasIntersection() because you'll get the wrong results
 const SDL_Rect* Entity::GetBounds()
 {
 	if (collider == nullptr)
@@ -203,40 +205,35 @@ void Entity::RenderDebug(const Renderer& renderer)
 			float targetWidth = GetSprite()->frameWidth;
 			float targetHeight = GetSprite()->frameHeight;
 
-			if (impassable)
+
+			if (impassable || trigger || jumpThru)
 			{
-				debugSprite->color = { 255, 0, 0, 255 };
-				debugSprite->pivot = GetSprite()->pivot;
+				if (impassable)
+				{
+					debugSprite->color = { 255, 0, 0, 255 };
+				}
+				else if (trigger)
+				{
+					debugSprite->color = { 0, 255, 0, 255 };
+				}
+				else if (jumpThru)
+				{
+					debugSprite->color = { 255, 255, 0, 255 };
+				}
+
+				//debugSprite->pivot = GetSprite()->pivot;
 				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 				debugSprite->Render(position, renderer);
 			}
-			else if (trigger)
-			{
-				debugSprite->color = { 0, 255, 0, 255 };
-				debugSprite->pivot = GetSprite()->pivot;
-				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-				debugSprite->Render(position, renderer);
-			}
-			else if (jumpThru)
-			{
-				debugSprite->color = { 255, 255, 0, 255 };
-				debugSprite->pivot = GetSprite()->pivot;
-				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-				debugSprite->Render(position, renderer);
-			}
+
 
 			if (collider != nullptr && physics != nullptr)
 			{
 				// draw collider
-				float targetWidth = collider->bounds->w;
-				float targetHeight = collider->bounds->h;
-
 				debugSprite->color = { 255, 255, 255, 255 };
-				debugSprite->pivot = GetSprite()->pivot;
-				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-
-				Vector2 colliderPosition = Vector2(position.x + collider->offset.x, position.y + collider->offset.y);
-				debugSprite->Render(colliderPosition, renderer);
+				//debugSprite->pivot = GetSprite()->pivot;
+				debugSprite->SetScale(Vector2(collider->bounds->w / rWidth, collider->bounds->h / rHeight));
+				debugSprite->Render(Vector2(collider->bounds->x, collider->bounds->y), renderer);
 			}
 		}
 	}

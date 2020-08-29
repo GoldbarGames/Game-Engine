@@ -40,8 +40,9 @@ public:
 	Uint32 overlayStartTime = 0;
 	Uint32 overlayEndTime = 0;
 
-	Vector2 CalculateScale(Sprite* sourceSprite, Sprite* targetSprite);
-	Vector2 CalculateScale(Sprite* sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale);
+	void RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale) const;
+	Vector2 CalculateScale(const Sprite& sourceSprite, const Sprite& targetSprite) const;
+	Vector2 CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const;
 	Vector2 screenScale = Vector2(1, 1);
 
 	mutable std::unordered_map<ShaderName, ShaderProgram*> shaders;

@@ -414,6 +414,8 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, const Renderer
 	}	
 }
 
+// NOTE: This function expects a center-coordinate rectangle to be rendered,
+// so if you pass in a top-left rectangle, you'll see something wrong
 void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer, glm::vec3 rotation)
 {
 	renderer.drawCallsPerFrame++;

@@ -107,7 +107,7 @@ void Enemy::Render(const Renderer& renderer)
 				float targetHeight = bottomLeftGround->bounds->h;
 
 				debugSprite->color = { 255, 255, 255, 255 };
-				debugSprite->pivot = GetSprite()->pivot;
+				//debugSprite->pivot = GetSprite()->pivot;
 				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 
 				Vector2 colliderPosition = Vector2(position.x + bottomLeftGround->offset.x, 
@@ -122,7 +122,7 @@ void Enemy::Render(const Renderer& renderer)
 				float targetHeight = bottomRightGround->bounds->h;
 
 				debugSprite->color = { 255, 255, 255, 255 };
-				debugSprite->pivot = GetSprite()->pivot;
+				//debugSprite->pivot = GetSprite()->pivot;
 				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 
 				Vector2 colliderPosition = Vector2(position.x + bottomRightGround->offset.x,

@@ -597,7 +597,7 @@ void PhysicsComponent::Update(Game& game)
 
 	if (hitByPushSpell)
 	{
-		const int NUM_TILES = 2;
+		const int NUM_TILES = 8;
 		totalDistancePushed += abs(velocity.x * game.dt);
 		if (totalDistancePushed > NUM_TILES * TILE_SIZE)
 		{

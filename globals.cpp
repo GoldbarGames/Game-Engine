@@ -81,6 +81,17 @@ bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2)
 	return b1 && b2 && b3 && b4;
 }
 
+//TODO: Replace this conversion function with simply using 
+SDL_Rect ConvertCoordsFromCenterToTopLeft(const SDL_Rect& originalRect)
+{
+	SDL_Rect result;
+	result.x = originalRect.x - (originalRect.w);
+	result.y = originalRect.y - (originalRect.h);
+	result.w = originalRect.w * 2;
+	result.h = originalRect.h * 2;
+	return result;
+}
+
 std::string GetDrawingLayerName(DrawingLayer layer)
 {
 	return "";

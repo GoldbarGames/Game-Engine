@@ -46,28 +46,34 @@ Renderer::~Renderer()
 
 }
 
+void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale) const
+{
+	debugSprite->SetScale(CalculateScale(*debugSprite, targetRect.w, targetRect.h, targetScale));
+	debugSprite->Render(Vector2(targetRect.x, targetRect.y), *this);
+}
+
 // This function takes two sprites, the source and the target
 // It returns a vector2 representing the amount that the source 
 // should be scaled by in order to equal the scaled size of the target
-Vector2 Renderer::CalculateScale(Sprite* sourceSprite, Sprite* targetSprite)
+Vector2 Renderer::CalculateScale(const Sprite& sourceSprite, const Sprite& targetSprite) const
 {
-	float sourceWidth = sourceSprite->texture->GetWidth();
-	float sourceHeight = sourceSprite->texture->GetHeight();
+	float sourceWidth = sourceSprite.texture->GetWidth();
+	float sourceHeight = sourceSprite.texture->GetHeight();
 
-	float targetWidth = targetSprite->frameWidth;
-	float targetHeight = targetSprite->frameHeight;
+	float targetWidth = targetSprite.frameWidth;
+	float targetHeight = targetSprite.frameHeight;
 
-	return Vector2(targetWidth * targetSprite->scale.x / sourceWidth, 
-		targetHeight * targetSprite->scale.y / sourceHeight);
+	return Vector2(targetWidth * targetSprite.scale.x / sourceWidth, 
+		targetHeight * targetSprite.scale.y / sourceHeight);
 }
 
-Vector2 Renderer::CalculateScale(Sprite* sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale)
+Vector2 Renderer::CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const
 {
-	if (sourceSprite->texture == nullptr)
+	if (sourceSprite.texture == nullptr)
 		return Vector2(targetWidth * targetScale.x, targetHeight * targetScale.y);
 
-	float sourceWidth = sourceSprite->texture->GetWidth();
-	float sourceHeight = sourceSprite->texture->GetHeight();
+	float sourceWidth = sourceSprite.texture->GetWidth();
+	float sourceHeight = sourceSprite.texture->GetHeight();
 
 	return Vector2(targetWidth * targetScale.x / sourceWidth,
 		targetHeight * targetScale.y / sourceHeight);

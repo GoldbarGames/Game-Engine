@@ -28,7 +28,7 @@ Editor::Editor(Game& g)
 	dialog->sprite->color = { 255, 0, 0, 255 };
 	dialog->sprite->keepPositionRelativeToCamera = true;
 	dialog->sprite->keepScaleRelativeToCamera = true;
-	dialog->sprite->SetScale(game->renderer->CalculateScale(dialog->sprite, 
+	dialog->sprite->SetScale(game->renderer->CalculateScale(*dialog->sprite, 
 		dialog->text->GetTextWidth(), dialog->text->GetTextHeight() * 4, dialog->text->scale));
 
 	dialog->text->GetSprite()->keepPositionRelativeToCamera = true;
@@ -1551,7 +1551,7 @@ void Editor::CreateDialog(const std::string& txt)
 		dialog->text->SetText(txt);
 		dialog->input->SetText("");
 		dialog->visible = true;
-		dialog->sprite->SetScale(game->renderer->CalculateScale(dialog->sprite,
+		dialog->sprite->SetScale(game->renderer->CalculateScale(*dialog->sprite,
 			dialog->text->GetTextWidth(), dialog->text->GetTextHeight() * 4, dialog->text->scale));
 	}
 }

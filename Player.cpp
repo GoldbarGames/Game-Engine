@@ -65,7 +65,7 @@ void Player::RenderDebug(const Renderer& renderer)
 				float targetHeight = closeRangeAttackCollider->bounds->h;
 
 				debugSprite->color = { 255, 255, 255, 255 };
-				debugSprite->pivot = GetSprite()->pivot;
+				//debugSprite->pivot = GetSprite()->pivot;
 				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
 
 				Vector2 colliderPosition = Vector2(position.x + closeRangeAttackCollider->offset.x, 
@@ -112,7 +112,7 @@ void Player::Update(Game& game)
 			if (closeRangeAttackCollider->offset.x == 32 || closeRangeAttackCollider->offset.x == -32)
 			{
 				closeRangeAttackCollider->offset.x = 32 * scale.x;
-				closeRangeAttackCollider->scale.x = 16 * scale.x;
+				closeRangeAttackCollider->scale.x = 24 * scale.x;
 			}
 
 			closeRangeAttackCollider->CalculateCollider(position);
