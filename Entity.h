@@ -12,11 +12,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+
 class Game;
 class PhysicsComponent;
 class Property;
 class Renderer;
 class QuadTree;
+class Switch;
 
 #ifndef STRUCT_FONT_INFO
 #define STRUCT_FONT_INFO
@@ -36,6 +38,7 @@ public:
 	Vector2 scale = Vector2(1, 1);
 	int spriteIndex = 0;
 
+	Switch* attachedSwitch = nullptr;
 	PhysicsComponent* physics = nullptr;
 	bool clickable = false;
 	QuadTree* quadrant = nullptr;

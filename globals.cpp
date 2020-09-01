@@ -1,6 +1,59 @@
 #include "globals.h"
 #include <iostream>
 #include <time.h>
+#include "Vector2.h"
+
+bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, const float minStep)
+{
+	bool xDirectionPositive = (current.x < target.x);
+	bool yDirectionPositive = (current.y < target.y);
+
+	float xStep = std::max((std::abs(target.x - current.x) / std::abs(target.x)) * maxStep, minStep);
+	float yStep = std::max((std::abs(target.y - current.y) / std::abs(target.y)) * maxStep, minStep);
+
+	if (xDirectionPositive)
+		current.x = std::min(target.x, current.x + xStep);
+	else
+		current.x = std::max(target.x, current.x - xStep);
+
+	if (yDirectionPositive)
+		current.y = std::min(target.y, current.y + yStep);
+	else
+		current.y = std::max(target.y, current.y - yStep);
+
+	bool xFinished = std::abs(current.x - target.x) < 1;
+	bool yFinished = std::abs(current.y - target.y) < 1;
+
+	//std::cout << "x: " << current.x << "/" << target.x << std::endl;
+	//std::cout << "y: " << current.y << "/" << target.y << std::endl;
+
+	return xFinished && yFinished;
+}
+
+bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
+	const uint32_t currentTime, uint32_t startTime, uint32_t endTime)
+{
+	float difference = endTime - startTime;
+	float t = 1.0f;
+	if (difference != 0)
+	{
+		t = (currentTime - startTime) / difference; // percentage of passed time
+	}
+
+	if (t > 1.0f)
+		t = 1.0f;
+
+	//std::cout << (currentTime - startTime) << " / " << difference << " = " << t << std::endl;
+
+	bool xFinished = LerpCoord(current.x, start.x, target.x, t);
+	bool yFinished = LerpCoord(current.y, start.y, target.y, t);
+
+	//std::cout << overlayColor.a << std::endl;
+	//std::cout << timerOverlayColor.GetTicks() << std::endl;
+	//timerOverlayColor.Start(1);
+
+	return xFinished && yFinished;
+}
 
 bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxStep, const float minStep)
 {
@@ -69,7 +122,7 @@ bool LerpCoord(float& current, const float& start, const float& target, const fl
 }
 
 // This is better than SDL_HasIntersection because it works with negative numbers
-// NOTE: This function assumes that x and y are the top-left corners of the rectangle!
+// NOTE: This function assumes that x and y are the top-left corners of both rectangles!
 bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2)
 {
 	bool b1 = rect1.x < (rect2.x + rect2.w);

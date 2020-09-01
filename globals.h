@@ -6,6 +6,7 @@
 #include <string>
 #include <SDL.h>
 #include <glm/vec3.hpp>
+#include "Vector2.h"
 
 const int TILE_SIZE = 24;
 const int SCREEN_FPS = 60;
@@ -38,6 +39,9 @@ std::vector<std::string> SplitString(const std::string& str, char delim);
 Color ParseColorHexadecimal(const std::string& text);
 int HexToDecimal(const char hex);
 
+bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, const float minStep);
+bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
+	const uint32_t currentTime, uint32_t startTime, uint32_t endTime);
 
 bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxStep, const float minStep);
 bool LerpVector3(glm::vec3& current, const glm::vec3& start, const glm::vec3& target,

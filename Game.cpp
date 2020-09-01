@@ -382,7 +382,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		std::vector<AnimState*> animStates;
 		std::unordered_map<std::string, std::string> args;
 		args["0"] = std::to_string(spriteIndex);
-		
+
 		if (entityName == "npc")
 		{
 			args["1"] = npcNames[spriteIndex];
@@ -399,10 +399,19 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		}
 
 
-		//TODO: Make this better
+		//TODO: Make this better...
+		// - Allow for conditions that are always true/false 
+		// so that you can write Animator files that 
+		// immediately go to other states
+		// (such as "notidle: bool true == true")
+		// - OR add a simple way to define the starting state in the animator file itself
+		// (such as "^*unpressed*") and otherwise just default to the topmost state
+
 		std::string initialState = "idle";
 		if (newEntity->etype == "ladder")
 			initialState = "middle";
+		if (newEntity->etype == "switch")
+			initialState = "unpressed";
 
 		Animator* newAnimator = new Animator(entityName, animStates, initialState);
 		newEntity->SetAnimator(*newAnimator);

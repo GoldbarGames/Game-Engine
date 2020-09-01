@@ -2,6 +2,8 @@
 #include "Renderer.h"
 #include "Game.h"
 #include "PhysicsComponent.h"
+#include "Switch.h"
+#include "globals.h"
 
 Platform::Platform(const Vector2& pos) : Entity(pos)
 {
@@ -18,6 +20,9 @@ Platform::Platform(const Vector2& pos) : Entity(pos)
 	physics->canBePushed = false; // TODO: Is there some potential here?
 	physics->useGravity = false;
 	physics->mass = 10;
+
+	switchUnpressedPosition = position;
+	switchPressedPosition = position + Vector2(0, 500);
 }
 
 
@@ -68,6 +73,44 @@ std::string Platform::CalcDirection(bool x)
 
 void Platform::Update(Game& game)
 {
+	if (attachedSwitch != nullptr)
+	{
+		if (attachedSwitch->GetAnimator()->GetBool("isPressed"))
+		{
+			LerpVector2(position, switchPressedPosition, 50.0f, 2.0f);
+		}
+		else
+		{
+			LerpVector2(position, switchUnpressedPosition, 50.0f, 2.0f);
+		}
+
+		if (collider != nullptr)
+		{
+			CalculateCollider();
+		}
+	}
+	else if (switchID > -1)
+	{
+		bool foundSwitch = false;
+		for (int i = 0; i < game.entities.size(); i++)
+		{
+			if (game.entities[i]->id == switchID)
+			{
+				attachedSwitch = static_cast<Switch*>(game.entities[i]);
+				foundSwitch = true;
+				break;
+			}
+		}
+
+		if (!foundSwitch)
+		{
+			switchID = -1;
+		}
+	}
+
+	return;
+
+
 	if (platformType == "Move")
 	{
 		physics->SetVelocity(startVelocity);
@@ -190,33 +233,38 @@ void Platform::Render(const Renderer& renderer)
 void Platform::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(font, properties);
+
+	properties.emplace_back(new Property("Collider Pos X", (int)collider->offset.x));
+	properties.emplace_back(new Property("Collider Pos Y", (int)collider->offset.y));
+	properties.emplace_back(new Property("Collider Width", collider->scale.x));
+	properties.emplace_back(new Property("Collider Height", collider->scale.y));
+
+	properties.emplace_back(new Property("Switch ID", switchID));
+
+	/*
 	
 	const std::vector<std::string> platformTypes = { "Idle", "Move", "Path" };
-	properties.emplace_back(new Property(new Text(font, "Platform Type: " + platformType), platformTypes));
+	properties.emplace_back(new Property("Platform Type", platformType, platformTypes));
 
-	if (platformType == "Move" || platformType == "Move")
+	if (platformType == "Move")
 	{
-		properties.emplace_back(new Property(new Text(font, "Velocity X: " + std::to_string(startVelocity.x))));
-		properties.emplace_back(new Property(new Text(font, "Velocity Y: " + std::to_string(startVelocity.y))));
-		properties.emplace_back(new Property(new Text(font, "Distance: " + std::to_string(tilesToMove))));
-		properties.emplace_back(new Property(new Text(font, "Loop: " + std::to_string(shouldLoop))));
+		properties.emplace_back(new Property("Velocity X", startVelocity.x));
+		properties.emplace_back(new Property("Velocity Y", startVelocity.y));
+		properties.emplace_back(new Property("Distance", tilesToMove));
+		properties.emplace_back(new Property("Loop", shouldLoop));
 	}
 	else if (platformType == "Path")
 	{
 		const std::vector<std::string> behaviorOptions = { "Stop", "Reverse", "Selfdestruct", "Fall" };
-		properties.emplace_back(new Property(new Text(font, "Path ID: " + std::to_string(pathID))));
-		properties.emplace_back(new Property(new Text(font, "Speed: " + std::to_string(pathSpeed))));
-		properties.emplace_back(new Property(new Text(font, "End Behavior: " + endPathBehavior), behaviorOptions));
+		properties.emplace_back(new Property("Path ID", pathID));
+		properties.emplace_back(new Property("Speed", pathSpeed));
+		properties.emplace_back(new Property("End Behavior", endPathBehavior), behaviorOptions);
 	}
 	else if (platformType == "Idle")
 	{
 
 	}
-
-	//properties.emplace_back(new Text(renderer, font, "Collider Pos X: " + std::to_string((int)collider->x)));
-	//properties.emplace_back(new Text(renderer, font, "Collider Pos Y: " + std::to_string((int)collider->y)));
-	//properties.emplace_back(new Text(renderer, font, "Collider Width: " + std::to_string(colliderWidth)));
-	//properties.emplace_back(new Text(renderer, font, "Collider Height: " + std::to_string(colliderHeight)));
+	*/
 }
 
 void Platform::SetProperty(const std::string& key, const std::string& newValue)
@@ -259,6 +307,11 @@ void Platform::SetProperty(const std::string& key, const std::string& newValue)
 	{
 		if (newValue != "")
 			endPathBehavior = newValue;
+	}
+	else if (key == "Switch ID")
+	{
+		if (newValue != "")
+			switchID = std::stoi(newValue);
 	}
 }
 

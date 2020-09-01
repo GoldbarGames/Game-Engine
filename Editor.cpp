@@ -47,7 +47,7 @@ Editor::Editor(Game& g)
 
 	//TODO: Read this in from a file (maybe)
 	std::vector<std::string> previewMapObjectNames = { "door", "ladder", "goal", "bug", 
-		"ether", "block", "platform", "shroom" };
+		"ether", "block", "platform", "shroom", "switch" };
 
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
 	{
@@ -92,7 +92,7 @@ void Editor::CreateEditorButtons()
 	int buttonX = buttonStartX + buttonWidth + buttonSpacing;
 
 	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", 
-		"Grid", "Map", "Door", "Ladder", "NPC", "Enemy", "Goal", "Bug", "Block", "Ether", 
+		"Grid", "Map", "Door", "Ladder", "NPC", "Enemy", "Switch", "Bug", "Block", "Ether", "Goal",
 		"Undo", "Redo", "Replace", "Copy", "Grab", "Platform", "Path", "Shroom" };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
@@ -367,7 +367,10 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	}
 	else if (objectMode == "inspect")
 	{
-		InspectObject(clickedWorldPosition, clickedScreenPosition);
+		Vector2 inspectPosition = Vector2(mouseX, mouseY);
+		inspectPosition.x += game->renderer->camera.position.x;
+		inspectPosition.y += game->renderer->camera.position.y;
+		InspectObject(inspectPosition, clickedScreenPosition);
 	}
 	else if (objectMode == "grab")
 	{
@@ -505,13 +508,17 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 
 void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& clickedScreenPosition)
 {
-	SDL_Point point;
+	SDL_Rect point;
 	point.x = clickedWorldPosition.x;
 	point.y = clickedWorldPosition.y;
+	point.w = 1;
+	point.h = 1;
 
-	SDL_Point screenPoint;
+	SDL_Rect screenPoint;
 	screenPoint.x = clickedScreenPosition.x * Camera::MULTIPLIER;
 	screenPoint.y = clickedScreenPosition.y * Camera::MULTIPLIER;
+	screenPoint.w = 1;
+	screenPoint.h = 1;
 
 	bool clickedOnProperty = false;
 
@@ -524,7 +531,7 @@ void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& c
 		textRect.y = properties[i]->text->position.y - (textRect.h);
 		textRect.w *= 2;
 
-		if (SDL_PointInRect(&screenPoint, &textRect))
+		if (HasIntersection(screenPoint, textRect))
 		{
 			if (selectedEntity != nullptr)
 			{
@@ -561,8 +568,14 @@ void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& c
 		// Find the selected entity
 		for (unsigned int i = 0; i < game->entities.size(); i++)
 		{
+			if (game->entities[i]->etype == "platform")
+			{
+				Entity* e = game->entities[i];
+				int test = 0;				
+			}
+
 			if (game->entities[i]->etype != "tile" &&
-				SDL_PointInRect(&point, game->entities[i]->GetBounds()))
+				HasIntersection(point, *game->entities[i]->GetBounds()))
 			{
 				selectedEntity = game->entities[i];
 				break;
@@ -1096,6 +1109,9 @@ void Editor::ClickedButton()
 	//TODO: Make a better way to do this
 	// (Use a switch/case instead of if-else
 
+	// Refactor this to check if the clicked button's name
+	// is in the list of objects, and if so, set the object mode properly
+
 	if (clickedButton->name == "Tileset")
 	{
 		ToggleTileset();
@@ -1137,6 +1153,10 @@ void Editor::ClickedButton()
 	else if (clickedButton->name == "Block")
 	{
 		ToggleObjectMode("block");
+	}
+	else if (clickedButton->name == "Switch")
+	{
+		ToggleObjectMode("switch");
 	}
 	else if (clickedButton->name == "Inspect")
 	{

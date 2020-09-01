@@ -68,9 +68,7 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 
 void Door::Save(std::ostringstream& level)
 {
-	Vector2 pos = GetPosition();
-
-	level << std::to_string(id) << " " << etype << " " << pos.x << " " <<
-		pos.y << " " << GetDestination().x << " " << GetDestination().y 
+	level << std::to_string(id) << " " << etype << " " << position.x << " " <<
+		position.y << " " << GetDestination().x << " " << GetDestination().y
 		<< " " << spriteIndex << "" << std::endl;
 }

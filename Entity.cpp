@@ -5,7 +5,7 @@
 #include <sstream>
 #include "Game.h"
 #include "Sprite.h"
-
+#include "Switch.h"
 
 unsigned int Entity::nextValidID = 0;
 

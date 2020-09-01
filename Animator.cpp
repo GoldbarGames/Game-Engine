@@ -156,7 +156,8 @@ Animator::Animator(const std::string& entityName, std::vector<AnimState*> states
 	{
 		if (mapNamesToAnimType.size() > 0)
 		{
-			mapNamesToAnimType[entityName] = (--mapNamesToAnimType.end())->second + 1;
+			mapNamesToAnimType[entityName] = mapNamesToAnimType.size() + 1;
+			//mapNamesToAnimType[entityName] = (--mapNamesToAnimType.end())->second + 1;
 		}
 		else
 		{
@@ -237,6 +238,10 @@ void Animator::OnExit(AnimState state)
 
 void Animator::Update(Entity* entity)
 {
+	if (entity->etype == "switch")
+		int test = 0;
+
+
 	// If conditions met, set current state to next state
 	// Else, stay in current state
 

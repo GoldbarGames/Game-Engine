@@ -23,6 +23,10 @@ public:
 	std::string directionX = "none";
 	std::string directionY = "none";
 
+	int switchID = -1;
+	Vector2 switchPressedPosition = Vector2(0, 0);
+	Vector2 switchUnpressedPosition = Vector2(0, 0);
+
 	Platform(const Vector2& pos);
 	~Platform();
 	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
