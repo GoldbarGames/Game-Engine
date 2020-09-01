@@ -68,7 +68,7 @@ bool Spell::CastPush(Game& game)
 	//	spellRange->w << "," << spellRange->h << ")" << std::endl;
 	//game.debugRectangles.push_back(spellRange);
 
-	const float PUSH_SPEED = 0.25f;
+	const float PUSH_SPEED = 0.5f;
 
 	Vector2 pushVelocity = Vector2(PUSH_SPEED, 0.0f);
 	if (game.player->scale.x < 0)

@@ -226,7 +226,7 @@ std::string ParseWord(const std::string& text, char limit, int& index)
 
 		if (index >= length)
 		{
-			std::cout << "ERROR: Parsing word, index out of range: " + word << std::endl;
+			//std::cout << "ERROR: Parsing word, index out of range: " + word << std::endl;
 			break;
 		}
 	}

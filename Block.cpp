@@ -17,6 +17,7 @@ Block::Block(const Vector2& pos) : Entity(pos)
 	physics->useGravity = true;
 	physics->standAboveGround = true;
 	physics->respawnOnDeath = true;
+	physics->windResistance = 2.0f;
 }
 
 Block::~Block()

@@ -14,6 +14,7 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 
 	physics = new PhysicsComponent(this);
 	physics->useGravity = true;
+	physics->canBePushed = true;
 	physics->startPosition = pos;
 	physics->standAboveGround = true;
 }
@@ -55,7 +56,7 @@ void Enemy::Update(Game& game)
 			bottomRightGround->CalculateCollider(position);
 
 		if (physics->isGrounded)
-		{			
+		{		
 			//TODO: Don't move off ledges
 			// - Get all entities in quadrant
 			// - Compare left or right rectangle against them
@@ -64,17 +65,22 @@ void Enemy::Update(Game& game)
 			float distanceToPlayer = std::abs(position.x - game.player->position.x) + 
 				std::abs(position.y - game.player->position.y);
 
+			float accel = 0.01f;
+
 			// Only move if the player is nearby
 			if (distanceToPlayer < 400.0f)
 			{
 				if (game.player->position.x > position.x)
-					physics->velocity.x = 0.1f;
+					physics->velocity.x = std::min(0.1f, physics->velocity.x + accel);
 				else
-					physics->velocity.x = -0.1f;
+					physics->velocity.x = std::max(-0.1f, physics->velocity.x - accel);
 			}
 			else
 			{
-				physics->velocity.x = 0.0f;
+				if (physics->velocity.x < 0)
+					physics->velocity.x = std::min(0.0f, physics->velocity.x + accel);
+				else if (physics->velocity.x > 0)
+					physics->velocity.x = std::max(0.0f, physics->velocity.x - accel);
 			}
 
 		}		

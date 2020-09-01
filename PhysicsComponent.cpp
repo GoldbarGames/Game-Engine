@@ -14,11 +14,10 @@ PhysicsComponent::~PhysicsComponent()
 
 }
 
-void PhysicsComponent::SetVelocity(Vector2 newVelocity)
+void PhysicsComponent::SetVelocity(const Vector2& newVelocity)
 {
 	velocity = newVelocity;
 }
-
 
 float PhysicsComponent::CalcTerminalVelocity()
 {
@@ -371,8 +370,16 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 							our->GetAnimator()->SetBool("hasParent", true);
 						}
 
-						// apply friction horizontally
-						const float FRICTION = 0.005f;
+						// Apply friction horizontally
+
+						//TODO: Apply friction based on the tile we are colliding with
+						// and maybe the object's resistance to friction
+
+						// NOTE: Be careful, because if friction exceeds acceleration,
+						// then the object won't be able to move anywhere
+
+						const float FRICTION = 0.005f; // 0.005f works well for blocks
+
 						if (velocity.x > 0)
 						{
 							velocity.x = std::max(velocity.x - FRICTION, 0.0f);
@@ -583,11 +590,12 @@ bool PhysicsComponent::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 	return hadCollision;
 }
 
-void PhysicsComponent::Push(Vector2 pushVelocity)
+void PhysicsComponent::Push(const Vector2& pushVelocity)
 {
-	velocity = pushVelocity;
-	hitByPushSpell = true;
-	totalDistancePushed = 0;
+	// TODO: Should wind resitance be based on mass, rather than a totally new number?
+	// Also, should there be a discrete number of levels of mass (Light, Medium, Heavy) for consistency?
+	velocity.x += pushVelocity.x / windResistance;
+	velocity.y += pushVelocity.y / windResistance;
 }
 
 void PhysicsComponent::Update(Game& game)

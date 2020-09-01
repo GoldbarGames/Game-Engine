@@ -28,8 +28,6 @@ public:
 	bool isGrounded = false;
 	unsigned int mass = 1;
 	bool respawnOnDeath = false;
-	bool hitByPushSpell = false;
-	float totalDistancePushed = 0;	
 
 	bool useGravity = true;
 	bool canBePushed = false;
@@ -37,6 +35,7 @@ public:
 
 	float currentJumpSpeed = 0;
 	float jumpSpeed = -1.0f;
+	float windResistance = 1.0f;
 
 	Entity* prevParent = nullptr;
 	Entity* parent = nullptr;
@@ -53,7 +52,7 @@ public:
 
 	void PreviousFrameCollisions(Game& game);
 
-	void SetVelocity(Vector2 newVelocity);
+	void SetVelocity(const Vector2& newVelocity);
 	float CalcTerminalVelocity();
 
 	bool CheckCollisions(Game& game);
@@ -61,7 +60,7 @@ public:
 
 	void Update(Game& game);
 
-	void Push(Vector2 pushVelocity);
+	void Push(const Vector2& pushVelocity);
 
 	float CalcCollisionVelocity(PhysicsComponent* their, bool x);
 	bool IsEntityPushingOther(Entity* their, bool x);

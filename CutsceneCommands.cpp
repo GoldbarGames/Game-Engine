@@ -1644,19 +1644,20 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 // both by the cutscene system and the level editor properties?
 int CutsceneCommands::SetVelocity(CutsceneParameters parameters)
 {
-	PhysicsComponent* entity = nullptr;
+	PhysicsComponent* physics = nullptr;
 
 	for (unsigned int i = 0; i < manager->game->entities.size(); i++)
 	{
 		if (manager->game->entities[i]->name == parameters[1])
 		{
-			entity = dynamic_cast<PhysicsComponent*>(manager->game->entities[i]);
+			physics = manager->game->entities[i]->physics;
 
-			if (entity != nullptr)
+			if (physics != nullptr)
 			{
 				unsigned int x = ParseNumberValue(parameters[2]);
 				unsigned int y = ParseNumberValue(parameters[3]);
-				entity->SetVelocity(Vector2(x * 0.001f, y * 0.001f));
+				Vector2 velocity = Vector2(x * 0.001f, y * 0.001f);
+				physics->SetVelocity(velocity);
 			}
 			break;
 		}
