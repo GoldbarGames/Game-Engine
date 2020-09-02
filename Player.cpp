@@ -103,7 +103,18 @@ void Player::Update(Game& game)
 	else
 	{
 		if (!spell.isCasting)
+		{
 			UpdateNormally(game);
+		}
+		else
+		{
+			// Update Physics while we cast the spell
+			if (physics->velocity.y < physics->CalcTerminalVelocity())
+				physics->velocity.y += Physics::GRAVITY * game.dt;
+
+			physics->CheckCollisions(game);
+		}
+			
 
 		if (closeRangeAttackCollider != nullptr)
 		{
@@ -275,6 +286,7 @@ void Player::UpdateNormally(Game& game)
 	else if (game.pressedSpellButton && timerSpellOther.HasElapsed() && !spell.isCasting && !animator->GetBool("isCastingSpell"))
 	{
 		spell.isCasting = spell.Cast(game);
+		return;
 	}
 
 	//TODO: What should happen if multiple buttons are pressed at the same time?
@@ -315,11 +327,11 @@ void Player::UpdateNormally(Game& game)
 			physics->velocity.x = 0;
 		}
 
+		CheckJumpButton(input);
+
 		// Update Physics
 		if (physics->velocity.y < physics->CalcTerminalVelocity())
 			physics->velocity.y += Physics::GRAVITY * game.dt;
-
-		CheckJumpButton(input);
 
 		physics->CheckCollisions(game);
 	}

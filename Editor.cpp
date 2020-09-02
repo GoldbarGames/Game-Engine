@@ -9,6 +9,7 @@
 #include "PhysicsComponent.h"
 #include "Enemy.h"
 #include "Dialog.h"
+#include "Switch.h"
 
 using std::string;
 
@@ -45,8 +46,8 @@ Editor::Editor(Game& g)
 
 	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 
-	//TODO: Read this in from a file (maybe)
-	std::vector<std::string> previewMapObjectNames = { "door", "ladder", "goal", "bug", 
+	//TODO: Read this in from a file
+	previewMapObjectNames = { "door", "ladder", "goal", "bug",
 		"ether", "block", "platform", "shroom", "switch" };
 
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
@@ -91,9 +92,10 @@ void Editor::CreateEditorButtons()
 
 	int buttonX = buttonStartX + buttonWidth + buttonSpacing;
 
-	std::vector<string> buttonNames = { "NewLevel", "Load", "Save", "Tileset", "Inspect", 
-		"Grid", "Map", "Door", "Ladder", "NPC", "Enemy", "Switch", "Bug", "Block", "Ether", "Goal",
-		"Undo", "Redo", "Replace", "Copy", "Grab", "Platform", "Path", "Shroom" };
+	// TODO: Maybe read these in from a file too
+	std::vector<string> buttonNames = { "newlevel", "load", "save", "tileset", "inspect", 
+		"grid", "map", "door", "ladder", "npc", "enemy", "switch", "platform", "bug", "block", "ether", "goal",
+		"undo", "redo", "replace", "copy", "grab", "path", "shroom" };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
 	unsigned int BUTTON_LIST_END = BUTTON_LIST_START + BUTTONS_PER_PAGE;
@@ -116,13 +118,13 @@ void Editor::CreateEditorButtons()
 		buttonX += buttonWidth + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
 	}
 
-	EditorButton* previousButton = new EditorButton("", "PrevPage", 
+	EditorButton* previousButton = new EditorButton("", "prevpage", 
 		Vector2(buttonStartX*2, (game->screenHeight - buttonHeight)*2), *game);
 	
 	previousButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(previousButton);
 	
-	EditorButton* nextButton = new EditorButton("", "NextPage", 
+	EditorButton* nextButton = new EditorButton("", "nextpage", 
 		Vector2((buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE + 1)) * 2,
 		(game->screenHeight - buttonHeight)*2), *game);
 	
@@ -568,14 +570,15 @@ void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& c
 		// Find the selected entity
 		for (unsigned int i = 0; i < game->entities.size(); i++)
 		{
-			if (game->entities[i]->etype == "platform")
-			{
-				Entity* e = game->entities[i];
-				int test = 0;				
-			}
+			// Without this code, it would be using the center as the top-left corner,
+			// so we need to convert the coordinates to get the correct rectangle
+			SDL_Rect bounds = *(game->entities[i]->GetBounds());
+			bounds.x -= bounds.w;
+			bounds.y -= bounds.h;
+			bounds.w *= 2;
+			bounds.h *= 2;
 
-			if (game->entities[i]->etype != "tile" &&
-				HasIntersection(point, *game->entities[i]->GetBounds()))
+			if (game->entities[i]->etype != "tile" && HasIntersection(point, bounds))
 			{
 				selectedEntity = game->entities[i];
 				break;
@@ -1105,90 +1108,56 @@ void Editor::ClickedButton()
 	if (clickedButton == nullptr)
 		return;
 
-	//objectMode = buttonName;
-	//TODO: Make a better way to do this
-	// (Use a switch/case instead of if-else
-
-	// Refactor this to check if the clicked button's name
-	// is in the list of objects, and if so, set the object mode properly
-
-	if (clickedButton->name == "Tileset")
+	// Check if the clicked button is setting an object mode
+	if (clickedButton->name == "tileset")
 	{
 		ToggleTileset();
 		clickedButton->isClicked = false;
 	}
-	else if (clickedButton->name == "Map")
+	else if (previewMap.find(clickedButton->name) != previewMap.end())
+	{
+		ToggleObjectMode(clickedButton->name);
+	}
+	else if (clickedButton->name == "map")
 	{
 		//TODO: Maybe make this use the mouse wheel too?
 		ToggleSpriteMap(1);
 	}
-	else if (clickedButton->name == "Grid")
+	else if (clickedButton->name == "grid")
 	{
 		ToggleGridSize();
 	}
-	else if (clickedButton->name == "Door")
-	{
-		ToggleObjectMode("door");
-	}
-	else if (clickedButton->name == "Ladder")
-	{
-		ToggleObjectMode("ladder");
-	}	
-	else if (clickedButton->name == "NPC")
-	{
-		ToggleObjectMode("npc");
-	}
-	else if (clickedButton->name == "Goal")
-	{
-		ToggleObjectMode("goal");
-	}
-	else if (clickedButton->name == "Bug")
-	{
-		ToggleObjectMode("bug");
-	}
-	else if (clickedButton->name == "Ether")
-	{
-		ToggleObjectMode("ether");
-	}
-	else if (clickedButton->name == "Block")
-	{
-		ToggleObjectMode("block");
-	}
-	else if (clickedButton->name == "Switch")
-	{
-		ToggleObjectMode("switch");
-	}
-	else if (clickedButton->name == "Inspect")
+	else if (clickedButton->name == "inspect")
 	{
 		ToggleInspectionMode();
 	}
-	else if (clickedButton->name == "NewLevel")
+	else if (clickedButton->name == "newlevel")
 	{
 		NewLevel();
 		clickedButton->isClicked = false;
 	}
-	else if (clickedButton->name == "Load")
+	else if (clickedButton->name == "load")
 	{
 		CreateDialog("Type in the name of the file to load:");
 		game->StartTextInput("load_file_as");
 		clickedButton->isClicked = false;
 	}
-	else if (clickedButton->name == "Save")
+	else if (clickedButton->name == "save")
 	{
 		SaveLevel();
 		clickedButton->isClicked = false;
 	}
-	else if (clickedButton->name == "Undo")
+	else if (clickedButton->name == "undo")
 	{
 		UndoAction();
 		clickedButton->isClicked = false;
 	}
-	else if (clickedButton->name == "Redo")
+	else if (clickedButton->name == "redo")
 	{
 		RedoAction();
 		clickedButton->isClicked = false;
 	}
-	else if (clickedButton->name == "Replace")
+	else if (clickedButton->name == "replace")
 	{
 		if (objectMode == "replace")
 		{
@@ -1200,7 +1169,7 @@ void Editor::ClickedButton()
 			objectMode = "replace";
 		}
 	}
-	else if (clickedButton->name == "Copy")
+	else if (clickedButton->name == "copy")
 	{
 		if (objectMode == "copy")
 		{
@@ -1212,11 +1181,13 @@ void Editor::ClickedButton()
 			objectMode = "copy";
 		}
 	}
-	else if (clickedButton->name == "Grab")
+	else if (clickedButton->name == "grab")
 	{
+		// TODO: Should this be a special function
+		// for toggleing the grab mode, since it's not an object?
 		ToggleObjectMode("grab");
 	}
-	else if (clickedButton->name == "PrevPage")
+	else if (clickedButton->name == "prevpage")
 	{
 		if (currentButtonPage > 0)
 		{
@@ -1225,7 +1196,7 @@ void Editor::ClickedButton()
 			clickedButton->isClicked = false;
 		}
 	}
-	else if (clickedButton->name == "NextPage")
+	else if (clickedButton->name == "nextpage")
 	{
 		if (currentButtonPage <= (int)(buttons.size() / BUTTONS_PER_PAGE))
 		{
@@ -1234,26 +1205,15 @@ void Editor::ClickedButton()
 			clickedButton->isClicked = false;
 		}
 	}
-	else if (clickedButton->name == "Platform")
-	{
-		ToggleObjectMode("platform");
-	}
-	else if (clickedButton->name == "Path")
+	else if (clickedButton->name == "path")
 	{
 		if (currentPath != nullptr)
 		{
 			currentPath = nullptr;
 		}
 
+		// TODO: Fix this
 		ToggleObjectMode("path");
-	}
-	else if (clickedButton->name == "Shroom")
-	{
-		ToggleObjectMode("shroom");
-	}
-	else if (clickedButton->name == "Enemy")
-	{
-		ToggleObjectMode("enemy");
 	}
 }
 
@@ -1685,6 +1645,8 @@ void Editor::CreateLevelFromString(std::string level)
 	char lineChar[256];
 	ss.getline(lineChar, 256);
 
+	int highestID = 0;
+
 	while (ss.good() && !ss.eof())
 	{
 		std::istringstream buf(lineChar);
@@ -1692,9 +1654,12 @@ void Editor::CreateLevelFromString(std::string level)
 		std::vector<std::string> tokens(beg, end);
 
 		int index = 0;
-		index++;
-		const int id = Entity::GetNextValidID();  //std::stoi(tokens[index++]);
-		//Entity::nextValidID = id;
+		//index++;
+		const int id = std::stoi(tokens[index++]);
+		Entity::nextValidID = id;
+
+		if (id > highestID)
+			highestID = id;
 
 		const std::string etype = tokens[index++];
 
@@ -1814,6 +1779,11 @@ void Editor::CreateLevelFromString(std::string level)
 			game->entities.emplace_back(path);
 			paths.emplace_back(path);
 		}
+		else if (etype == "switch")
+		{
+			int spriteIndex = std::stoi(tokens[index++]);
+			Switch* newSwitch = static_cast<Switch*>(game->SpawnEntity("switch", Vector2(positionX, positionY), spriteIndex));
+		}
 		else if (etype == "platform")
 		{
 			int spriteIndex = std::stoi(tokens[index++]);
@@ -1839,6 +1809,9 @@ void Editor::CreateLevelFromString(std::string level)
 					platform->shouldLoop = std::stoi(tokens[index++]);
 					platform->physics->SetVelocity(platform->startVelocity);
 				}
+
+				if (index < tokens.size())
+					platform->switchID = std::stoi(tokens[index++]);
 			}
 
 			
@@ -1884,7 +1857,7 @@ void Editor::CreateLevelFromString(std::string level)
 		ss.getline(lineChar, 256);
 	}
 
-	int id2 = Entity::nextValidID;
+	Entity::nextValidID = 2; // highestID + 1;
 
 	for (auto const& [key, ladderGroup] : ladderGroups)
 	{

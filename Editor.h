@@ -47,6 +47,8 @@ private:
 	std::vector<EditorButton*> buttons;
 	std::vector<EditorButton*> layerButtons;
 	std::vector<EditorButton*> layerVisibleButtons;
+
+	std::vector<std::string> previewMapObjectNames;
 	
 
 	Door* currentDoor = nullptr;

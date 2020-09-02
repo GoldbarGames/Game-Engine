@@ -47,6 +47,7 @@ public:
 
 	static unsigned int GetNextValidID();
 	static unsigned int nextValidID;
+	static std::unordered_map<unsigned int, bool> takenIDs;
 	
 	virtual ~Entity();
 	Entity(const Vector2& pos);

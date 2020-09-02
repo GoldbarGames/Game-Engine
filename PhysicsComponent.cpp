@@ -143,6 +143,20 @@ bool PhysicsComponent::MoveVerticallyWithParent(Entity* their, Game& game)
 	// WARNING: Do not place a vertically moving platform next to a ceiling
 	// or Kaneko will go through the ceiling and get stuck there!
 	// TODO: Can we think of a good way around this?
+
+	bool b1 = useGravity;
+	bool b2 = prevParent == their;
+	bool b3 = prevParent != nullptr && prevParent->physics != nullptr;
+	bool b4 = prevParent != nullptr && prevParent->physics->velocity.y != 0;
+
+	if (our->etype == "player" && their->etype == "platform")
+	{
+		if (their->physics->velocity.y != 0)
+		{
+			int test = 0;
+		}
+	}
+
 	if (useGravity && prevParent == their && prevParent->physics != nullptr
 		&& prevParent->physics->velocity.y != 0)
 	{

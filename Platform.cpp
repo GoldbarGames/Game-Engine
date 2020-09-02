@@ -7,7 +7,6 @@
 
 Platform::Platform(const Vector2& pos) : Entity(pos)
 {
-	startPosition = position;
 	etype = "platform";
 	CreateCollider(0, 24, 72, 24);
 	layer = DrawingLayer::COLLISION;
@@ -22,7 +21,7 @@ Platform::Platform(const Vector2& pos) : Entity(pos)
 	physics->mass = 10;
 
 	switchUnpressedPosition = position;
-	switchPressedPosition = position + Vector2(0, 500);
+	switchPressedPosition = position + Vector2(0, 200);
 }
 
 
@@ -75,6 +74,8 @@ void Platform::Update(Game& game)
 {
 	if (attachedSwitch != nullptr)
 	{
+		lastPosition = position;
+
 		if (attachedSwitch->GetAnimator()->GetBool("isPressed"))
 		{
 			LerpVector2(position, switchPressedPosition, 50.0f, 2.0f);
@@ -83,6 +84,10 @@ void Platform::Update(Game& game)
 		{
 			LerpVector2(position, switchUnpressedPosition, 50.0f, 2.0f);
 		}
+
+		// Set velocity based on the distance traveled
+		physics->velocity = Vector2((position.x - lastPosition.x) / game.dt, 
+			(position.y - lastPosition.y) / game.dt);
 
 		if (collider != nullptr)
 		{
@@ -118,15 +123,15 @@ void Platform::Update(Game& game)
 		if (shouldLoop)
 		{
 			int distance = (tilesToMove * TILE_SIZE);
-			if (physics->velocity.x > 0 && position.x >= startPosition.x + distance
-				|| physics->velocity.x < 0 && position.x <= startPosition.x - distance)
+			if (physics->velocity.x > 0 && position.x >= physics->startPosition.x + distance
+				|| physics->velocity.x < 0 && position.x <= physics->startPosition.x - distance)
 			{
 				//TODO: Add a delay between moving the opposite direction
 				startVelocity.x *= -1;
 			}
 
-			if (physics->velocity.y > 0 && position.y >= startPosition.y + distance
-				|| physics->velocity.y < 0 && position.y <= startPosition.y - distance)
+			if (physics->velocity.y > 0 && position.y >= physics->startPosition.y + distance
+				|| physics->velocity.y < 0 && position.y <= physics->startPosition.y - distance)
 			{
 				//TODO: Add a delay between moving the opposite direction
 				startVelocity.y *= -1;
@@ -323,13 +328,21 @@ void Platform::Save(std::ostringstream& level)
 		if (endBehavior == "")
 			endBehavior = "None";
 
-		level << std::to_string(id) << " " << etype << " " << startPosition.x << " " << startPosition.y << " " << spriteIndex << " " << platformType
-			<< " " << pathID << " " << pathSpeed << " " << endBehavior << std::endl;
+		level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << spriteIndex << " " << platformType
+			<< " " << pathID << " " << pathSpeed << " " << endBehavior;
 	}
 	else
 	{
-		level << std::to_string(id) << " " << etype << " " << startPosition.x << " " << startPosition.y << " " << spriteIndex << " " << platformType
-			<< " " << startVelocity.x << " " << startVelocity.y << " " << tilesToMove << " " << shouldLoop << std::endl;
+		level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << spriteIndex << " " << platformType
+			<< " " << startVelocity.x << " " << startVelocity.y << " " << tilesToMove << " " << shouldLoop;
 	}
-	
+
+	if (attachedSwitch != nullptr)
+	{
+		level << " " << attachedSwitch->id << std::endl;
+	}
+	else
+	{
+		level << " " << switchID << std::endl;
+	}	
 }

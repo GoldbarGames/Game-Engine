@@ -8,6 +8,7 @@
 #include "Switch.h"
 
 unsigned int Entity::nextValidID = 0;
+std::unordered_map<unsigned int, bool> Entity::takenIDs;
 
 unsigned int Entity::Size()
 {
@@ -47,9 +48,33 @@ unsigned int Entity::Size()
 	return totalSize;
 }
 
+// TODO: We don't just want to always increase this,
+// we want to make sure that there are no gaps
 unsigned int Entity::GetNextValidID()
 {
-	return nextValidID++;
+	if (takenIDs.find(nextValidID) == takenIDs.end())
+	{
+		return nextValidID;
+	}
+
+	// If the nextValidID is already taken,
+	// loop through all taken IDs and fill in the gaps
+
+	unsigned int i = 1;
+	do
+	{
+		i++;
+
+		if (i == 0)
+		{
+			std::cout << "ERROR generating new ID - overflow" << std::endl;
+			break;
+		}			
+
+	} while (takenIDs.find(i) != takenIDs.end());
+
+	nextValidID = i;
+	return nextValidID;
 }
 
 //TODO: Figure out what to do with the background layers
@@ -57,8 +82,11 @@ unsigned int Entity::GetNextValidID()
 Entity::Entity(const Vector2& pos)
 {
 	position = pos;
-	id = nextValidID;
+
+	id = GetNextValidID();
+	takenIDs[id] = true;
 	nextValidID++;
+
 	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 }
 

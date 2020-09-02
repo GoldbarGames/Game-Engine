@@ -24,6 +24,9 @@ bool Spell::Cast(Game& game)
 {
 	bool success = false;
 
+	// Stop moving horizontally at the start of casting a spell
+	game.player->physics->velocity.x = 0;
+
 	game.player->UpdateSpellAnimation(names[activeSpell].c_str());
 	game.player->GetSprite()->ResetFrame();
 

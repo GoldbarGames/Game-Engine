@@ -11,7 +11,6 @@ public:
 	int tilesToMove = 3;
 	bool shouldLoop = true;
 	Vector2 startVelocity = Vector2(0, 0);
-	Vector2 startPosition = Vector2(0, 0);
 
 	// Path variables
 	Path* currentPath = nullptr;
