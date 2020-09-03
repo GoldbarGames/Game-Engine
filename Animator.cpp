@@ -167,7 +167,7 @@ Animator::Animator(const std::string& entityName, std::vector<AnimState*> states
 
 	animatorType = mapNamesToAnimType[entityName];
 
-	// If this animator type has not been initalized, do so here
+	// If this animator type has not been initialized, do so here
 	if (mapTypeToInfo.count(animatorType) != 1)
 	{
 		// Parse the animator state info here
@@ -226,9 +226,9 @@ void Animator::OnEnter(AnimState state)
 
 }
 
-void Animator::DoState(Entity* entity)
+void Animator::DoState(Entity& entity)
 {
-	entity->SetSprite(*GetCurrentSprite());
+	entity.SetSprite(*GetCurrentSprite());
 }
 
 void Animator::OnExit(AnimState state)
@@ -236,11 +236,10 @@ void Animator::OnExit(AnimState state)
 
 }
 
-void Animator::Update(Entity* entity)
+void Animator::Update(Entity& entity)
 {
-	if (entity->etype == "switch")
+	if (entity.etype == "switch")
 		int test = 0;
-
 
 	// If conditions met, set current state to next state
 	// Else, stay in current state

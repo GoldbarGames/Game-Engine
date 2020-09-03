@@ -86,8 +86,8 @@ void Textbox::SetFontSize(int newSize)
 void Textbox::SetCursorPosition(bool endOfPage)
 {
 	clickToContinue->GetAnimator()->SetBool("endOfPage", endOfPage);
-	clickToContinue->GetAnimator()->Update(clickToContinue);
-	clickToContinue->GetAnimator()->DoState(clickToContinue);
+	clickToContinue->GetAnimator()->Update(*clickToContinue);
+	clickToContinue->GetAnimator()->DoState(*clickToContinue);
 	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 
 	Vector2 cursorPos = text->GetLastGlyphPosition();
@@ -98,8 +98,8 @@ void Textbox::SetCursorPosition(bool endOfPage)
 void Textbox::SetCursorPosition(bool endOfPage, Vector2 cursorPos)
 {
 	clickToContinue->GetAnimator()->SetBool("endOfPage", endOfPage);
-	clickToContinue->GetAnimator()->Update(clickToContinue);
-	clickToContinue->GetAnimator()->DoState(clickToContinue);
+	clickToContinue->GetAnimator()->Update(*clickToContinue);
+	clickToContinue->GetAnimator()->DoState(*clickToContinue);
 	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 
 	cursorPos.x += clickToContinue->GetSprite()->frameWidth;

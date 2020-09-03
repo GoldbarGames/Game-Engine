@@ -57,9 +57,15 @@ unsigned int Entity::GetNextValidID()
 		return nextValidID;
 	}
 
+	return nextValidID;
+
 	// If the nextValidID is already taken,
 	// loop through all taken IDs and fill in the gaps
 
+	// TODO: This takes way too long and doesn't work right anyway,
+	// so find a better way to do this!
+
+	/*
 	unsigned int i = 1;
 	do
 	{
@@ -74,7 +80,8 @@ unsigned int Entity::GetNextValidID()
 	} while (takenIDs.find(i) != takenIDs.end());
 
 	nextValidID = i;
-	return nextValidID;
+	return nextValidID;*/
+
 }
 
 //TODO: Figure out what to do with the background layers
@@ -149,7 +156,7 @@ void Entity::Update(Game& game)
 	lastPosition = position;
 
 	if (animator != nullptr)
-		animator->Update(this);
+		animator->Update(*this);
 	
 	CalculateCollider();
 	if (physics != nullptr)
@@ -212,7 +219,7 @@ void Entity::SetAnimator(Animator& anim)
 {
 	animator = &anim;
 	animator->StartTimer();
-	animator->DoState(this);
+	animator->DoState(*this);
 }
 
 void Entity::RenderDebug(const Renderer& renderer)

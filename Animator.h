@@ -45,9 +45,9 @@ public:
 
 	void SetState(const char* state);
 	void OnEnter(AnimState state);
-	void DoState(Entity* entity);
+	void DoState(Entity& entity);
 	void OnExit(AnimState state);
-	void Update(Entity* entity);
+	void Update(Entity& entity);
 
 	void SetBool(const char* param, bool value);
 	void SetFloat(const char* param, float value);

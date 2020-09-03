@@ -2657,12 +2657,12 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 		if (parameters[3] == "state") 
 		{
 			manager->animatedImages[animationName]->GetAnimator()->SetState(parameters[4].c_str());
-			manager->animatedImages[animationName]->GetAnimator()->Update(manager->animatedImages[animationName]);
+			manager->animatedImages[animationName]->GetAnimator()->Update(*manager->animatedImages[animationName]);
 		}
 		else if (parameters[3] == "bool")
 		{
 			manager->animatedImages[animationName]->GetAnimator()->SetBool(parameters[4].c_str(), parameters[5] == "true");
-			manager->animatedImages[animationName]->GetAnimator()->Update(manager->animatedImages[animationName]);
+			manager->animatedImages[animationName]->GetAnimator()->Update(*manager->animatedImages[animationName]);
 		}
 		else if (parameters[3] == "machine")
 		{
@@ -2675,7 +2675,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 			//anim1->SetScaleAllStates(Vector2(0.5f, 0.5f));
 
 			manager->animatedImages[animationName]->SetAnimator(*anim1);
-			manager->animatedImages[animationName]->GetAnimator()->Update(manager->animatedImages[animationName]);
+			manager->animatedImages[animationName]->GetAnimator()->Update(*manager->animatedImages[animationName]);
 			manager->animatedImages[animationName]->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 
 			

@@ -54,7 +54,7 @@ void Missile::Update(Game& game)
 	}
 
 	if (animator != nullptr)
-		animator->Update(this);
+		animator->Update(*this);
 }
 
 void Missile::Destroy()

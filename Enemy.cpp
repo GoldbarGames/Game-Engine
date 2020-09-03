@@ -145,6 +145,10 @@ void Enemy::OnTriggerStay(Entity& other, Game& game)
 	{
 		shouldDelete = true;
 	}
+	else if (other.etype == "player")
+	{
+
+	}
 }
 
 void Enemy::OnTriggerEnter(Entity& other, Game& game)
@@ -152,6 +156,25 @@ void Enemy::OnTriggerEnter(Entity& other, Game& game)
 	if (other.etype == "debug_missile")
 	{
 		shouldDelete = true;
+	}
+	else if (other.etype == "player")
+	{
+		other.GetAnimator()->SetBool("isHurt", true);
+		other.GetAnimator()->SetState("hurt");
+		other.GetAnimator()->Update(other);
+		other.GetAnimator()->animationTimer.Start(750);
+
+		const float PUSH_SPEED = 1.0f;
+
+		if (other.position.x < position.x)
+		{
+			other.physics->velocity.x = -PUSH_SPEED;
+		}
+		else
+		{
+			other.physics->velocity.x = PUSH_SPEED;
+		}
+		
 	}
 }
 

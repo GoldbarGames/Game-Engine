@@ -76,6 +76,8 @@ public:
 	bool MoveVerticallyWithParent(Entity* their, Game& game);
 
 	void Jump(Game& game);
+
+	void ApplyFriction(float friction);
 };
 
 #endif

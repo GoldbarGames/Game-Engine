@@ -173,6 +173,12 @@ void Player::UpdateAnimator()
 
 	updatedAnimator = true;
 
+	// TODO: Refactor this
+	if (animator->GetBool("isHurt") && animator->animationTimer.HasElapsed())
+	{
+		animator->SetBool("isHurt", false);
+	}
+
 	if (animator->GetBool("isCastingDebug"))
 	{		
 		if (currentSprite->HasAnimationElapsed())
@@ -189,7 +195,7 @@ void Player::UpdateAnimator()
 	}
 
 	if (animator != nullptr)
-		animator->Update(this);
+		animator->Update(*this);
 }
 
 void Player::UpdateNormally(Game& game)
@@ -277,17 +283,21 @@ void Player::UpdateNormally(Game& game)
 		}		
 	}
 
-	//TODO: Should we limit the number that can be spawned?
-	//TODO: Add a time limit between shots
-	if (game.pressedDebugButton && timerSpellDebug.HasElapsed() && !animator->GetBool("isCastingDebug"))
+	if (!animator->GetBool("isHurt"))
 	{
-		CastSpellDebug(game, input);
+		//TODO: Should we limit the number that can be spawned?
+		//TODO: Add a time limit between shots
+		if (game.pressedDebugButton && timerSpellDebug.HasElapsed() && !animator->GetBool("isCastingDebug"))
+		{
+			CastSpellDebug(game, input);
+		}
+		else if (game.pressedSpellButton && timerSpellOther.HasElapsed() && !spell.isCasting && !animator->GetBool("isCastingSpell"))
+		{
+			spell.isCasting = spell.Cast(game);
+			return;
+		}
 	}
-	else if (game.pressedSpellButton && timerSpellOther.HasElapsed() && !spell.isCasting && !animator->GetBool("isCastingSpell"))
-	{
-		spell.isCasting = spell.Cast(game);
-		return;
-	}
+
 
 	//TODO: What should happen if multiple buttons are pressed at the same time?
 	if (game.pressedLeftTrigger)
@@ -346,7 +356,7 @@ void Player::UpdateSpellAnimation(const char* spellName)
 	animator->SetState(spellName);
 
 	// 3. Actually set the player's sprite to the casting sprite
-	animator->Update(this);
+	animator->Update(*this);
 
 	// 4. Set the timer to the length of the casting animation
 	timerSpellOther.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
@@ -426,7 +436,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 	{
 		currentSprite->ResetFrame();
 		animator->SetBool("isCastingDebug", true);
-		animator->Update(this); // We need to update here in order to know how long to run the timer
+		animator->Update(*this); // We need to update here in order to know how long to run the timer
 		timerSpellDebug.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
 	}
 	
@@ -496,8 +506,8 @@ void Player::GetMoveInput(const Uint8* input)
 	}
 	else
 	{
-		//TODO: Add friction
-		physics->velocity.x = 0;
+		//physics->velocity.x = 0;
+		physics->ApplyFriction(0.05f);
 	}
 
 	if (physics->velocity.x > physics->maxHorizontalSpeed)

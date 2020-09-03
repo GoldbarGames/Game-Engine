@@ -385,23 +385,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 						}
 
 						// Apply friction horizontally
-
-						//TODO: Apply friction based on the tile we are colliding with
-						// and maybe the object's resistance to friction
-
-						// NOTE: Be careful, because if friction exceeds acceleration,
-						// then the object won't be able to move anywhere
-
-						const float FRICTION = 0.005f; // 0.005f works well for blocks
-
-						if (velocity.x > 0)
-						{
-							velocity.x = std::max(velocity.x - FRICTION, 0.0f);
-						}
-						else if (velocity.x < 0)
-						{
-							velocity.x = std::min(velocity.x + FRICTION, 0.0f);
-						}
+						ApplyFriction(0.005f);
 
 						jumpsRemaining = 1;
 
@@ -532,6 +516,24 @@ void PhysicsComponent::Jump(Game& game)
 	jumped = true;
 }
 
+void PhysicsComponent::ApplyFriction(float friction)
+{
+	//TODO: Apply friction based on the tile we are colliding with
+	// and maybe the object's resistance to friction
+
+	// NOTE: Be careful, because if friction exceeds acceleration,
+	// then the object won't be able to move anywhere
+
+	if (velocity.x > 0)
+	{
+		velocity.x = std::max(velocity.x - friction, 0.0f);
+	}
+	else if (velocity.x < 0)
+	{
+		velocity.x = std::min(velocity.x + friction, 0.0f);
+	}
+}
+
 void PhysicsComponent::PreviousFrameCollisions(Game& game)
 {
 	// Remove deleted objects from prevFrameCollisions
@@ -655,5 +657,5 @@ void PhysicsComponent::Update(Game& game)
 	*/
 
 	if (our->GetAnimator() != nullptr)
-		our->GetAnimator()->Update(our);
+		our->GetAnimator()->Update(*our);
 }

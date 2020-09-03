@@ -29,7 +29,7 @@ class Entity
 {
 protected:	
 	Animator* animator = nullptr;
-	Sprite* currentSprite = nullptr;
+	mutable Sprite* currentSprite = nullptr;
 	Sprite* debugSprite = nullptr;
 public:
 	Vector2 position = Vector2(0, 0);
