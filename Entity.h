@@ -19,6 +19,7 @@ class Property;
 class Renderer;
 class QuadTree;
 class Switch;
+class HealthComponent;
 
 #ifndef STRUCT_FONT_INFO
 #define STRUCT_FONT_INFO
@@ -42,6 +43,7 @@ public:
 	PhysicsComponent* physics = nullptr;
 	bool clickable = false;
 	QuadTree* quadrant = nullptr;
+	HealthComponent* health = nullptr;
 
 	unsigned int Size();
 

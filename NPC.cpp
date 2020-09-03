@@ -1,6 +1,7 @@
 #include "NPC.h"
 #include "Game.h"
 #include "PhysicsComponent.h"
+#include "HealthComponent.h"
 
 NPC::NPC(const std::string& n, const Vector2& pos) : Entity(pos)
 {
@@ -16,6 +17,9 @@ NPC::NPC(const std::string& n, const Vector2& pos) : Entity(pos)
 	physics->standAboveGround = true;
 	physics->useGravity = true;
 	physics->startPosition = pos;
+
+	//health = new HealthComponent(1);
+	//health->invincible = true;
 }
 
 

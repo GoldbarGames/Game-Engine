@@ -4,6 +4,7 @@
 #include "PhysicsComponent.h"
 #include "Animator.h"
 #include "Physics.h"
+#include "HealthComponent.h"
 
 Player::Player(const Vector2& pos) : Entity(pos)
 {
@@ -30,6 +31,7 @@ Player::Player(const Vector2& pos) : Entity(pos)
 	timerSpellOther.Start(1);
 
 	//rotation = glm::vec3(90.0f, 0.0f, 0.0f);
+	health = new HealthComponent(3);
 }
 
 Player::~Player()
@@ -89,7 +91,7 @@ void Player::Update(Game& game)
 
 	//TODO: Change this so that we collide with an object instead of hard-coding a number
 	// Also, maybe draw an outline of the death barrier so the player can see where this is
-	if (position.y > game.deathBarrierY)
+	if (position.y > game.deathBarrierY || !health->IsAlive())
 	{
 		game.state = GameState::RESET_LEVEL;
 		return;

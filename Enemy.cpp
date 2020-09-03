@@ -2,6 +2,7 @@
 #include "Player.h"
 #include "Game.h"
 #include "PhysicsComponent.h"
+#include "HealthComponent.h"
 
 Enemy::Enemy(Vector2 pos) : Entity(pos)
 {
@@ -17,6 +18,8 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 	physics->canBePushed = true;
 	physics->startPosition = pos;
 	physics->standAboveGround = true;
+
+	health = new HealthComponent(1);
 }
 
 void Enemy::Init(const std::string& n)
@@ -143,21 +146,17 @@ void Enemy::OnTriggerStay(Entity& other, Game& game)
 {
 	if (other.etype == "debug_missile")
 	{
-		shouldDelete = true;
-	}
-	else if (other.etype == "player")
-	{
-
+		health->AddCurrentHP(-1);
+		if (!health->IsAlive())
+		{
+			shouldDelete = true;
+		}
 	}
 }
 
 void Enemy::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other.etype == "debug_missile")
-	{
-		shouldDelete = true;
-	}
-	else if (other.etype == "player")
+	if (other.etype == "player")
 	{
 		other.GetAnimator()->SetBool("isHurt", true);
 		other.GetAnimator()->SetState("hurt");
@@ -174,7 +173,8 @@ void Enemy::OnTriggerEnter(Entity& other, Game& game)
 		{
 			other.physics->velocity.x = PUSH_SPEED;
 		}
-		
+
+		other.health->AddCurrentHP(-1);
 	}
 }
 

@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "Game.h"
 #include "PhysicsComponent.h"
+#include "HealthComponent.h"
 
 Block::Block(const Vector2& pos) : Entity(pos)
 {
@@ -18,6 +19,8 @@ Block::Block(const Vector2& pos) : Entity(pos)
 	physics->standAboveGround = true;
 	physics->respawnOnDeath = true;
 	physics->windResistance = 2.0f;
+
+	health = new HealthComponent(1);
 }
 
 Block::~Block()

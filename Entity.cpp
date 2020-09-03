@@ -112,6 +112,10 @@ Entity::~Entity()
 		delete_it(collider);
 	if (bounds != nullptr)
 		delete_it(bounds);
+	if (physics != nullptr)
+		delete_it(physics);
+	if (health != nullptr)
+		delete_it(health);
 }
 
 void Entity::CreateCollider(float x, float y, float w, float h)
