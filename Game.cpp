@@ -133,6 +133,7 @@ Game::Game()
 	//TODO: Read these in from a text file
 	npcNames = { "gramps", "the_man" };
 	enemyNames = { "crawler" };
+	collectibleNames = { "ether", "bug", "heart" };
 
 	for (int i = 0; i < npcNames.size(); i++)
 	{
@@ -142,6 +143,11 @@ Game::Game()
 	for (int i = 0; i < enemyNames.size(); i++)
 	{
 		spriteMap["enemy"].push_back("assets/sprites/enemies/" + enemyNames[i] + ".png");
+	}
+
+	for (int i = 0; i < collectibleNames.size(); i++)
+	{
+		spriteMap["collectible"].push_back("assets/sprites/collectibles/" + collectibleNames[i] + ".png");
 	}
 
 	debugScreen = new DebugScreen(*this);
@@ -392,6 +398,11 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		{
 			args["1"] = enemyNames[spriteIndex];
 			spriteManager->ReadAnimData("data/animators/enemies/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
+		}
+		else if (entityName == "collectible")
+		{
+			args["1"] = collectibleNames[spriteIndex];
+			spriteManager->ReadAnimData("data/animators/collectibles/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
 		}
 		else
 		{

@@ -10,6 +10,7 @@
 #include "Enemy.h"
 #include "Dialog.h"
 #include "Switch.h"
+#include "Collectible.h"
 
 using std::string;
 
@@ -48,7 +49,7 @@ Editor::Editor(Game& g)
 
 	//TODO: Read this in from a file
 	previewMapObjectNames = { "door", "ladder", "goal", "bug",
-		"ether", "block", "platform", "shroom", "switch" };
+		"block", "platform", "shroom", "switch", "npc", "enemy", "collectible" };
 
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
 	{
@@ -56,8 +57,6 @@ Editor::Editor(Game& g)
 			Vector2(0, 0), spriteMapIndex);
 	}
 
-	previewMap["npc"] = game->CreateEntity("npc", Vector2(0, 0), spriteMapIndex);
-	previewMap["enemy"] = game->CreateEntity("enemy", Vector2(0, 0), spriteMapIndex);
 	objectPreview = previewMap["tile"];
 
 	game->entities.clear();	
@@ -94,7 +93,7 @@ void Editor::CreateEditorButtons()
 
 	// TODO: Maybe read these in from a file too
 	std::vector<string> buttonNames = { "newlevel", "load", "save", "tileset", "inspect", 
-		"grid", "map", "door", "ladder", "npc", "enemy", "switch", "platform", "bug", "block", "ether", "goal",
+		"grid", "map", "door", "ladder", "npc", "enemy", "switch", "platform", "block", "collectible", "goal",
 		"undo", "redo", "replace", "copy", "grab", "path", "shroom" };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
@@ -667,6 +666,15 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (enemy != nullptr)
 			{
 				enemy->Init(game->enemyNames[spriteMapIndex]);
+				game->SortEntities(game->entities);
+			}
+		}
+		else if (objectMode == "collectible")
+		{
+			Collectible* collectible = static_cast<Collectible*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
+			if (collectible != nullptr)
+			{
+				collectible->Init(game->collectibleNames[spriteMapIndex]);
 				game->SortEntities(game->entities);
 			}
 		}
@@ -1309,7 +1317,9 @@ void Editor::ToggleObjectMode(std::string mode)
 	}
 	else
 	{
-		if (mode == "npc" || mode == "enemy")
+		spriteMapIndex = 0;
+
+		if (mode == "npc" || mode == "enemy" || mode == "collectible")
 			SetLayer(DrawingLayer::COLLISION);
 		else
 			SetLayer(DrawingLayer::OBJECT);

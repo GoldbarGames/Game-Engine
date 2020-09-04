@@ -44,8 +44,6 @@
 #include "Ladder.h"
 #include "Renderer.h"
 #include "NPC.h"
-#include "Bug.h"
-#include "Ether.h"
 #include "Goal.h"
 #include "Block.h"
 #include "Platform.h"
@@ -86,6 +84,7 @@ private:
 public:
 	std::vector<std::string> npcNames;
 	std::vector<std::string> enemyNames;
+	std::vector<std::string> collectibleNames;
 
 	std::string windowIconFilepath = "";
 	std::string windowTitle = "";

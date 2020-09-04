@@ -49,7 +49,6 @@ private:
 	std::vector<EditorButton*> layerVisibleButtons;
 
 	std::vector<std::string> previewMapObjectNames;
-	
 
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;

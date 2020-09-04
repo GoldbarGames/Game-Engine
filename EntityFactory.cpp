@@ -5,13 +5,12 @@
 #include "Player.h"
 #include "NPC.h"
 #include "Block.h"
-#include "Bug.h"
-#include "Ether.h"
 #include "Goal.h"
 #include "Shroom.h"
 #include "Missile.h"
 #include "Enemy.h"
 #include "Switch.h"
+#include "Collectible.h"
 
 EntityFactory::EntityFactory()
 {
@@ -23,8 +22,7 @@ EntityFactory::EntityFactory()
     Register("player", &Player::Create);    
     Register("npc", &NPC::Create);
     Register("block", &Block::Create);
-    Register("bug", &Bug::Create);
-    Register("ether", &Ether::Create);
+    Register("collectible", &Collectible::Create);
     Register("goal", &Goal::Create);
     Register("shroom", &Shroom::Create);
     Register("missile", &Missile::Create);
