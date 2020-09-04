@@ -100,7 +100,7 @@ void Enemy::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
 
-	renderer.renderLateObjects.push_back(health);
+	renderer.game->gui.healthComponents.push_back(health);
 
 	if (renderer.game->debugMode && drawDebugRect)
 	{

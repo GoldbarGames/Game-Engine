@@ -54,6 +54,7 @@
 #include "DebugScreen.h"
 #include "EntityFactory.h"
 #include "QuadTree.h"
+#include "GUI.h"
 
 #include "CutsceneManager.h"
 #include "SoundManager.h"
@@ -110,6 +111,7 @@ public:
 
 	Mesh* cubeMesh;
 	QuadTree* quadTree;
+	GUI gui;
 
 	unsigned int collisionChecks = 0;
 	unsigned int updateCalls = 0;

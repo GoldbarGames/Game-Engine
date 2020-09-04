@@ -1489,7 +1489,7 @@ void Game::Render()
 		}
 	}
 
-	renderer->RenderLate();
+	gui.Render(*renderer);
 
 	// LAST THING
 	// Render all menu screens

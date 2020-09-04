@@ -3,13 +3,12 @@
 #pragma once
 
 #include "globals.h"
-#include "Renderable.h"
 #include "Timer.h"
 
 class Sprite;
 class Renderer;
 
-class HealthComponent : public Renderable
+class HealthComponent
 {
 private:
 	int currentHP = 1;

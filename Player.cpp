@@ -90,7 +90,7 @@ void Player::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
 
-	renderer.renderLateObjects.push_back(health);
+	renderer.game->gui.healthComponents.push_back(health);
 }
 
 void Player::Update(Game& game)

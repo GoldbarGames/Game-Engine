@@ -80,7 +80,8 @@ float HealthComponent::GetPercentHP()
 	return currentHP / ((float)maxHP);
 }
 
-void HealthComponent::CreateHealthBar(const Renderer& renderer, Vector2 scale, Color colorFront, Color colorBack, bool relativeToCamera)
+void HealthComponent::CreateHealthBar(const Renderer& renderer, Vector2 scale, 
+	Color colorFront, Color colorBack, bool relativeToCamera)
 {
 	if (healthbarFront != nullptr)
 		delete healthbarFront;
@@ -107,7 +108,8 @@ void HealthComponent::Render(const Renderer& renderer)
 	{
 		if (healthbarBack == nullptr || healthbarFront == nullptr)
 		{
-			CreateHealthBar(renderer, initialHealthBarScale, { 0, 255, 0, 255 }, { 255, 0, 0, 255 }, showRelativeToCamera);
+			CreateHealthBar(renderer, initialHealthBarScale, 
+				{ 0, 255, 0, 255 }, { 255, 0, 0, 255 }, showRelativeToCamera);
 		}
 
 		if (healthbarBack != nullptr)
