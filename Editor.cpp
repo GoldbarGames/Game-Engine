@@ -48,8 +48,9 @@ Editor::Editor(Game& g)
 	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 
 	//TODO: Read this in from a file
-	previewMapObjectNames = { "door", "ladder", "goal", "bug",
-		"block", "platform", "shroom", "switch", "npc", "enemy", "collectible" };
+	previewMapObjectNames = { "door", "ladder",
+		"block", "platform", "shroom", "switch", 
+		"npc", "enemy", "collectible" };
 
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
 	{
@@ -93,8 +94,8 @@ void Editor::CreateEditorButtons()
 
 	// TODO: Maybe read these in from a file too
 	std::vector<string> buttonNames = { "newlevel", "load", "save", "tileset", "inspect", 
-		"grid", "map", "door", "ladder", "npc", "enemy", "switch", "platform", "block", "collectible", "goal",
-		"undo", "redo", "replace", "copy", "grab", "path", "shroom" };
+		"grid", "map", "door", "ladder", "npc", "enemy", "switch", "platform", "block", "collectible", "shroom",
+		"undo", "redo", "replace", "copy", "grab", "path"  };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
 	unsigned int BUTTON_LIST_END = BUTTON_LIST_START + BUTTONS_PER_PAGE;

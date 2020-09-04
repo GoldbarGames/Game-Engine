@@ -5,7 +5,6 @@
 #include "Player.h"
 #include "NPC.h"
 #include "Block.h"
-#include "Goal.h"
 #include "Shroom.h"
 #include "Missile.h"
 #include "Enemy.h"
@@ -23,7 +22,6 @@ EntityFactory::EntityFactory()
     Register("npc", &NPC::Create);
     Register("block", &Block::Create);
     Register("collectible", &Collectible::Create);
-    Register("goal", &Goal::Create);
     Register("shroom", &Shroom::Create);
     Register("missile", &Missile::Create);
     Register("enemy", &Enemy::Create);

@@ -33,7 +33,7 @@ void Block::Render(const Renderer& renderer)
 	Entity::Render(renderer);
 }
 
-void Block::GetProperties(FontInfo * font, std::vector<Property*>& properties)
+void Block::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(font, properties);
 

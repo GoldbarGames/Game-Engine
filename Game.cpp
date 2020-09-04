@@ -123,10 +123,6 @@ Game::Game()
 	spriteMap["bug"].push_back("assets/sprites/bugs/bug1.png");
 	spriteMap["bug"].push_back("assets/sprites/bugs/bug2.png");
 
-	spriteMap["goal"].push_back("assets/sprites/objects/door1.png");
-	spriteMap["goal"].push_back("assets/sprites/objects/door_house.png");
-	spriteMap["goal"].push_back("assets/sprites/objects/door_house_outside.png");
-
 	spriteMap["shroom"].push_back("assets/sprites/objects/shroom.png");
 	spriteMap["shroom"].push_back("assets/sprites/objects/shroom_potted.png");
 

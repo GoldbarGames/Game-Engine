@@ -17,6 +17,17 @@ Door::~Door()
 
 }
 
+void Door::Update(Game& game)
+{
+	if (name == "goal")
+	{
+		isLocked = game.bugsRemaining > 0;
+	}
+	
+	animator->SetBool("opened", !isLocked);
+	Entity::Update(game);
+}
+
 void Door::OnTriggerStay(Entity& other, Game& game)
 {
 
@@ -64,6 +75,33 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 	// to cause a collision and therefore shouldSpawn always becomes false
 
 	return shouldSpawn;
+}
+
+void Door::GetProperties(FontInfo* font, std::vector<Property*>& properties)
+{
+	Entity::GetProperties(font, properties);
+
+	properties.emplace_back(new Property("Name", name));
+	properties.emplace_back(new Property("Is Locked", isLocked));
+	properties.emplace_back(new Property("Next Level", nextLevelName));
+}
+
+void Door::SetProperty(const std::string& key, const std::string& newValue)
+{
+	// Based on the key, change its value
+	if (key == "Next Level")
+	{
+		nextLevelName = newValue;
+	}
+	else if (key == "Is Locked")
+	{
+		if (newValue != "")
+			isLocked = std::stoi(newValue);
+	}
+	else if (key == "Name")
+	{
+		name = newValue;
+	}
 }
 
 void Door::Save(std::ostringstream& level)

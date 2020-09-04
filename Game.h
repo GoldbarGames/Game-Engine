@@ -44,7 +44,6 @@
 #include "Ladder.h"
 #include "Renderer.h"
 #include "NPC.h"
-#include "Goal.h"
 #include "Block.h"
 #include "Platform.h"
 #include "Shroom.h"

@@ -262,22 +262,27 @@ void Player::UpdateNormally(Game& game)
 			}
 			else if (currentDoor != nullptr && doorTimer.HasElapsed())
 			{
-				//TODO: Make this look better later
-				// Should this play a cutscene here?
-				if (animator->GetBool("isGrounded"))
+				if (currentDoor->name == "goal")
 				{
-					SetPosition(currentDoor->GetDestination() + currentSprite->pivot);
-					doorTimer.Start(500);
+					if (!currentDoor->isLocked)
+					{
+						game.state = GameState::LOAD_NEXT_LEVEL;
+						game.nextLevel = currentDoor->nextLevelName;
+						return;
+					}
 				}
-			}
-			else if (currentGoal != nullptr)
-			{
-				if (currentGoal->isOpen)
+				else
 				{
-					game.state = GameState::LOAD_NEXT_LEVEL;
-					game.nextLevel = currentGoal->nextLevelName;
-					return;
+					//TODO: Make this look better later
+					// Should this play a cutscene here?
+					if (!currentDoor->isLocked && animator->GetBool("isGrounded"))
+					{
+						SetPosition(currentDoor->GetDestination() + currentSprite->pivot);
+						doorTimer.Start(500);
+					}
 				}
+
+
 			}
 		}
 

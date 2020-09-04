@@ -10,7 +10,6 @@
 class Door;
 class Ladder;
 class Renderer;
-class Goal;
 class NPC;
 
 class Player : public Entity
@@ -29,7 +28,6 @@ public:
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;
 	NPC* currentNPC = nullptr;
-	Goal* currentGoal = nullptr;
 
 	Collider* closeRangeAttackCollider = nullptr;
 
