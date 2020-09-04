@@ -4,6 +4,7 @@
 
 #include "SDL.h"
 #include "SDL_image.h"
+#include <vector>
 #include <unordered_map>
 #include "globals.h"
 #include "Shader.h"
@@ -13,7 +14,8 @@
 
 class Sprite;
 class Game;
-
+class HealthComponent;
+class Renderable;
 
 class Renderer
 {
@@ -31,6 +33,7 @@ public:
 	Game* game;
 
 	void Update();
+	void RenderLate();
 
 	Color overlayColor{ 0, 0, 0, 0 };
 	Color targetColor{ 0, 0, 0, 0 };
@@ -44,6 +47,9 @@ public:
 	Vector2 CalculateScale(const Sprite& sourceSprite, const Sprite& targetSprite) const;
 	Vector2 CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const;
 	Vector2 screenScale = Vector2(1, 1);
+
+	// TODO: Make this an abstract class?
+	mutable std::vector<Renderable*> renderLateObjects;
 
 	mutable std::unordered_map<ShaderName, ShaderProgram*> shaders;
 	

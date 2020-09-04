@@ -31,7 +31,14 @@ Player::Player(const Vector2& pos) : Entity(pos)
 	timerSpellOther.Start(1);
 
 	//rotation = glm::vec3(90.0f, 0.0f, 0.0f);
-	health = new HealthComponent(3);
+	health = new HealthComponent(10);
+	health->showRelativeToCamera = true;
+	health->showHealthBar = true;
+	health->initialHealthBarScale = Vector2(200, 50);
+	health->position = Vector2(1280 * 0.1f * Camera::MULTIPLIER, 720 * 0.1f * Camera::MULTIPLIER);
+	//health->showHealthIcons = true;
+	//health->iconPath = "assets/gui/heart.png";
+	//health->position = Vector2(1280 * 0.8f * Camera::MULTIPLIER, 720 * 0.9f * Camera::MULTIPLIER);
 }
 
 Player::~Player()
@@ -82,6 +89,8 @@ void Player::RenderDebug(const Renderer& renderer)
 void Player::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
+
+	renderer.renderLateObjects.push_back(health);
 }
 
 void Player::Update(Game& game)

@@ -1477,6 +1477,7 @@ void Game::Render()
 					entities[i]->RenderDebug(*renderer);
 			}
 		}
+
 	}
 	else
 	{
@@ -1487,6 +1488,8 @@ void Game::Render()
 				entities[i]->RenderDebug(*renderer);
 		}
 	}
+
+	renderer->RenderLate();
 
 	// LAST THING
 	// Render all menu screens

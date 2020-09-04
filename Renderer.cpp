@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "Sprite.h"
 #include "Game.h"
+#include "Renderable.h"
 #include <algorithm>
 
 ShaderProgram* Renderer::textShader;
@@ -77,6 +78,17 @@ Vector2 Renderer::CalculateScale(const Sprite& sourceSprite, int targetWidth, in
 
 	return Vector2(targetWidth * targetScale.x / sourceWidth,
 		targetHeight * targetScale.y / sourceHeight);
+}
+
+// Render things after all entities have already been rendererd
+void Renderer::RenderLate()
+{
+	for (int i = 0; i < renderLateObjects.size(); i++)
+	{
+		renderLateObjects[i]->Render(*this);
+	}
+
+	renderLateObjects.clear();
 }
 
 void Renderer::Update()

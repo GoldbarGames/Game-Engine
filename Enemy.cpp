@@ -19,7 +19,9 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 	physics->startPosition = pos;
 	physics->standAboveGround = true;
 
-	health = new HealthComponent(1);
+	health = new HealthComponent(4);
+	health->showHealthBar = true;
+	health->initialHealthBarScale = Vector2(40, 10);
 }
 
 void Enemy::Init(const std::string& n)
@@ -49,6 +51,8 @@ void Enemy::Update(Game& game)
 {
 	// TODO: Rather than check the name, initialize variables
 	// and then check the individual variables (components)
+
+	health->position = position + Vector2(0, -50);
 
 	if (name == "crawler")
 	{
@@ -95,6 +99,8 @@ void Enemy::Update(Game& game)
 void Enemy::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
+
+	renderer.renderLateObjects.push_back(health);
 
 	if (renderer.game->debugMode && drawDebugRect)
 	{
