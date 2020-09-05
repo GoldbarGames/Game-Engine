@@ -1720,11 +1720,20 @@ void Editor::CreateLevelFromString(std::string level)
 			int destX = std::stoi(tokens[index++]);
 			int destY = std::stoi(tokens[index++]);
 			int spriteIndex = std::stoi(tokens[index++]);
+
 			Door* newDoor = static_cast<Door*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
 			if (newDoor != nullptr)
 			{
 				newDoor->SetDestination(Vector2(destX, destY));
+
+				if (tokens.size() > index)
+				{
+					newDoor->name = tokens[index++];
+					newDoor->isLocked = std::stoi(tokens[index++]);
+					newDoor->nextLevelName = tokens[index++];
+				}
 			}			
+		
 		}
 		else if (etype == "ladder")
 		{

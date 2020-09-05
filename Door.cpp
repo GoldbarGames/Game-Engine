@@ -7,6 +7,7 @@ Door::Door(Vector2 pos, Vector2 dest) : Entity(pos)
 	destination = dest;
 	layer = DrawingLayer::OBJECT;
 	drawOrder = 90;
+	name = "door";
 	etype = "door";
 	trigger = true;
 	CreateCollider(0, 0, 96, 96);
@@ -108,5 +109,5 @@ void Door::Save(std::ostringstream& level)
 {
 	level << std::to_string(id) << " " << etype << " " << position.x << " " <<
 		position.y << " " << GetDestination().x << " " << GetDestination().y
-		<< " " << spriteIndex << "" << std::endl;
+		<< " " << spriteIndex << " " << name << " " << isLocked << " " << nextLevelName << " " << std::endl;
 }
