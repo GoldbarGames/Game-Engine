@@ -1242,11 +1242,13 @@ bool Game::HandleEvent(SDL_Event& event)
 			// Check if the character is valid for the text we are getting
 			if (inputType == "Integer")
 			{
-				valid = std::isdigit(c);
+				valid = std::isdigit(c) || (c == '-' && inputText.size() == 0);
 			}
-			else if (inputType == "Float")
+			else if (inputType == "Float") // check for negative numbers, decimal point
 			{
-				valid = std::isdigit(c) || (c == '.' && inputText.find('.') == string::npos);
+				valid = std::isdigit(c) 
+					|| (c == '-' && inputText.size() == 0) 
+					|| (c == '.' && inputText.size() > 1 && inputText[inputText.size()-1] != '-' && inputText.find('.') == string::npos) ;
 			}
 
 			if (valid)

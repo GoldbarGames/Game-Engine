@@ -971,6 +971,20 @@ void Editor::RightClick(Vector2 clickedPosition)
 				}
 			}
 		}
+		else if (game->entities[i]->etype == "switch")
+		{
+			for (int k = 0; k < game->entities.size(); k++)
+			{
+				if (game->entities[k]->etype == "platform")
+				{
+					Platform* platform = static_cast<Platform*>(game->entities[k]);
+					if (platform->attachedSwitch == game->entities[i])
+					{
+						platform->attachedSwitch = nullptr;
+					}
+				}
+			}
+		}
 
 		if (shouldDeleteThis)
 		{
@@ -1823,6 +1837,12 @@ void Editor::CreateLevelFromString(std::string level)
 
 				if (index < tokens.size())
 					platform->switchID = std::stoi(tokens[index++]);
+
+				if (platform->switchID > -1)
+				{
+					platform->switchDistanceMoved.x = std::stoi(tokens[index++]);
+					platform->switchDistanceMoved.y = std::stoi(tokens[index++]);
+				}
 			}
 
 			

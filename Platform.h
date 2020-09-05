@@ -25,6 +25,7 @@ public:
 	int switchID = -1;
 	Vector2 switchPressedPosition = Vector2(0, 0);
 	Vector2 switchUnpressedPosition = Vector2(0, 0);
+	Vector2 switchDistanceMoved = Vector2(0, 0);
 
 	Platform(const Vector2& pos);
 	~Platform();

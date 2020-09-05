@@ -19,9 +19,6 @@ Platform::Platform(const Vector2& pos) : Entity(pos)
 	physics->canBePushed = false; // TODO: Is there some potential here?
 	physics->useGravity = false;
 	physics->mass = 10;
-
-	switchUnpressedPosition = position;
-	switchPressedPosition = position + Vector2(0, 200);
 }
 
 
@@ -78,11 +75,11 @@ void Platform::Update(Game& game)
 
 		if (attachedSwitch->GetAnimator()->GetBool("isPressed"))
 		{
-			LerpVector2(position, switchPressedPosition, 50.0f, 2.0f);
+			LerpVector2(position, physics->startPosition + switchDistanceMoved, 50.0f, 2.0f);
 		}
 		else
 		{
-			LerpVector2(position, switchUnpressedPosition, 50.0f, 2.0f);
+			LerpVector2(position, physics->startPosition, 50.0f, 2.0f);
 		}
 
 		// Set velocity based on the distance traveled
@@ -246,6 +243,12 @@ void Platform::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 
 	properties.emplace_back(new Property("Switch ID", switchID));
 
+	if (switchID > -1)
+	{
+		properties.emplace_back(new Property("Switch Distance X", switchDistanceMoved.x));
+		properties.emplace_back(new Property("Switch Distance Y", switchDistanceMoved.y));
+	}
+
 	/*
 	
 	const std::vector<std::string> platformTypes = { "Idle", "Move", "Path" };
@@ -274,50 +277,68 @@ void Platform::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 
 void Platform::SetProperty(const std::string& key, const std::string& newValue)
 {
-	// Based on the key, change its value
-	if (key == "Velocity X")
+	try
 	{
-		if (newValue != "")
-			startVelocity.x = std::stof(newValue);
+		// Based on the key, change its value
+		if (key == "Velocity X")
+		{
+			if (newValue != "")
+				startVelocity.x = std::stof(newValue);
+		}
+		else if (key == "Velocity Y")
+		{
+			if (newValue != "")
+				startVelocity.y = std::stof(newValue);
+		}
+		else if (key == "Distance")
+		{
+			if (newValue != "")
+				tilesToMove = std::stoi(newValue);
+		}
+		else if (key == "Loop")
+		{
+			shouldLoop = (newValue == "True") ? true : false;
+		}
+		else if (key == "Platform Type")
+		{
+			platformType = newValue;
+		}
+		else if (key == "Path ID")
+		{
+			if (newValue != "")
+				pathID = std::stoi(newValue);
+		}
+		else if (key == "Speed")
+		{
+			if (newValue != "")
+				pathSpeed = std::stof(newValue);
+		}
+		else if (key == "End Behavior")
+		{
+			if (newValue != "")
+				endPathBehavior = newValue;
+		}
+		else if (key == "Switch ID")
+		{
+			if (newValue != "")
+				switchID = std::stoi(newValue);
+		}
+		else if (key == "Switch Distance X")
+		{
+			if (newValue != "")
+				switchDistanceMoved.x = std::stoi(newValue);
+		}
+		else if (key == "Switch Distance Y")
+		{
+			if (newValue != "")
+				switchDistanceMoved.y = std::stoi(newValue);
+		}
 	}
-	else if (key == "Velocity Y")
+	catch (std::exception ex)
 	{
-		if (newValue != "")
-			startVelocity.y = std::stof(newValue);
+		std::cout << ex.what() << std::endl;
 	}
-	else if (key == "Distance")
-	{
-		if (newValue != "")
-			tilesToMove = std::stoi(newValue);
-	}
-	else if (key == "Loop")
-	{
-		shouldLoop = (newValue == "True" ) ? true : false;
-	}
-	else if (key == "Platform Type")
-	{
-		platformType = newValue;
-	}
-	else if (key == "Path ID")
-	{
-		if (newValue != "")
-			pathID = std::stoi(newValue);
-	}
-	else if (key == "Speed")
-	{
-		if (newValue != "")
-			pathSpeed = std::stof(newValue);
-	}
-	else if (key == "End Behavior")
-	{
-		if (newValue != "")
-			endPathBehavior = newValue;
-	}
-	else if (key == "Switch ID")
-	{
-		if (newValue != "")
-			switchID = std::stoi(newValue);
-	}
+	
 }
 
 void Platform::Save(std::ostringstream& level)
@@ -337,12 +358,5 @@ void Platform::Save(std::ostringstream& level)
 			<< " " << startVelocity.x << " " << startVelocity.y << " " << tilesToMove << " " << shouldLoop;
 	}
 
-	if (attachedSwitch != nullptr)
-	{
-		level << " " << attachedSwitch->id << std::endl;
-	}
-	else
-	{
-		level << " " << switchID << std::endl;
-	}	
+	level << " " << switchID << " " << switchDistanceMoved.x << " " << switchDistanceMoved.y << std::endl;
 }
