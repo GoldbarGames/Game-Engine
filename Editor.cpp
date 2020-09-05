@@ -378,26 +378,18 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	{
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
+			Vector2 grabPosition = Vector2(mouseX, mouseY);
+			grabPosition.x += game->renderer->camera.position.x;
+			grabPosition.y += game->renderer->camera.position.y;
+
 			// Either grab a new entity, or place the currently grabbed one
 			if (grabbedEntity == nullptr)
 			{
-				SDL_Point point;
-				point.x = mouseX;
-				point.y = mouseY;
+				grabbedEntity = GetClickedEntity(grabPosition);
 
-				//std::cout << "x: " + point.x << std::endl;
-				//std::cout << "y:" + point.y << std::endl;
-
-				// Find the selected entity and grab it
-				for (unsigned int i = 0; i < game->entities.size(); i++)
+				if (grabbedEntity != nullptr)
 				{
-					if (game->entities[i]->etype != "tile" &&
-						SDL_PointInRect(&point, game->entities[i]->GetBounds()))
-					{
-						grabbedEntity = game->entities[i];
-						oldGrabbedPosition = grabbedEntity->GetPosition();
-						break;
-					}
+					oldGrabbedPosition = grabbedEntity->GetPosition();
 				}
 			}
 			else
@@ -405,6 +397,10 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 				// If the entity is allowed to spawn here, then place it there
 				if (grabbedEntity->CanSpawnHere(Vector2(mouseX, mouseY), *game, false))
 				{
+					if (grabbedEntity->physics != nullptr)
+					{
+						grabbedEntity->physics->startPosition = grabbedEntity->position;
+					}
 					grabbedEntity = nullptr;
 					DoAction();
 				}
@@ -507,8 +503,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	}
 }
 
-
-void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& clickedScreenPosition)
+Entity* Editor::GetClickedEntity(const Vector2& clickedWorldPosition)
 {
 	SDL_Rect point;
 	point.x = clickedWorldPosition.x;
@@ -516,6 +511,29 @@ void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& c
 	point.w = 1;
 	point.h = 1;
 
+	// Find the selected entity
+	for (unsigned int i = 0; i < game->entities.size(); i++)
+	{
+		// Without this code, it would be using the center as the top-left corner,
+		// so we need to convert the coordinates to get the correct rectangle
+		SDL_Rect bounds = *(game->entities[i]->GetBounds());
+		bounds.x -= bounds.w;
+		bounds.y -= bounds.h;
+		bounds.w *= 2;
+		bounds.h *= 2;
+
+		if (game->entities[i]->etype != "tile" && HasIntersection(point, bounds))
+		{
+			return game->entities[i];
+		}
+	}
+
+	return nullptr;
+}
+
+
+void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& clickedScreenPosition)
+{
 	SDL_Rect screenPoint;
 	screenPoint.x = clickedScreenPosition.x * Camera::MULTIPLIER;
 	screenPoint.y = clickedScreenPosition.y * Camera::MULTIPLIER;
@@ -567,23 +585,7 @@ void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& c
 
 	if (!clickedOnProperty)
 	{
-		// Find the selected entity
-		for (unsigned int i = 0; i < game->entities.size(); i++)
-		{
-			// Without this code, it would be using the center as the top-left corner,
-			// so we need to convert the coordinates to get the correct rectangle
-			SDL_Rect bounds = *(game->entities[i]->GetBounds());
-			bounds.x -= bounds.w;
-			bounds.y -= bounds.h;
-			bounds.w *= 2;
-			bounds.h *= 2;
-
-			if (game->entities[i]->etype != "tile" && HasIntersection(point, bounds))
-			{
-				selectedEntity = game->entities[i];
-				break;
-			}
-		}
+		selectedEntity = GetClickedEntity(clickedWorldPosition);
 
 		// If selected entity was found, then generate text for all properties of it
 		if (selectedEntity != nullptr)
@@ -1119,8 +1121,11 @@ void Editor::HandleEdit()
 
 	if (grabbedEntity != nullptr)
 	{
-		Vector2 snappedPosition = game->SnapToGrid(Vector2(mouseX, mouseY));
-		grabbedEntity->SetPosition(snappedPosition);
+		Vector2 grabPosition = Vector2(mouseX, mouseY);
+		grabPosition.x += game->renderer->camera.position.x;
+		grabPosition.y += game->renderer->camera.position.y;
+
+		grabbedEntity->SetPosition(game->SnapToGrid(grabPosition));
 	}
 
 	previousMouseState = mouseState;

@@ -137,6 +137,8 @@ public:
 	void RightClick(Vector2 clickedPosition);
 	void MiddleClick(Vector2 clickedPosition);
 
+	Entity* GetClickedEntity(const Vector2& clickedWorldPosition);
+
 	void SetLayer(DrawingLayer layer);
 	void DestroyLadder(std::string startingState, Vector2 lastPosition);
 

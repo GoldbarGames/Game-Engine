@@ -405,7 +405,6 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 			spriteManager->ReadAnimData("data/animators/" + entityName + "/" + entityName + ".animations", animStates, args);
 		}
 
-
 		//TODO: Make this better...
 		// - Allow for conditions that are always true/false 
 		// so that you can write Animator files that 

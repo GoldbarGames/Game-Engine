@@ -8,7 +8,6 @@ Switch::Switch(Vector2 pos) : Entity(pos)
 	etype = "switch";
 	trigger = true;
 	CreateCollider(0, 0, 24, 24);
-	int test = id;
 }
 
 void Switch::OnTriggerStay(Entity& other, Game& game)
@@ -23,15 +22,17 @@ void Switch::OnTriggerEnter(Entity& other, Game& game)
 {
 	if (animator != nullptr)
 	{
-		animator->SetBool("isPressed", true);
+		collidingEntities[other.id] = &other;
+		animator->SetBool("isPressed", true);		
 	}
 }
 
 void Switch::OnTriggerExit(Entity& other, Game& game)
 {
 	if (animator != nullptr)
-	{
-		animator->SetBool("isPressed", false);
+	{		
+		collidingEntities.erase(other.id);
+		animator->SetBool("isPressed", (collidingEntities.size() > 0));
 	}
 }
 

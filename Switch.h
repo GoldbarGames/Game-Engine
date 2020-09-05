@@ -8,6 +8,8 @@ class Game;
 class Switch : public Entity
 {
 public:
+	std::unordered_map<int, Entity*> collidingEntities;
+
 	Switch(Vector2 pos);
 
 	void OnTriggerStay(Entity& other, Game& game);

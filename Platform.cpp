@@ -96,7 +96,7 @@ void Platform::Update(Game& game)
 		bool foundSwitch = false;
 		for (int i = 0; i < game.entities.size(); i++)
 		{
-			if (game.entities[i]->id == switchID)
+			if (game.entities[i]->id == switchID && game.entities[i]->etype == "switch")
 			{
 				attachedSwitch = static_cast<Switch*>(game.entities[i]);
 				foundSwitch = true;
