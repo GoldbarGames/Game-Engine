@@ -82,7 +82,7 @@ void Camera::FollowTarget(const Game& game)
 		}
 		else
 		{
-			const float scrollFactor = 0.15f;
+			const float scrollFactor = 0.0f;
 			const float screenScrollWidth = startScreenWidth * scrollFactor;
 			const float screenScrollHeight = startScreenHeight * scrollFactor;
 
