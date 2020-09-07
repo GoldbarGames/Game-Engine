@@ -126,10 +126,9 @@ Game::Game()
 	spriteMap["shroom"].push_back("assets/sprites/objects/shroom.png");
 	spriteMap["shroom"].push_back("assets/sprites/objects/shroom_potted.png");
 
-	//TODO: Read these in from a text file
-	npcNames = { "gramps", "the_man" };
-	enemyNames = { "crawler" };
-	collectibleNames = { "ether", "bug", "heart" };
+	npcNames = ReadStringsFromFile("data/lists/npcs.list");
+	enemyNames = ReadStringsFromFile("data/lists/enemies.list");
+	collectibleNames = ReadStringsFromFile("data/lists/collectibles.list");
 
 	for (int i = 0; i < npcNames.size(); i++)
 	{
@@ -1547,6 +1546,26 @@ void Game::Render()
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);
+}
+
+std::vector<std::string> Game::ReadStringsFromFile(const std::string& filepath)
+{
+	std::vector<std::string> result;
+
+	std::ifstream fin;
+	char token[256];
+
+	fin.open(filepath);
+	if (fin.is_open())
+	{
+		while (!fin.eof())
+		{
+			fin.getline(token, 256);
+			result.push_back(token);
+		}
+	}
+
+	return result;
 }
 
 // Implementation of insertion sort:

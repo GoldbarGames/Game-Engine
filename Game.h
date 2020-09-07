@@ -138,8 +138,6 @@ public:
 	clock::time_point start_time;
 
 	std::unordered_map<std::string, MenuScreen*> allMenus;
-
-
 	std::vector<SDL_Rect*> debugRectangles;
 
 	void InitOpenGL();
@@ -251,6 +249,8 @@ public:
 	Vector2 CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE);
 
 	Vector2 SnapToGrid(Vector2 position);
+
+	std::vector<std::string> ReadStringsFromFile(const std::string& filepath);
 
 	void UpdateTextInput();
 	void StartTextInput(const std::string& reason);
