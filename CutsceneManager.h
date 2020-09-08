@@ -152,6 +152,7 @@ public:
 	std::unordered_map<std::string, TextTag*> tags;
 	std::unordered_map<unsigned int, Timer*> timers;
 	float msGlyphTime = 0;
+	float msInitialDelayBetweenGlyphs = 10.0f;
 	float msDelayBetweenGlyphs = 10.0f;
 	bool isCarryingOutCommands = false;
 	bool isReadingNextLine = false;

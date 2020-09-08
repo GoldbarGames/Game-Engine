@@ -22,7 +22,7 @@ CutsceneManager::CutsceneManager(Game& g)
 
 	std::ifstream fin;
 
-	bool testVN = false;
+	bool testVN = true;
 	std::string directory = "";
 	std::string line = "";
 
@@ -300,8 +300,10 @@ void CutsceneManager::ParseScene()
 
 		// Get label name
 		index++; // begin with a *
+		//TODO: This is broken on the very first label?
+		//newLabel->name = ParseWord(data, '*', index);
 		newLabel->name = ParseWord(data, '*', index);
-		//cout << "Label name: " + newLabel->name;
+		//std::cout << "Label name: " + newLabel->name << std::endl;
 
 		std::vector<std::string> commands;
 
@@ -344,6 +346,7 @@ void CutsceneManager::ParseScene()
 				{
 					//std::cout << tempCommands[i] << std::endl;
 					tempLine->commands.emplace_back(commands[i]);
+					//std::cout << commands[i] << std::endl;
 				}
 
 				// add the line
@@ -382,6 +385,7 @@ void CutsceneManager::ParseScene()
 						if (commandLine != "" && commandLine != " ")
 						{
 							commands.emplace_back(commandLine);
+							//std::cout << commandLine << std::endl;
 						}
 					}
 					else
@@ -398,6 +402,7 @@ void CutsceneManager::ParseScene()
 								{
 									std::string str = commandLine.substr((cmdLetterIndex - cmdLetterLength), cmdLetterLength);
 									commands.emplace_back(str);
+									//std::cout << str << std::endl;
 									cmdLetterIndex++;
 								}
 								cmdLetterLength = 0;
@@ -410,6 +415,7 @@ void CutsceneManager::ParseScene()
 					if (commandLine != "" && commandLine != " ")
 					{
 						commands.emplace_back(commandLine);
+						//std::cout << commandLine << std::endl;
 					}
 				}				
 						
@@ -926,6 +932,8 @@ void CutsceneManager::UpdateText()
 
 	if (input[skipButton])
 		msDelayBetweenGlyphs = 0.0f;
+	else
+		msDelayBetweenGlyphs = msInitialDelayBetweenGlyphs;
 
 	//TODO: Continue to execute functions that have not finished yet (moveto, lerp) (multi-threading?)
 

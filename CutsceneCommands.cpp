@@ -1305,6 +1305,8 @@ int CutsceneCommands::ClearSprite(CutsceneParameters parameters)
 
 int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 {
+	std::cout << "Loading sprite" << parameters[1] << std::endl;
+
 	Vector2 pos = Vector2(0, 0);
 
 	bool isStandingImage = parameters[1] == "l" || parameters[1] == "c" || parameters[1] == "r";
@@ -2491,7 +2493,7 @@ int CutsceneCommands::FileExist(CutsceneParameters parameters)
 
 int CutsceneCommands::TextSpeed(CutsceneParameters parameters)
 {
-	manager->msDelayBetweenGlyphs = ParseNumberValue(parameters[1]);
+	manager->msInitialDelayBetweenGlyphs = ParseNumberValue(parameters[1]);
 
 	return 0;
 }

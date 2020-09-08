@@ -85,25 +85,20 @@ void Textbox::SetFontSize(int newSize)
 
 void Textbox::SetCursorPosition(bool endOfPage)
 {
-	clickToContinue->GetAnimator()->SetBool("endOfPage", endOfPage);
-	clickToContinue->GetAnimator()->Update(*clickToContinue);
-	clickToContinue->GetAnimator()->DoState(*clickToContinue);
-	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
-
-	Vector2 cursorPos = text->GetLastGlyphPosition();
-	cursorPos.x += clickToContinue->GetSprite()->frameWidth;
-	clickToContinue->SetPosition(cursorPos);
+	SetCursorPosition(endOfPage, text->GetLastGlyphPosition());
 }
 
-void Textbox::SetCursorPosition(bool endOfPage, Vector2 cursorPos)
+// This sets the position either to the end of the text line,
+// or to the end of the text line in the current backlog line
+void Textbox::SetCursorPosition(bool endOfPage, Vector2 newCursorPos)
 {
 	clickToContinue->GetAnimator()->SetBool("endOfPage", endOfPage);
 	clickToContinue->GetAnimator()->Update(*clickToContinue);
 	clickToContinue->GetAnimator()->DoState(*clickToContinue);
 	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 
-	cursorPos.x += clickToContinue->GetSprite()->frameWidth;
-	clickToContinue->SetPosition(cursorPos);
+	newCursorPos.x += clickToContinue->GetSprite()->frameWidth;
+	clickToContinue->SetPosition(newCursorPos);
 }
 
 void Textbox::ChangeBoxFont(const std::string& fontName)
