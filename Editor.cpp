@@ -659,7 +659,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			currentNPC = static_cast<NPC*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 			if (currentNPC != nullptr)
 			{
-				currentNPC->name = game->npcNames[spriteMapIndex];
+				currentNPC->name = game->entityTypes["npc"][spriteMapIndex];
 				game->SortEntities(game->entities);
 			}
 		}
@@ -668,7 +668,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			Enemy* enemy = static_cast<Enemy*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 			if (enemy != nullptr)
 			{
-				enemy->Init(game->enemyNames[spriteMapIndex]);
+				enemy->Init(game->entityTypes["enemy"][spriteMapIndex]);
 				game->SortEntities(game->entities);
 			}
 		}
@@ -677,7 +677,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			Collectible* collectible = static_cast<Collectible*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 			if (collectible != nullptr)
 			{
-				collectible->Init(game->collectibleNames[spriteMapIndex]);
+				collectible->Init(game->entityTypes["collectible"][spriteMapIndex]);
 				game->SortEntities(game->entities);
 			}
 		}

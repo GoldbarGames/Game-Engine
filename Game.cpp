@@ -109,40 +109,25 @@ Game::Game()
 
 	// Initialize the sprite map (do this BEFORE the editor)
 
-	//TODO: We don't really need the spriteMap anymore, but we still need the number of sprites
-	// (we don't need to know the actual files, just the number of possible choices)
+	// IMPORTANT INSTRUCTIONS:
+	// entityTypes.list is a list of all the different types of entities in the game.
+	// Each entity type has its own list file, which contains the list of different subtypes.
+	// The subtypes are toggled through when placing objects via the editor.
+	// Thus you can modify these things outside of the engine to customize different games.
 
-	spriteMap["door"].push_back("assets/sprites/objects/door1.png");
-	spriteMap["door"].push_back("assets/sprites/objects/door_house.png");
-	spriteMap["door"].push_back("assets/sprites/objects/door_house_outside.png");
+	std::vector<std::string> listNames = ReadStringsFromFile("data/lists/entityTypes.list");
 
-	spriteMap["ladder"].push_back("assets/sprites/objects/ladder1.png");
-	spriteMap["ladder"].push_back("assets/sprites/objects/ladder_house.png");
-	spriteMap["ladder"].push_back("assets/sprites/objects/ladder_b.png");
-
-	spriteMap["bug"].push_back("assets/sprites/bugs/bug1.png");
-	spriteMap["bug"].push_back("assets/sprites/bugs/bug2.png");
-
-	spriteMap["shroom"].push_back("assets/sprites/objects/shroom.png");
-	spriteMap["shroom"].push_back("assets/sprites/objects/shroom_potted.png");
-
-	npcNames = ReadStringsFromFile("data/lists/npcs.list");
-	enemyNames = ReadStringsFromFile("data/lists/enemies.list");
-	collectibleNames = ReadStringsFromFile("data/lists/collectibles.list");
-
-	for (int i = 0; i < npcNames.size(); i++)
+	for (int i = 0; i < listNames.size(); i++)
 	{
-		spriteMap["npc"].push_back("assets/sprites/npcs/" + npcNames[i] + ".png");
+		entityTypes[listNames[i]] = ReadStringsFromFile("data/lists/" + listNames[i] + ".list");
 	}
 
-	for (int i = 0; i < enemyNames.size(); i++)
+	for (auto const& [key, val] : entityTypes)
 	{
-		spriteMap["enemy"].push_back("assets/sprites/enemies/" + enemyNames[i] + ".png");
-	}
-
-	for (int i = 0; i < collectibleNames.size(); i++)
-	{
-		spriteMap["collectible"].push_back("assets/sprites/collectibles/" + collectibleNames[i] + ".png");
+		for (int i = 0; i < val.size(); i++)
+		{
+			spriteMap[key].push_back("assets/sprites/" + key + "/" + val[i] + ".png");
+		}
 	}
 
 	debugScreen = new DebugScreen(*this);
@@ -333,10 +318,9 @@ void Game::InitSDL()
 
 void Game::EndSDL()
 {
-	// Delete our OpengL context
+	// Delete our OpenGL context
 	SDL_GL_DeleteContext(mainContext);
 
-	//SDL_DestroyRenderer(renderer->renderer);	
 	SDL_DestroyWindow(window);	
 	window = nullptr;
 
@@ -384,20 +368,10 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		std::unordered_map<std::string, std::string> args;
 		args["0"] = std::to_string(spriteIndex);
 
-		if (entityName == "npc")
+		if (entityName == "npc" || entityName == "enemy" || entityName == "collectible")
 		{
-			args["1"] = npcNames[spriteIndex];
-			spriteManager->ReadAnimData("data/animators/npc/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
-		}
-		else if (entityName == "enemy")
-		{
-			args["1"] = enemyNames[spriteIndex];
-			spriteManager->ReadAnimData("data/animators/enemies/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
-		}
-		else if (entityName == "collectible")
-		{
-			args["1"] = collectibleNames[spriteIndex];
-			spriteManager->ReadAnimData("data/animators/collectibles/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
+			args["1"] = entityTypes[entityName][spriteIndex];
+			spriteManager->ReadAnimData("data/animators/" + entityName + "/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
 		}
 		else
 		{
@@ -418,8 +392,11 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		if (newEntity->etype == "switch")
 			initialState = "unpressed";
 
-		Animator* newAnimator = new Animator(entityName, animStates, initialState);
-		newEntity->SetAnimator(*newAnimator);
+		if (animStates.size() > 0)
+		{
+			Animator* newAnimator = new Animator(entityName, animStates, initialState);
+			newEntity->SetAnimator(*newAnimator);
+		}
 	}
 
 	return newEntity;
@@ -1404,7 +1381,6 @@ void Game::Update()
 
 	if (quadTree != nullptr)
 	{
-		//quadTree->Update();
 		quadTree->Reset();
 		for (int i = 0; i < entities.size(); i++)
 		{
@@ -1420,8 +1396,6 @@ void Game::Update()
 	{		
 		entities[i]->Update(*this);
 	}
-
-	
 
 	// Update the camera last
 	// We need to use the original screen resolution here (for some reason)

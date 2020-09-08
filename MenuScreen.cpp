@@ -89,14 +89,9 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 	else if (name == "Title")
 	{
 		int startWidth = game.screenWidth / 2;
-		
 		int distance = 120;
-
 		int startPosX = 1600;
 		int startPosy = 700;
-
-		//TODO: The only way to center the button is to do startWidth - windowRect.w / 2,
-		// but I can't get windowRect.x here because the rect has not been created yet!
 
 		MenuButton* buttonPlay = new MenuButton("Play Game", "assets/gui/menu.png",
 			"Play Game", Vector2(startPosX, startPosy + (distance * 0)), game);
@@ -123,7 +118,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		textCopyright->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textCopyright);
 
-		Text* textVersion = new Text(game.headerFont, "Demo Version 2020-03-20", true, true);
+		Text* textVersion = new Text(game.headerFont, "Demo Version 2020-10-31", true, true);
 		//textVersion->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
 		textVersion->SetPosition(startPosX - 100, 1300);
 		textVersion->GetSprite()->SetScale(Vector2(1.0f, 1.0f));

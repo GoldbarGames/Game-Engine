@@ -81,9 +81,8 @@ private:
 	Mesh* CreateSpriteMesh();
 	Mesh* CreateCubeMesh();
 public:
-	std::vector<std::string> npcNames;
-	std::vector<std::string> enemyNames;
-	std::vector<std::string> collectibleNames;
+
+	std::unordered_map<std::string, std::vector<std::string>> entityTypes;
 
 	std::string windowIconFilepath = "";
 	std::string windowTitle = "";
