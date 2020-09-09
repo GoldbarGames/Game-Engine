@@ -24,6 +24,23 @@ void Door::Update(Game& game)
 	{
 		isLocked = game.bugsRemaining > 0;
 	}
+
+	//TODO: Make this a template function?
+	// Only check for the attached door if we think it can be found in the current level
+	// Otherwise, we can assume that it can be found in the next level we go to
+	if (attachedDoor == nullptr && destinationID > -1 && nextLevelName == "")
+	{
+		bool found = false;
+		for (int i = 0; i < game.entities.size(); i++)
+		{
+			if (game.entities[i]->id == destinationID && game.entities[i]->etype == "door")
+			{
+				attachedDoor = static_cast<Door*>(game.entities[i]);
+				found = true;
+				break;
+			}
+		}
+	}
 	
 	animator->SetBool("opened", !isLocked);
 	Entity::Update(game);
@@ -54,7 +71,12 @@ void Door::OnTriggerExit(Entity& other, Game& game)
 
 Vector2 Door::GetDestination()
 {
-	return destination;
+	if (attachedDoor != nullptr)
+	{
+		return attachedDoor->position;
+	}
+
+	return position;
 }
 
 void Door::SetDestination(Vector2 dest)
@@ -85,6 +107,7 @@ void Door::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 	properties.emplace_back(new Property("Name", name));
 	properties.emplace_back(new Property("Is Locked", isLocked));
 	properties.emplace_back(new Property("Next Level", nextLevelName));
+	properties.emplace_back(new Property("Destination ID", destinationID));
 }
 
 void Door::SetProperty(const std::string& key, const std::string& newValue)
@@ -103,11 +126,17 @@ void Door::SetProperty(const std::string& key, const std::string& newValue)
 	{
 		name = newValue;
 	}
+	else if (key == "Destination ID")
+	{
+		if (newValue != "")
+			destinationID = std::stoi(newValue);
+	}
 }
 
 void Door::Save(std::ostringstream& level)
 {
 	level << std::to_string(id) << " " << etype << " " << position.x << " " <<
 		position.y << " " << GetDestination().x << " " << GetDestination().y
-		<< " " << spriteIndex << " " << name << " " << isLocked << " " << nextLevelName << " " << std::endl;
+		<< " " << spriteIndex << " " << name << " " << isLocked << " " << nextLevelName << 
+		" " << destinationID << std::endl;
 }

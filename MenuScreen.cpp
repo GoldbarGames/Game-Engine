@@ -219,17 +219,36 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		//TODO: Replace each text with 'New Game' or 'Load Game' depending on whether there is save data
 
-		std::string file1Function = "Load Game";
-		std::string file2Function = "Load Game";
-		std::string file3Function = "Load Game";
+		std::string file1Function = "File 1";
+		std::string file2Function = "File 2";
+		std::string file3Function = "File 3";
 
-		MenuButton* buttonFile1 = new MenuButton("File 1", "assets/gui/menu.png",
+		std::fstream fin;
+		fin.open("saves/wdk1.sav");
+		if (!fin.good())
+			file1Function = "New Game";
+		else
+			fin.close();
+
+		fin.open("saves/wdk2.sav");
+		if (!fin.good())
+			file2Function = "New Game";
+		else
+			fin.close();
+
+		fin.open("saves/wdk3.sav");
+		if (!fin.good())
+			file3Function = "New Game";
+		else
+			fin.close();
+
+		MenuButton* buttonFile1 = new MenuButton(file1Function, "assets/gui/menu.png",
 			file1Function, Vector2(buttonPosX, startHeight + (distance * 0)), game);
 
-		MenuButton* buttonFile2 = new MenuButton("File 2", "assets/gui/menu.png",
+		MenuButton* buttonFile2 = new MenuButton(file2Function, "assets/gui/menu.png",
 			file2Function, Vector2(buttonPosX, startHeight + (distance * 1)), game);
 
-		MenuButton* buttonFile3 = new MenuButton("File 3", "assets/gui/menu.png",
+		MenuButton* buttonFile3 = new MenuButton(file3Function, "assets/gui/menu.png",
 			file3Function, Vector2(buttonPosX, startHeight + (distance * 2)), game);
 
 		buttons.emplace_back(buttonFile1);
@@ -351,25 +370,35 @@ bool MenuScreen::PressSelectedButton(Game& game)
 
 	}
 	else if (selectedButton->name == "Load Game")
-	{
-		//TODO: Make this different when loading a save file with actual data in it
-		game.LoadLevel("demo");
+	{		
+		game.LoadFile("wdk1.sav");
 	}
-	else if (selectedButton->name == "Play Game")
+	else if (selectedButton->name == "File 1")
+	{
+		game.LoadFile("wdk1.sav");
+	}
+	else if (selectedButton->name == "File 2")
+	{
+		game.LoadFile("wdk2.sav");
+	}
+	else if (selectedButton->name == "File 3")
+	{
+		game.LoadFile("wdk3.sav");
+	}
+	else if (selectedButton->name == "New Game")
 	{
 		game.openedMenus.clear();
-		//game.openedMenus.emplace_back(game.allMenus["File Select"]);
 
 		//game.cutscene->commands.ExecuteCommand("fade black 1000");
 		//game.cutscene->commands.ExecuteCommand("wait 1000");
 
-		std::string currentGame = "DB1";
+		std::string currentGame = "WDK";
 
 		if (currentGame == "WDK")
 		{
 			//game.LoadLevel("demo", 1, 1);
 #if _DEBUG
-			if (game.editor->startEditorLevel != "")	
+			if (game.editor->startEditorLevel != "")
 				game.LoadLevel(game.editor->startEditorLevel);
 			else
 				game.LoadLevel("demo");
@@ -385,6 +414,12 @@ bool MenuScreen::PressSelectedButton(Game& game)
 		{
 			game.LoadLevel("test-vn");
 		}
+	}
+	else if (selectedButton->name == "Play Game")
+	{
+		game.openedMenus.clear();
+
+		game.openedMenus.emplace_back(game.allMenus["File Select"]);
 	}
 	else if (selectedButton->name == "Title Screen")
 	{

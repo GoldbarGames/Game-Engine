@@ -168,6 +168,9 @@ public:
 	GameState state;
 	//GameState previousState;
 
+	int nextDoorID = -1;
+	bool useNextPlayerStartPosition = false;
+	Vector2 nextPlayerStartPosition = Vector2(0, 0);
 	std::string nextLevel = "";
 	std::string nextBGM = "";
 
@@ -256,6 +259,9 @@ public:
 	void StopTextInput();
 
 	void EscapeMenu();
+
+	void SaveFile(const std::string& filename);
+	void LoadFile(const std::string& filename);
 
 	void SaveSettings();
 	void LoadSettings();

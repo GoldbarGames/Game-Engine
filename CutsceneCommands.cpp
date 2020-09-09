@@ -146,8 +146,12 @@ CutsceneCommands::~CutsceneCommands()
 
 }
 
-bool CutsceneCommands::ExecuteCommand(std::string command)
+bool CutsceneCommands::ExecuteCommand(std::string& command)
 {
+	//std::cout << "Command: " << command << std::endl;
+	Timer cTimer;
+	cTimer.Start(1);
+
 	bool finished = true;
 	// Replace all the bracketed spaces with underscores
 	bool shouldReplace = false;
@@ -351,6 +355,12 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 		}
 	}
 
+	if (cTimer.GetTicks() > 0)
+	{
+		std::cout << "Command: " << command << std::endl;
+		std::cout << cTimer.GetTicks() << std::endl;
+	}
+
 	return finished;
 }
 
@@ -429,13 +439,13 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 
 	do
 	{
-		bool leftHandIsNumber = false;
-		bool rightHandIsNumber = false;
+		leftHandIsNumber = false;
+		rightHandIsNumber = false;
 
-		std::string leftValueStr = "";
-		std::string rightValueStr = "";
-		int leftValueNum = 0;
-		int rightValueNum = 0;
+		leftValueStr = "";
+		rightValueStr = "";
+		leftValueNum = 0;
+		rightValueNum = 0;
 
 		// 1. First, check the left hand side - is it a string, number, strvar, or numvar?
 		// 2. Then, check the operator (>, >=, <, <=, ==, !=)
@@ -457,7 +467,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 			leftValueNum = ParseNumberValue(word);
 			break;
 		default:
-			if (parameters[index].find_first_not_of("-0123456789") == std::string::npos)
+			if (parameters[index].find_first_not_of(DIGITMASK) == std::string::npos)
 			{
 				leftValueNum = ParseNumberValue(parameters[index]);
 				leftHandIsNumber = true;
@@ -484,7 +494,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 			rightValueNum = ParseNumberValue(word);
 			break;
 		default:
-			if (parameters[index].find_first_not_of("-0123456789") == std::string::npos)
+			if (parameters[index].find_first_not_of(DIGITMASK) == std::string::npos)
 			{
 				rightValueNum = ParseNumberValue(parameters[index]);
 				rightHandIsNumber = true;
@@ -579,14 +589,14 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 			// If all conditions are true, execute the following commands
 			if (parameters[index] != "&&")
 			{
-				std::string nextCommand = "";
+				nextCommand = "";
 				for (int i = index; i < parameters.size(); i++)
 					nextCommand += (parameters[i] + " ");
 
 				// split the command into multiple commands if necessary
 				if (nextCommand.find(':') != std::string::npos)
 				{
-					std::vector<std::string> commands;
+					subcommands.clear();
 					int cmdLetterIndex = 0;
 					int cmdLetterLength = 0;
 					while (cmdLetterIndex < nextCommand.size())
@@ -597,17 +607,16 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 						{
 							if (nextCommand != "" && nextCommand != " ")
 							{
-								std::string str = nextCommand.substr((cmdLetterIndex - cmdLetterLength), cmdLetterLength);
-								commands.emplace_back(str);
+								subcommands.emplace_back(nextCommand.substr((cmdLetterIndex - cmdLetterLength), cmdLetterLength));
 								cmdLetterIndex++;
 							}
 							cmdLetterLength = 0;
 						}
 					}
 
-					for (int i = 0; i < commands.size(); i++)
+					for (int i = 0; i < subcommands.size(); i++)
 					{
-						ExecuteCommand(commands[i]);
+						ExecuteCommand(subcommands[i]);
 					}
 				}
 				else

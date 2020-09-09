@@ -13,6 +13,7 @@
 #include "sdl_helpers.h"
 #include "PhysicsComponent.h"
 #include "Dialog.h"
+#include "HealthComponent.h"
 
 using std::string;
 
@@ -1163,9 +1164,15 @@ bool Game::HandleEvent(SDL_Event& event)
 				//if (player != nullptr)
 				//	player->ResetPosition();
 				editor->InitLevelFromFile(currentLevel);
-				break;
+				break;			
 			case SDLK_t:
 				LoadLevel(nextLevel);
+				break;
+			case SDLK_8: // save game
+				SaveFile("wdk1.sav");
+				break;
+			case SDLK_9: // load game
+				LoadFile("wdk1.sav");
 				break;
 			case SDLK_1: // toggle Debug mode
 				debugMode = !debugMode;
@@ -1236,6 +1243,39 @@ bool Game::HandleEvent(SDL_Event& event)
 	}
 
 	return quit;
+}
+
+void Game::SaveFile(const std::string& filename)
+{
+	cutscene->commands.SetStringVariable({ "", "201", currentLevel });
+	cutscene->commands.SetNumberVariable({ "", "202", std::to_string(player->position.x) });
+	cutscene->commands.SetNumberVariable({ "", "203", std::to_string(player->position.y) });
+	cutscene->commands.SetNumberVariable({ "", "204", std::to_string(player->health->GetMaxHP()) });
+	cutscene->commands.SetNumberVariable({ "", "205", std::to_string(player->health->GetCurrentHP()) });
+	cutscene->SaveGame(filename.c_str());
+}
+
+// TODO: Make this more robust for different types of games
+void Game::LoadFile(const std::string& filename)
+{
+	try
+	{
+		cutscene->LoadGame(filename.c_str());
+		nextLevel = cutscene->commands.stringVariables[201];
+		openedMenus.clear();
+		editor->InitLevelFromFile(nextLevel);
+		if (player != nullptr)
+		{
+			player->position.x = cutscene->commands.numberVariables[202];
+			player->position.y = cutscene->commands.numberVariables[203];
+			player->health->SetMaxHP(cutscene->commands.numberVariables[204]);
+			player->health->SetCurrentHP(cutscene->commands.numberVariables[205]);
+		}
+	}
+	catch (std::exception ex)
+	{
+		std::cout << "ERROR LOADING FILE: " << ex.what() << std::endl;
+	}
 }
 
 
@@ -1375,8 +1415,6 @@ void Game::Update()
 				}				
 			}
 		}
-
-
 	}
 
 	if (quadTree != nullptr)

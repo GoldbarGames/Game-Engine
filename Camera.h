@@ -55,7 +55,7 @@ public:
 	bool isLerping = false;
 	
 	void SwitchTarget(const Entity& newTarget);
-	void FollowTarget(const Game& game);
+	void FollowTarget(const Game& game, bool instantFollow=false);
 	void Update();
 
 

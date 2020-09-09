@@ -7,7 +7,9 @@
 class Door : public Entity
 {
 	Vector2 destination = Vector2(0, 0);
+	Door* attachedDoor = nullptr;
 public:	
+	int destinationID = -1;
 	bool isLocked = false;
 	std::string nextLevelName = "none";
 	Door(Vector2 pos, Vector2 dest);

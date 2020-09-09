@@ -68,14 +68,13 @@ void Camera::SwitchTarget(const Entity& newTarget)
 		target->GetPosition().y - (startScreenHeight * 0.5f), position.z);
 }
 
-void Camera::FollowTarget(const Game& game)
+void Camera::FollowTarget(const Game& game, bool instantFollow)
 {
 	if (target != nullptr)
 	{
 		glm::vec3 targetCenter = glm::vec3(target->GetPosition().x - (startScreenWidth * 0.5f),
 			target->GetPosition().y - (startScreenHeight * 0.5f), position.z);
 
-		bool instantFollow = false;
 		if (instantFollow)
 		{
 			position = targetCenter;

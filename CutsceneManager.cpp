@@ -22,7 +22,7 @@ CutsceneManager::CutsceneManager(Game& g)
 
 	std::ifstream fin;
 
-	bool testVN = true;
+	bool testVN = false;
 	std::string directory = "";
 	std::string line = "";
 
@@ -254,7 +254,7 @@ void CutsceneManager::CheckKeys()
 		}
 		else if (input[SDL_SCANCODE_L]) // load game
 		{
-			LoadGame("saves/file1.sav");
+			LoadGame("file1.sav");
 			ReadNextLine();
 			isCarryingOutCommands = false;
 		}
@@ -1637,8 +1637,8 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			fout << "random seed " << commands.randomSeed << std::endl;
 
 			// Save controller bindings
-			fout << "controls mouse" << useMouseControls << std::endl;
-			fout << "controls keyboard" << useKeyboardControls << std::endl;
+			fout << "controls mouse " << useMouseControls << std::endl;
+			fout << "controls keyboard " << useKeyboardControls << std::endl;
 
 			// Save the currently playing BGM
 			fout << "bgm " << game->soundManager->bgmFilepath << std::endl;
@@ -1800,13 +1800,15 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				{
 					lineParams[0] = "";
 				}
-
-				namesToColors[lineParams[0]] = {
-				(uint8_t)std::stoi(lineParams[1]),
-				(uint8_t)std::stoi(lineParams[2]),
-				(uint8_t)std::stoi(lineParams[3]),
-				(uint8_t)std::stoi(lineParams[4])
-				};
+				else
+				{
+					namesToColors[lineParams[0]] = {
+					(uint8_t)std::stoi(lineParams[1]),
+					(uint8_t)std::stoi(lineParams[2]),
+					(uint8_t)std::stoi(lineParams[3]),
+					(uint8_t)std::stoi(lineParams[4])
+					};
+				}
 
 				break;
 			case SaveSections::OTHER_STUFF:
@@ -1837,7 +1839,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 					{
 						useMouseControls = std::stoi(lineParams[2]);
 					}
-					else if (lineParams[2] == "keyboard")
+					else if (lineParams[1] == "keyboard")
 					{
 						useKeyboardControls = std::stoi(lineParams[2]);
 					}

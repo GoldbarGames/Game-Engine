@@ -268,6 +268,7 @@ void Player::UpdateNormally(Game& game)
 					{
 						game.state = GameState::LOAD_NEXT_LEVEL;
 						game.nextLevel = currentDoor->nextLevelName;
+						game.nextDoorID = currentDoor->destinationID;
 						return;
 					}
 				}

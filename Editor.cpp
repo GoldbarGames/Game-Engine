@@ -1660,278 +1660,313 @@ std::string Editor::ReadLevelFromFile(std::string levelName)
 
 void Editor::CreateLevelFromString(std::string level)
 {
-	if (game->background == nullptr)
-		game->background = new Background("", Vector2(0,0));
-
-	// Remove all backgrounds
-	game->background->ResetBackground();
-
-	std::vector<Path*> paths;
-	std::vector<Platform*> movingPlatforms;
-	std::map<int, std::vector<Ladder*>> ladderGroups;
-
-	std::stringstream ss{ level };
-
-	char lineChar[256];
-	ss.getline(lineChar, 256);
-
-	int highestID = 0;
-
-	while (ss.good() && !ss.eof())
+	try
 	{
-		std::istringstream buf(lineChar);
-		std::istream_iterator<std::string> beg(buf), end;
-		std::vector<std::string> tokens(beg, end);
+		if (game->background == nullptr)
+			game->background = new Background("", Vector2(0, 0));
 
-		int index = 0;
-		//index++;
-		const int id = std::stoi(tokens[index++]);
-		Entity::nextValidID = id;
+		// Remove all backgrounds
+		game->background->ResetBackground();
 
-		if (id > highestID)
-			highestID = id;
+		std::vector<Path*> paths;
+		std::vector<Platform*> movingPlatforms;
+		std::map<int, std::vector<Ladder*>> ladderGroups;
+		std::vector<Door*> doors;
 
-		const std::string etype = tokens[index++];
+		std::stringstream ss{ level };
 
-		int positionX = std::stoi(tokens[index++]);
-		int positionY = std::stoi(tokens[index++]);
-
-		if (etype == "tile")
-		{
-			index++;
-			int layer = std::stoi(tokens[index++]);
-
-			int passableState = std::stoi(tokens[index++]);
-
-			int tilesheet = std::stoi(tokens[index++]);
-			int frameX = std::stoi(tokens[index++]);
-			int frameY = std::stoi(tokens[index++]);
-
-			Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheetFilenames[tilesheet] + ".png",
-				Vector2(positionX, positionY), (DrawingLayer)layer);
-
-			if (passableState == 2)
-				newTile->jumpThru = true;
-
-			newTile->tilesheetIndex = tilesheet;
-		}
-		else if (etype == "door")
-		{
-			int destX = std::stoi(tokens[index++]);
-			int destY = std::stoi(tokens[index++]);
-			int spriteIndex = std::stoi(tokens[index++]);
-
-			Door* newDoor = static_cast<Door*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
-			if (newDoor != nullptr)
-			{
-				newDoor->SetDestination(Vector2(destX, destY));
-
-				if (tokens.size() > index)
-				{
-					newDoor->name = tokens[index++];
-					newDoor->isLocked = std::stoi(tokens[index++]);
-					newDoor->nextLevelName = tokens[index++];
-				}
-			}			
-		
-		}
-		else if (etype == "ladder")
-		{
-			std::string ladderState = tokens[index++];
-			int spriteIndex = std::stoi(tokens[index++]);
-			Ladder* newLadder = static_cast<Ladder*>(game->SpawnEntity("ladder", Vector2(positionX, positionY), spriteMapIndex));
-			if (newLadder != nullptr)
-			{
-				newLadder->GetAnimator()->SetState(ladderState.c_str());
-
-				if (ladderGroups.count(positionX) == 0)
-				{
-					ladderGroups[positionX] = std::vector<Ladder*>();
-				}
-				ladderGroups[positionX].push_back(newLadder);
-			}			
-		}
-		else if (etype == "player")
-		{
-			game->player = game->SpawnPlayer(Vector2(positionX, positionY));
-		}
-		else if (etype == "npc")
-		{
-			std::string npcName = tokens[index++];
-			std::string npcCutscene = tokens[index++];
-			int spriteIndex = std::stoi(tokens[index++]);
-
-			NPC* newNPC = static_cast<NPC*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
-			if (newNPC != nullptr)
-			{
-				newNPC->name = npcName;
-				newNPC->cutsceneLabel = npcCutscene;
-
-				newNPC->drawOrder = std::stoi(tokens[index++]);
-				newNPC->layer = (DrawingLayer)std::stoi(tokens[index++]);
-				newNPC->impassable = std::stoi(tokens[index++]);
-			}
-		}
-		else if (etype == "enemy")
-		{
-			std::string enemyName = tokens[index++];
-			int spriteIndex = std::stoi(tokens[index++]);
-
-			Enemy* entity = static_cast<Enemy*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
-
-			if (entity != nullptr)
-			{
-				entity->Init(enemyName);
-
-				entity->drawOrder = std::stoi(tokens[index++]);
-				entity->layer = (DrawingLayer)std::stoi(tokens[index++]);
-				entity->impassable = std::stoi(tokens[index++]);
-			}
-
-		}
-		else if (etype == "cutscene-trigger")
-		{
-			const std::string label = tokens[index++];
-			int w = std::stoi(tokens[index++]);
-			int h = std::stoi(tokens[index++]);
-			CutsceneTrigger* entity = new CutsceneTrigger(label, Vector2(positionX, positionY), w, h);
-			game->entities.push_back(entity);
-		}
-		else if (etype == "cutscene-start")
-		{
-			game->levelStartCutscene = tokens[index++];
-		}
-		else if (etype == "path")
-		{
-			bool shouldLoop = std::stoi(tokens[index++]);
-			int nodeCount = std::stoi(tokens[index++]);
-
-			Path* path = new Path(Vector2(positionX, positionY));
-
-			for (int i = 0; i < nodeCount; i++)
-			{
-				int pointX = std::stoi(tokens[index++]);
-				int pointY = std::stoi(tokens[index++]);
-				path->AddPointToPath(Vector2(pointX, pointY));
-			}
-
-			game->entities.emplace_back(path);
-			paths.emplace_back(path);
-		}
-		else if (etype == "switch")
-		{
-			int spriteIndex = std::stoi(tokens[index++]);
-			Switch* newSwitch = static_cast<Switch*>(game->SpawnEntity("switch", Vector2(positionX, positionY), spriteIndex));
-		}
-		else if (etype == "platform")
-		{
-			int spriteIndex = std::stoi(tokens[index++]);
-			Platform* platform = static_cast<Platform*>(game->SpawnEntity("platform", Vector2(positionX, positionY), spriteIndex));
-
-			if (platform != nullptr)
-			{
-				platform->platformType = tokens[index++];
-
-				if (platform->platformType == "Path")
-				{
-					platform->pathID = std::stoi(tokens[index++]);
-					platform->pathSpeed = std::stof(tokens[index++]);
-					platform->endPathBehavior = tokens[index++];
-					movingPlatforms.emplace_back(platform);
-				}
-				else
-				{
-					float vx = std::stof(tokens[index++]);
-					float vy = std::stof(tokens[index++]);
-					platform->startVelocity = Vector2(vx, vy);
-					platform->tilesToMove = std::stoi(tokens[index++]);
-					platform->shouldLoop = std::stoi(tokens[index++]);
-					platform->physics->SetVelocity(platform->startVelocity);
-				}
-
-				if (index < tokens.size())
-					platform->switchID = std::stoi(tokens[index++]);
-
-				if (platform->switchID > -1)
-				{
-					platform->switchDistanceMoved.x = std::stoi(tokens[index++]);
-					platform->switchDistanceMoved.y = std::stoi(tokens[index++]);
-				}
-			}
-
-			
-		}
-		else if (etype == "bgm")
-		{
-			game->nextBGM = tokens[index++];
-		}
-		else if (etype == "bg")
-		{
-			std::string bgName = tokens[index++];
-
-			// Create the backgrounds
-			unsigned int NUM_BGS = 8;
-			
-			//TODO: Get the width of the texture automatically
-			// or read it in from the level file
-			unsigned int BG_WIDTH = 636 * 2;
-			unsigned int X_OFFSET = 636 * -4;
-			unsigned int Y_OFFSET = 0;
-
-			if (bgName == "title")
-			{
-				X_OFFSET = 640; // half the width of the texture
-				Y_OFFSET = 360; // half the height of the texture
-				NUM_BGS = 1;
-			}
-
-			for (unsigned int i = 0; i < NUM_BGS; i++)
-			{
-				//Background* bg = game->SpawnBackground(Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET), bgName);
-				Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
-				game->background->CreateBackground(bgName, bgPos, game->spriteManager, *game->renderer);
-			}	
-
-			game->SortEntities(game->background->layers);
-		}
-		else // create all other types of entities that don't require special stuff
-		{
-			game->SpawnEntity(etype, Vector2(positionX, positionY), std::stoi(tokens[index++]));
-		}
-
+		char lineChar[256];
 		ss.getline(lineChar, 256);
-	}
 
-	Entity::nextValidID = 2; // highestID + 1;
+		int highestID = 0;
 
-	for (auto const& [key, ladderGroup] : ladderGroups)
-	{
-		Ladder* topLadder = nullptr;
-		for (unsigned int i = 0; i < ladderGroup.size(); i++)
+		while (ss.good() && !ss.eof())
 		{
-			if (topLadder == nullptr || ladderGroup[i]->position.y < topLadder->position.y)
+			std::istringstream buf(lineChar);
+			std::istream_iterator<std::string> beg(buf), end;
+			std::vector<std::string> tokens(beg, end);
+
+			int index = 0;
+			//index++;
+			const int id = std::stoi(tokens[index++]);
+			Entity::nextValidID = id;
+
+			if (id > highestID)
+				highestID = id;
+
+			const std::string etype = tokens[index++];
+
+			int positionX = std::stoi(tokens[index++]);
+			int positionY = std::stoi(tokens[index++]);
+
+			if (etype == "tile")
 			{
-				topLadder = ladderGroup[i];
+				index++;
+				int layer = std::stoi(tokens[index++]);
+
+				int passableState = std::stoi(tokens[index++]);
+
+				int tilesheet = std::stoi(tokens[index++]);
+				int frameX = std::stoi(tokens[index++]);
+				int frameY = std::stoi(tokens[index++]);
+
+				Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheetFilenames[tilesheet] + ".png",
+					Vector2(positionX, positionY), (DrawingLayer)layer);
+
+				if (passableState == 2)
+					newTile->jumpThru = true;
+
+				newTile->tilesheetIndex = tilesheet;
+			}
+			else if (etype == "door")
+			{
+				int destX = std::stoi(tokens[index++]);
+				int destY = std::stoi(tokens[index++]);
+				int spriteIndex = std::stoi(tokens[index++]);
+
+				Door* newDoor = static_cast<Door*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
+				if (newDoor != nullptr)
+				{
+					newDoor->SetDestination(Vector2(destX, destY));
+
+					if (tokens.size() > index)
+					{
+						newDoor->name = tokens[index++];
+						newDoor->isLocked = std::stoi(tokens[index++]);
+						newDoor->nextLevelName = tokens[index++];
+					}
+
+					if (tokens.size() > index)
+					{
+						newDoor->destinationID = std::stoi(tokens[index++]);
+					}
+
+					doors.push_back(newDoor);
+				}
+
+			}
+			else if (etype == "ladder")
+			{
+				std::string ladderState = tokens[index++];
+				int spriteIndex = std::stoi(tokens[index++]);
+				Ladder* newLadder = static_cast<Ladder*>(game->SpawnEntity("ladder", Vector2(positionX, positionY), spriteMapIndex));
+				if (newLadder != nullptr)
+				{
+					newLadder->GetAnimator()->SetState(ladderState.c_str());
+
+					if (ladderGroups.count(positionX) == 0)
+					{
+						ladderGroups[positionX] = std::vector<Ladder*>();
+					}
+					ladderGroups[positionX].push_back(newLadder);
+				}
+			}
+			else if (etype == "player")
+			{
+				game->player = game->SpawnPlayer(Vector2(positionX, positionY));
+			}
+			else if (etype == "npc")
+			{
+				std::string npcName = tokens[index++];
+				std::string npcCutscene = tokens[index++];
+				int spriteIndex = std::stoi(tokens[index++]);
+
+				NPC* newNPC = static_cast<NPC*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
+				if (newNPC != nullptr)
+				{
+					newNPC->name = npcName;
+					newNPC->cutsceneLabel = npcCutscene;
+
+					newNPC->drawOrder = std::stoi(tokens[index++]);
+					newNPC->layer = (DrawingLayer)std::stoi(tokens[index++]);
+					newNPC->impassable = std::stoi(tokens[index++]);
+				}
+			}
+			else if (etype == "enemy")
+			{
+				std::string enemyName = tokens[index++];
+				int spriteIndex = std::stoi(tokens[index++]);
+
+				Enemy* entity = static_cast<Enemy*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
+
+				if (entity != nullptr)
+				{
+					entity->Init(enemyName);
+
+					entity->drawOrder = std::stoi(tokens[index++]);
+					entity->layer = (DrawingLayer)std::stoi(tokens[index++]);
+					entity->impassable = std::stoi(tokens[index++]);
+				}
+
+			}
+			else if (etype == "cutscene-trigger")
+			{
+				const std::string label = tokens[index++];
+				int w = std::stoi(tokens[index++]);
+				int h = std::stoi(tokens[index++]);
+				CutsceneTrigger* entity = new CutsceneTrigger(label, Vector2(positionX, positionY), w, h);
+				game->entities.push_back(entity);
+			}
+			else if (etype == "cutscene-start")
+			{
+				game->levelStartCutscene = tokens[index++];
+			}
+			else if (etype == "path")
+			{
+				bool shouldLoop = std::stoi(tokens[index++]);
+				int nodeCount = std::stoi(tokens[index++]);
+
+				Path* path = new Path(Vector2(positionX, positionY));
+
+				for (int i = 0; i < nodeCount; i++)
+				{
+					int pointX = std::stoi(tokens[index++]);
+					int pointY = std::stoi(tokens[index++]);
+					path->AddPointToPath(Vector2(pointX, pointY));
+				}
+
+				game->entities.emplace_back(path);
+				paths.emplace_back(path);
+			}
+			else if (etype == "switch")
+			{
+				int spriteIndex = std::stoi(tokens[index++]);
+				Switch* newSwitch = static_cast<Switch*>(game->SpawnEntity("switch", Vector2(positionX, positionY), spriteIndex));
+			}
+			else if (etype == "platform")
+			{
+				int spriteIndex = std::stoi(tokens[index++]);
+				Platform* platform = static_cast<Platform*>(game->SpawnEntity("platform", Vector2(positionX, positionY), spriteIndex));
+
+				if (platform != nullptr)
+				{
+					platform->platformType = tokens[index++];
+
+					if (platform->platformType == "Path")
+					{
+						platform->pathID = std::stoi(tokens[index++]);
+						platform->pathSpeed = std::stof(tokens[index++]);
+						platform->endPathBehavior = tokens[index++];
+						movingPlatforms.emplace_back(platform);
+					}
+					else
+					{
+						float vx = std::stof(tokens[index++]);
+						float vy = std::stof(tokens[index++]);
+						platform->startVelocity = Vector2(vx, vy);
+						platform->tilesToMove = std::stoi(tokens[index++]);
+						platform->shouldLoop = std::stoi(tokens[index++]);
+						platform->physics->SetVelocity(platform->startVelocity);
+					}
+
+					if (index < tokens.size())
+						platform->switchID = std::stoi(tokens[index++]);
+
+					if (platform->switchID > -1)
+					{
+						platform->switchDistanceMoved.x = std::stoi(tokens[index++]);
+						platform->switchDistanceMoved.y = std::stoi(tokens[index++]);
+					}
+				}
+
+
+			}
+			else if (etype == "bgm")
+			{
+				game->nextBGM = tokens[index++];
+			}
+			else if (etype == "bg")
+			{
+				std::string bgName = tokens[index++];
+
+				// Create the backgrounds
+				unsigned int NUM_BGS = 8;
+
+				//TODO: Get the width of the texture automatically
+				// or read it in from the level file
+				unsigned int BG_WIDTH = 636 * 2;
+				unsigned int X_OFFSET = 636 * -4;
+				unsigned int Y_OFFSET = 0;
+
+				if (bgName == "title")
+				{
+					X_OFFSET = 640; // half the width of the texture
+					Y_OFFSET = 360; // half the height of the texture
+					NUM_BGS = 1;
+				}
+
+				for (unsigned int i = 0; i < NUM_BGS; i++)
+				{
+					//Background* bg = game->SpawnBackground(Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET), bgName);
+					Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
+					game->background->CreateBackground(bgName, bgPos, game->spriteManager, *game->renderer);
+				}
+
+				game->SortEntities(game->background->layers);
+			}
+			else // create all other types of entities that don't require special stuff
+			{
+				game->SpawnEntity(etype, Vector2(positionX, positionY), std::stoi(tokens[index++]));
+			}
+
+			ss.getline(lineChar, 256);
+		}
+
+		Entity::nextValidID = 2; // highestID + 1;
+
+		for (auto const& [key, ladderGroup] : ladderGroups)
+		{
+			Ladder* topLadder = nullptr;
+			for (unsigned int i = 0; i < ladderGroup.size(); i++)
+			{
+				if (topLadder == nullptr || ladderGroup[i]->position.y < topLadder->position.y)
+				{
+					topLadder = ladderGroup[i];
+				}
+			}
+			for (unsigned int i = 0; i < ladderGroup.size(); i++)
+			{
+				ladderGroup[i]->top = topLadder;
 			}
 		}
-		for (unsigned int i = 0; i < ladderGroup.size(); i++)
-		{
-			ladderGroup[i]->top = topLadder;
-		}
-	}
 
-	// Match all platforms moving on paths with their assigned path
-	for (unsigned int i = 0; i < movingPlatforms.size(); i++)
-	{
-		for (unsigned int k = 0; k < paths.size(); k++)
+		if (game->player != nullptr)
 		{
-			if (movingPlatforms[i]->pathID == paths[k]->id)
+			// Set the player's start position if we are entering from a door
+			if (game->nextDoorID > -1)
 			{
-				movingPlatforms[i]->currentPath = paths[k];
-				movingPlatforms[i]->SetPosition(paths[k]->nodes[0]->point);
-				break;
+				for (unsigned int i = 0; i < doors.size(); i++)
+				{
+					if (doors[i]->id == game->nextDoorID)
+					{
+						game->player->SetPosition(doors[i]->position + game->player->GetSprite()->pivot);
+					}
+				}
+				game->nextDoorID = -1;
+			}
+
+			// Set the camera's position to the player's instantly
+			game->renderer->camera.FollowTarget(*game, true);
+		}
+
+
+		// Match all platforms moving on paths with their assigned path
+		for (unsigned int i = 0; i < movingPlatforms.size(); i++)
+		{
+			for (unsigned int k = 0; k < paths.size(); k++)
+			{
+				if (movingPlatforms[i]->pathID == paths[k]->id)
+				{
+					movingPlatforms[i]->currentPath = paths[k];
+					movingPlatforms[i]->SetPosition(paths[k]->nodes[0]->point);
+					break;
+				}
 			}
 		}
+	}
+	catch (std::exception ex)
+	{
+		std::cout << "ERROR CREATING LEVEL: " << ex.what() << std::endl;
 	}
 }
 
@@ -1942,6 +1977,9 @@ void Editor::ClearLevelEntities()
 	game->entities.clear();
 }
 
+// TODO: There is some kind of memory leak here
+// when we go from level to level,
+// and it is also kind of slow
 void Editor::InitLevelFromFile(std::string levelName)
 {
 	game->debugRectangles.clear();

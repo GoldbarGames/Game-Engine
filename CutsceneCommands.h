@@ -31,6 +31,8 @@ public:
 	std::unordered_map<unsigned int, std::string> buttonLabels;
 	std::unordered_map<unsigned int, bool> buttonLabelsActive;
 
+	const std::string DIGITMASK = "-0123456789";
+
 	std::string choiceBGFilePath = "";
 	std::string pathPrefix = "";
 	int randomSeed = 0;
@@ -39,7 +41,8 @@ public:
 	CutsceneCommands();
 	~CutsceneCommands();
 
-	bool ExecuteCommand(std::string command);
+	//TODO: Make parameter const
+	bool ExecuteCommand(std::string& command);
 	
 	// Load graphics
 	int LoadSprite(CutsceneParameters parameters);
@@ -156,6 +159,19 @@ public:
 	int AutoSave(CutsceneParameters parameters);
 	int AlignCommand(CutsceneParameters parameters);
 	int InputCommand(CutsceneParameters parameters);
+
+	Timer commandTimer;
+
+	bool leftHandIsNumber = false;
+	bool rightHandIsNumber = false;
+
+	std::string leftValueStr = "";
+	std::string rightValueStr = "";
+	int leftValueNum = 0;
+	int rightValueNum = 0;
+
+	std::string nextCommand = "";
+	std::vector<std::string> subcommands;
 };
 
 #endif
