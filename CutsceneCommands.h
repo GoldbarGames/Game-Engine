@@ -31,6 +31,12 @@ public:
 	std::unordered_map<unsigned int, std::string> buttonLabels;
 	std::unordered_map<unsigned int, bool> buttonLabelsActive;
 
+	std::unordered_map<std::string, std::string> cacheParseStrings;
+	std::unordered_map<std::string, int> cacheParseNumbers;
+
+	std::string parseStringValue = "";
+	int parseNumberValue = 0;
+
 	const std::string DIGITMASK = "-0123456789";
 
 	std::string choiceBGFilePath = "";
@@ -160,6 +166,14 @@ public:
 	int AlignCommand(CutsceneParameters parameters);
 	int InputCommand(CutsceneParameters parameters);
 
+	int PrintCommand(CutsceneParameters parameters);
+
+	unsigned int key = 0;
+	unsigned int number1 = 0;
+	unsigned int number2 = 0;
+	std::string word1 = "";
+	std::string word2 = "";
+
 	Timer commandTimer;
 
 	bool leftHandIsNumber = false;
@@ -172,6 +186,7 @@ public:
 
 	std::string nextCommand = "";
 	std::vector<std::string> subcommands;
+
 };
 
 #endif

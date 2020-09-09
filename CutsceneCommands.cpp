@@ -68,6 +68,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"namedef", &CutsceneCommands::NameDefineCommand},
 	{"namebox", &CutsceneCommands::Namebox},
 	{"numalias", &CutsceneCommands::SetNumAlias },
+	{"print", &CutsceneCommands::PrintCommand },
 	{"random", &CutsceneCommands::RandomNumberVariable },
 	{"reset", &CutsceneCommands::ResetGame },
 	{"resolution", &CutsceneCommands::SetResolution },
@@ -355,10 +356,10 @@ bool CutsceneCommands::ExecuteCommand(std::string& command)
 		}
 	}
 
-	if (cTimer.GetTicks() > 0)
+	if (manager->currentLabel != nullptr && manager->currentLabel->name != "define" && cTimer.GetTicks() >= 0)
 	{
-		std::cout << "Command: " << command << std::endl;
-		std::cout << cTimer.GetTicks() << std::endl;
+		//std::cout << "Command: " << command << std::endl;
+		//std::cout << cTimer.GetTicks() << std::endl;
 	}
 
 	return finished;
@@ -926,19 +927,36 @@ int CutsceneCommands::LoadGame(CutsceneParameters parameters)
 //TODO: Should be able to add two strings together
 int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 {
-	unsigned int key = 0;
-	std::string word1 = "";
-	std::string word2 = "";
-	
 	if (parameters[1][0] == '$')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
 	else
 		key = GetNumAlias(parameters[1]);
 
+	/*
+	if (cacheParseStrings.contains(parameters[1]))
+	{
+		word1 = cacheParseStrings[parameters[1]];
+	}
+	else
+	{
+		
+	}
+
+	if (cacheParseStrings.contains(parameters[2]))
+	{
+		word2 = cacheParseStrings[parameters[2]];
+	}
+	else
+	{
+
+	}
+	*/
+
 	word1 = ParseStringValue(parameters[1]);
 	word2 = ParseStringValue(parameters[2]);
 
 	stringVariables[key] = word1 + word2;
+	cacheParseStrings[parameters[1]] = stringVariables[key];
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
@@ -957,19 +975,31 @@ int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 		return 0;
 	}
 
-	unsigned int key = 0;
-	unsigned int number1 = 0;
-	unsigned int number2 = 0;
-	
 	if (parameters[1][0] == '%')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
 	else
 		key = GetNumAlias(parameters[1]);
 
-	number1 = ParseNumberValue(parameters[1]);
-	number2 = ParseNumberValue(parameters[2]);		
+	if (cacheParseNumbers.contains(parameters[1]))
+	{
+		number1 = cacheParseNumbers[parameters[1]];
+	}
+	else
+	{
+		number1 = ParseNumberValue(parameters[1]);
+	}
+
+	if (cacheParseNumbers.contains(parameters[2]))
+	{
+		number2 = cacheParseNumbers[parameters[2]];
+	}
+	else
+	{
+		number2 = ParseNumberValue(parameters[2]);
+	}
 	
 	numberVariables[key] = number1 + number2;
+	cacheParseNumbers[parameters[1]] = numberVariables[key];
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
@@ -980,10 +1010,6 @@ int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 
 int CutsceneCommands::SubtractNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int key = 0;
-	unsigned int number1 = 0;
-	unsigned int number2 = 0;
-
 	key = GetNumAlias(parameters[1]);
 	if (parameters[1][0] == '%')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
@@ -1002,10 +1028,6 @@ int CutsceneCommands::SubtractNumberVariables(CutsceneParameters parameters)
 
 int CutsceneCommands::MultiplyNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int key = 0;
-	unsigned int number1 = 0;
-	unsigned int number2 = 0;
-
 	key = GetNumAlias(parameters[1]);
 	if (parameters[1][0] == '%')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
@@ -1024,10 +1046,6 @@ int CutsceneCommands::MultiplyNumberVariables(CutsceneParameters parameters)
 
 int CutsceneCommands::DivideNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int key = 0;
-	unsigned int number1 = 0;
-	unsigned int number2 = 0;
-
 	key = GetNumAlias(parameters[1]);
 	if (parameters[1][0] == '%')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
@@ -1046,10 +1064,6 @@ int CutsceneCommands::DivideNumberVariables(CutsceneParameters parameters)
 
 int CutsceneCommands::ModNumberVariables(CutsceneParameters parameters)
 {
-	unsigned int key = 0;
-	unsigned int number1 = 0;
-	unsigned int number2 = 0;
-
 	key = GetNumAlias(parameters[1]);
 	if (parameters[1][0] == '%')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
@@ -1083,7 +1097,7 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 	}
 	else if (parameters[1] == "range")
 	{
-		unsigned int key = ParseNumberValue(parameters[2]);
+		key = ParseNumberValue(parameters[2]);
 		unsigned int minNumber = ParseNumberValue(parameters[3]);
 		unsigned int maxNumber = ParseNumberValue(parameters[4]);
 
@@ -1095,7 +1109,7 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 	}
 	else // no offset
 	{
-		unsigned int key = ParseNumberValue(parameters[1]);
+		key = ParseNumberValue(parameters[1]);
 		unsigned int maxNumber = ParseNumberValue(parameters[2]);
 
 		numberVariables[key] = (rand() % maxNumber);
@@ -1110,8 +1124,6 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 
 int CutsceneCommands::SubstringVariables(CutsceneParameters parameters)
 {
-	unsigned int key = 0;
-
 	if (parameters[1][0] == '$')
 	{
 		key = numalias[parameters[1].substr(1, parameters[1].size() - 1)];
@@ -1121,15 +1133,18 @@ int CutsceneCommands::SubstringVariables(CutsceneParameters parameters)
 		key = numalias[parameters[1]];
 	}
 
-	std::string value = ParseStringValue(parameters[2]);
+	parseStringValue = ParseStringValue(parameters[2]);
 
-	stringVariables[key] = value.substr(std::stoi(parameters[3]), std::stoi(parameters[4]));
+	stringVariables[key] = parseStringValue.substr(std::stoi(parameters[3]), std::stoi(parameters[4]));
 
 	return 0;
 }
 
 int CutsceneCommands::MoveVariables(CutsceneParameters parameters)
 {
+	if (parameters[1] == "$var1" && parameters[2] == "tati/")
+		int test = 0;
+
 	if (parameters[1][0] == '$')
 	{
 		SetStringVariable({ "mov", parameters[1].substr(1, parameters[1].size() - 1), parameters[2] });
@@ -1148,43 +1163,55 @@ int CutsceneCommands::MoveVariables(CutsceneParameters parameters)
 
 int CutsceneCommands::SetNumberVariable(CutsceneParameters parameters)
 {
-	unsigned int key = ParseNumberValue(parameters[1]);
-	unsigned int value = ParseNumberValue(parameters[2]);
+	cacheParseNumbers.erase(parameters[1]);
+
+	key = ParseNumberValue(parameters[1]);
+	parseNumberValue = ParseNumberValue(parameters[2]);
 
 	if (parameters.size() > 3 && parameters[3] == "no_alias")
 	{
-		value = std::stoi(parameters[2]);
+		parseNumberValue = std::stoi(parameters[2]);
 	}
 
-	numberVariables[key] = value;
+	if (numberVariables[key] != parseNumberValue)
+	{
+		numberVariables[key] = parseNumberValue;
 
-	// If global variable, save change to file
-	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
+		// If global variable, save change to file
+		if (key >= manager->globalStart)
+			manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
+	}
 
 	return 0;
 }
 
 int CutsceneCommands::SetStringVariable(CutsceneParameters parameters)
 {
-	unsigned int key = ParseNumberValue(parameters[1]);
+	key = ParseNumberValue(parameters[1]);
 
-	std::string value = parameters[2];
-	if (value[0] == '[')
+	parseStringValue = parameters[2];
+
+	if (parseStringValue[0] == '[')
 	{
 		int varNameIndex = 1;
-		value = ParseWord(value, ']', varNameIndex);
+		parseStringValue = ParseWord(parseStringValue, ']', varNameIndex);
 	}
 	else
 	{
-		value = ParseStringValue(value);
+		parseStringValue = ParseStringValue(parseStringValue);
 	}
 
-	stringVariables[key] = value;
+	if (stringVariables[key] != parseStringValue)
+	{
+		stringVariables[key] = parseStringValue;
+		//cacheParseStrings["$" + parameters[1]] = parseStringValue;
 
-	// If global variable, save change to file
-	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, stringVariables[key], false);
+		// If global variable, save change to file
+		if (key >= manager->globalStart)
+			manager->SaveGlobalVariable(key, stringVariables[key], false);
+	}
+
+
 
 	return 0;
 }
@@ -1215,6 +1242,7 @@ std::string CutsceneCommands::GetStringVariable(const unsigned int key)
 
 int CutsceneCommands::SetStringAlias(CutsceneParameters parameters)
 {
+	//cacheParseStrings.erase(parameters[1]);
 	stralias[parameters[1]] = parameters[2];
 	return 0;
 }
@@ -1233,36 +1261,47 @@ std::string CutsceneCommands::GetStringAlias(const std::string& key)
 
 int CutsceneCommands::SetNumAlias(CutsceneParameters parameters)
 {
+	cacheParseNumbers.erase(parameters[1]);
 	numalias[parameters[1]] = ParseNumberValue(parameters[2]);
 	return 0;
 }
 
 std::string CutsceneCommands::ParseStringValue(const std::string& parameter)
 {
-	std::string value = "";
+	if (cacheParseStrings.count(parameter) != 0)
+	{
+		//return cacheParseStrings[parameter];
+	}
 
 	// Get the variable number to store the result in
 	if (parameter[0] == '$')
-		value = GetStringVariable(GetNumAlias(parameter.substr(1, parameter.size() - 1)));
+		parseStringValue = GetStringVariable(GetNumAlias(parameter.substr(1, parameter.size() - 1)));
 	else
-		value = GetStringAlias(parameter);
+		parseStringValue = GetStringAlias(parameter);
 
-	value.erase(std::remove(value.begin(), value.end(), '\"'), value.end());
+	parseStringValue.erase(std::remove(parseStringValue.begin(), parseStringValue.end(), '\"'), parseStringValue.end());
 
-	return value;
+	cacheParseStrings[parameter] = parseStringValue;
+
+	return parseStringValue;
 }
 
 int CutsceneCommands::ParseNumberValue(const std::string& parameter)
 {
-	int value = 0;
+	if (cacheParseNumbers.count(parameter) != 0)
+	{
+		return cacheParseNumbers[parameter];
+	}
 
 	// Get the variable number to store the result in
 	if (parameter[0] == '%' || parameter[0] == '$')
-		value = GetNumberVariable(GetNumAlias(parameter.substr(1, parameter.size() - 1)));
+		parseNumberValue = GetNumberVariable(GetNumAlias(parameter.substr(1, parameter.size() - 1)));
 	else
-		value = GetNumAlias(parameter);
+		parseNumberValue = GetNumAlias(parameter);
 
-	return value;
+	cacheParseNumbers[parameter] = parseNumberValue;
+
+	return parseNumberValue;
 }
 
 int CutsceneCommands::GetNumAlias(const std::string& key)
@@ -1314,7 +1353,7 @@ int CutsceneCommands::ClearSprite(CutsceneParameters parameters)
 
 int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 {
-	std::cout << "Loading sprite" << parameters[1] << std::endl;
+	std::cout << "Loading sprite: " << parameters[1] << std::endl;
 
 	Vector2 pos = Vector2(0, 0);
 
@@ -2460,13 +2499,38 @@ int CutsceneCommands::IntToString(CutsceneParameters parameters)
 
 int CutsceneCommands::IncrementVariable(CutsceneParameters parameters)
 {
-	numberVariables[ParseNumberValue(parameters[1])]++;
+	//int index = ParseNumberValue(parameters[1]);
+	//numberVariables[index]++;
+
+	if (parameters[1][0] == '%')
+	{
+		// Get rid of the % sign to get the actual index
+		int val = numberVariables[std::stoi(parameters[1].substr(1, parameters[1].size() - 1))]++;
+		cacheParseNumbers[parameters[1]] = val;
+	}
+	else
+	{
+		std::cout << "ERROR INC: Missing % sign" << std::endl;
+	}
+
 	return 0;
 }
 
 int CutsceneCommands::DecrementVariable(CutsceneParameters parameters)
 {
-	numberVariables[ParseNumberValue(parameters[1])]--;
+	//numberVariables[ParseNumberValue(parameters[1])]--;
+
+	if (parameters[1][0] == '%')
+	{
+		// Get rid of the % sign to get the actual index
+		int val = numberVariables[std::stoi(parameters[1].substr(1, parameters[1].size() - 1))]--;
+		cacheParseNumbers[parameters[1]] = val;
+	}
+	else
+	{
+		std::cout << "ERROR DEC: Missing % sign" << std::endl;
+	}
+
 	return 0;
 }
 
@@ -2706,6 +2770,20 @@ int CutsceneCommands::RightClickSettings(CutsceneParameters parameters)
 	else if (parameters[1] == "on")
 	{
 		manager->rclickEnabled = true;
+	}
+
+	return 0;
+}
+
+int CutsceneCommands::PrintCommand(CutsceneParameters parameters)
+{
+	if (parameters[1] == "auto")
+	{
+		manager->autoprint = (parameters[2] == "on");
+	}
+	else
+	{
+		manager->printNumber = std::stoi(parameters[1]);
 	}
 
 	return 0;

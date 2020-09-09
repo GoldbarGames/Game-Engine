@@ -392,7 +392,7 @@ bool MenuScreen::PressSelectedButton(Game& game)
 		//game.cutscene->commands.ExecuteCommand("fade black 1000");
 		//game.cutscene->commands.ExecuteCommand("wait 1000");
 
-		std::string currentGame = "WDK";
+		std::string currentGame = "DB1";
 
 		if (currentGame == "WDK")
 		{

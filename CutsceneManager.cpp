@@ -22,7 +22,7 @@ CutsceneManager::CutsceneManager(Game& g)
 
 	std::ifstream fin;
 
-	bool testVN = false;
+	bool testVN = true;
 	std::string directory = "";
 	std::string line = "";
 
@@ -972,14 +972,21 @@ void CutsceneManager::UpdateText()
 		}
 
 		if (isCarryingOutCommands)
-		{
+		{			
 			if (commandIndex >= 0 && commandIndex < currentLabel->lines[lineIndex]->commands.size())
 			{
-				if (!commands.ExecuteCommand(currentLabel->lines[lineIndex]->commands[commandIndex]))
+				//std::cout << currentLabel->lines[lineIndex]->commands[commandIndex] << std::endl;
+				printNumber = 0;
+				do
 				{
-					unfinishedCommands.push_back(currentLabel->lines[lineIndex]->commands[commandIndex]);
-				}
-				commandIndex++;
+					if (!commands.ExecuteCommand(currentLabel->lines[lineIndex]->commands[commandIndex]))
+					{
+						unfinishedCommands.push_back(currentLabel->lines[lineIndex]->commands[commandIndex]);
+					}
+					commandIndex++;
+					if (commandIndex >= currentLabel->lines[lineIndex]->commands.size())
+						break;
+				} while (!autoprint && printNumber == 0);				
 			}
 			else
 			{
@@ -1099,7 +1106,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 				break;
 			}
 
-			letterIndex--;
+			//letterIndex--;
 
 			for (int valueIndex = 0; valueIndex < variableValue.length(); valueIndex++)
 			{

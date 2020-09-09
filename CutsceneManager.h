@@ -99,6 +99,8 @@ public:
 	bool rclickEnabled = true;
 	bool autoreturn = false;
 	bool autosave = false;
+	bool autoprint = false;
+	int printNumber = 0;
 	bool overwriteName = true;
 	std::string currentScript = "";
 	CutsceneCommands commands;
