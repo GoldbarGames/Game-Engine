@@ -36,6 +36,12 @@ void Enemy::Init(const std::string& n)
 		bottomLeftGround->CalculateCollider(position);
 		bottomRightGround->CalculateCollider(position);
 	}
+	else if (name == "grasshopper")
+	{
+		CreateCollider(6, 18, 55, 23);
+		actionTimer.Start(1);
+		physics->jumpSpeed = -1.25f;
+	}
 }
 
 Enemy::~Enemy()
@@ -89,9 +95,80 @@ void Enemy::Update(Game& game)
 				else if (physics->velocity.x > 0)
 					physics->velocity.x = std::max(0.0f, physics->velocity.x - accel);
 			}
-
-		}		
+		}	
 	}
+	else if (name == "rhinobeetle")
+	{
+		animator->SetBool("isGrounded", physics->isGrounded);
+
+		if (actionTimer.HasElapsed())
+		{
+			physics->Jump(game);
+			actionTimer.Start(2000);
+		}
+		else
+		{
+			float accel = 0.05f;
+			float MAX_SPEED = 2.0f;
+
+			if (physics->velocity.y > 0)
+			{
+				if (physics->velocity.x < 0)
+					physics->velocity.x = std::min(0.0f, physics->velocity.x + accel);
+				else if (physics->velocity.x > 0)
+					physics->velocity.x = std::max(0.0f, physics->velocity.x - accel);
+			}
+			else
+			{
+				if (game.player->position.x > position.x)
+					physics->velocity.x = std::min(MAX_SPEED, physics->velocity.x + accel);
+				else
+					physics->velocity.x = std::max(-MAX_SPEED, physics->velocity.x - accel);
+			}
+
+			//std::cout << physics->velocity.x << std::endl;
+		}
+	}
+	else if (name == "grasshopper")
+	{
+		animator->SetBool("isGrounded", physics->isGrounded);
+
+		if (actionTimer.HasElapsed())
+		{			
+			physics->Jump(game);
+			actionTimer.Start(2000);
+
+			// Don't update this every frame so we stick to the same direction we initially jumped
+			playerIsToTheRight = game.player->position.x > position.x;
+		}
+		else
+		{
+			float accel = 0.05f;
+			float MAX_SPEED = 1.0f;
+
+			if (physics->isGrounded)
+			{
+				if (physics->velocity.x < 0)
+					physics->velocity.x = std::min(0.0f, physics->velocity.x + accel);
+				else if (physics->velocity.x > 0)
+					physics->velocity.x = std::max(0.0f, physics->velocity.x - accel);
+			}
+			else
+			{
+				if (playerIsToTheRight)
+					physics->velocity.x = std::min(MAX_SPEED, physics->velocity.x + accel);
+				else
+					physics->velocity.x = std::max(-MAX_SPEED, physics->velocity.x - accel);
+			}
+
+			//std::cout << physics->velocity.x << std::endl;
+		}
+	}
+
+	if (physics->velocity.x > 0)
+		scale.x = -1.0f;
+	else
+		scale.x = 1.0f;
 
 	physics->Update(game);
 }

@@ -11,6 +11,7 @@ class Door;
 class Ladder;
 class Renderer;
 class NPC;
+class Checkpoint;
 
 class Player : public Entity
 {
@@ -28,6 +29,7 @@ public:
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;
 	NPC* currentNPC = nullptr;
+	Checkpoint* currentCheckpoint = nullptr;
 
 	Collider* closeRangeAttackCollider = nullptr;
 

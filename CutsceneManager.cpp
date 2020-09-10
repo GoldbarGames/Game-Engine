@@ -22,7 +22,7 @@ CutsceneManager::CutsceneManager(Game& g)
 
 	std::ifstream fin;
 
-	bool testVN = true;
+	bool testVN = false;
 	std::string directory = "";
 	std::string line = "";
 

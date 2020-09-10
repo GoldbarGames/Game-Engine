@@ -24,13 +24,28 @@ Shroom::~Shroom()
 
 }
 
+void Shroom::Update(Game& game)
+{
+	physics->canBePushed = (spriteIndex == 1);
+
+	if (animator->GetBool("isBouncing") && currentSprite->HasAnimationElapsed())
+	{
+		animator->SetBool("isBouncing", false);
+	}
+
+	Entity::Update(game);
+}
+
 
 void Shroom::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other.physics != nullptr)
+	if (other.physics != nullptr && other.physics->canBePushed)
 	{
 		other.physics->velocity.y = -1.5f;
 		game.soundManager->PlaySound("se/Jump.wav", 0);
+		animator->SetBool("isBouncing", true);
+		animator->Update(*this);
+		animator->DoState(*this);
 	}
 }
 

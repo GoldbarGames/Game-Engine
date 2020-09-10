@@ -21,6 +21,7 @@ Player::Player(const Vector2& pos) : Entity(pos)
 	physics->standAboveGround = true;
 	physics->horizontalSpeed = 0.35f;
 	physics->maxHorizontalSpeed = 0.35f;
+	physics->canBePushed = true;
 
 	// Initialize the spells here
 	spell = Spell();
@@ -259,6 +260,10 @@ void Player::UpdateNormally(Game& game)
 					// snap player to center of the ladder
 					position.x = currentLadder->position.x;
 				}
+			}
+			else if (currentCheckpoint != nullptr)
+			{
+				game.SaveFile(game.currentSaveFileName);
 			}
 			else if (currentDoor != nullptr && doorTimer.HasElapsed())
 			{

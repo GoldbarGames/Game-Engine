@@ -6,6 +6,10 @@ public:
 	Enemy(Vector2 pos);
 	~Enemy();
 
+	//TODO: Make different member variables for each type of enemy
+	bool playerIsToTheRight = false;
+
+	Timer actionTimer;
 	Collider* bottomLeftGround = nullptr;
 	Collider* bottomRightGround = nullptr;
 

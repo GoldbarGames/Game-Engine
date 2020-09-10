@@ -10,6 +10,7 @@
 #include "Enemy.h"
 #include "Switch.h"
 #include "Collectible.h"
+#include "Checkpoint.h"
 
 EntityFactory::EntityFactory()
 {
@@ -26,6 +27,7 @@ EntityFactory::EntityFactory()
     Register("missile", &Missile::Create);
     Register("enemy", &Enemy::Create);
     Register("switch", &Switch::Create);
+    Register("checkpoint", &Checkpoint::Create);
 }
 
 void EntityFactory::Register(const std::string& entityName, CreateEntity pfnCreate)

@@ -50,7 +50,7 @@ bool Spell::CastPush(Game& game)
 	spellRangeRect.w = 64;
 	spellRangeRect.h = 52;
 
-	int DISTANCE_FROM_CENTER_X = 80;
+	int DISTANCE_FROM_CENTER_X = 90;
 	int DISTANCE_FROM_CENTER_Y = 0;
 
 	// Add distance to the center so that it covers the entire cloud of wind

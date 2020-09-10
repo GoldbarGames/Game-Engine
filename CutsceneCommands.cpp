@@ -287,6 +287,7 @@ bool CutsceneCommands::ExecuteCommand(std::string& command)
 				catch (const std::exception &e)
 				{
 					std::cout << "EXCEPTION: " << e.what() << std::endl;
+					std::cout << "COMMAND: " << command << std::endl;
 					manager->game->logger->Log(e.what());
 				}
 
@@ -1140,6 +1141,7 @@ int CutsceneCommands::SubstringVariables(CutsceneParameters parameters)
 	return 0;
 }
 
+// TODO: mov x,y -> comma does not work when inside of an "if" condition
 int CutsceneCommands::MoveVariables(CutsceneParameters parameters)
 {
 	if (parameters[1] == "$var1" && parameters[2] == "tati/")
@@ -2536,7 +2538,7 @@ int CutsceneCommands::DecrementVariable(CutsceneParameters parameters)
 
 int CutsceneCommands::Output(CutsceneParameters parameters)
 {
-	bool shouldOutput = false;
+	bool shouldOutput = true;
 
 	if (shouldOutput)
 	{
@@ -2783,7 +2785,7 @@ int CutsceneCommands::PrintCommand(CutsceneParameters parameters)
 	}
 	else
 	{
-		manager->printNumber = std::stoi(parameters[1]);
+		manager->printNumber = ParseNumberValue(parameters[1]);
 	}
 
 	return 0;

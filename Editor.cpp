@@ -11,6 +11,7 @@
 #include "Dialog.h"
 #include "Switch.h"
 #include "Collectible.h"
+#include "Checkpoint.h"
 
 using std::string;
 
@@ -49,7 +50,7 @@ Editor::Editor(Game& g)
 
 	//TODO: Read this in from a file
 	previewMapObjectNames = { "door", "ladder",
-		"block", "platform", "shroom", "switch", 
+		"block", "platform", "shroom", "switch", "checkpoint",
 		"npc", "enemy", "collectible" };
 
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
@@ -94,7 +95,8 @@ void Editor::CreateEditorButtons()
 
 	// TODO: Maybe read these in from a file too
 	std::vector<string> buttonNames = { "newlevel", "load", "save", "tileset", "inspect", 
-		"grid", "map", "door", "ladder", "npc", "enemy", "switch", "platform", "block", "collectible", "shroom",
+		"grid", "map", "door", "ladder", "npc", "enemy", "checkpoint", "switch", "platform", 
+		"block", "collectible", "shroom",
 		"undo", "redo", "replace", "copy", "grab", "path"  };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
@@ -659,7 +661,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			currentNPC = static_cast<NPC*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 			if (currentNPC != nullptr)
 			{
-				currentNPC->name = game->entityTypes["npc"][spriteMapIndex];
+				currentNPC->name = game->entityTypes[objectMode][spriteMapIndex];
 				game->SortEntities(game->entities);
 			}
 		}
@@ -668,7 +670,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			Enemy* enemy = static_cast<Enemy*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 			if (enemy != nullptr)
 			{
-				enemy->Init(game->entityTypes["enemy"][spriteMapIndex]);
+				enemy->Init(game->entityTypes[objectMode][spriteMapIndex]);
 				game->SortEntities(game->entities);
 			}
 		}
@@ -677,7 +679,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			Collectible* collectible = static_cast<Collectible*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
 			if (collectible != nullptr)
 			{
-				collectible->Init(game->entityTypes["collectible"][spriteMapIndex]);
+				collectible->Init(game->entityTypes[objectMode][spriteMapIndex]);
 				game->SortEntities(game->entities);
 			}
 		}
@@ -1759,6 +1761,16 @@ void Editor::CreateLevelFromString(std::string level)
 						ladderGroups[positionX] = std::vector<Ladder*>();
 					}
 					ladderGroups[positionX].push_back(newLadder);
+				}
+			}
+			else if (etype == "checkpoint")
+			{
+				int spriteIndex = std::stoi(tokens[index++]);
+
+				Checkpoint* newCheckpoint = static_cast<Checkpoint*>(game->SpawnEntity(etype, Vector2(positionX, positionY), spriteIndex));
+				if (newCheckpoint != nullptr)
+				{
+					//newCheckpoint->name = tokens[index++];
 				}
 			}
 			else if (etype == "player")

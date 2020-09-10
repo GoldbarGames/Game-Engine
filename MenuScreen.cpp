@@ -371,19 +371,23 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	}
 	else if (selectedButton->name == "Load Game")
 	{		
-		game.LoadFile("wdk1.sav");
+		game.currentSaveFileName = "wdk1.sav";
+		game.LoadFile(game.currentSaveFileName);
 	}
 	else if (selectedButton->name == "File 1")
 	{
-		game.LoadFile("wdk1.sav");
+		game.currentSaveFileName = "wdk1.sav";
+		game.LoadFile(game.currentSaveFileName);
 	}
 	else if (selectedButton->name == "File 2")
 	{
-		game.LoadFile("wdk2.sav");
+		game.currentSaveFileName = "wdk2.sav";
+		game.LoadFile(game.currentSaveFileName);
 	}
 	else if (selectedButton->name == "File 3")
 	{
-		game.LoadFile("wdk3.sav");
+		game.currentSaveFileName = "wdk3.sav";
+		game.LoadFile(game.currentSaveFileName);
 	}
 	else if (selectedButton->name == "New Game")
 	{
@@ -392,7 +396,7 @@ bool MenuScreen::PressSelectedButton(Game& game)
 		//game.cutscene->commands.ExecuteCommand("fade black 1000");
 		//game.cutscene->commands.ExecuteCommand("wait 1000");
 
-		std::string currentGame = "DB1";
+		std::string currentGame = "WDK";
 
 		if (currentGame == "WDK")
 		{

@@ -368,10 +368,15 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		std::vector<AnimState*> animStates;
 		std::unordered_map<std::string, std::string> args;
 		args["0"] = std::to_string(spriteIndex);
+		args["1"] = "";
+
+		if (entityTypes.count(entityName) > 0 && entityTypes[entityName].size() > spriteIndex)
+		{
+			args["1"] = entityTypes[entityName][spriteIndex];
+		}
 
 		if (entityName == "npc" || entityName == "enemy" || entityName == "collectible")
 		{
-			args["1"] = entityTypes[entityName][spriteIndex];
 			spriteManager->ReadAnimData("data/animators/" + entityName + "/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
 		}
 		else

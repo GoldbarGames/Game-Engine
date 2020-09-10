@@ -87,6 +87,8 @@ public:
 	std::string windowIconFilepath = "";
 	std::string windowTitle = "";
 
+	std::string currentSaveFileName = "";
+
 	Logger* logger;
 	SDL_GameController* controller;
 
