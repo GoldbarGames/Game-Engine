@@ -156,7 +156,7 @@ public:
 	std::unordered_map<std::string, unsigned int> mapKeysFloat;
 	std::unordered_map<std::string, unsigned int> mapKeysInt;
 
-	AnimatorInfo(std::string name);
+	AnimatorInfo(std::string filePath);
 };
 
 #endif

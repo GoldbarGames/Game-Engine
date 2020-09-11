@@ -215,8 +215,8 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	//our->GetAnimator()->SetBool("isGrounded", false);
 	isGrounded = false;
 	
-	bool horizontalCollision = false;
-	bool verticalCollision = false;
+	horizontalCollision = false;
+	verticalCollision = false;
 
 	// Get bounds assuming the move is valid
 	SDL_Rect myBounds = *(our->GetBounds());
@@ -610,12 +610,20 @@ void PhysicsComponent::Push(const Vector2& pushVelocity)
 {
 	// TODO: Should wind resitance be based on mass, rather than a totally new number?
 	// Also, should there be a discrete number of levels of mass (Light, Medium, Heavy) for consistency?
+	if (our->GetAnimator() != nullptr)
+	{
+		isPushed = true;
+		//our->GetAnimator()->SetBool("isPushed", true);
+	}
+
 	velocity.x += pushVelocity.x / windResistance;
 	velocity.y += pushVelocity.y / windResistance;
 }
 
 void PhysicsComponent::Update(Game& game)
 {
+	previousVelocity = velocity;
+
 	if (our->etype != "player" && our->position.y > game.deathBarrierY)
 	{
 		if (respawnOnDeath)

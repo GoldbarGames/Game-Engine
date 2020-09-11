@@ -7,7 +7,7 @@
 Block::Block(const Vector2& pos) : Entity(pos)
 {
 	etype = "block";
-	CreateCollider(0, 16, 48, 48);
+	
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 10;
 	impassable = true;
@@ -26,6 +26,20 @@ Block::Block(const Vector2& pos) : Entity(pos)
 Block::~Block()
 {
 
+}
+
+void Block::Init(const std::string& n)
+{
+	name = n;
+
+	if (name == "big_block")
+	{
+		CreateCollider(0, 16, 48, 48);
+	}
+	else if (name == "small_block")
+	{
+		CreateCollider(0, 8, 24, 24);
+	}
 }
 
 void Block::Render(const Renderer& renderer)

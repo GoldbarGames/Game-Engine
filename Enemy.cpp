@@ -42,6 +42,16 @@ void Enemy::Init(const std::string& n)
 		actionTimer.Start(1);
 		physics->jumpSpeed = -1.25f;
 	}
+	else if (name == "fly")
+	{
+		CreateCollider(20, 27, 27, 17);
+		physics->useGravity = false;
+	}
+	else if (name == "rolypoly")
+	{
+		CreateCollider(0, 0, 33, 29);
+		//animator->SetBool("directionIsRight", true);
+	}
 }
 
 Enemy::~Enemy()
@@ -144,28 +154,132 @@ void Enemy::Update(Game& game)
 		else
 		{
 			float accel = 0.05f;
-			float MAX_SPEED = 1.0f;
+			float MAX_SPEED = 0.5f;
 
-			if (physics->isGrounded)
+			float distanceToPlayer = std::abs(position.x - game.player->position.x) +
+				std::abs(position.y - game.player->position.y);
+
+			if (distanceToPlayer < 400.0f)
 			{
-				if (physics->velocity.x < 0)
-					physics->velocity.x = std::min(0.0f, physics->velocity.x + accel);
-				else if (physics->velocity.x > 0)
-					physics->velocity.x = std::max(0.0f, physics->velocity.x - accel);
-			}
-			else
-			{
-				if (playerIsToTheRight)
-					physics->velocity.x = std::min(MAX_SPEED, physics->velocity.x + accel);
+				if (physics->isGrounded)
+				{
+					if (physics->velocity.x < 0)
+						physics->velocity.x = std::min(0.0f, physics->velocity.x + accel);
+					else if (physics->velocity.x > 0)
+						physics->velocity.x = std::max(0.0f, physics->velocity.x - accel);
+				}
 				else
-					physics->velocity.x = std::max(-MAX_SPEED, physics->velocity.x - accel);
+				{
+					if (playerIsToTheRight)
+						physics->velocity.x = std::min(MAX_SPEED, physics->velocity.x + accel);
+					else
+						physics->velocity.x = std::max(-MAX_SPEED, physics->velocity.x - accel);
+				}
 			}
 
 			//std::cout << physics->velocity.x << std::endl;
 		}
 	}
+	else if (name == "fly")
+	{
+		float accel = 0.01f;
+		float MAX_SPEED = 0.2f;
 
-	if (physics->velocity.x > 0)
+		float distanceToPlayer = std::abs(position.x - game.player->position.x) +
+			std::abs(position.y - game.player->position.y);
+
+		if (distanceToPlayer < 400.0f)
+		{
+			if (game.player->position.x > position.x)
+				physics->velocity.x = std::min(MAX_SPEED, physics->velocity.x + accel);
+			else
+				physics->velocity.x = std::max(-MAX_SPEED, physics->velocity.x - accel);
+
+			if (game.player->position.y > position.y)
+				physics->velocity.y = std::min(MAX_SPEED, physics->velocity.y + accel);
+			else
+				physics->velocity.y = std::max(-MAX_SPEED, physics->velocity.y - accel);
+		}
+		else
+		{
+			if (physics->velocity.x < 0)
+				physics->velocity.x = std::min(0.0f, physics->velocity.x + accel);
+			else if (physics->velocity.x > 0)
+				physics->velocity.x = std::max(0.0f, physics->velocity.x - accel);
+
+			if (physics->velocity.y < 0)
+				physics->velocity.y = std::min(0.0f, physics->velocity.y + accel);
+			else if (physics->velocity.y > 0)
+				physics->velocity.y = std::max(0.0f, physics->velocity.y - accel);
+		}
+	}
+	else if (name == "rolypoly")
+	{
+		float accel = -0.2f;
+		float MAX_SPEED = 0.5f;
+
+		if (animator->currentState->name != "roll")
+		{
+			accel = 0;
+		}
+		else if (directionIsRight) //(animator->GetBool("directionIsRight"))
+		{
+			accel = 0.2f;
+		}
+
+		if (physics->isPushed)
+		{
+			physics->isPushed = false;
+			isFlippedOver = true;
+			physics->velocity = Vector2(0, 0);
+			std::cout << animator->currentState->name << std::endl;
+			isFlippedOver = true;
+			isHurt = false;
+			animator->SetBool("isFlippedOver", true);
+			animator->SetBool("isHurt", false);
+			actionTimer.Start(1500);
+		}
+
+		if (isFlippedOver) // (animator->GetBool("isRecovering"))
+		{
+			if (actionTimer.HasElapsed())
+			{
+				isFlippedOver = false;
+				animator->SetBool("isFlippedOver", false);
+			}
+		}
+		else
+		{
+			// if we're not moving, then start moving
+			if (physics->velocity.x == 0 && accel == 0)
+			{
+				accel = 0.2f;
+				physics->velocity.x += accel;
+				directionIsRight = true;
+				animator->SetBool("directionIsRight", true);
+			}
+			else // if we are moving...
+			{
+				// check for walls and if so, turn around
+				if (physics->horizontalCollision)
+				{
+					//std::cout << "COLLISION! " << physics->previousVelocity.x << std::endl;
+					physics->velocity.x = -physics->previousVelocity.x;
+					directionIsRight = (physics->velocity.x > 0);
+					animator->SetBool("directionIsRight", (physics->velocity.x > 0));
+				}
+				else
+				{
+					if (accel > 0)
+						physics->velocity.x = std::min(MAX_SPEED, physics->velocity.x + accel);
+					else if (accel < 0)
+						physics->velocity.x = std::max(-MAX_SPEED, physics->velocity.x + accel);
+				}
+			}
+		}
+	}
+
+	if (game.player->position.x > position.x)
 		scale.x = -1.0f;
 	else
 		scale.x = 1.0f;
@@ -241,6 +355,24 @@ void Enemy::OnTriggerEnter(Entity& other, Game& game)
 {
 	if (other.etype == "player")
 	{
+		if (name == "rolypoly")
+		{
+			if (animator->GetBool("isDead"))
+				return;
+
+			// The first time you hit this enemy,
+			// it flips the enemy over and exposes its weak spot.
+			// For as long as the enemy is flipped over,
+			// you can hit it to actually deal damage.
+			if (other.name == "debug_missile")
+			{
+				if (!animator->GetBool("isRecovering"))
+				{
+					return;
+				}
+			}
+		}
+
 		other.GetAnimator()->SetBool("isHurt", true);
 		other.GetAnimator()->SetState("hurt");
 		other.GetAnimator()->Update(other);

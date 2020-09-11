@@ -10,6 +10,8 @@ public:
 	Block(const Vector2& pos);
 	~Block();
 
+	void Init(const std::string& n);
+
 	//void Push(Vector2 direction, Game &game);
 	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);

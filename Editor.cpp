@@ -656,34 +656,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 
 	if (canPlaceObjectHere)
 	{
-		if (objectMode == "npc")
-		{
-			currentNPC = static_cast<NPC*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
-			if (currentNPC != nullptr)
-			{
-				currentNPC->name = game->entityTypes[objectMode][spriteMapIndex];
-				game->SortEntities(game->entities);
-			}
-		}
-		else if (objectMode == "enemy")
-		{
-			Enemy* enemy = static_cast<Enemy*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
-			if (enemy != nullptr)
-			{
-				enemy->Init(game->entityTypes[objectMode][spriteMapIndex]);
-				game->SortEntities(game->entities);
-			}
-		}
-		else if (objectMode == "collectible")
-		{
-			Collectible* collectible = static_cast<Collectible*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
-			if (collectible != nullptr)
-			{
-				collectible->Init(game->entityTypes[objectMode][spriteMapIndex]);
-				game->SortEntities(game->entities);
-			}
-		}
-		else if (objectMode == "path")
+		if (objectMode == "path")
 		{
 			// If we do not have a path, create a new one
 			if (currentPath == nullptr)
@@ -825,6 +798,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			Entity* entity = game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex);
 			if (entity != nullptr)
 			{
+				entity->Init(game->entityTypes[objectMode][spriteMapIndex]);
 				game->SortEntities(game->entities);
 			}				
 		}

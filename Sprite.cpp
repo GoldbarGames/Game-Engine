@@ -230,6 +230,11 @@ Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager
 	startFrame = start;
 	endFrame = end;	
 
+	if (width > texture->GetWidth())
+		width = texture->GetWidth();
+	if (height > texture->GetHeight())
+		height = texture->GetHeight();
+
 	frameWidth = width;
 	frameHeight = height;
 

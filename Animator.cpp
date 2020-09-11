@@ -8,12 +8,12 @@
 std::map<unsigned int, AnimatorInfo*> Animator::mapTypeToInfo;
 std::unordered_map<std::string, unsigned int> Animator::mapNamesToAnimType;
 
-AnimatorInfo::AnimatorInfo(std::string name)
+AnimatorInfo::AnimatorInfo(std::string filePath)
 {
 	std::ifstream fin;
 
-	//TODO: Refactor this so that you can have custom paths for these files
-	std::string animatorFile = "data/animators/" + name + "/" + name + ".animator";
+	//TODO: Customize prefix/suffix
+	std::string animatorFile = "data/animators/" + filePath + ".animator";
 
 	//TODO: Deal with issues involving extra whitespace (it breaks things)
 	std::vector<std::string> stateNames;
@@ -99,11 +99,11 @@ AnimatorInfo::AnimatorInfo(std::string name)
 					}
 					else if (variableType == "float")
 					{
-						mapKeysBool[variableName] = variableIndex++;
+						mapKeysFloat[variableName] = variableIndex++;
 					}
 					else if (variableType == "int")
 					{
-						mapKeysBool[variableName] = variableIndex++;
+						mapKeysInt[variableName] = variableIndex++;
 					}
 
 					// Add this condition to the list of conditions for this state
@@ -148,30 +148,30 @@ unsigned int Animator::GetNumberOfStateFromName(const char* name)
 }
 
 // PRE-CONDITION: The list of states is not empty
-Animator::Animator(const std::string& entityName, std::vector<AnimState*> states, std::string initialState)
+Animator::Animator(const std::string& filePath, std::vector<AnimState*> states, std::string initialState)
 {
 	MapStateNameToState("", new AnimState("", 0, nullptr));
 
-	if (mapNamesToAnimType.count(entityName) != 1)
+	if (mapNamesToAnimType.count(filePath) != 1)
 	{
 		if (mapNamesToAnimType.size() > 0)
 		{
-			mapNamesToAnimType[entityName] = mapNamesToAnimType.size() + 1;
-			//mapNamesToAnimType[entityName] = (--mapNamesToAnimType.end())->second + 1;
+			mapNamesToAnimType[filePath] = mapNamesToAnimType.size() + 1;
+			//mapNamesToAnimType[filePath] = (--mapNamesToAnimType.end())->second + 1;
 		}
 		else
 		{
-			mapNamesToAnimType[entityName] = 0;
+			mapNamesToAnimType[filePath] = 0;
 		}		
 	}
 
-	animatorType = mapNamesToAnimType[entityName];
+	animatorType = mapNamesToAnimType[filePath];
 
 	// If this animator type has not been initialized, do so here
 	if (mapTypeToInfo.count(animatorType) != 1)
 	{
 		// Parse the animator state info here
-		mapTypeToInfo[animatorType] = new AnimatorInfo(entityName);
+		mapTypeToInfo[animatorType] = new AnimatorInfo(filePath);
 	}
 
 	// Save the vector of states as a map
@@ -369,7 +369,12 @@ bool Animator::GetBool(const char* param)
 
 void Animator::SetBool(const char* param, bool value)
 {
-	mapParamsBool[mapTypeToInfo[animatorType]->mapKeysBool[param]] = value;
+	if (param == "isFlippedOver")
+		int test = 0;
+
+	int index = mapTypeToInfo[animatorType]->mapKeysBool[param];
+
+	mapParamsBool[index] = value;
 }
 
 void Animator::SetFloat(const char* param, float value)

@@ -65,7 +65,7 @@ public:
 	AnimState* GetState(const std::string& name);
 
 	Animator(std::vector<Sprite*> sprites);
-	Animator(const std::string& entityName, std::vector<AnimState*> states, std::string initialState = "");
+	Animator(const std::string& filePath, std::vector<AnimState*> states, std::string initialState = "");
 	~Animator();
 
 	int GetSpeed();

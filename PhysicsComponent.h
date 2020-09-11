@@ -21,6 +21,7 @@ protected:
 public:
 	Vector2 startPosition = Vector2(0, 0);
 	Vector2 velocity = Vector2(0, 0);
+	Vector2 previousVelocity = Vector2(0, 0);
 	float maxHorizontalSpeed = 0.5f;
 	float horizontalSpeed = 0.5f;
 	int jumpsRemaining = 2;
@@ -32,6 +33,7 @@ public:
 	bool useGravity = true;
 	bool canBePushed = false;
 	bool standAboveGround = false;
+	bool isPushed = false;
 
 	float currentJumpSpeed = 0;
 	float jumpSpeed = -1.0f;
@@ -46,6 +48,8 @@ public:
 	bool jumped = false;
 	bool shouldStickToGround = false;
 
+	bool horizontalCollision = false;
+	bool verticalCollision = false;
 
 	PhysicsComponent(Entity* entity);
 	~PhysicsComponent();

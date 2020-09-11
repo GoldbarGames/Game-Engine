@@ -96,6 +96,8 @@ public:
 	virtual void Pause(Uint32 ticks);
 	virtual void Unpause(Uint32 ticks);
 
+	virtual void Init(const std::string& n);
+
 	virtual bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
 
 	virtual void OnTriggerStay(Entity& other, Game& game);

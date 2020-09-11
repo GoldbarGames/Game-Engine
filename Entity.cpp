@@ -118,6 +118,11 @@ Entity::~Entity()
 		delete_it(health);
 }
 
+void Entity::Init(const std::string& n)
+{
+	name = n;
+}
+
 void Entity::CreateCollider(float x, float y, float w, float h)
 {
 	if (collider != nullptr)

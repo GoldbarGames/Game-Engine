@@ -367,6 +367,9 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 
 		std::vector<AnimState*> animStates;
 		std::unordered_map<std::string, std::string> args;
+
+		std::string filepath = entityName + "/";
+
 		args["0"] = std::to_string(spriteIndex);
 		args["1"] = "";
 
@@ -375,14 +378,16 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 			args["1"] = entityTypes[entityName][spriteIndex];
 		}
 
-		if (entityName == "npc" || entityName == "enemy" || entityName == "collectible")
+		if (args["1"] != "" && (entityName == "enemy" || entityName == "npc" || entityName == "collectible"))
 		{
-			spriteManager->ReadAnimData("data/animators/" + entityName + "/" + args["1"] + "/" + args["1"] + ".animations", animStates, args);
+			filepath += args["1"] + "/" + args["1"];
 		}
 		else
 		{
-			spriteManager->ReadAnimData("data/animators/" + entityName + "/" + entityName + ".animations", animStates, args);
+			filepath += entityName;
 		}
+
+		spriteManager->ReadAnimData("data/animators/" + filepath + ".animations", animStates, args);
 
 		//TODO: Make this better...
 		// - Allow for conditions that are always true/false 
@@ -400,7 +405,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 
 		if (animStates.size() > 0)
 		{
-			Animator* newAnimator = new Animator(entityName, animStates, initialState);
+			Animator* newAnimator = new Animator(filepath, animStates, initialState);
 			newEntity->SetAnimator(*newAnimator);
 		}
 	}
@@ -517,19 +522,9 @@ Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, Drawing
 
 Player* Game::SpawnPlayer(Vector2 position)
 {
-	Player* player = new Player(position);
+	// NOTE: Spawning more than one player breaks things
+	Player* player = static_cast<Player*>(SpawnEntity("player", position, 0));
 	player->game = this;
-
-	std::vector<AnimState*> animStates;
-	spriteManager->ReadAnimData("data/animators/player/player.animations", animStates);
-
-	Animator* newAnimator = new Animator("player", animStates, "idle");
-	newAnimator->SetBool("isGrounded", true);
-	player->SetAnimator(*newAnimator);
-	player->SetPosition(position);
-	player->physics->startPosition = position;
-
-	entities.emplace_back(player);
 
 	renderer->camera.target = player;
 	renderer->guiCamera.target = player;
