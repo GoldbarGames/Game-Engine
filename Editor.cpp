@@ -1892,7 +1892,8 @@ void Editor::CreateLevelFromString(std::string level)
 			}
 			else // create all other types of entities that don't require special stuff
 			{
-				game->SpawnEntity(etype, Vector2(positionX, positionY), std::stoi(tokens[index++]));
+				Entity* entity = game->SpawnEntity(etype, Vector2(positionX, positionY), std::stoi(tokens[index++]));
+				entity->Init(game->entityTypes[etype][spriteMapIndex]);
 			}
 
 			ss.getline(lineChar, 256);

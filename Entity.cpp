@@ -88,6 +88,7 @@ unsigned int Entity::GetNextValidID()
 // since they will offset the next valid ID every time we save the level
 Entity::Entity(const Vector2& pos)
 {
+	name = "entity";
 	position = pos;
 
 	id = GetNextValidID();

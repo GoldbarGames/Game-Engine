@@ -50,7 +50,6 @@ void Block::Render(const Renderer& renderer)
 void Block::GetProperties(FontInfo* font, std::vector<Property*>& properties)
 {
 	Entity::GetProperties(font, properties);
-
 	properties.emplace_back(new Property("Collider Pos X", (int)collider->offset.x));
 	properties.emplace_back(new Property("Collider Pos Y", (int)collider->offset.y));
 	properties.emplace_back(new Property("Collider Width", collider->scale.x));

@@ -405,8 +405,30 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 
 		if (animStates.size() > 0)
 		{
-			Animator* newAnimator = new Animator(filepath, animStates, initialState);
-			newEntity->SetAnimator(*newAnimator);
+			Animator* newAnimator = nullptr;
+
+			// TODO: It seems like we need a new animator for each entity
+			// because each one will be in different states at different times,
+			// and the entity's sprite is based on its animation state.
+			// However, this also seems wasteful, is there a way to optimize this?
+
+			/*
+			for (auto const& [key, val] : animators)
+			{
+				if (key == filepath)
+				{
+					newAnimator = val;
+				}
+			}
+			*/
+
+			if (newAnimator == nullptr)
+			{
+				newAnimator = new Animator(filepath, animStates, initialState);
+				//animators[filepath] = newAnimator;
+			}
+
+			newEntity->SetAnimator(*newAnimator);			
 		}
 	}
 

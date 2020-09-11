@@ -369,12 +369,7 @@ bool Animator::GetBool(const char* param)
 
 void Animator::SetBool(const char* param, bool value)
 {
-	if (param == "isFlippedOver")
-		int test = 0;
-
-	int index = mapTypeToInfo[animatorType]->mapKeysBool[param];
-
-	mapParamsBool[index] = value;
+	mapParamsBool[mapTypeToInfo[animatorType]->mapKeysBool[param]] = value;
 }
 
 void Animator::SetFloat(const char* param, float value)

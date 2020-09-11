@@ -76,6 +76,7 @@ private:
 
 	float now = 0;
 	
+	std::unordered_map<std::string, Animator*> animators;
 	std::unordered_map<std::string, Mesh*> meshes;
 
 	Mesh* CreateSpriteMesh();
