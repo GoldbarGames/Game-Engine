@@ -44,7 +44,7 @@ void Checkpoint::OnTriggerExit(Entity& other, Game& game)
 	}
 }
 
-bool Checkpoint::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
+bool Checkpoint::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
 {
 	return Entity::CanSpawnHere(spawnPosition, game, useCamera);
 
@@ -60,9 +60,9 @@ bool Checkpoint::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 	return shouldSpawn;
 }
 
-void Checkpoint::GetProperties(FontInfo* font, std::vector<Property*>& properties)
+void Checkpoint::GetProperties(std::vector<Property*>& properties)
 {
-	Entity::GetProperties(font, properties);
+	Entity::GetProperties(properties);
 
 	properties.emplace_back(new Property("Cutscene Label", name));
 }
@@ -79,5 +79,5 @@ void Checkpoint::SetProperty(const std::string& key, const std::string& newValue
 void Checkpoint::Save(std::ostringstream& level)
 {
 	level << std::to_string(id) << " " << etype << " " << position.x << " " <<
-		position.y << " " << spriteIndex << " " << name << " " << std::endl;
+		position.y << " " << subtype << " " << name << " " << std::endl;
 }

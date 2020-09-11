@@ -35,7 +35,8 @@ public:
 	void AddCurrentHP(int value);
 	bool IsAlive();
 	float GetPercentHP();
-	void CreateHealthBar(const Renderer& renderer, Vector2 scale, Color colorFront, Color colorBack, bool relativeToCamera);
+	void CreateHealthBar(const Renderer& renderer, const Vector2& scale, 
+		Color colorFront, Color colorBack, bool relativeToCamera);
 	void Render(const Renderer& renderer);
 };
 

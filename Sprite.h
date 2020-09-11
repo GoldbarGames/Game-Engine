@@ -98,7 +98,7 @@ public:
 	Sprite(ShaderProgram* s);
 	Sprite(Texture* t, ShaderProgram* s);
 	Sprite(const Vector2& frame, Texture* image, ShaderProgram* shader);
-	Sprite(int numFrames, SpriteManager* manager, const std::string& filepath, ShaderProgram* shader, Vector2 newPivot);
+	Sprite(int numFrames, const SpriteManager& manager, const std::string& filepath, ShaderProgram* shader, Vector2 newPivot);
 
 	glm::vec2 CalculateRenderFrame(const Renderer& renderer, float animSpeed);
 	void CalculateModel(Vector2 position, glm::vec3 rotation, const Renderer& renderer);
@@ -108,8 +108,8 @@ public:
 	// end = last frame of animation
 	// numFrames = the number of frames in the whole sheet, regardless of the animation
 	// so the total number is used to derive the width and height of a single frame
-	Sprite(int start, int end, int numFrames, SpriteManager* manager, const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop = true);
-	Sprite(int start, int end, int width, int height, SpriteManager* manager, const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop = true);
+	Sprite(int start, int end, int numFrames, const SpriteManager& manager, const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop = true);
+	Sprite(int start, int end, int width, int height, const SpriteManager& manager, const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop = true);
 	~Sprite();
 };
 
@@ -149,7 +149,6 @@ public:
 class AnimatorInfo
 {
 public:
-	//TODO: Store a way to represent the conditions for moving between states
 	std::unordered_map<std::string, AnimStateMachine*> states;
 	std::unordered_map<std::string, unsigned int> mapStateNamesToNumbers;
 	std::unordered_map<std::string, unsigned int> mapKeysBool;

@@ -64,7 +64,7 @@ void Missile::Destroy()
 	physics->velocity = Vector2(0, 0);
 }
 
-void Missile::SetVelocity(Vector2 newVelocity)
+void Missile::SetVelocity(const Vector2& newVelocity)
 {
 	physics->velocity = newVelocity;
 	if (physics->velocity.x > 0)

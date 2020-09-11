@@ -55,7 +55,7 @@ private:
 	NPC* currentNPC = nullptr;
 	Path* currentPath = nullptr;
 
-	int spriteMapIndex = 0;
+	int entitySubtype = 0;
 
 	std::unordered_map<std::string, Entity*> previewMap;
 

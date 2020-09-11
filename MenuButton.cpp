@@ -2,9 +2,11 @@
 #include "Game.h"
 
 MenuButton::MenuButton(const std::string& txt, const std::string& filepath, 
-	const std::string& function, Vector2 pos, Game& game)
+	const std::string& function, const Vector2& pos, Game& game)
 {
-	image = new Sprite(1, game.spriteManager, filepath, game.renderer->shaders[ShaderName::GUI], Vector2(0,0));
+	position = pos;
+
+	image = new Sprite(1, *game.spriteManager, filepath, game.renderer->shaders[ShaderName::GUI], Vector2(0,0));
 
 	text = new Text(game.theFont);
 
@@ -21,10 +23,8 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 	
 	name = function;
 
-	//What if I want to scale the button to a particular width and height 
+	// What if I want to scale the button to a particular width and height 
 	// independent of the image? ANSWER: See the EditorButton
-
-	position = pos;
 
 	image->keepPositionRelativeToCamera = true;
 	image->keepScaleRelativeToCamera = true;

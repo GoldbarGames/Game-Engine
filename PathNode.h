@@ -11,7 +11,7 @@ class PathNode
 public:
 	Vector2 point = Vector2(0,0);
 	
-	PathNode(Vector2 pos);
+	PathNode(const Vector2& pos);
 	~PathNode();
 	const SDL_Rect* GetRect();
 	const SDL_Rect* GetRenderRect();

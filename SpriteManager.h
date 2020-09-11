@@ -19,14 +19,14 @@ class Renderer;
 class SpriteManager
 {
 private:
-	std::unordered_map<std::string, std::unique_ptr<Texture, ImageDeleter>> images;
+	mutable std::unordered_map<std::string, std::unique_ptr<Texture, ImageDeleter>> images;
 	std::unordered_map<std::string, Vector2> pivotPoints;
 public:
 	Renderer* renderer = nullptr;
-	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates);
-	void ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates, std::unordered_map<std::string, std::string>& args);
-	Texture* GetImage(std::string const& imagePath);
-	Vector2 GetPivotPoint(std::string const& filename);
+	void ReadAnimData(const std::string& dataFilePath, std::vector<AnimState*>& animStates);
+	void ReadAnimData(const std::string& dataFilePath, std::vector<AnimState*>& animStates, std::unordered_map<std::string, std::string>& args);
+	Texture* GetImage(const std::string& imagePath) const;
+	Vector2 GetPivotPoint(const std::string& filename);
 	SpriteManager(Renderer* r);
 	~SpriteManager();
 };

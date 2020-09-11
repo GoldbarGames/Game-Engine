@@ -27,7 +27,7 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	boxObject = new Entity(Vector2(1280, 720));
 	
 	//TODO: Have a way to specify the image for the box
-	Sprite* newSprite = new Sprite(0, 0, 1, spriteManager, "assets/gui/textbox1.png",
+	Sprite* newSprite = new Sprite(0, 0, 1, *spriteManager, "assets/gui/textbox1.png",
 		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 	boxObject->SetSprite(*newSprite);
 
@@ -38,7 +38,7 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	nameObject = new Entity(Vector2(1280, 720));
 
 	//TODO: Have a way to specify the image for the box
-	newSprite = new Sprite(0, 0, 1, spriteManager, "assets/gui/namebox1.png",
+	newSprite = new Sprite(0, 0, 1, *spriteManager, "assets/gui/namebox1.png",
 		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 	nameObject->SetSprite(*newSprite);
 
@@ -131,7 +131,7 @@ void Textbox::ChangeNameSprite(const std::string& filepath)
 		delete nameObject->GetSprite();
 
 	//TODO: Allow for animations by dissecting the filepath name
-	Sprite* newSprite = new Sprite(0, 0, 1, spriteManager, filepath,
+	Sprite* newSprite = new Sprite(0, 0, 1, *spriteManager, filepath,
 		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 	nameObject->SetSprite(*newSprite);
 
@@ -145,7 +145,7 @@ void Textbox::ChangeBoxSprite(const std::string& filepath)
 		delete boxObject->GetSprite();
 
 	//TODO: Allow for animations by dissecting the filepath name
-	Sprite* newSprite = new Sprite(0, 0, 1, spriteManager, filepath,
+	Sprite* newSprite = new Sprite(0, 0, 1, *spriteManager, filepath,
 		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 	boxObject->SetSprite(*newSprite);
 

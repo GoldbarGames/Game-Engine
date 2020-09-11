@@ -4,8 +4,6 @@
 
 FontInfo* Property::fontInfo;
 
-Property::Property(Text* t, const std::vector<std::string>& o) : text(t), options(o) { }
-
 //TODO: Refactor class so that we don't store a Text in every Property, it's wasteful
 Property::Property(const std::string& k, const std::string& v, const std::vector<std::string>& o) 
 	: key(k), value(v), pType(PropertyType::String)

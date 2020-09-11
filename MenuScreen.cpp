@@ -3,7 +3,7 @@
 #include "Game.h"
 #include "globals.h"
 
-MenuScreen::MenuScreen(std::string n, Game& game)
+MenuScreen::MenuScreen(const std::string& n, Game& game)
 {
 	name = n;
 
@@ -126,7 +126,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		Entity* titleCharacter = new Entity(Vector2(600, 350));
 
-		Sprite* newSprite = new Sprite(0, 0, 1, game.spriteManager,
+		Sprite* newSprite = new Sprite(0, 0, 1, *game.spriteManager,
 			"assets/gui/wdk_character.png", game.renderer->shaders[ShaderName::FadeInOut],
 			Vector2(0, 0), false);
 
@@ -138,7 +138,7 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = new Entity(Vector2(1600, 350));
-		newSprite = new Sprite(0, 0, 1, game.spriteManager, "assets/gui/wdk_logo.png",
+		newSprite = new Sprite(0, 0, 1, *game.spriteManager, "assets/gui/wdk_logo.png",
 			game.renderer->shaders[ShaderName::Default], Vector2(0, 0), false);
 		titleLogo->SetSprite(*newSprite);
 		titleLogo->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
@@ -217,43 +217,22 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 
 		int buttonPosX = (game.screenWidth / 2);
 
-		//TODO: Replace each text with 'New Game' or 'Load Game' depending on whether there is save data
+		// Replace each text with 'New Game' or 'Load Game' 
+		// depending on whether there is save data
 
-		std::string file1Function = "File 1";
-		std::string file2Function = "File 2";
-		std::string file3Function = "File 3";
+		const int NUM_FILES = 3;
+		std::string filepath, fileFunction;
 
-		std::fstream fin;
-		fin.open("saves/wdk1.sav");
-		if (!fin.good())
-			file1Function = "New Game";
-		else
-			fin.close();
+		for (int i = 1; i <= 3; i++)
+		{
+			filepath = "saves/wdk" + std::to_string(i) + ".sav";
+			fileFunction = FileExists(filepath) ? "File " + std::to_string(i) : "New Game";
 
-		fin.open("saves/wdk2.sav");
-		if (!fin.good())
-			file2Function = "New Game";
-		else
-			fin.close();
+			MenuButton* buttonFile = new MenuButton(fileFunction, "assets/gui/menu.png",
+				fileFunction, Vector2(buttonPosX, startHeight + (distance * (i-1))), game);
 
-		fin.open("saves/wdk3.sav");
-		if (!fin.good())
-			file3Function = "New Game";
-		else
-			fin.close();
-
-		MenuButton* buttonFile1 = new MenuButton(file1Function, "assets/gui/menu.png",
-			file1Function, Vector2(buttonPosX, startHeight + (distance * 0)), game);
-
-		MenuButton* buttonFile2 = new MenuButton(file2Function, "assets/gui/menu.png",
-			file2Function, Vector2(buttonPosX, startHeight + (distance * 1)), game);
-
-		MenuButton* buttonFile3 = new MenuButton(file3Function, "assets/gui/menu.png",
-			file3Function, Vector2(buttonPosX, startHeight + (distance * 2)), game);
-
-		buttons.emplace_back(buttonFile1);
-		buttons.emplace_back(buttonFile2);
-		buttons.emplace_back(buttonFile3);
+			buttons.emplace_back(buttonFile);
+		}
 
 		AssignButtons(true);
 
@@ -273,6 +252,17 @@ MenuScreen::MenuScreen(std::string n, Game& game)
 		if (selectedButton->image != nullptr)
 			selectedButton->image->SetShader(game.renderer->shaders[ShaderName::Glow]);
 	}		
+}
+
+bool MenuScreen::FileExists(const std::string& filepath)
+{
+	std::fstream fin;
+	fin.open(filepath);
+	if (!fin.good())
+		return false;
+	else
+		fin.close();
+	return true;
 }
 
 //TODO: Maybe rename this to a better name
@@ -443,7 +433,7 @@ bool MenuScreen::PressSelectedButton(Game& game)
 }
 
 
-BaseButton* MenuScreen::GetButtonByName(std::string buttonName)
+BaseButton* MenuScreen::GetButtonByName(const std::string& buttonName)
 {
 	for (int i = 0; i < buttons.size(); i++)
 	{

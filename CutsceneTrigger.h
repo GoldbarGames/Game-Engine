@@ -13,9 +13,9 @@ public:
 	CutsceneTrigger(std::string label, Vector2 pos, float w, float h);
 	~CutsceneTrigger();
 
-	void OnTriggerStay(Entity* other);
-	void OnTriggerEnter(Entity* other);
-	void OnTriggerExit(Entity* other);
+	void OnTriggerStay(Entity& other, Game& game);
+	void OnTriggerEnter(Entity& other, Game& game);
+	void OnTriggerExit(Entity& other, Game& game);
 
 	const SDL_Rect* GetBounds();
 };

@@ -33,8 +33,8 @@ unsigned int Entity::Size()
 	totalSize += sizeof(id);
 	totalSize += sizeof(drawOrder);
 	totalSize += sizeof(layer);
-	totalSize += sizeof(tilesheetIndex);
-	totalSize += sizeof(tileCoordinates);
+	//totalSize += sizeof(tilesheetIndex);
+	//totalSize += sizeof(tileCoordinates);
 	totalSize += sizeof(impassable);
 	totalSize += sizeof(trigger);
 	totalSize += sizeof(jumpThru);
@@ -404,7 +404,7 @@ void Entity::OnTriggerExit(Entity& other, Game& game)
 
 }
 
-void Entity::GetProperties(FontInfo* font, std::vector<Property*>& properties)
+void Entity::GetProperties(std::vector<Property*>& properties)
 {
 	Entity::DeleteProperties(properties);
 	Property* property = new Property("ID", id);

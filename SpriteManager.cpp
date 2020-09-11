@@ -19,7 +19,7 @@ SpriteManager::~SpriteManager()
 	PHYSFS_deinit();
 }
 
-Texture* SpriteManager::GetImage(std::string const& imagePath)
+Texture* SpriteManager::GetImage(std::string const& imagePath) const
 {
 	if (images[imagePath].get() == nullptr)
 	{
@@ -86,14 +86,14 @@ Vector2 SpriteManager::GetPivotPoint(std::string const& filename)
 }
 
 //TODO: Only read this data once at the beginning and then store it for lookup later
-void SpriteManager::ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates)
+void SpriteManager::ReadAnimData(const std::string& dataFilePath, std::vector<AnimState*>& animStates)
 {
 	std::unordered_map<std::string, std::string> args;
 	ReadAnimData(dataFilePath, animStates, args);
 }
 
 //TODO: Only read this data once at the beginning and then store it for lookup later
-void SpriteManager::ReadAnimData(std::string dataFilePath, std::vector<AnimState*>& animStates, 
+void SpriteManager::ReadAnimData(const std::string& dataFilePath, std::vector<AnimState*>& animStates, 
 	std::unordered_map<std::string, std::string>& args)
 {
 	// Get anim data from the file
@@ -184,7 +184,7 @@ void SpriteManager::ReadAnimData(std::string dataFilePath, std::vector<AnimState
 
 			animStates.push_back(new AnimState(stateName, stateSpeed,
 				new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
-					this, spriteFilePath,
+					*this, spriteFilePath,
 					renderer->shaders[ShaderName::Default],
 					Vector2(spritePivotX, spritePivotY))));
 

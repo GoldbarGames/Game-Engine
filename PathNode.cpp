@@ -1,7 +1,7 @@
 #include "PathNode.h"
 #include "Renderer.h"
 
-PathNode::PathNode(Vector2 pos)
+PathNode::PathNode(const Vector2& pos)
 {
 	point = pos;
 

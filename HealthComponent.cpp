@@ -80,7 +80,7 @@ float HealthComponent::GetPercentHP()
 	return currentHP / ((float)maxHP);
 }
 
-void HealthComponent::CreateHealthBar(const Renderer& renderer, Vector2 scale, 
+void HealthComponent::CreateHealthBar(const Renderer& renderer, const Vector2& scale, 
 	Color colorFront, Color colorBack, bool relativeToCamera)
 {
 	if (healthbarFront != nullptr)

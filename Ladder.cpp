@@ -56,5 +56,5 @@ void Ladder::Save(std::ostringstream& level)
 
 	level << std::to_string(id) << " " << etype << " " << pos.x << " " <<
 		pos.y << " " << GetAnimator()->currentState->name
-		<< " " << spriteIndex << "" << std::endl;
+		<< " " << subtype << "" << std::endl;
 }

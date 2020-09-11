@@ -232,9 +232,9 @@ void Platform::Render(const Renderer& renderer)
 	Entity::Render(renderer);
 }
 
-void Platform::GetProperties(FontInfo* font, std::vector<Property*>& properties)
+void Platform::GetProperties(std::vector<Property*>& properties)
 {
-	Entity::GetProperties(font, properties);
+	Entity::GetProperties(properties);
 
 	properties.emplace_back(new Property("Collider Pos X", (int)collider->offset.x));
 	properties.emplace_back(new Property("Collider Pos Y", (int)collider->offset.y));
@@ -349,12 +349,12 @@ void Platform::Save(std::ostringstream& level)
 		if (endBehavior == "")
 			endBehavior = "None";
 
-		level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << spriteIndex << " " << platformType
+		level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << subtype << " " << platformType
 			<< " " << pathID << " " << pathSpeed << " " << endBehavior;
 	}
 	else
 	{
-		level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << spriteIndex << " " << platformType
+		level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << subtype << " " << platformType
 			<< " " << startVelocity.x << " " << startVelocity.y << " " << tilesToMove << " " << shouldLoop;
 	}
 

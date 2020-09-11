@@ -93,7 +93,7 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 
 //TODO: Should this stuff go inside the Background class constructor?
 void Background::CreateBackground(const std::string& n, Vector2 pos, 
-	SpriteManager* spriteManager, const Renderer& renderer)
+	const SpriteManager& spriteManager, const Renderer& renderer)
 {
 	name = n;
 
@@ -135,7 +135,7 @@ void Background::Render(const Renderer& renderer)
 	}
 }
 
-Entity* Background::AddLayer(const Vector2& offset, SpriteManager* spriteManager, 
+Entity* Background::AddLayer(const Vector2& offset, const SpriteManager& spriteManager,
 	const Renderer& renderer, const std::string& filepath, int drawOrder, float parallax)
 {
 	Sprite* layer = new Sprite(1, spriteManager, filepath, 

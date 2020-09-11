@@ -21,22 +21,20 @@ const SDL_Rect* CutsceneTrigger::GetBounds()
 	return &triggerRect;
 }
 
-void CutsceneTrigger::OnTriggerStay(Entity* other)
+void CutsceneTrigger::OnTriggerStay(Entity& other, Game& game)
 {
 
 }
 
-void CutsceneTrigger::OnTriggerEnter(Entity* other)
+void CutsceneTrigger::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other->etype == "player")
+	if (other.etype == "player")
 	{
-		Player* player = static_cast<Player*>(other);
-		if (player->game != nullptr)
-			player->game->cutscene->PlayCutscene(cutsceneLabel.c_str());
+		game.cutscene->PlayCutscene(cutsceneLabel.c_str());
 	}
 }
 
-void CutsceneTrigger::OnTriggerExit(Entity* other)
+void CutsceneTrigger::OnTriggerExit(Entity& other, Game& game)
 {
 
 }

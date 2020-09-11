@@ -18,13 +18,14 @@ public:
 	std::vector<Text*> texts;
 	std::vector<Entity*> images;
 	int selectedButtonIndex = 0;
-	MenuScreen(std::string n, Game& game);
+	MenuScreen(const std::string& n, Game& game);
 	~MenuScreen();
 	void Render(const Renderer& renderer);
 	bool Update(Game& game);
 	bool PressSelectedButton(Game& game);
-	BaseButton* GetButtonByName(std::string buttonName);
+	BaseButton* GetButtonByName(const std::string& buttonName);
 	void AssignButtons(bool useLeftRight);
+	bool FileExists(const std::string& filepath);
 };
 
 #endif

@@ -1377,7 +1377,7 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 
 	manager->images[imageNumber] = new Entity(pos);
 
-	Sprite* newSprite = new Sprite(1, manager->game->spriteManager,
+	Sprite* newSprite = new Sprite(1, *manager->game->spriteManager,
 		filepath, manager->game->renderer->shaders[ShaderName::Default], Vector2(0, 0));
 
 	manager->images[imageNumber]->SetSprite(*newSprite);
@@ -2381,7 +2381,7 @@ int CutsceneCommands::SetClickToContinue(CutsceneParameters parameters)
 		state->name = stateName;
 		state->speed = stateSpeed;
 		state->sprite = new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
-			manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
+			*manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
 			Vector2(spritePivotX, spritePivotY));
 
 		state->sprite->keepPositionRelativeToCamera = true;
@@ -2720,7 +2720,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 		state->name = stateName;
 		state->speed = stateSpeed;
 		state->sprite = new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
-			manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
+			*manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
 			Vector2(spritePivotX, spritePivotY));
 
 		state->sprite->keepPositionRelativeToCamera = true;

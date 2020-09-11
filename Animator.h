@@ -53,13 +53,15 @@ public:
 	void SetFloat(const char* param, float value);
 	void SetInt(const char* param, int value);
 	bool GetBool(const char* param);
+	float GetFloat(const char* param);
+	int GetInt(const char* param);
 
 	void StartTimer();
 	void MapStateNameToState(const std::string& name, AnimState* state);
 
 	unsigned int GetNumberOfStateFromName(const char* name);
 
-	void SetScaleAllStates(Vector2 newScale);
+	void SetScaleAllStates(const Vector2& newScale);
 	void SetRelativeAllStates(bool b);
 
 	AnimState* GetState(const std::string& name);

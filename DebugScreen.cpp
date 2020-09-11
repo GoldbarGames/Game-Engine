@@ -8,7 +8,7 @@
 DebugScreen::DebugScreen(Game& g)
 {
 	game = &g;
-	sprite = new Sprite(0, 0, 1, game->spriteManager, "assets/editor/1pixel.png", game->renderer->shaders[ShaderName::Default], Vector2(0, 0));
+	sprite = new Sprite(0, 0, 1, *game->spriteManager, "assets/editor/1pixel.png", game->renderer->shaders[ShaderName::Default], Vector2(0, 0));
 	camera = &game->renderer->camera;
 	CreateDebugText(DebugText::cursorPositionInScreen, 400, 50);
 	CreateDebugText(DebugText::cursorPositionInWorld, 400, 100);

@@ -101,11 +101,11 @@ Game::Game()
 	//ShaderProgram* shader = renderer->shaders[ShaderName::Default];
 
 	// Initialize debug stuff
-	renderer->debugSprite = new Sprite(0, 0, 24, 24, spriteManager,
+	renderer->debugSprite = new Sprite(0, 0, 24, 24, *spriteManager,
 		"assets/editor/rect-outline.png", renderer->shaders[ShaderName::Default], Vector2(0, 0));
 
 	// Initialize overlay sprite
-	renderer->overlaySprite = new Sprite(0, 0, 24, 24, spriteManager,
+	renderer->overlaySprite = new Sprite(0, 0, 24, 24, *spriteManager,
 		"assets/gui/white.png", renderer->shaders[ShaderName::Default], Vector2(0, 0));
 
 	// Initialize the sprite map (do this BEFORE the editor)
@@ -357,25 +357,25 @@ Vector2 Game::SnapToGrid(Vector2 position)
 	return Vector2(x, y);
 }
 
-Entity* Game::CreateEntity(const std::string& entityName, const Vector2& position, int spriteIndex)
+Entity* Game::CreateEntity(const std::string& entityName, const Vector2& position, int subtype)
 {
 	Entity* newEntity = entityFactory->Create(entityName, position);
 
 	if (newEntity != nullptr)
 	{
-		newEntity->spriteIndex = spriteIndex;
+		newEntity->subtype = subtype;
 
 		std::vector<AnimState*> animStates;
 		std::unordered_map<std::string, std::string> args;
 
 		std::string filepath = entityName + "/";
 
-		args["0"] = std::to_string(spriteIndex);
+		args["0"] = std::to_string(subtype);
 		args["1"] = "";
 
-		if (entityTypes.count(entityName) > 0 && entityTypes[entityName].size() > spriteIndex)
+		if (entityTypes.count(entityName) > 0 && entityTypes[entityName].size() > subtype)
 		{
-			args["1"] = entityTypes[entityName][spriteIndex];
+			args["1"] = entityTypes[entityName][subtype];
 		}
 
 		if (args["1"] != "" && (entityName == "enemy" || entityName == "npc" || entityName == "collectible"))
@@ -441,7 +441,7 @@ Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position
 
 	if (entity != nullptr)
 	{
-		entity->spriteIndex = spriteIndex;
+		entity->subtype = spriteIndex;
 		if (!entity->CanSpawnHere(position, *this))
 		{
 			delete entity;
@@ -457,19 +457,19 @@ Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position
 	return nullptr;
 }
 
-
-Missile* Game::SpawnMissile(Vector2 position)
+//TODO: Remove this function
+Missile* Game::SpawnMissile(const Vector2& position)
 {
-	//TODO: Make a way for this to return false
-
 	Vector2 pivotPoint = Vector2(14, 7);
 
 	std::vector<AnimState*> animStates;
 	//ReadAnimData("data/animations/missile.anim", animStates);
-	animStates.push_back(new AnimState("moving", 100, new Sprite(0, 3, 23, 16, spriteManager, "assets/sprites/spells/debug_missile.png", renderer->shaders[ShaderName::Default], pivotPoint)));
-	animStates.push_back(new AnimState("destroyed", 100, new Sprite(4, 7, 23, 16, spriteManager, "assets/sprites/spells/debug_missile.png", renderer->shaders[ShaderName::Default], pivotPoint, false)));
+	animStates.push_back(new AnimState("moving", 100, new Sprite(0, 3, 23, 16, *spriteManager, 
+		"assets/sprites/spells/debug_missile.png", renderer->shaders[ShaderName::Default], pivotPoint)));
+	animStates.push_back(new AnimState("destroyed", 100, new Sprite(4, 7, 23, 16, *spriteManager, 
+		"assets/sprites/spells/debug_missile.png", renderer->shaders[ShaderName::Default], pivotPoint, false)));
 
-	Missile* missile = new Missile(position - pivotPoint);
+	Missile* missile = new Missile(position);
 
 	Animator* newAnimator = new Animator("debugmissile", animStates, "moving");
 	newAnimator->SetBool("destroyed", false);
@@ -511,38 +511,34 @@ Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE
 	return Vector2(newTileX, newTileY);
 }
 
-Tile* Game::CreateTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer)
+Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet, 
+	const Vector2& position, DrawingLayer drawingLayer)
 {
 	Tile* tile = new Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION
 		|| drawingLayer == DrawingLayer::COLLISION2;
-	//tile->tilesheetIndex = editor->tilesheetIndex;
 
 	return tile;
 }
 
-Tile* Game::SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer)
+Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet, 
+	const Vector2& position, DrawingLayer drawingLayer)
 {
-	//Sprite* tileSprite = new Sprite(Vector2(newTileX, newTileY), spriteManager.GetImage(tilesheet), renderer);
 	Tile* tile = new Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION 
 		|| drawingLayer == DrawingLayer::COLLISION2;
 
-	//tile->etype = "tile";
-	//tile->tileCoordinates = frame;
 	tile->tilesheetIndex = editor->tilesheetIndex;
 	entities.emplace_back(tile);
-
-	//std::cout << tile->Size() << std::endl;
 
 	return tile;
 }
 
-Player* Game::SpawnPlayer(Vector2 position)
+Player* Game::SpawnPlayer(const Vector2& position)
 {
 	// NOTE: Spawning more than one player breaks things
 	Player* player = static_cast<Player*>(SpawnEntity("player", position, 0));
@@ -1300,21 +1296,8 @@ void Game::LoadFile(const std::string& filename)
 	}
 }
 
-
-void Game::SaveScreenshot(std::string filepath)
+void Game::SaveScreenshot(const std::string& filepath)
 {
-	if (filepath == "")
-	{
-		std::string timestamp = CurrentDate() + "-" + CurrentTime();
-		for (int i = 0; i < timestamp.size(); i++)
-		{
-			if (timestamp[i] == ':')
-				timestamp[i] = '-';
-		}
-
-		filepath = "screenshots/screenshot-" + timestamp + ".bmp";
-	}		
-
 	const unsigned int bytesPerPixel = 3;
 
 	unsigned char* pixels = new unsigned char[screenWidth * screenHeight * bytesPerPixel]; // 4 bytes for RGBA
@@ -1325,7 +1308,23 @@ void Game::SaveScreenshot(std::string filepath)
 	//SDL_Surface * screenshot = SDL_CreateRGBSurface(0, screenWidth, screenHeight, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
 	//SDL_RenderReadPixels(renderer->renderer, NULL, SDL_PIXELFORMAT_ARGB8888, screenshot->pixels, screenshot->pitch);
 	invertSDLSurfaceVertically(screenshot);
-	SDL_SaveBMP(screenshot, filepath.c_str());
+	
+	if (filepath == "")
+	{
+		std::string timestamp = CurrentDate() + "-" + CurrentTime();
+		for (int i = 0; i < timestamp.size(); i++)
+		{
+			if (timestamp[i] == ':')
+				timestamp[i] = '-';
+		}
+
+		SDL_SaveBMP(screenshot, ("screenshots/screenshot-" + timestamp + ".bmp").c_str());
+	}
+	else
+	{
+		SDL_SaveBMP(screenshot, filepath.c_str());
+	}
+	
 	SDL_FreeSurface(screenshot);
 
 	delete[] pixels;

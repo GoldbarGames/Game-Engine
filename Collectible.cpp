@@ -103,13 +103,13 @@ void Collectible::Save(std::ostringstream& level)
 	if (physics != nullptr)
 	{
 		level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
-			" " << physics->startPosition.y << " " << spriteIndex << " "
+			" " << physics->startPosition.y << " " << subtype << " "
 			<< drawOrder << " " << (int)layer << " " << impassable << std::endl;
 	}
 	else
 	{
 		level << std::to_string(id) << " " << etype << " " << position.x <<
-			" " << position.y << " " << name << " " << spriteIndex << " "
+			" " << position.y << " " << name << " " << subtype << " "
 			<< drawOrder << " " << (int)layer << " " << impassable << std::endl;
 	}
 

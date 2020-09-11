@@ -240,11 +240,13 @@ public:
 	void SortEntities(std::vector<Entity*>& entityVector);
 	
 	// Spawn functions
-	Tile* CreateTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer);
-	Tile* SpawnTile(Vector2 frame, string tilesheet, Vector2 position, DrawingLayer drawingLayer);
+	Tile* CreateTile(const Vector2& frame, const std::string& tilesheet,
+		const Vector2& position, DrawingLayer drawingLayer);
+	Tile* SpawnTile(const Vector2& frame, const std::string& tilesheet,
+		const Vector2& position, DrawingLayer drawingLayer);
 
-	Player* SpawnPlayer(Vector2 position);
-	Missile* SpawnMissile(Vector2 position);
+	Player* SpawnPlayer(const Vector2& position);
+	Missile* SpawnMissile(const Vector2& position);
 
 	void TransitionLevel();
 
@@ -272,7 +274,7 @@ public:
 	void SaveEditorSettings();
 	void LoadEditorSettings();
 
-	void SaveScreenshot(std::string filepath="");
+	void SaveScreenshot(const std::string& filepath="");
 };
 
 #endif

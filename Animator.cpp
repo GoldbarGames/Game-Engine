@@ -328,7 +328,7 @@ int Animator::GetSpeed()
 	return currentState->speed;
 }
 
-void Animator::SetScaleAllStates(Vector2 newScale)
+void Animator::SetScaleAllStates(const Vector2& newScale)
 {
 	for (auto const& [key, val] : mapNamesToStates)
 	{
@@ -363,21 +363,66 @@ void Animator::SetState(const char* state)
 
 bool Animator::GetBool(const char* param)
 {
-	//TODO: Check if it exists first
+	// NOTE: It's important to check if the variable exists,
+	// otherwise it will store the value as 0 during lookup.
+	// And that would ruin our results later on.
+
+	if (mapTypeToInfo[animatorType]->mapKeysBool.count(param) == 0)
+	{
+		mapTypeToInfo[animatorType]->mapKeysBool[param] = mapTypeToInfo[animatorType]->mapKeysBool.size() + 2;
+	}
+
 	return mapParamsBool[mapTypeToInfo[animatorType]->mapKeysBool[param]];
+}
+
+float Animator::GetFloat(const char* param)
+{
+	if (mapTypeToInfo[animatorType]->mapKeysFloat.count(param) == 0)
+	{
+		mapTypeToInfo[animatorType]->mapKeysFloat[param] = mapTypeToInfo[animatorType]->mapKeysFloat.size() + 2;
+	}
+
+	return mapParamsFloat[mapTypeToInfo[animatorType]->mapKeysFloat[param]];
+}
+
+int Animator::GetInt(const char* param)
+{
+	if (mapTypeToInfo[animatorType]->mapKeysInt.count(param) == 0)
+	{
+		mapTypeToInfo[animatorType]->mapKeysInt[param] = mapTypeToInfo[animatorType]->mapKeysInt.size() + 2;
+	}
+
+	return mapParamsInt[mapTypeToInfo[animatorType]->mapKeysInt[param]];
 }
 
 void Animator::SetBool(const char* param, bool value)
 {
+	// TODO: Extract these out to a generic function (CheckKeyExists)
+
+	if (mapTypeToInfo[animatorType]->mapKeysBool.count(param) == 0)
+	{
+		mapTypeToInfo[animatorType]->mapKeysBool[param] = mapTypeToInfo[animatorType]->mapKeysBool.size() + 2;
+	}
+
 	mapParamsBool[mapTypeToInfo[animatorType]->mapKeysBool[param]] = value;
 }
 
 void Animator::SetFloat(const char* param, float value)
 {
+	if (mapTypeToInfo[animatorType]->mapKeysFloat.count(param) == 0)
+	{
+		mapTypeToInfo[animatorType]->mapKeysFloat[param] = mapTypeToInfo[animatorType]->mapKeysFloat.size() + 2;
+	}
+
 	mapParamsFloat[mapTypeToInfo[animatorType]->mapKeysFloat[param]] = value;
 }
 
 void Animator::SetInt(const char* param, int value)
 {
+	if (mapTypeToInfo[animatorType]->mapKeysInt.count(param) == 0)
+	{
+		mapTypeToInfo[animatorType]->mapKeysInt[param] = mapTypeToInfo[animatorType]->mapKeysInt.size() + 2;
+	}
+
 	mapParamsInt[mapTypeToInfo[animatorType]->mapKeysInt[param]] = value;
 }

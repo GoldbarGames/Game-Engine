@@ -222,7 +222,7 @@ void Enemy::Update(Game& game)
 		{
 			accel = 0;
 		}
-		else if (directionIsRight) //(animator->GetBool("directionIsRight"))
+		else if (animator->GetBool("directionIsRight"))
 		{
 			accel = 0.2f;
 		}
@@ -230,21 +230,20 @@ void Enemy::Update(Game& game)
 		if (physics->isPushed)
 		{
 			physics->isPushed = false;
-			isFlippedOver = true;
 			physics->velocity = Vector2(0, 0);
 			std::cout << animator->currentState->name << std::endl;
-			isFlippedOver = true;
-			isHurt = false;
+			//isFlippedOver = true;
+			//isHurt = false;
 			animator->SetBool("isFlippedOver", true);
 			animator->SetBool("isHurt", false);
 			actionTimer.Start(1500);
 		}
 
-		if (isFlippedOver) // (animator->GetBool("isRecovering"))
+		if (animator->GetBool("isFlippedOver"))
 		{
 			if (actionTimer.HasElapsed())
 			{
-				isFlippedOver = false;
+				//isFlippedOver = false;
 				animator->SetBool("isFlippedOver", false);
 			}
 		}
@@ -255,7 +254,7 @@ void Enemy::Update(Game& game)
 			{
 				accel = 0.2f;
 				physics->velocity.x += accel;
-				directionIsRight = true;
+				//directionIsRight = true;
 				animator->SetBool("directionIsRight", true);
 			}
 			else // if we are moving...
@@ -265,7 +264,7 @@ void Enemy::Update(Game& game)
 				{
 					//std::cout << "COLLISION! " << physics->previousVelocity.x << std::endl;
 					physics->velocity.x = -physics->previousVelocity.x;
-					directionIsRight = (physics->velocity.x > 0);
+					//directionIsRight = (physics->velocity.x > 0);
 					animator->SetBool("directionIsRight", (physics->velocity.x > 0));
 				}
 				else
@@ -401,6 +400,6 @@ void Enemy::OnTriggerExit(Entity& other, Game& game)
 void Enemy::Save(std::ostringstream& level)
 {
 	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
-		" " << physics->startPosition.y << " " << name << " " << spriteIndex << " "
+		" " << physics->startPosition.y << " " << name << " " << subtype << " "
 		<< drawOrder << " " << (int)layer << " " << impassable << std::endl;
 }

@@ -56,7 +56,7 @@ Editor::Editor(Game& g)
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
 	{
 		previewMap[previewMapObjectNames[i]] = game->CreateEntity(previewMapObjectNames[i], 
-			Vector2(0, 0), spriteMapIndex);
+			Vector2(0, 0), entitySubtype);
 	}
 
 	objectPreview = previewMap["tile"];
@@ -145,7 +145,7 @@ void Editor::StartEdit()
 	{
 		for (int i = 0; i < tilesheetFilenames.size(); i++)
 		{
-			tilesheetSprites.push_back(new Sprite(1, game->spriteManager,
+			tilesheetSprites.push_back(new Sprite(1, *game->spriteManager,
 				"assets/tiles/" + tilesheetFilenames[i] + ".png",
 				game->renderer->shaders[ShaderName::NoAlpha], Vector2(0, 0)));
 
@@ -424,33 +424,39 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		{
 			bool foundTile = false;
 			Vector2 coordsToReplace = Vector2(0, 0);
+			Vector2 roundedPosition = RoundToInt(clickedWorldPosition);
+
+			std::vector<Tile*> tilesInLevel;
 
 			for (unsigned int i = 0; i < game->entities.size(); i++)
 			{
-				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedWorldPosition) &&
-					game->entities[i]->layer == drawingLayer &&
-					game->entities[i]->etype == "tile")
+				if (game->entities[i]->etype == "tile")
 				{
 					Tile* tile = static_cast<Tile*>(game->entities[i]);
+					tilesInLevel.push_back(tile);
 
-					// Save the index of the tile
-					coordsToReplace = tile->tileCoordinates;
-					foundTile = true;
+					if (!foundTile)
+					{
+						if (RoundToInt(game->entities[i]->GetPosition()) == roundedPosition &&
+							game->entities[i]->layer == drawingLayer)
+						{
+							// Save the index of the tile
+							coordsToReplace = tile->tileCoordinates;
+							foundTile = true;
+						}
+					}
 				}
 			}
 
 			if (foundTile)
 			{
 				// Replace the tile with the one selected in the sprite sheet
-				for (unsigned int i = 0; i < game->entities.size(); i++)
+				for (unsigned int i = 0; i < tilesInLevel.size(); i++)
 				{
-					if (game->entities[i]->etype == "tile"
-						&& game->entities[i]->tileCoordinates == coordsToReplace)
+					if (tilesInLevel[i]->tileCoordinates == coordsToReplace)
 					{
-						Tile* tile = dynamic_cast<Tile*>(game->entities[i]);
-
 						// Set the index of the tile
-						tile->ChangeSprite(spriteSheetTileFrame,
+						tilesInLevel[i]->ChangeSprite(spriteSheetTileFrame,
 							game->spriteManager->GetImage("assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png"),
 							game->renderer);
 					}
@@ -592,7 +598,7 @@ void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& c
 		// If selected entity was found, then generate text for all properties of it
 		if (selectedEntity != nullptr)
 		{
-			selectedEntity->GetProperties(game->theFont, properties);
+			selectedEntity->GetProperties(properties);
 			SetPropertyPositions();
 		}
 	}
@@ -619,7 +625,7 @@ std::string Editor::GetCurrentPropertyOptionString(int diff)
 void Editor::SetPropertyText(const std::string& newText)
 {	
 	selectedEntity->SetProperty(properties[propertyIndex]->key, newText);
-	selectedEntity->GetProperties(game->theFont, properties);
+	selectedEntity->GetProperties(properties);
 	SetPropertyPositions();
 }
 
@@ -676,7 +682,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (!placingDoor)
 			{
 				std::cout << "trying to spawn entrance" << std::endl;
-				currentDoor = static_cast<Door*>(game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex));
+				currentDoor = static_cast<Door*>(game->SpawnEntity(objectMode, snappedPosition, entitySubtype));
 				if (currentDoor != nullptr)
 				{
 					std::cout << "placing door set true" << std::endl;
@@ -688,7 +694,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			else
 			{
 				std::cout << "trying to spawn destination" << std::endl;
-				Door* destination = static_cast<Door*>(game->SpawnEntity("door", snappedPosition, spriteMapIndex));
+				Door* destination = static_cast<Door*>(game->SpawnEntity("door", snappedPosition, entitySubtype));
 				if (destination != nullptr)
 				{
 					std::cout << "placing door set false" << std::endl;
@@ -708,7 +714,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (!placingLadder)
 			{
 				std::cout << "trying to spawn ladder start" << std::endl;
-				currentLadder = static_cast<Ladder*>(game->SpawnEntity("ladder", snappedPosition, spriteMapIndex));
+				currentLadder = static_cast<Ladder*>(game->SpawnEntity("ladder", snappedPosition, entitySubtype));
 				if (currentLadder != nullptr)
 				{
 					std::cout << "placing ladder set true" << std::endl;
@@ -722,7 +728,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 				if (snappedPosition.x == currentLadder->GetPosition().x)
 				{
 					std::cout << "trying to spawn ladder end" << std::endl;
-					Ladder* ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder", snappedPosition, spriteMapIndex));
+					Ladder* ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder", snappedPosition, entitySubtype));
 					
 					std::vector<Ladder*> ladderGroup;
 					
@@ -754,7 +760,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 							while (snappedPosition.y < currentLadder->GetPosition().y)
 							{
 								ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder", 
-									snappedPosition, spriteMapIndex));
+									snappedPosition, entitySubtype));
 								if (ladderEnd != nullptr)
 									ladderGroup.push_back(ladderEnd);
 								snappedPosition.y += TILE_SIZE * 2;
@@ -766,7 +772,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 							while (snappedPosition.y > currentLadder->GetPosition().y)
 							{
 								ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder",
-									snappedPosition, spriteMapIndex));
+									snappedPosition, entitySubtype));
 								if (ladderEnd != nullptr)
 									ladderGroup.push_back(ladderEnd);
 								snappedPosition.y -= TILE_SIZE * 2;
@@ -795,10 +801,10 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 		}
 		else
 		{
-			Entity* entity = game->SpawnEntity(objectMode, snappedPosition, spriteMapIndex);
+			Entity* entity = game->SpawnEntity(objectMode, snappedPosition, entitySubtype);
 			if (entity != nullptr)
 			{
-				entity->Init(game->entityTypes[objectMode][spriteMapIndex]);
+				entity->Init(game->entityTypes[objectMode][entitySubtype]);
 				game->SortEntities(game->entities);
 			}				
 		}
@@ -1226,13 +1232,13 @@ void Editor::ToggleSpriteMap(int num)
 	if (game->spriteMap.count(objectMode) != 1)
 		return;
 
-	spriteMapIndex += num;
+	entitySubtype += num;
 
-	if (spriteMapIndex < 0)
-		spriteMapIndex = game->spriteMap[objectMode].size() - 1;
+	if (entitySubtype < 0)
+		entitySubtype = game->spriteMap[objectMode].size() - 1;
 
-	if (spriteMapIndex >= game->spriteMap[objectMode].size())
-		spriteMapIndex = 0;
+	if (entitySubtype >= game->spriteMap[objectMode].size())
+		entitySubtype = 0;
 
 	Entity*& prev = previewMap[objectMode];
 
@@ -1251,7 +1257,7 @@ void Editor::ToggleSpriteMap(int num)
 	}
 	else
 	{		
-		prev = game->CreateEntity(objectMode, Vector2(0, 0), spriteMapIndex);
+		prev = game->CreateEntity(objectMode, Vector2(0, 0), entitySubtype);
 	}
 
 	//TODO: How to deal with object modes that return nullptr?
@@ -1313,7 +1319,7 @@ void Editor::ToggleObjectMode(std::string mode)
 	}
 	else
 	{
-		spriteMapIndex = 0;
+		entitySubtype = 0;
 
 		if (mode == "npc" || mode == "enemy" || mode == "collectible")
 			SetLayer(DrawingLayer::COLLISION);
@@ -1725,7 +1731,7 @@ void Editor::CreateLevelFromString(std::string level)
 			{
 				std::string ladderState = tokens[index++];
 				int spriteIndex = std::stoi(tokens[index++]);
-				Ladder* newLadder = static_cast<Ladder*>(game->SpawnEntity("ladder", Vector2(positionX, positionY), spriteMapIndex));
+				Ladder* newLadder = static_cast<Ladder*>(game->SpawnEntity("ladder", Vector2(positionX, positionY), entitySubtype));
 				if (newLadder != nullptr)
 				{
 					newLadder->GetAnimator()->SetState(ladderState.c_str());
@@ -1885,7 +1891,7 @@ void Editor::CreateLevelFromString(std::string level)
 				{
 					//Background* bg = game->SpawnBackground(Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET), bgName);
 					Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
-					game->background->CreateBackground(bgName, bgPos, game->spriteManager, *game->renderer);
+					game->background->CreateBackground(bgName, bgPos, *game->spriteManager, *game->renderer);
 				}
 
 				game->SortEntities(game->background->layers);
@@ -1893,7 +1899,7 @@ void Editor::CreateLevelFromString(std::string level)
 			else // create all other types of entities that don't require special stuff
 			{
 				Entity* entity = game->SpawnEntity(etype, Vector2(positionX, positionY), std::stoi(tokens[index++]));
-				entity->Init(game->entityTypes[etype][spriteMapIndex]);
+				entity->Init(game->entityTypes[etype][entitySubtype]);
 			}
 
 			ss.getline(lineChar, 256);

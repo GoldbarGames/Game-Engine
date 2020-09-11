@@ -19,7 +19,7 @@ public:
 	~Collider();
 
 	void CreateCollider(float x, float y, float w, float h);
-	void CalculateCollider(Vector2 position);
+	void CalculateCollider(const Vector2& position);
 };
 
 #endif

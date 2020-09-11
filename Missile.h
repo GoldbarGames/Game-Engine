@@ -12,7 +12,7 @@ public:
 	Missile(const Vector2& pos);
 	~Missile();
 	void Update(Game& game);
-	void SetVelocity(Vector2 newVelocity);
+	void SetVelocity(const Vector2& newVelocity);
 	void Destroy();
 
 	static Entity* __stdcall Create(const Vector2& pos) { return new Missile(pos); };

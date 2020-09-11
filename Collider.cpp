@@ -24,7 +24,7 @@ void Collider::CreateCollider(float x, float y, float w, float h)
 	//CalculateCollider();
 }
 
-void Collider::CalculateCollider(Vector2 position)
+void Collider::CalculateCollider(const Vector2& position)
 {
 	bounds->w = scale.x;
 	bounds->h = scale.y;

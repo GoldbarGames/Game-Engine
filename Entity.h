@@ -37,7 +37,7 @@ public:
 	Vector2 lastPosition = Vector2(0, 0);
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	Vector2 scale = Vector2(1, 1);
-	int spriteIndex = 0;
+	int subtype = 0;
 
 	Switch* attachedSwitch = nullptr;
 	PhysicsComponent* physics = nullptr;
@@ -62,11 +62,7 @@ public:
 	std::string etype = "entity";
 	int id = 0; //TODO
 	int drawOrder = 0; // order for drawing
-	DrawingLayer layer = DrawingLayer::FRONT;
-
-	// maybe move this to the Tile class
-	int tilesheetIndex = 0;
-	Vector2 tileCoordinates = Vector2(0, 0);	
+	DrawingLayer layer = DrawingLayer::FRONT;	
 
 	Collider* collider = nullptr;
 	SDL_Rect* bounds = nullptr;
@@ -108,7 +104,7 @@ public:
 	virtual void OnClickPressed(Uint32 mouseState, Game& game);
 	virtual void OnClickReleased(Uint32 mouseState, Game& game);
 
-	virtual void GetProperties(FontInfo* font, std::vector<Property*>& properties);
+	virtual void GetProperties(std::vector<Property*>& properties);
 	void DeleteProperties(std::vector<Property*>& properties);
 	virtual void SetProperty(const std::string& key, const std::string& newValue);
 

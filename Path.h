@@ -12,7 +12,7 @@ class Path : public Entity
 public:
 	bool shouldLoop = false;
 	std::vector<PathNode*> nodes;
-	Path(Vector2 startPoint);
+	Path(const Vector2& startPoint);
 	~Path();
 	void AddPointToPath(const Vector2& point);
 	void RemovePointFromPath(const Vector2& point);	
@@ -23,7 +23,7 @@ public:
 
 	void Save(std::ostringstream& level);
 
-	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
+	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
 };
 

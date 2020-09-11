@@ -158,7 +158,7 @@ void Text::SetFont(TTF_Font* newFont)
 }
 
 //TODO: Maybe modify this or make another function to pass in a shader?
-void Text::SetText(std::string text, Color color, Uint32 wrapWidth)
+void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 {
 	// don't do anything if it would result in the same thing
 	if (txt == text && textColor == color)

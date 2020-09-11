@@ -193,12 +193,12 @@ Sprite::Sprite(const Vector2& frame, Texture* image, ShaderProgram* s)
 	currentFrame--;
 }
 
-Sprite::Sprite(int numFrames, SpriteManager* manager, const std::string& filepath,
+Sprite::Sprite(int numFrames, const SpriteManager& manager, const std::string& filepath,
 	ShaderProgram* s, Vector2 newPivot)
 {
 	model = glm::mat4(1.0f);
 	filename = filepath;
-	texture = manager->GetImage(filepath);
+	texture = manager.GetImage(filepath);
 	shader = s;
 
 	CreateMesh();
@@ -215,12 +215,12 @@ Sprite::Sprite(int numFrames, SpriteManager* manager, const std::string& filepat
 	endFrame = numberFramesInTexture;
 }
 
-Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager,
+Sprite::Sprite(int start, int end, int width, int height, const SpriteManager& manager,
 	const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop)
 {
 	model = glm::mat4(1.0f);
 	filename = filepath;
-	texture = manager->GetImage(filepath);
+	texture = manager.GetImage(filepath);
 	shader = s;
 
 	CreateMesh();
@@ -245,11 +245,11 @@ Sprite::Sprite(int start, int end, int width, int height, SpriteManager* manager
 	shouldLoop = loop;
 }
 
-Sprite::Sprite(int start, int end, int numframes, SpriteManager* manager, 
+Sprite::Sprite(int start, int end, int numframes, const SpriteManager& manager,
 	const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop)
 {
 	model = glm::mat4(1.0f);
-	texture = manager->GetImage(filepath);
+	texture = manager.GetImage(filepath);
 	shader = s;
 
 	CreateMesh();

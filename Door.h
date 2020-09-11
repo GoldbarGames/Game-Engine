@@ -17,7 +17,7 @@ public:
 
 	void Update(Game& game);
 
-	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
+	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
 
 	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);

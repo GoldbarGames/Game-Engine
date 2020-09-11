@@ -2,7 +2,7 @@
 #include "Renderer.h"
 #include "Game.h"
 
-Path::Path(Vector2 pos) : Entity(pos)
+Path::Path(const Vector2& pos) : Entity(pos)
 {
 	etype = "path";
 }
@@ -85,12 +85,12 @@ void Path::Render(const Renderer& renderer, unsigned int uniformModel)
 	}
 }
 
-void Path::GetProperties(FontInfo* font, std::vector<Property*>& properties)
+void Path::GetProperties(std::vector<Property*>& properties)
 {
-	Entity::GetProperties(font, properties);
+	Entity::GetProperties(properties);
 
 	std::string loopString = shouldLoop ? "True" : "False";
-	properties.emplace_back(new Property(new Text(font, "Should Loop: " + name)));
+	properties.emplace_back(new Property("Should Loop", name));
 }
 
 void Path::SetProperty(const std::string& key, const std::string& newValue)

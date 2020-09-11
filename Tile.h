@@ -18,6 +18,9 @@ class Renderer;
 class Tile : public Entity
 {
 public:
+	int tilesheetIndex = 0;
+	Vector2 tileCoordinates = Vector2(0, 0);
+
 	void Destroy();
 	void ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer);
 	void Animate();

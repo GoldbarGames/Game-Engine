@@ -47,9 +47,9 @@ void Block::Render(const Renderer& renderer)
 	Entity::Render(renderer);
 }
 
-void Block::GetProperties(FontInfo* font, std::vector<Property*>& properties)
+void Block::GetProperties(std::vector<Property*>& properties)
 {
-	Entity::GetProperties(font, properties);
+	Entity::GetProperties(properties);
 	properties.emplace_back(new Property("Collider Pos X", (int)collider->offset.x));
 	properties.emplace_back(new Property("Collider Pos Y", (int)collider->offset.y));
 	properties.emplace_back(new Property("Collider Width", collider->scale.x));
@@ -85,5 +85,5 @@ void Block::SetProperty(const std::string& key, const std::string& newValue)
 void Block::Save(std::ostringstream& level)
 {
 	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
-		" " << physics->startPosition.y << " " << spriteIndex << std::endl;
+		" " << physics->startPosition.y << " " << subtype << std::endl;
 }

@@ -40,5 +40,5 @@ void Switch::OnTriggerExit(Entity& other, Game& game)
 void Switch::Save(std::ostringstream& level)
 {
 	level << std::to_string(id) << " " << etype << " " << position.x << " " <<
-		position.y << " " << spriteIndex << "" << std::endl;
+		position.y << " " << subtype << "" << std::endl;
 }

@@ -62,9 +62,9 @@ void NPC::OnTriggerExit(Entity& other, Game& game)
 	}
 }
 
-void NPC::GetProperties(FontInfo* font, std::vector<Property*>& properties)
+void NPC::GetProperties(std::vector<Property*>& properties)
 {
-	Entity::GetProperties(font, properties);
+	Entity::GetProperties(properties);
 
 	properties.emplace_back(new Property("Name", name));
 	properties.emplace_back(new Property("Label", cutsceneLabel));

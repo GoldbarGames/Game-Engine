@@ -13,8 +13,6 @@ public:
 	Collider* bottomLeftGround = nullptr;
 	Collider* bottomRightGround = nullptr;
 
-	bool isRecovering, directionIsRight, isFlippedOver, isHurt;
-
 	void Update(Game& game);
 	void Render(const Renderer& renderer);
 

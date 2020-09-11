@@ -100,9 +100,9 @@ bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 	return shouldSpawn;
 }
 
-void Door::GetProperties(FontInfo* font, std::vector<Property*>& properties)
+void Door::GetProperties(std::vector<Property*>& properties)
 {
-	Entity::GetProperties(font, properties);
+	Entity::GetProperties(properties);
 
 	properties.emplace_back(new Property("Name", name));
 	properties.emplace_back(new Property("Is Locked", isLocked));
@@ -137,6 +137,6 @@ void Door::Save(std::ostringstream& level)
 {
 	level << std::to_string(id) << " " << etype << " " << position.x << " " <<
 		position.y << " " << GetDestination().x << " " << GetDestination().y
-		<< " " << spriteIndex << " " << name << " " << isLocked << " " << nextLevelName << 
+		<< " " << subtype << " " << name << " " << isLocked << " " << nextLevelName << 
 		" " << destinationID << std::endl;
 }

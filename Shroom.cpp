@@ -26,7 +26,7 @@ Shroom::~Shroom()
 
 void Shroom::Update(Game& game)
 {
-	physics->canBePushed = (spriteIndex == 1);
+	physics->canBePushed = (subtype == 1);
 
 	if (animator->GetBool("isBouncing") && currentSprite->HasAnimationElapsed())
 	{
@@ -52,5 +52,5 @@ void Shroom::OnTriggerEnter(Entity& other, Game& game)
 void Shroom::Save(std::ostringstream& level)
 {
 	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
-		" " << physics->startPosition.y << " " << spriteIndex << std::endl;
+		" " << physics->startPosition.y << " " << subtype << std::endl;
 }

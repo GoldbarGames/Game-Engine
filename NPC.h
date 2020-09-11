@@ -15,7 +15,7 @@ public:
 	void OnTriggerEnter(Entity& other, Game& game);
 	void OnTriggerExit(Entity& other, Game& game);
 	void ChangeCollider(float x, float y, float w, float h);
-	void GetProperties(FontInfo* font, std::vector<Property*>& properties);
+	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
 	void Save(std::ostringstream& level);
 
