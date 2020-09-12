@@ -4,7 +4,9 @@
 
 #include <SDL.h>
 #include <string>
+#include <vector>
 
+class Entity;
 class Game;
 class Renderer;
 class Sprite;
@@ -17,12 +19,15 @@ public:
 	bool isUnlocked = true;
 	bool isCasting = false;
 
+	std::vector<Entity*> affectedEntities;
+
 	Sprite* spellRangeSprite = nullptr;
 	SDL_Rect spellRangeRect;
 
 	bool Cast(Game &game);
 	bool CastPush(Game& game);
 
+	void Update(Game& game);
 	void Render(const Renderer& renderer);
 
 	Spell();

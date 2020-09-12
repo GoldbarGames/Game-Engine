@@ -20,9 +20,27 @@ void Spell::Render(const Renderer& renderer)
 	}
 }
 
+void Spell::Update(Game& game)
+{
+	if (isCasting)
+	{
+		switch (activeSpell)
+		{
+		case 0:
+			CastPush(game);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+
 bool Spell::Cast(Game& game)
 {
 	bool success = false;
+
+	affectedEntities.clear();
 
 	// Stop moving horizontally at the start of casting a spell
 	game.player->physics->velocity.x = 0;
@@ -83,22 +101,24 @@ bool Spell::CastPush(Game& game)
 	// 4. If the collider intersects with anything that can be pushed,
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
-		if (game.entities[i]->etype == "block")
-			int test = 0;
+
+		bool alreadyAffectedBySpell = false;
+		for (int k = 0; k < affectedEntities.size(); k++)
+		{
+			if (game.entities[i] == affectedEntities[k])
+			{
+				alreadyAffectedBySpell = true;
+				break;
+			}
+		}
+
+		if (alreadyAffectedBySpell)
+		{
+			continue;
+		}
 
 		const SDL_Rect* theirBounds = game.entities[i]->GetBounds();
 		newRectTheirs = ConvertCoordsFromCenterToTopLeft(*theirBounds);
-
-		if (game.entities[i]->etype == "block" && game.debugMode)
-		{
-			std::cout << "Ours:" << std::endl;
-			std::cout << "x: " << newRectOurs.x << ", y: " << newRectOurs.y << ", w: " <<
-				newRectOurs.w << ", h: " << newRectOurs.h << std::endl;
-
-			std::cout << "Theirs:" << std::endl;
-			std::cout << "x: " << newRectTheirs.x << ", y: " << newRectTheirs.y << ", w: " <<
-				newRectTheirs.w << ", h: " << newRectTheirs.h << std::endl;
-		}
 
 		if (HasIntersection(newRectOurs, newRectTheirs))
 		{
@@ -108,7 +128,10 @@ bool Spell::CastPush(Game& game)
 			{
 				// 5. Then make that object move until it hits a wall
 				if (entity->physics->canBePushed)
+				{
 					entity->physics->Push(pushVelocity);
+					affectedEntities.push_back(entity);
+				}				
 			}
 		}
 	}

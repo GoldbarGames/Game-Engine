@@ -54,7 +54,7 @@ bool PhysicsComponent::IsEntityPushingOther(Entity* their, bool x)
 	if (x)
 	{
 		float diffPosX = their->GetPosition().x - our->GetPosition().x;
-		return (velocity.x > 0 && diffPosX > 0) || (velocity.x < 0 && diffPosX < 0);
+		return (their->physics->velocity.x > 0 && diffPosX > 0) || (their->physics->velocity.x < 0 && diffPosX < 0);
 	}
 	else
 	{

@@ -126,8 +126,10 @@ void Player::Update(Game& game)
 
 			physics->CheckCollisions(game);
 		}
-			
 
+		spell.Update(game);			
+
+		// Check if an enemy has been hit by our attack
 		if (closeRangeAttackCollider != nullptr)
 		{
 			etype = "debug_missile";
@@ -140,15 +142,12 @@ void Player::Update(Game& game)
 
 			closeRangeAttackCollider->CalculateCollider(position);
 
+			// Check if an enemy has been hit by our attack
 			for (unsigned int i = 0; i < game.entities.size(); i++)
 			{
 				game.collisionChecks++;
 
 				Entity* entity = game.entities[i];
-
-				if (entity->name == "crawler")
-					int test = 0;
-
 				if (entity == this)
 					continue;
 
