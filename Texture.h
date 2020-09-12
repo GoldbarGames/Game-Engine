@@ -11,7 +11,7 @@ public:
 	Texture(const char* path);
 	~Texture();
 
-	void LoadTexture();
+	void LoadTexture(unsigned int& buffer, int w, int h);
 	void LoadTexture(SDL_Surface* surface, bool reset=false);
 	void UseTexture();
 	void ClearTexture();
@@ -19,9 +19,7 @@ public:
 	int GetHeight() { return height; }
 private:
 	GLuint textureID;
-	int width, height, bitDepth;
-	bool rgba;
-
+	int width, height;
 	const char* filePath;
 };
 

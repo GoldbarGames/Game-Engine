@@ -15,9 +15,7 @@
 #include "Dialog.h"
 #include "HealthComponent.h"
 
-using std::string;
-
-Mesh* Game::CreateSpriteMesh()
+Mesh* Game::CreateQuadMesh()
 {
 	unsigned int quadIndices[] = {
 		0, 3, 1,
@@ -277,6 +275,33 @@ void Game::InitOpenGL()
 	renderer->guiCamera.Update();
 
 	renderer->CreateShaders(); // we must create the shaders at this point
+
+	//screenMesh = CreateQuadMesh();
+
+	glGenFramebuffers(1, &framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	Texture* screenTexture = new Texture("");
+	screenTexture->LoadTexture(textureColorBuffer, screenWidth, screenHeight);
+
+	screenSprite = new Sprite(screenTexture, renderer->shaders[ShaderName::Default]);
+	screenSprite->keepPositionRelativeToCamera = true;
+	screenSprite->keepScaleRelativeToCamera = true;
+	screenSprite->SetScale(Vector2(1.0f, -1.0f));
+
+	// attach it to currently bound framebuffer object
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer, 0);
+
+	glGenRenderbuffers(1, &renderBufferObject);
+	glBindRenderbuffer(GL_RENDERBUFFER, renderBufferObject);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBufferObject);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Game::InitSDL()
@@ -1482,11 +1507,35 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 	renderer->screenScale = Vector2(screenWidth / 1280.0f, screenHeight / 720.0f);
 }
 
+
 void Game::Render()
 {
-	// Clear window	
+	// first pass
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
+	//glEnable(GL_DEPTH_TEST);
+
+	RenderScene();
+
+	// second pass
+	glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	//glDisable(GL_DEPTH_TEST);
+
+	// TODO: Set post-processing shaders here
+	screenSprite->SetShader(renderer->shaders[ShaderName::Blur]);
+	screenSprite->Render(Vector2(screenWidth, screenHeight), *renderer);
+
+	glUseProgram(0);
+	SDL_GL_SwapWindow(window);
+}
+
+
+void Game::RenderScene()
+{
 	// Render editor grid
 	if (editMode)
 	{
@@ -1541,7 +1590,7 @@ void Game::Render()
 
 	if (showFPS)
 		fpsText->Render(*renderer);
-	
+
 	if (showTimer)
 		timerText->Render(*renderer);
 
@@ -1549,7 +1598,7 @@ void Game::Render()
 	{
 		//bugText->Render(renderer);
 		//etherText->Render(renderer);
-	}	
+	}
 
 	// Draw anything in the cutscenes
 	cutscene->Render(*renderer); // includes the overlay
@@ -1557,7 +1606,7 @@ void Game::Render()
 	// Render editor toolbox
 	if (editMode)
 	{
-		editor->Render(*renderer);		
+		editor->Render(*renderer);
 	}
 
 	//if (GetModeDebug())
@@ -1571,15 +1620,10 @@ void Game::Render()
 			if (quadrantEntities.size() > 0)
 				quadTree->RenderEntities(*renderer, quadrantEntities);
 		}
-			
+
 		debugScreen->Render(*renderer);
 	}
 #endif
-
-
-
-	glUseProgram(0);
-	SDL_GL_SwapWindow(window);
 }
 
 std::vector<std::string> Game::ReadStringsFromFile(const std::string& filepath)

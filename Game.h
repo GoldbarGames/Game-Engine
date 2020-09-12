@@ -79,7 +79,9 @@ private:
 	std::unordered_map<std::string, Animator*> animators;
 	std::unordered_map<std::string, Mesh*> meshes;
 
-	Mesh* CreateSpriteMesh();
+	Sprite* screenSprite = nullptr;
+
+	Mesh* CreateQuadMesh();
 	Mesh* CreateCubeMesh();
 public:
 
@@ -142,10 +144,17 @@ public:
 	std::unordered_map<std::string, MenuScreen*> allMenus;
 	std::vector<SDL_Rect*> debugRectangles;
 
+
+	unsigned int framebuffer;
+	unsigned int renderBufferObject;
+	unsigned int textureColorBuffer;
+
+
 	void InitOpenGL();
 
 	void Update();
 	void Render();
+	void RenderScene();
 	bool SetOpenGLAttributes();
 
 	bool HandleEvent(SDL_Event& event);

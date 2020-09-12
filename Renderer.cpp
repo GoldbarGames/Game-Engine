@@ -38,6 +38,10 @@ void Renderer::CreateShaders()
 	CreateShader(ShaderName::NoAlpha, "data/shaders/default.vert", "data/shaders/noalpha.frag");
 	CreateShader(ShaderName::SolidColor, "data/shaders/default.vert", "data/shaders/solidcolor.frag");
 	CreateShader(ShaderName::Grid, "data/shaders/default.vert", "data/shaders/grid.frag");
+	CreateShader(ShaderName::Grayscale, "data/shaders/default.vert", "data/shaders/grayscale.frag");
+	CreateShader(ShaderName::Sharpen, "data/shaders/default.vert", "data/shaders/sharpen.frag");
+	CreateShader(ShaderName::Blur, "data/shaders/default.vert", "data/shaders/blur.frag");
+	CreateShader(ShaderName::Edge, "data/shaders/default.vert", "data/shaders/edge.frag");
 
 	textShader = shaders[ShaderName::GUI];
 }

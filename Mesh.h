@@ -16,6 +16,7 @@ public:
 		unsigned int numOfVertices, unsigned int numOfIndices,
 		unsigned int v = 5, unsigned int offset = 3);
 
+	void BindMesh();
 	void RenderMesh();
 	void ClearMesh();
 

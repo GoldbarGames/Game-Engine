@@ -40,6 +40,11 @@ void Mesh::CreateMesh(GLfloat* vertices, unsigned int* indices,
     glBindVertexArray(0);
 }
 
+void Mesh::BindMesh()
+{
+    glBindVertexArray(VAO);
+}
+
 void Mesh::RenderMesh()
 {
     if (indexCount > 0)

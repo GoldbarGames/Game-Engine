@@ -1,11 +1,11 @@
 #include "Texture.h"
+#include <iostream>
 
 Texture::Texture(const char* path)
 {
 	textureID = 0;
 	width = 0;
 	height = 0;
-	bitDepth = 0;
 	filePath = path;
 }
 
@@ -14,9 +14,17 @@ Texture::~Texture()
 	ClearTexture();
 }
 
-void Texture::LoadTexture()
+void Texture::LoadTexture(unsigned int& buffer, int w, int h)
 {
-	
+	width = w;
+	height = h;
+	glGenTextures(1, &buffer);
+	glBindTexture(GL_TEXTURE_2D, buffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	textureID = buffer;
 }
 
 void Texture::LoadTexture(SDL_Surface* surface, bool reset)
@@ -26,6 +34,7 @@ void Texture::LoadTexture(SDL_Surface* surface, bool reset)
 	
 	glGenTextures(1, &textureID);	
 	glBindTexture(GL_TEXTURE_2D, textureID);
+	//std::cout << textureID << std::endl;
 
 	int Mode = GL_RGB;
 
@@ -74,5 +83,4 @@ void Texture::ClearTexture()
 	textureID = 0;
 	width = 0;
 	height = 0;
-	bitDepth = 0;
 }
