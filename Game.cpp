@@ -1187,10 +1187,10 @@ bool Game::HandleEvent(SDL_Event& event)
 				LoadLevel(nextLevel);
 				break;
 			case SDLK_8: // save game
-				SaveFile("wdk1.sav");
+				SaveFile(currentSaveFileName);
 				break;
 			case SDLK_9: // load game
-				LoadFile("wdk1.sav");
+				LoadFile(currentSaveFileName);
 				break;
 			case SDLK_1: // toggle Debug mode
 				debugMode = !debugMode;
@@ -1289,6 +1289,7 @@ void Game::LoadFile(const std::string& filename)
 			player->health->SetMaxHP(cutscene->commands.numberVariables[204]);
 			player->health->SetCurrentHP(cutscene->commands.numberVariables[205]);
 		}
+		renderer->camera.FollowTarget(*this, true);
 	}
 	catch (std::exception ex)
 	{

@@ -64,7 +64,7 @@ void Enemy::Init(const std::string& n)
 	{
 		physics->useGravity = false;
 		physics->canBePushed = true;
-		health->showHealthBar = false;
+		health->showHealthBar = true;
 		CreateCollider(0, 0, 14, 14);
 		actionTimer.Start(1000);
 	}
@@ -85,6 +85,8 @@ void Enemy::Update(Game& game)
 	// and then check the individual variables (components)
 
 	health->position = position + Vector2(0, -50);
+
+	bool facePlayer = true;
 
 	if (name == "crawler")
 	{
@@ -295,6 +297,7 @@ void Enemy::Update(Game& game)
 	}
 	else if (name == "beehive")
 	{
+		facePlayer = false;
 		if (animator->GetBool("isGrounded") && !animator->GetBool("spawnedBees"))
 		{
 			//TODO: Make this a function we can use elsewhere
@@ -347,10 +350,14 @@ void Enemy::Update(Game& game)
 		}
 	}
 
-	if (game.player->position.x > position.x)
-		scale.x = -1.0f;
-	else
-		scale.x = 1.0f;
+	if (facePlayer)
+	{
+		if (game.player->position.x > position.x)
+			scale.x = -1.0f;
+		else
+			scale.x = 1.0f;
+	}
+
 
 	physics->Update(game);
 }

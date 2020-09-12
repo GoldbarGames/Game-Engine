@@ -222,7 +222,9 @@ void Player::UpdateNormally(Game& game)
 	pressingRight = (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D]);
 	physics->hadPressedJump = physics->pressingJumpButton;
 	physics->pressingJumpButton = input[SDL_SCANCODE_X];
+	pressingRun = input[SDL_SCANCODE_Z];
 
+	animator->SetBool("isRunning", false);
 	animator->SetBool("walking", false);
 	animator->SetBool("holdingUp", pressingUp);
 	animator->SetBool("holdingDown", pressingDown);
@@ -516,25 +518,34 @@ void Player::GetMoveInput(const Uint8* input)
 	if (pressingLeft)
 	{
 		animator->SetBool("walking", true);
+		animator->SetBool("isRunning", pressingRun);
 		physics->velocity.x -= physics->horizontalSpeed;
 		scale.x = -1;
 	}
 	else if (pressingRight)
 	{
 		animator->SetBool("walking", true);
+		animator->SetBool("isRunning", pressingRun);
 		physics->velocity.x += physics->horizontalSpeed;
 		scale.x = 1;
 	}
 	else
 	{
 		//physics->velocity.x = 0;
+		animator->SetBool("isRunning", false);
 		physics->ApplyFriction(0.05f);
 	}
 
-	if (physics->velocity.x > physics->maxHorizontalSpeed)
-		physics->velocity.x = physics->maxHorizontalSpeed;
-	else if (physics->velocity.x < -physics->maxHorizontalSpeed)
-		physics->velocity.x = -physics->maxHorizontalSpeed;
+	float runFactor = 1.0f;
+	if (pressingRun)
+	{
+		runFactor = 1.5f;
+	}
+
+	if (physics->velocity.x > runFactor * physics->maxHorizontalSpeed)
+		physics->velocity.x = runFactor * physics->maxHorizontalSpeed;
+	else if (physics->velocity.x < runFactor  * -physics->maxHorizontalSpeed)
+		physics->velocity.x = runFactor  * -physics->maxHorizontalSpeed;
 }
 
 void Player::CheckJumpButton(const Uint8* input)

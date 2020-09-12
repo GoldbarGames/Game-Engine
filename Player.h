@@ -24,6 +24,7 @@ private:
 	bool pressingDown = false;
 	bool pressingLeft = false;
 	bool pressingRight = false;
+	bool pressingRun = false;
 public:
 	Game* game = nullptr;
 	Door* currentDoor = nullptr;
