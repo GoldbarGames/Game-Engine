@@ -12,6 +12,7 @@
 #include "Switch.h"
 #include "Collectible.h"
 #include "Checkpoint.h"
+#include "Tree.h"
 
 using std::string;
 
@@ -49,7 +50,7 @@ Editor::Editor(Game& g)
 	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 
 	//TODO: Read this in from a file
-	previewMapObjectNames = { "door", "ladder",
+	previewMapObjectNames = { "door", "ladder", "tree",
 		"block", "platform", "shroom", "switch", "checkpoint",
 		"npc", "enemy", "collectible" };
 
@@ -96,7 +97,7 @@ void Editor::CreateEditorButtons()
 	// TODO: Maybe read these in from a file too
 	std::vector<string> buttonNames = { "newlevel", "load", "save", "tileset", "inspect", 
 		"grid", "map", "door", "ladder", "npc", "enemy", "checkpoint", "switch", "platform", 
-		"block", "collectible", "shroom",
+		"tree", "block", "collectible", "shroom",
 		"undo", "redo", "replace", "copy", "grab", "path"  };
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
@@ -1692,7 +1693,8 @@ void Editor::CreateLevelFromString(std::string level)
 				int frameX = std::stoi(tokens[index++]);
 				int frameY = std::stoi(tokens[index++]);
 
-				Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), "assets/tiles/" + tilesheetFilenames[tilesheet] + ".png",
+				Tile* newTile = game->SpawnTile(Vector2(frameX, frameY), 
+					"assets/tiles/" + tilesheetFilenames[tilesheet] + ".png",
 					Vector2(positionX, positionY), (DrawingLayer)layer);
 
 				if (passableState == 2)
@@ -1824,6 +1826,16 @@ void Editor::CreateLevelFromString(std::string level)
 			{
 				int spriteIndex = std::stoi(tokens[index++]);
 				Switch* newSwitch = static_cast<Switch*>(game->SpawnEntity("switch", Vector2(positionX, positionY), spriteIndex));
+			}
+			else if (etype == "tree")
+			{
+				int subtype = std::stoi(tokens[index++]);
+				Tree* tree = static_cast<Tree*>(game->SpawnEntity("tree", Vector2(positionX, positionY), subtype));
+				if (tree != nullptr)
+				{
+					tree->hiddenEntityID = std::stoi(tokens[index++]);
+					tree->Init(game->entityTypes[etype][subtype]);
+				}
 			}
 			else if (etype == "platform")
 			{
@@ -1983,6 +1995,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 	game->quadTree = new QuadTree(-4000, -4000, 8000, 8000);
 
 	ClearLevelEntities();
+	entitySubtype = 0;
 
 	if (levelName != "")
 		game->currentLevel = levelName;

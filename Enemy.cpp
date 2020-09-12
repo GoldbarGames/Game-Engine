@@ -52,6 +52,22 @@ void Enemy::Init(const std::string& n)
 		CreateCollider(0, 0, 33, 29);
 		//animator->SetBool("directionIsRight", true);
 	}
+	else if (name == "beehive")
+	{
+		physics->useGravity = false;
+		physics->canBePushed = false;
+		health->showHealthBar = false;
+		CreateCollider(0, 0, 17, 25);
+		layer = DrawingLayer::INVISIBLE;
+	}
+	else if (name == "bees")
+	{
+		physics->useGravity = false;
+		physics->canBePushed = true;
+		health->showHealthBar = false;
+		CreateCollider(0, 0, 14, 14);
+		actionTimer.Start(1000);
+	}
 }
 
 Enemy::~Enemy()
@@ -275,6 +291,59 @@ void Enemy::Update(Game& game)
 						physics->velocity.x = std::max(-MAX_SPEED, physics->velocity.x + accel);
 				}
 			}
+		}
+	}
+	else if (name == "beehive")
+	{
+		if (animator->GetBool("isGrounded") && !animator->GetBool("spawnedBees"))
+		{
+			//TODO: Make this a function we can use elsewhere
+			for (int i = 0; i < game.entityTypes["enemy"].size(); i++)
+			{
+				if (game.entityTypes["enemy"][i] == "bees")
+				{
+					Enemy* bees = static_cast<Enemy*>(game.SpawnEntity("enemy", position, i));
+					bees->Init("bees");
+					animator->SetBool("spawnedBees", true);
+					trigger = false;
+					break;
+				}
+			}					
+		}
+	}
+	else if (name == "bees")
+	{
+		float accel = 0.02f;
+		float MAX_SPEED = 0.5f;
+
+		float distanceToPlayer = std::abs(position.x - game.player->position.x) +
+			std::abs(position.y - game.player->position.y);
+
+		if (actionTimer.HasElapsed())
+		{
+			animator->SetBool("isSwarming", true);
+
+			if (game.player->position.x > position.x)
+				physics->velocity.x = std::min(MAX_SPEED, physics->velocity.x + accel);
+			else
+				physics->velocity.x = std::max(-MAX_SPEED, physics->velocity.x - accel);
+
+			if (game.player->position.y > position.y)
+				physics->velocity.y = std::min(MAX_SPEED, physics->velocity.y + accel);
+			else
+				physics->velocity.y = std::max(-MAX_SPEED, physics->velocity.y - accel);
+		}
+		else
+		{
+			if (physics->velocity.x < 0)
+				physics->velocity.x = std::min(0.0f, physics->velocity.x + accel);
+			else if (physics->velocity.x > 0)
+				physics->velocity.x = std::max(0.0f, physics->velocity.x - accel);
+
+			if (physics->velocity.y < 0)
+				physics->velocity.y = std::min(0.0f, physics->velocity.y + accel);
+			else if (physics->velocity.y > 0)
+				physics->velocity.y = std::max(0.0f, physics->velocity.y - accel);
 		}
 	}
 

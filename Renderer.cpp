@@ -20,6 +20,7 @@ Renderer::Renderer(Game* g)
 	layersVisible[DrawingLayer::COLLISION] = true;
 	layersVisible[DrawingLayer::COLLISION2] = true;
 	layersVisible[DrawingLayer::FRONT] = true;
+	layersVisible[DrawingLayer::INVISIBLE] = false;
 
 	timerOverlayColor.Start(1);
 }

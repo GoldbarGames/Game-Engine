@@ -11,6 +11,7 @@
 #include "Switch.h"
 #include "Collectible.h"
 #include "Checkpoint.h"
+#include "Tree.h"
 
 EntityFactory::EntityFactory()
 {
@@ -28,6 +29,7 @@ EntityFactory::EntityFactory()
     Register("enemy", &Enemy::Create);
     Register("switch", &Switch::Create);
     Register("checkpoint", &Checkpoint::Create);
+    Register("tree", &Tree::Create);
 }
 
 void EntityFactory::Register(const std::string& entityName, CreateEntity pfnCreate)

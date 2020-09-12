@@ -1,6 +1,7 @@
 #include "Spell.h"
 #include "Game.h"
 #include "PhysicsComponent.h"
+#include "Tree.h"
 
 Spell::Spell() 
 { 
@@ -101,7 +102,6 @@ bool Spell::CastPush(Game& game)
 	// 4. If the collider intersects with anything that can be pushed,
 	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
-
 		bool alreadyAffectedBySpell = false;
 		for (int k = 0; k < affectedEntities.size(); k++)
 		{
@@ -132,6 +132,12 @@ bool Spell::CastPush(Game& game)
 					entity->physics->Push(pushVelocity);
 					affectedEntities.push_back(entity);
 				}				
+			}
+			else if (entity->etype == "tree")
+			{
+				// TODO: Maybe do this differently?
+				affectedEntities.push_back(entity);
+				entity->GetAnimator()->SetBool("isPushed", true);
 			}
 		}
 	}

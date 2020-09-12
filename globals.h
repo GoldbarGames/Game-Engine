@@ -12,7 +12,8 @@ const int TILE_SIZE = 24;
 const int SCREEN_FPS = 60;
 const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
-enum class DrawingLayer { BACK = 0, MIDDLE = 10, OBJECT = 20, COLLISION = 30, COLLISION2 = 35, FRONT = 40 };
+enum class DrawingLayer { BACK = 0, MIDDLE = 10, OBJECT = 20, 
+	COLLISION = 30, COLLISION2 = 35, FRONT = 40, INVISIBLE = 99 };
 
 struct Color {
 	uint8_t r = 0;
