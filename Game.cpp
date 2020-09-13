@@ -276,32 +276,47 @@ void Game::InitOpenGL()
 
 	renderer->CreateShaders(); // we must create the shaders at this point
 
-	//screenMesh = CreateQuadMesh();
+	screenSprite = InitFramebuffer(framebuffer, textureColorBuffer, renderBufferObject);
+	prevScreenSprite = InitFramebuffer(prevFramebuffer, prevTextureColorBuffer, prevRenderBufferObject);
 
-	glGenFramebuffers(1, &framebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	/*
+	prevScreenSprite = new Sprite(screenSprite->texture, renderer->shaders[ShaderName::Default]);	
+	prevScreenSprite->keepPositionRelativeToCamera = true;
+	prevScreenSprite->keepScaleRelativeToCamera = true;
+	prevScreenSprite->color = { 255, 255, 255, 0 };
+	prevScreenSprite->SetScale(Vector2(1.0f, -1.0f));
+	*/
+
+}
+
+Sprite* Game::InitFramebuffer(unsigned int& fbo, unsigned int& tex, unsigned int& rbo)
+{
+	glGenFramebuffers(1, &fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
 	Texture* screenTexture = new Texture("");
-	screenTexture->LoadTexture(textureColorBuffer, screenWidth, screenHeight);
+	screenTexture->LoadTexture(tex, screenWidth, screenHeight);
 
-	screenSprite = new Sprite(screenTexture, renderer->shaders[ShaderName::Default]);
-	screenSprite->keepPositionRelativeToCamera = true;
-	screenSprite->keepScaleRelativeToCamera = true;
-	screenSprite->SetScale(Vector2(1.0f, -1.0f));
+	Sprite* sprite = new Sprite(screenTexture, renderer->shaders[ShaderName::Default]);
+	sprite->keepPositionRelativeToCamera = true;
+	sprite->keepScaleRelativeToCamera = true;
+	sprite->SetScale(Vector2(1.0f, -1.0f));
 
 	// attach it to currently bound framebuffer object
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
 
-	glGenRenderbuffers(1, &renderBufferObject);
-	glBindRenderbuffer(GL_RENDERBUFFER, renderBufferObject);
+	glGenRenderbuffers(1, &rbo);
+	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBufferObject);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	return sprite;
 }
 
 void Game::InitSDL()
@@ -1405,6 +1420,15 @@ void Game::Update()
 {
 	shouldQuit = CheckInputs();
 	CheckDeleteEntities();
+
+	if (!updateScreenTexture)
+	{
+		updateScreenTexture = !cutscene->watchingCutscene || cutscene->printNumber > 0;
+	}
+
+	//if (updateScreenTexture)
+	//	return;
+
 	renderer->Update();
 
 	if (openedMenus.size() > 0)
@@ -1519,6 +1543,40 @@ void Game::Render()
 	RenderScene();
 
 	// second pass
+	bool renderSecondFrameBuffer = false;
+
+	if (updateScreenTexture)
+	{
+		renderSecondFrameBuffer = true;
+		float difference = cutscene->printTimer.endTime - cutscene->printTimer.startTicks;
+
+		float t = 1.0f;
+		if (difference != 0)
+		{
+			t = (cutscene->printTimer.GetTicks() / difference); // percentage of passed time
+		}
+
+		if (t > 1.0f)
+			t = 1.0f;
+
+		float alpha = prevScreenSprite->color.a;
+		LerpCoord(alpha, 255, 0, t);
+		prevScreenSprite->color.a = alpha;
+
+		if (prevScreenSprite->color.a <= 0)
+		{
+			//std::cout << "RENDER SECOND SCENE" << std::endl;
+			updateScreenTexture = false;
+			glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer);
+			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
+			//glEnable(GL_DEPTH_TEST);
+			RenderScene();
+			prevScreenSprite->color.a = 255;
+		}
+	}
+
+	// final pass
 	glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1526,8 +1584,27 @@ void Game::Render()
 	//glDisable(GL_DEPTH_TEST);
 
 	// TODO: Set post-processing shaders here
-	screenSprite->SetShader(renderer->shaders[ShaderName::Blur]);
+
+	screenSprite->SetShader(renderer->shaders[ShaderName::Default]);
 	screenSprite->Render(Vector2(screenWidth, screenHeight), *renderer);
+
+	if (renderSecondFrameBuffer)
+	{
+		prevScreenSprite->Render(Vector2(screenWidth, screenHeight), *renderer);
+	}
+
+
+	/*
+	screenSprite->SetScale(Vector2(0.5f, -0.5f));
+	screenSprite->SetShader(renderer->shaders[ShaderName::Sharpen]);
+	screenSprite->Render(Vector2(screenWidth/2, screenHeight/2), *renderer);
+	screenSprite->SetShader(renderer->shaders[ShaderName::Test]);
+	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight + (screenHeight / 2)), *renderer);
+	screenSprite->SetShader(renderer->shaders[ShaderName::Grayscale]);
+	screenSprite->Render(Vector2(screenWidth/2, screenHeight + (screenHeight/2)), *renderer);
+	screenSprite->SetShader(renderer->shaders[ShaderName::Edge]);
+	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight/2), *renderer);
+	*/
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);

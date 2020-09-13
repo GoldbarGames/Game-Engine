@@ -1348,6 +1348,11 @@ int CutsceneCommands::ClearSprite(CutsceneParameters parameters)
 			delete manager->images[imageNumber];
 
 		manager->images[imageNumber] = nullptr;
+
+		if (parameters.size() > 2)
+		{
+			PrintCommand({ "print", parameters[2] });
+		}
 	}
 
 	return 0;
@@ -1366,6 +1371,11 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 		const unsigned int x = ParseNumberValue(parameters[3]);
 		const unsigned int y = ParseNumberValue(parameters[4]);
 		pos = Vector2(x, y);
+
+		if (parameters.size() > 5)
+			PrintCommand({ "print", parameters[5] });
+		else
+			PrintCommand({ "print", "1" });
 	}
 
 	std::string filepath = pathPrefix + ParseStringValue(parameters[2]);
@@ -1420,6 +1430,11 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 				break;
 		}
 		manager->images[imageNumber]->SetPosition(pos);
+
+		if (parameters.size() > 3)
+			PrintCommand({ "print", parameters[3] });
+		else
+			PrintCommand({ "print", "1" });
 	}
 	else if (parameters[1] == "bg")
 	{
@@ -1436,6 +1451,10 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 			spriteY + manager->game->renderer->guiCamera.position.y);
 
 		manager->images[imageNumber]->SetPosition(pos);
+		if (parameters.size() > 3)
+			PrintCommand({ "print", parameters[3] });
+		else
+			PrintCommand({ "print", "1" });
 	}
 
 	manager->images[imageNumber]->drawOrder = imageNumber;

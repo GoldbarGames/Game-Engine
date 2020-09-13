@@ -80,6 +80,7 @@ private:
 	std::unordered_map<std::string, Mesh*> meshes;
 
 	Sprite* screenSprite = nullptr;
+	Sprite* prevScreenSprite = nullptr;
 
 	Mesh* CreateQuadMesh();
 	Mesh* CreateCubeMesh();
@@ -149,6 +150,13 @@ public:
 	unsigned int renderBufferObject;
 	unsigned int textureColorBuffer;
 
+	unsigned int prevFramebuffer;
+	unsigned int prevRenderBufferObject;
+	unsigned int prevTextureColorBuffer;
+
+	bool updateScreenTexture = false;
+
+	Sprite* InitFramebuffer(unsigned int& fbo, unsigned int& tex, unsigned int& rbo );
 
 	void InitOpenGL();
 

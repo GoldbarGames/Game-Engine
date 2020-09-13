@@ -22,7 +22,7 @@ CutsceneManager::CutsceneManager(Game& g)
 
 	std::ifstream fin;
 
-	bool testVN = false;
+	bool testVN = true;
 	std::string directory = "";
 	std::string line = "";
 
@@ -827,6 +827,9 @@ void CutsceneManager::Update()
 
 void CutsceneManager::UpdateText()
 {
+	if (!printTimer.HasElapsed())
+		return;
+
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
 	if (input[autoButton] && inputTimer.HasElapsed())
@@ -986,7 +989,13 @@ void CutsceneManager::UpdateText()
 					commandIndex++;
 					if (commandIndex >= currentLabel->lines[lineIndex]->commands.size())
 						break;
-				} while (!autoprint && printNumber == 0);				
+				} while (!autoprint && printNumber == 0);	
+				game->updateScreenTexture = true;
+
+				if (printNumber > 0)
+				{
+					printTimer.Start(1000);
+				}
 			}
 			else
 			{

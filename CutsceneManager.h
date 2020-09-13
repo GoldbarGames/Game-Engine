@@ -104,6 +104,7 @@ public:
 	bool overwriteName = true;
 	std::string currentScript = "";
 	CutsceneCommands commands;
+	Timer printTimer;
 	bool useMouseControls = true;
 	bool useKeyboardControls = true;
 	int labelIndex = 0;

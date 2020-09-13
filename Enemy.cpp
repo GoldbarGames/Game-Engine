@@ -447,6 +447,10 @@ void Enemy::OnTriggerEnter(Entity& other, Game& game)
 				}
 			}
 		}
+		else if (name == "beehive")
+		{
+			return;
+		}
 
 		other.GetAnimator()->SetBool("isHurt", true);
 		other.GetAnimator()->SetState("hurt");
