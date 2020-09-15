@@ -4,6 +4,7 @@
 
 #include "globals.h"
 #include "Vector2.h"
+#include <glm/vec3.hpp>
 #include <SDL.h>
 
 //TODO: This is only for a rectangle collider, 
@@ -19,7 +20,7 @@ public:
 	~Collider();
 
 	void CreateCollider(float x, float y, float w, float h);
-	void CalculateCollider(const Vector2& position);
+	void CalculateCollider(const Vector2& position, const glm::vec3& rotation);
 };
 
 #endif

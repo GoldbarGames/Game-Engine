@@ -137,7 +137,7 @@ void Entity::CreateCollider(float x, float y, float w, float h)
 void Entity::CalculateCollider()
 {
 	if (collider != nullptr)
-		collider->CalculateCollider(position);
+		collider->CalculateCollider(position, rotation);
 }
 
 

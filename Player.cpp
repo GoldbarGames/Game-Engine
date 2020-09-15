@@ -140,7 +140,7 @@ void Player::Update(Game& game)
 				closeRangeAttackCollider->scale.x = 24 * scale.x;
 			}
 
-			closeRangeAttackCollider->CalculateCollider(position);
+			closeRangeAttackCollider->CalculateCollider(position, rotation);
 
 			// Check if an enemy has been hit by our attack
 			for (unsigned int i = 0; i < game.entities.size(); i++)
@@ -452,7 +452,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 			closeRangeAttackCollider = new Collider(32 * scale.x, 0, 16 * scale.x, 32);
 		}
 
-		closeRangeAttackCollider->CalculateCollider(position);
+		closeRangeAttackCollider->CalculateCollider(position, rotation);
 	}
 
 	if (currentSprite != nullptr)

@@ -88,8 +88,8 @@ public:
 	SDL_Rect rect; //TODO: Get rid of this?
 	const SDL_Rect* GetRect();
 
-	void Render(const Vector2& position, const Renderer& renderer);
-	void Render(const Vector2& position, int speed, const Renderer& renderer, glm::vec3 rotation);
+	void Render(const Vector2& position, const Renderer& renderer, const glm::vec3& rotation=glm::vec3(0,0,0));
+	void Render(const Vector2& position, int speed, const Renderer& renderer, const glm::vec3& rotation);
 
 	void SetScale(Vector2 s);
 	bool ShouldAnimate(float time);

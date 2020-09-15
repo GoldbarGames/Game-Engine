@@ -10,6 +10,7 @@ public:
 	Shroom(const Vector2& pos);
 	~Shroom();
 
+	void Init(const std::string& n);
 	void Update(Game& game);
 	void Save(std::ostringstream& level);
 

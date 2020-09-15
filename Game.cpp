@@ -1593,7 +1593,6 @@ void Game::Render()
 		prevScreenSprite->Render(Vector2(screenWidth, screenHeight), *renderer);
 	}
 
-
 	/*
 	screenSprite->SetScale(Vector2(0.5f, -0.5f));
 	screenSprite->SetShader(renderer->shaders[ShaderName::Sharpen]);

@@ -281,9 +281,9 @@ Sprite::~Sprite()
 	}		
 }
 
-void Sprite::Render(const Vector2& position, const Renderer& renderer)
+void Sprite::Render(const Vector2& position, const Renderer& renderer, const glm::vec3& rotation)
 {
-	Render(position, 0, renderer, glm::vec3(0,0,0));
+	Render(position, 0, renderer, rotation);
 }
 
 bool Sprite::ShouldAnimate(float time)
@@ -421,7 +421,7 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, const Renderer
 
 // NOTE: This function expects a center-coordinate rectangle to be rendered,
 // so if you pass in a top-left rectangle, you'll see something wrong
-void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer, glm::vec3 rotation)
+void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer, const glm::vec3& rotation)
 {
 	renderer.drawCallsPerFrame++;
 

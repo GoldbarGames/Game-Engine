@@ -992,9 +992,20 @@ void CutsceneManager::UpdateText()
 				} while (!autoprint && printNumber == 0);	
 				game->updateScreenTexture = true;
 
-				if (printNumber > 0)
+				if (printNumber > 0 && !input[skipButton])
 				{
-					printTimer.Start(1000);
+					switch (printNumber)
+					{
+					case 42:
+						printTimer.Start(1000);
+						break;
+					case 22:
+						printTimer.Start(200);
+						break;
+					default:
+						printTimer.Start(200);
+						break;
+					}
 				}
 			}
 			else

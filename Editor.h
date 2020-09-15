@@ -134,8 +134,8 @@ public:
 
 	//TODO: Make these return bools, and if true, DoAction()?
 	void LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition);
-	void RightClick(Vector2 clickedPosition);
-	void MiddleClick(Vector2 clickedPosition);
+	void RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition);
+	void MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition);
 
 	Entity* GetClickedEntity(const Vector2& clickedWorldPosition);
 

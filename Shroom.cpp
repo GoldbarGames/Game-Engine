@@ -24,10 +24,24 @@ Shroom::~Shroom()
 
 }
 
+void Shroom::Init(const std::string& n)
+{
+	name = n;
+
+	if (name == "shroom")
+	{
+		physics->canBePushed = false;
+		physics->useGravity = false;
+	}
+	else
+	{
+		physics->canBePushed = true;
+		physics->useGravity = true;
+	}
+}
+
 void Shroom::Update(Game& game)
 {
-	physics->canBePushed = (subtype == 1);
-
 	if (animator->GetBool("isBouncing") && currentSprite->HasAnimationElapsed())
 	{
 		animator->SetBool("isBouncing", false);
@@ -41,7 +55,27 @@ void Shroom::OnTriggerEnter(Entity& other, Game& game)
 {
 	if (other.physics != nullptr && other.physics->canBePushed)
 	{
-		other.physics->velocity.y = -1.5f;
+		//TODO: This doesn't work if we are already moving in that direction,
+		// probably because it gets set equal to whatever at a later point
+		switch ((int)rotation.z)
+		{
+		case 0:
+			other.physics->velocity.y = -1.5f;
+			break;
+		case 90:
+			other.physics->velocity.x = -1.5f;
+			break;
+		case 180:
+			other.physics->velocity.y = 1.5f;
+			break;
+		case 270:
+			other.physics->velocity.x = 1.5f;
+			break;
+		default:
+			other.physics->velocity.y = -1.5f;
+			break;
+		}
+
 		game.soundManager->PlaySound("se/Jump.wav", 0);
 		animator->SetBool("isBouncing", true);
 		animator->Update(*this);

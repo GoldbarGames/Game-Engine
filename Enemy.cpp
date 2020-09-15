@@ -33,8 +33,8 @@ void Enemy::Init(const std::string& n)
 		bottomLeftGround = new Collider(-54, 48, 16, 16);
 		bottomRightGround = new Collider(54, 48, 16, 16);
 
-		bottomLeftGround->CalculateCollider(position);
-		bottomRightGround->CalculateCollider(position);
+		bottomLeftGround->CalculateCollider(position, rotation);
+		bottomRightGround->CalculateCollider(position, rotation);
 	}
 	else if (name == "grasshopper")
 	{
@@ -91,10 +91,10 @@ void Enemy::Update(Game& game)
 	if (name == "crawler")
 	{
 		if (bottomLeftGround != nullptr)
-			bottomLeftGround->CalculateCollider(position);
+			bottomLeftGround->CalculateCollider(position, rotation);
 
 		if (bottomRightGround != nullptr)
-			bottomRightGround->CalculateCollider(position);
+			bottomRightGround->CalculateCollider(position, rotation);
 
 		if (physics->isGrounded)
 		{		

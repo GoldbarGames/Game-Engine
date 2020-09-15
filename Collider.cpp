@@ -24,10 +24,11 @@ void Collider::CreateCollider(float x, float y, float w, float h)
 	//CalculateCollider();
 }
 
-void Collider::CalculateCollider(const Vector2& position)
+void Collider::CalculateCollider(const Vector2& position, const glm::vec3& rotation)
 {
-	bounds->w = scale.x;
-	bounds->h = scale.y;
+	bool isRotated = (rotation.z == 90 || rotation.z == 270);
+	bounds->w = isRotated ? scale.y : scale.x;
+	bounds->h = isRotated ? scale.x : scale.y;
 	bounds->x = (int)(position.x + offset.x);
 	bounds->y = (int)(position.y + offset.y);
 }

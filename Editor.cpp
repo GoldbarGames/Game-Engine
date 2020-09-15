@@ -50,9 +50,8 @@ Editor::Editor(Game& g)
 	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 
 	//TODO: Read this in from a file
-	previewMapObjectNames = { "door", "ladder", "tree",
-		"block", "platform", "shroom", "switch", "checkpoint",
-		"npc", "enemy", "collectible" };
+	previewMapObjectNames = { "door", "ladder", "npc", "enemy", "checkpoint", "switch", "platform",
+		"tree", "block", "collectible", "shroom" };
 
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
 	{
@@ -96,9 +95,9 @@ void Editor::CreateEditorButtons()
 
 	// TODO: Maybe read these in from a file too
 	std::vector<string> buttonNames = { "newlevel", "load", "save", "tileset", "inspect", 
-		"grid", "map", "door", "ladder", "npc", "enemy", "checkpoint", "switch", "platform", 
-		"tree", "block", "collectible", "shroom",
-		"undo", "redo", "replace", "copy", "grab", "path"  };
+		"grid", "map", "undo", "redo", "replace", "copy", "grab", "rotate", "path"};
+
+	buttonNames.insert(buttonNames.begin() + 7, previewMapObjectNames.begin(), previewMapObjectNames.end());
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
 	unsigned int BUTTON_LIST_END = BUTTON_LIST_START + BUTTONS_PER_PAGE;
@@ -377,6 +376,22 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		inspectPosition.y += game->renderer->camera.position.y;
 		InspectObject(inspectPosition, clickedScreenPosition);
 	}
+	else if (objectMode == "rotate")
+	{
+		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+		{
+			Vector2 rotatePosition = Vector2(mouseX, mouseY);
+			rotatePosition.x += game->renderer->camera.position.x;
+			rotatePosition.y += game->renderer->camera.position.y;
+
+			Entity* rotatedEntity = GetClickedEntity(rotatePosition);
+
+			if (rotatedEntity != nullptr)
+			{
+				rotatedEntity->rotation.z += 90;
+			}
+		}
+	}
 	else if (objectMode == "grab")
 	{
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
@@ -521,7 +536,7 @@ Entity* Editor::GetClickedEntity(const Vector2& clickedWorldPosition)
 	point.h = 1;
 
 	// Find the selected entity
-	for (unsigned int i = 0; i < game->entities.size(); i++)
+	for (int i = game->entities.size() - 1; i >= 0; i--)
 	{
 		// Without this code, it would be using the center as the top-left corner,
 		// so we need to convert the coordinates to get the correct rectangle
@@ -806,6 +821,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			if (entity != nullptr)
 			{
 				entity->Init(game->entityTypes[objectMode][entitySubtype]);
+				entity->rotation = previewMap[objectMode]->rotation;
 				game->SortEntities(game->entities);
 			}				
 		}
@@ -858,7 +874,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 }
 
 // Toggle special properties of the selected entity
-void Editor::MiddleClick(Vector2 clickedPosition)
+void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition)
 {
 	if (previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE))
 		return;
@@ -886,10 +902,16 @@ void Editor::MiddleClick(Vector2 clickedPosition)
 			}			
 		}
 	}
+
+	clickedWorldPosition = Vector2(mouseX / Camera::MULTIPLIER, mouseY / Camera::MULTIPLIER);
+	clickedWorldPosition.x += game->renderer->camera.position.x;
+	clickedWorldPosition.y += game->renderer->camera.position.y;
+
+	previewMap[objectMode]->rotation.z -= 90;
 }
 
 //TODO: Figure out how to structure this so we can add deleting stuff as an Action
-void Editor::RightClick(Vector2 clickedPosition)
+void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition)
 {
 	// If we have grabbed an entity, return it to its old position and immediately exit
 	if (grabbedEntity != nullptr)
@@ -899,130 +921,143 @@ void Editor::RightClick(Vector2 clickedPosition)
 		return;
 	}
 
-	//clickedPosition.x += (int)game->camera.x;
-	//clickedPosition.y += (int)game->camera.y;
+	clickedWorldPosition = Vector2(mouseX / Camera::MULTIPLIER, mouseY / Camera::MULTIPLIER);
+	clickedWorldPosition.x += game->renderer->camera.position.x;
+	clickedWorldPosition.y += game->renderer->camera.position.y;
 
-	int ladderIndex = -1;
-
-	// Iterate backwards so that we prioritize objects that are rendered closest to the camera
-	for (int i = game->entities.size() - 1; i >= 0; i--)
+	if (objectMode == "rotate")
 	{
-		Vector2 entityPosition = RoundToInt(game->entities[i]->GetPosition());
-		Vector2 clickedInt = RoundToInt(clickedPosition);
+		Entity* rotatedEntity = GetClickedEntity(clickedWorldPosition);
 
-		bool shouldDeleteThis = false;
-		bool sameMode = game->entities[i]->etype == objectMode;
-		bool sameLayer = game->entities[i]->layer == drawingLayer;
-		
-		bool samePosition = (entityPosition == game->CalculateObjectSpawnPosition(clickedInt, GRID_SIZE));
-		
-		if (deleteSettingIndex == 0)
+		if (rotatedEntity != nullptr)
 		{
-			// Same layer, same mode
-			shouldDeleteThis = samePosition && sameLayer && sameMode;
+			rotatedEntity->rotation.z -= 90;
 		}
-		else if (deleteSettingIndex == 1)
-		{
-			// Only same layer
-			shouldDeleteThis = samePosition && sameLayer;
-		}
-		else if (deleteSettingIndex == 2)
-		{
-			// Only same mode
-			shouldDeleteThis = samePosition && sameMode;
-		}
-		else if (deleteSettingIndex == 3)
-		{
-			// Can delete if at same position
-			shouldDeleteThis = samePosition;
-		}
+	}
+	else
+	{
+		int ladderIndex = -1;
+		Entity* entityToDelete = GetClickedEntity(clickedWorldPosition);
 
-		// If this entity is a path, check all points in the path
-		// (This must be dealt with outside of the shouldDelete section
-		// because each path contains multiple points that must each be
-		// deleted individually if any of them have been clicked on)
-		if (game->entities[i]->etype == "path")
+		if (entityToDelete != nullptr)
 		{
-			Path* path = dynamic_cast<Path*>(game->entities[i]);
-			if (path->IsPointInPath(clickedInt))
+			bool sameMode = entityToDelete->etype == objectMode;
+			bool sameLayer = entityToDelete->layer == drawingLayer;
+			bool shouldDeleteThis = false;
+
+			if (deleteSettingIndex == 0)
 			{
-				path->RemovePointFromPath(clickedInt);
-
-				// Only if there are no points in the path do we remove the path
-				if (path->nodes.size() == 0)
-				{
-					game->ShouldDeleteEntity(i);
-					return;
-				}
+				// Same layer, same mode
+				shouldDeleteThis = sameLayer && sameMode;
 			}
-		}
-		else if (game->entities[i]->etype == "switch")
-		{
-			for (int k = 0; k < game->entities.size(); k++)
+			else if (deleteSettingIndex == 1)
 			{
-				if (game->entities[k]->etype == "platform")
+				// Only same layer
+				shouldDeleteThis = sameLayer;
+			}
+			else if (deleteSettingIndex == 2)
+			{
+				// Only same mode
+				shouldDeleteThis = sameMode;
+			}
+			else if (deleteSettingIndex == 3)
+			{
+				// Can delete if at same position
+				shouldDeleteThis = true;
+			}
+
+			// If this entity is a path, check all points in the path
+			// (This must be dealt with outside of the shouldDelete section
+			// because each path contains multiple points that must each be
+			// deleted individually if any of them have been clicked on)
+			if (entityToDelete->etype == "path")
+			{
+				Path* path = dynamic_cast<Path*>(entityToDelete);
+				if (path->IsPointInPath(clickedWorldPosition))
 				{
-					Platform* platform = static_cast<Platform*>(game->entities[k]);
-					if (platform->attachedSwitch == game->entities[i])
+					path->RemovePointFromPath(clickedWorldPosition);
+
+					// Only if there are no points in the path do we remove the path
+					if (path->nodes.size() == 0)
 					{
-						platform->attachedSwitch = nullptr;
+						//game->ShouldDeleteEntity(i);
+						return;
 					}
 				}
 			}
-		}
-
-		if (shouldDeleteThis)
-		{
-			if (game->entities[i]->etype == "door")
+			else if (entityToDelete->etype == "switch")
 			{
-				// Save destination and delete the entry door
-				Door* door = static_cast<Door*>(game->entities[i]);
-				Vector2 dest = door->GetDestination();
-
-				// Only delete if both doors have been placed
-				if (dest != Vector2(0, 0))
+				for (int k = 0; k < game->entities.size(); k++)
 				{
-					game->ShouldDeleteEntity(i);
-
-					// Delete the exit door
-					for (unsigned int k = 0; k < game->entities.size(); k++)
+					if (entityToDelete->etype == "platform")
 					{
-						if (game->entities[k]->GetPosition() == dest)
+						Platform* platform = static_cast<Platform*>(game->entities[k]);
+						if (platform->attachedSwitch == entityToDelete)
 						{
-							game->ShouldDeleteEntity(k);
-							return;
+							platform->attachedSwitch = nullptr;
 						}
 					}
-				}				
+				}
 			}
-			else if (game->entities[i]->etype == "ladder")
+
+			if (shouldDeleteThis)
 			{
-				ladderIndex = i;
+				if (entityToDelete->etype == "door")
+				{
+					// Save destination and delete the entry door
+					Door* door = static_cast<Door*>(entityToDelete);
+					Vector2 dest = door->GetDestination();
+
+					// Only delete if both doors have been placed
+					if (dest != Vector2(0, 0))
+					{
+						//game->ShouldDeleteEntity(i);
+
+						// Delete the exit door
+						for (unsigned int k = 0; k < game->entities.size(); k++)
+						{
+							if (game->entities[k]->GetPosition() == dest)
+							{
+								game->ShouldDeleteEntity(k);
+								return;
+							}
+						}
+					}
+				}
+				else if (entityToDelete->etype == "ladder")
+				{
+					//ladderIndex = i;
+				}
+				else
+				{
+					//game->ShouldDeleteEntity(i);
+					return;
+				}
+
+
 			}
-			else
+
+
+			if (ladderIndex >= 0 && !placingLadder)
 			{
-				game->ShouldDeleteEntity(i);
-				return;
+				std::string startingState = game->entities[ladderIndex]->GetAnimator()->currentState->name;
+				Vector2 lastPosition = game->entities[ladderIndex]->GetPosition();
+				game->ShouldDeleteEntity(ladderIndex);
+
+				if (startingState == "top")
+					DestroyLadder("top", lastPosition);
+				else if (startingState == "bottom")
+					DestroyLadder("bottom", lastPosition);
+				else if (startingState == "middle")
+				{
+					DestroyLadder("top", lastPosition);
+					DestroyLadder("bottom", lastPosition);
+				}
 			}
 		}
 	}
 
-	if (ladderIndex >= 0 && !placingLadder)
-	{
-		std::string startingState = game->entities[ladderIndex]->GetAnimator()->currentState->name;
-		Vector2 lastPosition = game->entities[ladderIndex]->GetPosition();
-		game->ShouldDeleteEntity(ladderIndex);
-
-		if (startingState == "top")
-			DestroyLadder("top", lastPosition);
-		else if (startingState == "bottom")
-			DestroyLadder("bottom", lastPosition);
-		else if (startingState == "middle")
-		{
-			DestroyLadder("top", lastPosition);
-			DestroyLadder("bottom", lastPosition);
-		}
-	}
+	
 }
 
 void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
@@ -1086,11 +1121,11 @@ void Editor::HandleEdit()
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{
-		RightClick(clickedScreenPosition);
+		RightClick(clickedScreenPosition, mouseX * Camera::MULTIPLIER, mouseY * Camera::MULTIPLIER, objPreviewPosition);
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE)) // toggles special properties
 	{
-		MiddleClick(clickedScreenPosition);
+		MiddleClick(clickedScreenPosition, mouseX * Camera::MULTIPLIER, mouseY * Camera::MULTIPLIER, objPreviewPosition);
 	}
 	else // no button was clicked, just check for hovering
 	{
@@ -1195,8 +1230,12 @@ void Editor::ClickedButton()
 	else if (clickedButton->name == "grab")
 	{
 		// TODO: Should this be a special function
-		// for toggleing the grab mode, since it's not an object?
+		// for toggling the grab mode, since it's not an object?
 		ToggleObjectMode("grab");
+	}
+	else if (clickedButton->name == "rotate")
+	{
+		ToggleObjectMode("rotate");
 	}
 	else if (clickedButton->name == "prevpage")
 	{
