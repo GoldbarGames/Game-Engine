@@ -6,7 +6,6 @@
 PhysicsComponent::PhysicsComponent(Entity* entity)
 {
 	our = entity;
-	startPosition = entity->position;
 }
 
 PhysicsComponent::~PhysicsComponent()
@@ -628,7 +627,7 @@ void PhysicsComponent::Update(Game& game)
 	{
 		if (respawnOnDeath)
 		{
-			our->position = startPosition;
+			our->position = our->startPosition;
 			velocity = Vector2(0, 0);
 			acceleration = Vector2(0, 0);
 		}

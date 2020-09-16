@@ -22,6 +22,8 @@ public:
 	const SDL_Rect* GetBounds();
 
 	void Save(std::ostringstream& level);
+	void Load(int& index, const std::vector<std::string>& tokens,
+		std::unordered_map<std::string, std::string>& map, Game& game);
 
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);

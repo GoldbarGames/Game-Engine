@@ -16,7 +16,7 @@ NPC::NPC(const std::string& n, const Vector2& pos) : Entity(pos)
 	physics = new PhysicsComponent(this);
 	physics->standAboveGround = true;
 	physics->useGravity = true;
-	physics->startPosition = pos;
+	startPosition = pos;
 
 	//health = new HealthComponent(1);
 	//health->invincible = true;
@@ -114,7 +114,28 @@ void NPC::Save(std::ostringstream& level)
 	if (npcLabel == "")
 		npcLabel = "null";
 
-	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << name <<
-		" " << cutsceneLabel << " " << spriteIndex << " " << drawOrder <<
-		" " << (int)layer << " " << impassable << std::endl;
+	level << std::to_string(id) 
+		<< " " << etype 
+		<< " " << startPosition.x 
+		<< " " << startPosition.y 
+		<< " " << subtype
+		<< " " << name 
+		<< " " << cutsceneLabel 
+		<< " " << drawOrder 
+		<< " " << (int)layer 
+		<< " " << impassable 
+		<< std::endl;
+}
+
+void NPC::Load(int& index, const std::vector<std::string>& tokens,
+	std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	Entity::Load(index, tokens, map, game);
+
+	name = tokens[index++];
+	cutsceneLabel = tokens[index++];
+
+	drawOrder = std::stoi(tokens[index++]);
+	layer = (DrawingLayer)std::stoi(tokens[index++]);
+	impassable = std::stoi(tokens[index++]);
 }

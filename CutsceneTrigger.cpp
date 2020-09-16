@@ -2,18 +2,19 @@
 #include "Player.h"
 #include "Game.h"
 
-CutsceneTrigger::CutsceneTrigger(std::string label, Vector2 pos, float w, float h) : Entity(pos)
+CutsceneTrigger::CutsceneTrigger(Vector2 pos) : Entity(pos)
 {
-	cutsceneLabel = label;
-	triggerRect.x = (int)pos.x;
-	triggerRect.y = (int)pos.y;
-	triggerRect.w = (int)w;
-	triggerRect.h = (int)h;
+
 }
 
 CutsceneTrigger::~CutsceneTrigger()
 {
 	
+}
+
+void CutsceneTrigger::Init(const std::string& n)
+{
+	name = n;
 }
 
 const SDL_Rect* CutsceneTrigger::GetBounds()
@@ -37,4 +38,21 @@ void CutsceneTrigger::OnTriggerEnter(Entity& other, Game& game)
 void CutsceneTrigger::OnTriggerExit(Entity& other, Game& game)
 {
 
+}
+
+void CutsceneTrigger::Save(std::ostringstream& level)
+{
+
+}
+
+void CutsceneTrigger::Load(int& index, const std::vector<std::string>& tokens,
+	std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	Entity::Load(index, tokens, map, game);
+
+	cutsceneLabel = tokens[index++];
+	triggerRect.x = (int)position.x;
+	triggerRect.y = (int)position.y;
+	triggerRect.w = (int)std::stoi(tokens[index++]);
+	triggerRect.h = (int)std::stoi(tokens[index++]);
 }

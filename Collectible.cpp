@@ -42,7 +42,7 @@ void Collectible::Init(const std::string& n)
 
 		physics = new PhysicsComponent(this);
 		physics->useGravity = false;
-		physics->startPosition = position;
+		startPosition = position;
 	}
 	else if (name == "heart")
 	{
@@ -95,22 +95,5 @@ void Collectible::OnTriggerEnter(Entity& other, Game& game)
 
 void Collectible::OnTriggerExit(Entity& other, Game& game)
 {
-
-}
-
-void Collectible::Save(std::ostringstream& level)
-{
-	if (physics != nullptr)
-	{
-		level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
-			" " << physics->startPosition.y << " " << subtype << " "
-			<< drawOrder << " " << (int)layer << " " << impassable << std::endl;
-	}
-	else
-	{
-		level << std::to_string(id) << " " << etype << " " << position.x <<
-			" " << position.y << " " << name << " " << subtype << " "
-			<< drawOrder << " " << (int)layer << " " << impassable << std::endl;
-	}
 
 }

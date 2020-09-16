@@ -34,6 +34,7 @@ protected:
 	Sprite* debugSprite = nullptr;
 public:
 	Vector2 position = Vector2(0, 0);
+	Vector2 startPosition = Vector2(0, 0);
 	Vector2 lastPosition = Vector2(0, 0);
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	Vector2 scale = Vector2(1, 1);
@@ -71,6 +72,8 @@ public:
 	bool trigger = false;	
 	bool jumpThru = false;
 
+	bool shouldSave = false;
+
 	Sprite* GetSprite();
 	Animator* GetAnimator();
 	virtual const SDL_Rect* GetBounds();
@@ -93,6 +96,8 @@ public:
 	virtual void Unpause(Uint32 ticks);
 
 	virtual void Init(const std::string& n);
+	virtual void Load(int& index, const std::vector<std::string>& tokens, 
+		std::unordered_map<std::string, std::string>& map, Game& game);
 
 	virtual bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
 

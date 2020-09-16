@@ -10,12 +10,18 @@ public:
 	SDL_Rect triggerRect;
 	std::string cutsceneLabel = "null";
 
-	CutsceneTrigger(std::string label, Vector2 pos, float w, float h);
+	CutsceneTrigger(Vector2 pos);
 	~CutsceneTrigger();
+
+	void Init(const std::string& n);
 
 	void OnTriggerStay(Entity& other, Game& game);
 	void OnTriggerEnter(Entity& other, Game& game);
 	void OnTriggerExit(Entity& other, Game& game);
+
+	void Save(std::ostringstream& level);
+	void Load(int& index, const std::vector<std::string>& tokens,
+		std::unordered_map<std::string, std::string>& map, Game& game);
 
 	const SDL_Rect* GetBounds();
 };

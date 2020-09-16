@@ -102,22 +102,46 @@ void Path::SetProperty(const std::string& key, const std::string& newValue)
 	}
 }
 
+const SDL_Rect* Path::GetBounds()
+{
+	return nodes[0]->GetRenderRect();
+}
+
 void Path::Save(std::ostringstream& level)
 {
 	Vector2 pos = GetPosition();
 
-	level << std::to_string(id) << " " << etype << " " << pos.x << " " <<
-		pos.y << " " << shouldLoop << " " << nodes.size();
+	level << std::to_string(id) 
+		<< " " << etype 
+		<< " " << pos.x 
+		<< " " << pos.y 
+		<< " " << shouldLoop 
+		<< " " << nodes.size();
 
 	for (int i = 0; i < nodes.size(); i++)
 	{
-		level << " " << nodes[i]->point.x << " " << nodes[i]->point.y;
+		level 
+			<< " " << nodes[i]->point.x 
+			<< " " << nodes[i]->point.y;
 	}
 
 	level << std::endl;		
 }
 
-const SDL_Rect* Path::GetBounds()
+void Path::Load(int& index, const std::vector<std::string>& tokens,
+	std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	return nodes[0]->GetRenderRect();
+	Entity::Load(index, tokens, map, game);
+
+	shouldLoop = std::stoi(tokens[index++]);
+	int nodeCount = std::stoi(tokens[index++]);
+
+	for (int i = 0; i < nodeCount; i++)
+	{
+		int pointX = std::stoi(tokens[index++]);
+		int pointY = std::stoi(tokens[index++]);
+		AddPointToPath(Vector2(pointX, pointY));
+	}
+
+	game.editor->loadListPaths.emplace_back(this);
 }

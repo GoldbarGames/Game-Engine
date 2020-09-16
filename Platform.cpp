@@ -75,11 +75,11 @@ void Platform::Update(Game& game)
 
 		if (attachedSwitch->GetAnimator()->GetBool("isPressed"))
 		{
-			LerpVector2(position, physics->startPosition + switchDistanceMoved, 50.0f, 2.0f);
+			LerpVector2(position, startPosition + switchDistanceMoved, 50.0f, 2.0f);
 		}
 		else
 		{
-			LerpVector2(position, physics->startPosition, 50.0f, 2.0f);
+			LerpVector2(position, startPosition, 50.0f, 2.0f);
 		}
 
 		// Set velocity based on the distance traveled
@@ -120,15 +120,15 @@ void Platform::Update(Game& game)
 		if (shouldLoop)
 		{
 			int distance = (tilesToMove * TILE_SIZE);
-			if (physics->velocity.x > 0 && position.x >= physics->startPosition.x + distance
-				|| physics->velocity.x < 0 && position.x <= physics->startPosition.x - distance)
+			if (physics->velocity.x > 0 && position.x >= startPosition.x + distance
+				|| physics->velocity.x < 0 && position.x <= startPosition.x - distance)
 			{
 				//TODO: Add a delay between moving the opposite direction
 				startVelocity.x *= -1;
 			}
 
-			if (physics->velocity.y > 0 && position.y >= physics->startPosition.y + distance
-				|| physics->velocity.y < 0 && position.y <= physics->startPosition.y - distance)
+			if (physics->velocity.y > 0 && position.y >= startPosition.y + distance
+				|| physics->velocity.y < 0 && position.y <= startPosition.y - distance)
 			{
 				//TODO: Add a delay between moving the opposite direction
 				startVelocity.y *= -1;
@@ -349,14 +349,66 @@ void Platform::Save(std::ostringstream& level)
 		if (endBehavior == "")
 			endBehavior = "None";
 
-		level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << subtype << " " << platformType
-			<< " " << pathID << " " << pathSpeed << " " << endBehavior;
+		level << std::to_string(id) 
+			<< " " << etype 
+			<< " " << startPosition.x 
+			<< " " << startPosition.y 
+			<< " " << subtype 
+			<< " " << platformType
+			<< " " << pathID 
+			<< " " << pathSpeed 
+			<< " " << endBehavior;
 	}
 	else
 	{
-		level << std::to_string(id) << " " << etype << " " << physics->startPosition.x << " " << physics->startPosition.y << " " << subtype << " " << platformType
-			<< " " << startVelocity.x << " " << startVelocity.y << " " << tilesToMove << " " << shouldLoop;
+		level << std::to_string(id) 
+			<< " " << etype 
+			<< " " << startPosition.x 
+			<< " " << startPosition.y 
+			<< " " << subtype 
+			<< " " << platformType
+			<< " " << startVelocity.x 
+			<< " " << startVelocity.y 
+			<< " " << tilesToMove 
+			<< " " << shouldLoop;
 	}
 
-	level << " " << switchID << " " << switchDistanceMoved.x << " " << switchDistanceMoved.y << std::endl;
+	level << " " << switchID 
+		<< " " << switchDistanceMoved.x 
+		<< " " << switchDistanceMoved.y 
+		<< std::endl;
+}
+
+void Platform::Load(int& index, const std::vector<std::string>& tokens,
+	std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	Entity::Load(index, tokens, map, game);
+
+	platformType = tokens[index++];
+
+	if (platformType == "Path")
+	{
+		pathID = std::stoi(tokens[index++]);
+		pathSpeed = std::stof(tokens[index++]);
+		endPathBehavior = tokens[index++];
+		game.editor->loadListMovingPlatforms.emplace_back(this);
+	}
+	else
+	{
+		float vx = std::stof(tokens[index++]);
+		float vy = std::stof(tokens[index++]);
+		startVelocity = Vector2(vx, vy);
+		tilesToMove = std::stoi(tokens[index++]);
+		shouldLoop = std::stoi(tokens[index++]);
+		physics->SetVelocity(startVelocity);
+	}
+
+	if (index < tokens.size())
+		switchID = std::stoi(tokens[index++]);
+
+	if (switchID > -1)
+	{
+		switchDistanceMoved.x = std::stoi(tokens[index++]);
+		switchDistanceMoved.y = std::stoi(tokens[index++]);
+	}
 }

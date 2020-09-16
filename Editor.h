@@ -25,6 +25,7 @@ class NPC;
 class Path;
 class Text;
 class Dialog;
+class Platform;
 
 class Editor
 {
@@ -90,11 +91,12 @@ public:
 	Entity* objectPreview = nullptr;
 	Sprite* grid = nullptr;
 
+	std::vector<Path*> loadListPaths;
+	std::vector<Platform*> loadListMovingPlatforms;
+	std::map<int, std::vector<Ladder*>> loadListLadderGroups;
+	std::vector<Door*> loadListDoors;
 
 	Dialog* dialog;
-	//Text* dialogText = nullptr;
-	//Text* dialogInput = nullptr;
-	//bool showDialogPopup = false;
 
 	// Settings
 	int replaceSettingIndex = 0;
@@ -162,6 +164,7 @@ public:
 
 	std::string ReadLevelFromFile(std::string levelName);
 	void CreateLevelFromString(std::string level);
+	std::string GetTileSheetFileName(const int index) const;
 };
 
 #endif

@@ -12,11 +12,12 @@
 #include "Collectible.h"
 #include "Checkpoint.h"
 #include "Tree.h"
+#include "Tile.h"
 
 EntityFactory::EntityFactory()
 {
     Register("entity", &Entity::Create);
-
+    //Register("tile", &Tile::Create);
     Register("door", &Door::Create);
     Register("ladder", &Ladder::Create);
     Register("platform", &Platform::Create);

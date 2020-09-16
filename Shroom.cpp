@@ -82,9 +82,3 @@ void Shroom::OnTriggerEnter(Entity& other, Game& game)
 		animator->DoState(*this);
 	}
 }
-
-void Shroom::Save(std::ostringstream& level)
-{
-	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
-		" " << physics->startPosition.y << " " << subtype << std::endl;
-}

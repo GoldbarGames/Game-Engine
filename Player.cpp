@@ -559,15 +559,15 @@ void Player::CheckJumpButton(const Uint8* input)
 
 void Player::ResetPosition()
 {
-	position = physics->startPosition;
+	position = startPosition;
 }
 
 void Player::GetProperties(std::vector<Property*>& properties)
 {
 	Entity::GetProperties(properties);
 
-	properties.emplace_back(new Property("Start Pos X", (int)physics->startPosition.x));
-	properties.emplace_back(new Property("Start Pos Y", (int)physics->startPosition.y));
+	properties.emplace_back(new Property("Start Pos X", (int)startPosition.x));
+	properties.emplace_back(new Property("Start Pos Y", (int)startPosition.y));
 }
 
 void Player::SetProperty(const std::string& key, const std::string& newValue)
@@ -577,18 +577,30 @@ void Player::SetProperty(const std::string& key, const std::string& newValue)
 	if (key == "Start Pos X")
 	{
 		if (newValue != "")
-			physics->startPosition.x = std::stof(newValue);
+			startPosition.x = std::stof(newValue);
 	}
 	else if (key == "Start Pos Y")
 	{
 		if (newValue != "")
-			physics->startPosition.y = std::stof(newValue);
+			startPosition.y = std::stof(newValue);
 	}
 }
 
 void Player::Save(std::ostringstream& level)
 {
-	level << std::to_string(id) << " " << etype << " " << 
-		physics->startPosition.x << " " << physics->startPosition.y << " " << drawOrder <<
-		" " << (int)layer << " " << impassable << std::endl;
+	level << std::to_string(id) 
+		<< " " << etype 
+		<< " " << startPosition.x 
+		<< " " << startPosition.y 
+		<< " " << drawOrder 
+		<< " " << (int)layer
+		<< " " << impassable 
+		<< std::endl;
+}
+
+void Player::Load(int& index, const std::vector<std::string>& tokens,
+	std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	Entity::Load(index, tokens, map, game);
+
 }

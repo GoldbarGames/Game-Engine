@@ -81,9 +81,3 @@ void Block::SetProperty(const std::string& key, const std::string& newValue)
 			collider->scale.y = std::stof(newValue);
 	}
 }
-
-void Block::Save(std::ostringstream& level)
-{
-	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
-		" " << physics->startPosition.y << " " << subtype << std::endl;
-}

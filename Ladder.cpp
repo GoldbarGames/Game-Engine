@@ -52,9 +52,27 @@ void Ladder::Render(const Renderer& renderer)
 
 void Ladder::Save(std::ostringstream& level)
 {
-	Vector2 pos = GetPosition();
+	level << std::to_string(id) 
+		<< " " << etype 
+		<< " " << GetPosition().x 
+		<< " " << GetPosition().y 
+		<< " " << GetAnimator()->currentState->name
+		<< " " << subtype 
+		<< "" << std::endl;
+}
 
-	level << std::to_string(id) << " " << etype << " " << pos.x << " " <<
-		pos.y << " " << GetAnimator()->currentState->name
-		<< " " << subtype << "" << std::endl;
+void Ladder::Load(int& index, const std::vector<std::string>& tokens,
+	std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	Entity::Load(index, tokens, map, game);
+
+	std::string ladderState = tokens[index++];
+	subtype = std::stoi(tokens[index++]);
+	GetAnimator()->SetState(ladderState.c_str());
+
+	if (game.editor->loadListLadderGroups.count(position.x) == 0)
+	{
+		game.editor->loadListLadderGroups[position.x] = std::vector<Ladder*>();
+	}
+	game.editor->loadListLadderGroups[position.x].push_back(this);
 }

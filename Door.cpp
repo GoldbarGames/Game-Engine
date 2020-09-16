@@ -2,9 +2,8 @@
 #include "Game.h"
 #include "globals.h"
 
-Door::Door(Vector2 pos, Vector2 dest) : Entity(pos)
+Door::Door(Vector2 pos) : Entity(pos)
 {
-	destination = dest;
 	layer = DrawingLayer::OBJECT;
 	drawOrder = 90;
 	name = "door";
@@ -79,11 +78,6 @@ Vector2 Door::GetDestination()
 	return position;
 }
 
-void Door::SetDestination(Vector2 dest)
-{
-	destination = dest;
-}
-
 bool Door::CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera)
 {
 	return Entity::CanSpawnHere(spawnPosition, game, useCamera);
@@ -135,8 +129,30 @@ void Door::SetProperty(const std::string& key, const std::string& newValue)
 
 void Door::Save(std::ostringstream& level)
 {
-	level << std::to_string(id) << " " << etype << " " << position.x << " " <<
-		position.y << " " << GetDestination().x << " " << GetDestination().y
-		<< " " << subtype << " " << name << " " << isLocked << " " << nextLevelName << 
-		" " << destinationID << std::endl;
+	level << std::to_string(id) 
+		<< " " << etype 
+		<< " " << position.x 
+		<< " " << position.y 
+		<< " " << GetDestination().x 
+		<< " " << GetDestination().y
+		<< " " << subtype 
+		<< " " << name 
+		<< " " << isLocked 
+		<< " " << nextLevelName 
+		<< " " << destinationID 
+		<< std::endl;
+}
+
+void Door::Load(int& index, const std::vector<std::string>& tokens,
+	std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	Entity::Load(index, tokens, map, game);
+
+	subtype = std::stoi(tokens[index++]);
+	name = tokens[index++];
+	isLocked = std::stoi(tokens[index++]);
+	nextLevelName = tokens[index++];
+	destinationID = std::stoi(tokens[index++]);
+
+	game.editor->loadListDoors.push_back(this);
 }

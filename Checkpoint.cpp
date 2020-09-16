@@ -78,6 +78,20 @@ void Checkpoint::SetProperty(const std::string& key, const std::string& newValue
 
 void Checkpoint::Save(std::ostringstream& level)
 {
-	level << std::to_string(id) << " " << etype << " " << position.x << " " <<
-		position.y << " " << subtype << " " << name << " " << std::endl;
+	level << std::to_string(id) 
+		<< " " << etype 
+		<< " " << position.x 
+		<< " " << position.y 
+		<< " " << subtype 
+		<< " " << name 
+		<< " " << std::endl;
+}
+
+void Checkpoint::Load(int& index, const std::vector<std::string>& tokens,
+	std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	Entity::Load(index, tokens, map, game);
+
+	subtype = std::stoi(tokens[index++]);
+	name = tokens[index++];
 }

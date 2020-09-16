@@ -16,7 +16,7 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 	physics = new PhysicsComponent(this);
 	physics->useGravity = true;
 	physics->canBePushed = true;
-	physics->startPosition = pos;
+	startPosition = pos;
 	physics->standAboveGround = true;
 
 	health = new HealthComponent(4);
@@ -479,7 +479,27 @@ void Enemy::OnTriggerExit(Entity& other, Game& game)
 
 void Enemy::Save(std::ostringstream& level)
 {
-	level << std::to_string(id) << " " << etype << " " << physics->startPosition.x <<
-		" " << physics->startPosition.y << " " << name << " " << subtype << " "
-		<< drawOrder << " " << (int)layer << " " << impassable << std::endl;
+	level << std::to_string(id)
+		<< " " << etype
+		<< " " << startPosition.x
+		<< " " << startPosition.y 
+		<< " " << name 
+		<< " " << subtype 
+		<< " " << drawOrder 
+		<< " " << (int)layer 
+		<< " " << impassable 
+		<< std::endl;
+}
+
+void Enemy::Load(int& index, const std::vector<std::string>& tokens,
+	std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	Entity::Load(index, tokens, map, game);
+
+	name = tokens[index++];
+	subtype = std::stoi(tokens[index++]);
+
+	drawOrder = std::stoi(tokens[index++]);
+	layer = (DrawingLayer)std::stoi(tokens[index++]);
+	impassable = std::stoi(tokens[index++]);
 }

@@ -90,6 +90,7 @@ Entity::Entity(const Vector2& pos)
 {
 	name = "entity";
 	position = pos;
+	startPosition = position;
 
 	id = GetNextValidID();
 	takenIDs[id] = true;
@@ -428,7 +429,28 @@ void Entity::SetProperty(const std::string& key, const std::string& newValue)
 void Entity::Save(std::ostringstream& level)
 {
 	// By default, save nothing, because they are probably temp objects like missiles, etc.
+	if (shouldSave)
+	{
+		level << std::to_string(id) 
+			<< " " << etype 
+			<< " " << startPosition.x 
+			<< " " << startPosition.y 
+			<< " " << subtype 
+			<< std::endl;
+	}
 }
+
+void Entity::Load(int& index, const std::vector<std::string>& tokens,
+	std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	map["id"] = tokens[index++];
+	map["type"] = tokens[index++];
+	map["positionX"] = tokens[index++];
+	map["positionY"] = tokens[index++];
+
+	Entity::nextValidID = id;
+}
+
 
 void Entity::OnClick(Uint32 mouseState, Game& game)
 {

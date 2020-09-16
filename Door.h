@@ -6,13 +6,12 @@
 
 class Door : public Entity
 {
-	Vector2 destination = Vector2(0, 0);
 	Door* attachedDoor = nullptr;
 public:	
 	int destinationID = -1;
 	bool isLocked = false;
 	std::string nextLevelName = "none";
-	Door(Vector2 pos, Vector2 dest);
+	Door(Vector2 pos);
 	~Door();
 
 	void Update(Game& game);
@@ -22,15 +21,16 @@ public:
 
 	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
 	Vector2 GetDestination();
-	void SetDestination(Vector2 dest);
 
 	void OnTriggerStay(Entity& other, Game& game);
 	void OnTriggerEnter(Entity& other, Game& game);
 	void OnTriggerExit(Entity& other, Game& game);
 
 	void Save(std::ostringstream& level);
+	void Load(int& index, const std::vector<std::string>& tokens,
+		std::unordered_map<std::string, std::string>& map, Game& game);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return new Door(pos, pos); };
+	static Entity* __stdcall Create(const Vector2& pos) { return new Door(pos); };
 };
 
 #endif

@@ -19,7 +19,6 @@ protected:
 	std::vector<Entity*> prevFrameCollisions;
 	
 public:
-	Vector2 startPosition = Vector2(0, 0);
 	Vector2 velocity = Vector2(0, 0);
 	Vector2 previousVelocity = Vector2(0, 0);
 	float maxHorizontalSpeed = 0.5f;

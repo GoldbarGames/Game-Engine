@@ -12,7 +12,6 @@ public:
 
 	void Init(const std::string& n);
 	void Update(Game& game);
-	void Save(std::ostringstream& level);
 
 	void OnTriggerEnter(Entity& other, Game& game);
 

@@ -7,7 +7,6 @@ class NPC : public Entity
 {
 public:
 	std::string cutsceneLabel = "test1";
-	int spriteIndex = 0;
 	NPC(const std::string& n, const Vector2& pos);
 	~NPC();
 	bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
@@ -18,6 +17,8 @@ public:
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
 	void Save(std::ostringstream& level);
+	void Load(int& index, const std::vector<std::string>& tokens,
+		std::unordered_map<std::string, std::string>& map, Game& game);
 
 	static Entity* __stdcall Create(const Vector2& pos) { return new NPC("", pos); };
 };
