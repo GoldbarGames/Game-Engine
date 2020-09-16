@@ -1544,6 +1544,12 @@ void Game::Render()
 
 	// second pass
 	bool renderSecondFrameBuffer = false;
+	
+	// Don't render the scene twice outside of cutscenes
+	if (!cutscene->watchingCutscene)
+	{
+		updateScreenTexture = false;
+	}
 
 	if (updateScreenTexture)
 	{

@@ -34,7 +34,7 @@ private:
 	Vector2 tilesheetPosition = Vector2(0, 0);
 	
 	std::vector<Sprite*> tilesheetSprites;	
-	std::vector<string> tilesheetFilenames = { "housetiles5", "foresttiles" };
+	std::vector<string> tilesheetFilenames;
 
 	Vector2 spriteSheetTileFrame = Vector2(0,0);
 	Vector2 selectedTilePosition = Vector2(0, 0);

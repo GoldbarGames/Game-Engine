@@ -20,6 +20,8 @@ Editor::Editor(Game& g)
 {
 	game = &g;
 
+	tilesheetFilenames = game->ReadStringsFromFile("data/lists/tilesheet.list");
+
 	playOpeningDemoCutscene = false;
 	dialog = new Dialog(Vector2(g.screenWidth, g.screenHeight), g.spriteManager);
 	dialog->text = new Text(game->theFont, "");
