@@ -66,8 +66,8 @@ void Ladder::Load(int& index, const std::vector<std::string>& tokens,
 {
 	Entity::Load(index, tokens, map, game);
 
-	std::string ladderState = tokens[index++];
 	subtype = std::stoi(tokens[index++]);
+	std::string ladderState = tokens[index++];
 	GetAnimator()->SetState(ladderState.c_str());
 
 	if (game.editor->loadListLadderGroups.count(position.x) == 0)

@@ -1805,6 +1805,9 @@ void Editor::CreateLevelFromString(std::string level)
 				}
 				else
 				{
+					if (etype == "enemy")
+						int test = 0;
+
 					Entity* newEntity = game->SpawnEntity(etype,
 						Vector2(std::stoi(tokens[2]), std::stoi(tokens[3])), std::stoi(tokens[4]));
 

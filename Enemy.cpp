@@ -496,8 +496,8 @@ void Enemy::Load(int& index, const std::vector<std::string>& tokens,
 {
 	Entity::Load(index, tokens, map, game);
 
-	name = tokens[index++];
 	subtype = std::stoi(tokens[index++]);
+	name = tokens[index++];
 
 	drawOrder = std::stoi(tokens[index++]);
 	layer = (DrawingLayer)std::stoi(tokens[index++]);

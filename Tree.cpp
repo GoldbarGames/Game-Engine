@@ -126,6 +126,7 @@ void Tree::Save(std::ostringstream& level)
 void Tree::Load(int& index, const std::vector<std::string>& tokens,
 	std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	Entity::Load(index, tokens, map, game);
+	Entity::Load(index, tokens, map, game);	
+	subtype = std::stoi(tokens[index++]);
 	hiddenEntityID = std::stoi(tokens[index++]);
 }

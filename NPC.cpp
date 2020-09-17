@@ -132,6 +132,7 @@ void NPC::Load(int& index, const std::vector<std::string>& tokens,
 {
 	Entity::Load(index, tokens, map, game);
 
+	subtype = std::stoi(tokens[index++]);
 	name = tokens[index++];
 	cutsceneLabel = tokens[index++];
 

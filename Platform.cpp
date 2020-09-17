@@ -384,6 +384,7 @@ void Platform::Load(int& index, const std::vector<std::string>& tokens,
 {
 	Entity::Load(index, tokens, map, game);
 
+	subtype = std::stoi(tokens[index++]);
 	platformType = tokens[index++];
 
 	if (platformType == "Path")
