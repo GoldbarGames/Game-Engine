@@ -61,13 +61,12 @@ void Ladder::Save(std::ostringstream& level)
 		<< "" << std::endl;
 }
 
-void Ladder::Load(int& index, const std::vector<std::string>& tokens,
-	std::unordered_map<std::string, std::string>& map, Game& game)
+void Ladder::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	Entity::Load(index, tokens, map, game);
+	Entity::Load(map, game);
 
-	subtype = std::stoi(tokens[index++]);
-	std::string ladderState = tokens[index++];
+	subtype = std::stoi(map["subtype"]);
+	std::string ladderState = map["ladderState"];
 	GetAnimator()->SetState(ladderState.c_str());
 
 	if (game.editor->loadListLadderGroups.count(position.x) == 0)

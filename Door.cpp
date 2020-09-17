@@ -143,16 +143,15 @@ void Door::Save(std::ostringstream& level)
 		<< std::endl;
 }
 
-void Door::Load(int& index, const std::vector<std::string>& tokens,
-	std::unordered_map<std::string, std::string>& map, Game& game)
+void Door::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	Entity::Load(index, tokens, map, game);
+	Entity::Load(map, game);
 
-	subtype = std::stoi(tokens[index++]);
-	name = tokens[index++];
-	isLocked = std::stoi(tokens[index++]);
-	nextLevelName = tokens[index++];
-	destinationID = std::stoi(tokens[index++]);
+	subtype = std::stoi(map["subtype"]);
+	name = map["name"];
+	isLocked = std::stoi(map["isLocked"]);
+	nextLevelName = map["nextLevelName"];
+	destinationID = std::stoi(map["destinationID"]);
 
 	game.editor->loadListDoors.push_back(this);
 }

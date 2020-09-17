@@ -96,8 +96,7 @@ public:
 	virtual void Unpause(Uint32 ticks);
 
 	virtual void Init(const std::string& n);
-	virtual void Load(int& index, const std::vector<std::string>& tokens, 
-		std::unordered_map<std::string, std::string>& map, Game& game);
+	virtual void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
 	virtual bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
 

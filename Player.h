@@ -63,8 +63,7 @@ public:
 	void CheckJumpButton(const Uint8* input);
 
 	void Save(std::ostringstream& level);
-	void Load(int& index, const std::vector<std::string>& tokens,
-		std::unordered_map<std::string, std::string>& map, Game& game);
+	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
 	static Entity* __stdcall Create(const Vector2& pos) { return new Player(pos); };
 };

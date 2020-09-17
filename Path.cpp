@@ -131,15 +131,15 @@ void Path::Save(std::ostringstream& level)
 void Path::Load(int& index, const std::vector<std::string>& tokens,
 	std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	Entity::Load(index, tokens, map, game);
+	Entity::Load(map, game);
 
-	shouldLoop = std::stoi(tokens[index++]);
-	int nodeCount = std::stoi(tokens[index++]);
+	shouldLoop = std::stoi(map["shouldLoop"]);
+	int nodeCount = std::stoi(map["nodeCount"]);
 
 	for (int i = 0; i < nodeCount; i++)
 	{
-		int pointX = std::stoi(tokens[index++]);
-		int pointY = std::stoi(tokens[index++]);
+		int pointX = std::stoi(map["pointX"]);
+		int pointY = std::stoi(map["pointY"]);
 		AddPointToPath(Vector2(pointX, pointY));
 	}
 

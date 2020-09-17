@@ -127,16 +127,15 @@ void NPC::Save(std::ostringstream& level)
 		<< std::endl;
 }
 
-void NPC::Load(int& index, const std::vector<std::string>& tokens,
-	std::unordered_map<std::string, std::string>& map, Game& game)
+void NPC::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	Entity::Load(index, tokens, map, game);
+	Entity::Load(map, game);
 
-	subtype = std::stoi(tokens[index++]);
-	name = tokens[index++];
-	cutsceneLabel = tokens[index++];
+	subtype = std::stoi(map["subtype"]);
+	name = map["name"];
+	cutsceneLabel = map["cutsceneLabel"];
 
-	drawOrder = std::stoi(tokens[index++]);
-	layer = (DrawingLayer)std::stoi(tokens[index++]);
-	impassable = std::stoi(tokens[index++]);
+	drawOrder = std::stoi(map["drawOrder"]);
+	layer = (DrawingLayer)std::stoi(map["layer"]);
+	impassable = std::stoi(map["impassable"]);
 }

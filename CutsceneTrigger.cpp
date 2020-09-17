@@ -45,14 +45,13 @@ void CutsceneTrigger::Save(std::ostringstream& level)
 
 }
 
-void CutsceneTrigger::Load(int& index, const std::vector<std::string>& tokens,
-	std::unordered_map<std::string, std::string>& map, Game& game)
+void CutsceneTrigger::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	Entity::Load(index, tokens, map, game);
+	Entity::Load(map, game);
 
-	cutsceneLabel = tokens[index++];
+	cutsceneLabel = map["cutsceneLabel"];
 	triggerRect.x = (int)position.x;
 	triggerRect.y = (int)position.y;
-	triggerRect.w = (int)std::stoi(tokens[index++]);
-	triggerRect.h = (int)std::stoi(tokens[index++]);
+	triggerRect.w = (int)std::stoi(map["rectWidth"]);
+	triggerRect.h = (int)std::stoi(map["rectHeight"]);
 }

@@ -379,37 +379,35 @@ void Platform::Save(std::ostringstream& level)
 		<< std::endl;
 }
 
-void Platform::Load(int& index, const std::vector<std::string>& tokens,
-	std::unordered_map<std::string, std::string>& map, Game& game)
+void Platform::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	Entity::Load(index, tokens, map, game);
+	Entity::Load(map, game);
 
-	subtype = std::stoi(tokens[index++]);
-	platformType = tokens[index++];
+	subtype = std::stoi(map["subtype"]);
+	platformType = map["platformType"];
 
 	if (platformType == "Path")
 	{
-		pathID = std::stoi(tokens[index++]);
-		pathSpeed = std::stof(tokens[index++]);
-		endPathBehavior = tokens[index++];
+		pathID = std::stoi(map["pathID"]);
+		pathSpeed = std::stof(map["pathSpeed"]);
+		endPathBehavior = map["endPathBehavior"];
 		game.editor->loadListMovingPlatforms.emplace_back(this);
 	}
 	else
 	{
-		float vx = std::stof(tokens[index++]);
-		float vy = std::stof(tokens[index++]);
+		float vx = std::stof(map["vx"]);
+		float vy = std::stof(map["vy"]);
 		startVelocity = Vector2(vx, vy);
-		tilesToMove = std::stoi(tokens[index++]);
-		shouldLoop = std::stoi(tokens[index++]);
+		tilesToMove = std::stoi(map["tilesToMove"]);
+		shouldLoop = std::stoi(map["shouldLoop"]);
 		physics->SetVelocity(startVelocity);
 	}
 
-	if (index < tokens.size())
-		switchID = std::stoi(tokens[index++]);
+	switchID = std::stoi(map["switchID"]);
 
 	if (switchID > -1)
 	{
-		switchDistanceMoved.x = std::stoi(tokens[index++]);
-		switchDistanceMoved.y = std::stoi(tokens[index++]);
+		switchDistanceMoved.x = std::stoi(map["switchDX"]);
+		switchDistanceMoved.y = std::stoi(map["switchDY"]);
 	}
 }

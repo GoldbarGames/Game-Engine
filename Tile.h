@@ -21,8 +21,7 @@ public:
 	int tilesheetIndex = 0;
 	Vector2 tileCoordinates = Vector2(0, 0);
 
-	void Load(int& index, const std::vector<std::string>& tokens,
-		std::unordered_map<std::string, std::string>& map, Game& game);
+	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 	void Destroy();
 	void ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer);
 	void Animate();

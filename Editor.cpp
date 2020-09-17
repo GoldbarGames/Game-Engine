@@ -71,11 +71,154 @@ Editor::Editor(Game& g)
 	objectPropertiesRect.w = 400;
 	objectPropertiesRect.h = 600;
 	objectPropertiesRect.y = 100;
+
+	std::unordered_map<std::string, std::vector<std::string>> newMap;
+
+	
+	const std::string LOAD_FILE = "data/loading.dat";
+
+	// Fill in the new array
+	std::string loadingData = ReadLoadingData(LOAD_FILE, newMap);
+
+
+	// After filling in the arrays...
+	//TODO: Update the level files here
+	const std::string OLD_FILEPATH = "data/load_old.dat";
+	std::unordered_map<std::string, std::vector<std::string>> oldMap;
+	ReadLoadingData(OLD_FILEPATH, oldMap);
+
+	
+	std::unordered_map<std::string, Vector2> reorderMap;
+	std::unordered_map<std::string, int> resizeMap;
+
+	// TODO: Maybe figure out how to handle numbers vs. strings better
+	for (auto const& [key, currentList] : oldMap)
+	{
+		for (int i = 0; i < currentList.size(); i++)
+		{
+			resizeMap[key] = newMap[key].size();
+
+			// Check for any elements that have been re-ordered
+			std::vector<std::string>::iterator it = std::find(newMap[key].begin(), newMap[key].end(), currentList[i]);
+			if (it != newMap[key].end())
+			{
+				// keep track of the indices here and swap them in the level file
+				// - entity type
+				// - old index of the element 
+				// - new index of the element
+
+				reorderMap[key] = Vector2(i, std::distance(newMap[key].begin(), it));
+			}
+
+		}
+	}
+
+	// After updating the level files,
+	// update the old loading file
+
+	std::ofstream fout;
+	fout.open(OLD_FILEPATH);
+	fout << loadingData;
+	fout.close();
+
+
+	// TODO: When updating the level file,
+	// always re-order before resizing
+	// so that the swap always works
+
+
+
+	/*
+
+	if it looks like we renamed something,
+	just keep the old value, because we might want it
+
+	we should be able to:
+	- reorder
+	- rename
+	- add
+	- remove
+
+	a b c d e f g
+	a x c f z
+
+	1 2 3 4 5 6 7
+	1 2 3 6 5 0 0 0 0 0
+
+	1. check for reordering, that is
+	look for names that were in the list before.
+	if they are also in this list but in a different order,
+	consider them to be reordered.
+
+	-> if there are any elements that were at some index
+	and are now at a different one, keep them where they are
+	in the new list but keep track of the indices
+	-> and then in the level file, for each entity
+	of that type, swap indices for that element
+
+	-> if some elements are no longer in this list,
+	check for renaming/removing
+
+	-> an element has been renamed if it is not in the list
+	AND the size of the list is the same as it was before
+
+	-> an element has been removed if it is not in the list
+	AND the size of the list is less than what it was before
+
+
+	*/
+
+
+
+
+
 }
 
 Editor::~Editor()
 {
 
+}
+
+std::string Editor::ReadLoadingData(const std::string& filepath, 
+	std::unordered_map <std::string, std::vector<std::string>>& map)
+{
+	std::ifstream fin;
+	fin.open(filepath);
+
+	std::string loadingData = "";
+	for (std::string line; std::getline(fin, line); )
+	{
+		loadingData += line + "\n";
+	}
+
+	fin.close();
+
+	std::stringstream ss{ loadingData };
+	std::string etype = "";
+
+	const int LINE_SIZE = 1024;
+	char lineChar[LINE_SIZE];
+	ss.getline(lineChar, LINE_SIZE);
+
+	// Read in data for loading from files
+	map.clear();
+	while (ss.good() && !ss.eof())
+	{
+		std::istringstream buf(lineChar);
+		std::istream_iterator<std::string> beg(buf), end;
+		std::vector<std::string> tokens(beg, end);
+
+		etype = tokens[0].substr(0, tokens[0].size() - 1);
+
+		for (int i = 1; i < tokens.size(); i++)
+		{
+			map[etype].push_back(tokens[i]);
+		}
+
+		ss.getline(lineChar, LINE_SIZE);
+	}
+
+	return loadingData;
 }
 
 void Editor::CreateEditorButtons()
@@ -1705,14 +1848,18 @@ void Editor::CreateLevelFromString(std::string level)
 
 		std::stringstream ss{ level };
 
-		char lineChar[256];
-		ss.getline(lineChar, 256);
+		const int LINE_SIZE = 1024;
+		char lineChar[LINE_SIZE];
+		ss.getline(lineChar, LINE_SIZE);
 
 		std::string etype = "";
 		int positionX = 0;
 		int positionY = 0;
 		std::string subtype = "";
+		
+		
 		std::unordered_map<std::string, std::string> map;
+	
 		int line = 0;
 		int index = 0;
 
@@ -1732,26 +1879,40 @@ void Editor::CreateLevelFromString(std::string level)
 				positionY = std::stoi(tokens[3]);
 				subtype = tokens[4];
 
+				// Populate the map of data
+				if (loadDataMap.count(etype) != 0)
+				{
+					for (int i = 0; i < loadDataMap["entity"].size(); i++)
+					{
+						map[loadDataMap["entity"][i]] = tokens[index++];
+					}
+
+					for (int i = 0; i < loadDataMap[etype].size(); i++)
+					{
+						map[loadDataMap[etype][i]] = tokens[index++];
+					}
+				}
+
 				if (etype == "player")
 				{
 					game->player = game->SpawnPlayer(Vector2(positionX, positionY));
 				}
 				else if (etype == "tile")
 				{
-					map["id"] = tokens[index++];
-					map["type"] = tokens[index++];
-					map["positionX"] = tokens[index++];
-					map["positionY"] = tokens[index++];
+					//map["id"] = tokens[index++];
+					//map["type"] = tokens[index++];
+					//map["positionX"] = tokens[index++];
+					//map["positionY"] = tokens[index++];
 
 					Entity::nextValidID = std::stoi(map["id"]);
 
-					map["drawOrder"] = tokens[index++];
-					map["layer"] = tokens[index++];
+					//map["drawOrder"] = tokens[index++];
+					//map["layer"] = tokens[index++];
 
-					map["passableState"] = tokens[index++];
-					map["tilesheet"] = tokens[index++];
-					map["frameX"] = tokens[index++];
-					map["frameY"] = tokens[index++];
+					//map["passableState"] = tokens[index++];
+					//map["tilesheet"] = tokens[index++];
+					//map["frameX"] = tokens[index++];
+					//map["frameY"] = tokens[index++];
 
 					Tile* newTile = game->SpawnTile(Vector2(std::stoi(map["frameX"]), std::stoi(map["frameY"])),
 						"assets/tiles/" + GetTileSheetFileName(std::stoi(map["tilesheet"])) + ".png",
@@ -1805,15 +1966,12 @@ void Editor::CreateLevelFromString(std::string level)
 				}
 				else
 				{
-					if (etype == "enemy")
-						int test = 0;
-
 					Entity* newEntity = game->SpawnEntity(etype,
 						Vector2(std::stoi(tokens[2]), std::stoi(tokens[3])), std::stoi(tokens[4]));
 
 					if (newEntity != nullptr)
 					{
-						newEntity->Load(index, tokens, map, *game);
+						newEntity->Load(map, *game);
 						newEntity->Init(game->entityTypes[etype][std::stoi(tokens[4])]);
 					}
 				}
@@ -1826,7 +1984,7 @@ void Editor::CreateLevelFromString(std::string level)
 				game->logger->Log(e.what());
 			}
 
-			ss.getline(lineChar, 256);
+			ss.getline(lineChar, LINE_SIZE);
 		}
 
 		Entity::nextValidID = 2; // highestID + 1;

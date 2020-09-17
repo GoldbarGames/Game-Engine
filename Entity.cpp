@@ -440,14 +440,8 @@ void Entity::Save(std::ostringstream& level)
 	}
 }
 
-void Entity::Load(int& index, const std::vector<std::string>& tokens,
-	std::unordered_map<std::string, std::string>& map, Game& game)
+void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	map["id"] = tokens[index++];
-	map["type"] = tokens[index++];
-	map["positionX"] = tokens[index++];
-	map["positionY"] = tokens[index++];
-
 	Entity::nextValidID = id;
 }
 

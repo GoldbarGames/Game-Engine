@@ -17,8 +17,7 @@ public:
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
 	void Save(std::ostringstream& level);
-	void Load(int& index, const std::vector<std::string>& tokens,
-		std::unordered_map<std::string, std::string>& map, Game& game);
+	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
 	static Entity* __stdcall Create(const Vector2& pos) { return new NPC("", pos); };
 };

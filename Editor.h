@@ -84,6 +84,8 @@ public:
 	int propertyIndex = -1;
 	int GRID_SIZE = 24;
 
+	std::unordered_map<std::string, std::vector<std::string>> loadDataMap;
+
 	std::string startEditorLevel = "";
 
 	std::string objectMode = "tile";
@@ -120,6 +122,8 @@ public:
 	void Render(const Renderer& renderer);
 	void RenderDebug(const Renderer& renderer);
 	DrawingLayer drawingLayer = DrawingLayer::BACK;
+
+	std::string ReadLoadingData(const std::string& data, std::unordered_map < std::string, std::vector<std::string>>& map);
 
 
 	EditorButton* clickedButton = nullptr;

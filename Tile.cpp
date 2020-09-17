@@ -16,18 +16,9 @@ Tile::~Tile()
 
 }
 
-void Tile::Load(int& index, const std::vector<std::string>& tokens, 
-	std::unordered_map<std::string, std::string>& map, Game& game)
+void Tile::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	Entity::Load(index, tokens, map, game);
-
-	map["drawOrder"] = tokens[index++];
-	map["layer"] = tokens[index++];
-
-	map["passableState"] = tokens[index++];
-	map["tilesheet"] = tokens[index++];
-	map["frameX"] = tokens[index++];
-	map["frameY"] = tokens[index++];
+	Entity::Load(map, game);
 
 	Tile* newTile = game.SpawnTile(Vector2(std::stoi(map["frameX"]), std::stoi(map["frameY"])),
 		"assets/tiles/" + game.editor->GetTileSheetFileName(std::stoi(map["tilesheet"])) + ".png",

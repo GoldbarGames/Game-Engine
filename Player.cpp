@@ -598,9 +598,8 @@ void Player::Save(std::ostringstream& level)
 		<< std::endl;
 }
 
-void Player::Load(int& index, const std::vector<std::string>& tokens,
-	std::unordered_map<std::string, std::string>& map, Game& game)
+void Player::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	Entity::Load(index, tokens, map, game);
+	Entity::Load(map, game);
 
 }
