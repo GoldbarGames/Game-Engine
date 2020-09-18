@@ -426,6 +426,7 @@ void Entity::SetProperty(const std::string& key, const std::string& newValue)
 
 }
 
+// TODO: Save each variable to a map instead, don't output anything
 void Entity::Save(std::ostringstream& level)
 {
 	// By default, save nothing, because they are probably temp objects like missiles, etc.

@@ -135,6 +135,7 @@ public:
 	void ToggleSpriteMap(int num);
 	void ToggleInspectionMode();
 
+	void UpdateLevelFile(const std::string& level);
 	
 	void CreateEditorButtons();
 

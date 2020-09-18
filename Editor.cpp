@@ -72,15 +72,34 @@ Editor::Editor(Game& g)
 	objectPropertiesRect.h = 600;
 	objectPropertiesRect.y = 100;
 
+#if _DEBUG
+	// UpdateLevelFile("demo");
+#endif
+
+}
+
+Editor::~Editor()
+{
+
+}
+
+// Updates the level file based on changes in how entities are saved/loaded
+void Editor::UpdateLevelFile(const std::string& level)
+{
 	// Fill in the new array
 	loadDataMap.clear();
 	const std::string LOAD_FILE = "data/loading.dat";
-	std::string loadingData = ReadLoadingData(LOAD_FILE, loadDataMap);
+	std::string newData = ReadLoadingData(LOAD_FILE, loadDataMap);
 
-	//TODO: Update the level files here
 	const std::string OLD_FILEPATH = "data/load_old.dat";
 	std::unordered_map<std::string, std::vector<std::string>> oldMap;
-	ReadLoadingData(OLD_FILEPATH, oldMap);
+	std::string oldData = ReadLoadingData(OLD_FILEPATH, oldMap);
+
+	// If no changes, return now
+	if (newData == oldData)
+	{
+		return;
+	}
 
 	std::unordered_map<std::string, std::vector<Vector2>> reorderMap;
 	std::unordered_map<std::string, int> resizeMap;
@@ -120,7 +139,7 @@ Editor::Editor(Game& g)
 				resizeMap[entityType] = loadDataMap[entityType].size();
 
 				// Check for any elements that have been re-ordered
-				std::vector<std::string>::iterator it = std::find(loadDataMap[entityType].begin(), 
+				std::vector<std::string>::iterator it = std::find(loadDataMap[entityType].begin(),
 					loadDataMap[entityType].end(), currentList[i]);
 
 				// If we can find this element in the new data...
@@ -138,8 +157,7 @@ Editor::Editor(Game& g)
 	// Update the level files
 	std::ofstream fout;
 
-	const std::string LEVEL_FILE = "demo";
-	std::stringstream ss{ ReadLevelFromFile(LEVEL_FILE) };
+	std::stringstream ss{ ReadLevelFromFile(level) };
 
 	const int LINE_SIZE = 1024;
 	char lineChar[LINE_SIZE];
@@ -150,8 +168,6 @@ Editor::Editor(Game& g)
 
 	std::string newLevel = "";
 	std::string etype = "";
-
-
 
 	while (ss.good() && !ss.eof())
 	{
@@ -176,7 +192,7 @@ Editor::Editor(Game& g)
 		{
 			oldEntitySize += resizeMap[etype];
 			newEntitySize += resizeMap[etype];
-		} 
+		}
 
 		for (int i = 0; i < newEntitySize; i++)
 		{
@@ -215,22 +231,16 @@ Editor::Editor(Game& g)
 	}
 
 	// Output the new level to a file
-	fout.open("data/levels/" + LEVEL_FILE + ".lvl");
+	fout.open("data/levels/" + level + ".lvl");
 	fout << newLevel;
 	fout.close();
 
 	// After updating the level files,
 	// update the old loading file
-	
+
 	fout.open(OLD_FILEPATH);
-	fout << loadingData;
+	fout << newData;
 	fout.close();
-
-}
-
-Editor::~Editor()
-{
-
 }
 
 std::string Editor::ReadLoadingData(const std::string& filepath, 
@@ -1800,11 +1810,14 @@ std::string Editor::SaveLevelAsString()
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
+		// TODO: Pass in a cleared map, fill it with values,
+		// then output all the values according to the loading.dat file
 		game->entities[i]->Save(level);
 	}
 
 	game->background->Save(level);
 
+	// TODO: Refactor this better
 	if (game->levelStartCutscene != "")
 	{
 		level << "1 cutscene-start 0 0 " << game->levelStartCutscene << std::endl;
@@ -2128,6 +2141,12 @@ void Editor::InitLevelFromFile(std::string levelName)
 
 	levelStrings.clear();
 	levelStringIndex = -1;
+
+	// Check to see if the object properties (saving/loading)
+	// require the level to be re-calculated
+#if _DEBUG
+	UpdateLevelFile(levelName);
+#endif
 
 	CreateLevelFromString(ReadLevelFromFile(levelName));
 
