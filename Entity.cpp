@@ -444,7 +444,7 @@ void Entity::Save(std::ostringstream& level)
 void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
 	Entity::nextValidID = id;
-	//rotation.z = std::stoi(map["rotationZ"]);
+	rotation.z = std::stoi(map["rotationZ"]);
 }
 
 
