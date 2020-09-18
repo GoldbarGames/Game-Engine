@@ -116,6 +116,7 @@ void Background::CreateBackground(const std::string& n, Vector2 pos,
 		AddLayer(Vector2(pos.x + ld->offsetX, pos.y + ld->offsetY), spriteManager, renderer,
 			ld->filepath, ld->drawOrder, ld->parallax);
 	}
+	
 }
 
 

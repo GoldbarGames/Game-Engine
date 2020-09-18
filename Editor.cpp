@@ -72,13 +72,11 @@ Editor::Editor(Game& g)
 	objectPropertiesRect.h = 600;
 	objectPropertiesRect.y = 100;
 
-	std::unordered_map<std::string, std::vector<std::string>> newMap;
-
-	
+	loadDataMap.clear();
 	const std::string LOAD_FILE = "data/loading.dat";
 
 	// Fill in the new array
-	std::string loadingData = ReadLoadingData(LOAD_FILE, newMap);
+	std::string loadingData = ReadLoadingData(LOAD_FILE, loadDataMap);
 
 
 	// After filling in the arrays...
@@ -87,90 +85,138 @@ Editor::Editor(Game& g)
 	std::unordered_map<std::string, std::vector<std::string>> oldMap;
 	ReadLoadingData(OLD_FILEPATH, oldMap);
 
-	
-	std::unordered_map<std::string, Vector2> reorderMap;
+	std::unordered_map<std::string, std::vector<Vector2>> reorderMap;
 	std::unordered_map<std::string, int> resizeMap;
 
-	// TODO: Maybe figure out how to handle numbers vs. strings better
-	for (auto const& [key, currentList] : oldMap)
+	// Store the new size of the list in order to resize it (add/remove)
+	resizeMap["entity"] = oldMap["entity"].size();
+
+	for (int i = 0; i < oldMap["entity"].size(); i++)
 	{
-		for (int i = 0; i < currentList.size(); i++)
+		// Check for any elements that have been re-ordered
+		std::vector<std::string>::iterator it = std::find(loadDataMap["entity"].begin(),
+			loadDataMap["entity"].end(), oldMap["entity"][i]);
+
+		// If we can find this element in the new data...
+		if (it != loadDataMap["entity"].end())
 		{
-			resizeMap[key] = newMap[key].size();
-
-			// Check for any elements that have been re-ordered
-			std::vector<std::string>::iterator it = std::find(newMap[key].begin(), newMap[key].end(), currentList[i]);
-			if (it != newMap[key].end())
-			{
-				// keep track of the indices here and swap them in the level file
-				// - entity type
-				// - old index of the element 
-				// - new index of the element
-
-				reorderMap[key] = Vector2(i, std::distance(newMap[key].begin(), it));
-			}
-
+			int newIndex = std::distance(loadDataMap["entity"].begin(), it);
+			reorderMap["entity"].push_back(Vector2(i, newIndex));
 		}
 	}
 
+
+
+	// TODO: Maybe figure out how to handle numbers vs. strings better
+	for (auto const& [entityType, currentList] : oldMap)
+	{
+		for (int i = 0; i < currentList.size(); i++)
+		{
+			if (entityType != "entity")
+			{
+				// Store the new size of the list in order to resize it (add/remove)
+				resizeMap[entityType] = resizeMap["entity"] + loadDataMap[entityType].size();
+
+				// Check for any elements that have been re-ordered
+				std::vector<std::string>::iterator it = std::find(loadDataMap[entityType].begin(), loadDataMap[entityType].end(), currentList[i]);
+
+				// If we can find this element in the new data...
+				if (it != loadDataMap[entityType].end())
+				{
+					// keep track of the indices here and swap them in the level file
+					// - entity type
+					// - old index of the element 
+					// - new index of the element
+
+					int newIndex = std::distance(loadDataMap[entityType].begin(), it);
+					reorderMap[entityType].push_back(Vector2(resizeMap["entity"] + i, resizeMap["entity"] + newIndex));
+				}
+			}
+		}
+	}
+
+	int difference = loadDataMap["entity"].size() - oldMap["entity"].size();
+
+	// Update the level files
+	std::ofstream fout;
+
+	const std::string LEVEL_FILE = "demo";
+	std::stringstream ss{ ReadLevelFromFile(LEVEL_FILE) };
+
+	const int LINE_SIZE = 1024;
+	char lineChar[LINE_SIZE];
+	ss.getline(lineChar, LINE_SIZE);
+
+	int line = 0;
+	int index = 0;
+
+	std::string newLevel = "";
+	std::string etype = "";
+
+	while (ss.good() && !ss.eof())
+	{
+		std::istringstream buf(lineChar);
+		std::istream_iterator<std::string> beg(buf), end;
+		std::vector<std::string> tokens(beg, end);
+
+		// Get the type of entity we are dealing with
+		etype = tokens[1];
+
+		// Depending on the type of entity, figure out the rest
+
+		// 1. Create a new vector of strings equal to the new size
+		std::vector<std::string> newTokens;
+
+
+		int size = resizeMap["entity"];
+		if (resizeMap.count(etype) != 0)
+		{
+			size = resizeMap[etype];
+		}
+
+		for (int i = 0; i <= size; i++)
+		{
+			newTokens.push_back("0");
+		}
+
+		// 2. For each reorder, take the value in the old index, place it in new index
+		// 3. For anything that is not a reorder, just keep the values where they are
+		for (int i = 0; i < reorderMap["entity"].size(); i++)
+		{
+			int oldIndex = reorderMap["entity"][i].x;
+			int newIndex = reorderMap["entity"][i].y;
+			newTokens[newIndex] = tokens[oldIndex];
+		}
+
+		for (int i = 0; i < reorderMap[etype].size(); i++)
+		{
+			int oldIndex = reorderMap[etype][i].x;
+			int newIndex = difference + reorderMap[etype][i].y;
+			newTokens[newIndex] = tokens[oldIndex];
+		}
+
+		for (int i = 0; i < newTokens.size(); i++)
+		{
+			newLevel += newTokens[i];
+			newLevel += " ";
+		}
+
+		newLevel += "\n";
+
+		ss.getline(lineChar, LINE_SIZE);
+	}
+
+	// Output the new level to a file
+	fout.open("data/levels/" + LEVEL_FILE + ".lvl");
+	fout << newLevel;
+	fout.close();
+
 	// After updating the level files,
 	// update the old loading file
-
-	std::ofstream fout;
+	
 	fout.open(OLD_FILEPATH);
 	fout << loadingData;
 	fout.close();
-
-
-	// TODO: When updating the level file,
-	// always re-order before resizing
-	// so that the swap always works
-
-
-
-	/*
-
-	if it looks like we renamed something,
-	just keep the old value, because we might want it
-
-	we should be able to:
-	- reorder
-	- rename
-	- add
-	- remove
-
-	a b c d e f g
-	a x c f z
-
-	1 2 3 4 5 6 7
-	1 2 3 6 5 0 0 0 0 0
-
-	1. check for reordering, that is
-	look for names that were in the list before.
-	if they are also in this list but in a different order,
-	consider them to be reordered.
-
-	-> if there are any elements that were at some index
-	and are now at a different one, keep them where they are
-	in the new list but keep track of the indices
-	-> and then in the level file, for each entity
-	of that type, swap indices for that element
-
-	-> if some elements are no longer in this list,
-	check for renaming/removing
-
-	-> an element has been renamed if it is not in the list
-	AND the size of the list is the same as it was before
-
-	-> an element has been removed if it is not in the list
-	AND the size of the list is less than what it was before
-
-
-	*/
-
-
-
-
 
 }
 

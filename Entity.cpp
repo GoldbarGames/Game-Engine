@@ -431,11 +431,12 @@ void Entity::Save(std::ostringstream& level)
 	// By default, save nothing, because they are probably temp objects like missiles, etc.
 	if (shouldSave)
 	{
-		level << std::to_string(id) 
-			<< " " << etype 
-			<< " " << startPosition.x 
-			<< " " << startPosition.y 
-			<< " " << subtype 
+		level << std::to_string(id)
+			<< " " << etype
+			<< " " << startPosition.x
+			<< " " << startPosition.y
+			<< " " << rotation.z
+			<< " " << subtype
 			<< std::endl;
 	}
 }
@@ -443,6 +444,7 @@ void Entity::Save(std::ostringstream& level)
 void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
 	Entity::nextValidID = id;
+	//rotation.z = std::stoi(map["rotationZ"]);
 }
 
 
