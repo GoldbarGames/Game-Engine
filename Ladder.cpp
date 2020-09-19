@@ -50,19 +50,17 @@ void Ladder::Render(const Renderer& renderer)
 	Entity::Render(renderer);
 }
 
-void Ladder::Save(std::ostringstream& level)
+void Ladder::Save(std::unordered_map<std::string, std::string>& map)
 {
-	level << std::to_string(id) 
-		<< " " << etype 
-		<< " " << GetPosition().x 
-		<< " " << GetPosition().y 
-		<< " " << GetAnimator()->currentState->name
-		<< " " << subtype 
-		<< "" << std::endl;
+	Entity::Save(map);
+
+	map["subtype"] = std::to_string(subtype);
+	map["ladderState"] = GetAnimator()->currentState->name;
 }
 
 void Ladder::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
+	shouldSave = true;
 	Entity::Load(map, game);
 
 	subtype = std::stoi(map["subtype"]);

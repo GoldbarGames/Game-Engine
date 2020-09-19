@@ -82,3 +82,11 @@ void Shroom::OnTriggerEnter(Entity& other, Game& game)
 		animator->DoState(*this);
 	}
 }
+
+void Shroom::Save(std::unordered_map<std::string, std::string>& map)
+{
+	shouldSave = true;
+	Entity::Save(map);
+
+	map["subtype"] = std::to_string(subtype);
+}

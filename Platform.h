@@ -34,7 +34,7 @@ public:
 	void Render(const Renderer& renderer);
 	void Update(Game& game);
 
-	void Save(std::ostringstream& level);
+	void Save(std::unordered_map<std::string, std::string>& map);
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
 	std::string CalcDirection(bool x);

@@ -113,14 +113,13 @@ void Tree::OnTriggerExit(Entity& other, Game& game)
 
 }
 
-void Tree::Save(std::ostringstream& level)
+void Tree::Save(std::unordered_map<std::string, std::string>& map)
 {
-	level << std::to_string(id) 
-		<< " " << etype 
-		<< " " << position.x 
-		<< " " << position.y 
-		<< " " << subtype 
-		<< " " << hiddenEntityID << std::endl;
+	shouldSave = true;
+	Entity::Save(map);
+
+	map["subtype"] = std::to_string(subtype);
+	map["hiddenEntityID"] = std::to_string(hiddenEntityID);
 }
 
 void Tree::Load(std::unordered_map<std::string, std::string>& map, Game& game)

@@ -108,27 +108,21 @@ void NPC::SetProperty(const std::string& key, const std::string& newValue)
 	}
 }
 
-void NPC::Save(std::ostringstream& level)
+void NPC::Save(std::unordered_map<std::string, std::string>& map)
 {
-	std::string npcLabel = cutsceneLabel;
-	if (npcLabel == "")
-		npcLabel = "null";
+	Entity::Save(map);
 
-	level << std::to_string(id) 
-		<< " " << etype 
-		<< " " << startPosition.x 
-		<< " " << startPosition.y 
-		<< " " << subtype
-		<< " " << name 
-		<< " " << cutsceneLabel 
-		<< " " << drawOrder 
-		<< " " << (int)layer 
-		<< " " << impassable 
-		<< std::endl;
+	map["subtype"] = std::to_string(subtype);
+	map["name"] = name;
+	map["cutsceneLabel"] = cutsceneLabel == "" ? "null" : cutsceneLabel;
+	map["drawOrder"] = std::to_string(drawOrder);
+	map["layer"] = std::to_string((int)layer);
+	map["impassable"] = std::to_string(impassable);
 }
 
 void NPC::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
+	shouldSave = true;
 	Entity::Load(map, game);
 
 	subtype = std::stoi(map["subtype"]);

@@ -164,7 +164,11 @@ void Background::ResetBackground()
 	layers.clear();
 }
 
-void Background::Save(std::ostringstream& level)
+void Background::Save(std::unordered_map<std::string, std::string>& map)
 {
-	level << "0 bg " << position.x << " " << position.y << " " << name << std::endl;
+	map["id"] = "0";
+	map["type"] = "bg";
+	map["positionX"] = std::to_string((int)position.x);
+	map["positionY"] = std::to_string((int)position.y);
+	map["subtype"] = name;
 }

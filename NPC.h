@@ -16,7 +16,7 @@ public:
 	void ChangeCollider(float x, float y, float w, float h);
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
-	void Save(std::ostringstream& level);
+	void Save(std::unordered_map<std::string, std::string>& map);
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
 	static Entity* __stdcall Create(const Vector2& pos) { return new NPC("", pos); };

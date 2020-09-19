@@ -81,3 +81,11 @@ void Block::SetProperty(const std::string& key, const std::string& newValue)
 			collider->scale.y = std::stof(newValue);
 	}
 }
+
+void Block::Save(std::unordered_map<std::string, std::string>& map)
+{
+	shouldSave = true;
+	Entity::Save(map);
+
+	map["subtype"] = std::to_string(subtype);
+}

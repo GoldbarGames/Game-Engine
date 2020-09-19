@@ -15,6 +15,8 @@ public:
 
 	void OnTriggerEnter(Entity& other, Game& game);
 
+	void Save(std::unordered_map<std::string, std::string>& map);
+
 	static Entity* __stdcall Create(const Vector2& pos) { return new Shroom(pos); };
 };
 

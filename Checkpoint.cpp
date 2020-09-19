@@ -76,15 +76,13 @@ void Checkpoint::SetProperty(const std::string& key, const std::string& newValue
 	}
 }
 
-void Checkpoint::Save(std::ostringstream& level)
+void Checkpoint::Save(std::unordered_map<std::string, std::string>& map)
 {
-	level << std::to_string(id) 
-		<< " " << etype 
-		<< " " << position.x 
-		<< " " << position.y 
-		<< " " << subtype 
-		<< " " << name 
-		<< " " << std::endl;
+	shouldSave = true;
+	Entity::Save(map);
+
+	map["subtype"] = std::to_string(subtype);
+	map["name"] = name;
 }
 
 void Checkpoint::Load(std::unordered_map<std::string, std::string>& map, Game& game)

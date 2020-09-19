@@ -586,16 +586,10 @@ void Player::SetProperty(const std::string& key, const std::string& newValue)
 	}
 }
 
-void Player::Save(std::ostringstream& level)
+void Player::Save(std::unordered_map<std::string, std::string>& map)
 {
-	level << std::to_string(id) 
-		<< " " << etype 
-		<< " " << startPosition.x 
-		<< " " << startPosition.y 
-		<< " " << drawOrder 
-		<< " " << (int)layer
-		<< " " << impassable 
-		<< std::endl;
+	shouldSave = true;
+	Entity::Save(map);
 }
 
 void Player::Load(std::unordered_map<std::string, std::string>& map, Game& game)

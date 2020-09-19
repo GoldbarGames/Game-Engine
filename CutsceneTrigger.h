@@ -19,7 +19,7 @@ public:
 	void OnTriggerEnter(Entity& other, Game& game);
 	void OnTriggerExit(Entity& other, Game& game);
 
-	void Save(std::ostringstream& level);
+	void Save(std::unordered_map<std::string, std::string>& map);
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
 	const SDL_Rect* GetBounds();

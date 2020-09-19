@@ -107,25 +107,20 @@ const SDL_Rect* Path::GetBounds()
 	return nodes[0]->GetRenderRect();
 }
 
-void Path::Save(std::ostringstream& level)
+void Path::Save(std::unordered_map<std::string, std::string>& map)
 {
-	Vector2 pos = GetPosition();
+	shouldSave = true;
+	Entity::Save(map);
 
-	level << std::to_string(id) 
-		<< " " << etype 
-		<< " " << pos.x 
-		<< " " << pos.y 
-		<< " " << shouldLoop 
-		<< " " << nodes.size();
+	map["shouldLoop"] = std::to_string(shouldLoop);
+	map["nodeCount"] = std::to_string(nodes.size());
 
+	//TODO: Handle this as a special case in the main Save() function
 	for (int i = 0; i < nodes.size(); i++)
 	{
-		level 
-			<< " " << nodes[i]->point.x 
-			<< " " << nodes[i]->point.y;
+		map["nodeX" + i] = std::to_string(nodes[i]->point.x);
+		map["nodeY" + i] = std::to_string(nodes[i]->point.y);
 	}
-
-	level << std::endl;		
 }
 
 void Path::Load(int& index, const std::vector<std::string>& tokens,

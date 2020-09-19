@@ -29,7 +29,7 @@ public:
 	Tile(const Vector2& pos, const Vector2& frame, Texture* image, Renderer* renderer);
 	~Tile();
 
-	void Save(std::ostringstream& level);
+	void Save(std::unordered_map<std::string, std::string>& map);
 
 	//static Tile* __stdcall Create(const Vector2& pos) { return new Tile(pos); };
 };

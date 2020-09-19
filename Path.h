@@ -21,7 +21,7 @@ public:
 	void Render(const Renderer& renderer, unsigned int uniformModel);
 	const SDL_Rect* GetBounds();
 
-	void Save(std::ostringstream& level);
+	void Save(std::unordered_map<std::string, std::string>& map);
 	void Load(int& index, const std::vector<std::string>& tokens,
 		std::unordered_map<std::string, std::string>& map, Game& game);
 

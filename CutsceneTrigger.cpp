@@ -40,9 +40,14 @@ void CutsceneTrigger::OnTriggerExit(Entity& other, Game& game)
 
 }
 
-void CutsceneTrigger::Save(std::ostringstream& level)
+void CutsceneTrigger::Save(std::unordered_map<std::string, std::string>& map)
 {
+	shouldSave = true;
+	Entity::Save(map);
 
+	map["cutsceneLabel"] = cutsceneLabel;
+	map["rectWidth"] = std::to_string(triggerRect.w);
+	map["rectHeight"] = std::to_string(triggerRect.h);
 }
 
 void CutsceneTrigger::Load(std::unordered_map<std::string, std::string>& map, Game& game)

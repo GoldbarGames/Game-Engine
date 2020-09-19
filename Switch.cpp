@@ -37,8 +37,10 @@ void Switch::OnTriggerExit(Entity& other, Game& game)
 }
 
 //TODO: Make sure we save WHAT this switch is actually doing!
-void Switch::Save(std::ostringstream& level)
+void Switch::Save(std::unordered_map<std::string, std::string>& map)
 {
-	level << std::to_string(id) << " " << etype << " " << position.x << " " <<
-		position.y << " " << subtype << "" << std::endl;
+	shouldSave = true;
+	Entity::Save(map);
+
+	map["subtype"] = std::to_string(subtype);
 }

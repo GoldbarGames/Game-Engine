@@ -40,7 +40,7 @@ public:
 	Entity* AddLayer(const Vector2& offset, const SpriteManager& spriteManager, const Renderer& renderer,
 		const std::string& filepath, int drawOrder, float parallax);
 	void DeleteLayers(Game& game);
-	void Save(std::ostringstream& level);
+	void Save(std::unordered_map<std::string, std::string>& map);
 
 	static std::unordered_map<std::string, BackgroundData*> bgData;
 	static void ReadBackgroundData(const std::string& dataFilePath);

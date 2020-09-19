@@ -426,19 +426,18 @@ void Entity::SetProperty(const std::string& key, const std::string& newValue)
 
 }
 
-// TODO: Save each variable to a map instead, don't output anything
-void Entity::Save(std::ostringstream& level)
+
+void Entity::Save(std::unordered_map<std::string, std::string>& map)
 {
 	// By default, save nothing, because they are probably temp objects like missiles, etc.
 	if (shouldSave)
 	{
-		level << std::to_string(id)
-			<< " " << etype
-			<< " " << startPosition.x
-			<< " " << startPosition.y
-			<< " " << rotation.z
-			<< " " << subtype
-			<< std::endl;
+		// Save each variable to a map, don't output anything
+		map["id"] = std::to_string(id);
+		map["type"] = etype;
+		map["positionX"] = std::to_string((int)startPosition.x);
+		map["positionY"] = std::to_string((int)startPosition.y);
+		map["rotationZ"] = std::to_string((int)rotation.z);
 	}
 }
 

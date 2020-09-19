@@ -112,7 +112,7 @@ public:
 	void DeleteProperties(std::vector<Property*>& properties);
 	virtual void SetProperty(const std::string& key, const std::string& newValue);
 
-	virtual void Save(std::ostringstream& level);
+	virtual void Save(std::unordered_map<std::string, std::string>& map);
 
 	virtual void SetColor(Color newColor);
 

@@ -477,18 +477,15 @@ void Enemy::OnTriggerExit(Entity& other, Game& game)
 
 }
 
-void Enemy::Save(std::ostringstream& level)
+void Enemy::Save(std::unordered_map<std::string, std::string>& map)
 {
-	level << std::to_string(id)
-		<< " " << etype
-		<< " " << startPosition.x
-		<< " " << startPosition.y 
-		<< " " << name 
-		<< " " << subtype 
-		<< " " << drawOrder 
-		<< " " << (int)layer 
-		<< " " << impassable 
-		<< std::endl;
+	shouldSave = true;
+	Entity::Save(map);
+
+	map["subtype"] = std::to_string(subtype);
+	map["drawOrder"] = std::to_string(drawOrder);
+	map["layer"] = std::to_string((int)layer);
+	map["impassable"] = std::to_string(impassable);
 }
 
 void Enemy::Load(std::unordered_map<std::string, std::string>& map, Game& game)

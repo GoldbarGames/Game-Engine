@@ -1808,14 +1808,53 @@ std::string Editor::SaveLevelAsString()
 {
 	std::ostringstream level;
 
+	std::unordered_map<std::string, std::string> map;
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
-		// TODO: Pass in a cleared map, fill it with values,
+		// Pass in a cleared map, fill it with values,
 		// then output all the values according to the loading.dat file
-		game->entities[i]->Save(level);
+		map.clear();
+		game->entities[i]->Save(map);
+
+		// Search through the list of variables in the loading.dat file
+		std::vector<std::string> entityList = loadDataMap["entity"];
+		std::vector<std::string> list = loadDataMap[game->entities[i]->etype];
+		list.insert(list.begin(), entityList.begin(), entityList.end());
+
+		for (int k = 0; k < list.size(); k++)
+		{
+			// If the entity saved any of the variables in the list,
+			// then write those to the output file
+			if (map.count(list[k]) != 0)
+			{
+				level << map[list[k]] << " ";
+			}
+			else
+			{
+				level << "0 ";
+			}
+		}
+		level << "\n";
 	}
 
-	game->background->Save(level);
+	// TODO: Maybe don't seprate the bg from the other types?
+	map.clear();
+	game->background->Save(map);
+	std::vector<std::string> list = { "id", "type", "positionX", "positionY", "subtype" }; // loadDataMap["bg"];
+	for (int k = 0; k < list.size(); k++)
+	{
+		// If the entity saved any of the variables in the list,
+		// then write those to the output file
+		if (map.count(list[k]) != 0)
+		{
+			level << map[list[k]] << " ";
+		}
+		else
+		{
+			level << "0 ";
+		}
+	}
+	level << "\n";
 
 	// TODO: Refactor this better
 	if (game->levelStartCutscene != "")
@@ -1924,11 +1963,26 @@ void Editor::CreateLevelFromString(std::string level)
 		int positionY = 0;
 		std::string subtype = "";
 		
-		
 		std::unordered_map<std::string, std::string> map;
 	
 		int line = 0;
 		int index = 0;
+
+		int indexOfPositionX = std::distance(loadDataMap["entity"].begin(),
+			std::find(loadDataMap["entity"].begin(),
+				loadDataMap["entity"].end(), "positionX"));
+
+		int indexOfPositionY = std::distance(loadDataMap["entity"].begin(),
+			std::find(loadDataMap["entity"].begin(),
+				loadDataMap["entity"].end(), "positionY"));
+
+		int indexOfType = std::distance(loadDataMap["entity"].begin(),
+			std::find(loadDataMap["entity"].begin(),
+				loadDataMap["entity"].end(), "type"));
+
+		int indexOfSubtype = std::distance(loadDataMap["entity"].begin(),
+			std::find(loadDataMap["entity"].begin(),
+				loadDataMap["entity"].end(), "subtype"));
 
 		while (ss.good() && !ss.eof())
 		{
@@ -1941,10 +1995,7 @@ void Editor::CreateLevelFromString(std::string level)
 
 			try
 			{
-				etype = tokens[1];
-				positionX = std::stoi(tokens[2]);
-				positionY = std::stoi(tokens[3]);
-				subtype = tokens[4];
+				etype = tokens[indexOfType];
 
 				// Populate the map of data
 				if (loadDataMap.count(etype) != 0)
@@ -2033,13 +2084,19 @@ void Editor::CreateLevelFromString(std::string level)
 				}
 				else
 				{
+					positionX = std::stoi(tokens[indexOfPositionX]);
+					positionY = std::stoi(tokens[indexOfPositionY]);
+					subtype = tokens[indexOfSubtype];
+
 					Entity* newEntity = game->SpawnEntity(etype,
-						Vector2(std::stoi(tokens[2]), std::stoi(tokens[3])), std::stoi(tokens[4]));
+						Vector2(std::stoi(tokens[indexOfPositionX]), 
+							std::stoi(tokens[indexOfPositionY])), 
+						std::stoi(tokens[indexOfSubtype]));
 
 					if (newEntity != nullptr)
 					{
 						newEntity->Load(map, *game);
-						newEntity->Init(game->entityTypes[etype][std::stoi(tokens[4])]);
+						newEntity->Init(game->entityTypes[etype][std::stoi(tokens[5])]);
 					}
 				}
 			}

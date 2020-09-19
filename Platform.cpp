@@ -341,42 +341,32 @@ void Platform::SetProperty(const std::string& key, const std::string& newValue)
 	
 }
 
-void Platform::Save(std::ostringstream& level)
+void Platform::Save(std::unordered_map<std::string, std::string>& map)
 {
+	shouldSave = true;
+	Entity::Save(map);
+
 	if (platformType == "Path")
 	{
-		std::string endBehavior = endPathBehavior;
-		if (endBehavior == "")
-			endBehavior = "None";
-
-		level << std::to_string(id) 
-			<< " " << etype 
-			<< " " << startPosition.x 
-			<< " " << startPosition.y 
-			<< " " << subtype 
-			<< " " << platformType
-			<< " " << pathID 
-			<< " " << pathSpeed 
-			<< " " << endBehavior;
+		map["subtype"] = std::to_string(subtype);
+		map["platformType"] = platformType;
+		map["pathID"] = std::to_string(pathID);
+		map["pathSpeed"] = std::to_string((int)pathSpeed);
+		map["endBehavior"] = endPathBehavior == "" ? "None" : endPathBehavior;
 	}
 	else
 	{
-		level << std::to_string(id) 
-			<< " " << etype 
-			<< " " << startPosition.x 
-			<< " " << startPosition.y 
-			<< " " << subtype 
-			<< " " << platformType
-			<< " " << startVelocity.x 
-			<< " " << startVelocity.y 
-			<< " " << tilesToMove 
-			<< " " << shouldLoop;
+		map["subtype"] = std::to_string(subtype);
+		map["platformType"] = platformType;
+		map["vx"] = std::to_string((int)startVelocity.x);
+		map["vy"] = std::to_string((int)startVelocity.y);
+		map["tilesToMove"] = std::to_string(tilesToMove);
+		map["shouldLoop"] = std::to_string(shouldLoop);
 	}
 
-	level << " " << switchID 
-		<< " " << switchDistanceMoved.x 
-		<< " " << switchDistanceMoved.y 
-		<< std::endl;
+	map["switchID"] = std::to_string(switchID);
+	map["switchDX"] = std::to_string((int)switchDistanceMoved.x);
+	map["switchDY"] = std::to_string((int)switchDistanceMoved.y);
 }
 
 void Platform::Load(std::unordered_map<std::string, std::string>& map, Game& game)

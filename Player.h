@@ -62,7 +62,7 @@ public:
 	void CastSpellDebug(Game &game, const Uint8* input);
 	void CheckJumpButton(const Uint8* input);
 
-	void Save(std::ostringstream& level);
+	void Save(std::unordered_map<std::string, std::string>& map);
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
 	static Entity* __stdcall Create(const Vector2& pos) { return new Player(pos); };

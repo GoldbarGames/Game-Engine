@@ -127,20 +127,16 @@ void Door::SetProperty(const std::string& key, const std::string& newValue)
 	}
 }
 
-void Door::Save(std::ostringstream& level)
+void Door::Save(std::unordered_map<std::string, std::string>& map)
 {
-	level << std::to_string(id) 
-		<< " " << etype 
-		<< " " << position.x 
-		<< " " << position.y 
-		<< " " << GetDestination().x 
-		<< " " << GetDestination().y
-		<< " " << subtype 
-		<< " " << name 
-		<< " " << isLocked 
-		<< " " << nextLevelName 
-		<< " " << destinationID 
-		<< std::endl;
+	shouldSave = true;
+	Entity::Save(map);
+
+	map["subtype"] = std::to_string(subtype);
+	map["name"] = name;
+	map["isLocked"] = std::to_string(isLocked);
+	map["nextLevelName"] = nextLevelName;
+	map["destinationID"] = std::to_string(destinationID);
 }
 
 void Door::Load(std::unordered_map<std::string, std::string>& map, Game& game)

@@ -16,21 +16,6 @@ Tile::~Tile()
 
 }
 
-void Tile::Load(std::unordered_map<std::string, std::string>& map, Game& game)
-{
-	Entity::Load(map, game);
-
-	Tile* newTile = game.SpawnTile(Vector2(std::stoi(map["frameX"]), std::stoi(map["frameY"])),
-		"assets/tiles/" + game.editor->GetTileSheetFileName(std::stoi(map["tilesheet"])) + ".png",
-		Vector2(std::stoi(map["positionX"]), std::stoi(map["positionY"])), (DrawingLayer)layer);
-
-	if (std::stoi(map["passableState"]) == 2)
-		newTile->jumpThru = true;
-
-	newTile->tilesheetIndex = std::stoi(map["tilesheet"]);
-}
-
-
 void Tile::ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer)
 {
 	if (currentSprite != nullptr)
@@ -67,10 +52,10 @@ bool Tile::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera
 	return true;
 }
 
-void Tile::Save(std::ostringstream& level)
+void Tile::Save(std::unordered_map<std::string, std::string>& map)
 {
-	float x = GetPosition().x;
-	float y = GetPosition().y;
+	shouldSave = true;
+	Entity::Save(map);
 
 	int passableState = 0;
 	if (impassable)
@@ -78,7 +63,24 @@ void Tile::Save(std::ostringstream& level)
 	if (jumpThru)
 		passableState = 2;
 
-	level << std::to_string(id) << " " << etype << " " << x << " " << y << " " << drawOrder << " " << (int)layer << " " 
-		<< passableState << " " << tilesheetIndex << " " << tileCoordinates.x <<
-		" " << tileCoordinates.y << "" << std::endl;
+	map["drawOrder"] = std::to_string(drawOrder);
+	map["layer"] = std::to_string((int)layer);
+	map["passableState"] = std::to_string(passableState);
+	map["tilesheet"] = std::to_string(tilesheetIndex); //TODO: Make this the subtype
+	map["frameX"] = std::to_string((int)tileCoordinates.x);
+	map["frameY"] = std::to_string((int)tileCoordinates.y);
+}
+
+void Tile::Load(std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	Entity::Load(map, game);
+
+	Tile* newTile = game.SpawnTile(Vector2(std::stoi(map["frameX"]), std::stoi(map["frameY"])),
+		"assets/tiles/" + game.editor->GetTileSheetFileName(std::stoi(map["tilesheet"])) + ".png",
+		Vector2(std::stoi(map["positionX"]), std::stoi(map["positionY"])), (DrawingLayer)layer);
+
+	if (std::stoi(map["passableState"]) == 2)
+		newTile->jumpThru = true;
+
+	newTile->tilesheetIndex = std::stoi(map["tilesheet"]);
 }

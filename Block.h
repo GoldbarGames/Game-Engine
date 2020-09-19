@@ -17,6 +17,8 @@ public:
 	void SetProperty(const std::string& key, const std::string& newValue);
 	void Render(const Renderer& renderer);
 
+	void Save(std::unordered_map<std::string, std::string>& map);
+
 	static Entity* __stdcall Create(const Vector2& pos) { return new Block(pos); };
 };
 
