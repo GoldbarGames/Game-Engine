@@ -497,31 +497,6 @@ Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position
 	return nullptr;
 }
 
-//TODO: Remove this function
-Missile* Game::SpawnMissile(const Vector2& position)
-{
-	Vector2 pivotPoint = Vector2(14, 7);
-
-	std::vector<AnimState*> animStates;
-	//ReadAnimData("data/animations/missile.anim", animStates);
-	animStates.push_back(new AnimState("moving", 100, new Sprite(0, 3, 23, 16, *spriteManager, 
-		"assets/sprites/spells/debug_missile.png", renderer->shaders[ShaderName::Default], pivotPoint)));
-	animStates.push_back(new AnimState("destroyed", 100, new Sprite(4, 7, 23, 16, *spriteManager, 
-		"assets/sprites/spells/debug_missile.png", renderer->shaders[ShaderName::Default], pivotPoint, false)));
-
-	Missile* missile = new Missile(position);
-
-	Animator* newAnimator = new Animator("debugmissile", animStates, "moving");
-	newAnimator->SetBool("destroyed", false);
-
-	missile->SetAnimator(*newAnimator);
-	missile->GetAnimator()->SetState("moving");
-
-	entities.emplace_back(missile);
-
-	return missile;
-}
-
 // This function converts from screen to world coordinates
 // and then immediately aligns the object on the grid
 Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE)

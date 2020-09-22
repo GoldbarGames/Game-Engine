@@ -423,7 +423,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 		}
 		else if (entity->trigger)
 		{
-			if (our->etype == "player")
+			if (our->etype == "missile")
 				int test = 0;
 
 			if (HasIntersection(newBoundsHorizontal, theirBounds))
@@ -621,6 +621,7 @@ void PhysicsComponent::Push(const Vector2& pushVelocity)
 
 void PhysicsComponent::Update(Game& game)
 {
+	hadCollisionsThisFrame = false;
 	previousVelocity = velocity;
 
 	if (our->etype != "player" && our->position.y > game.deathBarrierY)
@@ -645,7 +646,7 @@ void PhysicsComponent::Update(Game& game)
 			velocity.y += Physics::GRAVITY * game.dt;
 	}
 
-	CheckCollisions(game);
+	hadCollisionsThisFrame = CheckCollisions(game);
 
 	// TODO: Do we want to do things this way?
 	// This pushes the object X tiles forward and then abruptly stops

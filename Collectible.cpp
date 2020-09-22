@@ -73,7 +73,7 @@ void Collectible::OnTriggerEnter(Entity& other, Game& game)
 		{
 			Missile* missile = dynamic_cast<Missile*>(&other);
 
-			if (!missile->destroyed)
+			if (!missile->GetAnimator()->GetBool("destroyed"))
 			{
 				shouldDelete = true;
 				missile->Destroy();

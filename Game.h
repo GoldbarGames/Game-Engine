@@ -263,7 +263,6 @@ public:
 		const Vector2& position, DrawingLayer drawingLayer);
 
 	Player* SpawnPlayer(const Vector2& position);
-	Missile* SpawnMissile(const Vector2& position);
 
 	void TransitionLevel();
 

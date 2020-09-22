@@ -7,8 +7,10 @@
 class Missile : public Entity
 {
 	Timer timeToLive;
+	Timer actionTimer;
 public:
-	bool destroyed = false;
+	bool destroyAfterTime = true;
+	void Init(const std::string& n);
 	Missile(const Vector2& pos);
 	~Missile();
 	void Update(Game& game);

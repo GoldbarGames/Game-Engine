@@ -321,22 +321,7 @@ void Player::UpdateNormally(Game& game)
 		}
 	}
 
-
-	//TODO: What should happen if multiple buttons are pressed at the same time?
-	if (game.pressedLeftTrigger)
-	{
-		spell.activeSpell--;
-	}
-	else if (game.pressedRightTrigger)
-	{
-		spell.activeSpell++;
-	}
-
-	if (spell.activeSpell < 0)
-		spell.activeSpell = 0;
-
-	//if (spell.activeSpell > spells.size() - 1)
-	//	spell.activeSpell = spells.size() - 1;
+	spell.CycleSpells(game);
 
 	// If on the ladder, only move up or down
 	if (animator->GetBool("onLadder"))
@@ -422,7 +407,9 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 			angle = 180;
 		}
 
-		Missile* missile = game.SpawnMissile(missilePosition);
+		Missile* missile = static_cast<Missile*>(game.SpawnEntity("missile", missilePosition, 0));
+
+		missile->Init("debug");
 		if (missile != nullptr)
 		{
 			missile->SetVelocity(missileVelocity);

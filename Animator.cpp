@@ -299,6 +299,7 @@ void Animator::Update(Entity& entity)
 	}	
 
 	// Then, carry out whatever the current state is
+	// TODO: Double-check this, should we do this before returning above?
 	DoState(entity);
 }
 

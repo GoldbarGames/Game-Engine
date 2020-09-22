@@ -2,15 +2,35 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 #include "Tree.h"
+#include "Missile.h"
 
 Spell::Spell() 
 { 
-
+	names = { "push", "pop" };
 }
 
 Spell::~Spell()
 {
 
+}
+
+void Spell::CycleSpells(Game& game)
+{
+	//TODO: What should happen if multiple buttons are pressed at the same time?
+	if (game.pressedLeftTrigger)
+	{
+		activeSpell--;
+	}
+	else if (game.pressedRightTrigger)
+	{
+		activeSpell++;
+	}
+
+	if (activeSpell < 0)
+		activeSpell = 0;
+
+	if (activeSpell > names.size() - 1)
+		activeSpell = names.size() - 1;
 }
 
 void Spell::Render(const Renderer& renderer)
@@ -30,6 +50,9 @@ void Spell::Update(Game& game)
 		case 0:
 			CastPush(game);
 			break;
+		case 1:
+			//CastPop(game);
+			break;
 		default:
 			break;
 		}
@@ -41,6 +64,8 @@ bool Spell::Cast(Game& game)
 {
 	bool success = false;
 
+	// Clear out the list of entities being affected 
+	// by the current casting of the current spell
 	affectedEntities.clear();
 
 	// Stop moving horizontally at the start of casting a spell
@@ -53,6 +78,9 @@ bool Spell::Cast(Game& game)
 	{
 	case 0:
 		success = CastPush(game);
+		break;
+	case 1:
+		success = CastPop(game);
 		break;
 	default:
 		break;
@@ -142,5 +170,107 @@ bool Spell::CastPush(Game& game)
 		}
 	}
 
+	return true;
+}
+
+bool Spell::CastPop(Game& game)
+{
+	Vector2 fireOffset = Vector2(game.player->scale.x < 0 ? -16 : 16, 0);
+	Missile* fireball = static_cast<Missile*>(game.SpawnEntity("missile", game.player->position + fireOffset, 0));
+
+	if (fireball == nullptr)
+	{
+		std::cout << "ERROR CASTING POP SPELL: CREATING FIREBALL" << std::endl;
+		return false; // failed to create fireball
+	}
+
+	fireball->Init("pop");
+	fireball->SetVelocity(Vector2(game.player->scale.x < 0 ? -0.25f : 0.25f, -1.0f));
+
+	return true;
+}
+
+bool Spell::CastFloat(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastFreeze(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastFlash(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastDouble(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastShort(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastProtect(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastReturn(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastSeed(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastBreak(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastSearch(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastTurbo(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastCrypt(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastCarry(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastRead(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastTouch(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastJump(Game& game)
+{
+	return true;
+}
+
+bool Spell::CastSleep(Game& game)
+{
 	return true;
 }
