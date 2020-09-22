@@ -599,6 +599,8 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 			if (rotatedEntity != nullptr)
 			{
 				rotatedEntity->rotation.z += 90;
+				if (rotatedEntity->rotation.z >= 360)
+					rotatedEntity->rotation.z -= 360;
 			}
 		}
 	}
@@ -1118,6 +1120,8 @@ void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector
 	clickedWorldPosition.y += game->renderer->camera.position.y;
 
 	previewMap[objectMode]->rotation.z -= 90;
+	if (previewMap[objectMode]->rotation.z < 0)
+		previewMap[objectMode]->rotation.z += 360;
 }
 
 //TODO: Figure out how to structure this so we can add deleting stuff as an Action
@@ -1142,6 +1146,8 @@ void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2
 		if (rotatedEntity != nullptr)
 		{
 			rotatedEntity->rotation.z -= 90;
+			if (rotatedEntity->rotation.z < 0)
+				rotatedEntity->rotation.z += 360;
 		}
 	}
 	else

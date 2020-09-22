@@ -57,6 +57,7 @@ void Shroom::OnTriggerEnter(Entity& other, Game& game)
 	{
 		//TODO: This doesn't work if we are already moving in that direction,
 		// probably because it gets set equal to whatever at a later point
+
 		switch ((int)rotation.z)
 		{
 		case 0:
