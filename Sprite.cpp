@@ -522,7 +522,7 @@ void Sprite::SetScale(Vector2 s)
 
 bool Sprite::HasAnimationElapsed()
 {
-	return (previousFrame > currentFrame);
+	return (previousFrame > currentFrame) || (endFrame - startFrame == 0);
 }
 
 void Sprite::ResetFrame()

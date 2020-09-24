@@ -1297,13 +1297,7 @@ void Game::LoadFile(const std::string& filename)
 		nextLevel = cutscene->commands.stringVariables[201];
 		openedMenus.clear();
 		editor->InitLevelFromFile(nextLevel);
-		if (player != nullptr)
-		{
-			player->position.x = cutscene->commands.numberVariables[202];
-			player->position.y = cutscene->commands.numberVariables[203];
-			player->health->SetMaxHP(cutscene->commands.numberVariables[204]);
-			player->health->SetCurrentHP(cutscene->commands.numberVariables[205]);
-		}
+
 		renderer->camera.FollowTarget(*this, true);
 	}
 	catch (std::exception ex)

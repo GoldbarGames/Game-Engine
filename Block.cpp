@@ -19,6 +19,7 @@ Block::Block(const Vector2& pos) : Entity(pos)
 	physics->standAboveGround = true;
 	physics->respawnOnDeath = true;
 	physics->windResistance = 2.0f;
+	physics->canBePickedUp = true;
 
 	health = new HealthComponent(1);
 }

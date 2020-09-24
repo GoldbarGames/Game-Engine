@@ -13,12 +13,11 @@ class PhysicsComponent
 protected:
 	Entity* our = nullptr;
 	
-	Vector2 acceleration = Vector2(0, 0);
-
+	Vector2 acceleration = Vector2(0, 0);	
+public:
 	std::vector<Entity*> thisFrameCollisions;
 	std::vector<Entity*> prevFrameCollisions;
-	
-public:
+
 	Vector2 velocity = Vector2(0, 0);
 	Vector2 previousVelocity = Vector2(0, 0);
 	float maxHorizontalSpeed = 0.5f;
@@ -33,6 +32,8 @@ public:
 	bool canBePushed = false;
 	bool standAboveGround = false;
 	bool isPushed = false;
+	bool applyFriction = true;
+	bool canBePickedUp = false;
 
 	float currentJumpSpeed = 0;
 	float jumpSpeed = -1.0f;

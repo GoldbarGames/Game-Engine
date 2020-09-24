@@ -19,13 +19,13 @@ private:
 	
 	Timer timerSpellDebug;
 	Timer doorTimer;
-	Timer timerSpellOther;
 	bool pressingUp = false;
 	bool pressingDown = false;
 	bool pressingLeft = false;
 	bool pressingRight = false;
 	bool pressingRun = false;
 public:
+	Timer timerSpellOther;
 	Game* game = nullptr;
 	Door* currentDoor = nullptr;
 	Ladder* currentLadder = nullptr;

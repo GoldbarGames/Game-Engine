@@ -523,14 +523,18 @@ void PhysicsComponent::ApplyFriction(float friction)
 	// NOTE: Be careful, because if friction exceeds acceleration,
 	// then the object won't be able to move anywhere
 
-	if (velocity.x > 0)
+	if (applyFriction)
 	{
-		velocity.x = std::max(velocity.x - friction, 0.0f);
+		if (velocity.x > 0)
+		{
+			velocity.x = std::max(velocity.x - friction, 0.0f);
+		}
+		else if (velocity.x < 0)
+		{
+			velocity.x = std::min(velocity.x + friction, 0.0f);
+		}
 	}
-	else if (velocity.x < 0)
-	{
-		velocity.x = std::min(velocity.x + friction, 0.0f);
-	}
+
 }
 
 void PhysicsComponent::PreviousFrameCollisions(Game& game)

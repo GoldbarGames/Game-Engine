@@ -36,6 +36,33 @@ void Missile::Init(const std::string& n)
 		animator->DoState(*this);
 		layer = DrawingLayer::OBJECT;
 	}
+	else if (name == "float")
+	{
+		CreateCollider(0, 0, 50, 50);
+		physics->useGravity = false;
+		physics->canBePushed = false;
+		physics->applyFriction = false;
+		destroyAfterTime = true;
+		timeToLive.Start(3000);
+		animator->SetState("float_bubble_moving");
+		animator->Update(*this);
+		animator->DoState(*this);
+		layer = DrawingLayer::OBJECT;
+		scale = Vector2(0.1f, 0.1f);
+	}
+	else if (name == "freeze")
+	{
+		CreateCollider(0, 0, 16, 16);
+		physics->useGravity = false;
+		physics->canBePushed = false;
+		physics->applyFriction = false;
+		destroyAfterTime = true;
+		timeToLive.Start(3000);
+		animator->SetState("freeze_moving");
+		animator->Update(*this);
+		animator->DoState(*this);
+		layer = DrawingLayer::OBJECT;
+	}
 }
 
 void Missile::Update(Game& game)
@@ -81,6 +108,8 @@ void Missile::Update(Game& game)
 		{
 			if (animator->GetBool("hitGround"))
 			{
+				position = landedPosition;
+
 				if (animator->GetBool("animationElapsed"))
 				{
 					if (animator->GetBool("actionTimerElapsed"))
@@ -117,11 +146,65 @@ void Missile::Update(Game& game)
 				{
 					animator->SetBool("hitGround", true);
 					physics->velocity = Vector2(0, 0);
-
+					landedPosition = Vector2(position.x, position.y = 16);
+					
+					// TODO: What if it's on a moving object?
+					
 					// When we detonate the bomb
+					physics->useGravity = false;
 					CreateCollider(0, 0, 19, 27);
 				}
 			}
+		}
+		else if (name == "float")
+		{
+			// Grow the bubble from small to large
+			if (scale.x < 1.0f)
+			{
+				LerpVector2(scale, Vector2(1.0f, 1.0f), 0.05f, 0.025f);
+			}
+
+			// Burst the bubble if it hits anything
+			if (physics->thisFrameCollisions.size() > 0)
+			{
+				for (int i = 0; i < physics->thisFrameCollisions.size(); i++)
+				{
+					// TODO: Refactor this so that it is more obvious
+					// what can and cannot burst a bubble
+					if (physics->thisFrameCollisions[i]->etype == "tile")
+					{
+						animator->SetBool("destroyed", true);
+						physics->velocity = Vector2(0, 0);
+					}
+					else if (physics->thisFrameCollisions[i]->physics != nullptr
+						&& physics->thisFrameCollisions[i]->physics->canBePickedUp)
+					{
+						// Pick up the object and carry it in the bubble
+						pickedUpEntity = physics->thisFrameCollisions[i];
+						//physics->thisFrameCollisions[i]->physics->parent = this;
+
+
+						//TODO: Before we can finish this, we need to do collision layers
+						// because the bubble needs to pass through objects it can pick up
+						// even if the player cannot walk through them.
+						// Also, it is not checking collisions against the player
+						// because the player is neither impassable nor a trigger
+					}
+				}
+			}
+
+			// TODO: What happens if the picked up entity is deleted?
+			
+			if (pickedUpEntity != nullptr)
+			{
+				pickedUpEntity->position = position;
+			}
+			
+		}
+		else if (name == "freeze")
+		{
+			// TODO: Freeze anything it comes into contact with
+			// such as enemies, water tiles, etc.
 		}
 	}
 

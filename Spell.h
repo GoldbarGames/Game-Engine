@@ -19,6 +19,9 @@ public:
 	bool isUnlocked = true;
 	bool isCasting = false;
 
+	int specialFrame = 9999;
+
+	std::vector<Sprite*> spellIcons;
 	std::vector<Entity*> affectedEntities;
 
 	Sprite* spellRangeSprite = nullptr;
@@ -49,6 +52,7 @@ public:
 
 	void Update(Game& game);
 	void Render(const Renderer& renderer);
+	void RenderDebug(const Renderer& renderer);
 
 	Spell();
 	~Spell();

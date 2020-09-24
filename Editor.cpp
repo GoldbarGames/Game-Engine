@@ -14,6 +14,9 @@
 #include "Checkpoint.h"
 #include "Tree.h"
 #include "Platform.h"
+#include "Player.h"
+#include "HealthComponent.h"
+#include "CutsceneCommands.h"
 
 using std::string;
 
@@ -2244,6 +2247,15 @@ void Editor::InitLevelFromFile(std::string levelName)
 		{
 			game->cutscene->PlayCutscene(game->levelStartCutscene.c_str());
 		}
+	}
+
+	if (game->player != nullptr)
+	{
+		game->player->position.x = game->cutscene->commands.numberVariables[202];
+		game->player->position.y = game->cutscene->commands.numberVariables[203];
+		game->player->startPosition = game->player->position;
+		game->player->health->SetMaxHP(game->cutscene->commands.numberVariables[204]);
+		game->player->health->SetCurrentHP(game->cutscene->commands.numberVariables[205]);
 	}
 
 	//NOTE: Figure out why removing this glitches out at the start

@@ -37,6 +37,7 @@ void Shroom::Init(const std::string& n)
 	{
 		physics->canBePushed = true;
 		physics->useGravity = true;
+		physics->canBePickedUp = true;
 	}
 }
 

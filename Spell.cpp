@@ -4,9 +4,38 @@
 #include "Tree.h"
 #include "Missile.h"
 
+typedef bool (Spell::* SpellFunction)(Game& game);
+
+struct SpellLUT {
+	char name[32];
+	SpellFunction method;
+};
+
+std::vector<SpellLUT> spellFunctions = {
+	{"push", &Spell::CastPush},
+	{"pop", &Spell::CastPop},
+	{"float", &Spell::CastFloat},
+	{"freeze", &Spell::CastFreeze},
+	{"carry", &Spell::CastCarry},
+	{"protect", &Spell::CastProtect},
+	{"return", &Spell::CastReturn},
+	{"seed", &Spell::CastSeed},
+	{"double", &Spell::CastDouble },
+	{"short", &Spell::CastShort },
+	{"flash", &Spell::CastFlash },
+	{"break",&Spell::CastBreak },
+	{"search",&Spell::CastSearch },
+	{"turbo",&Spell::CastTurbo },
+	{"crypt",&Spell::CastCrypt },
+	{"sleep", &Spell::CastSleep }
+};
+
+
 Spell::Spell() 
 { 
-	names = { "push", "pop" };
+	names = { "push", "pop", "float", "freeze", "carry", "protect",
+		"return", "seed", "double", "short", "flash", "break",
+		"search", "turbo", "crypt", "sleep" };
 }
 
 Spell::~Spell()
@@ -27,13 +56,13 @@ void Spell::CycleSpells(Game& game)
 	}
 
 	if (activeSpell < 0)
-		activeSpell = 0;
+		activeSpell = activeSpell = names.size() - 1;
 
 	if (activeSpell > names.size() - 1)
-		activeSpell = names.size() - 1;
+		activeSpell = 0;
 }
 
-void Spell::Render(const Renderer& renderer)
+void Spell::RenderDebug(const Renderer& renderer)
 {
 	if (isCasting)
 	{
@@ -41,20 +70,67 @@ void Spell::Render(const Renderer& renderer)
 	}
 }
 
+void Spell::Render(const Renderer& renderer)
+{
+	if (activeSpell >= 0 && activeSpell < spellIcons.size())
+	{
+		spellIcons[activeSpell]->Render(Vector2(100 * Camera::MULTIPLIER, 600 * Camera::MULTIPLIER), renderer);
+	}
+}
+
 void Spell::Update(Game& game)
 {
+	if (spellIcons.size() == 0)
+	{
+		for (int i = 0; i < names.size(); i++)
+		{
+			Texture* texture = game.spriteManager->GetImage("assets/gui/icon/icon_" + names[i] + ".png");
+			Sprite* sprite = new Sprite(texture, game.renderer->shaders[ShaderName::Default]);
+			sprite->keepPositionRelativeToCamera = true;
+			sprite->keepScaleRelativeToCamera = true;
+			spellIcons.push_back(sprite);
+		}
+	}
+
 	if (isCasting)
 	{
-		switch (activeSpell)
+		for (const auto& func : spellFunctions)
 		{
-		case 0:
-			CastPush(game);
-			break;
-		case 1:
-			//CastPop(game);
-			break;
-		default:
-			break;
+			// Exclude some spells from being cast every frame
+			if (func.name == names[activeSpell])
+			{
+				if (names[activeSpell] == "push")
+				{
+					(this->*func.method)(game);
+				}
+				else if (names[activeSpell] == "pop"
+					|| names[activeSpell] == "float"
+					|| names[activeSpell] == "freeze")
+				{
+					if (game.player->GetSprite()->currentFrame >= specialFrame)
+					{
+						(this->*func.method)(game);
+						specialFrame = 9999;
+					}
+				}
+				else if (names[activeSpell] == "return")
+				{
+					if (game.player->GetSprite()->currentFrame >= specialFrame)
+					{
+						(this->*func.method)(game);
+						specialFrame = 8000;
+					}
+					else if (specialFrame == 8000 && game.player->timerSpellOther.HasElapsed())
+					{
+						game.player->GetAnimator()->SetBool("returned", false);
+						game.player->GetAnimator()->SetBool("isCasting", false);	
+						game.player->UpdateSpellAnimation("idle");
+						game.player->GetSprite()->ResetFrame();
+						specialFrame = 9999;
+					}
+				}
+				
+			}
 		}
 	}
 }
@@ -74,16 +150,12 @@ bool Spell::Cast(Game& game)
 	game.player->UpdateSpellAnimation(names[activeSpell].c_str());
 	game.player->GetSprite()->ResetFrame();
 
-	switch (activeSpell)
+	for (const auto& func : spellFunctions)
 	{
-	case 0:
-		success = CastPush(game);
-		break;
-	case 1:
-		success = CastPop(game);
-		break;
-	default:
-		break;
+		if (func.name == names[activeSpell])
+		{
+			success = (this->*func.method)(game);
+		}
 	}
 
 	return success;
@@ -175,8 +247,16 @@ bool Spell::CastPush(Game& game)
 
 bool Spell::CastPop(Game& game)
 {
-	Vector2 fireOffset = Vector2(game.player->scale.x < 0 ? -16 : 16, 0);
-	Missile* fireball = static_cast<Missile*>(game.SpawnEntity("missile", game.player->position + fireOffset, 0));
+	if (specialFrame == 9999)
+	{
+		specialFrame = 2;
+		return true;
+	}
+
+	Vector2 offset = Vector2(game.player->scale.x < 0 ? -16 : 16, 0);
+	
+	// TODO: Don't create more than one fireball at a time
+	Missile* fireball = static_cast<Missile*>(game.SpawnEntity("missile", game.player->position + offset, 0));
 
 	if (fireball == nullptr)
 	{
@@ -192,11 +272,51 @@ bool Spell::CastPop(Game& game)
 
 bool Spell::CastFloat(Game& game)
 {
+	if (specialFrame == 9999)
+	{
+		specialFrame = 7;
+		return true;
+	}
+
+	Vector2 offset = Vector2(game.player->scale.x < 0 ? -16 : 16, 0);
+
+	// TODO: Don't create more than one fireball at a time
+	Missile* bubble = static_cast<Missile*>(game.SpawnEntity("missile", game.player->position + offset, 0));
+
+	if (bubble == nullptr)
+	{
+		std::cout << "ERROR CASTING FLOAT SPELL: CREATING BUBBLE" << std::endl;
+		return false; // failed to create missile
+	}
+
+	bubble->Init("float");
+	bubble->SetVelocity(Vector2(game.player->scale.x < 0 ? -0.25f : 0.25f, 0.0f));
+
 	return true;
 }
 
 bool Spell::CastFreeze(Game& game)
 {
+	if (specialFrame == 9999)
+	{
+		specialFrame = 5;
+		return true;
+	}
+
+	Vector2 offset = Vector2(game.player->scale.x < 0 ? -64 : 64, 16);
+
+	// TODO: Don't create more than one fireball at a time
+	Missile* iceMissile = static_cast<Missile*>(game.SpawnEntity("missile", game.player->position + offset, 0));
+
+	if (iceMissile == nullptr)
+	{
+		std::cout << "ERROR CASTING FREEZE SPELL: CREATING ICE" << std::endl;
+		return false; // failed to create missile
+	}
+
+	iceMissile->Init("freeze");
+	iceMissile->SetVelocity(Vector2(game.player->scale.x < 0 ? -0.25f : 0.25f, 0.0f));
+
 	return true;
 }
 
@@ -222,6 +342,19 @@ bool Spell::CastProtect(Game& game)
 
 bool Spell::CastReturn(Game& game)
 {
+	if (specialFrame == 9999)
+	{
+		specialFrame = 20;
+		return true;
+	}
+	else
+	{
+		game.player->position = game.player->startPosition;
+		game.player->GetAnimator()->SetBool("returned", true);
+		game.player->UpdateSpellAnimation("return_exit");
+		game.player->GetSprite()->ResetFrame();
+	}
+
 	return true;
 }
 

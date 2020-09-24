@@ -16,6 +16,7 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 	physics = new PhysicsComponent(this);
 	physics->useGravity = true;
 	physics->canBePushed = true;
+	physics->canBePickedUp = true;
 	startPosition = pos;
 	physics->standAboveGround = true;
 

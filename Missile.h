@@ -8,7 +8,9 @@ class Missile : public Entity
 {
 	Timer timeToLive;
 	Timer actionTimer;
+	Vector2 landedPosition = Vector2(0, 0);
 public:
+	Entity* pickedUpEntity = nullptr;
 	bool destroyAfterTime = true;
 	void Init(const std::string& n);
 	Missile(const Vector2& pos);

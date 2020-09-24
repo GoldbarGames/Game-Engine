@@ -1,5 +1,6 @@
 #include "GUI.h"
 #include "HealthComponent.h"
+#include "Spell.h"
 
 void GUI::Render(const Renderer& renderer)
 {
@@ -9,4 +10,9 @@ void GUI::Render(const Renderer& renderer)
 	}
 
 	healthComponents.clear();
+
+	if (playerSpell != nullptr)
+	{
+		playerSpell->Render(renderer);
+	}
 }

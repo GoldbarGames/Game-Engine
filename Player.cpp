@@ -22,6 +22,7 @@ Player::Player(const Vector2& pos) : Entity(pos)
 	physics->horizontalSpeed = 0.35f;
 	physics->maxHorizontalSpeed = 0.35f;
 	physics->canBePushed = true;
+	physics->canBePickedUp = true;
 
 	// Initialize the spells here
 	spell = Spell();
@@ -56,7 +57,7 @@ void Player::RenderDebug(const Renderer& renderer)
 {
 	Entity::RenderDebug(renderer);
 
-	spell.Render(renderer);
+	spell.RenderDebug(renderer);
 	
 	if (closeRangeAttackCollider != nullptr)
 	{
@@ -91,6 +92,7 @@ void Player::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
 
+	renderer.game->gui.playerSpell = &spell;
 	renderer.game->gui.healthComponents.push_back(health);
 }
 
