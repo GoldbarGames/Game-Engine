@@ -2181,7 +2181,13 @@ void Editor::CreateLevelFromString(std::string level)
 void Editor::ClearLevelEntities()
 {
 	for (unsigned int i = 0; i < game->entities.size(); i++)
-		delete game->entities[i];
+	{
+		//TODO: How to deal with dangling pointers in general?
+		if (game->entities[i]->etype == "player")
+			game->player = nullptr;
+		delete_it(game->entities[i]);
+	}
+		
 	game->entities.clear();
 }
 
@@ -2203,8 +2209,6 @@ void Editor::InitLevelFromFile(std::string levelName)
 	if (levelName != "")
 		game->currentLevel = levelName;
 
-	game->currentEther = game->startingEther;
-
 	levelStrings.clear();
 	levelStringIndex = -1;
 
@@ -2225,16 +2229,17 @@ void Editor::InitLevelFromFile(std::string levelName)
 		game->quadTree->Insert(game->entities[i]);
 	}
 
-	// Count all bugs
+	// Initialize starting properties
+	game->currentEther = game->startingEther;
 	game->bugsRemaining = 0;
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
 		if (game->entities[i]->etype == "bug")
 			game->bugsRemaining++;
 	}
-
 	game->ResetText();
 
+	// Play the cutscene for the current level, if any
 	if (game->levelStartCutscene != "")
 	{
 		if (levelName == "demo")
@@ -2249,13 +2254,18 @@ void Editor::InitLevelFromFile(std::string levelName)
 		}
 	}
 
+	// Load data from the current save file
 	if (game->player != nullptr)
 	{
 		game->player->position.x = game->cutscene->commands.numberVariables[202];
 		game->player->position.y = game->cutscene->commands.numberVariables[203];
 		game->player->startPosition = game->player->position;
-		game->player->health->SetMaxHP(game->cutscene->commands.numberVariables[204]);
-		game->player->health->SetCurrentHP(game->cutscene->commands.numberVariables[205]);
+		
+		if (game->player->health != nullptr)
+		{
+			game->player->health->SetMaxHP(game->cutscene->commands.numberVariables[204]);
+			game->player->health->SetCurrentHP(game->cutscene->commands.numberVariables[205]);
+		}
 	}
 
 	//NOTE: Figure out why removing this glitches out at the start

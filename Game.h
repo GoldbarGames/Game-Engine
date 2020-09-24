@@ -160,6 +160,8 @@ public:
 
 	void InitOpenGL();
 
+	int MainLoop();
+
 	void Update();
 	void Render();
 	void RenderScene();

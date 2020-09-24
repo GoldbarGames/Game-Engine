@@ -129,7 +129,6 @@ void Spell::Update(Game& game)
 						specialFrame = 9999;
 					}
 				}
-				
 			}
 		}
 	}
