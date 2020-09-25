@@ -292,7 +292,11 @@ void Animator::Update(Entity& entity)
 						int test = 0;
 				}
 
+				if (entity.etype == "player")
+					std::cout << condition->nextState.c_str() << std::endl;
+
 				SetState(condition->nextState.c_str());
+				DoState(entity);
 				return; // set state to the first one that matches
 			}
 		}
@@ -355,10 +359,13 @@ void  Animator::SetRelativeAllStates(bool b)
 void Animator::SetState(const char* state)
 {
 	beforePreviousState = previousState;
-	previousState = currentState;	
+	previousState = currentState;
 	currentState = mapNamesToStates[state];
 	currentState->sprite->currentFrame = 0;
 
+	// TODO: If we're going into the same state, don't reset the current frame
+	//if (previousState != nullptr && previousState->name == state)
+		
 	StartTimer();
 }
 

@@ -509,14 +509,22 @@ void Player::GetMoveInput(const Uint8* input)
 		animator->SetBool("walking", true);
 		animator->SetBool("isRunning", pressingRun);
 		physics->velocity.x -= physics->horizontalSpeed;
-		scale.x = -1;
+		
+		if (!spell.isShieldUp)
+		{
+			scale.x = spell.isShort ? -spell.SHRINK_SIZE : -1.0f;
+		}
 	}
 	else if (pressingRight)
 	{
 		animator->SetBool("walking", true);
 		animator->SetBool("isRunning", pressingRun);
 		physics->velocity.x += physics->horizontalSpeed;
-		scale.x = 1;
+
+		if (!spell.isShieldUp)
+		{
+			scale.x = spell.isShort ? spell.SHRINK_SIZE : 1.0f;
+		}
 	}
 	else
 	{

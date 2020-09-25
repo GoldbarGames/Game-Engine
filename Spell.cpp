@@ -92,6 +92,9 @@ void Spell::Update(Game& game)
 		}
 	}
 
+	game.player->GetAnimator()->SetBool("isMovingForward", 
+		(game.player->scale.x > 0 && game.player->physics->velocity.x > 0));
+
 	if (isCasting)
 	{
 		for (const auto& func : spellFunctions)
@@ -99,7 +102,8 @@ void Spell::Update(Game& game)
 			// Exclude some spells from being cast every frame
 			if (func.name == names[activeSpell])
 			{
-				if (names[activeSpell] == "push")
+				if (names[activeSpell] == "push"
+					|| names[activeSpell] == "short")
 				{
 					(this->*func.method)(game);
 				}
@@ -147,7 +151,11 @@ bool Spell::Cast(Game& game)
 	game.player->physics->velocity.x = 0;
 
 	game.player->UpdateSpellAnimation(names[activeSpell].c_str());
-	game.player->GetSprite()->ResetFrame();
+
+	if (names[activeSpell] != "protect")
+	{
+		game.player->GetSprite()->ResetFrame();
+	}
 
 	for (const auto& func : spellFunctions)
 	{
@@ -331,11 +339,67 @@ bool Spell::CastDouble(Game& game)
 
 bool Spell::CastShort(Game& game)
 {
+	if (specialFrame == 9999)
+	{
+		specialFrame = 5000;
+
+		if (game.player->scale.x < 1.0f)
+		{
+			isShort = true;
+			game.player->UpdateSpellAnimation("short_grow");
+			game.player->GetAnimator()->SetBool("isShort", false);
+		}
+		else
+		{
+			isShort = false;
+			game.player->UpdateSpellAnimation("short");
+			game.player->GetAnimator()->SetBool("isShort", true);
+		}
+
+		return true;
+	}
+
+	bool isFacingRight = game.player->scale.x > 0;
+	int multiplier = isFacingRight ? 1 : -1;
+
+	if (!isShort)
+	{
+		if (std::abs(game.player->scale.x) > SHRINK_SIZE)
+		{
+			LerpVector2(game.player->scale, Vector2(multiplier * SHRINK_SIZE, multiplier * SHRINK_SIZE), 0.05f, 0.025f);
+			game.player->CreateCollider(0, 0, 20.25f * game.player->scale.x, 41.40f * game.player->scale.y);
+		}
+		else
+		{
+			specialFrame = 9999;	
+			game.player->CreateCollider(0, 0, 2.025f, 4.140f);
+		}
+	}
+	else
+	{
+		if (std::abs(game.player->scale.x) < 1.0f)
+		{
+			LerpVector2(game.player->scale, Vector2(multiplier * 1.0f, multiplier * 1.0f), 0.05f, 0.025f);
+			game.player->CreateCollider(0, 0, 20.25f * game.player->scale.x, 41.40f * game.player->scale.y);
+		}
+		else
+		{
+			specialFrame = 9999;
+			game.player->CreateCollider(0, 0, 20.25f, 41.40f);
+		}
+	}
+
 	return true;
 }
 
 bool Spell::CastProtect(Game& game)
 {
+	isShieldUp = !isShieldUp;
+
+	game.player->GetAnimator()->SetBool("isShieldUp", isShieldUp);
+	game.player->UpdateSpellAnimation(names[activeSpell].c_str());
+	//game.player->GetSprite()->ResetFrame();
+
 	return true;
 }
 

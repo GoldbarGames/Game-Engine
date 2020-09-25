@@ -21,6 +21,11 @@ public:
 
 	int specialFrame = 9999;
 
+	bool isShort = false;
+	float SHRINK_SIZE = 0.1f;
+
+	bool isShieldUp = false;
+
 	std::vector<Sprite*> spellIcons;
 	std::vector<Entity*> affectedEntities;
 
