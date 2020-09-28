@@ -250,6 +250,7 @@ Game::Game()
 	SetScreenResolution(1280, 720);
 
 	// Initialize all the menus
+	// TODO: Read these in and construct them from a file
 	allMenus["Title"] = new MenuScreen("Title", *this);
 	allMenus["File Select"] = new MenuScreen("File Select", *this);
 	allMenus["Pause"] = new MenuScreen("Pause", *this);
@@ -526,6 +527,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 			args["1"] = entityTypes[entityName][subtype];
 		}
 
+		// TODO: Don't hardcode this part
 		if (args["1"] != "" && (entityName == "enemy" || entityName == "npc" || entityName == "collectible"))
 		{
 			filepath += args["1"] + "/" + args["1"];
@@ -545,6 +547,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		// - OR add a simple way to define the starting state in the animator file itself
 		// (such as "^*unpressed*") and otherwise just default to the topmost state
 
+		// TODO: Don't hardcode this part
 		std::string initialState = "idle";
 		if (newEntity->etype == "ladder")
 			initialState = "middle";
@@ -1386,6 +1389,7 @@ bool Game::HandleEvent(SDL_Event& event)
 	return quit;
 }
 
+// TODO: Make this more robust for different types of games
 void Game::SaveFile(const std::string& filename)
 {
 	cutscene->commands.SetStringVariable({ "", "201", currentLevel });
@@ -1472,8 +1476,6 @@ void Game::GetMenuInput()
 				lastPressedKeyTicks = ticks;
 		}
 	}
-
-
 }
 
 void Game::UpdateTextInput()
@@ -1712,6 +1714,7 @@ void Game::RenderScene()
 	// Render all entities
 	if (renderer->camera.useOrthoCamera && !editMode)
 	{
+		// TODO: Don't hardcode this
 		const int maxWidth = (30 * TILE_SIZE) * 2;
 		const int maxHeight = (17 * TILE_SIZE) * 2;
 		for (unsigned int i = 0; i < entities.size(); i++)
@@ -1738,7 +1741,10 @@ void Game::RenderScene()
 		}
 	}
 
-	gui.Render(*renderer);
+	if (currentLevel != "title" && !cutscene->watchingCutscene)
+	{
+		gui.Render(*renderer);
+	}
 
 	// LAST THING
 	// Render all menu screens
@@ -1752,12 +1758,6 @@ void Game::RenderScene()
 
 	if (showTimer)
 		timerText->Render(*renderer);
-
-	if (currentLevel != "title" && !cutscene->watchingCutscene)
-	{
-		//bugText->Render(renderer);
-		//etherText->Render(renderer);
-	}
 
 	// Draw anything in the cutscenes
 	cutscene->Render(*renderer); // includes the overlay

@@ -12,7 +12,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-
 class Game;
 class PhysicsComponent;
 class Property;
@@ -68,7 +67,9 @@ public:
 	Collider* collider = nullptr;
 	SDL_Rect* bounds = nullptr;
 
+	//int collisionLayerID = 0;
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
+
 	bool trigger = false;	
 	bool jumpThru = false;
 

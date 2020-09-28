@@ -48,6 +48,7 @@ public:
 	bool jumped = false;
 	bool shouldStickToGround = false;
 
+	bool shouldCheckCollisions = true;
 	bool hadCollisionsThisFrame = false;
 	bool horizontalCollision = false;
 	bool verticalCollision = false;

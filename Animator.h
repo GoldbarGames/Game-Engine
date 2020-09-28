@@ -40,8 +40,6 @@ public:
 	Timer animationTimer;
 	int animatorType = 0;
 	AnimState* currentState = nullptr;
-	AnimState* previousState = nullptr;
-	AnimState* beforePreviousState = nullptr;
 
 	void SetState(const char* state);
 	void OnEnter(AnimState state);

@@ -42,6 +42,7 @@ void Missile::Init(const std::string& n)
 		physics->useGravity = false;
 		physics->canBePushed = false;
 		physics->applyFriction = false;
+		physics->shouldCheckCollisions = false;
 		destroyAfterTime = true;
 		timeToLive.Start(3000);
 		animator->SetState("float_bubble_moving");

@@ -201,9 +201,6 @@ Animator::Animator(const std::string& filePath, std::vector<AnimState*> states, 
 	{
 		SetState(states[0]->name.c_str());
 	}
-
-	previousState = currentState;
-	beforePreviousState = previousState;
 }
 
 Animator::~Animator()
@@ -358,8 +355,6 @@ void  Animator::SetRelativeAllStates(bool b)
 
 void Animator::SetState(const char* state)
 {
-	beforePreviousState = previousState;
-	previousState = currentState;
 	currentState = mapNamesToStates[state];
 	currentState->sprite->currentFrame = 0;
 

@@ -263,6 +263,8 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 		//std::cout << "" << std::endl;
 	}
 
+	SDL_Rect theirBounds;
+
 	for (unsigned int i = 0; i < entities.size(); i++)
 	{
 		game.collisionChecks++;
@@ -273,11 +275,11 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 		if (our->etype == "player" && entity->etype == "block")
 			int test = 0;
 
-		SDL_Rect theirBounds = *(entity->GetBounds());
+		theirBounds = *(entity->GetBounds());
 		theirBounds.x -= theirBounds.w;
 		theirBounds.w *= 2;
 
-		if (entity->impassable || entity->jumpThru)
+		if (shouldCheckCollisions && (entity->impassable || entity->jumpThru))
 		{	
 			if (entity->jumpThru)
 			{
