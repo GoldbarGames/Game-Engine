@@ -22,7 +22,7 @@
 
 static unsigned int allocationCount = 0;
 
-/*
+
 void* operator new(size_t size)
 {
 	allocationCount++;
@@ -35,7 +35,7 @@ void operator delete(void* p)
 {
 	free(p);
 }
-*/
+
 
 int Game::MainLoop()
 {

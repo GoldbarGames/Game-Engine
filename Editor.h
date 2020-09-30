@@ -169,7 +169,7 @@ public:
 
 	std::string ReadLevelFromFile(std::string levelName);
 	void CreateLevelFromString(std::string level);
-	std::string GetTileSheetFileName(const int index) const;
+	const std::string& GetTileSheetFileName(const int index) const;
 };
 
 #endif

@@ -1736,7 +1736,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 		std::istream_iterator<std::string> end;
 
 		std::vector<std::string> lineParams(begin, end);
-		std::copy(lineParams.begin(), lineParams.end(), std::ostream_iterator<std::string>(std::cout, " "));
+		//std::copy(lineParams.begin(), lineParams.end(), std::ostream_iterator<std::string>(std::cout, " "));
 
 		if (dataLines[index][0] == '@')
 		{

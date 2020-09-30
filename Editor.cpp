@@ -25,6 +25,10 @@ Editor::Editor(Game& g)
 	game = &g;
 
 	tilesheetFilenames = game->ReadStringsFromFile("data/lists/tilesheet.list");
+	for (int i = 0; i < tilesheetFilenames.size(); i++)
+	{
+		tilesheetFilenames[i] = "assets/tiles/" + tilesheetFilenames[i] + ".png";
+	}
 
 	playOpeningDemoCutscene = false;
 	dialog = new Dialog(Vector2(g.screenWidth, g.screenHeight), g.spriteManager);
@@ -359,8 +363,7 @@ void Editor::StartEdit()
 		for (int i = 0; i < tilesheetFilenames.size(); i++)
 		{
 			tilesheetSprites.push_back(new Sprite(1, *game->spriteManager,
-				"assets/tiles/" + tilesheetFilenames[i] + ".png",
-				game->renderer->shaders[ShaderName::NoAlpha], Vector2(0, 0)));
+				tilesheetFilenames[i], game->renderer->shaders[ShaderName::NoAlpha], Vector2(0, 0)));
 
 			tilesheetSprites[i]->keepPositionRelativeToCamera = true;
 			tilesheetSprites[i]->keepScaleRelativeToCamera = true;
@@ -519,8 +522,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		if (prev != nullptr)
 			delete_it(prev);
 
-		prev = game->CreateTile(spriteSheetTileFrame,
-			"assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png",
+		prev = game->CreateTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex],
 			Vector2(0, 0), DrawingLayer::FRONT);
 
 		objectPreview = prev;
@@ -688,8 +690,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 					{
 						// Set the index of the tile
 						tilesInLevel[i]->ChangeSprite(spriteSheetTileFrame,
-							game->spriteManager->GetImage("assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png"),
-							game->renderer);
+							game->spriteManager->GetImage(tilesheetFilenames[tilesheetIndex]), game->renderer);
 					}
 				}
 
@@ -1080,8 +1081,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 		//glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
 		//glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
 
-		game->SpawnTile(spriteSheetTileFrame, "assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png",
-			spawnPos, drawingLayer);
+		game->SpawnTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex], spawnPos, drawingLayer);
 		game->SortEntities(game->entities);
 
 		std::cout << "Spawned at (" << spawnPos.x << "," << spawnPos.y << "!" << std::endl;
@@ -1508,8 +1508,7 @@ void Editor::ToggleSpriteMap(int num)
 	// Update the preview sprites accordingly
 	if (objectMode == "tile")
 	{
-		prev = game->CreateTile(spriteSheetTileFrame,
-			"assets/tiles/" + tilesheetFilenames[tilesheetIndex] + ".png",
+		prev = game->CreateTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex],
 			Vector2(0, 0), DrawingLayer::FRONT);
 
 		prev->GetSprite()->color = { 255, 255, 255, 64 };
@@ -1941,11 +1940,12 @@ std::string Editor::ReadLevelFromFile(std::string levelName)
 	return level;
 }
 
-std::string Editor::GetTileSheetFileName(const int index) const
+const std::string& Editor::GetTileSheetFileName(const int index) const
 {
 	return tilesheetFilenames[index];
 }
 
+// TODO: This is VERY slow!
 void Editor::CreateLevelFromString(std::string level)
 {
 	try
@@ -1962,10 +1962,33 @@ void Editor::CreateLevelFromString(std::string level)
 		loadListDoors.clear();
 
 		std::stringstream ss{ level };
+		
+		int lineNumber = 0;
+		int index = 0;
 
-		const int LINE_SIZE = 1024;
-		char lineChar[LINE_SIZE];
-		ss.getline(lineChar, LINE_SIZE);
+		std::vector<std::string> lines;
+		std::string line = "";
+
+		while (index < level.size())
+		{
+			if (level[index] == '\n')
+			{
+				lines.push_back(line);
+				line = "";
+			}
+			else
+			{
+				line += level[index];
+			}
+			index++;
+		}
+		lines.push_back(line);
+
+		index = 0;
+
+		//const int LINE_SIZE = 1024;
+		//char lineChar[LINE_SIZE];
+		//ss.getline(lineChar, LINE_SIZE);
 
 		std::string etype = "";
 		int positionX = 0;
@@ -1974,9 +1997,6 @@ void Editor::CreateLevelFromString(std::string level)
 		
 		std::unordered_map<std::string, std::string> map;
 	
-		int line = 0;
-		int index = 0;
-
 		int indexOfPositionX = std::distance(loadDataMap["entity"].begin(),
 			std::find(loadDataMap["entity"].begin(),
 				loadDataMap["entity"].end(), "positionX"));
@@ -1993,30 +2013,70 @@ void Editor::CreateLevelFromString(std::string level)
 			std::find(loadDataMap["entity"].begin(),
 				loadDataMap["entity"].end(), "subtype"));
 
-		while (ss.good() && !ss.eof())
+		//std::istringstream buf(lineChar);
+		//std::istream_iterator<std::string> beg(buf), end;
+		std::string tokens[32];
+		std::string word = "";
+
+		const std::string STR_ENTITY("entity");
+		const std::string STR_ID("id");
+		const std::string STR_FRAMEX("frameX");
+		const std::string STR_FRAMEY("frameY");
+		const std::string STR_TILESHEET("tilesheet");
+		const std::string STR_POSITIONX("positionX");
+		const std::string STR_POSITIONY("positionY");
+		const std::string STR_LAYER("layer");
+		const std::string STR_PASSABLESTATE("passableState");
+
+		std::vector<std::string>* currentDataMap;
+
+		std::cout << "START" << std::endl;
+
+		lineNumber = 0;
+		while (lineNumber < lines.size())
 		{
-			std::istringstream buf(lineChar);
-			std::istream_iterator<std::string> beg(buf), end;
-			std::vector<std::string> tokens(beg, end);
 			map.clear();
-			line++;
 			index = 0;
+
+			line = lines[lineNumber];
+			lineNumber++;
+
+			if (line.size() == 0)
+				continue;
+			
+			int wordNumber = 0;
+			for (int i = 0; i < line.size(); i++)
+			{				
+				if (line[i] == ' ')
+				{
+					tokens[wordNumber] = word;
+					word = "";
+					wordNumber++;
+				}
+				else
+				{
+					word += line[i];
+				}
+			}
+			tokens[wordNumber] = word;
 
 			try
 			{
 				etype = tokens[indexOfType];
 
-				// Populate the map of data
+				// Populate the map of data if it does not exist
 				if (loadDataMap.count(etype) != 0)
 				{
-					for (int i = 0; i < loadDataMap["entity"].size(); i++)
+					currentDataMap = &loadDataMap[STR_ENTITY];
+					for (int i = 0; i < currentDataMap->size(); i++)
 					{
-						map[loadDataMap["entity"][i]] = tokens[index++];
+						map[(*currentDataMap)[i]] = tokens[index++];
 					}
 
-					for (int i = 0; i < loadDataMap[etype].size(); i++)
+					currentDataMap = &loadDataMap[etype];
+					for (int i = 0; i < currentDataMap->size(); i++)
 					{
-						map[loadDataMap[etype][i]] = tokens[index++];
+						map[(*currentDataMap)[i]] = tokens[index++];
 					}
 				}
 
@@ -2031,7 +2091,7 @@ void Editor::CreateLevelFromString(std::string level)
 					//map["positionX"] = tokens[index++];
 					//map["positionY"] = tokens[index++];
 
-					Entity::nextValidID = std::stoi(map["id"]);
+					Entity::nextValidID = std::stoi(map[STR_ID]);
 
 					//map["drawOrder"] = tokens[index++];
 					//map["layer"] = tokens[index++];
@@ -2041,15 +2101,17 @@ void Editor::CreateLevelFromString(std::string level)
 					//map["frameX"] = tokens[index++];
 					//map["frameY"] = tokens[index++];
 
-					Tile* newTile = game->SpawnTile(Vector2(std::stoi(map["frameX"]), std::stoi(map["frameY"])),
-						"assets/tiles/" + GetTileSheetFileName(std::stoi(map["tilesheet"])) + ".png",
-						Vector2(std::stoi(map["positionX"]), std::stoi(map["positionY"])), 
-						(DrawingLayer)std::stoi(map["layer"]));
+					int tilesheetIndex = std::stoi(map[STR_TILESHEET]);
 
-					if (std::stoi(map["passableState"]) == 2)
+					Tile* newTile = game->SpawnTile(Vector2(std::stoi(map[STR_FRAMEX]), std::stoi(map[STR_FRAMEY])),
+						GetTileSheetFileName(tilesheetIndex),
+						Vector2(std::stoi(map[STR_POSITIONX]), std::stoi(map[STR_POSITIONY])), 
+						(DrawingLayer)std::stoi(map[STR_LAYER]));
+
+					if (std::stoi(map[STR_PASSABLESTATE]) == 2)
 						newTile->jumpThru = true;
 
-					newTile->tilesheetIndex = std::stoi(map["tilesheet"]);
+					newTile->tilesheetIndex = tilesheetIndex;
 				}
 				else if (etype == "cutscene-start")
 				{
@@ -2112,13 +2174,15 @@ void Editor::CreateLevelFromString(std::string level)
 			catch (const std::exception& e)
 			{
 				std::cout << "EXCEPTION: " << e.what() << std::endl;
-				std::cout << "LINE: " << line << std::endl;
+				std::cout << "LINE: " << lineNumber << std::endl;
 				std::cout << "INDEX: " << index << std::endl;
 				game->logger->Log(e.what());
 			}
 
-			ss.getline(lineChar, LINE_SIZE);
+			//ss.getline(lineChar, LINE_SIZE);
 		}
+
+		std::cout << "FINISH" << std::endl;
 
 		Entity::nextValidID = 2; // highestID + 1;
 
@@ -2175,6 +2239,7 @@ void Editor::CreateLevelFromString(std::string level)
 	catch (std::exception ex)
 	{
 		std::cout << "ERROR CREATING LEVEL: " << ex.what() << std::endl;
+		game->logger->Log(ex.what());
 	}
 }
 
