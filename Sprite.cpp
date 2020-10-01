@@ -229,6 +229,7 @@ Sprite::Sprite(int start, int end, int width, int height, const SpriteManager& m
 
 	startFrame = start;
 	endFrame = end;	
+	currentFrame = startFrame;
 
 	if (width > texture->GetWidth())
 		width = texture->GetWidth();
@@ -258,6 +259,7 @@ Sprite::Sprite(int start, int end, int numframes, const SpriteManager& manager,
 
 	startFrame = start;
 	endFrame = end;
+	currentFrame = startFrame;
 
 	numberFramesInTexture = end - start + 1;
 
@@ -338,7 +340,16 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 
 			if (currentFrame > endFrame)
 			{
-				currentFrame = startFrame;
+				if (shouldLoop)
+				{
+					currentFrame = startFrame;
+					if (startFrame != 0)
+						int test = 0;
+				}
+				else
+				{
+					currentFrame = endFrame;
+				}				
 			}
 
 			lastAnimTime = renderer.now;
@@ -522,7 +533,7 @@ void Sprite::SetScale(Vector2 s)
 
 bool Sprite::HasAnimationElapsed()
 {
-	return (previousFrame > currentFrame) || (endFrame - startFrame == 0);
+	return (previousFrame > currentFrame) || (endFrame - startFrame == 0) || (!shouldLoop && currentFrame == endFrame);
 }
 
 void Sprite::ResetFrame()

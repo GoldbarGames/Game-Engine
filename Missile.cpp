@@ -64,6 +64,19 @@ void Missile::Init(const std::string& n)
 		animator->DoState(*this);
 		layer = DrawingLayer::OBJECT;
 	}
+	else if (name == "carry")
+	{
+		CreateCollider(0, 0, 32, 24);
+		physics->useGravity = false;
+		physics->canBePushed = false;
+		physics->applyFriction = false;
+		physics->shouldCheckCollisions = false;
+		destroyAfterTime = false;
+		animator->SetState("carry_init");
+		animator->Update(*this);
+		animator->DoState(*this);
+		layer = DrawingLayer::OBJECT;
+	}
 }
 
 void Missile::Update(Game& game)
@@ -107,40 +120,9 @@ void Missile::Update(Game& game)
 		} 
 		else if (name == "pop")
 		{
-			if (animator->GetBool("hitGround"))
-			{
-				position = landedPosition;
+			AnimState state = animator->GetCurrentState();
 
-				if (animator->GetBool("animationElapsed"))
-				{
-					if (animator->GetBool("actionTimerElapsed"))
-					{
-						// pop_fire_end: After the last animation plays, destroy the object
-						if (currentSprite->HasAnimationElapsed())
-						{
-							shouldDelete = true;
-						}
-					}
-					else
-					{
-						// pop_fire_loop: Check that the loop has ended (X amount of time has passed)
-						if (actionTimer.HasElapsed())
-						{
-							animator->SetBool("actionTimerElapsed", true);
-						}
-					}
-				}
-				else
-				{
-					// pop_fire_init: Check that the fire starts up
-					animator->SetBool("animationElapsed", currentSprite->HasAnimationElapsed());
-					if (animator->GetBool("animationElapsed"))
-					{
-						actionTimer.Start(3000);
-					}
-				}
-			}
-			else
+			if (state.name == "pop_moving")
 			{
 				// check for collisions, and destroy if it hits a wall or an enemy'
 				if (physics->hadCollisionsThisFrame)
@@ -148,14 +130,47 @@ void Missile::Update(Game& game)
 					animator->SetBool("hitGround", true);
 					physics->velocity = Vector2(0, 0);
 					landedPosition = Vector2(position.x, position.y = 16);
-					
+
 					// TODO: What if it's on a moving object?
-					
+
 					// When we detonate the bomb
 					physics->useGravity = false;
 					CreateCollider(0, 0, 19, 27);
 				}
 			}
+			else if (state.name == "pop_fire_init")
+			{
+				position = landedPosition;
+				// pop_fire_init: Check that the fire starts up
+				animator->SetBool("animationElapsed", currentSprite->HasAnimationElapsed());
+				if (animator->GetBool("animationElapsed"))
+				{
+					actionTimer.Start(3000);
+				}
+			}
+			else if (state.name == "pop_fire_loop")
+			{
+				position = landedPosition;
+				// pop_fire_loop: Check that the loop has ended (X amount of time has passed)
+				if (actionTimer.HasElapsed())
+				{
+					animator->SetBool("actionTimerElapsed", true);
+				}
+			}
+			else if (state.name == "pop_fire_end")
+			{
+				position = landedPosition;
+				// pop_fire_end: After the last animation plays, destroy the object
+				if (currentSprite->HasAnimationElapsed())
+				{
+					shouldDelete = true;
+				}
+			}
+			else if (state.name == "pop_destroyed")
+			{
+				position = landedPosition;
+			}
+
 		}
 		else if (name == "float")
 		{
@@ -178,34 +193,88 @@ void Missile::Update(Game& game)
 						physics->velocity = Vector2(0, 0);
 					}
 					else if (physics->thisFrameCollisions[i]->physics != nullptr
-						&& physics->thisFrameCollisions[i]->physics->canBePickedUp)
+						&& physics->thisFrameCollisions[i]->physics->canBePickedUp
+						&& pickedUpEntity == nullptr)
 					{
 						// Pick up the object and carry it in the bubble
 						pickedUpEntity = physics->thisFrameCollisions[i];
 						//physics->thisFrameCollisions[i]->physics->parent = this;
 
-
-						//TODO: Before we can finish this, we need to do collision layers
-						// because the bubble needs to pass through objects it can pick up
-						// even if the player cannot walk through them.
-						// Also, it is not checking collisions against the player
+						//TODO: it is not checking collisions against the player
 						// because the player is neither impassable nor a trigger
 					}
 				}
 			}
 
 			// TODO: What happens if the picked up entity is deleted?
-			
 			if (pickedUpEntity != nullptr)
 			{
 				pickedUpEntity->position = position;
 			}
-			
 		}
 		else if (name == "freeze")
 		{
 			// TODO: Freeze anything it comes into contact with
 			// such as enemies, water tiles, etc.
+		}
+		else if (name == "carry")
+		{
+			AnimState state = animator->GetCurrentState();
+
+			if (pickedUpEntity == nullptr)
+			{
+				for (int i = 0; i < physics->thisFrameCollisions.size(); i++)
+				{
+					if (physics->thisFrameCollisions[i]->physics != nullptr
+						&& physics->thisFrameCollisions[i]->physics->canBePickedUp)
+					{
+						// Pick up the object and carry it in the bubble
+						pickedUpEntity = physics->thisFrameCollisions[i];
+						//physics->thisFrameCollisions[i]->physics->parent = this;
+					}
+				}
+			}
+
+			std::cout << "*" << state.name << std::endl;
+
+			if (state.name == "carry_init")
+			{				
+				currentSprite->shouldLoop = false;
+				if (currentSprite->HasAnimationElapsed())
+				{
+					std::cout << "init anim elapsed " << std::endl;
+					animator->SetBool("animationElapsed", true);
+					//timeToLive.Start(1000);
+				}
+			}
+			else if (state.name == "carry_moving")
+			{				
+				if (timeToLive.HasElapsed())
+				{
+					std::cout << "moving anim elapsed" << std::endl;
+					animator->SetBool("destroyed", true);
+					actionTimer.Start(1);
+				}
+			}
+			else if (state.name == "carry_holding")
+			{
+				std::cout << "hold" << std::endl;
+				if (pickedUpEntity != nullptr)
+				{
+					pickedUpEntity->position = position;
+				}
+			}
+			else if (state.name == "carry_end")
+			{
+				//std::cout << "end" << std::endl;
+				physics->SetVelocity(Vector2(0, 0));
+				currentSprite->shouldLoop = false;				
+				if (actionTimer.HasElapsed() && currentSprite->HasAnimationElapsed())
+				{
+					shouldDelete = true;
+					(*selfPointer) = nullptr;
+				}
+			}
 		}
 	}
 

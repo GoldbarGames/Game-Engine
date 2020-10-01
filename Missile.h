@@ -10,6 +10,9 @@ class Missile : public Entity
 	Timer actionTimer;
 	Vector2 landedPosition = Vector2(0, 0);
 public:
+	// TODO: Figure out a better way than this
+	Missile** selfPointer = nullptr;
+
 	Entity* pickedUpEntity = nullptr;
 	bool destroyAfterTime = true;
 	void Init(const std::string& n);

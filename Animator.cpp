@@ -320,6 +320,11 @@ void Animator::StartTimer()
 	//animationTimer.Start(currentState->speed * GetCurrentSprite()->endFrame, GetCurrentSprite()->shouldLoop);
 }
 
+const AnimState& Animator::GetCurrentState()
+{
+	return *currentState;
+}
+
 Sprite* Animator::GetCurrentSprite()
 {
 	return currentState->sprite;
@@ -356,7 +361,6 @@ void  Animator::SetRelativeAllStates(bool b)
 void Animator::SetState(const char* state)
 {
 	currentState = mapNamesToStates[state];
-	currentState->sprite->currentFrame = 0;
 
 	// TODO: If we're going into the same state, don't reset the current frame
 	//if (previousState != nullptr && previousState->name == state)

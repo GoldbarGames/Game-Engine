@@ -63,6 +63,7 @@ public:
 	void SetRelativeAllStates(bool b);
 
 	AnimState* GetState(const std::string& name);
+	const AnimState& GetCurrentState();
 
 	Animator(std::vector<Sprite*> sprites);
 	Animator(const std::string& filePath, std::vector<AnimState*> states, std::string initialState = "");

@@ -17,6 +17,7 @@
 #include "Player.h"
 #include "HealthComponent.h"
 #include "CutsceneCommands.h"
+#include <filesystem>
 
 using std::string;
 
@@ -79,8 +80,10 @@ Editor::Editor(Game& g)
 	objectPropertiesRect.h = 600;
 	objectPropertiesRect.y = 100;
 
+	// Check to see if the object properties (saving/loading)
+	// require the level to be re-calculated
 #if _DEBUG
-	// UpdateLevelFile("demo");
+	UpdateLevelFiles();
 #endif
 
 }
@@ -91,7 +94,7 @@ Editor::~Editor()
 }
 
 // Updates the level file based on changes in how entities are saved/loaded
-void Editor::UpdateLevelFile(const std::string& level)
+void Editor::UpdateLevelFiles()
 {
 	// Fill in the new array
 	loadDataMap.clear();
@@ -108,143 +111,155 @@ void Editor::UpdateLevelFile(const std::string& level)
 		return;
 	}
 
-	std::unordered_map<std::string, std::vector<Vector2>> reorderMap;
-	std::unordered_map<std::string, int> resizeMap;
+	const std::string STR_ENTITY("entity");
 
-	// Store the new size of the list in order to resize it (add/remove)
-	int oldEntitySize = oldMap["entity"].size();
-	int newEntitySize = loadDataMap["entity"].size();
-
-	for (int i = 0; i < oldEntitySize; i++)
+	std::string levelsFolder = "data\\levels\\";
+	std::filesystem::path path = std::filesystem::current_path().append(levelsFolder);
+	for (const auto& entry : std::filesystem::directory_iterator(path))
 	{
-		// Check for any elements that have been re-ordered or re-named
-		std::vector<std::string>::iterator it = std::find(loadDataMap["entity"].begin(),
-			loadDataMap["entity"].end(), oldMap["entity"][i]);
-
-		// If we can find this element in the new data, 
-		// keep track of where to place it in the new array
-		if (it != loadDataMap["entity"].end())
+		if (entry.path().extension().string() == ".lvl")
 		{
-			int newIndex = std::distance(loadDataMap["entity"].begin(), it);
-			reorderMap["entity"].push_back(Vector2(i, newIndex));
-			// index 2 old => index 2 new
-			// index 3 old => index 4 new
-			// etc...
-		}
+			std::string levelName = entry.path().stem().string();
+			std::cout << levelName << std::endl;
 
-		// Ignore elements we can't find anymore
-	}
+			std::unordered_map<std::string, std::vector<Vector2>> reorderMap;
+			std::unordered_map<std::string, int> resizeMap;
 
-	// TODO: Maybe figure out how to handle numbers vs. strings better
-	for (auto const& [entityType, currentList] : oldMap)
-	{
-		for (int i = 0; i < currentList.size(); i++)
-		{
-			if (entityType != "entity")
+			// Store the new size of the list in order to resize it (add/remove)
+			int oldEntitySize = oldMap[STR_ENTITY].size();
+			int newEntitySize = loadDataMap[STR_ENTITY].size();
+
+			for (int i = 0; i < oldEntitySize; i++)
 			{
-				// Store the new size of the list in order to resize it (add/remove)
-				resizeMap[entityType] = loadDataMap[entityType].size();
+				// Check for any elements that have been re-ordered or re-named
+				std::vector<std::string>::iterator it = std::find(loadDataMap[STR_ENTITY].begin(),
+					loadDataMap[STR_ENTITY].end(), oldMap[STR_ENTITY][i]);
 
-				// Check for any elements that have been re-ordered
-				std::vector<std::string>::iterator it = std::find(loadDataMap[entityType].begin(),
-					loadDataMap[entityType].end(), currentList[i]);
-
-				// If we can find this element in the new data...
-				if (it != loadDataMap[entityType].end())
+				// If we can find this element in the new data, 
+				// keep track of where to place it in the new array
+				if (it != loadDataMap[STR_ENTITY].end())
 				{
-					// keep track of the indices here and swap them in the level file
-					int newIndex = std::distance(loadDataMap[entityType].begin(), it);
-					reorderMap[entityType].push_back(Vector2(i, newIndex));
+					int newIndex = std::distance(loadDataMap[STR_ENTITY].begin(), it);
+					reorderMap[STR_ENTITY].push_back(Vector2(i, newIndex));
+					// index 2 old => index 2 new
+					// index 3 old => index 4 new
+					// etc...
+				}
+
+				// Ignore elements we can't find anymore
+			}
+
+			// TODO: Maybe figure out how to handle numbers vs. strings better
+			for (auto const& [entityType, currentList] : oldMap)
+			{
+				for (int i = 0; i < currentList.size(); i++)
+				{
+					if (entityType != STR_ENTITY)
+					{
+						// Store the new size of the list in order to resize it (add/remove)
+						resizeMap[entityType] = loadDataMap[entityType].size();
+
+						// Check for any elements that have been re-ordered
+						std::vector<std::string>::iterator it = std::find(loadDataMap[entityType].begin(),
+							loadDataMap[entityType].end(), currentList[i]);
+
+						// If we can find this element in the new data...
+						if (it != loadDataMap[entityType].end())
+						{
+							// keep track of the indices here and swap them in the level file
+							int newIndex = std::distance(loadDataMap[entityType].begin(), it);
+							reorderMap[entityType].push_back(Vector2(i, newIndex));
+						}
+					}
 				}
 			}
+
+
+			// Update the level files
+			std::ofstream fout;
+			std::stringstream ss{ ReadLevelFromFile(levelName) };
+
+			const int LINE_SIZE = 1024;
+			char lineChar[LINE_SIZE];
+			ss.getline(lineChar, LINE_SIZE);
+
+			int line = 0;
+			int index = 0;
+
+			std::string newLevel = "";
+			std::string etype = "";
+
+			while (ss.good() && !ss.eof())
+			{
+				std::istringstream buf(lineChar);
+				std::istream_iterator<std::string> beg(buf), end;
+				std::vector<std::string> tokens(beg, end);
+
+				// Get the type of entity we are dealing with
+				etype = tokens[1];
+
+				// Depending on the type of entity, figure out the rest
+
+				// 1. Create a new vector of strings equal to the new size
+				std::vector<std::string> newTokens;
+
+				oldEntitySize = oldMap[STR_ENTITY].size();
+				newEntitySize = loadDataMap[STR_ENTITY].size();
+
+				int difference = newEntitySize - oldEntitySize;
+
+				if (resizeMap.count(etype) != 0)
+				{
+					oldEntitySize += resizeMap[etype];
+					newEntitySize += resizeMap[etype];
+				}
+
+				for (int i = 0; i < newEntitySize; i++)
+				{
+					newTokens.push_back("0");
+				}
+
+				// 2. For each reorder, take the value in the old index, place it in new index
+				// 3. For anything that is not a reorder, just keep the values where they are
+				int reorderEntitySize = reorderMap[STR_ENTITY].size();
+				for (int i = 0; i < reorderEntitySize; i++)
+				{
+					int oldIndex = reorderMap[STR_ENTITY][i].x + difference;
+					int newIndex = reorderMap[STR_ENTITY][i].y + difference;
+					newTokens[newIndex] = tokens[oldIndex];
+				}
+
+				int reorderTypeSize = reorderMap[etype].size();
+				for (int i = 0; i < reorderTypeSize; i++)
+				{
+					int oldIndex = reorderMap[etype][i].x + reorderEntitySize;
+					int newIndex = reorderMap[etype][i].y + reorderEntitySize + difference;
+					newTokens[newIndex] = tokens[oldIndex];
+				}
+
+				// After setting all the tokens, write them to the level string
+				for (int i = 0; i < newTokens.size(); i++)
+				{
+					newLevel += newTokens[i];
+					newLevel += " ";
+				}
+
+				newLevel += "\n";
+
+				ss.getline(lineChar, LINE_SIZE);
+				//std::cout << lineChar << std::endl;
+			}
+
+			// Output the new level to a file
+			fout.open("data/levels/" + levelName + ".lvl");
+			fout << newLevel;
+			fout.close();
 		}
 	}
-
-
-	// Update the level files
-	std::ofstream fout;
-
-	std::stringstream ss{ ReadLevelFromFile(level) };
-
-	const int LINE_SIZE = 1024;
-	char lineChar[LINE_SIZE];
-	ss.getline(lineChar, LINE_SIZE);
-
-	int line = 0;
-	int index = 0;
-
-	std::string newLevel = "";
-	std::string etype = "";
-
-	while (ss.good() && !ss.eof())
-	{
-		std::istringstream buf(lineChar);
-		std::istream_iterator<std::string> beg(buf), end;
-		std::vector<std::string> tokens(beg, end);
-
-		// Get the type of entity we are dealing with
-		etype = tokens[1];
-
-		// Depending on the type of entity, figure out the rest
-
-		// 1. Create a new vector of strings equal to the new size
-		std::vector<std::string> newTokens;
-
-		oldEntitySize = oldMap["entity"].size();
-		newEntitySize = loadDataMap["entity"].size();
-
-		int difference = newEntitySize - oldEntitySize;
-
-		if (resizeMap.count(etype) != 0)
-		{
-			oldEntitySize += resizeMap[etype];
-			newEntitySize += resizeMap[etype];
-		}
-
-		for (int i = 0; i < newEntitySize; i++)
-		{
-			newTokens.push_back("0");
-		}
-
-		// 2. For each reorder, take the value in the old index, place it in new index
-		// 3. For anything that is not a reorder, just keep the values where they are
-		int reorderEntitySize = reorderMap["entity"].size();
-		for (int i = 0; i < reorderEntitySize; i++)
-		{
-			int oldIndex = reorderMap["entity"][i].x + difference;
-			int newIndex = reorderMap["entity"][i].y + difference;
-			newTokens[newIndex] = tokens[oldIndex];
-		}
-
-		int reorderTypeSize = reorderMap[etype].size();
-		for (int i = 0; i < reorderTypeSize; i++)
-		{
-			int oldIndex = reorderMap[etype][i].x + reorderEntitySize;
-			int newIndex = difference + reorderMap[etype][i].y + reorderEntitySize;
-			newTokens[newIndex] = tokens[oldIndex];
-		}
-
-		// After setting all the tokens, write them to the level string
-		for (int i = 0; i < newTokens.size(); i++)
-		{
-			newLevel += newTokens[i];
-			newLevel += " ";
-		}
-
-		newLevel += "\n";
-
-		ss.getline(lineChar, LINE_SIZE);
-		//std::cout << lineChar << std::endl;
-	}
-
-	// Output the new level to a file
-	fout.open("data/levels/" + level + ".lvl");
-	fout << newLevel;
-	fout.close();
 
 	// After updating the level files,
 	// update the old loading file
-
+	std::ofstream fout;
 	fout.open(OLD_FILEPATH);
 	fout << newData;
 	fout.close();
@@ -2275,13 +2290,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 		game->currentLevel = levelName;
 
 	levelStrings.clear();
-	levelStringIndex = -1;
-
-	// Check to see if the object properties (saving/loading)
-	// require the level to be re-calculated
-#if _DEBUG
-	UpdateLevelFile(levelName);
-#endif
+	levelStringIndex = -1;		
 
 	CreateLevelFromString(ReadLevelFromFile(levelName));
 

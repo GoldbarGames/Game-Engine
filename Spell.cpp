@@ -109,8 +109,11 @@ void Spell::Update(Game& game)
 				}
 				else if (names[activeSpell] == "pop"
 					|| names[activeSpell] == "float"
+					|| names[activeSpell] == "carry"
 					|| names[activeSpell] == "freeze")
 				{
+					// This is used to spawn the missile at a certain frame in the animation
+					// rather than spawning the missile instantly at the initial frame
 					if (game.player->GetSprite()->currentFrame >= specialFrame)
 					{
 						(this->*func.method)(game);
@@ -324,6 +327,11 @@ bool Spell::CastFreeze(Game& game)
 	iceMissile->Init("freeze");
 	iceMissile->SetVelocity(Vector2(game.player->scale.x < 0 ? -0.25f : 0.25f, 0.0f));
 
+	if (game.player->scale.x > 0)
+		iceMissile->scale.x = 1.0f;
+	else
+		iceMissile->scale.x = -1.0f;
+
 	return true;
 }
 
@@ -448,6 +456,41 @@ bool Spell::CastCrypt(Game& game)
 
 bool Spell::CastCarry(Game& game)
 {
+	if (specialFrame == 9999)
+	{
+		specialFrame = 5;
+		return true;
+	}
+
+	if (carryMissile != nullptr)
+	{
+		carryMissile->GetAnimator()->SetBool("destroyed", true);
+		carryMissile = nullptr;
+	}
+	else
+	{
+		Vector2 offset = Vector2(game.player->scale.x < 0 ? -16 : 16, 0);
+
+		// TODO: Don't create more than one at a time
+		carryMissile = static_cast<Missile*>(game.SpawnEntity("missile", game.player->position + offset, 0));
+
+		if (carryMissile == nullptr)
+		{
+			std::cout << "ERROR CASTING CARRY SPELL: CREATING HAND" << std::endl;
+			return false; // failed to create
+		}
+
+		carryMissile->selfPointer = &carryMissile;
+
+		carryMissile->Init("carry");
+		carryMissile->SetVelocity(Vector2(game.player->scale.x < 0 ? -0.15f : 0.15f, 0.0f));
+
+		if (game.player->scale.x > 0)
+			carryMissile->scale.x = 1.0f;
+		else
+			carryMissile->scale.x = -1.0f;
+	}
+
 	return true;
 }
 

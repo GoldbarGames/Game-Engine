@@ -10,6 +10,7 @@ class Entity;
 class Game;
 class Renderer;
 class Sprite;
+class Missile;
 
 class Spell
 {
@@ -31,6 +32,8 @@ public:
 
 	Sprite* spellRangeSprite = nullptr;
 	SDL_Rect spellRangeRect;
+
+	Missile* carryMissile = nullptr;
 
 	void CycleSpells(Game& game);
 

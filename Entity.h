@@ -93,13 +93,14 @@ public:
 	void CreateCollider(float x, float y, float w, float h);
 	void CalculateCollider();
 
+	virtual void Init(const std::string& n);
+
 	virtual void Pause(Uint32 ticks);
 	virtual void Unpause(Uint32 ticks);
 
-	virtual void Init(const std::string& n);
-	virtual void Load(std::unordered_map<std::string, std::string>& map, Game& game);
-
 	virtual bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
+
+	// TODO: Refactor these functions into components
 
 	virtual void OnTriggerStay(Entity& other, Game& game);
 	virtual void OnTriggerEnter(Entity& other, Game& game);
@@ -114,6 +115,7 @@ public:
 	virtual void SetProperty(const std::string& key, const std::string& newValue);
 
 	virtual void Save(std::unordered_map<std::string, std::string>& map);
+	virtual void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
 	virtual void SetColor(Color newColor);
 
