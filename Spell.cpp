@@ -459,7 +459,8 @@ bool Spell::CastSeed(Game& game)
 		}
 		beanstalkParts.clear();
 
-		std::string suffix = "2";
+		int startSuffix = game.randomManager->RandomRange(1, 2);
+		std::string suffix = std::to_string(startSuffix);
 
 		std::string b_bottom = "b_bottom";
 		std::string b_middle = "b_middle";
@@ -479,9 +480,10 @@ bool Spell::CastSeed(Game& game)
 			spawnBeanstalkPosition.y -= TILE_SIZE * Camera::MULTIPLIER;
 			currentLadder = game.SpawnEntity("ladder", spawnBeanstalkPosition, 1);
 
-			
-
-			suffix = (index % 2 == 0) ? "2" : "1";
+			if (startSuffix == 2)
+				suffix = (index % 2 == 0) ? "2" : "1";
+			else
+				suffix = (index % 2 != 0) ? "2" : "1";
 
 			if (currentLadder != nullptr)
 			{
@@ -492,13 +494,15 @@ bool Spell::CastSeed(Game& game)
 			else
 			{
 				currentLadder = beanstalkParts.back();
-
 				break;
 			}
 		}
 
 		// Spawn the top piece if it was not blocked
-		suffix = (index % 2 == 0) ? "2" : "1";
+		if (startSuffix == 2)
+			suffix = (index % 2 == 0) ? "2" : "1";
+		else
+			suffix = (index % 2 != 0) ? "2" : "1";
 		currentLadder->GetAnimator()->SetState((b_top + suffix).c_str());
 		currentLadder->GetAnimator()->DoState(*currentLadder);
 
