@@ -1,8 +1,10 @@
 #include "Tree.h"
+#include "Entity.h"
 #include "Sprite.h"
 #include "Property.h"
 #include "PhysicsComponent.h"
 #include "Game.h"
+#include "Vector2.h"
 
 Tree::Tree(Vector2 pos) : Entity(pos)
 {

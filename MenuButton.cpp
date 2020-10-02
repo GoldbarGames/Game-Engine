@@ -1,5 +1,6 @@
 #include "MenuButton.h"
 #include "Game.h"
+#include "Renderer.h"
 
 MenuButton::MenuButton(const std::string& txt, const std::string& filepath, 
 	const std::string& function, const Vector2& pos, Game& game)

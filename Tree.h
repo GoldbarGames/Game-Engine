@@ -2,9 +2,8 @@
 #define TREE_H
 #pragma once
 
+#include "filesystem_types.h"
 #include "Entity.h"
-
-class Sprite;
 
 class Tree : public Entity
 {

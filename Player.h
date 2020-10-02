@@ -38,6 +38,8 @@ public:
 
 	bool updatedAnimator = false;
 
+	// ...
+
 	Player(const Vector2& pos);
 	~Player();
 	void Update(Game& game);

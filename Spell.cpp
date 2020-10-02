@@ -3,6 +3,11 @@
 #include "PhysicsComponent.h"
 #include "Tree.h"
 #include "Missile.h"
+#include "SpriteManager.h"
+#include "Renderer.h"
+#include "Sprite.h"
+#include "Player.h"
+#include "RandomManager.h"
 
 typedef bool (Spell::* SpellFunction)(Game& game);
 
@@ -82,12 +87,15 @@ void Spell::Update(Game& game)
 {
 	if (spellIcons.size() == 0)
 	{
+		std::cout << "SPELL ICONS " << spellIcons.size() << std::endl;
+		std::cout << "SPELL NAMES " << names.size() << std::endl;
 		for (int i = 0; i < names.size(); i++)
 		{
 			Texture* texture = game.spriteManager->GetImage("assets/gui/icon/icon_" + names[i] + ".png");
 			Sprite* sprite = new Sprite(texture, game.renderer->shaders[ShaderName::Default]);
 			sprite->keepPositionRelativeToCamera = true;
 			sprite->keepScaleRelativeToCamera = true;
+			std::cout << i << std::endl;
 			spellIcons.push_back(sprite);
 		}
 	}

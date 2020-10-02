@@ -3,6 +3,9 @@
 #include "globals.h"
 #include "Renderer.h"
 #include "Game.h"
+#include "Editor.h"
+#include "Animator.h"
+#include "Sprite.h"
 
 Ladder::Ladder(const Vector2& pos) : Entity(pos)
 {

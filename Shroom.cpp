@@ -1,6 +1,8 @@
 #include "Shroom.h"
 #include "Game.h"
 #include "PhysicsComponent.h"
+#include "SoundManager.h"
+#include "Sprite.h"
 
 Shroom::Shroom(const Vector2& pos) : Entity(pos)
 {

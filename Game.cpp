@@ -1,24 +1,65 @@
 #include "Game.h"
-#include "Sprite.h"
-#include "Player.h"
-#include "Tile.h"
-#include "SettingsButton.h"
-#include "globals.h"
-#include <sstream>
-#include <iterator>
-#include <ctype.h>
 
-#include <stdio.h>
-#include <time.h>
-#include "sdl_helpers.h"
-#include "PhysicsComponent.h"
-#include "Dialog.h"
+
+
+#include <cmath>
+#include <vector>
+#include <unordered_map>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include "Mesh.h"
+#include "Shader.h"
+#include "Camera.h"
+#include "Texture.h"
+
+#include "Logger.h"
+
+#include <string>
+#include <iostream>
+#include <vector>
+#include "Sprite.h"
+#include <memory>
+#include <cmath>
+#include "Entity.h"
+#include "SpriteManager.h"
+#include "Player.h"
+#include "Background.h"
+#include "Editor.h"
+#include "Tile.h"
+#include "Timer.h"
+#include "MenuScreen.h"
+#include "Missile.h"
+#include "Door.h"
+#include "Ladder.h"
+#include "Renderer.h"
+#include "NPC.h"
+#include "Block.h"
+#include "Platform.h"
+#include "Shroom.h"
 #include "HealthComponent.h"
+
+#include "SettingsButton.h"
+
+#include "DebugScreen.h"
+#include "EntityFactory.h"
+#include "QuadTree.h"
+#include "GUI.h"
+
+#include "CutsceneManager.h"
+#include "SoundManager.h"
+#include "RandomManager.h"
+#include <chrono>
+
+#include "Dialog.h"
 
 #ifdef _WIN32
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
 #endif
+#include "sdl_helpers.h"
 
 static unsigned int allocationCount = 0;
 

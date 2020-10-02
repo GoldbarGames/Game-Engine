@@ -2,6 +2,9 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 #include "HealthComponent.h"
+#include "NPC.h"
+#include "Property.h"
+#include "Player.h"
 
 NPC::NPC(const std::string& n, const Vector2& pos) : Entity(pos)
 {

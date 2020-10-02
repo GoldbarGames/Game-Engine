@@ -1,6 +1,7 @@
 #include "SettingsButton.h"
 #include "Game.h"
-
+#include "SoundManager.h"
+#include "Editor.h"
 
 SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& game)
 {

@@ -6,6 +6,8 @@
 #include "Game.h"
 #include "Sprite.h"
 #include "Switch.h"
+#include "Property.h"
+#include "Editor.h"
 
 unsigned int Entity::nextValidID = 0;
 std::unordered_map<unsigned int, bool> Entity::takenIDs;

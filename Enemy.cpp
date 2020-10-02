@@ -1,8 +1,15 @@
 #include "Enemy.h"
+#include "Entity.h"
 #include "Player.h"
 #include "Game.h"
+#include "Collider.h"
+#include "Timer.h"
+#include "Vector2.h"
 #include "PhysicsComponent.h"
 #include "HealthComponent.h"
+#include <algorithm>
+#include "Sprite.h"
+#include "Renderer.h"
 
 Enemy::Enemy(Vector2 pos) : Entity(pos)
 {

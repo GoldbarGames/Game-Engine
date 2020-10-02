@@ -1,5 +1,8 @@
 #include "Checkpoint.h"
 #include "Game.h"
+#include "Entity.h"
+#include "Player.h"
+#include "Property.h"
 #include "globals.h"
 
 Checkpoint::Checkpoint(Vector2 pos) : Entity(pos)

@@ -2,63 +2,11 @@
 #define GAME_H
 #pragma once
 
-#include "SDL.h"
-#include <SDL_image.h>
-#include <SDL_ttf.h>
-#include <GL/glew.h>
-
-#include <stdio.h>
-#include <GL/glew.h>
-
-#include <cmath>
-#include <vector>
-#include <unordered_map>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#include "Mesh.h"
-#include "Shader.h"
-#include "Camera.h"
-#include "Texture.h"
-
-#include "Logger.h"
-
-#include <string>
-#include <iostream>
-#include <vector>
-#include "Sprite.h"
-#include <memory>
-#include <cmath>
-#include "Entity.h"
-#include "SpriteManager.h"
-#include "Player.h"
-#include "Background.h"
-#include "Editor.h"
-#include "Tile.h"
-#include "Timer.h"
-#include "MenuScreen.h"
-#include "Missile.h"
-#include "Door.h"
-#include "Ladder.h"
-#include "Renderer.h"
-#include "NPC.h"
-#include "Block.h"
-#include "Platform.h"
-#include "Shroom.h"
-
-#include "DebugScreen.h"
-#include "EntityFactory.h"
-#include "QuadTree.h"
+#include "filesystem_types.h"
 #include "GUI.h"
-
-#include "CutsceneManager.h"
-#include "SoundManager.h"
-#include "RandomManager.h"
 #include <chrono>
-
-using std::string; 
+#include "globals.h"
+#include "Timer.h"
 
 enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
 

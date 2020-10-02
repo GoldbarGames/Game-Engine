@@ -1,4 +1,5 @@
 #include "Vector2.h"
+#include <glm/vec2.hpp>
 
 Vector2::Vector2(float x2, float y2)
 {

@@ -14,8 +14,7 @@
 #include "EditorButton.h"
 #include "Property.h"
 #include "Texture.h"
-
-using std::string;
+#include "filesystem_types.h"
 
 class Door;
 class Entity;

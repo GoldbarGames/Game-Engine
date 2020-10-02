@@ -4,6 +4,8 @@
 #include "PhysicsComponent.h"
 #include "Switch.h"
 #include "globals.h"
+#include "Property.h"
+#include "Editor.h"
 
 Platform::Platform(const Vector2& pos) : Entity(pos)
 {

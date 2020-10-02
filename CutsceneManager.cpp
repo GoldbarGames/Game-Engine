@@ -3,6 +3,8 @@
 #include "Game.h"
 #include "globals.h"
 #include <iterator>
+#include "Logger.h"
+#include "SoundManager.h"
 
 CutsceneManager::CutsceneManager(Game& g)
 {

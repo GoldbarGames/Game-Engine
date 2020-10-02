@@ -1,12 +1,15 @@
 #pragma once
+
+#include "filesystem_types.h"
 #include "Entity.h"
+
 class Enemy : public Entity
 {
 public:
 	Enemy(Vector2 pos);
 	~Enemy();
 
-	//TODO: Make different member variables for each type of enemy
+	//TODO: Make different member variables for each type of enemy....
 	bool playerIsToTheRight = false;
 
 	Timer actionTimer;

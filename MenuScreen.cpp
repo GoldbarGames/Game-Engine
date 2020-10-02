@@ -2,6 +2,8 @@
 #include "SettingsButton.h"
 #include "Game.h"
 #include "globals.h"
+#include "Renderer.h"
+#include "Editor.h"
 
 MenuScreen::MenuScreen(const std::string& n, Game& game)
 {

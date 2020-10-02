@@ -2,9 +2,6 @@
 #define VECTOR2_H
 
 #include <iostream>
-
-#include <glm/vec2.hpp>
-
 //using Vector2 = glm::vec2;
 
 class Vector2

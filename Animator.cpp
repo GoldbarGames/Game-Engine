@@ -4,6 +4,7 @@
 #include <utility>
 #include <fstream>
 #include "Sprite.h"
+#include "Timer.h"
 
 std::map<unsigned int, AnimatorInfo*> Animator::mapTypeToInfo;
 std::unordered_map<std::string, unsigned int> Animator::mapNamesToAnimType;

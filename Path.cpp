@@ -1,6 +1,8 @@
 #include "Path.h"
 #include "Renderer.h"
 #include "Game.h"
+#include "Property.h"
+#include "Editor.h"
 
 Path::Path(const Vector2& pos) : Entity(pos)
 {

@@ -19,6 +19,17 @@
 #include "CutsceneCommands.h"
 #include <filesystem>
 
+#include "Renderer.h"
+#include "Door.h"
+#include "Ladder.h"
+#include "DebugScreen.h"
+#include "Quadtree.h"
+#include "Property.h"
+#include "Logger.h"
+#include "Editor.h"
+#include "CutsceneManager.h"
+#include "Background.h"
+
 using std::string;
 
 Editor::Editor(Game& g)

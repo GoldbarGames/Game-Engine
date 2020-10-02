@@ -3,7 +3,7 @@
 #include "Text.h"
 #include "Sprite.h"
 #include "Game.h"
-
+#include "Editor.h"
 
 DebugScreen::DebugScreen(Game& g)
 {

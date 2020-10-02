@@ -2,6 +2,11 @@
 #include "Game.h"
 #include "globals.h"
 #include "Physics.h"
+#include "SoundManager.h"
+#include "Entity.h"
+#include "Game.h"
+#include "QuadTree.h"
+#include <algorithm>
 
 PhysicsComponent::PhysicsComponent(Entity* entity)
 {

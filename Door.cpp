@@ -1,6 +1,9 @@
 #include "Door.h"
 #include "Game.h"
 #include "globals.h"
+#include "Player.h"
+#include "Property.h"
+#include "Editor.h"
 
 Door::Door(Vector2 pos) : Entity(pos)
 {

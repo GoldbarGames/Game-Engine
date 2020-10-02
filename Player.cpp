@@ -5,6 +5,16 @@
 #include "Animator.h"
 #include "Physics.h"
 #include "HealthComponent.h"
+#include "Text.h"
+#include "Sprite.h"
+#include "Renderer.h"
+#include "CutsceneManager.h"
+#include "Ladder.h"
+#include "Door.h"
+#include "NPC.h"
+#include "SoundManager.h"
+#include "Property.h"
+#include "Missile.h"
 
 Player::Player(const Vector2& pos) : Entity(pos)
 {

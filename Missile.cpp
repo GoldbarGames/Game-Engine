@@ -1,6 +1,8 @@
 #include "Missile.h"
 #include "Game.h"
 #include "PhysicsComponent.h"
+#include "Sprite.h"
+#include "Player.h"
 
 Missile::Missile(const Vector2& pos) : Entity(pos)
 {

@@ -4,6 +4,9 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 #include "HealthComponent.h"
+#include "Text.h"
+#include "Missile.h"
+
 
 Collectible::Collectible(Vector2 pos) : Entity(pos)
 {
