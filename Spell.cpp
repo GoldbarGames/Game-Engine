@@ -479,6 +479,8 @@ bool Spell::CastSeed(Game& game)
 			spawnBeanstalkPosition.y -= TILE_SIZE * Camera::MULTIPLIER;
 			currentLadder = game.SpawnEntity("ladder", spawnBeanstalkPosition, 1);
 
+			
+
 			suffix = (index % 2 == 0) ? "2" : "1";
 
 			if (currentLadder != nullptr)

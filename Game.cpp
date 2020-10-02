@@ -22,7 +22,7 @@
 
 static unsigned int allocationCount = 0;
 
-
+/*
 void* operator new(size_t size)
 {
 	allocationCount++;
@@ -35,7 +35,7 @@ void operator delete(void* p)
 {
 	free(p);
 }
-
+*/
 
 int Game::MainLoop()
 {
@@ -201,7 +201,9 @@ Game::Game()
 	soundManager = new SoundManager();
 	soundManager->ReadMusicData("data/bgm.dat");
 
-	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager)
+	randomManager = new RandomManager();
+
+	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager and random)
 	cutscene = new CutsceneManager(*this);
 	cutscene->ParseScene();	
 

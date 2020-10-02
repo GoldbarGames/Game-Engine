@@ -55,6 +55,7 @@
 
 #include "CutsceneManager.h"
 #include "SoundManager.h"
+#include "RandomManager.h"
 #include <chrono>
 
 using std::string; 
@@ -205,6 +206,7 @@ public:
 	Renderer* renderer = nullptr;
 	SpriteManager* spriteManager = nullptr;
 	SoundManager* soundManager = nullptr;
+	RandomManager* randomManager = nullptr;
 	FontInfo* theFont = nullptr;
 	FontInfo* headerFont = nullptr;
 	

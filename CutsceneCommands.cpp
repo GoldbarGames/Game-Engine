@@ -1087,13 +1087,11 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 	{
 		if (parameters[2] == "time")
 		{
-			randomSeed = (int)time(0);
-			srand(randomSeed);
+			manager->game->randomManager->Seed();
 		}
 		else
 		{
-			randomSeed = ParseNumberValue(parameters[2]);
-			srand(randomSeed);
+			manager->game->randomManager->Seed(ParseNumberValue(parameters[2]));
 		}
 	}
 	else if (parameters[1] == "range")
@@ -1102,7 +1100,7 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 		unsigned int minNumber = ParseNumberValue(parameters[3]);
 		unsigned int maxNumber = ParseNumberValue(parameters[4]);
 
-		numberVariables[key] = (rand() % maxNumber) + minNumber;
+		numberVariables[key] = manager->game->randomManager->RandomRange(minNumber, maxNumber);
 
 		// If global variable, save change to file
 		if (key >= manager->globalStart)
@@ -1113,7 +1111,7 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 		key = ParseNumberValue(parameters[1]);
 		unsigned int maxNumber = ParseNumberValue(parameters[2]);
 
-		numberVariables[key] = (rand() % maxNumber);
+		numberVariables[key] = manager->game->randomManager->RandomInt(maxNumber);
 
 		// If global variable, save change to file
 		if (key >= manager->globalStart)
