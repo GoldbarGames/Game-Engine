@@ -34,6 +34,7 @@ public:
 	bool isPushed = false;
 	bool applyFriction = true;
 	bool canBePickedUp = false;
+	bool isPickedUp = false;
 
 	float currentJumpSpeed = 0;
 	float jumpSpeed = -1.0f;

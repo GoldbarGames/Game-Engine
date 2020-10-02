@@ -11,6 +11,7 @@ Block::Block(const Vector2& pos) : Entity(pos)
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 10;
 	impassable = true;
+	trigger = true;
 	
 	physics = new PhysicsComponent(this);
 	physics->mass = 5;
@@ -35,10 +36,12 @@ void Block::Init(const std::string& n)
 
 	if (name == "big_block")
 	{
+		physics->mass = 10;
 		CreateCollider(0, 16, 48, 48);
 	}
 	else if (name == "small_block")
 	{
+		physics->mass = 5;
 		CreateCollider(0, 8, 24, 24);
 	}
 }

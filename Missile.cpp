@@ -57,6 +57,7 @@ void Missile::Init(const std::string& n)
 		physics->useGravity = false;
 		physics->canBePushed = false;
 		physics->applyFriction = false;
+		physics->shouldCheckCollisions = false;
 		destroyAfterTime = true;
 		timeToLive.Start(3000);
 		animator->SetState("freeze_moving");
@@ -77,6 +78,8 @@ void Missile::Init(const std::string& n)
 		animator->DoState(*this);
 		layer = DrawingLayer::OBJECT;
 	}
+	layer = DrawingLayer::FRONT;
+	drawOrder = 100;
 }
 
 void Missile::Update(Game& game)
@@ -194,6 +197,7 @@ void Missile::Update(Game& game)
 					}
 					else if (physics->thisFrameCollisions[i]->physics != nullptr
 						&& physics->thisFrameCollisions[i]->physics->canBePickedUp
+						&& physics->thisFrameCollisions[i]->physics->mass < 10
 						&& pickedUpEntity == nullptr)
 					{
 						// Pick up the object and carry it in the bubble
@@ -221,28 +225,34 @@ void Missile::Update(Game& game)
 		{
 			AnimState state = animator->GetCurrentState();
 
-			if (pickedUpEntity == nullptr)
+			if (game.player->scale.x > 0)
+				scale.x = 1.0f;
+			else
+				scale.x = -1.0f;
+
+			if (!animator->GetBool("destroyed") && pickedUpEntity == nullptr)
 			{
 				for (int i = 0; i < physics->thisFrameCollisions.size(); i++)
 				{
 					if (physics->thisFrameCollisions[i]->physics != nullptr
+						&& physics->thisFrameCollisions[i]->physics->mass < 10
 						&& physics->thisFrameCollisions[i]->physics->canBePickedUp)
 					{
 						// Pick up the object and carry it in the bubble
 						pickedUpEntity = physics->thisFrameCollisions[i];
+						pickedUpEntity->physics->isPickedUp = true;
 						//physics->thisFrameCollisions[i]->physics->parent = this;
+						animator->SetBool("hitObject", true);
+						SetVelocity(Vector2(0, 0));
 					}
 				}
 			}
-
-			std::cout << "*" << state.name << std::endl;
 
 			if (state.name == "carry_init")
 			{				
 				currentSprite->shouldLoop = false;
 				if (currentSprite->HasAnimationElapsed())
 				{
-					std::cout << "init anim elapsed " << std::endl;
 					animator->SetBool("animationElapsed", true);
 					//timeToLive.Start(1000);
 				}
@@ -251,14 +261,15 @@ void Missile::Update(Game& game)
 			{				
 				if (timeToLive.HasElapsed())
 				{
-					std::cout << "moving anim elapsed" << std::endl;
 					animator->SetBool("destroyed", true);
 					actionTimer.Start(1);
 				}
 			}
 			else if (state.name == "carry_holding")
 			{
-				std::cout << "hold" << std::endl;
+				Vector2 offset = Vector2(game.player->scale.x < 0 ? 64 : -64, 0);
+				LerpVector2(position, game.player->position + offset, 32.0f, 4.0f);
+
 				if (pickedUpEntity != nullptr)
 				{
 					pickedUpEntity->position = position;
@@ -266,7 +277,6 @@ void Missile::Update(Game& game)
 			}
 			else if (state.name == "carry_end")
 			{
-				//std::cout << "end" << std::endl;
 				physics->SetVelocity(Vector2(0, 0));
 				currentSprite->shouldLoop = false;				
 				if (actionTimer.HasElapsed() && currentSprite->HasAnimationElapsed())

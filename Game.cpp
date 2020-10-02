@@ -586,6 +586,8 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 	return newEntity;
 }
 
+// TODO: We want to sort the entities every time we spawn one
+// as long as the game is running, but not when we are first loading the level
 Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex)
 {
 	Entity* entity = CreateEntity(entityName, position, spriteIndex); //entityFactory->Create(entityName, position);

@@ -272,15 +272,15 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 		if (entity == our)
 			continue;
 
-		if (our->etype == "player" && entity->etype == "block")
-			int test = 0;
-
 		theirBounds = *(entity->GetBounds());
 		theirBounds.x -= theirBounds.w;
 		theirBounds.w *= 2;
 
 		if (shouldCheckCollisions && (entity->impassable || entity->jumpThru))
 		{	
+			if (entity->physics != nullptr && entity->physics->isPickedUp)
+				continue;
+
 			if (entity->jumpThru)
 			{
 				// Check to see if we are on top of the platform
@@ -603,9 +603,8 @@ bool PhysicsComponent::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 		else
 		{
 			collidedEntity->OnTriggerEnter(*our, game);
-		}
-
-		thisFrameCollisions.emplace_back(collidedEntity);
+			thisFrameCollisions.emplace_back(collidedEntity);
+		}		
 	}
 
 	return hadCollision;

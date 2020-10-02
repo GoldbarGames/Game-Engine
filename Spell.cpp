@@ -95,6 +95,8 @@ void Spell::Update(Game& game)
 	game.player->GetAnimator()->SetBool("isMovingForward", 
 		(game.player->scale.x > 0 && game.player->physics->velocity.x > 0));
 
+	bool wasCast = false;
+
 	if (isCasting)
 	{
 		for (const auto& func : spellFunctions)
@@ -105,7 +107,7 @@ void Spell::Update(Game& game)
 				if (names[activeSpell] == "push"
 					|| names[activeSpell] == "short")
 				{
-					(this->*func.method)(game);
+					wasCast = (this->*func.method)(game);
 				}
 				else if (names[activeSpell] == "pop"
 					|| names[activeSpell] == "float"
@@ -116,15 +118,21 @@ void Spell::Update(Game& game)
 					// rather than spawning the missile instantly at the initial frame
 					if (game.player->GetSprite()->currentFrame >= specialFrame)
 					{
-						(this->*func.method)(game);
+						wasCast = (this->*func.method)(game);
 						specialFrame = 9999;
+					}
+
+
+					if (wasCast)
+					{
+						game.SortEntities(game.entities);
 					}
 				}
 				else if (names[activeSpell] == "return")
 				{
 					if (game.player->GetSprite()->currentFrame >= specialFrame)
 					{
-						(this->*func.method)(game);
+						wasCast = (this->*func.method)(game);
 						specialFrame = 8000;
 					}
 					else if (specialFrame == 8000 && game.player->timerSpellOther.HasElapsed())
@@ -139,6 +147,7 @@ void Spell::Update(Game& game)
 			}
 		}
 	}
+
 }
 
 
@@ -166,6 +175,11 @@ bool Spell::Cast(Game& game)
 		{
 			success = (this->*func.method)(game);
 		}
+	}
+
+	if (success)
+	{
+		game.SortEntities(game.entities);
 	}
 
 	return success;
@@ -465,6 +479,13 @@ bool Spell::CastCarry(Game& game)
 	if (carryMissile != nullptr)
 	{
 		carryMissile->GetAnimator()->SetBool("destroyed", true);
+		
+		if (carryMissile->pickedUpEntity != nullptr)
+		{
+			carryMissile->pickedUpEntity->physics->isPickedUp = true;
+			carryMissile->pickedUpEntity = nullptr;
+		}
+
 		carryMissile = nullptr;
 	}
 	else

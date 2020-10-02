@@ -429,7 +429,7 @@ void Enemy::OnTriggerStay(Entity& other, Game& game)
 
 void Enemy::OnTriggerEnter(Entity& other, Game& game)
 {
-	if (other.etype == "player")
+	if (other.etype == "player" && !physics->isPickedUp)
 	{
 		if (name == "rolypoly")
 		{
