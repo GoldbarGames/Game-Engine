@@ -617,8 +617,8 @@ Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE
 	mousePos.x += renderer->camera.position.x;
 	mousePos.y += renderer->camera.position.y;
 
-	int afterModX = ((int)(mousePos.x) % (GRID_SIZE * 2));
-	int afterModY = ((int)(mousePos.y) % (GRID_SIZE * 2));
+	int afterModX = ((int)(mousePos.x) % (GRID_SIZE * (int)Camera::MULTIPLIER));
+	int afterModY = ((int)(mousePos.y) % (GRID_SIZE * (int)Camera::MULTIPLIER));
 
 	Vector2 snappedPos = Vector2(mousePos.x - afterModX, mousePos.y - afterModY);
 

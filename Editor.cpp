@@ -1010,7 +1010,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 									snappedPosition, entitySubtype));
 								if (ladderEnd != nullptr)
 									ladderGroup.push_back(ladderEnd);
-								snappedPosition.y += TILE_SIZE * 2;
+								snappedPosition.y += TILE_SIZE * Camera::MULTIPLIER;
 							}
 						}
 						else
@@ -1022,7 +1022,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 									snappedPosition, entitySubtype));
 								if (ladderEnd != nullptr)
 									ladderGroup.push_back(ladderEnd);
-								snappedPosition.y -= TILE_SIZE * 2;
+								snappedPosition.y -= TILE_SIZE * Camera::MULTIPLIER;
 							}
 						}
 

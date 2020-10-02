@@ -26,6 +26,9 @@ public:
 	float SHRINK_SIZE = 0.1f;
 
 	bool isShieldUp = false;
+	bool isPlantedSeed = false;
+
+	std::vector<Entity*> beanstalkParts;
 
 	std::vector<Sprite*> spellIcons;
 	std::vector<Entity*> affectedEntities;

@@ -445,6 +445,73 @@ bool Spell::CastReturn(Game& game)
 
 bool Spell::CastSeed(Game& game)
 {
+	static Vector2 spawnBeanstalkPosition = game.player->position;
+
+	if (isPlantedSeed)
+	{
+		game.player->UpdateSpellAnimation("seed_grow");
+		game.player->GetSprite()->ResetFrame();
+
+		// Remove any existing beanstalks
+		for (int i = 0; i < beanstalkParts.size(); i++)
+		{
+			beanstalkParts[i]->shouldDelete = true;
+		}
+		beanstalkParts.clear();
+
+		std::string suffix = "2";
+
+		std::string b_bottom = "b_bottom";
+		std::string b_middle = "b_middle";
+		std::string b_top = "b_top";
+
+		// Spawn the new beanstalk
+		Entity* currentLadder = game.SpawnEntity("ladder", spawnBeanstalkPosition, 1);
+		currentLadder->GetAnimator()->SetState((b_bottom + suffix).c_str());
+		currentLadder->GetAnimator()->DoState(*currentLadder);
+		beanstalkParts.push_back(currentLadder);
+
+		// Work our way from bottom to the top
+		const int numberOfPieces = 6;
+		int index = 0;
+		for (index = 0; index < numberOfPieces; index++)
+		{			
+			spawnBeanstalkPosition.y -= TILE_SIZE * Camera::MULTIPLIER;
+			currentLadder = game.SpawnEntity("ladder", spawnBeanstalkPosition, 1);
+
+			suffix = (index % 2 == 0) ? "2" : "1";
+
+			if (currentLadder != nullptr)
+			{
+				currentLadder->GetAnimator()->SetState((b_middle + suffix).c_str());
+				currentLadder->GetAnimator()->DoState(*currentLadder);
+				beanstalkParts.push_back(currentLadder);
+			}
+			else
+			{
+				currentLadder = beanstalkParts.back();
+
+				break;
+			}
+		}
+
+		// Spawn the top piece if it was not blocked
+		suffix = (index % 2 == 0) ? "2" : "1";
+		currentLadder->GetAnimator()->SetState((b_top + suffix).c_str());
+		currentLadder->GetAnimator()->DoState(*currentLadder);
+
+		
+	}
+	else
+	{
+		spawnBeanstalkPosition = game.player->position;
+		spawnBeanstalkPosition.x -= game.renderer->camera.position.x;
+		spawnBeanstalkPosition.y -= game.renderer->camera.position.y;
+		spawnBeanstalkPosition = game.CalculateObjectSpawnPosition(spawnBeanstalkPosition, 24);
+	}
+
+	isPlantedSeed = !isPlantedSeed;
+
 	return true;
 }
 
