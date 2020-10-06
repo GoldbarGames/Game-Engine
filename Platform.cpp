@@ -17,7 +17,7 @@ Platform::Platform(const Vector2& pos) : Entity(pos)
 	jumpThru = true;
 	impassable = true;
 
-	physics = new PhysicsComponent(this);
+	physics = neww PhysicsComponent(this);
 	physics->canBePushed = false; // TODO: Is there some potential here?
 	physics->useGravity = false;
 	physics->mass = 10;

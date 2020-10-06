@@ -1,3 +1,4 @@
+#include "leak_check.h"
 #include "HealthComponent.h"
 #include "Sprite.h"
 #include "Renderer.h"
@@ -86,7 +87,7 @@ void HealthComponent::CreateHealthBar(const Renderer& renderer, const Vector2& s
 	if (healthbarFront != nullptr)
 		delete healthbarFront;
 
-	healthbarFront = new Sprite(renderer.shaders[ShaderName::SolidColor]);
+	healthbarFront = neww Sprite(renderer.shaders[ShaderName::SolidColor]);
 	healthbarFront->scale = scale;
 	healthbarFront->color = colorFront;
 	healthbarFront->keepPositionRelativeToCamera = relativeToCamera;
@@ -95,7 +96,7 @@ void HealthComponent::CreateHealthBar(const Renderer& renderer, const Vector2& s
 	if (healthbarBack != nullptr)
 		delete healthbarBack;
 
-	healthbarBack = new Sprite(renderer.shaders[ShaderName::SolidColor]);
+	healthbarBack = neww Sprite(renderer.shaders[ShaderName::SolidColor]);
 	healthbarBack->scale = scale;
 	healthbarBack->color = colorBack;
 	healthbarBack->keepPositionRelativeToCamera = relativeToCamera;

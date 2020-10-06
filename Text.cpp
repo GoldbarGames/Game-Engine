@@ -217,13 +217,13 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 
 		if (textTexture != nullptr)
 		{
-			Sprite* newSprite = new Sprite(textTexture, Renderer::GetTextShader());
+			Sprite* newSprite = neww Sprite(textTexture, Renderer::GetTextShader());
 			newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 			newSprite->keepPositionRelativeToCamera = renderRelative;
 			newSprite->filename = txt[i];
 			newSprite-> SetScale(currentScale);
 
-			Glyph* newGlyph = new Glyph;
+			Glyph* newGlyph = neww Glyph;
 			newGlyph->sprite = newSprite;
 
 			glyphs.push_back(newGlyph);
@@ -249,7 +249,7 @@ Texture* Text::GetTexture(TTF_Font* f, char c, SDL_Color col)
 		SDL_Surface* textSurface = TTF_RenderGlyph_Blended(f, data.glyph, data.color);
 		
 		Texture* textTexture = nullptr;
-		textTexture = new Texture(&data.glyph);
+		textTexture = neww Texture(&data.glyph);
 		textTexture->LoadTexture(textSurface);
 		
 		glyphTextures[data].reset(textTexture);
@@ -272,7 +272,7 @@ void Text::AddImage(Sprite* newSprite)
 		newSprite->keepPositionRelativeToCamera = renderRelative;
 		newSprite->SetScale(currentScale);
 
-		Glyph* newGlyph = new Glyph;
+		Glyph* newGlyph = neww Glyph;
 		newGlyph->sprite = newSprite;
 		newGlyph->shouldDeleteSprite = false; //TODO: Probably refactor this
 
@@ -308,13 +308,13 @@ void Text::AddText(char c, Color color)
 
 	if (textTexture != nullptr)
 	{
-		Sprite* newSprite = new Sprite(textTexture, Renderer::GetTextShader());
+		Sprite* newSprite = neww Sprite(textTexture, Renderer::GetTextShader());
 		newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		newSprite->keepPositionRelativeToCamera = renderRelative;
 		newSprite->filename = c;
 		newSprite->SetScale(currentScale);
 
-		Glyph* newGlyph = new Glyph;
+		Glyph* newGlyph = neww Glyph;
 		newGlyph->sprite = newSprite;
 
 		glyphs.push_back(newGlyph);
@@ -364,10 +364,10 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 
 	if (textSurface != nullptr)
 	{
-		Texture* textTexture = new Texture(txt.c_str());
+		Texture* textTexture = neww Texture(txt.c_str());
 		textTexture->LoadTexture(textSurface);
 
-		currentSprite = new Sprite(textTexture, Renderer::GetTextShader());
+		currentSprite = neww Sprite(textTexture, Renderer::GetTextShader());
 		currentSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		currentSprite->keepPositionRelativeToCamera = renderRelative;
 

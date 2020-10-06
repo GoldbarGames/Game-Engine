@@ -1,12 +1,13 @@
 #include "EditorButton.h"
 #include "Game.h"
+#include "Renderer.h"
 
 EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, Game& game, Vector2 size, Color color)
 {
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
 
-	image = new Sprite(1, *game.spriteManager, "assets/editor/btn" + filename + ".png", 
+	image = neww Sprite(1, *game.spriteManager, "assets/editor/btn" + filename + ".png", 
 		game.renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 
 	image->keepPositionRelativeToCamera = true;
@@ -22,7 +23,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	buttonWindowRect.x = 0;
 	buttonWindowRect.y = 0;
 
-	text = new Text(game.theFont, txt, true, true);
+	text = neww Text(game.theFont, txt, true, true);
 
 	if (image == nullptr) // if no image, set the size to 50,50
 	{

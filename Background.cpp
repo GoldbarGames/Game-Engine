@@ -4,7 +4,11 @@
 #include "SpriteManager.h"
 #include "Entity.h"
 #include "Vector2.h"
+#include "Sprite.h"
+#include "Renderer.h"
 #include <iterator>
+#include <fstream>
+#include <sstream>
 
 //TODO: Create a way to import backgrounds via level editor
 // (different levels should use different backgrounds, etc.)
@@ -61,7 +65,7 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 		{
 			index++;
 			backgroundName = tokens[index++];
-			BackgroundData* newBackgroundData = new BackgroundData();
+			BackgroundData* newBackgroundData = neww BackgroundData();
 			newBackgroundData->name = backgroundName;
 			bgData[backgroundName] = newBackgroundData;
 		}
@@ -75,7 +79,7 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 			drawOrder = std::stoi(tokens[index++]);
 			parallax = std::stof(tokens[index++]);
 
-			BackgroundLayerData* newLayerData = new BackgroundLayerData();
+			BackgroundLayerData* newLayerData = neww BackgroundLayerData();
 			newLayerData->offsetX = offsetX;
 			newLayerData->offsetY = offsetY;
 			newLayerData->filepath = filepath;
@@ -87,8 +91,6 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 
 		ss.getline(lineChar, 256);
 	}
-
-	
 }
 
 //TODO: Should this stuff go inside the Background class constructor?
@@ -116,7 +118,6 @@ void Background::CreateBackground(const std::string& n, Vector2 pos,
 		AddLayer(Vector2(pos.x + ld->offsetX, pos.y + ld->offsetY), spriteManager, renderer,
 			ld->filepath, ld->drawOrder, ld->parallax);
 	}
-	
 }
 
 
@@ -139,9 +140,9 @@ void Background::Render(const Renderer& renderer)
 Entity* Background::AddLayer(const Vector2& offset, const SpriteManager& spriteManager,
 	const Renderer& renderer, const std::string& filepath, int drawOrder, float parallax)
 {
-	Sprite* layer = new Sprite(1, spriteManager, filepath, 
+	Sprite* layer = neww Sprite(1, spriteManager, filepath, 
 		renderer.shaders[ShaderName::Default], Vector2(0, 0));
-	Entity* bg = new BackgroundLayer(offset, parallax);
+	Entity* bg = neww BackgroundLayer(offset, parallax);
 	bg->drawOrder = drawOrder;
 	bg->SetSprite(*layer);
 	layers.emplace_back(bg);
@@ -158,6 +159,7 @@ void Background::DeleteLayers(Game& game)
 
 void Background::ResetBackground()
 {
+	// TODO: HEAP CORRUPTION DETECTED???
 	for (unsigned int i = 0; i < layers.size(); i++)
 		delete_it(layers[i]);
 	

@@ -1,4 +1,5 @@
 #include "CutsceneTrigger.h"
+#include "CutsceneManager.h"
 #include "Player.h"
 #include "Game.h"
 

@@ -28,7 +28,7 @@ void Timer::Reset()
 	Start(lastDuration);
 }
 
-void Timer::Start(Uint32 duration, bool loopAnim)
+void Timer::Start(uint32_t duration, bool loopAnim)
 {
 	started = true;
 	paused = false;

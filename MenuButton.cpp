@@ -7,9 +7,9 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 {
 	position = pos;
 
-	image = new Sprite(1, *game.spriteManager, filepath, game.renderer->shaders[ShaderName::GUI], Vector2(0,0));
+	image = neww Sprite(1, *game.spriteManager, filepath, game.renderer->shaders[ShaderName::GUI], Vector2(0,0));
 
-	text = new Text(game.theFont);
+	text = neww Text(game.theFont);
 
 	text->alignX = AlignmentX::CENTER;
 	text->isRichText = false;

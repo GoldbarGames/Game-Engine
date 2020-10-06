@@ -19,7 +19,7 @@ AnimatorInfo::AnimatorInfo(std::string filePath)
 	//TODO: Deal with issues involving extra whitespace (it breaks things)
 	std::vector<std::string> stateNames;
 	mapStateNamesToNumbers[""] = 0;
-	states[""] = new AnimStateMachine();
+	states[""] = neww AnimStateMachine();
 
 	bool readingInConditions = false;
 	// Read in the state machine animator file
@@ -58,7 +58,7 @@ AnimatorInfo::AnimatorInfo(std::string filePath)
 			while (!line.empty() && line.back() == ' ') 
 				line.pop_back();
 
-			if (line.front() == '*') // entering a new state
+			if (line.front() == '*') // entering a neww state
 			{ 
 				if (readingInConditions)
 				{
@@ -123,7 +123,7 @@ AnimatorInfo::AnimatorInfo(std::string filePath)
 				{
 					if (states.count(stateNames[i]) != 1)
 					{
-						states[stateNames[i]] = new AnimStateMachine();
+						states[stateNames[i]] = neww AnimStateMachine();
 					}
 					states[stateNames[i]]->conditions[nextStateName] = conditions;
 				}
@@ -151,7 +151,7 @@ unsigned int Animator::GetNumberOfStateFromName(const char* name)
 // PRE-CONDITION: The list of states is not empty
 Animator::Animator(const std::string& filePath, std::vector<AnimState*> states, std::string initialState)
 {
-	MapStateNameToState("", new AnimState("", 0, nullptr));
+	MapStateNameToState("", neww AnimState("", 0, nullptr));
 
 	if (mapNamesToAnimType.count(filePath) != 1)
 	{
@@ -172,7 +172,7 @@ Animator::Animator(const std::string& filePath, std::vector<AnimState*> states, 
 	if (mapTypeToInfo.count(animatorType) != 1)
 	{
 		// Parse the animator state info here
-		mapTypeToInfo[animatorType] = new AnimatorInfo(filePath);
+		mapTypeToInfo[animatorType] = neww AnimatorInfo(filePath);
 	}
 
 	// Save the vector of states as a map

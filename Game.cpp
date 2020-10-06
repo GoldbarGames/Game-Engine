@@ -1,6 +1,6 @@
+#include "leak_check.h"
+
 #include "Game.h"
-
-
 
 #include <cmath>
 #include <vector>
@@ -55,10 +55,6 @@
 
 #include "Dialog.h"
 
-#ifdef _WIN32
-#define _CRTDBG_MAP_ALLOC
-#include <crtdbg.h>
-#endif
 #include "sdl_helpers.h"
 
 static unsigned int allocationCount = 0;
@@ -80,13 +76,6 @@ void operator delete(void* p)
 
 int Game::MainLoop()
 {
-
-#ifdef _WIN32
-	//#ifdef MY_ENABLE_LEAK_CHECK /DMYENABLE_LEAK_CHECK
-	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	//_CrtSetBreakAlloc(5007);
-#endif
-
 	// Load settings
 	LoadSettings();
 	LoadTitleScreen();
@@ -181,7 +170,7 @@ Mesh* Game::CreateQuadMesh()
 		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
 	};
 
-	Mesh* mesh = new Mesh();
+	Mesh* mesh = neww Mesh();
 	mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
 
 	return mesh;
@@ -203,7 +192,7 @@ Mesh* Game::CreateCubeMesh()
 		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
 	};
 
-	Mesh* mesh = new Mesh();
+	Mesh* mesh = neww Mesh();
 	mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
 
 	return mesh;
@@ -213,14 +202,14 @@ Game::Game()
 {
 	startOfGame = std::chrono::steady_clock::now();
 
-	logger = new Logger("logs/output.log");
+	logger = neww Logger("logs/output.log");
 
 	entityFactory = EntityFactory::Get();
 
 	InitSDL();
 
-	renderer = new Renderer(this);
-	spriteManager = new SpriteManager(renderer);
+	renderer = neww Renderer(this);
+	spriteManager = neww SpriteManager(renderer);
 
 	InitOpenGL();
 
@@ -228,34 +217,34 @@ Game::Game()
 	cubeMesh = CreateCubeMesh();
 
 	// Initialize the font before all text
-	theFont = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+	theFont = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
 	theFont->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
 	theFont->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
 	theFont->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 
 	//TODO: Header font should be different, at least a bigger size
-	headerFont = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+	headerFont = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
 	headerFont->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
 	headerFont->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
 	headerFont->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 
-	soundManager = new SoundManager();
+	soundManager = neww SoundManager();
 	soundManager->ReadMusicData("data/bgm.dat");
 
-	randomManager = new RandomManager();
+	randomManager = neww RandomManager();
 
 	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager and random)
-	cutscene = new CutsceneManager(*this);
+	cutscene = neww CutsceneManager(*this);
 	cutscene->ParseScene();	
 
 	//ShaderProgram* shader = renderer->shaders[ShaderName::Default];
 
 	// Initialize debug stuff
-	renderer->debugSprite = new Sprite(0, 0, 24, 24, *spriteManager,
+	renderer->debugSprite = neww Sprite(0, 0, 24, 24, *spriteManager,
 		"assets/editor/rect-outline.png", renderer->shaders[ShaderName::Default], Vector2(0, 0));
 
 	// Initialize overlay sprite
-	renderer->overlaySprite = new Sprite(0, 0, 24, 24, *spriteManager,
+	renderer->overlaySprite = neww Sprite(0, 0, 24, 24, *spriteManager,
 		"assets/gui/white.png", renderer->shaders[ShaderName::Default], Vector2(0, 0));
 
 	// Initialize the sprite map (do this BEFORE the editor)
@@ -281,26 +270,24 @@ Game::Game()
 		}
 	}
 
-	debugScreen = new DebugScreen(*this);
+	debugScreen = neww DebugScreen(*this);
 	
-	editor = new Editor(*this);
+	editor = neww Editor(*this);
 	
 	entities.clear();
-
-	quadTree = new QuadTree();
 
 	ResetText();
 	SetScreenResolution(1280, 720);
 
 	// Initialize all the menus
 	// TODO: Read these in and construct them from a file
-	allMenus["Title"] = new MenuScreen("Title", *this);
-	allMenus["File Select"] = new MenuScreen("File Select", *this);
-	allMenus["Pause"] = new MenuScreen("Pause", *this);
-	allMenus["Settings"] = new MenuScreen("Settings", *this);
-	allMenus["Spellbook"] = new MenuScreen("Spellbook", *this);
-	allMenus["EditorSettings"] = new MenuScreen("EditorSettings", *this);
-	allMenus["Credits"] = new MenuScreen("Credits", *this);
+	allMenus["Title"] = neww MenuScreen("Title", *this);
+	allMenus["File Select"] = neww MenuScreen("File Select", *this);
+	allMenus["Pause"] = neww MenuScreen("Pause", *this);
+	allMenus["Settings"] = neww MenuScreen("Settings", *this);
+	allMenus["Spellbook"] = neww MenuScreen("Spellbook", *this);
+	allMenus["EditorSettings"] = neww MenuScreen("EditorSettings", *this);
+	allMenus["Credits"] = neww MenuScreen("Credits", *this);
 
 	LoadEditorSettings();
 
@@ -317,7 +304,7 @@ void Game::ResetText()
 {
 	if (fpsText == nullptr)
 	{
-		fpsText = new Text(theFont);
+		fpsText = neww Text(theFont);
 		fpsText->SetText("FPS:");
 		fpsText->GetSprite()->keepScaleRelativeToCamera = true;
 		fpsText->GetSprite()->keepPositionRelativeToCamera = true;
@@ -328,7 +315,7 @@ void Game::ResetText()
 
 	if (timerText == nullptr)
 	{
-		timerText = new Text(theFont);
+		timerText = neww Text(theFont);
 		timerText->SetText("");
 		timerText->GetSprite()->keepScaleRelativeToCamera = true;
 		timerText->GetSprite()->keepPositionRelativeToCamera = true;
@@ -339,7 +326,7 @@ void Game::ResetText()
 
 	if (bugText == nullptr)
 	{
-		bugText = new Text(theFont);
+		bugText = neww Text(theFont);
 		bugText->SetText("");
 		bugText->GetSprite()->keepScaleRelativeToCamera = true;
 		bugText->GetSprite()->keepPositionRelativeToCamera = true;
@@ -350,7 +337,7 @@ void Game::ResetText()
 
 	if (etherText == nullptr)
 	{
-		etherText = new Text(theFont);
+		etherText = neww Text(theFont);
 		etherText->SetText("");
 		etherText->GetSprite()->keepScaleRelativeToCamera = true;
 		etherText->GetSprite()->keepPositionRelativeToCamera = true;
@@ -432,7 +419,7 @@ void Game::InitOpenGL()
 	prevScreenSprite = InitFramebuffer(prevFramebuffer, prevTextureColorBuffer, prevRenderBufferObject);
 
 	/*
-	prevScreenSprite = new Sprite(screenSprite->texture, renderer->shaders[ShaderName::Default]);	
+	prevScreenSprite = neww Sprite(screenSprite->texture, renderer->shaders[ShaderName::Default]);	
 	prevScreenSprite->keepPositionRelativeToCamera = true;
 	prevScreenSprite->keepScaleRelativeToCamera = true;
 	prevScreenSprite->color = { 255, 255, 255, 0 };
@@ -446,10 +433,10 @@ Sprite* Game::InitFramebuffer(unsigned int& fbo, unsigned int& tex, unsigned int
 	glGenFramebuffers(1, &fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-	Texture* screenTexture = new Texture("");
+	Texture* screenTexture = neww Texture("");
 	screenTexture->LoadTexture(tex, screenWidth, screenHeight);
 
-	Sprite* sprite = new Sprite(screenTexture, renderer->shaders[ShaderName::Default]);
+	Sprite* sprite = neww Sprite(screenTexture, renderer->shaders[ShaderName::Default]);
 	sprite->keepPositionRelativeToCamera = true;
 	sprite->keepScaleRelativeToCamera = true;
 	sprite->SetScale(Vector2(1.0f, -1.0f));
@@ -601,7 +588,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 		{
 			Animator* newAnimator = nullptr;
 
-			// TODO: It seems like we need a new animator for each entity
+			// TODO: It seems like we need a neww animator for each entity
 			// because each one will be in different states at different times,
 			// and the entity's sprite is based on its animation state.
 			// However, this also seems wasteful, is there a way to optimize this?
@@ -618,7 +605,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 
 			if (newAnimator == nullptr)
 			{
-				newAnimator = new Animator(filepath, animStates, initialState);
+				newAnimator = neww Animator(filepath, animStates, initialState);
 				//animators[filepath] = newAnimator;
 			}
 
@@ -685,7 +672,7 @@ Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE
 Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet, 
 	const Vector2& position, DrawingLayer drawingLayer)
 {
-	Tile* tile = new Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
+	Tile* tile = neww Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION
@@ -697,7 +684,7 @@ Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet,
 Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet, 
 	const Vector2& position, DrawingLayer drawingLayer)
 {
-	Tile* tile = new Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
+	Tile* tile = neww Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION 
@@ -868,7 +855,7 @@ void Game::TransitionLevel()
 			}
 		}
 	}
-	else if (transitionState == 3) // enter the new level, start condition
+	else if (transitionState == 3) // enter the neww level, start condition
 	{
 		//std::cout << "t3" << std::endl;
 
@@ -1393,6 +1380,9 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_6: // Screenshot Button
 				SaveScreenshot();
 				break;
+			case SDLK_7:
+				_CrtDumpMemoryLeaks();
+				break;
 #endif
 			default:
 				break;
@@ -1467,7 +1457,7 @@ void Game::SaveScreenshot(const std::string& filepath)
 {
 	const unsigned int bytesPerPixel = 3;
 
-	unsigned char* pixels = new unsigned char[screenWidth * screenHeight * bytesPerPixel]; // 4 bytes for RGBA
+	unsigned char* pixels = neww unsigned char[screenWidth * screenHeight * bytesPerPixel]; // 4 bytes for RGBA
 	glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels);
 
 	SDL_Surface* screenshot = SDL_CreateRGBSurfaceFrom(pixels, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
@@ -1612,14 +1602,11 @@ void Game::Update()
 		}
 	}
 
-	if (quadTree != nullptr)
+	quadTree.Reset();
+	for (int i = 0; i < entities.size(); i++)
 	{
-		quadTree->Reset();
-		for (int i = 0; i < entities.size(); i++)
-		{
-			if (entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru)
-				quadTree->Insert(entities[i]);
-		}
+		if (entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru || entities[i]->etype == "player")
+			quadTree.Insert(entities[i]);
 	}
 		
 	// Update all entities
@@ -1750,11 +1737,7 @@ void Game::RenderScene()
 
 	// Render all backgrounds and their layers
 	background->Render(*renderer);
-
-	if (quadTree != nullptr)
-	{
-		quadTree->Render(*renderer);
-	}
+	quadTree.Render(*renderer);
 
 	// Render all entities
 	if (renderer->camera.useOrthoCamera && !editMode)
@@ -1818,12 +1801,9 @@ void Game::RenderScene()
 	editor->RenderDebug(*renderer);
 	if (debugMode)
 	{
-		if (quadTree != nullptr)
-		{
-			//quadTree->Render(*renderer);
-			if (quadrantEntities.size() > 0)
-				quadTree->RenderEntities(*renderer, quadrantEntities);
-		}
+		//quadTree.Render(*renderer);
+		if (quadrantEntities.size() > 0)
+			quadTree.RenderEntities(*renderer, quadrantEntities);
 
 		debugScreen->Render(*renderer);
 	}

@@ -2,8 +2,10 @@
 #include "globals.h"
 #include "Game.h"
 #include "Texture.h"
-
-using std::string;
+#include "Shader.h"
+#include "Sprite.h"
+#include "Renderer.h"
+#include "Editor.h"
 
 Tile::Tile(const Vector2& pos, const Vector2& frame, Texture* image, Renderer* renderer) : Entity(pos)
 {	
@@ -22,7 +24,7 @@ void Tile::ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer
 		delete currentSprite;
 	
 	tileCoordinates = frame;
-	currentSprite = new Sprite(frame, image, renderer->shaders[ShaderName::Default]);
+	currentSprite = neww Sprite(frame, image, renderer->shaders[ShaderName::Default]);
 }
 
 void Tile::Animate()

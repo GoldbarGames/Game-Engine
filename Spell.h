@@ -2,6 +2,7 @@
 #define SPELL_H
 #pragma once
 
+
 #include <SDL.h>
 #include <string>
 #include <vector>
@@ -11,9 +12,14 @@ class Game;
 class Renderer;
 class Sprite;
 class Missile;
+class Player;
+
+#include "Timer.h"
 
 class Spell
 {
+private:
+	Timer timer;
 public:
 	int activeSpell = 0;
 	std::vector<std::string> names;
@@ -27,16 +33,21 @@ public:
 
 	bool isShieldUp = false;
 	bool isPlantedSeed = false;
+	bool isGrowingSeed = false;
 
 	std::vector<Entity*> beanstalkParts;
 
 	std::vector<Sprite*> spellIcons;
 	std::vector<Entity*> affectedEntities;
 
+	Player* playerClone = nullptr;
+
 	Sprite* spellRangeSprite = nullptr;
 	SDL_Rect spellRangeRect;
 
 	Missile* carryMissile = nullptr;
+
+
 
 	void CycleSpells(Game& game);
 

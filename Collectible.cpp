@@ -43,7 +43,7 @@ void Collectible::Init(const std::string& n)
 	{
 		CreateCollider(0, -4, 15, 18);
 
-		physics = new PhysicsComponent(this);
+		physics = neww PhysicsComponent(this);
 		physics->useGravity = false;
 		startPosition = position;
 	}

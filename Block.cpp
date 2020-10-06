@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "PhysicsComponent.h"
 #include "HealthComponent.h"
+#include "Property.h"
 
 Block::Block(const Vector2& pos) : Entity(pos)
 {
@@ -13,7 +14,7 @@ Block::Block(const Vector2& pos) : Entity(pos)
 	impassable = true;
 	trigger = true;
 	
-	physics = new PhysicsComponent(this);
+	physics = neww PhysicsComponent(this);
 	physics->mass = 5;
 	physics->canBePushed = true;
 	physics->useGravity = true;
@@ -22,7 +23,7 @@ Block::Block(const Vector2& pos) : Entity(pos)
 	physics->windResistance = 2.0f;
 	physics->canBePickedUp = true;
 
-	health = new HealthComponent(1);
+	health = neww HealthComponent(1);
 }
 
 Block::~Block()

@@ -6,7 +6,7 @@
 Dialog::Dialog(const Vector2& pos, SpriteManager* manager)
 {
 	position = pos;
-	sprite = new Sprite(manager->renderer->shaders[ShaderName::Default]);
+	sprite = neww Sprite(manager->renderer->shaders[ShaderName::Default]);
 }
 
 Dialog::~Dialog()

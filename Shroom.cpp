@@ -14,7 +14,7 @@ Shroom::Shroom(const Vector2& pos) : Entity(pos)
 	impassable = false;
 	trigger = true;
 
-	physics = new PhysicsComponent(this);
+	physics = neww PhysicsComponent(this);
 	physics->canBePushed = true;
 	physics->standAboveGround = true;
 	physics->respawnOnDeath = true;

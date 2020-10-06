@@ -1,3 +1,4 @@
+#include "leak_check.h"
 #include "Sprite.h"
 #include "globals.h"
 #include "Renderer.h"
@@ -47,7 +48,6 @@ unsigned int Sprite::Size()
 	return totalSize;
 }
 
-
 void Sprite::CreateMesh(MeshType meshType)
 {
 	//TODO: This assumes every mesh is a quad, allow for other shapes
@@ -57,7 +57,6 @@ void Sprite::CreateMesh(MeshType meshType)
 		{
 			if (meshQuad == nullptr)
 			{
-
 				unsigned int quadIndices[] = {
 					0, 3, 1,
 					1, 3, 2,
@@ -72,7 +71,7 @@ void Sprite::CreateMesh(MeshType meshType)
 					1.0f, 1.0f, 0.0f,    0.0f, 1.0f
 				};
 
-				meshQuad = new Mesh();
+				meshQuad = neww Mesh();
 				meshQuad->CreateMesh(quadVertices, quadIndices, 20, 12);
 			}
 
@@ -97,7 +96,7 @@ void Sprite::CreateMesh(MeshType meshType)
 					0.0f, 1.0f, -1.0f
 				};
 
-				meshTri = new Mesh();
+				meshTri = neww Mesh();
 				meshTri->CreateMesh(triVertices, triIndices, 12, 6);
 			}
 
@@ -121,7 +120,7 @@ void Sprite::CreateMesh(MeshType meshType)
 					1.0f, 0.01f, 0.0f,    0.0f, 1.0f
 				};
 
-				meshLine = new Mesh();
+				meshLine = neww Mesh();
 				meshLine->CreateMesh(lineVertices, lineIndices, 20, 12);
 			}
 
@@ -134,6 +133,7 @@ Sprite::Sprite(ShaderProgram* s)
 {
 	model = glm::mat4(1.0f);
 	shader = s;
+	texture = nullptr;
 
 	numberFramesInTexture = 1;
 	framesPerRow = numberFramesInTexture;

@@ -8,6 +8,8 @@
 #include "Sprite.h"
 #include "Player.h"
 #include "RandomManager.h"
+#include "Editor.h"
+#include "Timer.h"
 
 typedef bool (Spell::* SpellFunction)(Game& game);
 
@@ -45,7 +47,15 @@ Spell::Spell()
 
 Spell::~Spell()
 {
+	//TODO: Maybe store these in the Game instead
+	// so that they stay loaded across all levels
+	for (int i = 0; i < spellIcons.size(); i++)
+	{
+		if (spellIcons[i] != nullptr)
+			delete_it(spellIcons[i]);
+	}
 
+	spellIcons.clear();
 }
 
 void Spell::CycleSpells(Game& game)
@@ -92,7 +102,7 @@ void Spell::Update(Game& game)
 		for (int i = 0; i < names.size(); i++)
 		{
 			Texture* texture = game.spriteManager->GetImage("assets/gui/icon/icon_" + names[i] + ".png");
-			Sprite* sprite = new Sprite(texture, game.renderer->shaders[ShaderName::Default]);
+			Sprite* sprite = neww Sprite(texture, game.renderer->shaders[ShaderName::Default]);
 			sprite->keepPositionRelativeToCamera = true;
 			sprite->keepScaleRelativeToCamera = true;
 			std::cout << i << std::endl;
@@ -104,6 +114,18 @@ void Spell::Update(Game& game)
 		(game.player->scale.x > 0 && game.player->physics->velocity.x > 0));
 
 	bool wasCast = false;
+
+	// Continue to grow the seed even when we are not actively casting the spell
+	if (isGrowingSeed && timer.HasElapsed())
+	{
+		for (const auto& func : spellFunctions)
+		{
+			if (func.name == names[activeSpell])
+			{
+				wasCast = (this->*func.method)(game);
+			}
+		}				
+	}
 
 	if (isCasting)
 	{
@@ -120,6 +142,7 @@ void Spell::Update(Game& game)
 				else if (names[activeSpell] == "pop"
 					|| names[activeSpell] == "float"
 					|| names[activeSpell] == "carry"
+					|| names[activeSpell] == "double"
 					|| names[activeSpell] == "freeze")
 				{
 					// This is used to spawn the missile at a certain frame in the animation
@@ -129,7 +152,6 @@ void Spell::Update(Game& game)
 						wasCast = (this->*func.method)(game);
 						specialFrame = 9999;
 					}
-
 
 					if (wasCast)
 					{
@@ -364,6 +386,31 @@ bool Spell::CastFlash(Game& game)
 
 bool Spell::CastDouble(Game& game)
 {
+	if (specialFrame == 9999)
+	{
+		specialFrame = 12;
+		return true;
+	}
+
+	if (playerClone != nullptr)
+	{
+		delete playerClone;
+		playerClone = nullptr;
+	}
+	
+	Vector2 offset = Vector2(game.player->scale.x > 0 ? -64 : 64, -16);
+	Vector2 clonePosition = game.player->position + offset;
+	playerClone = static_cast<Player*>(game.SpawnEntity("player", clonePosition, 0));
+
+	// If not successful, error out
+	if (playerClone == nullptr)
+	{
+		std::cout << "ERROR CASTING DOUBLE SPELL: CREATING CLONE" << std::endl;
+		return false;
+	}	
+
+	playerClone->isDouble = true;
+	playerClone->SetColor({ 94, 206, 255, 128 });
 	return true;
 }
 
@@ -373,7 +420,7 @@ bool Spell::CastShort(Game& game)
 	{
 		specialFrame = 5000;
 
-		if (game.player->scale.x < 1.0f)
+		if (std::abs(game.player->scale.x) < 1.0f)
 		{
 			isShort = true;
 			game.player->UpdateSpellAnimation("short_grow");
@@ -396,8 +443,8 @@ bool Spell::CastShort(Game& game)
 	{
 		if (std::abs(game.player->scale.x) > SHRINK_SIZE)
 		{
-			LerpVector2(game.player->scale, Vector2(multiplier * SHRINK_SIZE, multiplier * SHRINK_SIZE), 0.05f, 0.025f);
-			game.player->CreateCollider(0, 0, 20.25f * game.player->scale.x, 41.40f * game.player->scale.y);
+			LerpVector2(game.player->scale, Vector2(multiplier * SHRINK_SIZE, SHRINK_SIZE), 0.05f, 0.025f);
+			game.player->CreateCollider(0, 0, 20.25f * std::abs(game.player->scale.x), 41.40f * game.player->scale.y);
 		}
 		else
 		{
@@ -409,8 +456,8 @@ bool Spell::CastShort(Game& game)
 	{
 		if (std::abs(game.player->scale.x) < 1.0f)
 		{
-			LerpVector2(game.player->scale, Vector2(multiplier * 1.0f, multiplier * 1.0f), 0.05f, 0.025f);
-			game.player->CreateCollider(0, 0, 20.25f * game.player->scale.x, 41.40f * game.player->scale.y);
+			LerpVector2(game.player->scale, Vector2(multiplier * 1.0f, 1.0f), 0.05f, 0.025f);
+			game.player->CreateCollider(0, 0, 20.25f * std::abs(game.player->scale.x), 41.40f * game.player->scale.y);
 		}
 		else
 		{
@@ -455,76 +502,106 @@ bool Spell::CastSeed(Game& game)
 {
 	static Vector2 spawnBeanstalkPosition = game.player->position;
 
+	static int currentPartNumber = 0;
+	static int startSuffix = 0;
+	std::string suffix = std::to_string(startSuffix);
+
 	if (isPlantedSeed)
 	{
-		game.player->UpdateSpellAnimation("seed_grow");
-		game.player->GetSprite()->ResetFrame();
+		timer.Reset();
 
-		// Remove any existing beanstalks
-		for (int i = 0; i < beanstalkParts.size(); i++)
-		{
-			beanstalkParts[i]->shouldDelete = true;
-		}
-		beanstalkParts.clear();
-
-		int startSuffix = game.randomManager->RandomRange(1, 2);
-		std::string suffix = std::to_string(startSuffix);
-
-		std::string b_bottom = "b_bottom";
-		std::string b_middle = "b_middle";
-		std::string b_top = "b_top";
-
-		// Spawn the new beanstalk
-		Entity* currentLadder = game.SpawnEntity("ladder", spawnBeanstalkPosition, 1);
-		currentLadder->GetAnimator()->SetState((b_bottom + suffix).c_str());
-		currentLadder->GetAnimator()->DoState(*currentLadder);
-		beanstalkParts.push_back(currentLadder);
-
-		// Work our way from bottom to the top
 		const int numberOfPieces = 6;
-		int index = 0;
-		for (index = 0; index < numberOfPieces; index++)
-		{			
+		const std::string b_bottom = "b_bottom";
+		const std::string b_middle = "b_middle";
+		const std::string b_top = "b_top";
+
+		Entity* currentLadder = nullptr;
+
+		// Grow the starting part here
+		if (currentPartNumber == -1)
+		{
+			currentPartNumber++;
+			game.player->UpdateSpellAnimation("seed_grow");
+			game.player->GetSprite()->ResetFrame();
+			isGrowingSeed = true;
+
+			// Remove any existing beanstalks
+			for (int i = 0; i < beanstalkParts.size(); i++)
+			{
+				beanstalkParts[i]->shouldDelete = true;
+			}
+			beanstalkParts.clear();
+
+			startSuffix = game.randomManager->RandomRange(1, 2);
+			std::string suffix = std::to_string(startSuffix);
+
+			// Spawn the neww beanstalk
+			currentLadder = game.SpawnEntity("ladder", spawnBeanstalkPosition, 1);
+
+			if (currentLadder != nullptr)
+			{
+				currentLadder->GetAnimator()->SetState((b_bottom + suffix).c_str());
+				currentLadder->GetAnimator()->DoState(*currentLadder);
+				beanstalkParts.push_back(currentLadder);
+			}
+			else // If the root of the beanstalk can't be spawned, do nothing
+			{
+				isPlantedSeed = !isPlantedSeed;
+				isGrowingSeed = false;
+			}
+		}
+		else
+		{
+			// Work our way from bottom to the top
 			spawnBeanstalkPosition.y -= TILE_SIZE * Camera::MULTIPLIER;
 			currentLadder = game.SpawnEntity("ladder", spawnBeanstalkPosition, 1);
 
 			if (startSuffix == 2)
-				suffix = (index % 2 == 0) ? "2" : "1";
+				suffix = (currentPartNumber % 2 == 0) ? "2" : "1";
 			else
-				suffix = (index % 2 != 0) ? "2" : "1";
+				suffix = (currentPartNumber % 2 != 0) ? "2" : "1";
 
 			if (currentLadder != nullptr)
 			{
 				currentLadder->GetAnimator()->SetState((b_middle + suffix).c_str());
 				currentLadder->GetAnimator()->DoState(*currentLadder);
 				beanstalkParts.push_back(currentLadder);
+				currentPartNumber++;
 			}
-			else
+			else // If the beanstalk can't be spawned, do nothing
 			{
 				currentLadder = beanstalkParts.back();
-				break;
+				currentPartNumber = numberOfPieces;
+			}		
+
+			if (currentPartNumber >= numberOfPieces)
+			{
+				// Change the sprite of the top part
+				if (startSuffix == 2)
+					suffix = (currentPartNumber % 2 == 0) ? "2" : "1";
+				else
+					suffix = (currentPartNumber % 2 != 0) ? "2" : "1";
+
+				currentLadder = beanstalkParts.back();
+				currentLadder->GetAnimator()->SetState((b_top + suffix).c_str());
+				currentLadder->GetAnimator()->DoState(*currentLadder);
+				isPlantedSeed = !isPlantedSeed;
+				isGrowingSeed = false;
 			}
 		}
 
-		// Spawn the top piece if it was not blocked
-		if (startSuffix == 2)
-			suffix = (index % 2 == 0) ? "2" : "1";
-		else
-			suffix = (index % 2 != 0) ? "2" : "1";
-		currentLadder->GetAnimator()->SetState((b_top + suffix).c_str());
-		currentLadder->GetAnimator()->DoState(*currentLadder);
-
-		
 	}
 	else
 	{
+		// Plant the seed at the nearest tile to the player
 		spawnBeanstalkPosition = game.player->position;
 		spawnBeanstalkPosition.x -= game.renderer->camera.position.x;
 		spawnBeanstalkPosition.y -= game.renderer->camera.position.y;
-		spawnBeanstalkPosition = game.CalculateObjectSpawnPosition(spawnBeanstalkPosition, 24);
-	}
-
-	isPlantedSeed = !isPlantedSeed;
+		spawnBeanstalkPosition = game.CalculateObjectSpawnPosition(spawnBeanstalkPosition, game.editor->GRID_SIZE);
+		currentPartNumber = -1;
+		isPlantedSeed = !isPlantedSeed;
+		timer.Start(100);
+	}	
 
 	return true;
 }

@@ -1,3 +1,4 @@
+#include "leak_check.h"
 #include "Renderer.h"
 #include "SpriteManager.h"
 #include "physfs.h"
@@ -42,7 +43,7 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 			}
 				
 			PHYSFS_sint64  m_size = PHYSFS_fileLength(myfile);
-			uint8_t* m_data = new uint8_t[m_size];
+			uint8_t* m_data = neww uint8_t[m_size];
 
 			int length_read = PHYSFS_read(myfile, m_data, 1, m_size);
 
@@ -69,7 +70,7 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 			}
 		}	
 
-		Texture* newTexture = new Texture(imagePath.c_str());
+		Texture* newTexture = neww Texture(imagePath.c_str());
 
 		newTexture->LoadTexture(surface);
 		images[imagePath].reset(newTexture);

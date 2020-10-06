@@ -19,7 +19,7 @@ public:
 	void OnTriggerEnter(Entity& other, Game& game);
 	void OnTriggerExit(Entity& other, Game& game);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return new Collectible(pos); };
+	static Entity* __stdcall Create(const Vector2& pos) { return neww Collectible(pos); };
 };
 
 #endif

@@ -18,7 +18,7 @@ public:
 
 	void Save(std::unordered_map<std::string, std::string>& map);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return new Switch(pos); };
+	static Entity* __stdcall Create(const Vector2& pos) { return neww Switch(pos); };
 };
 
 #endif

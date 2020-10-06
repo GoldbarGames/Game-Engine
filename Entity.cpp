@@ -75,7 +75,7 @@ unsigned int Entity::GetNextValidID()
 
 		if (i == 0)
 		{
-			std::cout << "ERROR generating new ID - overflow" << std::endl;
+			std::cout << "ERROR generating neww ID - overflow" << std::endl;
 			break;
 		}			
 
@@ -132,7 +132,7 @@ void Entity::CreateCollider(float x, float y, float w, float h)
 	if (collider != nullptr)
 		collider->CreateCollider(x, y, w, h);
 	else
-		collider = new Collider(x, y, w, h);
+		collider = neww Collider(x, y, w, h);
 
 	CalculateCollider();
 }
@@ -168,6 +168,9 @@ void Entity::Update(Game& game)
 	game.updateCalls++;
 	lastPosition = position;
 
+	if (currentSprite != nullptr)
+		currentSprite->color = color;
+
 	if (animator != nullptr)
 		animator->Update(*this);
 	
@@ -188,7 +191,7 @@ Sprite* Entity::GetSprite()
 
 void Entity::SetColor(Color newColor)
 {
-	currentSprite->color = newColor;
+	color = newColor;
 }
 
 // NOTE: This returns coordinates where x and y are the center of the rectangle!
@@ -199,7 +202,7 @@ const SDL_Rect* Entity::GetBounds()
 	{
 		if (bounds == nullptr)
 		{
-			bounds = new SDL_Rect();		
+			bounds = neww SDL_Rect();		
 		}
 		bounds->x = position.x;
 		bounds->y = position.y;
@@ -241,7 +244,7 @@ void Entity::RenderDebug(const Renderer& renderer)
 	{
 		//TODO: Refactor this? It seems like this is not very efficient
 		if (debugSprite == nullptr)
-			debugSprite = new Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
+			debugSprite = neww Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
 
 		if (renderer.IsVisible(layer))
 		{
@@ -410,7 +413,7 @@ void Entity::OnTriggerExit(Entity& other, Game& game)
 void Entity::GetProperties(std::vector<Property*>& properties)
 {
 	Entity::DeleteProperties(properties);
-	Property* property = new Property("ID", id);
+	Property* property = neww Property("ID", id);
 	property->pType = PropertyType::ReadOnly;
 	properties.emplace_back(property);
 }

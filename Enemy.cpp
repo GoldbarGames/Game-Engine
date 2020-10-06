@@ -20,14 +20,14 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 
 	CreateCollider(0, -4, 54, 32);
 
-	physics = new PhysicsComponent(this);
+	physics = neww PhysicsComponent(this);
 	physics->useGravity = true;
 	physics->canBePushed = true;
 	physics->canBePickedUp = true;
 	startPosition = pos;
 	physics->standAboveGround = true;
 
-	health = new HealthComponent(4);
+	health = neww HealthComponent(4);
 	health->showHealthBar = true;
 	health->initialHealthBarScale = Vector2(40, 10);
 }
@@ -38,8 +38,8 @@ void Enemy::Init(const std::string& n)
 
 	if (name == "crawler")
 	{
-		bottomLeftGround = new Collider(-54, 48, 16, 16);
-		bottomRightGround = new Collider(54, 48, 16, 16);
+		bottomLeftGround = neww Collider(-54, 48, 16, 16);
+		bottomRightGround = neww Collider(54, 48, 16, 16);
 
 		bottomLeftGround->CalculateCollider(position, rotation);
 		bottomRightGround->CalculateCollider(position, rotation);
@@ -380,7 +380,7 @@ void Enemy::Render(const Renderer& renderer)
 	{
 		//TODO: Refactor this? It seems like this is not very efficient
 		if (debugSprite == nullptr)
-			debugSprite = new Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
+			debugSprite = neww Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
 
 		if (renderer.IsVisible(layer))
 		{

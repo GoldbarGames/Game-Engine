@@ -1,3 +1,4 @@
+#include "leak_check.h"
 #include "Collider.h"
 
 Collider::Collider(float x, float y, float w, float h)
@@ -19,7 +20,7 @@ void Collider::CreateCollider(float x, float y, float w, float h)
 	scale.y = h;
 
 	if (bounds == nullptr)
-		bounds = new SDL_Rect();
+		bounds = neww SDL_Rect();
 
 	//CalculateCollider();
 }

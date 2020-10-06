@@ -27,15 +27,12 @@ Player::Player(const Vector2& pos) : Entity(pos)
 	trigger = false;
 	clickable = true;
 
-	physics = new PhysicsComponent(this);
+	physics = neww PhysicsComponent(this);
 	physics->standAboveGround = true;
 	physics->horizontalSpeed = 0.35f;
 	physics->maxHorizontalSpeed = 0.35f;
 	physics->canBePushed = true;
 	physics->canBePickedUp = true;
-
-	// Initialize the spells here
-	spell = Spell();
 
 	//TODO: Pause all timers when game is paused
 	timerSpellDebug.Start(1);
@@ -43,7 +40,7 @@ Player::Player(const Vector2& pos) : Entity(pos)
 	timerSpellOther.Start(1);
 
 	//rotation = glm::vec3(90.0f, 0.0f, 0.0f);
-	health = new HealthComponent(10);
+	health = neww HealthComponent(10);
 	health->showRelativeToCamera = true;
 	health->showHealthBar = true;
 	health->initialHealthBarScale = Vector2(200, 50);
@@ -74,7 +71,7 @@ void Player::RenderDebug(const Renderer& renderer)
 		if (renderer.game->debugMode && drawDebugRect)
 		{
 			if (debugSprite == nullptr)
-				debugSprite = new Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
+				debugSprite = neww Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
 
 			if (renderer.IsVisible(layer))
 			{
@@ -102,8 +99,11 @@ void Player::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
 
-	renderer.game->gui.playerSpell = &spell;
-	renderer.game->gui.healthComponents.push_back(health);
+	if (!isDouble)
+	{
+		renderer.game->gui.playerSpell = &spell;
+		renderer.game->gui.healthComponents.push_back(health);
+	}
 }
 
 void Player::Update(Game& game)
@@ -111,12 +111,21 @@ void Player::Update(Game& game)
 	static unsigned int count = 0;
 	updatedAnimator = false;
 
+	if (isDouble)
+		int test = 0;
+
+	if (currentSprite != nullptr)
+		currentSprite->color = color;
+
 	//TODO: Change this so that we collide with an object instead of hard-coding a number
 	// Also, maybe draw an outline of the death barrier so the player can see where this is
 	if (position.y > game.deathBarrierY || !health->IsAlive())
 	{
-		game.state = GameState::RESET_LEVEL;
-		return;
+		if (!isDouble)
+		{
+			game.state = GameState::RESET_LEVEL;
+			return;
+		}
 	}		
 
 	if (game.cutscene->watchingCutscene)
@@ -139,7 +148,11 @@ void Player::Update(Game& game)
 			physics->CheckCollisions(game);
 		}
 
-		spell.Update(game);			
+		if (!isDouble)
+		{
+			spell.Update(game);
+		}
+		
 
 		// Check if an enemy has been hit by our attack
 		if (closeRangeAttackCollider != nullptr)
@@ -228,10 +241,22 @@ void Player::UpdateNormally(Game& game)
 
 	bool wasHoldingUp = animator->GetBool("holdingUp");
 
-	pressingUp = (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
-	pressingDown = (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
-	pressingLeft = (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A]);
-	pressingRight = (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D]);
+
+	if (isDouble)
+	{
+		pressingDown = (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
+		pressingUp = (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
+		pressingRight = (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A]);
+		pressingLeft = (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D]);
+	}
+	else
+	{
+		pressingUp = (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W]);
+		pressingDown = (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S]);
+		pressingLeft = (input[SDL_SCANCODE_LEFT] || input[SDL_SCANCODE_A]);
+		pressingRight = (input[SDL_SCANCODE_RIGHT] || input[SDL_SCANCODE_D]);
+	}
+
 	physics->hadPressedJump = physics->pressingJumpButton;
 	physics->pressingJumpButton = input[SDL_SCANCODE_X];
 	pressingRun = input[SDL_SCANCODE_Z];
@@ -250,7 +275,6 @@ void Player::UpdateNormally(Game& game)
 	// if we are holding up
 	if (pressingUp)
 	{
-	
 		// for when up is pressed, not held
 		// if we are in front of a door, ladder, or NPC...
 		if (!wasHoldingUp)
@@ -318,22 +342,25 @@ void Player::UpdateNormally(Game& game)
 		}		
 	}
 
-	if (!animator->GetBool("isHurt"))
+	if (!isDouble)
 	{
-		//TODO: Should we limit the number that can be spawned?
-		//TODO: Add a time limit between shots
-		if (game.pressedDebugButton && timerSpellDebug.HasElapsed() && !animator->GetBool("isCastingDebug"))
+		if (!animator->GetBool("isHurt"))
 		{
-			CastSpellDebug(game, input);
+			//TODO: Should we limit the number that can be spawned?
+			//TODO: Add a time limit between shots
+			if (game.pressedDebugButton && timerSpellDebug.HasElapsed() && !animator->GetBool("isCastingDebug"))
+			{
+				CastSpellDebug(game, input);
+			}
+			else if (game.pressedSpellButton && timerSpellOther.HasElapsed() && !spell.isCasting && !animator->GetBool("isCastingSpell"))
+			{
+				spell.isCasting = spell.Cast(game);
+				return;
+			}
 		}
-		else if (game.pressedSpellButton && timerSpellOther.HasElapsed() && !spell.isCasting && !animator->GetBool("isCastingSpell"))
-		{
-			spell.isCasting = spell.Cast(game);
-			return;
-		}
-	}
 
-	spell.CycleSpells(game);
+		spell.CycleSpells(game);
+	}
 
 	// If on the ladder, only move up or down
 	if (animator->GetBool("onLadder"))
@@ -440,15 +467,15 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 
 		if (pressingUp)
 		{
-			closeRangeAttackCollider = new Collider(0, -32, 32, 16);
+			closeRangeAttackCollider = neww Collider(0, -32, 32, 16);
 		}
 		else if (pressingDown)
 		{
-			closeRangeAttackCollider = new Collider(0, 32, 32, 16);
+			closeRangeAttackCollider = neww Collider(0, 32, 32, 16);
 		}
 		else
 		{
-			closeRangeAttackCollider = new Collider(32 * scale.x, 0, 16 * scale.x, 32);
+			closeRangeAttackCollider = neww Collider(32 * scale.x, 0, 16 * scale.x, 32);
 		}
 
 		closeRangeAttackCollider->CalculateCollider(position, rotation);

@@ -10,13 +10,13 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	//TODO: Replace these with the real fonts
 	//TODO: How to deal with font sizes? Maybe map from string to map<int, TTF*>
 
-	fonts["default"] = new FontInfo("fonts/default.ttf", 24);
+	fonts["default"] = neww FontInfo("fonts/default.ttf", 24);
 
-	fonts["SourceCodePro"] = new FontInfo("fonts/source-code-pro/SourceCodePro-Regular.ttf", 24);
+	fonts["SourceCodePro"] = neww FontInfo("fonts/source-code-pro/SourceCodePro-Regular.ttf", 24);
 
-	fonts["DejaVuSansMono"] = new FontInfo("fonts/dejavu-sans-mono/DejaVuSansMono.ttf", 24);
+	fonts["DejaVuSansMono"] = neww FontInfo("fonts/dejavu-sans-mono/DejaVuSansMono.ttf", 24);
 
-	fonts["SpaceMono"] = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+	fonts["SpaceMono"] = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
 	fonts["SpaceMono"]->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
 	fonts["SpaceMono"]->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
 	fonts["SpaceMono"]->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
@@ -24,10 +24,10 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	currentFontInfo = fonts["SpaceMono"];
 
 	//TODO: Should we have a way to define the starting box position?
-	boxObject = new Entity(Vector2(1280, 720));
+	boxObject = neww Entity(Vector2(1280, 720));
 	
 	//TODO: Have a way to specify the image for the box
-	Sprite* newSprite = new Sprite(0, 0, 1, *spriteManager, "assets/gui/textbox1.png",
+	Sprite* newSprite = neww Sprite(0, 0, 1, *spriteManager, "assets/gui/textbox1.png",
 		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 	boxObject->SetSprite(*newSprite);
 
@@ -35,18 +35,18 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
 
 	//TODO: Should we have a way to define the starting box position?
-	nameObject = new Entity(Vector2(1280, 720));
+	nameObject = neww Entity(Vector2(1280, 720));
 
 	//TODO: Have a way to specify the image for the box
-	newSprite = new Sprite(0, 0, 1, *spriteManager, "assets/gui/namebox1.png",
+	newSprite = neww Sprite(0, 0, 1, *spriteManager, "assets/gui/namebox1.png",
 		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 	nameObject->SetSprite(*newSprite);
 
 	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
 	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
 
-	text = new Text(currentFontInfo, "...", true, true);
-	speaker = new Text(currentFontInfo, "...", true, true);
+	text = neww Text(currentFontInfo, "...", true, true);
+	speaker = neww Text(currentFontInfo, "...", true, true);
 
 	text->SetPosition(1080, 1040);
 	speaker->SetPosition(235, 985);
@@ -54,12 +54,12 @@ Textbox::Textbox(SpriteManager* m, Renderer* r)
 	text->isRichText = true;
 	speaker->isRichText = false;
 
-	clickToContinue = new Entity(Vector2(0,0));
+	clickToContinue = neww Entity(Vector2(0,0));
 
 	std::vector<AnimState*> animStates;
 	spriteManager->ReadAnimData("data/animators/cursor/cursor.animations", animStates);
 
-	Animator* newAnimator = new Animator("cursor", animStates, "samepage");
+	Animator* newAnimator = neww Animator("cursor", animStates, "samepage");
 	newAnimator->SetBool("endOfPage", false);
 	newAnimator->SetRelativeAllStates(true);
 	//newAnimator->SetScaleAllStates(Vector2(0.5f, 0.5f));
@@ -131,7 +131,7 @@ void Textbox::ChangeNameSprite(const std::string& filepath)
 		delete nameObject->GetSprite();
 
 	//TODO: Allow for animations by dissecting the filepath name
-	Sprite* newSprite = new Sprite(0, 0, 1, *spriteManager, filepath,
+	Sprite* newSprite = neww Sprite(0, 0, 1, *spriteManager, filepath,
 		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 	nameObject->SetSprite(*newSprite);
 
@@ -145,7 +145,7 @@ void Textbox::ChangeBoxSprite(const std::string& filepath)
 		delete boxObject->GetSprite();
 
 	//TODO: Allow for animations by dissecting the filepath name
-	Sprite* newSprite = new Sprite(0, 0, 1, *spriteManager, filepath,
+	Sprite* newSprite = neww Sprite(0, 0, 1, *spriteManager, filepath,
 		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
 	boxObject->SetSprite(*newSprite);
 

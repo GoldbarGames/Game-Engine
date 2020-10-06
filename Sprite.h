@@ -48,8 +48,8 @@ public:
 	static Mesh* meshTri;
 	static Mesh* meshLine;
 
-	ShaderProgram* shader;	
-	Texture* texture;
+	ShaderProgram* shader = nullptr;
+	Texture* texture = nullptr;
 
 	Color color { 255, 255, 255, 255 };
 	static std::string selectedColor;

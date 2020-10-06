@@ -39,7 +39,7 @@ public:
 
 	std::string CalcDirection(bool x);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return new Platform(pos); };
+	static Entity* __stdcall Create(const Vector2& pos) { return neww Platform(pos); };
 };
 
 #endif

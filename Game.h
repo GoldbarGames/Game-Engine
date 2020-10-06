@@ -7,6 +7,7 @@
 #include <chrono>
 #include "globals.h"
 #include "Timer.h"
+#include "QuadTree.h"
 
 enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
 
@@ -62,7 +63,7 @@ public:
 	int deathBarrierY = 500;
 
 	Mesh* cubeMesh;
-	QuadTree* quadTree;
+	QuadTree quadTree;
 	GUI gui;
 
 	unsigned int collisionChecks = 0;

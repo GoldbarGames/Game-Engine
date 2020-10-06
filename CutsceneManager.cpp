@@ -9,7 +9,7 @@
 CutsceneManager::CutsceneManager(Game& g)
 {
 	game = &g;
-	textbox = new Textbox(g.spriteManager, g.renderer);
+	textbox = neww Textbox(g.spriteManager, g.renderer);
 
 	commands.manager = this;
 	inputTimeToWait = 100;
@@ -28,10 +28,10 @@ CutsceneManager::CutsceneManager(Game& g)
 	std::string directory = "";
 	std::string line = "";
 
-	tags["b"] = new TextTag();
-	tags["i"] = new TextTag();
-	tags["bi"] = new TextTag();
-	tags["s"] = new TextTag();
+	tags["b"] = neww TextTag();
+	tags["i"] = neww TextTag();
+	tags["bi"] = neww TextTag();
+	tags["s"] = neww TextTag();
 
 	if (testVN)
 	{
@@ -298,7 +298,7 @@ void CutsceneManager::ParseScene()
 
 	do
 	{
-		SceneLabel* newLabel = new SceneLabel;
+		SceneLabel* newLabel = neww SceneLabel;
 
 		// Get label name
 		index++; // begin with a *
@@ -309,7 +309,7 @@ void CutsceneManager::ParseScene()
 
 		std::vector<std::string> commands;
 
-		// Until end of file or new label...
+		// Until end of file or neww label...
 		while (index < data.length() && data[index] != '*')
 		{
 			// If a `, we have a text line (otherwise, command)
@@ -343,7 +343,7 @@ void CutsceneManager::ParseScene()
 				//std::cout << newText << std::endl;
 
 				// add all commands for this line
-				SceneLine* tempLine = new SceneLine(newText, newName);
+				SceneLine* tempLine = neww SceneLine(newText, newName);
 				for (unsigned int i = 0; i < commands.size(); i++)
 				{
 					//std::cout << tempCommands[i] << std::endl;
@@ -424,11 +424,11 @@ void CutsceneManager::ParseScene()
 			}
 		}
 
-		// If we have commands but no line before a new label,
+		// If we have commands but no line before a neww label,
 		// add an empty text to that line
 		if (commands.size() > 0)
 		{
-			SceneLine* tempLine = new SceneLine(" ", " ");
+			SceneLine* tempLine = neww SceneLine(" ", " ");
 			for (unsigned int i = 0; i < commands.size(); i++)
 			{
 				//std::cout << tempCommands[i] << std::endl;
@@ -440,7 +440,7 @@ void CutsceneManager::ParseScene()
 			commands.clear();
 		}
 
-		// when we encounter a new label, add this one to the list
+		// when we encounter a neww label, add this one to the list
 		if (newLabel->lines.size() > 0)
 		{
 			labels.emplace_back(newLabel);
@@ -612,7 +612,7 @@ void CutsceneManager::EndCutscene()
 
 void CutsceneManager::PushCurrentSceneDataToStack()
 {
-	SceneData* newData = new SceneData();
+	SceneData* newData = neww SceneData();
 	newData->labelIndex = labelIndex;
 	newData->labelName = currentLabel->name;
 	newData->lineIndex = lineIndex;
@@ -1223,7 +1223,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 
 			// Add the image to the text here
 			//TODO: Check this for memory leaks!
-			Sprite* sprite = new Sprite(game->spriteManager->GetImage(commands.ParseStringValue(imageName)),
+			Sprite* sprite = neww Sprite(game->spriteManager->GetImage(commands.ParseStringValue(imageName)),
 				game->renderer->shaders[ShaderName::Default]);
 
 			text->AddImage(sprite);
@@ -1781,7 +1781,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				break;
 			case SaveSections::GOSUB_STACK:
 
-				gosubData = new SceneData();
+				gosubData = neww SceneData();
 				gosubData->labelName = lineParams[0];
 				gosubData->labelIndex = std::stoi(lineParams[1]);
 				gosubData->lineIndex = std::stoi(lineParams[2]) - 1;

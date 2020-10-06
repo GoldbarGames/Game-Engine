@@ -2,6 +2,7 @@
 #define BLOCK_H
 #pragma once
 
+#include "leak_check.h"
 #include "Entity.h"
 
 class Block : public Entity
@@ -19,7 +20,7 @@ public:
 
 	void Save(std::unordered_map<std::string, std::string>& map);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return new Block(pos); };
+	static Entity* __stdcall Create(const Vector2& pos) { return neww Block(pos); };
 };
 
 #endif

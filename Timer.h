@@ -2,29 +2,29 @@
 #define TIMER_H
 #pragma once
 
-#include "SDL.h"
+#include <cstdint>
 
 class Timer
 {
 private:	
-	Uint32 pausedTicks = 0; // the number of ticks when its paused
-	Uint32 pausedTime = 0;
+	uint32_t pausedTicks = 0; // the number of ticks when it is paused
+	uint32_t pausedTime = 0;
 	bool paused = false;
 	bool started = false;
-	Uint32 lastDuration = 0; // the last time that the duration was set
+	uint32_t lastDuration = 0; // the last time that the duration was set
 public:
-	Uint32 startTicks = 0; // the tick count when the timer is started
-	Uint32 endTime = 0; // the time at which to stop the timer, if any
+	uint32_t startTicks = 0; // the tick count when the timer is started
+	uint32_t endTime = 0; // the time at which to stop the timer, if any
 	Timer();
 	~Timer();
 	bool alwaysOn = false;
 	bool loopAnimation = false;
-	void Start(Uint32 duration = 0, bool loopAnim=true); //milliseconds
+	void Start(uint32_t duration = 0, bool loopAnim=true); //milliseconds
 	void Stop();
 	void Pause();
 	void Unpause();
-	Uint32 GetTicks() const;
-	Uint32 GetAnimationTime() const;
+	uint32_t GetTicks() const;
+	uint32_t GetAnimationTime() const;
 	bool IsPaused() const;
 	bool HasElapsed() const;
 	void Reset();

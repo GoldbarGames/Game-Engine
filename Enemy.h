@@ -28,6 +28,6 @@ public:
 	void Save(std::unordered_map<std::string, std::string>& map);
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return new Enemy(pos); };
+	static Entity* __stdcall Create(const Vector2& pos) { return neww Enemy(pos); };
 };
 

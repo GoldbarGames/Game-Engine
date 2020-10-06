@@ -1,3 +1,4 @@
+#include "leak_check.h"
 #include "SoundManager.h"
 #include <iostream>
 #include <fstream>
@@ -100,8 +101,8 @@ void SoundManager::PlaySound(const std::string& filepath, int channel, int loop)
 	}
 
 	//sound = "se/" + sound + ".wav";
-	Sound* sound = new Sound(filepath.c_str());
-	SoundChannel* soundChannel = new SoundChannel(channel, sound, volumeSound, loop);
+	Sound* sound = neww Sound(filepath.c_str());
+	SoundChannel* soundChannel = neww SoundChannel(channel, sound, volumeSound, loop);
 
 	sounds[channel] = soundChannel;
 	sounds[channel]->Play();

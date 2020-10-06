@@ -672,7 +672,7 @@ int CutsceneCommands::DefineUserFunction(CutsceneParameters parameters)
 	// If function name does not exist, add it to the list
 	if (!functionAlreadyExists)
 	{
-		UserDefinedFunction* newFunction = new UserDefinedFunction;
+		UserDefinedFunction* newFunction = neww UserDefinedFunction;
 		newFunction->functionName = parameters[1];
 
 		for (int i = 2; i < parameters.size(); i++)
@@ -1387,9 +1387,9 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 	if (manager->images[imageNumber] != nullptr)
 		delete manager->images[imageNumber];
 
-	manager->images[imageNumber] = new Entity(pos);
+	manager->images[imageNumber] = neww Entity(pos);
 
-	Sprite* newSprite = new Sprite(1, *manager->game->spriteManager,
+	Sprite* newSprite = neww Sprite(1, *manager->game->spriteManager,
 		filepath, manager->game->renderer->shaders[ShaderName::Default], Vector2(0, 0));
 
 	manager->images[imageNumber]->SetSprite(*newSprite);
@@ -1504,7 +1504,7 @@ int CutsceneCommands::LoadTextFromSaveFile(CutsceneParameters parameters)
 		delete manager->images[imageNumber];
 
 	//TODO: Also save/load in the font type/size/style for this text object
-	Text* newText = new Text(manager->game->theFont, text, textColor);
+	Text* newText = neww Text(manager->game->theFont, text, textColor);
 
 	newText->isRichText = false;
 
@@ -1547,7 +1547,7 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	int letterIndex = 0;
 	std::string finalText = "";
 
-	newText = new Text(manager->game->theFont, "", textColor);
+	newText = neww Text(manager->game->theFont, "", textColor);
 	newText->SetPosition(pos.x, pos.y); // use the Text SetPosition function, not Entity
 	newText->isRichText = true;
 
@@ -1678,7 +1678,7 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 				animStates[i]->sprite->keepScaleRelativeToCamera = true;
 			}
 
-			Animator* newAnimator = new Animator("player", animStates, ParseStringValue(parameters[5]));
+			Animator* newAnimator = neww Animator("player", animStates, ParseStringValue(parameters[5]));
 			entity->SetAnimator(*newAnimator);
 		}
 		else if (entity->GetAnimator() == nullptr)
@@ -1794,7 +1794,7 @@ int CutsceneCommands::Namebox(CutsceneParameters parameters)
 		}
 		else if (parameters[2] == "font")
 		{
-			//TODO: Add a separate command for loading new fonts?
+			//TODO: Add a separate command for loading neww fonts?
 			if (parameters[3] == "type")
 			{
 				manager->textbox->ChangeNameFont(ParseStringValue(parameters[4]));
@@ -1851,7 +1851,7 @@ int CutsceneCommands::Textbox(CutsceneParameters parameters)
 		}
 		else if (parameters[2] == "font")
 		{
-			//TODO: Add a separate command for loading new fonts?
+			//TODO: Add a separate command for loading neww fonts?
 			if (parameters[3] == "type")
 			{
 				manager->textbox->ChangeBoxFont(ParseStringValue(parameters[4]));
@@ -2044,7 +2044,7 @@ int CutsceneCommands::TimerFunction(CutsceneParameters parameters)
 	if (parameters[1] == "start")
 	{		
 		if (manager->timers.count(timerNumber) != 1)
-			manager->timers[timerNumber] = new Timer();			
+			manager->timers[timerNumber] = neww Timer();			
 
 		unsigned int timerDuration = ParseNumberValue(parameters[3]);
 		manager->timers[timerNumber]->Start(timerDuration);
@@ -2401,7 +2401,7 @@ int CutsceneCommands::SetClickToContinue(CutsceneParameters parameters)
 
 		state->name = stateName;
 		state->speed = stateSpeed;
-		state->sprite = new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
+		state->sprite = neww Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
 			*manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
 			Vector2(spritePivotX, spritePivotY));
 
@@ -2455,7 +2455,7 @@ int CutsceneCommands::FontCommand(CutsceneParameters parameters)
 		delete manager->textbox->fonts[parameters[1]];
 	}
 
-	manager->textbox->fonts[parameters[1]] = new FontInfo((parameters[2] + "/" + parameters[1] + "-Regular.ttf").c_str(), 24);
+	manager->textbox->fonts[parameters[1]] = neww FontInfo((parameters[2] + "/" + parameters[1] + "-Regular.ttf").c_str(), 24);
 	manager->textbox->fonts[parameters[1]]->SetBoldFont((parameters[2] + "/" + parameters[1] + "-Bold.ttf").c_str());
 	manager->textbox->fonts[parameters[1]]->SetItalicsFont((parameters[2] + "/" + parameters[1] + "-Italic.ttf").c_str());
 	manager->textbox->fonts[parameters[1]]->SetBoldItalicsFont((parameters[2] + "/" + parameters[1] + "-BoldItalic.ttf").c_str());
@@ -2506,7 +2506,7 @@ int CutsceneCommands::TagCommand(CutsceneParameters parameters)
 	{
 		if (manager->tags.count(parameters[2]) != 1)
 		{
-			manager->tags[parameters[2]] = new TextTag();
+			manager->tags[parameters[2]] = neww TextTag();
 		}		
 	}
 
@@ -2717,7 +2717,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 
 	if (manager->animatedImages.count(animationName) != 1)
 	{
-		manager->animatedImages[animationName] = new Entity(Vector2(0, 0));
+		manager->animatedImages[animationName] = neww Entity(Vector2(0, 0));
 	}
 
 	if (parameters[2] == "state")
@@ -2740,7 +2740,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 
 		state->name = stateName;
 		state->speed = stateSpeed;
-		state->sprite = new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
+		state->sprite = neww Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
 			*manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
 			Vector2(spritePivotX, spritePivotY));
 
@@ -2767,7 +2767,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 			std::vector<AnimState*> animStates;
 			manager->game->spriteManager->ReadAnimData(parameters[4], animStates);
 
-			Animator* anim1 = new Animator("cursor", animStates, parameters[5]);
+			Animator* anim1 = neww Animator("cursor", animStates, parameters[5]);
 			anim1->SetBool("endOfPage", false);
 			anim1->SetRelativeAllStates(true);
 			//anim1->SetScaleAllStates(Vector2(0.5f, 0.5f));

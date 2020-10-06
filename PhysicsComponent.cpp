@@ -256,9 +256,9 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 
 	// We want to retrieve all entities testing against all these different bounds,
 	// then remove any duplicates (keep the unique ones) to iterate over.
-	game.quadTree->Retrieve(&newBoundsHorizontal, entities, game.quadTree);
-	game.quadTree->Retrieve(&newBoundsVertical, entities, game.quadTree);
-	game.quadTree->Retrieve(&floorBounds, entities, game.quadTree);
+	game.quadTree.Retrieve(&newBoundsHorizontal, entities, &game.quadTree);
+	game.quadTree.Retrieve(&newBoundsVertical, entities, &game.quadTree);
+	game.quadTree.Retrieve(&floorBounds, entities, &game.quadTree);
 	entities.erase(std::unique(entities.begin(), entities.end()), entities.end());
 
 	// This is just for getting the entities so we can render the quadtree for debugging
@@ -399,7 +399,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 						{
 							velocity.y = 0;
 							// theirBounds.y - theirBounds.h gets the top of the other's bounds (center.y - half height)
-							// then we subtract half our height (myBounds.h) to get our new position on top of the other object
+							// then we subtract half our height (myBounds.h) to get our neww position on top of the other object
 							// then we subtract any collider offsets (usually zero)
 							// then finally we subtract the floor to get a 2.5D look
 							our->position.y = (float)(theirBounds.y - theirBounds.h - myBounds.h - our->collider->offset.y - FLOOR_SIZE);
@@ -617,7 +617,7 @@ bool PhysicsComponent::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 
 void PhysicsComponent::Push(const Vector2& pushVelocity)
 {
-	// TODO: Should wind resitance be based on mass, rather than a totally new number?
+	// TODO: Should wind resitance be based on mass, rather than a totally neww number?
 	// Also, should there be a discrete number of levels of mass (Light, Medium, Heavy) for consistency?
 	if (our->GetAnimator() != nullptr)
 	{

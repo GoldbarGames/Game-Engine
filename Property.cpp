@@ -10,13 +10,13 @@ Property::Property(const std::string& k, const std::string& v, const std::vector
 {
 	if (fontInfo == nullptr)
 	{
-		fontInfo = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+		fontInfo = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
 		fontInfo->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
 		fontInfo->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
 		fontInfo->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 	}
 
-	text = new Text(fontInfo, key + ": " + value);
+	text = neww Text(fontInfo, key + ": " + value);
 }
 
 Property::Property(const std::string& k, const int v, const std::vector<std::string>& o) 
@@ -24,13 +24,13 @@ Property::Property(const std::string& k, const int v, const std::vector<std::str
 {
 	if (fontInfo == nullptr)
 	{
-		fontInfo = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+		fontInfo = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
 		fontInfo->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
 		fontInfo->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
 		fontInfo->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 	}
 
-	text = new Text(fontInfo, key + ": " + value);
+	text = neww Text(fontInfo, key + ": " + value);
 }
 
 Property::Property(const std::string& k, const float v, const std::vector<std::string>& o) 
@@ -38,13 +38,13 @@ Property::Property(const std::string& k, const float v, const std::vector<std::s
 {
 	if (fontInfo == nullptr)
 	{
-		fontInfo = new FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+		fontInfo = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
 		fontInfo->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
 		fontInfo->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
 		fontInfo->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 	}
 
-	text = new Text(fontInfo, key + ": " + value);
+	text = neww Text(fontInfo, key + ": " + value);
 }
 
 Property::~Property()

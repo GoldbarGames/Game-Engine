@@ -16,12 +16,12 @@ NPC::NPC(const std::string& n, const Vector2& pos) : Entity(pos)
 	drawOrder = 20;
 	trigger = true;
 
-	physics = new PhysicsComponent(this);
+	physics = neww PhysicsComponent(this);
 	physics->standAboveGround = true;
 	physics->useGravity = true;
 	startPosition = pos;
 
-	//health = new HealthComponent(1);
+	//health = neww HealthComponent(1);
 	//health->invincible = true;
 }
 

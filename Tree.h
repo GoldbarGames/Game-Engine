@@ -30,7 +30,7 @@ public:
 	void Save(std::unordered_map<std::string, std::string>& map);
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return new Tree(pos); };
+	static Entity* __stdcall Create(const Vector2& pos) { return neww Tree(pos); };
 };
 
 #endif

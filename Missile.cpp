@@ -15,7 +15,7 @@ Missile::Missile(const Vector2& pos) : Entity(pos)
 	trigger = true;
 
 	etype = "missile";
-	physics = new PhysicsComponent(this);
+	physics = neww PhysicsComponent(this);
 }
 
 Missile::~Missile()

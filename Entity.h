@@ -1,6 +1,8 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
+#include "leak_check.h"
+
 #include "SDL.h"
 #include "SDL_ttf.h"
 #include "Vector2.h"
@@ -44,6 +46,8 @@ public:
 	bool clickable = false;
 	QuadTree* quadrant = nullptr;
 	HealthComponent* health = nullptr;
+
+	Color color = { 255, 255, 255, 255 };
 
 	unsigned int Size();
 
@@ -119,7 +123,7 @@ public:
 
 	virtual void SetColor(Color newColor);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return new Entity(pos); };
+	static Entity* __stdcall Create(const Vector2& pos) { return neww Entity(pos); };
 };
 
 #endif 
