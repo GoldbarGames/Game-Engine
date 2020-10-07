@@ -32,7 +32,7 @@ void CutsceneTrigger::OnTriggerEnter(Entity& other, Game& game)
 {
 	if (other.etype == "player")
 	{
-		game.cutscene->PlayCutscene(cutsceneLabel.c_str());
+		game.cutsceneManager.PlayCutscene(cutsceneLabel.c_str());
 	}
 }
 

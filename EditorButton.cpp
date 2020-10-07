@@ -7,8 +7,8 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
 
-	image = neww Sprite(1, *game.spriteManager, "assets/editor/btn" + filename + ".png", 
-		game.renderer->shaders[ShaderName::GUI], Vector2(0, 0));
+	image = neww Sprite(1, game.spriteManager, "assets/editor/btn" + filename + ".png", 
+		game.renderer.shaders[ShaderName::GUI], Vector2(0, 0));
 
 	image->keepPositionRelativeToCamera = true;
 	image->keepScaleRelativeToCamera = true;

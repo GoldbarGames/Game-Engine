@@ -5,8 +5,14 @@
 #include <iterator>
 #include "Logger.h"
 #include "SoundManager.h"
+#include "Textbox.h"
 
-CutsceneManager::CutsceneManager(Game& g)
+CutsceneManager::CutsceneManager()
+{
+
+}
+
+void CutsceneManager::Init(Game& g)
 {
 	game = &g;
 	textbox = neww Textbox(g.spriteManager, g.renderer);
@@ -80,11 +86,7 @@ CutsceneManager::~CutsceneManager()
 {
 	for (int i = 0; i < labels.size(); i++)
 	{
-		for (int k = 0; k < labels[i]->lines.size(); k++)
-		{
-			delete labels[i]->lines[k];
-		}
-		delete labels[i];
+		//delete labels[i];
 	}
 
 	for (int i = 0; i < gosubStack.size(); i++)
@@ -176,11 +178,11 @@ void CutsceneManager::CheckKeys()
 				{
 					if (event.wheel.y > 0)
 					{
-						game->renderer->camera.Zoom(-0.1f, game->screenWidth, game->screenHeight);
+						game->renderer.camera.Zoom(-0.1f, game->screenWidth, game->screenHeight);
 					}
 					else if (event.wheel.y < 0)
 					{
-						game->renderer->camera.Zoom(0.1f, game->screenWidth, game->screenHeight);
+						game->renderer.camera.Zoom(0.1f, game->screenWidth, game->screenHeight);
 					}
 				}
 			}
@@ -221,10 +223,10 @@ void CutsceneManager::CheckKeys()
 				if (backlogIndex >= backlog.size())
 				{
 					readingBacklog = false;
-					textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
+					textbox->speaker->SetText(currentLabel->lines[lineIndex].speaker, currentColor);
 					textbox->text->SetText(currentText, currentColor);
 
-					textbox->SetCursorPosition(letterIndex < currentLabel->lines[lineIndex]->text.length());
+					textbox->SetCursorPosition(letterIndex < currentLabel->lines[lineIndex].text.length());
 				}
 				else
 				{
@@ -286,8 +288,8 @@ void CutsceneManager::CheckKeys()
 
 void CutsceneManager::ParseScene()
 {
-	for (unsigned int i = 0; i < labels.size(); i++)
-		delete labels[i];
+	//for (unsigned int i = 0; i < labels.size(); i++)
+	//	delete labels[i];
 	labels.clear();
 
 	int index = 0;
@@ -298,13 +300,13 @@ void CutsceneManager::ParseScene()
 
 	do
 	{
-		SceneLabel* newLabel = neww SceneLabel;
+		SceneLabel newLabel;
 
 		// Get label name
 		index++; // begin with a *
 		//TODO: This is broken on the very first label?
 		//newLabel->name = ParseWord(data, '*', index);
-		newLabel->name = ParseWord(data, '*', index);
+		newLabel.name = ParseWord(data, '*', index);
 		//std::cout << "Label name: " + newLabel->name << std::endl;
 
 		std::vector<std::string> commands;
@@ -343,16 +345,16 @@ void CutsceneManager::ParseScene()
 				//std::cout << newText << std::endl;
 
 				// add all commands for this line
-				SceneLine* tempLine = neww SceneLine(newText, newName);
+				SceneLine tempLine(newText, newName);
 				for (unsigned int i = 0; i < commands.size(); i++)
 				{
 					//std::cout << tempCommands[i] << std::endl;
-					tempLine->commands.emplace_back(commands[i]);
+					tempLine.commands.emplace_back(commands[i]);
 					//std::cout << commands[i] << std::endl;
 				}
 
 				// add the line
-				newLabel->lines.emplace_back(tempLine);
+				newLabel.lines.emplace_back(tempLine);
 				commands.clear();
 				index++;
 			}
@@ -428,20 +430,20 @@ void CutsceneManager::ParseScene()
 		// add an empty text to that line
 		if (commands.size() > 0)
 		{
-			SceneLine* tempLine = neww SceneLine(" ", " ");
+			SceneLine tempLine = SceneLine(" ", " ");
 			for (unsigned int i = 0; i < commands.size(); i++)
 			{
 				//std::cout << tempCommands[i] << std::endl;
-				tempLine->commands.emplace_back(commands[i]);
+				tempLine.commands.emplace_back(commands[i]);
 			}
 
 			// add the line
-			newLabel->lines.emplace_back(tempLine);
+			newLabel.lines.emplace_back(tempLine);
 			commands.clear();
 		}
 
 		// when we encounter a neww label, add this one to the list
-		if (newLabel->lines.size() > 0)
+		if (newLabel.lines.size() > 0)
 		{
 			labels.emplace_back(newLabel);
 		}			
@@ -461,15 +463,15 @@ void CutsceneManager::ParseConfig(const char* configName)
 
 	if (configLabel != nullptr)
 	{
-		while (cmdIndex < configLabel->lines[0]->commands.size())
+		while (cmdIndex < configLabel->lines[0].commands.size())
 		{
-			commands.ExecuteCommand(configLabel->lines[0]->commands[cmdIndex]);
+			commands.ExecuteCommand(configLabel->lines[0].commands[cmdIndex]);
 			cmdIndex++;
 		}
 	}
 	else
 	{
-		game->logger->Log("No configuration label found!");
+		game->logger.Log("No configuration label found!");
 	}
 }
 
@@ -518,12 +520,12 @@ void CutsceneManager::JumpBack()
 	{
 		std::cout << "Label " << label << ", Line " << line << ", Cmd " << cmd << std::endl;
 		if (label < labels.size() 
-			&& line < labels[label]->lines.size()
-			&& cmd < labels[label]->lines[line]->commands.size()
-			&& labels[label]->lines[line]->commands[cmd][0] == '~')
+			&& line < labels[label].lines.size()
+			&& cmd < labels[label].lines[line].commands.size()
+			&& labels[label].lines[line].commands[cmd][0] == '~')
 		{
 			found = true;
-			currentLabel = JumpToLabel(labels[label]->name.c_str());
+			currentLabel = JumpToLabel(labels[label].name.c_str());
 			labelIndex = label;
 			lineIndex = line;
 			commandIndex = cmd;
@@ -539,9 +541,9 @@ void CutsceneManager::JumpBack()
 					label--;
 					if (label < 0)
 						return;
-					line = labels[label]->lines.size() - 1;
+					line = labels[label].lines.size() - 1;
 				}
-				cmd = labels[label]->lines[line]->commands.size() - 1;
+				cmd = labels[label].lines[line].commands.size() - 1;
 			}
 		}
 	}
@@ -552,13 +554,13 @@ void CutsceneManager::JumpForward()
 {
 	for (unsigned int i = 0; i < labels.size(); i++)
 	{
-		for (unsigned int j = 0; j < labels[i]->lines.size(); j++)
+		for (unsigned int j = 0; j < labels[i].lines.size(); j++)
 		{
-			for (unsigned int k = 0; k < labels[i]->lines[j]->commands.size(); k++)
+			for (unsigned int k = 0; k < labels[i].lines[j].commands.size(); k++)
 			{
-				if (labels[i]->lines[j]->commands[k][0] == '~')
+				if (labels[i].lines[j].commands[k][0] == '~')
 				{
-					currentLabel = JumpToLabel(labels[i]->name.c_str());
+					currentLabel = JumpToLabel(labels[i].name.c_str());
 					labelIndex = i;
 					lineIndex = j;
 					commandIndex = k;
@@ -572,10 +574,10 @@ SceneLabel* CutsceneManager::JumpToLabel(const char* newLabelName)
 {
 	for (unsigned int i = 0; i < labels.size(); i++)
 	{
-		if (labels[i]->name == newLabelName)
+		if (labels[i].name == newLabelName)
 		{
 			labelIndex = i;
-			return labels[i];
+			return &labels[i];
 		}
 	}
 	return nullptr;
@@ -616,7 +618,7 @@ void CutsceneManager::PushCurrentSceneDataToStack()
 	newData->labelIndex = labelIndex;
 	newData->labelName = currentLabel->name;
 	newData->lineIndex = lineIndex;
-	newData->lineText = currentLabel->lines[lineIndex]->text;
+	newData->lineText = currentLabel->lines[lineIndex].text;
 	newData->commandIndex = commandIndex;
 
 	gosubStack.push_back(newData);
@@ -709,7 +711,7 @@ void CutsceneManager::ReadNextLine()
 				else // go to the next label in sequence
 				{
 					labelIndex++;
-					currentLabel = JumpToLabel(labels[labelIndex]->name.c_str());
+					currentLabel = JumpToLabel(labels[labelIndex].name.c_str());
 					lineIndex = -1;
 					ReadNextLine();
 				}
@@ -726,7 +728,7 @@ void CutsceneManager::ReadNextLine()
 			FlushCurrentColor();
 
 			// If speaker of this line is same as last, instantly show it
-			textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
+			textbox->speaker->SetText(currentLabel->lines[lineIndex].speaker, currentColor);
 
 			if (autosave)
 			{
@@ -740,9 +742,9 @@ void CutsceneManager::FlushCurrentColor()
 {
 	if (currentLabel != nullptr)
 	{
-		if (namesToColors.count(currentLabel->lines[lineIndex]->speaker))
+		if (namesToColors.count(currentLabel->lines[lineIndex].speaker))
 		{
-			currentColor = namesToColors[currentLabel->lines[lineIndex]->speaker];
+			currentColor = namesToColors[currentLabel->lines[lineIndex].speaker];
 		}
 		else
 		{
@@ -753,15 +755,15 @@ void CutsceneManager::FlushCurrentColor()
 
 void CutsceneManager::ReadBacklog()
 {	
-	//Color color = namesToColors[label->lines[lineIndex]->speaker];
+	//Color color = namesToColors[label->lines[lineIndex].speaker];
 	if (backlogIndex < backlog.size())
 	{
 		if (backlog[backlogIndex]->labelIndex < labels.size())
 		{
-			SceneLabel* label = labels[backlog[backlogIndex]->labelIndex];
+			SceneLabel* label = &labels[backlog[backlogIndex]->labelIndex];
 			if (label != nullptr && backlog[backlogIndex]->lineIndex < label->lines.size())
 			{
-				SceneLine* line = label->lines[backlog[backlogIndex]->lineIndex];
+				SceneLine* line = &(label->lines[backlog[backlogIndex]->lineIndex]);
 				textbox->speaker->SetText(line->speaker, backlogColor);
 				textbox->text->SetText(line->text, backlogColor);
 
@@ -778,7 +780,7 @@ void CutsceneManager::ReadBacklog()
 SceneLabel* CutsceneManager::GetCurrentLabel()
 {
 	if (labelIndex >= 0 && labelIndex < labels.size())
-		return labels[labelIndex];
+		return &labels[labelIndex];
 	else
 		return nullptr;
 }
@@ -789,7 +791,7 @@ SceneLine* CutsceneManager::GetCurrentLine()
 	if (label != nullptr)
 	{
 		if (lineIndex >= 0 && lineIndex < label->lines.size())
-			return label->lines[lineIndex];
+			return &label->lines[lineIndex];
 		else
 			return nullptr;
 	}
@@ -978,18 +980,18 @@ void CutsceneManager::UpdateText()
 
 		if (isCarryingOutCommands)
 		{			
-			if (commandIndex >= 0 && commandIndex < currentLabel->lines[lineIndex]->commands.size())
+			if (commandIndex >= 0 && commandIndex < currentLabel->lines[lineIndex].commands.size())
 			{
-				//std::cout << currentLabel->lines[lineIndex]->commands[commandIndex] << std::endl;
+				//std::cout << currentLabel->lines[lineIndex].commands[commandIndex] << std::endl;
 				printNumber = 0;
 				do
 				{
-					if (!commands.ExecuteCommand(currentLabel->lines[lineIndex]->commands[commandIndex]))
+					if (!commands.ExecuteCommand(currentLabel->lines[lineIndex].commands[commandIndex]))
 					{
-						unfinishedCommands.push_back(currentLabel->lines[lineIndex]->commands[commandIndex]);
+						unfinishedCommands.push_back(currentLabel->lines[lineIndex].commands[commandIndex]);
 					}
 					commandIndex++;
-					if (commandIndex >= currentLabel->lines[lineIndex]->commands.size())
+					if (commandIndex >= currentLabel->lines[lineIndex].commands.size())
 						break;
 				} while (!autoprint && printNumber == 0);	
 				game->updateScreenTexture = true;
@@ -1021,7 +1023,7 @@ void CutsceneManager::UpdateText()
 
 			do
 			{
-				std::string result = ParseText(currentLabel->lines[lineIndex]->text, letterIndex, currentColor, textbox->text);
+				std::string result = ParseText(currentLabel->lines[lineIndex].text, letterIndex, currentColor, textbox->text);
 
 				if (result.size() > 1)
 				{
@@ -1037,13 +1039,13 @@ void CutsceneManager::UpdateText()
 
 				if (currentText.length() == 1)
 				{
-					textbox->speaker->SetText(currentLabel->lines[lineIndex]->speaker, currentColor);
+					textbox->speaker->SetText(currentLabel->lines[lineIndex].speaker, currentColor);
 				}
 
 				//nextLetterTimer.Start(lettersPerFrame * delay);
 
 				// Reached the 'click to continue' point
-				if (letterIndex >= currentLabel->lines[lineIndex]->text.length())
+				if (letterIndex >= currentLabel->lines[lineIndex].text.length())
 				{
 					currentText = textbox->text->txt;
 					isReadingNextLine = false;
@@ -1063,7 +1065,7 @@ void CutsceneManager::UpdateText()
 
 					return;
 				}
-				else if (currentLabel->lines[lineIndex]->text[letterIndex] == '@')
+				else if (currentLabel->lines[lineIndex].text[letterIndex] == '@')
 				{
 					currentText = textbox->text->txt;
 					readingSameLine = true;
@@ -1145,9 +1147,9 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 		{
 			if (currentLabel != nullptr)
 			{
-				if (namesToColors.count(currentLabel->lines[lineIndex]->speaker))
+				if (namesToColors.count(currentLabel->lines[lineIndex].speaker))
 				{
-					textColor = namesToColors[currentLabel->lines[lineIndex]->speaker];
+					textColor = namesToColors[currentLabel->lines[lineIndex].speaker];
 				}
 				else
 				{
@@ -1223,8 +1225,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 
 			// Add the image to the text here
 			//TODO: Check this for memory leaks!
-			Sprite* sprite = neww Sprite(game->spriteManager->GetImage(commands.ParseStringValue(imageName)),
-				game->renderer->shaders[ShaderName::Default]);
+			Sprite* sprite = game->CreateSprite(commands.ParseStringValue(imageName), ShaderName::Default);
 
 			text->AddImage(sprite);
 			letterIndex = imageIndex;
@@ -1670,10 +1671,10 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			fout << "controls keyboard " << useKeyboardControls << std::endl;
 
 			// Save the currently playing BGM
-			fout << "bgm " << game->soundManager->bgmFilepath << std::endl;
+			fout << "bgm " << game->soundManager.bgmFilepath << std::endl;
 
 			// Save other looped sounds
-			for (auto const& [num, channel] : game->soundManager->sounds)
+			for (auto const& [num, channel] : game->soundManager.sounds)
 			{
 				if (channel->loop == -1)
 					fout << "me " << channel->num << " " << channel->sound->filepath << std::endl;
@@ -1771,7 +1772,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				if (currentLabel == nullptr)
 				{
 					if (labelIndex < labels.size())
-						currentLabel = labels[labelIndex];
+						currentLabel = &labels[labelIndex];
 					else
 						std::cout << "ERROR: Could not find label " << labelName << std::endl;
 				}
@@ -1844,15 +1845,15 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 
 				if (lineParams[0] == "bgm")
 				{
-					game->soundManager->PlayBGM(lineParams[1]);
+					game->soundManager.PlayBGM(lineParams[1]);
 				}
 				else if (lineParams[0] == "me")
 				{
-					game->soundManager->PlaySound(lineParams[2], std::stoi(lineParams[1]));
+					game->soundManager.PlaySound(lineParams[2], std::stoi(lineParams[1]));
 				}
 				else if (lineParams[0] == "se")
 				{
-					game->soundManager->PlaySound(lineParams[2], std::stoi(lineParams[1]), std::stoi(lineParams[3]));
+					game->soundManager.PlaySound(lineParams[2], std::stoi(lineParams[1]), std::stoi(lineParams[3]));
 				}
 				else if (lineParams[0] == "window")
 				{

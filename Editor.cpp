@@ -43,18 +43,18 @@ Editor::Editor(Game& g)
 	}
 
 	playOpeningDemoCutscene = false;
-	dialog = neww Dialog(Vector2(g.screenWidth, g.screenHeight), g.spriteManager);
+	dialog = neww Dialog(Vector2(g.screenWidth, g.screenHeight), &g.spriteManager);
 	dialog->text = neww Text(game->theFont, "");
 	dialog->input = neww Text(game->theFont, "");
 
 	dialog->text->SetPosition(dialog->position.x, dialog->position.y + 20);
 	dialog->input->SetPosition(dialog->position.x, dialog->position.y + 70);
 
-	dialog->sprite->SetShader(game->renderer->shaders[ShaderName::SolidColor]);
+	dialog->sprite->SetShader(game->renderer.shaders[ShaderName::SolidColor]);
 	dialog->sprite->color = { 255, 0, 0, 255 };
 	dialog->sprite->keepPositionRelativeToCamera = true;
 	dialog->sprite->keepScaleRelativeToCamera = true;
-	dialog->sprite->SetScale(game->renderer->CalculateScale(*dialog->sprite, 
+	dialog->sprite->SetScale(game->renderer.CalculateScale(*dialog->sprite, 
 		dialog->text->GetTextWidth(), dialog->text->GetTextHeight() * 4, dialog->text->scale));
 
 	dialog->text->GetSprite()->keepPositionRelativeToCamera = true;
@@ -63,7 +63,7 @@ Editor::Editor(Game& g)
 	dialog->input->GetSprite()->keepScaleRelativeToCamera = true;
 
 
-	grid = neww Sprite(game->renderer->shaders[ShaderName::Grid]);
+	grid = neww Sprite(game->renderer.shaders[ShaderName::Grid]);
 	grid->SetScale(Vector2(game->screenWidth, game->screenHeight));
 
 	previewMap["tile"] = game->CreateTile(Vector2(0,0), "assets/editor/rect-outline.png", 
@@ -381,15 +381,15 @@ void Editor::StartEdit()
 {
 	game->LoadEditorSettings();
 
-	//game->renderer->camera.ResetProjection();
+	//game->renderer.camera.ResetProjection();
 
 	// TILE SHEET FOR TOOLBOX
 	if (tilesheetSprites.empty())
 	{
 		for (int i = 0; i < tilesheetFilenames.size(); i++)
 		{
-			tilesheetSprites.push_back(new Sprite(1, *game->spriteManager,
-				tilesheetFilenames[i], game->renderer->shaders[ShaderName::NoAlpha], Vector2(0, 0)));
+			tilesheetSprites.push_back(new Sprite(1, game->spriteManager,
+				tilesheetFilenames[i], game->renderer.shaders[ShaderName::NoAlpha], Vector2(0, 0)));
 
 			tilesheetSprites[i]->keepPositionRelativeToCamera = true;
 			tilesheetSprites[i]->keepScaleRelativeToCamera = true;
@@ -458,7 +458,7 @@ void Editor::StartEdit()
 
 void Editor::StopEdit()
 {
-	//game->renderer->camera.Zoom(0.0f, game->screenWidth, game->screenHeight);	
+	//game->renderer.camera.Zoom(0.0f, game->screenWidth, game->screenHeight);	
 	//inspectionMode = false;	
 	game->SaveEditorSettings();
 	selectedEntity = nullptr;
@@ -576,27 +576,27 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 			{
 				if (clickedLayerVisibleButton == "BACK")
 				{
-					game->renderer->ToggleVisibility(DrawingLayer::BACK);
+					game->renderer.ToggleVisibility(DrawingLayer::BACK);
 				}
 				else if (clickedLayerVisibleButton == "MIDDLE")
 				{
-					game->renderer->ToggleVisibility(DrawingLayer::MIDDLE);
+					game->renderer.ToggleVisibility(DrawingLayer::MIDDLE);
 				}
 				else if (clickedLayerVisibleButton == "OBJECT")
 				{
-					game->renderer->ToggleVisibility(DrawingLayer::OBJECT);
+					game->renderer.ToggleVisibility(DrawingLayer::OBJECT);
 				}
 				else if (clickedLayerVisibleButton == "COLLISION")
 				{
-					game->renderer->ToggleVisibility(DrawingLayer::COLLISION);
+					game->renderer.ToggleVisibility(DrawingLayer::COLLISION);
 				}
 				else if (clickedLayerVisibleButton == "COLLISION2")
 				{
-					game->renderer->ToggleVisibility(DrawingLayer::COLLISION2);
+					game->renderer.ToggleVisibility(DrawingLayer::COLLISION2);
 				}
 				else if (clickedLayerVisibleButton == "FRONT")
 				{
-					game->renderer->ToggleVisibility(DrawingLayer::FRONT);
+					game->renderer.ToggleVisibility(DrawingLayer::FRONT);
 				}
 			}
 
@@ -613,8 +613,8 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	else if (objectMode == "inspect")
 	{
 		Vector2 inspectPosition = Vector2(mouseX, mouseY);
-		inspectPosition.x += game->renderer->camera.position.x;
-		inspectPosition.y += game->renderer->camera.position.y;
+		inspectPosition.x += game->renderer.camera.position.x;
+		inspectPosition.y += game->renderer.camera.position.y;
 		InspectObject(inspectPosition, clickedScreenPosition);
 	}
 	else if (objectMode == "rotate")
@@ -622,8 +622,8 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
 			Vector2 rotatePosition = Vector2(mouseX, mouseY);
-			rotatePosition.x += game->renderer->camera.position.x;
-			rotatePosition.y += game->renderer->camera.position.y;
+			rotatePosition.x += game->renderer.camera.position.x;
+			rotatePosition.y += game->renderer.camera.position.y;
 
 			Entity* rotatedEntity = GetClickedEntity(rotatePosition);
 
@@ -640,8 +640,8 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
 			Vector2 grabPosition = Vector2(mouseX, mouseY);
-			grabPosition.x += game->renderer->camera.position.x;
-			grabPosition.y += game->renderer->camera.position.y;
+			grabPosition.x += game->renderer.camera.position.x;
+			grabPosition.y += game->renderer.camera.position.y;
 
 			// Either grab a neww entity, or place the currently grabbed one
 			if (grabbedEntity == nullptr)
@@ -716,7 +716,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 					{
 						// Set the index of the tile
 						tilesInLevel[i]->ChangeSprite(spriteSheetTileFrame,
-							game->spriteManager->GetImage(tilesheetFilenames[tilesheetIndex]), game->renderer);
+							game->spriteManager.GetImage(tilesheetFilenames[tilesheetIndex]), &game->renderer);
 					}
 				}
 
@@ -1104,7 +1104,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 		//TODO: Can't be this simple. Our zoom level affects the mouse position!
 		// Do we need to use raycasts or something else here?
 
-		//glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
+		//glm::mat4 invertedProjection = glm::inverse(game->renderer.camera.projection);
 		//glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
 
 		game->SpawnTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex], spawnPos, drawingLayer);
@@ -1120,8 +1120,8 @@ void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector
 	if (previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE))
 		return;
 
-	Vector2 worldPosition = Vector2(clickedPosition.x + game->renderer->camera.position.x,
-		clickedPosition.y + game->renderer->camera.position.y);
+	Vector2 worldPosition = Vector2(clickedPosition.x + game->renderer.camera.position.x,
+		clickedPosition.y + game->renderer.camera.position.y);
 
 	SDL_Rect mouseRect;
 	mouseRect.x = worldPosition.x;
@@ -1145,8 +1145,8 @@ void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector
 	}
 
 	clickedWorldPosition = Vector2(mouseX / Camera::MULTIPLIER, mouseY / Camera::MULTIPLIER);
-	clickedWorldPosition.x += game->renderer->camera.position.x;
-	clickedWorldPosition.y += game->renderer->camera.position.y;
+	clickedWorldPosition.x += game->renderer.camera.position.x;
+	clickedWorldPosition.y += game->renderer.camera.position.y;
 
 	previewMap[objectMode]->rotation.z -= 90;
 	if (previewMap[objectMode]->rotation.z < 0)
@@ -1165,8 +1165,8 @@ void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2
 	}
 
 	clickedWorldPosition = Vector2(mouseX / Camera::MULTIPLIER, mouseY / Camera::MULTIPLIER);
-	clickedWorldPosition.x += game->renderer->camera.position.x;
-	clickedWorldPosition.y += game->renderer->camera.position.y;
+	clickedWorldPosition.x += game->renderer.camera.position.x;
+	clickedWorldPosition.y += game->renderer.camera.position.y;
 
 	if (objectMode == "rotate")
 	{
@@ -1355,7 +1355,7 @@ void Editor::HandleEdit()
 	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);
 	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->GetSprite()->keepScaleRelativeToCamera = true;
 
-	glm::mat4 invertedProjection = glm::inverse(game->renderer->camera.projection);
+	glm::mat4 invertedProjection = glm::inverse(game->renderer.camera.projection);
 	glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
 
 	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
@@ -1385,8 +1385,8 @@ void Editor::HandleEdit()
 	if (grabbedEntity != nullptr)
 	{
 		Vector2 grabPosition = Vector2(mouseX, mouseY);
-		grabPosition.x += game->renderer->camera.position.x;
-		grabPosition.y += game->renderer->camera.position.y;
+		grabPosition.x += game->renderer.camera.position.x;
+		grabPosition.y += game->renderer.camera.position.y;
 
 		grabbedEntity->SetPosition(game->SnapToGrid(grabPosition));
 	}
@@ -1758,16 +1758,16 @@ void Editor::Render(const Renderer& renderer)
 		if (objectMode == "tile" || objectMode == "replace" || objectMode == "copy")
 		{
 			// Draw the tilesheet (only if we are placing a tile)
-			tilesheetSprites[tilesheetIndex]->Render(tilesheetPosition, *game->renderer);
+			tilesheetSprites[tilesheetIndex]->Render(tilesheetPosition, game->renderer);
 
 			// Draw a yellow rectangle around the currently selected tileset tile
-			game->renderer->debugSprite->color = { 255, 255, 0, 255 };
-			game->renderer->debugSprite->scale = Vector2(1, 1);
-			game->renderer->debugSprite->keepPositionRelativeToCamera = true;
-			game->renderer->debugSprite->keepScaleRelativeToCamera = true;
-			game->renderer->debugSprite->Render(selectedTilePosition, renderer);
-			game->renderer->debugSprite->keepPositionRelativeToCamera = false;
-			game->renderer->debugSprite->keepScaleRelativeToCamera = false;
+			game->renderer.debugSprite->color = { 255, 255, 0, 255 };
+			game->renderer.debugSprite->scale = Vector2(1, 1);
+			game->renderer.debugSprite->keepPositionRelativeToCamera = true;
+			game->renderer.debugSprite->keepScaleRelativeToCamera = true;
+			game->renderer.debugSprite->Render(selectedTilePosition, renderer);
+			game->renderer.debugSprite->keepPositionRelativeToCamera = false;
+			game->renderer.debugSprite->keepScaleRelativeToCamera = false;
 		}
 	}	
 
@@ -1827,7 +1827,7 @@ void Editor::CreateDialog(const std::string& txt)
 		dialog->text->SetText(txt);
 		dialog->input->SetText("");
 		dialog->visible = true;
-		dialog->sprite->SetScale(game->renderer->CalculateScale(*dialog->sprite,
+		dialog->sprite->SetScale(game->renderer.CalculateScale(*dialog->sprite,
 			dialog->text->GetTextWidth(), dialog->text->GetTextHeight() * 4, dialog->text->scale));
 	}
 }
@@ -2174,7 +2174,7 @@ void Editor::CreateLevelFromString(std::string level)
 					{
 						//Background* bg = game->SpawnBackground(Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET), bgName);
 						Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
-						game->background->CreateBackground(bgName, bgPos, *game->spriteManager, *game->renderer);
+						game->background->CreateBackground(bgName, bgPos, game->spriteManager, game->renderer);
 					}
 
 					game->SortEntities(game->background->layers);
@@ -2202,7 +2202,7 @@ void Editor::CreateLevelFromString(std::string level)
 				std::cout << "EXCEPTION: " << e.what() << std::endl;
 				std::cout << "LINE: " << lineNumber << std::endl;
 				std::cout << "INDEX: " << index << std::endl;
-				game->logger->Log(e.what());
+				game->logger.Log(e.what());
 			}
 
 			//ss.getline(lineChar, LINE_SIZE);
@@ -2244,7 +2244,7 @@ void Editor::CreateLevelFromString(std::string level)
 			}
 
 			// Set the camera's position to the player's instantly
-			game->renderer->camera.FollowTarget(*game, true);
+			game->renderer.camera.FollowTarget(*game, true);
 		}
 
 
@@ -2265,7 +2265,7 @@ void Editor::CreateLevelFromString(std::string level)
 	catch (std::exception ex)
 	{
 		std::cout << "ERROR CREATING LEVEL: " << ex.what() << std::endl;
-		game->logger->Log(ex.what());
+		game->logger.Log(ex.what());
 	}
 }
 
@@ -2329,26 +2329,26 @@ void Editor::InitLevelFromFile(std::string levelName)
 		if (levelName == "demo")
 		{
 			if (playOpeningDemoCutscene)
-				game->cutscene->PlayCutscene(game->levelStartCutscene.c_str());
+				game->cutsceneManager.PlayCutscene(game->levelStartCutscene.c_str());
 			playOpeningDemoCutscene = false;
 		}
 		else
 		{
-			game->cutscene->PlayCutscene(game->levelStartCutscene.c_str());
+			game->cutsceneManager.PlayCutscene(game->levelStartCutscene.c_str());
 		}
 	}
 
 	// Load data from the current save file
 	if (game->player != nullptr)
 	{
-		game->player->position.x = game->cutscene->commands.numberVariables[202];
-		game->player->position.y = game->cutscene->commands.numberVariables[203];
+		game->player->position.x = game->cutsceneManager.commands.numberVariables[202];
+		game->player->position.y = game->cutsceneManager.commands.numberVariables[203];
 		game->player->startPosition = game->player->position;
 		
 		if (game->player->health != nullptr)
 		{
-			game->player->health->SetMaxHP(game->cutscene->commands.numberVariables[204]);
-			game->player->health->SetCurrentHP(game->cutscene->commands.numberVariables[205]);
+			game->player->health->SetMaxHP(game->cutsceneManager.commands.numberVariables[204]);
+			game->player->health->SetCurrentHP(game->cutsceneManager.commands.numberVariables[205]);
 		}
 	}
 

@@ -33,21 +33,45 @@ public:
 		text = txt;
 		speaker = name;
 	}
+
+	SceneLine(SceneLine* line)
+	{
+		if (line != nullptr)
+		{
+			text = line->text;
+			speaker = line->speaker;
+			commands = line->commands;
+		}
+	}
 };
 
 class SceneLabel
 {
 public:
 	std::string name = "";
-	std::vector<SceneLine*> lines;
+	std::vector<SceneLine> lines;
 
 	~SceneLabel()
 	{
 		for (unsigned int i = 0; i < lines.size(); i++)
 		{
-			delete lines[i];
+			//delete lines[i];
 		}
 		lines.clear();
+	}
+
+	SceneLabel()
+	{
+		
+	}
+
+	SceneLabel(SceneLabel* label)
+	{
+		if (label != nullptr)
+		{
+			name = label->name;
+			lines = label->lines;
+		}
 	}
 };
 
@@ -123,9 +147,12 @@ public:
 	// This class should have a reference to the controller and get the bindings from it
 	SDL_Scancode skipButton = SDL_Scancode::SDL_SCANCODE_LCTRL; //TODO: multiple buttons?
 	SDL_Scancode autoButton = SDL_Scancode::SDL_SCANCODE_A;
-	std::vector<SceneLabel*> labels;
+
+	std::vector<SceneLabel> labels;
+
 	SceneLabel* currentLabel = nullptr;
 	std::vector<SceneData*> gosubStack;
+
 	const int choiceSpriteStartNumber = 10000;
 	int buttonIndex = 0;
 	int buttonResult = 0;
@@ -146,14 +173,17 @@ public:
 	std::vector<std::string> choiceIfStatements;
 	std::vector<unsigned int> activeButtons;
 	std::unordered_map<unsigned int, unsigned int> spriteButtons;
+
 	std::map<std::string, Entity*> animatedImages;
 	std::map<unsigned int, Entity*> images; // needs to be in order for rendering
 	std::map<unsigned int, Entity*>::iterator imageIterator;
+
 	std::map<unsigned int, unsigned int> seenLabelsToMostRecentLine;
 	std::unordered_map<std::string, std::string> namesToNames;
 	std::unordered_map<std::string, Color> namesToColors;
 	std::unordered_map<std::string, TextTag*> tags;
 	std::unordered_map<unsigned int, Timer*> timers;
+
 	float msGlyphTime = 0;
 	float msInitialDelayBetweenGlyphs = 10.0f;
 	float msDelayBetweenGlyphs = 10.0f;
@@ -163,7 +193,8 @@ public:
 	Uint32 previousMouseState = 0;
 	bool clickedMidPage = false;
 
-	CutsceneManager(Game& g);
+	CutsceneManager();
+	void Init(Game& g);
 	void ParseScene();
 	void ParseConfig(const char* configName);
 	void Update();

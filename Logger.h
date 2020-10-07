@@ -12,6 +12,8 @@ public:
 	Logger(const char* filename);
 	~Logger();
 	void Log(const char* message);
+
+	void SetOutputFile(const char* filename);
 };
 
 #endif

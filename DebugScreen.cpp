@@ -8,8 +8,8 @@
 DebugScreen::DebugScreen(Game& g)
 {
 	game = &g;
-	sprite = neww Sprite(0, 0, 1, *game->spriteManager, "assets/editor/1pixel.png", game->renderer->shaders[ShaderName::Default], Vector2(0, 0));
-	camera = &game->renderer->camera;
+	sprite = game->CreateSprite("assets/editor/1pixel.png");
+	camera = &game->renderer.camera;
 	CreateDebugText(DebugText::cursorPositionInScreen, 400, 50);
 	CreateDebugText(DebugText::cursorPositionInWorld, 400, 100);
 	CreateDebugText(DebugText::currentEditModeLayer, 400, 200);
@@ -36,7 +36,7 @@ void DebugScreen::Update()
 {
 	const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
-	worldPosition = Vector2(mouseX + game->renderer->camera.position.x, mouseY + game->renderer->camera.position.y);
+	worldPosition = Vector2(mouseX + game->renderer.camera.position.x, mouseY + game->renderer.camera.position.y);
 
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
 	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);

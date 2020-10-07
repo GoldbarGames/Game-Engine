@@ -80,7 +80,7 @@ void Shroom::OnTriggerEnter(Entity& other, Game& game)
 			break;
 		}
 
-		game.soundManager->PlaySound("se/Jump.wav", 0);
+		game.soundManager.PlaySound("se/Jump.wav", 0);
 		animator->SetBool("isBouncing", true);
 		animator->Update(*this);
 		animator->DoState(*this);

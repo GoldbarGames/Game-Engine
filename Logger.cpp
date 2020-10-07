@@ -19,6 +19,18 @@ Logger::~Logger()
 	}
 }
 
+void Logger::SetOutputFile(const char* filename)
+{
+	if (file.is_open())
+	{
+		Log("File closed");
+		file.close();
+	}
+
+	file = std::ofstream(filename, std::ios_base::app);
+	Log("File opened");
+}
+
 void Logger::Log(const char* message)
 {
 	if (shouldPrintMessage)

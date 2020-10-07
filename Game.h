@@ -8,6 +8,12 @@
 #include "globals.h"
 #include "Timer.h"
 #include "QuadTree.h"
+#include "CutsceneManager.h"
+#include "RandomManager.h"
+#include "SoundManager.h"
+#include "SpriteManager.h"
+#include "Renderer.h"
+#include "Logger.h"
 
 enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
 
@@ -43,7 +49,7 @@ public:
 
 	std::string currentSaveFileName = "";
 
-	Logger* logger;
+	Logger logger;
 	SDL_GameController* controller;
 
 	EntityFactory* entityFactory;
@@ -147,17 +153,19 @@ public:
 	std::string nextBGM = "";
 
 	Uint32 lastPressedKeyTicks = 0;
-	//std::vector<Background*> backgrounds;
-	Background* background = nullptr;
 
-	CutsceneManager* cutscene = nullptr;
+	Background* background = nullptr;	
 
-	Renderer* renderer = nullptr;
-	SpriteManager* spriteManager = nullptr;
-	SoundManager* soundManager = nullptr;
-	RandomManager* randomManager = nullptr;
+	Renderer renderer;
+	CutsceneManager cutsceneManager;
+	SpriteManager spriteManager;
+	SoundManager soundManager;
+	RandomManager randomManager;
+
 	FontInfo* theFont = nullptr;
 	FontInfo* headerFont = nullptr;
+
+	std::vector<Entity*> entitiesToRender;
 	
 	Text* fpsText = nullptr;
 	Text* timerText = nullptr;
@@ -247,6 +255,8 @@ public:
 	void LoadEditorSettings();
 
 	void SaveScreenshot(const std::string& filepath="");
+
+	Sprite* CreateSprite(const std::string& filepath, const ShaderName shaderName = ShaderName::Default);
 };
 
 #endif

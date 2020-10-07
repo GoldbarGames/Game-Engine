@@ -7,17 +7,21 @@
 #include <sstream>
 #include <iterator>
 
-SpriteManager::SpriteManager(Renderer* r)
+SpriteManager::SpriteManager()
 {
 	//Note: To link PHYSFS, use the static library
 	PHYSFS_init(NULL);
 	PHYSFS_addToSearchPath("assets.wdk", 1);
-	renderer = r;
 }
 
 SpriteManager::~SpriteManager()
 {	
 	PHYSFS_deinit();
+}
+
+void SpriteManager::Init(Renderer* r)
+{
+	renderer = r;
 }
 
 Texture* SpriteManager::GetImage(std::string const& imagePath) const

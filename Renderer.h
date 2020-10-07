@@ -43,7 +43,7 @@ public:
 	Uint32 overlayStartTime = 0;
 	Uint32 overlayEndTime = 0;
 
-	void RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale) const;
+	void RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, Color color = { 255, 255, 255, 255 }) const;
 	Vector2 CalculateScale(const Sprite& sourceSprite, const Sprite& targetSprite) const;
 	Vector2 CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const;
 	Vector2 screenScale = Vector2(1, 1);
@@ -59,7 +59,8 @@ public:
 
 	static ShaderProgram* GetTextShader();
 
-	Renderer(Game* g);
+	void Init(Game* g);
+	Renderer();
 	~Renderer();
 };
 

@@ -148,7 +148,11 @@ CutsceneCommands::CutsceneCommands()
 
 CutsceneCommands::~CutsceneCommands()
 {
-
+	for (int i = 0; i < userDefinedFunctions.size(); i++)
+	{
+		if (userDefinedFunctions[i] != nullptr)
+			delete_it(userDefinedFunctions[i]);
+	}
 }
 
 bool CutsceneCommands::ExecuteCommand(std::string& command)
@@ -292,7 +296,7 @@ bool CutsceneCommands::ExecuteCommand(std::string& command)
 				{
 					std::cout << "EXCEPTION: " << e.what() << std::endl;
 					std::cout << "COMMAND: " << command << std::endl;
-					manager->game->logger->Log(e.what());
+					manager->game->logger.Log(e.what());
 				}
 
 				break;
@@ -312,7 +316,7 @@ bool CutsceneCommands::ExecuteCommand(std::string& command)
 					bool foundLabel = false;
 					for (int i = 0; i < manager->labels.size(); i++)
 					{
-						if (manager->labels[i]->name == parameters[0])
+						if (manager->labels[i].name == parameters[0])
 						{
 							foundLabel = true;
 							break;
@@ -382,27 +386,27 @@ int CutsceneCommands::MusicCommand(CutsceneParameters parameters)
 
 	if (parameters[1] == "play")
 	{
-		manager->game->soundManager->PlayBGM(pathPrefix + ParseStringValue(parameters[2]), true);
+		manager->game->soundManager.PlayBGM(pathPrefix + ParseStringValue(parameters[2]), true);
 	}
 	else if (parameters[1] == "once")
 	{
-		manager->game->soundManager->PlayBGM(pathPrefix + ParseStringValue(parameters[2]), false);
+		manager->game->soundManager.PlayBGM(pathPrefix + ParseStringValue(parameters[2]), false);
 	}
 	else if (parameters[1] == "stop")
 	{
-		manager->game->soundManager->StopBGM();
+		manager->game->soundManager.StopBGM();
 	}
 	else if (parameters[1] == "fadein")
 	{
-		manager->game->soundManager->FadeInBGM(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]), true);
+		manager->game->soundManager.FadeInBGM(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]), true);
 	}
 	else if (parameters[1] == "fadeout")
 	{
-		manager->game->soundManager->FadeOutBGM(ParseNumberValue(parameters[3]));
+		manager->game->soundManager.FadeOutBGM(ParseNumberValue(parameters[3]));
 	}
 	else if (parameters[1] == "volume")
 	{
-		manager->game->soundManager->SetVolumeBGM(ParseNumberValue(parameters[3]));
+		manager->game->soundManager.SetVolumeBGM(ParseNumberValue(parameters[3]));
 	}
 
 	return 0;
@@ -413,11 +417,11 @@ int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
 	if (parameters[1] == "play")
 	{
 		//TODO: Deal with multiple channels
-		manager->game->soundManager->PlaySound(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]), -1);
+		manager->game->soundManager.PlaySound(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]), -1);
 	}
 	else if (parameters[1] == "volume")
 	{
-		manager->game->soundManager->SetVolumeSound(ParseNumberValue(parameters[2]));
+		manager->game->soundManager.SetVolumeSound(ParseNumberValue(parameters[2]));
 	}
 
 	return 0;
@@ -428,11 +432,11 @@ int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
 	if (parameters[1] == "play")
 	{
 		//TODO: Deal with multiple channels
-		manager->game->soundManager->PlaySound(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]));
+		manager->game->soundManager.PlaySound(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]));
 	}
 	else if (parameters[1] == "volume")
 	{
-		manager->game->soundManager->SetVolumeSound(ParseNumberValue(parameters[2]));
+		manager->game->soundManager.SetVolumeSound(ParseNumberValue(parameters[2]));
 	}
 
 	return 0;
@@ -701,7 +705,7 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 
 	if (data == nullptr)
 	{		
-		manager->game->logger->Log("ERROR: Nowhere to return to!");
+		manager->game->logger.Log("ERROR: Nowhere to return to!");
 		return -99;
 	}
 
@@ -712,7 +716,7 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 	if (manager->currentLabel == nullptr)
 	{
 		if (data->labelIndex < manager->labels.size())
-			manager->currentLabel = manager->labels[data->labelIndex];
+			manager->currentLabel = &manager->labels[data->labelIndex];
 		else
 			std::cout << "ERROR: Could not find label " << labelName << std::endl;
 	}
@@ -879,7 +883,7 @@ int CutsceneCommands::ResetGame(CutsceneParameters parameters)
 {
 	manager->ClearAllSprites();
 	// TODO: Clear BG
-	manager->game->soundManager->StopBGM();
+	manager->game->soundManager.StopBGM();
 	// TODO: Stop all sound channels
 	manager->PlayCutscene("start");
 	return 0;
@@ -1091,11 +1095,11 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 	{
 		if (parameters[2] == "time")
 		{
-			manager->game->randomManager->Seed();
+			manager->game->randomManager.Seed();
 		}
 		else
 		{
-			manager->game->randomManager->Seed(ParseNumberValue(parameters[2]));
+			manager->game->randomManager.Seed(ParseNumberValue(parameters[2]));
 		}
 	}
 	else if (parameters[1] == "range")
@@ -1104,7 +1108,7 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 		unsigned int minNumber = ParseNumberValue(parameters[3]);
 		unsigned int maxNumber = ParseNumberValue(parameters[4]);
 
-		numberVariables[key] = manager->game->randomManager->RandomRange(minNumber, maxNumber);
+		numberVariables[key] = manager->game->randomManager.RandomRange(minNumber, maxNumber);
 
 		// If global variable, save change to file
 		if (key >= manager->globalStart)
@@ -1115,7 +1119,7 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 		key = ParseNumberValue(parameters[1]);
 		unsigned int maxNumber = ParseNumberValue(parameters[2]);
 
-		numberVariables[key] = manager->game->randomManager->RandomInt(maxNumber);
+		numberVariables[key] = manager->game->randomManager.RandomInt(maxNumber);
 
 		// If global variable, save change to file
 		if (key >= manager->globalStart)
@@ -1389,8 +1393,8 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 
 	manager->images[imageNumber] = neww Entity(pos);
 
-	Sprite* newSprite = neww Sprite(1, *manager->game->spriteManager,
-		filepath, manager->game->renderer->shaders[ShaderName::Default], Vector2(0, 0));
+	Sprite* newSprite = neww Sprite(1, manager->game->spriteManager,
+		filepath, manager->game->renderer.shaders[ShaderName::Default], Vector2(0, 0));
 
 	manager->images[imageNumber]->SetSprite(*newSprite);
 
@@ -1407,16 +1411,16 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 				spriteY = (manager->game->screenHeight * 2) - 
 					(manager->images[imageNumber]->GetSprite()->frameHeight);
 
-				pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
-					spriteY + manager->game->renderer->guiCamera.position.y);
+				pos = Vector2(spriteX + manager->game->renderer.guiCamera.position.x,
+					spriteY + manager->game->renderer.guiCamera.position.y);
 				break;
 			case 'c':
 				spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
 				spriteY = (manager->game->screenHeight * 2) -
 					(manager->images[imageNumber]->GetSprite()->frameHeight);
 
-				pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
-					spriteY + manager->game->renderer->guiCamera.position.y);
+				pos = Vector2(spriteX + manager->game->renderer.guiCamera.position.x,
+					spriteY + manager->game->renderer.guiCamera.position.y);
 
 				break;
 			case 'r':
@@ -1424,8 +1428,8 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 				spriteY = (manager->game->screenHeight * 2) -
 					(manager->images[imageNumber]->GetSprite()->frameHeight);
 
-				pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
-					spriteY + manager->game->renderer->guiCamera.position.y);
+				pos = Vector2(spriteX + manager->game->renderer.guiCamera.position.x,
+					spriteY + manager->game->renderer.guiCamera.position.y);
 
 				break;
 			default:
@@ -1449,8 +1453,8 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 		spriteY = (manager->game->screenHeight * 2) -
 			(manager->images[imageNumber]->GetSprite()->frameHeight);
 
-		pos = Vector2(spriteX + manager->game->renderer->guiCamera.position.x,
-			spriteY + manager->game->renderer->guiCamera.position.y);
+		pos = Vector2(spriteX + manager->game->renderer.guiCamera.position.x,
+			spriteY + manager->game->renderer.guiCamera.position.y);
 
 		manager->images[imageNumber]->SetPosition(pos);
 		if (parameters.size() > 3)
@@ -1656,8 +1660,8 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 	else if (spriteProperty == "shader")
 	{	
 		//TODO: Fix this so that it works with enums
-		//if (manager->game->renderer->GetShaderFromString(parameters[3]) != nullptr)
-		//	sprite->shader = manager->game->renderer->GetShaderFromString(parameters[3]);
+		//if (manager->game->renderer.GetShaderFromString(parameters[3]) != nullptr)
+		//	sprite->shader = manager->game->renderer.GetShaderFromString(parameters[3]);
 		//TODO: Log and display error if cannot find shader?
 	}
 	else if (spriteProperty == "animator")
@@ -1670,7 +1674,7 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 				delete entity->GetAnimator();
 
 			std::vector<AnimState*> animStates;
-			manager->game->spriteManager->ReadAnimData(ParseStringValue(parameters[4]), animStates);
+			manager->game->spriteManager.ReadAnimData(ParseStringValue(parameters[4]), animStates);
 
 			for (int i = 0; i < animStates.size(); i++)
 			{
@@ -1887,33 +1891,33 @@ int CutsceneCommands::Textbox(CutsceneParameters parameters)
 
 int CutsceneCommands::Fade(CutsceneParameters parameters)
 {
-	manager->game->renderer->changingOverlayColor = true;
+	manager->game->renderer.changingOverlayColor = true;
 
 	if (parameters.size() == 3)
 	{
-		manager->game->renderer->overlayStartTime = manager->game->timer.GetTicks();
-		manager->game->renderer->overlayEndTime = manager->game->renderer->overlayStartTime + std::stoi(parameters[2]);
+		manager->game->renderer.overlayStartTime = manager->game->timer.GetTicks();
+		manager->game->renderer.overlayEndTime = manager->game->renderer.overlayStartTime + std::stoi(parameters[2]);
 	}
 
-	manager->game->renderer->startColor = manager->game->renderer->overlayColor;
+	manager->game->renderer.startColor = manager->game->renderer.overlayColor;
 
 	if (parameters[1] == "clear")
 	{
-		manager->game->renderer->targetColor = Color { 0, 0, 0, 0 };
+		manager->game->renderer.targetColor = Color { 0, 0, 0, 0 };
 	}
 	else if (parameters[1] == "white")
 	{
-		manager->game->renderer->targetColor = Color{ 255, 255, 255, 255 };
+		manager->game->renderer.targetColor = Color{ 255, 255, 255, 255 };
 	}
 	else if (parameters[1] == "black")
 	{
-		manager->game->renderer->targetColor = Color{0, 0, 0, 255 };
+		manager->game->renderer.targetColor = Color{0, 0, 0, 255 };
 	}
 	else
 	{
 		if (parameters.size() > 5)
 		{
-			manager->game->renderer->targetColor = { 
+			manager->game->renderer.targetColor = { 
 				(uint8_t)ParseNumberValue(parameters[2]),
 				(uint8_t)ParseNumberValue(parameters[3]),
 				(uint8_t)ParseNumberValue(parameters[4]),
@@ -1921,7 +1925,7 @@ int CutsceneCommands::Fade(CutsceneParameters parameters)
 		}
 		else
 		{
-			manager->game->renderer->targetColor = { 
+			manager->game->renderer.targetColor = { 
 				(uint8_t)ParseNumberValue(parameters[2]),
 				(uint8_t)ParseNumberValue(parameters[3]),
 				(uint8_t)ParseNumberValue(parameters[4]),
@@ -2101,18 +2105,18 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 		//TODO: Refactor the camera.Zoom function to make orthoZoom private
 		if (parameters[2] == "set")
 		{
-			manager->game->renderer->camera.orthoZoom = ParseNumberValue(parameters[3]);
-			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+			manager->game->renderer.camera.orthoZoom = ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
 		else if (parameters[2] == "add")
 		{
-			manager->game->renderer->camera.orthoZoom += ParseNumberValue(parameters[3]);
-			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+			manager->game->renderer.camera.orthoZoom += ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
 		else if (parameters[2] == "sub")
 		{
-			manager->game->renderer->camera.orthoZoom -= ParseNumberValue(parameters[3]);
-			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+			manager->game->renderer.camera.orthoZoom -= ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
 		else if (parameters[2] == "lerp")
 		{
@@ -2123,39 +2127,39 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 	{
 		if (parameters[2] == "set")
 		{
-			manager->game->renderer->camera.position = glm::vec3(ParseNumberValue(parameters[3]), 
+			manager->game->renderer.camera.position = glm::vec3(ParseNumberValue(parameters[3]), 
 				ParseNumberValue(parameters[4]), ParseNumberValue(parameters[5]));
 		}
 		else if (parameters[2] == "moveto") //TODO: Last parameter is time or speed?
 		{
 			const float SPEED = std::stof(parameters[6]);
 
-			if (manager->game->renderer->camera.position.x != ParseNumberValue(parameters[3]))
+			if (manager->game->renderer.camera.position.x != ParseNumberValue(parameters[3]))
 			{
-				if (ParseNumberValue(parameters[3]) > manager->game->renderer->camera.position.x)
-					manager->game->renderer->camera.position.x += SPEED;
+				if (ParseNumberValue(parameters[3]) > manager->game->renderer.camera.position.x)
+					manager->game->renderer.camera.position.x += SPEED;
 				else
-					manager->game->renderer->camera.position.x -= SPEED;
+					manager->game->renderer.camera.position.x -= SPEED;
 			}
 
-			if (manager->game->renderer->camera.position.y != ParseNumberValue(parameters[4]))
+			if (manager->game->renderer.camera.position.y != ParseNumberValue(parameters[4]))
 			{
-				if (ParseNumberValue(parameters[4]) > manager->game->renderer->camera.position.y)
-					manager->game->renderer->camera.position.y += SPEED;
+				if (ParseNumberValue(parameters[4]) > manager->game->renderer.camera.position.y)
+					manager->game->renderer.camera.position.y += SPEED;
 				else
-					manager->game->renderer->camera.position.y -= SPEED;
+					manager->game->renderer.camera.position.y -= SPEED;
 			}
 
-			if (manager->game->renderer->camera.position.z != ParseNumberValue(parameters[5]))
+			if (manager->game->renderer.camera.position.z != ParseNumberValue(parameters[5]))
 			{
-				if (ParseNumberValue(parameters[5]) > manager->game->renderer->camera.position.z)
-					manager->game->renderer->camera.position.z += SPEED;
+				if (ParseNumberValue(parameters[5]) > manager->game->renderer.camera.position.z)
+					manager->game->renderer.camera.position.z += SPEED;
 				else
-					manager->game->renderer->camera.position.z -= SPEED;
+					manager->game->renderer.camera.position.z -= SPEED;
 			}
 
 			//TODO: Round these to ints if they are not even
-			glm::vec3 intPos = manager->game->renderer->camera.position;
+			glm::vec3 intPos = manager->game->renderer.camera.position;
 
 			intPos.x = (int)intPos.x;
 			intPos.y = (int)intPos.y;
@@ -2168,17 +2172,17 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 			}
 			else
 			{
-				manager->game->renderer->camera.position = intPos;
+				manager->game->renderer.camera.position = intPos;
 			}
 		}
 		else if (parameters[2] == "add")
 		{
-			manager->game->renderer->camera.position += glm::vec3(ParseNumberValue(parameters[3]),
+			manager->game->renderer.camera.position += glm::vec3(ParseNumberValue(parameters[3]),
 				ParseNumberValue(parameters[4]), ParseNumberValue(parameters[5]));
 		}
 		else if (parameters[2] == "sub")
 		{
-			manager->game->renderer->camera.position -= glm::vec3(ParseNumberValue(parameters[3]),
+			manager->game->renderer.camera.position -= glm::vec3(ParseNumberValue(parameters[3]),
 				ParseNumberValue(parameters[4]), ParseNumberValue(parameters[5]));
 		}
 		else if (parameters[2] == "lerp")
@@ -2191,18 +2195,18 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 		//TODO: Refactor the camera.Zoom function to make angle private
 		if (parameters[2] == "set")
 		{
-			manager->game->renderer->camera.angle = ParseNumberValue(parameters[3]);
-			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+			manager->game->renderer.camera.angle = ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
 		else if (parameters[2] == "add")
 		{
-			manager->game->renderer->camera.angle += ParseNumberValue(parameters[3]);
-			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+			manager->game->renderer.camera.angle += ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
 		else if (parameters[2] == "sub")
 		{
-			manager->game->renderer->camera.angle -= ParseNumberValue(parameters[3]);
-			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+			manager->game->renderer.camera.angle -= ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
 		else if (parameters[2] == "lerp")
 		{
@@ -2213,15 +2217,15 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 	{
 		if (parameters[2] == "set")
 		{
-			manager->game->renderer->camera.pitch = ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.pitch = ParseNumberValue(parameters[3]);
 		}
 		else if (parameters[2] == "add")
 		{
-			manager->game->renderer->camera.pitch += ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.pitch += ParseNumberValue(parameters[3]);
 		}
 		else if (parameters[2] == "sub")
 		{
-			manager->game->renderer->camera.pitch -= ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.pitch -= ParseNumberValue(parameters[3]);
 		}
 		else if (parameters[2] == "lerp")
 		{
@@ -2232,15 +2236,15 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 	{
 		if (parameters[2] == "set")
 		{
-			manager->game->renderer->camera.yaw = ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.yaw = ParseNumberValue(parameters[3]);
 		}
 		else if (parameters[2] == "add")
 		{
-			manager->game->renderer->camera.yaw += ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.yaw += ParseNumberValue(parameters[3]);
 		}
 		else if (parameters[2] == "sub")
 		{
-			manager->game->renderer->camera.yaw -= ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.yaw -= ParseNumberValue(parameters[3]);
 		}
 		else if (parameters[2] == "lerp")
 		{
@@ -2251,15 +2255,15 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 	{
 		if (parameters[2] == "set")
 		{
-			manager->game->renderer->camera.roll = ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.roll = ParseNumberValue(parameters[3]);
 		}
 		else if (parameters[2] == "add")
 		{
-			manager->game->renderer->camera.roll += ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.roll += ParseNumberValue(parameters[3]);
 		}
 		else if (parameters[2] == "sub")
 		{
-			manager->game->renderer->camera.roll -= ParseNumberValue(parameters[3]);
+			manager->game->renderer.camera.roll -= ParseNumberValue(parameters[3]);
 		}
 		else if (parameters[2] == "lerp")
 		{
@@ -2270,13 +2274,13 @@ int CutsceneCommands::CameraFunction(CutsceneParameters parameters)
 	{
 		if (parameters[2] == "orthographic")
 		{
-			manager->game->renderer->camera.useOrthoCamera = true;
-			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+			manager->game->renderer.camera.useOrthoCamera = true;
+			manager->game->renderer.camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
 		else if (parameters[2] == "perspective")
 		{
-			manager->game->renderer->camera.useOrthoCamera = false;
-			manager->game->renderer->camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
+			manager->game->renderer.camera.useOrthoCamera = false;
+			manager->game->renderer.camera.Zoom(0, manager->game->screenWidth, manager->game->screenHeight);
 		}
 	}
 
@@ -2402,7 +2406,7 @@ int CutsceneCommands::SetClickToContinue(CutsceneParameters parameters)
 		state->name = stateName;
 		state->speed = stateSpeed;
 		state->sprite = neww Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
-			*manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
+			manager->game->spriteManager, spriteFilePath, manager->game->renderer.shaders[ShaderName::Default],
 			Vector2(spritePivotX, spritePivotY));
 
 		state->sprite->keepPositionRelativeToCamera = true;
@@ -2439,7 +2443,7 @@ int CutsceneCommands::ErrorLog(CutsceneParameters parameters)
 {
 	if (parameters.size() > 1)
 	{
-		manager->game->logger->Log(parameters[1].c_str());
+		manager->game->logger.Log(parameters[1].c_str());
 	}
 	
 	return 0;
@@ -2470,11 +2474,11 @@ int CutsceneCommands::GetResourceFilename(CutsceneParameters parameters)
 
 	if (parameters[2] == "bgm")
 	{
-		stringVariables[varNum] = manager->game->soundManager->bgmFilepath;
+		stringVariables[varNum] = manager->game->soundManager.bgmFilepath;
 	}
 	else if (parameters[2] == "sound")
 	{
-		stringVariables[varNum] = manager->game->soundManager->sounds[ParseNumberValue(parameters[3])]->sound->filepath;
+		stringVariables[varNum] = manager->game->soundManager.sounds[ParseNumberValue(parameters[3])]->sound->filepath;
 	}
 	else if (parameters[2] == "sprite")
 	{
@@ -2741,7 +2745,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 		state->name = stateName;
 		state->speed = stateSpeed;
 		state->sprite = neww Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
-			*manager->game->spriteManager, spriteFilePath, manager->game->renderer->shaders[ShaderName::Default],
+			manager->game->spriteManager, spriteFilePath, manager->game->renderer.shaders[ShaderName::Default],
 			Vector2(spritePivotX, spritePivotY));
 
 		state->sprite->keepPositionRelativeToCamera = true;
@@ -2765,7 +2769,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 		else if (parameters[3] == "machine")
 		{
 			std::vector<AnimState*> animStates;
-			manager->game->spriteManager->ReadAnimData(parameters[4], animStates);
+			manager->game->spriteManager.ReadAnimData(parameters[4], animStates);
 
 			Animator* anim1 = neww Animator("cursor", animStates, parameters[5]);
 			anim1->SetBool("endOfPage", false);

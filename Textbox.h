@@ -50,7 +50,7 @@ public:
 
 	void SetFontSize(int newSize);
 
-	Textbox(SpriteManager* m, Renderer* r);
+	Textbox(SpriteManager& m, Renderer& r);
 	~Textbox();
 };
 

@@ -145,8 +145,7 @@ void HealthComponent::Render(const Renderer& renderer)
 
 			for (int i = 0; i < maxHP; i++)
 			{
-				healthIcons.push_back(new Sprite(renderer.game->spriteManager->GetImage(iconPath),
-					renderer.shaders[ShaderName::Default]));
+				healthIcons.push_back(renderer.game->CreateSprite(iconPath));
 				healthIcons[i]->keepPositionRelativeToCamera = true;
 				healthIcons[i]->keepScaleRelativeToCamera = true;
 			}

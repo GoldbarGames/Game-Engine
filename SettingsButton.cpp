@@ -149,7 +149,7 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	if (name == "Music Volume")
 	{
 		//TODO: There might be a better way to do this?
-		game.soundManager->SetVolumeBGM(selectedOption);
+		game.soundManager.SetVolumeBGM(selectedOption);
 	}
 	else if (name == "Fullscreen")
 	{
@@ -187,7 +187,7 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	}
 	else if (name == "Sound Volume")
 	{
-		game.soundManager->SetVolumeSound(selectedOption);
+		game.soundManager.SetVolumeSound(selectedOption);
 	}
 	else if (name == "Display FPS")
 	{

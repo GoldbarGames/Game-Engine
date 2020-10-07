@@ -101,8 +101,7 @@ void Spell::Update(Game& game)
 		std::cout << "SPELL NAMES " << names.size() << std::endl;
 		for (int i = 0; i < names.size(); i++)
 		{
-			Texture* texture = game.spriteManager->GetImage("assets/gui/icon/icon_" + names[i] + ".png");
-			Sprite* sprite = neww Sprite(texture, game.renderer->shaders[ShaderName::Default]);
+			Sprite* sprite = game.CreateSprite("assets/gui/icon/icon_" + names[i] + ".png");
 			sprite->keepPositionRelativeToCamera = true;
 			sprite->keepScaleRelativeToCamera = true;
 			std::cout << i << std::endl;
@@ -532,7 +531,7 @@ bool Spell::CastSeed(Game& game)
 			}
 			beanstalkParts.clear();
 
-			startSuffix = game.randomManager->RandomRange(1, 2);
+			startSuffix = game.randomManager.RandomRange(1, 2);
 			std::string suffix = std::to_string(startSuffix);
 
 			// Spawn the neww beanstalk
@@ -595,8 +594,8 @@ bool Spell::CastSeed(Game& game)
 	{
 		// Plant the seed at the nearest tile to the player
 		spawnBeanstalkPosition = game.player->position;
-		spawnBeanstalkPosition.x -= game.renderer->camera.position.x;
-		spawnBeanstalkPosition.y -= game.renderer->camera.position.y;
+		spawnBeanstalkPosition.x -= game.renderer.camera.position.x;
+		spawnBeanstalkPosition.y -= game.renderer.camera.position.y;
 		spawnBeanstalkPosition = game.CalculateObjectSpawnPosition(spawnBeanstalkPosition, game.editor->GRID_SIZE);
 		currentPartNumber = -1;
 		isPlantedSeed = !isPlantedSeed;

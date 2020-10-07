@@ -64,6 +64,10 @@ void Player::RenderDebug(const Renderer& renderer)
 {
 	Entity::RenderDebug(renderer);
 
+	// NOTE: These are not aligned properly, origin not at center
+	//renderer.RenderDebugRect(physics->newBoundsVertical, Vector2(1, 1), { 255, 0, 0, 255 });
+	//renderer.RenderDebugRect(physics->floorBounds, Vector2(1, 1), {0, 255, 0, 255 });
+
 	spell.RenderDebug(renderer);
 	
 	if (closeRangeAttackCollider != nullptr)
@@ -128,7 +132,7 @@ void Player::Update(Game& game)
 		}
 	}		
 
-	if (game.cutscene->watchingCutscene)
+	if (game.cutsceneManager.watchingCutscene)
 	{
 		//TODO: Get input for handling the textbox
 		animator->SetBool("holdingUp",  false);
@@ -281,7 +285,7 @@ void Player::UpdateNormally(Game& game)
 		{
 			if (currentNPC != nullptr)
 			{
-				game.cutscene->PlayCutscene(currentNPC->cutsceneLabel.c_str());
+				game.cutsceneManager.PlayCutscene(currentNPC->cutsceneLabel.c_str());
 			}
 			else if (currentLadder != nullptr)
 			{
@@ -489,7 +493,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 		timerSpellDebug.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
 	}
 	
-	game.soundManager->PlaySound("se/shoot.wav", 1);	
+	game.soundManager.PlaySound("se/shoot.wav", 1);	
 }
 
 void Player::GetLadderInput(const Uint8* input)

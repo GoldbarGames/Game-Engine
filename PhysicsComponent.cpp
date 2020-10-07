@@ -53,17 +53,11 @@ float PhysicsComponent::CalcCollisionVelocity(PhysicsComponent* their, bool x)
 	
 }
 
-bool PhysicsComponent::IsEntityPushingOther(Entity* their, bool x)
+bool PhysicsComponent::IsEntityPushingOther(const Entity& their)
 {
-	if (x)
-	{
-		float diffPosX = their->GetPosition().x - our->GetPosition().x;
-		return (their->physics->velocity.x > 0 && diffPosX > 0) || (their->physics->velocity.x < 0 && diffPosX < 0);
-	}
-	else
-	{
-		return 0; //TODO: Do we even need this here at all?
-	}	
+	float diffPosX = their.GetPosition().x - our->GetPosition().x;
+	return (their.physics->velocity.x > 0 && diffPosX > 0) 
+		|| (their.physics->velocity.x < 0 && diffPosX < 0);
 }
 
 Entity* PhysicsComponent::CheckPrevParent()
@@ -104,16 +98,24 @@ Entity* PhysicsComponent::CheckPrevParent()
 
 bool PhysicsComponent::CheckCollisionHorizontal(Entity* their, Game& game)
 {
+	// If a big object collides against a small object,
+	// the big should keep moving, and the small should move along with it.
+
+	// If two objects of the same size collide with each other 
+	// then both should stop moving immediately
+
+	// If we are colliding with something that has no physics (such as a wall)
+	// then we should not move into it
 	if (their->physics == nullptr)
 	{
 		velocity.x = 0;
 		return true;
 	}
 	// if one entity is moving in the direction of the other entity...
-	else if (their->physics->IsEntityPushingOther(their, true))
+	else // if (their->physics->IsEntityPushingOther(*our))
 	{
 		velocity.x = their->physics->CalcCollisionVelocity(this, true);
-		return (velocity.x == 0);
+		return (velocity.x == 0); 
 	}
 
 	return false;
@@ -181,9 +183,9 @@ bool PhysicsComponent::MoveVerticallyWithParent(Entity* their, Game& game)
 	return false;
 }
 
-bool PhysicsComponent::CheckCollisionCeiling(Entity* other, Game& game)
+bool PhysicsComponent::CheckCollisionCeiling(Game& game)
 {
-	CheckCollisionTrigger(our, game);
+	//CheckCollisionTrigger(other, game);
 
 	if (our->etype == "player")
 	{
@@ -227,20 +229,22 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	myBounds.x -= (myBounds.w / 2);
 	//myBounds.y += (myBounds.h / 2);
 
-	SDL_Rect newBoundsHorizontal = myBounds;
+	newBoundsHorizontal = myBounds;
 	newBoundsHorizontal.x = (int)(myBounds.x + (velocity.x * game.dt));
 
-	SDL_Rect newBoundsVertical = myBounds;
-	newBoundsVertical.y += (myBounds.h / 2);
+	newBoundsVertical = myBounds;
 	newBoundsVertical.y = (int)(newBoundsVertical.y + (velocity.y * game.dt)); 
+
+	//SDL_Rect ceilingBounds = myBounds;
+	//ceilingBounds.y = (int)(ceilingBounds.y + (velocity.y * game.dt));
 
 	// THIS NEEDS TO BE HERE BECAUSE OTHERWISE THE INTERSECTION CODE WILL NOT WORK
 	// SDL's intersection code returns false if our y + h = their y, but we want it to return true!
 	newBoundsVertical.y += 1;
 
 	// 2.5D look
-	SDL_Rect floorBounds = newBoundsVertical;
-	floorBounds.y += 20;
+	floorBounds = newBoundsVertical;
+	floorBounds.y += 20 + (myBounds.h / 2);
 
 	const int FLOOR_SIZE = standAboveGround ? 16 : 0;		
 	floorBounds.h += FLOOR_SIZE;
@@ -269,6 +273,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	}
 
 	SDL_Rect theirBounds;
+	SDL_Rect hColBounds;
 
 	for (unsigned int i = 0; i < entities.size(); i++)
 	{
@@ -306,14 +311,8 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 					int test = 0;
 
 				horizontalCollision = CheckCollisionHorizontal(entity, game);
-				hadCollision = hadCollision || horizontalCollision;
-
-				// When moving to the right, we are touching the left side of the wall
-				// When moving to the left, we are touching the right side of the wall
-				if (velocity.x > 0)
-					our->position.x = (float)(theirBounds.x - (myBounds.w/2) - our->collider->offset.x);
-				else if (velocity.x < 0)
-					our->position.x = (float)(theirBounds.x + theirBounds.w + myBounds.w + our->collider->offset.x);
+				hadCollision = hadCollision || horizontalCollision;		
+				hColBounds = theirBounds;
 			}
 
 			// Separate checking the ceiling vs. the floor 
@@ -321,10 +320,9 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 			if (velocity.y < 0)
 			{
 				// Moving up
-				if (!entity->jumpThru && !verticalCollision && 
-					HasIntersection(newBoundsVertical, theirBounds))
+				if (!entity->jumpThru && HasIntersection(newBoundsVertical, theirBounds))
 				{
-					verticalCollision = CheckCollisionCeiling(entity, game);
+					verticalCollision = CheckCollisionCeiling(game);
 					hadCollision = hadCollision || verticalCollision;
 					our->position.y = (float)(theirBounds.y + (theirBounds.h) + myBounds.h + our->collider->offset.y);
 				}
@@ -467,6 +465,20 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 		//std::cout << "lost parent!" << std::endl;
 	}
 
+	// When a collision is only horizontal and not vertical,
+	// keep our position set next to the horizontal collider
+	if (horizontalCollision && !verticalCollision)
+	{
+		if (our->position.x < hColBounds.x)
+		{
+			our->position.x = (float)(hColBounds.x - (myBounds.w) - our->collider->offset.x);
+		}
+		else
+		{
+			our->position.x = (float)(hColBounds.x + hColBounds.w + myBounds.w + our->collider->offset.x);
+		}
+	}
+
 	if (!horizontalCollision)
 	{
 		our->position.x += (velocity.x * game.dt);
@@ -504,7 +516,7 @@ void PhysicsComponent::Jump(Game& game)
 		if (jumpsRemaining > 0 && wasGrounded)
 		{
 			currentJumpSpeed = 0.25f;
-			game.soundManager->PlaySound("se/Jump.wav", 0);
+			game.soundManager.PlaySound("se/Jump.wav", 0);
 			velocity.y = (jumpSpeed);
 			jumpsRemaining--;
 		}

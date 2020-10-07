@@ -128,9 +128,11 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 
 		Entity* titleCharacter = neww Entity(Vector2(600, 350));
 
-		Sprite* newSprite = neww Sprite(0, 0, 1, *game.spriteManager,
-			"assets/gui/wdk_character.png", game.renderer->shaders[ShaderName::FadeInOut],
-			Vector2(0, 0), false);
+		//Sprite* newSprite = neww Sprite(0, 0, 1, game.spriteManager,
+		//	"assets/gui/wdk_character.png", game.renderer.shaders[ShaderName::FadeInOut],
+		//	Vector2(0, 0), false);
+
+		Sprite* newSprite = game.CreateSprite("assets/gui/wdk_character.png", ShaderName::FadeInOut);
 
 		titleCharacter->SetSprite(*newSprite);
 
@@ -140,8 +142,8 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = neww Entity(Vector2(1600, 350));
-		newSprite = neww Sprite(0, 0, 1, *game.spriteManager, "assets/gui/wdk_logo.png",
-			game.renderer->shaders[ShaderName::Default], Vector2(0, 0), false);
+		newSprite = game.CreateSprite("assets/gui/wdk_logo.png", ShaderName::FadeInOut);
+
 		titleLogo->SetSprite(*newSprite);
 		titleLogo->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
 		titleLogo->GetSprite()->keepPositionRelativeToCamera = true;
@@ -252,7 +254,7 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		selectedButton = buttons[0];
 		selectedButton->isSelected = true;
 		if (selectedButton->image != nullptr)
-			selectedButton->image->SetShader(game.renderer->shaders[ShaderName::Glow]);
+			selectedButton->image->SetShader(game.renderer.shaders[ShaderName::Glow]);
 	}		
 }
 
@@ -326,9 +328,9 @@ bool MenuScreen::Update(Game& game)
 	if (selectedButton != lastButton)
 	{
 		if (selectedButton->image != nullptr)
-			selectedButton->image->SetShader(game.renderer->shaders[ShaderName::Glow]);
+			selectedButton->image->SetShader(game.renderer.shaders[ShaderName::Glow]);
 		if (lastButton->image != nullptr)
-			lastButton->image->SetShader(game.renderer->shaders[ShaderName::Default]);
+			lastButton->image->SetShader(game.renderer.shaders[ShaderName::Default]);
 	}
 
 	return (lastButton->pressedAnyKey);

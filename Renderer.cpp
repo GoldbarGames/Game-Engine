@@ -11,10 +11,8 @@ ShaderProgram* Renderer::GetTextShader()
 	return textShader;
 }
 
-Renderer::Renderer(Game* g)
+Renderer::Renderer()
 {
-	game = g;
-
 	layersVisible[DrawingLayer::BACK] = true;
 	layersVisible[DrawingLayer::MIDDLE] = true;
 	layersVisible[DrawingLayer::OBJECT] = true;
@@ -24,6 +22,11 @@ Renderer::Renderer(Game* g)
 	layersVisible[DrawingLayer::INVISIBLE] = false;
 
 	timerOverlayColor.Start(1);
+}
+
+void Renderer::Init(Game* g)
+{
+	game = g;
 }
 
 void Renderer::CreateShaders()
@@ -50,11 +53,16 @@ void Renderer::CreateShaders()
 
 Renderer::~Renderer()
 {
-
+	for (auto& [key, val] : shaders)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
 }
 
-void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale) const
+void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, Color color) const
 {
+	debugSprite->color = color;
 	debugSprite->SetScale(CalculateScale(*debugSprite, targetRect.w, targetRect.h, targetScale));
 	debugSprite->Render(Vector2(targetRect.x, targetRect.y), *this);
 }

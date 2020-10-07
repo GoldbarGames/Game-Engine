@@ -4,6 +4,7 @@
 
 #include <vector>
 #include "Vector2.h"
+#include <SDL.h>
 
 class Entity;
 class Game;
@@ -54,6 +55,10 @@ public:
 	bool horizontalCollision = false;
 	bool verticalCollision = false;
 
+	SDL_Rect newBoundsHorizontal;
+	SDL_Rect newBoundsVertical;
+	SDL_Rect floorBounds;
+
 	PhysicsComponent(Entity* entity);
 	~PhysicsComponent();
 
@@ -70,13 +75,13 @@ public:
 	void Push(const Vector2& pushVelocity);
 
 	float CalcCollisionVelocity(PhysicsComponent* their, bool x);
-	bool IsEntityPushingOther(Entity* their, bool x);
+	bool IsEntityPushingOther(const Entity& their);
 
 	Entity* CheckPrevParent();
 
 	bool CheckCollisionHorizontal(Entity* their, Game& game);
 
-	bool CheckCollisionCeiling(Entity* their, Game& game);
+	bool CheckCollisionCeiling(Game& game);
 
 	bool CheckVerticalJumpThru(Entity* their, Game& game);
 

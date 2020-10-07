@@ -2,10 +2,10 @@
 #include "Renderer.h"
 #include "Entity.h"
 
-Textbox::Textbox(SpriteManager* m, Renderer* r)
+Textbox::Textbox(SpriteManager& m, Renderer& r)
 {
-	spriteManager = m;
-	renderer = r;
+	spriteManager = &m;
+	renderer = &r;
 
 	//TODO: Replace these with the real fonts
 	//TODO: How to deal with font sizes? Maybe map from string to map<int, TTF*>

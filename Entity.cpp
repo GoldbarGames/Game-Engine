@@ -256,7 +256,6 @@ void Entity::RenderDebug(const Renderer& renderer)
 			float targetWidth = GetSprite()->frameWidth;
 			float targetHeight = GetSprite()->frameHeight;
 
-
 			if (impassable || trigger || jumpThru)
 			{
 				if (impassable)

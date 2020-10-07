@@ -18,6 +18,7 @@ Tile::~Tile()
 
 }
 
+// TODO: Move this inside the Game class: ChangeTileSprite
 void Tile::ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer)
 {
 	if (currentSprite != nullptr)

@@ -92,7 +92,7 @@ int Game::MainLoop()
 
 	while (!shouldQuit)
 	{
-		renderer->drawCallsPerFrame = 0;
+		renderer.drawCallsPerFrame = 0;
 
 		CalcDt();
 
@@ -144,10 +144,10 @@ int Game::MainLoop()
 
 		Render();
 
-		if (renderer->drawCallsPerFrame != drawCallsLastFrame)
+		if (renderer.drawCallsPerFrame != drawCallsLastFrame)
 		{
-			drawCallsLastFrame = renderer->drawCallsPerFrame;
-			//std::cout << "Draw calls: " << renderer->drawCallsPerFrame << std::endl;
+			drawCallsLastFrame = renderer.drawCallsPerFrame;
+			//std::cout << "Draw calls: " << renderer.drawCallsPerFrame << std::endl;
 		}
 	}
 
@@ -198,18 +198,16 @@ Mesh* Game::CreateCubeMesh()
 	return mesh;
 }
 
-Game::Game()
+Game::Game() : logger("logs/output.log")
 {
 	startOfGame = std::chrono::steady_clock::now();
-
-	logger = neww Logger("logs/output.log");
-
 	entityFactory = EntityFactory::Get();
 
+	logger.SetOutputFile("logs/output2.log");
 	InitSDL();
 
-	renderer = neww Renderer(this);
-	spriteManager = neww SpriteManager(renderer);
+	renderer.Init(this);
+	spriteManager.Init(&renderer);
 
 	InitOpenGL();
 
@@ -228,24 +226,19 @@ Game::Game()
 	headerFont->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
 	headerFont->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 
-	soundManager = neww SoundManager();
-	soundManager->ReadMusicData("data/bgm.dat");
-
-	randomManager = neww RandomManager();
+	soundManager.ReadMusicData("data/bgm.dat");
 
 	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager and random)
-	cutscene = neww CutsceneManager(*this);
-	cutscene->ParseScene();	
+	cutsceneManager.Init(*this);
+	cutsceneManager.ParseScene();	
 
-	//ShaderProgram* shader = renderer->shaders[ShaderName::Default];
+	//ShaderProgram* shader = renderer.shaders[ShaderName::Default];
 
 	// Initialize debug stuff
-	renderer->debugSprite = neww Sprite(0, 0, 24, 24, *spriteManager,
-		"assets/editor/rect-outline.png", renderer->shaders[ShaderName::Default], Vector2(0, 0));
+	renderer.debugSprite = CreateSprite("assets/editor/rect-outline.png");
 
 	// Initialize overlay sprite
-	renderer->overlaySprite = neww Sprite(0, 0, 24, 24, *spriteManager,
-		"assets/gui/white.png", renderer->shaders[ShaderName::Default], Vector2(0, 0));
+	renderer.overlaySprite = CreateSprite("assets/gui/white.png");
 
 	// Initialize the sprite map (do this BEFORE the editor)
 
@@ -296,8 +289,22 @@ Game::Game()
 
 Game::~Game()
 {	
+	for (int i = 0; i < entities.size(); i++)
+	{
+		if (entities[i] != nullptr)
+			delete_it(entities[i]);
+	}
+
+	if (background != nullptr)
+		delete_it(background);
+
 	SaveEditorSettings();
 	EndSDL();
+}
+
+Sprite* Game::CreateSprite(const std::string& filepath, const ShaderName shaderName)
+{
+	return neww Sprite(spriteManager.GetImage(filepath), renderer.shaders[shaderName]);
 }
 
 void Game::ResetText()
@@ -353,7 +360,7 @@ void Game::CalcDt()
 	start_time = clock::now();
 
 	now = std::chrono::duration<float, milliseconds::period>(start_time - startOfGame).count();
-	renderer->now = now;
+	renderer.now = now;
 
 	// When we are debugging and hit a breakpoint in an IDE, the timer continues running.
 	// This causes the dt to become huge and throw everything around like crazy.
@@ -399,27 +406,27 @@ void Game::InitOpenGL()
 
 	bool use2DCamera = true;
 
-	renderer->camera = Camera(glm::vec3(0.0f, 0.0f, 1000.0f),
+	renderer.camera = Camera(glm::vec3(0.0f, 0.0f, 1000.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
 		screenWidth, screenHeight, use2DCamera);
 
-	renderer->guiCamera = Camera(glm::vec3(0.0f, 0.0f, 0.0f),
+	renderer.guiCamera = Camera(glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
 		screenWidth, screenHeight, use2DCamera);
 
-	renderer->guiCamera.shouldUpdate = true;
-	renderer->guiCamera.useOrthoCamera = true;
+	renderer.guiCamera.shouldUpdate = true;
+	renderer.guiCamera.useOrthoCamera = true;
 
-	renderer->camera.Update();
-	renderer->guiCamera.Update();
+	renderer.camera.Update();
+	renderer.guiCamera.Update();
 
-	renderer->CreateShaders(); // we must create the shaders at this point
+	renderer.CreateShaders(); // we must create the shaders at this point
 
 	screenSprite = InitFramebuffer(framebuffer, textureColorBuffer, renderBufferObject);
 	prevScreenSprite = InitFramebuffer(prevFramebuffer, prevTextureColorBuffer, prevRenderBufferObject);
 
 	/*
-	prevScreenSprite = neww Sprite(screenSprite->texture, renderer->shaders[ShaderName::Default]);	
+	prevScreenSprite = neww Sprite(screenSprite->texture, renderer.shaders[ShaderName::Default]);	
 	prevScreenSprite->keepPositionRelativeToCamera = true;
 	prevScreenSprite->keepScaleRelativeToCamera = true;
 	prevScreenSprite->color = { 255, 255, 255, 0 };
@@ -436,7 +443,7 @@ Sprite* Game::InitFramebuffer(unsigned int& fbo, unsigned int& tex, unsigned int
 	Texture* screenTexture = neww Texture("");
 	screenTexture->LoadTexture(tex, screenWidth, screenHeight);
 
-	Sprite* sprite = neww Sprite(screenTexture, renderer->shaders[ShaderName::Default]);
+	Sprite* sprite = neww Sprite(screenTexture, renderer.shaders[ShaderName::Default]);
 	sprite->keepPositionRelativeToCamera = true;
 	sprite->keepScaleRelativeToCamera = true;
 	sprite->SetScale(Vector2(1.0f, -1.0f));
@@ -567,7 +574,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 			filepath += entityName;
 		}
 
-		spriteManager->ReadAnimData("data/animators/" + filepath + ".animations", animStates, args);
+		spriteManager.ReadAnimData("data/animators/" + filepath + ".animations", animStates, args);
 
 		//TODO: Make this better...
 		// - Allow for conditions that are always true/false 
@@ -644,8 +651,8 @@ Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position
 // and then immediately aligns the object on the grid
 Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE)
 {
-	mousePos.x += renderer->camera.position.x;
-	mousePos.y += renderer->camera.position.y;
+	mousePos.x += renderer.camera.position.x;
+	mousePos.y += renderer.camera.position.y;
 
 	int afterModX = ((int)(mousePos.x) % (GRID_SIZE * (int)Camera::MULTIPLIER));
 	int afterModY = ((int)(mousePos.y) % (GRID_SIZE * (int)Camera::MULTIPLIER));
@@ -672,7 +679,7 @@ Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE
 Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet, 
 	const Vector2& position, DrawingLayer drawingLayer)
 {
-	Tile* tile = neww Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
+	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), &renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION
@@ -684,7 +691,7 @@ Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet,
 Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet, 
 	const Vector2& position, DrawingLayer drawingLayer)
 {
-	Tile* tile = neww Tile(position, frame, spriteManager->GetImage(tilesheet), renderer);
+	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), &renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION 
@@ -702,11 +709,11 @@ Player* Game::SpawnPlayer(const Vector2& position)
 	Player* player = static_cast<Player*>(SpawnEntity("player", position, 0));
 	player->game = this;
 
-	renderer->camera.target = player;
-	renderer->guiCamera.target = player;
+	renderer.camera.target = player;
+	renderer.guiCamera.target = player;
 
-	renderer->camera.FollowTarget(*this);
-	renderer->guiCamera.FollowTarget(*this);
+	renderer.camera.FollowTarget(*this);
+	renderer.guiCamera.FollowTarget(*this);
 
 	return player;
 }
@@ -781,7 +788,7 @@ void Game::StopTextInput()
 
 void Game::LoadTitleScreen()
 {
-	renderer->camera.ResetCamera();
+	renderer.camera.ResetCamera();
 	openedMenus.clear();
 	editor->InitLevelFromFile("title");
 	openedMenus.emplace_back(allMenus["Title"]);
@@ -815,13 +822,13 @@ void Game::TransitionLevel()
 		}
 		else if (transitionExit == 1)
 		{
-			renderer->changingOverlayColor = true;
-			renderer->overlayStartTime = timer.GetTicks();
-			renderer->overlayEndTime = renderer->overlayStartTime + 1000;
-			renderer->startColor = renderer->overlayColor;
-			renderer->targetColor = Color{ 0, 0, 0, 255 };
+			renderer.changingOverlayColor = true;
+			renderer.overlayStartTime = timer.GetTicks();
+			renderer.overlayEndTime = renderer.overlayStartTime + 1000;
+			renderer.startColor = renderer.overlayColor;
+			renderer.targetColor = Color{ 0, 0, 0, 255 };
 
-			soundManager->FadeOutBGM(1000);
+			soundManager.FadeOutBGM(1000);
 		}
 
 		transitionState = 2;
@@ -836,7 +843,7 @@ void Game::TransitionLevel()
 		}
 		else if (transitionExit == 1)
 		{
-			conditionMet = !renderer->changingOverlayColor;
+			conditionMet = !renderer.changingOverlayColor;
 		}
 
 		// if condition is met, go to next state
@@ -865,14 +872,14 @@ void Game::TransitionLevel()
 		}
 		else if (transitionEnter == 1)
 		{
-			renderer->changingOverlayColor = true;
-			renderer->overlayStartTime = timer.GetTicks();
-			renderer->overlayEndTime = renderer->overlayStartTime + 1000;
-			renderer->startColor = renderer->overlayColor;
-			renderer->targetColor = Color{ 0, 0, 0, 0 };
+			renderer.changingOverlayColor = true;
+			renderer.overlayStartTime = timer.GetTicks();
+			renderer.overlayEndTime = renderer.overlayStartTime + 1000;
+			renderer.startColor = renderer.overlayColor;
+			renderer.targetColor = Color{ 0, 0, 0, 0 };
 		}
 
-		soundManager->PlayBGM(soundManager->bgmNames[nextBGM]);
+		soundManager.PlayBGM(soundManager.bgmNames[nextBGM]);
 
 		transitionState = 4;
 	}
@@ -886,7 +893,7 @@ void Game::TransitionLevel()
 		}
 		else if (transitionEnter == 1)
 		{
-			conditionMet = !renderer->changingOverlayColor;
+			conditionMet = !renderer.changingOverlayColor;
 		}
 
 		// if condition is met, go to next state
@@ -917,7 +924,7 @@ bool Game::CheckInputs()
 	{
 		if (event.type == SDL_MOUSEBUTTONUP)
 		{
-			cutscene->previousMouseState = 0;
+			cutsceneManager.previousMouseState = 0;
 		}
 		else if (event.type == SDL_CONTROLLERBUTTONDOWN)
 		{
@@ -933,7 +940,7 @@ bool Game::CheckInputs()
 
 		if (openedMenus.size() > 0)
 		{
-			if (!cutscene->watchingCutscene)
+			if (!cutsceneManager.watchingCutscene)
 				quit = HandleMenuEvent(event);
 		}			
 		else
@@ -966,8 +973,8 @@ void Game::HandleEditMode()
 	if (!getKeyboardInput)
 	{
 		const Uint8* input = SDL_GetKeyboardState(NULL);
-		renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
-		renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
+		renderer.camera.KeyControl(input, dt, screenWidth, screenHeight);
+		renderer.guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
 
 		editor->HandleEdit();
 	}
@@ -1039,7 +1046,7 @@ void Game::SaveEditorSettings()
 
 	//fout << "display_fps " << showFPS << std::endl;
 	//fout << "display_timer " << showTimer << std::endl;
-	//fout << "language " << soundManager->soundVolumeIndex << std::endl;
+	//fout << "language " << soundManager.soundVolumeIndex << std::endl;
 
 	fout.close();
 }
@@ -1100,13 +1107,13 @@ void Game::SaveSettings()
 	std::ofstream fout;
 	fout.open("data/settings.config");
 
-	fout << "music_volume " << soundManager->bgmVolumeIndex << std::endl;
-	fout << "sound_volume " << soundManager->soundVolumeIndex << std::endl;
+	fout << "music_volume " << soundManager.bgmVolumeIndex << std::endl;
+	fout << "sound_volume " << soundManager.soundVolumeIndex << std::endl;
 	fout << "windowed " << isFullscreen << std::endl;
 	fout << "screen_resolution " << indexScreenResolution << std::endl;
 	fout << "display_fps " << showFPS << std::endl;
 	fout << "display_timer " << showTimer << std::endl;
-	//fout << "language " << soundManager->soundVolumeIndex << std::endl;
+	//fout << "language " << soundManager.soundVolumeIndex << std::endl;
 
 	fout.close();
 }
@@ -1127,7 +1134,7 @@ void Game::LoadSettings()
 
 		if (tokens[0] == "music_volume")
 		{
-			soundManager->SetVolumeBGM(std::stoi(tokens[1]));
+			soundManager.SetVolumeBGM(std::stoi(tokens[1]));
 
 			//TODO: Refactor to avoid the dynamic cast
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Music Volume"));
@@ -1135,7 +1142,7 @@ void Game::LoadSettings()
 		}
 		else if (tokens[0] == "sound_volume")
 		{
-			soundManager->SetVolumeSound(std::stoi(tokens[1]));
+			soundManager.SetVolumeSound(std::stoi(tokens[1]));
 
 			//TODO: Refactor to avoid the dynamic cast
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Sound Volume"));
@@ -1240,7 +1247,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			}
 			else
 			{
-				renderer->camera.Zoom(-0.1f, screenWidth, screenHeight);
+				renderer.camera.Zoom(-0.1f, screenWidth, screenHeight);
 			}
 		}
 		else if (event.wheel.y < 0)
@@ -1251,7 +1258,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			}
 			else
 			{
-				renderer->camera.Zoom(0.1f, screenWidth, screenHeight);
+				renderer.camera.Zoom(0.1f, screenWidth, screenHeight);
 			}
 		}
 	}
@@ -1309,7 +1316,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			switch (event.key.keysym.sym)
 			{
 			case SDLK_ESCAPE:
-				if (!editMode && !cutscene->watchingCutscene)
+				if (!editMode && !cutsceneManager.watchingCutscene)
 				{
 					openedMenus.emplace_back(allMenus["Pause"]);
 					Uint32 ticks = SDL_GetTicks();
@@ -1381,7 +1388,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				SaveScreenshot();
 				break;
 			case SDLK_7:
-				_CrtDumpMemoryLeaks();
+				//_CrtDumpMemoryLeaks();
 				break;
 #endif
 			default:
@@ -1427,12 +1434,12 @@ bool Game::HandleEvent(SDL_Event& event)
 // TODO: Make this more robust for different types of games
 void Game::SaveFile(const std::string& filename)
 {
-	cutscene->commands.SetStringVariable({ "", "201", currentLevel });
-	cutscene->commands.SetNumberVariable({ "", "202", std::to_string(player->position.x) });
-	cutscene->commands.SetNumberVariable({ "", "203", std::to_string(player->position.y) });
-	cutscene->commands.SetNumberVariable({ "", "204", std::to_string(player->health->GetMaxHP()) });
-	cutscene->commands.SetNumberVariable({ "", "205", std::to_string(player->health->GetCurrentHP()) });
-	cutscene->SaveGame(filename.c_str());
+	cutsceneManager.commands.SetStringVariable({ "", "201", currentLevel });
+	cutsceneManager.commands.SetNumberVariable({ "", "202", std::to_string(player->position.x) });
+	cutsceneManager.commands.SetNumberVariable({ "", "203", std::to_string(player->position.y) });
+	cutsceneManager.commands.SetNumberVariable({ "", "204", std::to_string(player->health->GetMaxHP()) });
+	cutsceneManager.commands.SetNumberVariable({ "", "205", std::to_string(player->health->GetCurrentHP()) });
+	cutsceneManager.SaveGame(filename.c_str());
 }
 
 // TODO: Make this more robust for different types of games
@@ -1440,12 +1447,12 @@ void Game::LoadFile(const std::string& filename)
 {
 	try
 	{
-		cutscene->LoadGame(filename.c_str());
-		nextLevel = cutscene->commands.stringVariables[201];
+		cutsceneManager.LoadGame(filename.c_str());
+		nextLevel = cutsceneManager.commands.stringVariables[201];
 		openedMenus.clear();
 		editor->InitLevelFromFile(nextLevel);
 
-		renderer->camera.FollowTarget(*this, true);
+		renderer.camera.FollowTarget(*this, true);
 	}
 	catch (std::exception ex)
 	{
@@ -1463,7 +1470,7 @@ void Game::SaveScreenshot(const std::string& filepath)
 	SDL_Surface* screenshot = SDL_CreateRGBSurfaceFrom(pixels, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
 
 	//SDL_Surface * screenshot = SDL_CreateRGBSurface(0, screenWidth, screenHeight, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-	//SDL_RenderReadPixels(renderer->renderer, NULL, SDL_PIXELFORMAT_ARGB8888, screenshot->pixels, screenshot->pitch);
+	//SDL_RenderReadPixels(renderer.renderer, NULL, SDL_PIXELFORMAT_ARGB8888, screenshot->pixels, screenshot->pitch);
 	invertSDLSurfaceVertically(screenshot);
 	
 	if (filepath == "")
@@ -1491,16 +1498,16 @@ void Game::GetMenuInput()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	if (cutscene->watchingCutscene && cutscene->currentLabel->name == "title")
+	if (cutsceneManager.watchingCutscene && cutsceneManager.currentLabel->name == "title")
 	{
-		cutscene->Update();
+		cutsceneManager.Update();
 	}
 	else
 	{
 		if (debugMode)
 		{
-			renderer->camera.KeyControl(input, dt, screenWidth, screenHeight);
-			renderer->guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
+			renderer.camera.KeyControl(input, dt, screenWidth, screenHeight);
+			renderer.guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
 		}
 
 		Uint32 ticks = timer.GetTicks();
@@ -1537,13 +1544,13 @@ void Game::Update()
 
 	if (!updateScreenTexture)
 	{
-		updateScreenTexture = !cutscene->watchingCutscene || cutscene->printNumber > 0;
+		updateScreenTexture = !cutsceneManager.watchingCutscene || cutsceneManager.printNumber > 0;
 	}
 
 	//if (updateScreenTexture)
 	//	return;
 
-	renderer->Update();
+	renderer.Update();
 
 	if (openedMenus.size() > 0)
 	{
@@ -1568,9 +1575,9 @@ void Game::Update()
 		debugScreen->Update();
 	}
 
-	if (cutscene->watchingCutscene)
+	if (cutsceneManager.watchingCutscene)
 	{
-		cutscene->Update();
+		cutsceneManager.Update();
 	}
 	else
 	{
@@ -1582,7 +1589,7 @@ void Game::Update()
 		if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT) && 
 			!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
-			Vector2 worldPosition = Vector2(mouseRect.x + renderer->camera.position.x, mouseRect.y + renderer->camera.position.y);
+			Vector2 worldPosition = Vector2(mouseRect.x + renderer.camera.position.x, mouseRect.y + renderer.camera.position.y);
 
 			mouseRect.x = worldPosition.x;
 			mouseRect.y = worldPosition.y;
@@ -1620,12 +1627,12 @@ void Game::Update()
 	// Update the camera last
 	// We need to use the original screen resolution here (for some reason)
 	// which in our case is 1280 x 720
-	if (!cutscene->watchingCutscene)
+	if (!cutsceneManager.watchingCutscene)
 	{
-		if (renderer->camera.useOrthoCamera)
-			renderer->camera.FollowTarget(*this);
+		if (renderer.camera.useOrthoCamera)
+			renderer.camera.FollowTarget(*this);
 
-		renderer->guiCamera.FollowTarget(*this);
+		renderer.guiCamera.FollowTarget(*this);
 	}
 }
 
@@ -1635,11 +1642,11 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 	screenHeight = height;
 
 	SDL_SetWindowSize(window, screenWidth, screenHeight);
-	renderer->camera.Zoom(0.0f, screenWidth, screenHeight);
-	renderer->guiCamera.Zoom(0.0f, screenWidth, screenHeight);
+	renderer.camera.Zoom(0.0f, screenWidth, screenHeight);
+	renderer.guiCamera.Zoom(0.0f, screenWidth, screenHeight);
 
 	glViewport(0, 0, screenWidth, screenHeight);
-	renderer->screenScale = Vector2(screenWidth / 1280.0f, screenHeight / 720.0f);
+	renderer.screenScale = Vector2(screenWidth / 1280.0f, screenHeight / 720.0f);
 }
 
 
@@ -1657,7 +1664,7 @@ void Game::Render()
 	bool renderSecondFrameBuffer = false;
 	
 	// Don't render the scene twice outside of cutscenes
-	if (!cutscene->watchingCutscene)
+	if (!cutsceneManager.watchingCutscene)
 	{
 		updateScreenTexture = false;
 	}
@@ -1665,12 +1672,12 @@ void Game::Render()
 	if (updateScreenTexture)
 	{
 		renderSecondFrameBuffer = true;
-		float difference = cutscene->printTimer.endTime - cutscene->printTimer.startTicks;
+		float difference = cutsceneManager.printTimer.endTime - cutsceneManager.printTimer.startTicks;
 
 		float t = 1.0f;
 		if (difference != 0)
 		{
-			t = (cutscene->printTimer.GetTicks() / difference); // percentage of passed time
+			t = (cutsceneManager.printTimer.GetTicks() / difference); // percentage of passed time
 		}
 
 		if (t > 1.0f)
@@ -1702,23 +1709,23 @@ void Game::Render()
 
 	// TODO: Set post-processing shaders here
 
-	screenSprite->SetShader(renderer->shaders[ShaderName::Default]);
-	screenSprite->Render(Vector2(screenWidth, screenHeight), *renderer);
+	screenSprite->SetShader(renderer.shaders[ShaderName::Default]);
+	screenSprite->Render(Vector2(screenWidth, screenHeight), renderer);
 
 	if (renderSecondFrameBuffer)
 	{
-		prevScreenSprite->Render(Vector2(screenWidth, screenHeight), *renderer);
+		prevScreenSprite->Render(Vector2(screenWidth, screenHeight), renderer);
 	}
 
 	/*
 	screenSprite->SetScale(Vector2(0.5f, -0.5f));
-	screenSprite->SetShader(renderer->shaders[ShaderName::Sharpen]);
+	screenSprite->SetShader(renderer.shaders[ShaderName::Sharpen]);
 	screenSprite->Render(Vector2(screenWidth/2, screenHeight/2), *renderer);
-	screenSprite->SetShader(renderer->shaders[ShaderName::Test]);
+	screenSprite->SetShader(renderer.shaders[ShaderName::Test]);
 	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight + (screenHeight / 2)), *renderer);
-	screenSprite->SetShader(renderer->shaders[ShaderName::Grayscale]);
+	screenSprite->SetShader(renderer.shaders[ShaderName::Grayscale]);
 	screenSprite->Render(Vector2(screenWidth/2, screenHeight + (screenHeight/2)), *renderer);
-	screenSprite->SetShader(renderer->shaders[ShaderName::Edge]);
+	screenSprite->SetShader(renderer.shaders[ShaderName::Edge]);
 	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight/2), *renderer);
 	*/
 
@@ -1736,25 +1743,37 @@ void Game::RenderScene()
 	}
 
 	// Render all backgrounds and their layers
-	background->Render(*renderer);
-	quadTree.Render(*renderer);
+	background->Render(renderer);
+	quadTree.Render(renderer);
 
 	// Render all entities
-	if (renderer->camera.useOrthoCamera && !editMode)
+	if (renderer.camera.useOrthoCamera && !editMode)
 	{
+
+		entitiesToRender.clear();
+
 		// TODO: Don't hardcode this
-		const int maxWidth = (30 * TILE_SIZE) * 2;
-		const int maxHeight = (17 * TILE_SIZE) * 2;
+		const int maxWidth = (30 * TILE_SIZE) * Camera::MULTIPLIER;
+		const int maxHeight = (17 * TILE_SIZE) * Camera::MULTIPLIER;
 		for (unsigned int i = 0; i < entities.size(); i++)
 		{
-			if (entities[i]->position.x > renderer->camera.position.x - TILE_SIZE &&
-				entities[i]->position.y > renderer->camera.position.y - TILE_SIZE &&
-				entities[i]->position.x < renderer->camera.position.x + maxWidth + TILE_SIZE &&
-				entities[i]->position.y < renderer->camera.position.y + maxHeight + TILE_SIZE)
+			if (entities[i]->position.x > renderer.camera.position.x - TILE_SIZE &&
+				entities[i]->position.y > renderer.camera.position.y - TILE_SIZE &&
+				entities[i]->position.x < renderer.camera.position.x + maxWidth + TILE_SIZE &&
+				entities[i]->position.y < renderer.camera.position.y + maxHeight + TILE_SIZE)
 			{
-				entities[i]->Render(*renderer);
-				if (debugMode)
-					entities[i]->RenderDebug(*renderer);
+				entities[i]->Render(renderer);
+				if (debugMode && (entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru))
+					entitiesToRender.push_back(entities[i]);
+				//	entities[i]->RenderDebug(renderer);
+			}
+		}
+
+		if (debugMode)
+		{
+			for (unsigned int i = 0; i < entitiesToRender.size(); i++)
+			{
+				entitiesToRender[i]->RenderDebug(renderer);
 			}
 		}
 
@@ -1763,49 +1782,49 @@ void Game::RenderScene()
 	{
 		for (unsigned int i = 0; i < entities.size(); i++)
 		{
-			entities[i]->Render(*renderer);
+			entities[i]->Render(renderer);
 			if (debugMode)
-				entities[i]->RenderDebug(*renderer);
+				entities[i]->RenderDebug(renderer);
 		}
 	}
 
-	if (currentLevel != "title" && !cutscene->watchingCutscene)
+	if (currentLevel != "title" && !cutsceneManager.watchingCutscene)
 	{
-		gui.Render(*renderer);
+		gui.Render(renderer);
 	}
 
 	// LAST THING
 	// Render all menu screens
 	if (openedMenus.size() > 0)
 	{
-		openedMenus[openedMenus.size() - 1]->Render(*renderer);
+		openedMenus[openedMenus.size() - 1]->Render(renderer);
 	}
 
 	if (showFPS)
-		fpsText->Render(*renderer);
+		fpsText->Render(renderer);
 
 	if (showTimer)
-		timerText->Render(*renderer);
+		timerText->Render(renderer);
 
 	// Draw anything in the cutscenes
-	cutscene->Render(*renderer); // includes the overlay
+	cutsceneManager.Render(renderer); // includes the overlay
 
 	// Render editor toolbox
 	if (editMode)
 	{
-		editor->Render(*renderer);
+		editor->Render(renderer);
 	}
 
 	//if (GetModeDebug())
 #if _DEBUG
-	editor->RenderDebug(*renderer);
+	editor->RenderDebug(renderer);
 	if (debugMode)
 	{
 		//quadTree.Render(*renderer);
 		if (quadrantEntities.size() > 0)
-			quadTree.RenderEntities(*renderer, quadrantEntities);
+			quadTree.RenderEntities(renderer, quadrantEntities);
 
-		debugScreen->Render(*renderer);
+		debugScreen->Render(renderer);
 	}
 #endif
 }
