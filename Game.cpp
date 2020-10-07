@@ -295,8 +295,20 @@ Game::~Game()
 			delete_it(entities[i]);
 	}
 
+	for (auto& [key, val] : allMenus)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
+
 	if (background != nullptr)
 		delete_it(background);
+
+	if (prevScreenSprite != nullptr)
+		delete_it(prevScreenSprite);
+
+	if (screenSprite != nullptr)
+		delete_it(screenSprite);
 
 	SaveEditorSettings();
 	EndSDL();
@@ -518,10 +530,6 @@ void Game::EndSDL()
 	
 	delete theFont;
 	delete headerFont;
-	
-	TTF_Quit();
-	SDL_Quit();
-	IMG_Quit();
 }
 
 bool Game::SetOpenGLAttributes()

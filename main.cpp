@@ -11,10 +11,19 @@ int main(int argc, char *args[])
 	//#endif
 #endif
 
+	// TODO: Move SDL Init outside of Game?
+
 	{
 		Game game;
 		game.MainLoop();
 	}
+
+	// Call these outside the scope of the game
+	// because we can't be sure of the destructor call order
+	// (deleting TTF_Fonts after calling TTF_Quit = crash)
+	TTF_Quit();
+	SDL_Quit();
+	IMG_Quit();
 
 	_CrtDumpMemoryLeaks();
 

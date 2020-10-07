@@ -3,6 +3,7 @@
 #include <string>
 #include "PhysicsComponent.h"
 #include "Animator.h"
+#include "AnimatorInfo.h"
 #include "Physics.h"
 #include "HealthComponent.h"
 #include "Text.h"

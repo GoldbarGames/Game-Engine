@@ -8,7 +8,11 @@ BaseButton::BaseButton()
 
 BaseButton::~BaseButton()
 {
+	if (image != nullptr)
+		delete_it(image);
 
+	if (text != nullptr)
+		delete_it(text);
 }
 
 

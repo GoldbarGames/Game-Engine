@@ -295,7 +295,23 @@ void MenuScreen::AssignButtons(bool useLeftRight)
 
 MenuScreen::~MenuScreen()
 {
+	for (int i = 0; i < buttons.size(); i++)
+	{
+		//if (buttons[i] != nullptr)
+		//	delete_it(buttons[i]);
+	}
 
+	for (int i = 0; i < texts.size(); i++)
+	{
+		if (texts[i] != nullptr)
+			delete_it(texts[i]);
+	}
+
+	for (int i = 0; i < images.size(); i++)
+	{
+		if (images[i] != nullptr)
+			delete_it(images[i]);
+	}
 }
 
 void MenuScreen::Render(const Renderer& renderer)

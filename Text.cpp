@@ -150,6 +150,9 @@ Text::~Text()
 	}
 
 	glyphs.clear();
+
+	if (currentSprite != nullptr)
+		delete_it(currentSprite);
 }
 
 void Text::SetFont(TTF_Font* newFont)

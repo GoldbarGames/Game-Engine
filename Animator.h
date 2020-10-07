@@ -7,14 +7,9 @@
 #include <SDL.h>
 
 #include "Timer.h"
+#include "AnimatorInfo.h"
 
 class Entity;
-
-struct AnimState;
-struct AnimCondition;
-struct AnimStateMachine;
-struct AnimatorInfo;
-
 class Sprite;
 class Vector2;
 

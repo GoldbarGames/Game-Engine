@@ -2,6 +2,7 @@
 #include "Game.h"
 #include "SoundManager.h"
 #include "Editor.h"
+#include "Text.h"
 
 SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& game)
 {
@@ -83,7 +84,14 @@ SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& g
 
 SettingsButton::~SettingsButton()
 {
+	for (int i = 0; i < options.size(); i++)
+	{
+		if (options[i] != nullptr)
+			delete_it(options[i]);
+	}
 
+	if (label != nullptr)
+		delete_it(label);
 }
 
 void SettingsButton::Render(const Renderer& renderer)

@@ -99,15 +99,27 @@ CutsceneManager::~CutsceneManager()
 		delete backlog[i];
 	}
 
-	for (auto const& [key, val] : images)
+	for (auto& [key, val] : images)
 	{
-		delete val;
+		if (val != nullptr)
+			delete_it(val);
 	}
 
-	for (auto const& [key, val] : tags)
+
+	for (auto& [key, val] : animatedImages)
 	{
-		delete val;
+		if (val != nullptr)
+			delete_it(val);
 	}
+
+	for (auto& [key, val] : tags)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
+
+	if (textbox != nullptr)
+		delete_it(textbox);
 }
 
 void CutsceneManager::SetSpeakerText(const std::string& name)

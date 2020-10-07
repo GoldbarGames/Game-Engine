@@ -98,6 +98,7 @@ public:
 	std::vector<Door*> loadListDoors;
 
 	Dialog* dialog;
+	EditorButton* clickedButton = nullptr;
 
 	// Settings
 	int replaceSettingIndex = 0;
@@ -124,8 +125,6 @@ public:
 
 	std::string ReadLoadingData(const std::string& data, std::unordered_map < std::string, std::vector<std::string>>& map);
 
-
-	EditorButton* clickedButton = nullptr;
 	void ClickedButton();
 	void ClickedLayerButton(std::string buttonText);
 	void ToggleGridSize();

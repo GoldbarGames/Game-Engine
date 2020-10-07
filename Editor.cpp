@@ -101,7 +101,38 @@ Editor::Editor(Game& g)
 
 Editor::~Editor()
 {
+	for (auto& [key, val] : previewMap)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
 
+	for (int i = 0; i < buttons.size(); i++)
+	{
+		if (buttons[i] != nullptr)
+			delete_it(buttons[i]);
+	}
+
+	for (int i = 0; i < layerButtons.size(); i++)
+	{
+		if (layerButtons[i] != nullptr)
+			delete_it(layerButtons[i]);
+	}
+
+	for (int i = 0; i < layerVisibleButtons.size(); i++)
+	{
+		if (layerVisibleButtons[i] != nullptr)
+			delete_it(layerVisibleButtons[i]);
+	}
+
+	for (int i = 0; i < tilesheetSprites.size(); i++)
+	{
+		if (tilesheetSprites[i] != nullptr)
+			delete_it(tilesheetSprites[i]);
+	}
+
+	if (dialog != nullptr)
+		delete_it(dialog);		
 }
 
 // Updates the level file based on changes in how entities are saved/loaded

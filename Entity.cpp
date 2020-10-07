@@ -8,6 +8,9 @@
 #include "Switch.h"
 #include "Property.h"
 #include "Editor.h"
+#include "HealthComponent.h"
+#include "Animator.h"
+#include "AnimatorInfo.h"
 
 unsigned int Entity::nextValidID = 0;
 std::unordered_map<unsigned int, bool> Entity::takenIDs;

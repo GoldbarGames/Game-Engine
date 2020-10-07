@@ -28,6 +28,7 @@ public:
 	Vector2 worldPosition = Vector2(0, 0);
 	std::unordered_map<DebugText, Text*> debugText;
 	DebugScreen(Game& g);
+	~DebugScreen();
 	void Update();
 	void Render(const Renderer& renderer);
 	void CreateDebugText(const DebugText textName, const int x, const int y);

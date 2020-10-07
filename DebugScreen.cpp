@@ -24,6 +24,15 @@ DebugScreen::DebugScreen(Game& g)
 	CreateDebugText(DebugText::cameraRoll, 2000, 750);
 }
 
+DebugScreen::~DebugScreen()
+{
+	for (auto& [key, val] : debugText)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
+}
+
 void DebugScreen::CreateDebugText(const DebugText textName, const int x, const int y)
 {
 	debugText[textName] = neww Text(game->theFont);

@@ -74,7 +74,22 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 Textbox::~Textbox()
 {
 	if (clickToContinue != nullptr)
-		delete clickToContinue;
+		delete_it(clickToContinue);
+
+	if (text != nullptr)
+		delete_it(text);
+
+	if (speaker != nullptr)
+		delete_it(speaker);
+
+	if (boxObject != nullptr)
+		delete_it(boxObject);
+
+	for (auto& [key, val] : fonts)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
 }
 
 void Textbox::SetFontSize(int newSize)

@@ -5,6 +5,7 @@
 #include "NPC.h"
 #include "Property.h"
 #include "Player.h"
+#include "Entity.h"
 
 NPC::NPC(const std::string& n, const Vector2& pos) : Entity(pos)
 {

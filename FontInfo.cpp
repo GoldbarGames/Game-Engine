@@ -15,27 +15,27 @@ FontInfo::FontInfo(const char* f, int s)
 FontInfo::~FontInfo()
 {
 	if (regular != nullptr)
-	{
+	{		
 		TTF_CloseFont(regular);
-		//delete regular;
+		regular = nullptr;
 	}
 
 	if (bold != nullptr)
 	{
 		TTF_CloseFont(bold);
-		//delete bold;
+		bold = nullptr;
 	}
 
 	if (italics != nullptr)
 	{
 		TTF_CloseFont(italics);
-		//delete italics;
+		italics = nullptr;
 	}
 
 	if (boldItalics != nullptr)
 	{
 		TTF_CloseFont(boldItalics);
-		//delete boldItalics;
+		boldItalics = nullptr;
 	}
 	
 }
