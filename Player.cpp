@@ -119,8 +119,7 @@ void Player::Update(Game& game)
 	if (isDouble)
 		int test = 0;
 
-	if (currentSprite != nullptr)
-		currentSprite->color = color;
+	currentSprite.color = color;
 
 	//TODO: Change this so that we collide with an object instead of hard-coding a number
 	// Also, maybe draw an outline of the death barrier so the player can see where this is
@@ -222,14 +221,14 @@ void Player::UpdateAnimator()
 
 	if (animator->GetBool("isCastingDebug"))
 	{		
-		if (currentSprite->HasAnimationElapsed())
+		if (currentSprite.HasAnimationElapsed())
 		{
 			delete_it(closeRangeAttackCollider);
 			animator->SetBool("isCastingDebug", false);
 		}			
 	}
 
-	if (spell.isCasting && currentSprite->HasAnimationElapsed())
+	if (spell.isCasting && currentSprite.HasAnimationElapsed())
 	{
 		animator->SetBool("isCastingSpell", false);
 		spell.isCasting = false;
@@ -325,7 +324,7 @@ void Player::UpdateNormally(Game& game)
 					// Should this play a cutscene here?
 					if (!currentDoor->isLocked && animator->GetBool("isGrounded"))
 					{
-						SetPosition(currentDoor->GetDestination() + currentSprite->pivot);
+						SetPosition(currentDoor->GetDestination() + currentSprite.pivot);
 						doorTimer.Start(500);
 					}
 				}
@@ -411,7 +410,7 @@ void Player::UpdateSpellAnimation(const char* spellName)
 	animator->Update(*this);
 
 	// 4. Set the timer to the length of the casting animation
-	timerSpellOther.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
+	timerSpellOther.Start(animator->currentState->speed * (currentSprite.endFrame - currentSprite.startFrame));
 }
 
 void Player::CastSpellDebug(Game &game, const Uint8* input)
@@ -459,7 +458,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 			missile->SetVelocity(missileVelocity);
 			// also set the angle here
 			game.currentEther--;
-			game.etherText->SetText("Ether: " + std::to_string(game.currentEther));
+			//game.gui.texts["ether"]->SetText("Ether: " + std::to_string(game.currentEther));
 			missile->etype = "debug_missile";						
 		}
 	}
@@ -486,13 +485,10 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 		closeRangeAttackCollider->CalculateCollider(position, rotation);
 	}
 
-	if (currentSprite != nullptr)
-	{
-		currentSprite->ResetFrame();
-		animator->SetBool("isCastingDebug", true);
-		animator->Update(*this); // We need to update here in order to know how long to run the timer
-		timerSpellDebug.Start(animator->currentState->speed * (currentSprite->endFrame - currentSprite->startFrame));
-	}
+	currentSprite.ResetFrame();
+	animator->SetBool("isCastingDebug", true);
+	animator->Update(*this); // We need to update here in order to know how long to run the timer
+	timerSpellDebug.Start(animator->currentState->speed * (currentSprite.endFrame - currentSprite.startFrame));
 	
 	game.soundManager.PlaySound("se/shoot.wav", 1);	
 }

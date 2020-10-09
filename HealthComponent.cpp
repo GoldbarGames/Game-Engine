@@ -26,12 +26,17 @@ HealthComponent::~HealthComponent()
 {
 	if (healthbarFront != nullptr)
 	{
-		delete healthbarFront;
+		delete_it(healthbarFront);
 	}
 
 	if (healthbarBack != nullptr)
 	{
-		delete healthbarBack;
+		delete_it(healthbarBack);
+	}
+
+	for (int i = 0; i < healthIcons.size(); i++)
+	{
+		delete_it(healthIcons[i]);
 	}
 }
 

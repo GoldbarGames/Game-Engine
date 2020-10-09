@@ -26,7 +26,7 @@ public:
 	BaseButton* buttonPressedLeft = nullptr;
 	BaseButton* buttonPressedRight = nullptr;
 	BaseButton();
-	~BaseButton();
+	virtual ~BaseButton();
 	virtual void Render(const Renderer& renderer);
 	virtual BaseButton* Update(Game& game, const Uint8* currentKeyStates);
 

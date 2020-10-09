@@ -9,6 +9,7 @@
 #include "globals.h"
 #include "Animator.h"
 #include "Collider.h"
+#include "Sprite.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -31,7 +32,7 @@ class Entity
 {
 protected:	
 	Animator* animator = nullptr;
-	Sprite* currentSprite = nullptr;
+	Sprite currentSprite;
 	Sprite* debugSprite = nullptr;
 public:
 	Vector2 position = Vector2(0, 0);

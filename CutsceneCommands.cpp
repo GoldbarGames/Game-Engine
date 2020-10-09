@@ -701,22 +701,22 @@ int CutsceneCommands::GoSubroutine(CutsceneParameters parameters)
 
 int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 {
-	SceneData* data = manager->PopSceneDataFromStack();
-
-	if (data == nullptr)
-	{		
+	SceneData data;
+	
+	if (!manager->PopSceneDataFromStack(data))
+	{
 		manager->game->logger.Log("ERROR: Nowhere to return to!");
 		return -99;
 	}
 
 	// Check the label name to see if it is a variable
-	const std::string labelName = ParseStringValue(data->labelName);
+	const std::string labelName = ParseStringValue(data.labelName);
 
 	manager->currentLabel = manager->JumpToLabel(labelName.c_str());
 	if (manager->currentLabel == nullptr)
 	{
-		if (data->labelIndex < manager->labels.size())
-			manager->currentLabel = &manager->labels[data->labelIndex];
+		if (data.labelIndex < manager->labels.size())
+			manager->currentLabel = &manager->labels[data.labelIndex];
 		else
 			std::cout << "ERROR: Could not find label " << labelName << std::endl;
 	}
@@ -1392,11 +1392,8 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 		delete manager->images[imageNumber];
 
 	manager->images[imageNumber] = neww Entity(pos);
-
-	Sprite* newSprite = neww Sprite(1, manager->game->spriteManager,
-		filepath, manager->game->renderer.shaders[ShaderName::Default], Vector2(0, 0));
-
-	manager->images[imageNumber]->SetSprite(*newSprite);
+	manager->images[imageNumber]->GetSprite()->SetTexture(manager->game->spriteManager.GetImage(filepath));
+	manager->images[imageNumber]->GetSprite()->SetShader(manager->game->renderer.shaders[ShaderName::Default]);
 
 	if (isStandingImage)
 	{
@@ -1505,7 +1502,7 @@ int CutsceneCommands::LoadTextFromSaveFile(CutsceneParameters parameters)
 	};
 
 	if (manager->images[imageNumber] != nullptr)
-		delete manager->images[imageNumber];
+		delete_it(manager->images[imageNumber]);
 
 	//TODO: Also save/load in the font type/size/style for this text object
 	Text* newText = neww Text(manager->game->theFont, text, textColor);
@@ -1543,7 +1540,7 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 
 	//TODO: Don't delete/new, just grab from entity pool and reset
 	if (manager->images[imageNumber] != nullptr)
-		delete manager->images[imageNumber];
+		delete_it(manager->images[imageNumber]);
 
 	Text* newText = nullptr;
 	Color textColor = { 255, 255, 255, 255 };
@@ -1673,13 +1670,12 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 			if (entity->GetAnimator() != nullptr)
 				delete entity->GetAnimator();
 
-			std::vector<AnimState*> animStates;
-			manager->game->spriteManager.ReadAnimData(ParseStringValue(parameters[4]), animStates);
+			std::vector<AnimState*> animStates = manager->game->spriteManager.ReadAnimData(ParseStringValue(parameters[4]));
 
 			for (int i = 0; i < animStates.size(); i++)
 			{
-				animStates[i]->sprite->keepPositionRelativeToCamera = true;
-				animStates[i]->sprite->keepScaleRelativeToCamera = true;
+				//animStates[i]->sprite->keepPositionRelativeToCamera = true;
+				//animStates[i]->sprite->keepScaleRelativeToCamera = true;
 			}
 
 			Animator* newAnimator = neww Animator("player", animStates, ParseStringValue(parameters[5]));
@@ -2400,17 +2396,15 @@ int CutsceneCommands::SetClickToContinue(CutsceneParameters parameters)
 		int spritePivotX = std::stoi(parameters[index++]);
 		int spritePivotY = std::stoi(parameters[index++]);
 
-		if (state->sprite != nullptr)
-			delete state->sprite;
-
 		state->name = stateName;
+		state->filename = spriteFilePath;
 		state->speed = stateSpeed;
-		state->sprite = neww Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
-			manager->game->spriteManager, spriteFilePath, manager->game->renderer.shaders[ShaderName::Default],
-			Vector2(spritePivotX, spritePivotY));
-
-		state->sprite->keepPositionRelativeToCamera = true;
-		state->sprite->keepScaleRelativeToCamera = true;
+		state->startFrame = spriteStartFrame;
+		state->endFrame = spriteEndFrame;
+		state->frameWidth = spriteFrameWidth;
+		state->frameHeight = spriteFrameHeight;
+		state->pivotX = spritePivotX;
+		state->pivotY = spritePivotY;
 	}
 	else if (parameters[1] == "animator")
 	{
@@ -2729,6 +2723,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 		int index = 3;
 		std::string stateName = parameters[index++];
 		AnimState* state = manager->animatedImages[animationName]->GetAnimator()->GetState(stateName);		
+
 		int stateSpeed = std::stoi(parameters[index++]);
 		int spriteStartFrame = std::stoi(parameters[index++]);
 		int spriteEndFrame = std::stoi(parameters[index++]);
@@ -2739,17 +2734,15 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 		int spritePivotX = std::stoi(parameters[index++]);
 		int spritePivotY = std::stoi(parameters[index++]);
 
-		if (state->sprite != nullptr)
-			delete state->sprite;
-
 		state->name = stateName;
+		state->filename = spriteFilePath;
 		state->speed = stateSpeed;
-		state->sprite = neww Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
-			manager->game->spriteManager, spriteFilePath, manager->game->renderer.shaders[ShaderName::Default],
-			Vector2(spritePivotX, spritePivotY));
-
-		state->sprite->keepPositionRelativeToCamera = true;
-		state->sprite->keepScaleRelativeToCamera = true;
+		state->startFrame = spriteStartFrame;
+		state->endFrame = spriteEndFrame;
+		state->frameWidth = spriteFrameWidth;
+		state->frameHeight = spriteFrameHeight;
+		state->pivotX = spritePivotX;
+		state->pivotY = spritePivotY;
 	}
 	else if (parameters[2] == "set")
 	{
@@ -2768,8 +2761,7 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 		}
 		else if (parameters[3] == "machine")
 		{
-			std::vector<AnimState*> animStates;
-			manager->game->spriteManager.ReadAnimData(parameters[4], animStates);
+			std::vector<AnimState*> animStates = manager->game->spriteManager.ReadAnimData(parameters[4]);
 
 			Animator* anim1 = neww Animator("cursor", animStates, parameters[5]);
 			anim1->SetBool("endOfPage", false);
@@ -2779,8 +2771,6 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 			manager->animatedImages[animationName]->SetAnimator(*anim1);
 			manager->animatedImages[animationName]->GetAnimator()->Update(*manager->animatedImages[animationName]);
 			manager->animatedImages[animationName]->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
-
-			
 		}
 	}
 

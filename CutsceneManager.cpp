@@ -91,12 +91,12 @@ CutsceneManager::~CutsceneManager()
 
 	for (int i = 0; i < gosubStack.size(); i++)
 	{
-		delete gosubStack[i];
+		delete_it(gosubStack[i]);
 	}
 
 	for (int i = 0; i < backlog.size(); i++)
 	{
-		delete backlog[i];
+		delete_it(backlog[i]);
 	}
 
 	for (auto& [key, val] : images)
@@ -636,23 +636,24 @@ void CutsceneManager::PushCurrentSceneDataToStack()
 	gosubStack.push_back(newData);
 }
 
-SceneData* CutsceneManager::PopSceneDataFromStack()
+bool CutsceneManager::PopSceneDataFromStack(SceneData& data)
 {
-	if (gosubStack.size() == 0)
+	if (gosubStack.size() > 0)
 	{
-		return nullptr;
-	}		
+		data = *(gosubStack[gosubStack.size() - 1]);
+		delete_it(gosubStack[gosubStack.size() - 1]);
+		gosubStack.pop_back();
 
-	SceneData* data = gosubStack[gosubStack.size() - 1];
-	gosubStack.pop_back();
+		labelIndex = data.labelIndex;
+		lineIndex = data.lineIndex;
+		commandIndex = data.commandIndex;
+		letterIndex = 0;
+		currentText = "";
 
-	labelIndex = data->labelIndex;
-	lineIndex = data->lineIndex;
-	commandIndex = data->commandIndex;
-	letterIndex = 0;
-	currentText = "";
+		return true;
+	}
 
-	return data;
+	return false;
 }
 
 void CutsceneManager::ClearAllSprites()
@@ -660,18 +661,15 @@ void CutsceneManager::ClearAllSprites()
 	// Clear all normal sprites
 	unsigned int num = commands.GetNumAlias("l");	
 	if (images[num] != nullptr)
-		delete images[num];
-	images[num] = nullptr;
+		delete_it(images[num]);
 
 	num = commands.GetNumAlias("c");
 	if (images[num] != nullptr)
-		delete images[num];
-	images[num] = nullptr;
+		delete_it(images[num]);
 
 	num = commands.GetNumAlias("r");
 	if (images[num] != nullptr)
-		delete images[num];
-	images[num] = nullptr;
+		delete_it(images[num]);
 }
 
 void CutsceneManager::ReadNextLine()
@@ -704,7 +702,7 @@ void CutsceneManager::ReadNextLine()
 
 		if (backlog.size() > backlogMaxSize)
 		{
-			delete backlog[0];
+			delete_it(backlog[0]);
 			backlog.erase(backlog.begin());
 		}
 		

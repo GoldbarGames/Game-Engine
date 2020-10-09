@@ -207,7 +207,7 @@ public:
 	void JumpForward();
 	void JumpBack();
 	void PushCurrentSceneDataToStack();
-	SceneData* PopSceneDataFromStack();
+	bool PopSceneDataFromStack(SceneData& data);
 	std::string ParseText(const std::string& originalString, int& letterIndex, Color& textColor, Text* text);
 	~CutsceneManager();
 

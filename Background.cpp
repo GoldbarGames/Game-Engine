@@ -22,6 +22,24 @@ Background::Background(const std::string& n, const Vector2& pos)
 	ReadBackgroundData("data/bg.dat");
 }
 
+Background::~Background()
+{
+	for (unsigned int i = 0; i < layers.size(); i++)
+	{
+		delete_it(layers[i]);
+	}
+
+	for (auto& [key, val] : bgData)
+	{
+		for (int i = 0; i < val->layers.size(); i++)
+		{
+			delete_it(val->layers[i]);
+		}
+		delete_it(val);
+	}
+
+}
+
 void Background::ReadBackgroundData(const std::string& dataFilePath)
 {
 	// Get data from the file
@@ -121,14 +139,6 @@ void Background::CreateBackground(const std::string& n, Vector2 pos,
 }
 
 
-Background::~Background()
-{
-	for (unsigned int i = 0; i < layers.size(); i++)
-	{
-		delete_it(layers[i]);
-	}
-}
-
 void Background::Render(const Renderer& renderer)
 {
 	for (unsigned int i = 0; i < layers.size(); i++)
@@ -139,12 +149,11 @@ void Background::Render(const Renderer& renderer)
 
 Entity* Background::AddLayer(const Vector2& offset, const SpriteManager& spriteManager,
 	const Renderer& renderer, const std::string& filepath, int drawOrder, float parallax)
-{
-	Sprite* layer = neww Sprite(1, spriteManager, filepath, 
-		renderer.shaders[ShaderName::Default], Vector2(0, 0));
+{	
 	Entity* bg = neww BackgroundLayer(offset, parallax);
 	bg->drawOrder = drawOrder;
-	bg->SetSprite(*layer);
+	bg->GetSprite()->SetTexture(spriteManager.GetImage(filepath));
+	bg->GetSprite()->SetShader(renderer.shaders[ShaderName::Default]);
 	layers.emplace_back(bg);
 	return bg;
 }

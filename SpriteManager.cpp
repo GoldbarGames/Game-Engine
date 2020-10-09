@@ -16,17 +16,33 @@ SpriteManager::SpriteManager()
 
 SpriteManager::~SpriteManager()
 {	
+	for (auto& [key, val] : images)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
+
+	for (auto& [key, val] : animationStates)
+	{
+		for (int i = 0; i < val.size(); i++)
+		{
+			if (val[i] != nullptr)
+				delete_it(val[i]);
+		}		
+	}
+
 	PHYSFS_deinit();
 }
 
 void SpriteManager::Init(Renderer* r)
 {
 	renderer = r;
+	Animator::spriteManager = this;
 }
 
 Texture* SpriteManager::GetImage(std::string const& imagePath) const
 {
-	if (images[imagePath].get() == nullptr)
+	if (images.count(imagePath) == 0)
 	{
 		bool loadFromFile = true;
 
@@ -77,30 +93,59 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 		Texture* newTexture = neww Texture(imagePath.c_str());
 
 		newTexture->LoadTexture(surface);
-		images[imagePath].reset(newTexture);
+		images[imagePath] = newTexture;
 
 		SDL_FreeSurface(surface);
 	}
 		
-	return images[imagePath].get();
+	return images[imagePath];
 }
 
-Vector2 SpriteManager::GetPivotPoint(std::string const& filename)
-{
-	return pivotPoints[filename];
-}
-
-//TODO: Only read this data once at the beginning and then store it for lookup later
-void SpriteManager::ReadAnimData(const std::string& dataFilePath, std::vector<AnimState*>& animStates)
+std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFilePath)
 {
 	std::unordered_map<std::string, std::string> args;
-	ReadAnimData(dataFilePath, animStates, args);
+	return ReadAnimData(dataFilePath, args);
 }
 
-//TODO: Only read this data once at the beginning and then store it for lookup later
-void SpriteManager::ReadAnimData(const std::string& dataFilePath, std::vector<AnimState*>& animStates, 
-	std::unordered_map<std::string, std::string>& args)
+
+
+// We want to read in the file only once, creating a base set of states that are stored here.
+// Then whenever an object is created, we give the object its own copy of the states.
+// That way, those states can be manipulated (and eventually deleted) by the local object.
+std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFilePath, std::unordered_map<std::string, std::string>& args)
 {
+	std::vector<AnimState*> animStates;
+
+	std::cout << dataFilePath << std::endl;
+
+	// If we have already read this file, grab it from the table
+	if (animationStates.count(dataFilePath) != 0)
+	{
+		return animationStates[dataFilePath];
+
+		/*
+		for (int i = 0; i < animationStates[dataFilePath].size(); i++)
+		{
+			AnimState* state = animationStates[dataFilePath][i];
+
+			// TODO: Maybe it is better for each Sprite to have its own Animator*
+			// which contains the set of AnimStates*, and then when there is a state change,
+			// the sprite's values are changed according to the new AnimState.
+			// Rather than states pointing to sprites.
+			// Thus we would not need copies of Animators or anything animation-related			
+
+			animStates.push_back(neww AnimState(state->name, state->speed,
+				neww Sprite(state->sprite->startFrame, state->sprite->endFrame, 
+					state->sprite->frameWidth, state->sprite->frameHeight, *this, state->sprite->filename,
+					renderer->shaders[ShaderName::Default],
+					Vector2(state->sprite->pivot.x, state->sprite->pivot.y))));
+		}
+
+		return animStates;*/
+	}
+
+	std::cout << "Base anim: " << std::endl;
+
 	// Get anim data from the file
 	std::ifstream fin;
 	fin.open(dataFilePath);
@@ -187,11 +232,8 @@ void SpriteManager::ReadAnimData(const std::string& dataFilePath, std::vector<An
 			spritePivotX = std::stoi(tokens[index++]);
 			spritePivotY = std::stoi(tokens[index++]);
 
-			animStates.push_back(new AnimState(stateName, stateSpeed,
-				new Sprite(spriteStartFrame, spriteEndFrame, spriteFrameWidth, spriteFrameHeight,
-					*this, spriteFilePath,
-					renderer->shaders[ShaderName::Default],
-					Vector2(spritePivotX, spritePivotY))));
+			animStates.push_back(neww AnimState(stateName, spriteFilePath, stateSpeed, spriteStartFrame, spriteEndFrame, 
+				spriteFrameWidth, spriteFrameHeight, spritePivotX, spritePivotY));
 
 			ss.getline(lineChar, 256);
 		}
@@ -201,4 +243,9 @@ void SpriteManager::ReadAnimData(const std::string& dataFilePath, std::vector<An
 		const char* message = ex.what();
 		std::cout << message << std::endl;
 	}
+
+	animationStates[dataFilePath] = animStates;
+
+	// Call recursively so that the object's animator points to a copy.
+	return ReadAnimData(dataFilePath);
 }

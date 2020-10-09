@@ -11,7 +11,7 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 	//TODO: Deal with issues involving extra whitespace (it breaks things)
 	std::vector<std::string> stateNames;
 	mapStateNamesToNumbers[""] = 0;
-	states[""] = neww AnimStateMachine();
+	stateMachines[""] = neww AnimStateMachine();
 
 	bool readingInConditions = false;
 	// Read in the state machine animator file
@@ -34,7 +34,7 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 		int variableIndex = 0;
 		int index = 0;
 
-		std::vector<AnimCondition*> conditions;
+		std::vector<AnimCondition> conditions;
 		std::string variableType = "";
 		std::string variableName = "";
 		std::string conditionCheck = "";
@@ -103,7 +103,7 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 					//TODO: Make sure this does not cause a memory leak
 					//states[stateName]->conditions
 
-					conditions.push_back(new AnimCondition(nextStateName, variableName,
+					conditions.push_back(AnimCondition(nextStateName, variableName,
 						conditionCheck, (expectedValue == "true")));
 
 					// state name associated with a vector of structs (conditions)
@@ -113,15 +113,13 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 
 				for (int i = 0; i < stateNames.size(); i++)
 				{
-					if (states.count(stateNames[i]) != 1)
+					if (stateMachines.count(stateNames[i]) != 1)
 					{
-						states[stateNames[i]] = neww AnimStateMachine();
+						stateMachines[stateNames[i]] = neww AnimStateMachine();
 					}
-					states[stateNames[i]]->conditions[nextStateName] = conditions;
+					stateMachines[stateNames[i]]->conditions[nextStateName] = conditions;
 				}
 			}
-
-
 		}
 	}
 
@@ -129,10 +127,20 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 }
 
 AnimatorInfo::~AnimatorInfo()
-{
-	for (auto& [key, val] : states)
+{	
+	for (auto& [key, stateMachine] : stateMachines)
 	{
-		if (val != nullptr)
-			delete_it(val);
-	}
+		if (stateMachine != nullptr)
+			delete_it(stateMachine);
+	}	
+}
+
+AnimStateMachine::~AnimStateMachine() 
+{
+
+}
+
+AnimCondition::~AnimCondition()
+{
+
 }

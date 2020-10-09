@@ -27,8 +27,10 @@ private:
 public:
 	Camera camera;
 	Camera guiCamera;
+
 	Sprite* debugSprite = nullptr;
 	Sprite* overlaySprite = nullptr;
+
 	mutable int drawCallsPerFrame = 0;
 	float now = 0;
 	Game* game;

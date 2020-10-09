@@ -27,21 +27,16 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	boxObject = neww Entity(Vector2(1280, 720));
 	
 	//TODO: Have a way to specify the image for the box
-	Sprite* newSprite = neww Sprite(0, 0, 1, *spriteManager, "assets/gui/textbox1.png",
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
-	boxObject->SetSprite(*newSprite);
-
+	boxObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/textbox1.png"));
+	boxObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
 	boxObject->GetSprite()->keepScaleRelativeToCamera = true;
 	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
 
 	//TODO: Should we have a way to define the starting box position?
 	nameObject = neww Entity(Vector2(1280, 720));
-
 	//TODO: Have a way to specify the image for the box
-	newSprite = neww Sprite(0, 0, 1, *spriteManager, "assets/gui/namebox1.png",
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
-	nameObject->SetSprite(*newSprite);
-
+	nameObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/namebox1.png"));
+	nameObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
 	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
 	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
 
@@ -56,8 +51,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 
 	clickToContinue = neww Entity(Vector2(0,0));
 
-	std::vector<AnimState*> animStates;
-	spriteManager->ReadAnimData("data/animators/cursor/cursor.animations", animStates);
+	std::vector<AnimState*> animStates = spriteManager->ReadAnimData("data/animators/cursor/cursor.animations");
 
 	Animator* newAnimator = neww Animator("cursor", animStates, "samepage");
 	newAnimator->SetBool("endOfPage", false);
@@ -76,6 +70,10 @@ Textbox::~Textbox()
 	if (clickToContinue != nullptr)
 		delete_it(clickToContinue);
 
+	// TODO: When we try to delete these (text and speaker)
+	// they are dangling pointers (trying to delete already deleted data)
+	// and should have been set to nullptr some time before
+
 	if (text != nullptr)
 		delete_it(text);
 
@@ -84,6 +82,9 @@ Textbox::~Textbox()
 
 	if (boxObject != nullptr)
 		delete_it(boxObject);
+
+	if (nameObject != nullptr)
+		delete_it(nameObject);
 
 	for (auto& [key, val] : fonts)
 	{

@@ -23,9 +23,6 @@ unsigned int Entity::Size()
 	if (animator != nullptr)
 		totalSize += sizeof(*animator);
 
-	if (currentSprite != nullptr)
-		totalSize += currentSprite->Size();
-
 	//totalSize += sizeof(colliderWidth);
 	//totalSize += sizeof(colliderHeight);
 	totalSize += sizeof(nextValidID);
@@ -106,15 +103,19 @@ Entity::Entity(const Vector2& pos)
 
 Entity::Entity(const Vector2& pos, Sprite* sprite) : Entity(pos)
 {
-	currentSprite = sprite;
+	currentSprite = *sprite;
 }
 
 Entity::~Entity()
 {
 	if (animator != nullptr)
+	{
 		delete_it(animator);
-	if (currentSprite != nullptr)
-		delete_it(currentSprite);
+	}
+		
+	if (debugSprite != nullptr)
+		delete_it(debugSprite);
+
 	if (collider != nullptr)
 		delete_it(collider);
 	if (bounds != nullptr)
@@ -171,8 +172,7 @@ void Entity::Update(Game& game)
 	game.updateCalls++;
 	lastPosition = position;
 
-	if (currentSprite != nullptr)
-		currentSprite->color = color;
+	currentSprite.color = color;
 
 	if (animator != nullptr)
 		animator->Update(*this);
@@ -189,7 +189,7 @@ Animator* Entity::GetAnimator()
 
 Sprite* Entity::GetSprite()
 {
-	return currentSprite;
+	return &currentSprite;
 }
 
 void Entity::SetColor(Color newColor)
@@ -209,8 +209,8 @@ const SDL_Rect* Entity::GetBounds()
 		}
 		bounds->x = position.x;
 		bounds->y = position.y;
-		bounds->w = currentSprite->frameWidth;
-		bounds->h = currentSprite->frameHeight;
+		bounds->w = currentSprite.frameWidth;
+		bounds->h = currentSprite.frameHeight;
 		return bounds;
 	}
 	else
@@ -226,7 +226,7 @@ Vector2 Entity::GetPosition() const
 
 Vector2 Entity::GetCenter() const
 {
-	return Vector2(currentSprite->frameWidth / 2, currentSprite->frameHeight / 2);
+	return Vector2(currentSprite.frameWidth / 2, currentSprite.frameHeight / 2);
 }
 
 void Entity::SetPosition(const Vector2& newPosition)
@@ -294,12 +294,12 @@ void Entity::RenderDebug(const Renderer& renderer)
 
 void Entity::Render(const Renderer& renderer)
 {
-	if (currentSprite != nullptr && renderer.IsVisible(layer))
+	if (renderer.IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite->Render(position, animator->GetSpeed(), renderer, rotation);
+			currentSprite.Render(position, animator->GetSpeed(), renderer, rotation);
 		else
-			currentSprite->Render(position, 0, renderer, rotation);
+			currentSprite.Render(position, 0, renderer, rotation);
 	}
 }
 
@@ -307,26 +307,23 @@ void Entity::RenderParallax(const Renderer& renderer, float p)
 {
 	Vector2 renderPosition = Vector2(position.x + (renderer.camera.position.x * p), position.y);
 
-	if (currentSprite != nullptr && renderer.IsVisible(layer))
+	if (renderer.IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite->Render(renderPosition, animator->GetSpeed(), renderer, rotation);
+			currentSprite.Render(renderPosition, animator->GetSpeed(), renderer, rotation);
 		else
-			currentSprite->Render(renderPosition, 0, renderer, rotation);
+			currentSprite.Render(renderPosition, 0, renderer, rotation);
 	}
 }
 
 void Entity::SetSprite(Sprite& sprite)
 {
-	currentSprite = &sprite;
-	currentSprite->scale = scale;
+	currentSprite = sprite;
+	currentSprite.scale = scale;
 }
 
 bool Entity::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
 {
-	if (currentSprite == nullptr)
-		return false;
-
 	bool shouldSpawn = true;
 
 	if (etype == "door")
@@ -423,7 +420,7 @@ void Entity::GetProperties(std::vector<Property*>& properties)
 void Entity::DeleteProperties(std::vector<Property*>& properties)
 {
 	for (unsigned int i = 0; i < properties.size(); i++)
-		delete properties[i];
+		delete_it(properties[i]);
 
 	properties.clear();
 }	

@@ -66,7 +66,7 @@ void Collectible::OnTriggerEnter(Entity& other, Game& game)
 		{
 			Player* player = static_cast<Player*>(&other);
 			game.currentEther++;
-			game.etherText->SetText("Ether: " + std::to_string(game.currentEther));
+			//game.gui.texts["ether"]->SetText("Ether: " + std::to_string(game.currentEther));
 			shouldDelete = true;
 		}
 	}
@@ -81,7 +81,7 @@ void Collectible::OnTriggerEnter(Entity& other, Game& game)
 				shouldDelete = true;
 				missile->Destroy();
 				game.bugsRemaining--;
-				game.bugText->SetText("Bugs Remaining: " + std::to_string(game.bugsRemaining));
+				//game.gui.texts["bug"]->SetText("Bugs Remaining: " + std::to_string(game.bugsRemaining));
 			}
 		}
 	}

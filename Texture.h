@@ -17,6 +17,7 @@ public:
 	void ClearTexture();
 	int GetWidth() { return width; }
 	int GetHeight() { return height; }
+	const char* GetFilePath() { return filePath; } ;
 private:
 	GLuint textureID;
 	int width, height;

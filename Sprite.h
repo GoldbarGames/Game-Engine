@@ -33,7 +33,7 @@ public:
 	unsigned int Size();
 	void SetShader(ShaderProgram* s) { shader = s; }
 	ShaderProgram* GetShader() { return shader; }
-	void SetTexture(Texture* t) { texture = t; }
+	void SetTexture(Texture* t);
 	void AnimateMesh(float time);
 	bool HasAnimationElapsed();
 	void ResetFrame();
@@ -59,8 +59,8 @@ public:
 
 	float lastAnimTime = -1;
 
-	int frameWidth = 0;
-	int frameHeight = 0;
+	int frameWidth = 1;
+	int frameHeight = 1;
 	Vector2 scale = Vector2(1, 1);
 
 	Vector2 lastPosition = Vector2(0, 0);
@@ -95,6 +95,7 @@ public:
 	bool ShouldAnimate(float time);
 	void CreateMesh(MeshType meshType = MeshType::Quad);
 	
+	Sprite();
 	Sprite(ShaderProgram* s);
 	Sprite(Texture* t, ShaderProgram* s);
 	Sprite(const Vector2& frame, Texture* image, ShaderProgram* shader);

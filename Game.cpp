@@ -89,6 +89,11 @@ int Game::MainLoop()
 
 	int drawCallsLastFrame = 0;
 	int previousNumberOfFrames = 0;
+	int currentNumberOfFrames = 0;
+
+	const std::string guiFPS = "FPS";
+	const std::string guiFPS2 = "FPS: ";
+	const std::string guiTimer = "timer";
 
 	while (!shouldQuit)
 	{
@@ -106,10 +111,10 @@ int Game::MainLoop()
 			fpsSum += 1000 / dt;
 			if (timeLeft <= 0)
 			{
-				int currentNumberOfFrames = (int)(fpsSum / frames);
+				currentNumberOfFrames = (int)(fpsSum / frames);
 				if (currentNumberOfFrames != previousNumberOfFrames)
 				{
-					fpsText->SetText("FPS: " + std::to_string(currentNumberOfFrames));
+					gui.texts[guiFPS]->SetText(guiFPS2 + std::to_string(currentNumberOfFrames));
 					previousNumberOfFrames = currentNumberOfFrames;
 				}
 
@@ -123,7 +128,7 @@ int Game::MainLoop()
 
 		if (showTimer)
 		{
-			timerText->SetText(std::to_string(timer.GetTicks() / 1000.0f));
+			gui.texts[guiTimer]->SetText(std::to_string(timer.GetTicks() / 1000.0f));
 		}
 
 		switch (state)
@@ -269,8 +274,10 @@ Game::Game() : logger("logs/output.log")
 	
 	entities.clear();
 
-	ResetText();
 	SetScreenResolution(1280, 720);
+
+	// Initialize GUI (do this AFTER fonts and resolution)
+	gui.Init(this);
 
 	// Initialize all the menus
 	// TODO: Read these in and construct them from a file
@@ -295,6 +302,12 @@ Game::~Game()
 			delete_it(entities[i]);
 	}
 
+	for (auto& [key, animInfo] : Animator::mapTypeToInfo)
+	{
+		if (animInfo != nullptr)
+			delete_it(animInfo);
+	}
+
 	for (auto& [key, val] : allMenus)
 	{
 		if (val != nullptr)
@@ -304,66 +317,49 @@ Game::~Game()
 	if (background != nullptr)
 		delete_it(background);
 
+	// NOTE: Need to delete textures manually for the screen textures
+	// which are created using frame buffers (not the usual way)
+	// TODO: Maybe automate this somehow
 	if (prevScreenSprite != nullptr)
+	{
+		if (prevScreenSprite->texture != nullptr)
+			delete_it(prevScreenSprite->texture);
 		delete_it(prevScreenSprite);
-
+	}
 	if (screenSprite != nullptr)
+	{
+		if (screenSprite->texture != nullptr)
+			delete_it(screenSprite->texture);
 		delete_it(screenSprite);
+	}
+		
+
+	if (debugScreen != nullptr)
+		delete_it(debugScreen);
+
+	if (cubeMesh != nullptr)
+		delete_it(cubeMesh);
+
+	if (Sprite::meshLine != nullptr)
+		delete_it(Sprite::meshLine);
+
+	if (Sprite::meshTri != nullptr)
+		delete_it(Sprite::meshTri);
+
+	if (Sprite::meshQuad != nullptr)
+		delete_it(Sprite::meshQuad);
 
 	SaveEditorSettings();
+
+	if (editor != nullptr)
+		delete_it(editor);
+
 	EndSDL();
 }
 
 Sprite* Game::CreateSprite(const std::string& filepath, const ShaderName shaderName)
 {
 	return neww Sprite(spriteManager.GetImage(filepath), renderer.shaders[shaderName]);
-}
-
-void Game::ResetText()
-{
-	if (fpsText == nullptr)
-	{
-		fpsText = neww Text(theFont);
-		fpsText->SetText("FPS:");
-		fpsText->GetSprite()->keepScaleRelativeToCamera = true;
-		fpsText->GetSprite()->keepPositionRelativeToCamera = true;
-	}
-		
-	fpsText->SetText("FPS:");
-	fpsText->SetPosition((screenWidth * 2) - (fpsText->GetTextWidth() * 2), fpsText->GetTextHeight());
-
-	if (timerText == nullptr)
-	{
-		timerText = neww Text(theFont);
-		timerText->SetText("");
-		timerText->GetSprite()->keepScaleRelativeToCamera = true;
-		timerText->GetSprite()->keepPositionRelativeToCamera = true;
-	}
-			
-	timerText->SetText("");
-	timerText->SetPosition((screenWidth) - (timerText->GetTextWidth() * 2), timerText->GetTextHeight());
-
-	if (bugText == nullptr)
-	{
-		bugText = neww Text(theFont);
-		bugText->SetText("");
-		bugText->GetSprite()->keepScaleRelativeToCamera = true;
-		bugText->GetSprite()->keepPositionRelativeToCamera = true;
-	}
-	
-	//bugText->SetText("Bugs Remaining: " + std::to_string(bugsRemaining));
-	//bugText->SetPosition(bugText->GetTextWidth() * 1.25f, bugText->GetTextHeight() * 1.25f);
-
-	if (etherText == nullptr)
-	{
-		etherText = neww Text(theFont);
-		etherText->SetText("");
-		etherText->GetSprite()->keepScaleRelativeToCamera = true;
-		etherText->GetSprite()->keepPositionRelativeToCamera = true;
-	}
-	
-	etherText->SetText("Ether: " + std::to_string(currentEther));
-	etherText->SetPosition(0, 150);
 }
 
 void Game::CalcDt()
@@ -528,8 +524,8 @@ void Game::EndSDL()
 		SDL_GameControllerClose(controller);
 	}
 	
-	delete theFont;
-	delete headerFont;
+	delete_it(theFont);
+	delete_it(headerFont);
 }
 
 bool Game::SetOpenGLAttributes()
@@ -559,7 +555,6 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 	{
 		newEntity->subtype = subtype;
 
-		std::vector<AnimState*> animStates;
 		std::unordered_map<std::string, std::string> args;
 
 		std::string filepath = entityName + "/";
@@ -582,7 +577,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 			filepath += entityName;
 		}
 
-		spriteManager.ReadAnimData("data/animators/" + filepath + ".animations", animStates, args);
+		std::vector<AnimState*> animStates = spriteManager.ReadAnimData("data/animators/" + filepath + ".animations", args);
 
 		//TODO: Make this better...
 		// - Allow for conditions that are always true/false 
@@ -642,7 +637,7 @@ Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position
 		entity->subtype = spriteIndex;
 		if (!entity->CanSpawnHere(position, *this))
 		{
-			delete entity;
+			delete_it(entity);
 			return nullptr;
 		}
 		else
@@ -747,8 +742,7 @@ void Game::DeleteEntity(Entity* entity)
 
 void Game::DeleteEntity(int index)
 {
-	delete entities[index];
-	entities[index] = nullptr;
+	delete_it(entities[index]);
 	entities.erase(entities.begin() + index);
 }
 
@@ -778,7 +772,7 @@ void Game::StopTextInput()
 		if (inputText != "")
 		{
 			for (unsigned int i = 0; i < entities.size(); i++)
-				delete entities[i];
+				delete_it(entities[i]);
 			entities.clear();
 			player = SpawnPlayer(Vector2(0, 0));
 
@@ -1807,12 +1801,6 @@ void Game::RenderScene()
 	{
 		openedMenus[openedMenus.size() - 1]->Render(renderer);
 	}
-
-	if (showFPS)
-		fpsText->Render(renderer);
-
-	if (showTimer)
-		timerText->Render(renderer);
 
 	// Draw anything in the cutscenes
 	cutsceneManager.Render(renderer); // includes the overlay

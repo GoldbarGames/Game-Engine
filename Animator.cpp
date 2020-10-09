@@ -6,9 +6,11 @@
 #include "Sprite.h"
 #include "Timer.h"
 #include "AnimatorInfo.h"
+#include "SpriteManager.h"
 
 std::map<unsigned int, AnimatorInfo*> Animator::mapTypeToInfo;
 std::unordered_map<std::string, unsigned int> Animator::mapNamesToAnimType;
+SpriteManager* Animator::spriteManager;
 
 Animator::Animator(std::vector<Sprite*> sprites)
 {
@@ -23,7 +25,7 @@ unsigned int Animator::GetNumberOfStateFromName(const char* name)
 // PRE-CONDITION: The list of states is not empty
 Animator::Animator(const std::string& filePath, std::vector<AnimState*> states, std::string initialState)
 {
-	MapStateNameToState("", neww AnimState("", 0, nullptr));
+	//MapStateNameToState("", neww AnimState("", 0, nullptr));
 
 	if (mapNamesToAnimType.count(filePath) != 1)
 	{
@@ -78,27 +80,23 @@ Animator::Animator(const std::string& filePath, std::vector<AnimState*> states, 
 
 Animator::~Animator()
 {
-	for (auto& [key, val] : mapNamesToStates)
+	/*
+	for (auto& [key, val] : animStates)
 	{
 		if (val != nullptr)
 			delete_it(val);
 	}
-
-	for (auto& [key, val] : mapTypeToInfo)
-	{
-		if (val != nullptr)
-			delete_it(val);
-	}
+	*/
 }
 
 void Animator::MapStateNameToState(const std::string& name, AnimState* state)
 {
-	mapNamesToStates[name] = state;
+	animStates[name] = state;
 }
 
 AnimState* Animator::GetState(const std::string& name)
 {
-	return mapNamesToStates[name];
+	return animStates[name];
 }
 
 void Animator::OnEnter(AnimState state)
@@ -108,7 +106,21 @@ void Animator::OnEnter(AnimState state)
 
 void Animator::DoState(Entity& entity)
 {
-	entity.SetSprite(*GetCurrentSprite());
+	if (currentState != nullptr && spriteManager != nullptr)
+	{
+		Sprite* sprite = entity.GetSprite();
+		sprite->texture = spriteManager->GetImage(currentState->filename);
+		sprite->filename = currentState->filename;
+		sprite->startFrame = currentState->startFrame;
+		sprite->endFrame = currentState->endFrame;
+		sprite->frameWidth = currentState->frameWidth;
+		sprite->frameHeight = currentState->frameHeight;
+		sprite->pivot = Vector2(currentState->pivotX, currentState->pivotY);
+
+		//TODO: This only works if there is only one row, but that is okay for now
+		sprite->numberFramesInTexture = sprite->texture->GetWidth() / currentState->frameWidth;
+		sprite->framesPerRow = sprite->numberFramesInTexture;
+	}
 }
 
 void Animator::OnExit(AnimState state)
@@ -118,14 +130,11 @@ void Animator::OnExit(AnimState state)
 
 void Animator::Update(Entity& entity)
 {
-	if (entity.etype == "switch")
-		int test = 0;
-
 	// If conditions met, set current state to next state
 	// Else, stay in current state
 
 	AnimatorInfo* info = mapTypeToInfo[animatorType];
-	AnimStateMachine* stateMachine = info->states[currentState->name];
+	AnimStateMachine* stateMachine = info->stateMachines[currentState->name];
 
 	//TODO: Make sure to run through each condition, and if the whole expression is true,
 	// then we go to the first state that has the whole expression true
@@ -137,13 +146,12 @@ void Animator::Update(Entity& entity)
 
 		// first = string = name of the state to go to
 		// second = vector<AnimCondition*> = list of conditions to fulfill
-		for (auto const& nextState : stateMachine->conditions)
+		for (auto& nextState : stateMachine->conditions)
 		{
 			allConditionsTrue = true;
-			std::vector<AnimCondition*> conditions = nextState.second;
-			for (int i = 0; i < conditions.size(); i++)
+			for (int i = 0; i < nextState.second.size(); i++)
 			{
-				condition = conditions[i];
+				condition = &(nextState.second[i]);
 				if (condition->check == "==")
 				{
 					if (mapParamsBool[info->mapKeysBool[condition->variable]] == condition->expectedValue)
@@ -210,7 +218,7 @@ const AnimState& Animator::GetCurrentState()
 
 Sprite* Animator::GetCurrentSprite()
 {
-	return currentState->sprite;
+	return nullptr; // currentState->sprite;
 }
 
 int Animator::GetSpeed()
@@ -220,18 +228,21 @@ int Animator::GetSpeed()
 
 void Animator::SetScaleAllStates(const Vector2& newScale)
 {
-	for (auto const& [key, val] : mapNamesToStates)
+	/*
+	for (auto const& [key, val] : animStates)
 	{
 		if (val->sprite != nullptr)
 		{
 			val->sprite->SetScale(newScale);
 		}
 	}
+	*/
 }
 
 void  Animator::SetRelativeAllStates(bool b)
 {
-	for (auto const& [key, val] : mapNamesToStates)
+	/*
+	for (auto const& [key, val] : animStates)
 	{
 		if (val->sprite != nullptr)
 		{
@@ -239,11 +250,12 @@ void  Animator::SetRelativeAllStates(bool b)
 			val->sprite->keepScaleRelativeToCamera = b;
 		}
 	}
+	*/
 }
 
 void Animator::SetState(const char* state)
 {
-	currentState = mapNamesToStates[state];
+	currentState = animStates[state];
 
 	// TODO: If we're going into the same state, don't reset the current frame
 	//if (previousState != nullptr && previousState->name == state)

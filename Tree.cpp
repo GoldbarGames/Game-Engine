@@ -27,7 +27,7 @@ void Tree::Init(const std::string& n)
 {
 	name = n;
 	//TODO: Maybe we don't need the local variable?
-	bottomSprite = animator->GetState("trunk")->sprite;
+	//bottomSprite = animator->GetState("trunk")->sprite;
 }
 
 void Tree::Update(Game& game)

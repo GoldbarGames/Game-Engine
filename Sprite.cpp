@@ -209,7 +209,7 @@ Sprite::Sprite(int numFrames, const SpriteManager& manager, const std::string& f
 	framesPerRow = numberFramesInTexture;
 
 	frameWidth = texture->GetWidth() / numberFramesInTexture;
-	frameHeight = texture->GetHeight() / (numberFramesInTexture/framesPerRow);
+	frameHeight = texture->GetHeight() / (numberFramesInTexture / framesPerRow);
 
 	startFrame = 0;
 	endFrame = numberFramesInTexture;
@@ -228,7 +228,7 @@ Sprite::Sprite(int start, int end, int width, int height, const SpriteManager& m
 	pivot = newPivot;
 
 	startFrame = start;
-	endFrame = end;	
+	endFrame = end;
 	currentFrame = startFrame;
 
 	if (width > texture->GetWidth())
@@ -269,18 +269,15 @@ Sprite::Sprite(int start, int end, int numframes, const SpriteManager& manager,
 	shouldLoop = loop;
 }
 
+Sprite::Sprite()
+{
+	model = glm::mat4(1.0f);
+	CreateMesh(MeshType::Quad);
+}
+
 Sprite::~Sprite()
 {
-	if (mesh != nullptr)
-	{
-		//delete mesh;
-	}
 
-	if (texture != nullptr)
-	{
-		//TODO: Should we clear the texture here?
-		//texture->ClearTexture();
-	}		
 }
 
 void Sprite::Render(const Vector2& position, const Renderer& renderer, const glm::vec3& rotation)
@@ -296,6 +293,22 @@ bool Sprite::ShouldAnimate(float time)
 void Sprite::AnimateMesh(float time)
 {
 	
+}
+
+void Sprite::SetTexture(Texture* t)
+{
+	texture = t;
+	startFrame = 0;
+	currentFrame = 0;
+	endFrame = 0;
+	frameWidth = texture->GetWidth();
+	frameHeight = texture->GetHeight();
+	pivot = Vector2(0, 0);
+	filename = t->GetFilePath();
+
+	//TODO: This only works if there is only one row, but that is okay for now
+	numberFramesInTexture = 1;
+	framesPerRow = 1;
 }
 
 glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed)
@@ -437,6 +450,12 @@ void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer
 	renderer.drawCallsPerFrame++;
 
 	ShaderProgram* shader = GetShader();
+
+	if (shader == nullptr)
+	{
+		shader = renderer.shaders[ShaderName::Default];
+	}
+
 	shader->UseShader();
 
 	if (keepPositionRelativeToCamera)

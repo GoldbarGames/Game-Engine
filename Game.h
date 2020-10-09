@@ -133,8 +133,6 @@ public:
 	bool CheckInputs();
 	void CheckDeleteEntities();
 
-	void ResetText();
-
 	void SetScreenResolution(const unsigned int width, const unsigned int height);
 	Entity* CreateEntity(const std::string& entityName, const Vector2& position, int spriteIndex);
 	Entity* SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex);
@@ -166,13 +164,7 @@ public:
 	FontInfo* headerFont = nullptr;
 
 	std::vector<Entity*> entitiesToRender;
-	
-	Text* fpsText = nullptr;
-	Text* timerText = nullptr;
 	std::vector<MenuScreen*> openedMenus;
-
-	Text* bugText = nullptr;
-	Text* etherText = nullptr;
 
 	bool getKeyboardInput = false;
 	bool shouldQuit = false;

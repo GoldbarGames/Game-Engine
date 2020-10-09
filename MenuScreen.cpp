@@ -36,7 +36,7 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 			"Title Screen", Vector2(startPosX, newStartPosY + (distance * 4)), game);
 
 		buttons.emplace_back(buttonResume);		
-		//buttons.emplace_back(buttonSpellbook); // COMMENTED OUT FOR DEMO
+		buttons.emplace_back(buttonSpellbook);
 		buttons.emplace_back(buttonSettings);
 		buttons.emplace_back(buttonExit);
 
@@ -132,19 +132,16 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		//	"assets/gui/wdk_character.png", game.renderer.shaders[ShaderName::FadeInOut],
 		//	Vector2(0, 0), false);
 
-		Sprite* newSprite = game.CreateSprite("assets/gui/wdk_character.png", ShaderName::FadeInOut);
-
-		titleCharacter->SetSprite(*newSprite);
-
+		titleCharacter->GetSprite()->SetTexture(game.spriteManager.GetImage("assets/gui/wdk_character.png"));
+		titleCharacter->GetSprite()->SetShader(game.renderer.shaders[ShaderName::FadeInOut]);
 		titleCharacter->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
 		titleCharacter->GetSprite()->keepPositionRelativeToCamera = true;
 		titleCharacter->GetSprite()->keepScaleRelativeToCamera = true;
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = neww Entity(Vector2(1600, 350));
-		newSprite = game.CreateSprite("assets/gui/wdk_logo.png", ShaderName::FadeInOut);
-
-		titleLogo->SetSprite(*newSprite);
+		titleLogo->GetSprite()->SetTexture(game.spriteManager.GetImage("assets/gui/wdk_logo.png"));
+		titleLogo->GetSprite()->SetShader(game.renderer.shaders[ShaderName::Default]);
 		titleLogo->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
 		titleLogo->GetSprite()->keepPositionRelativeToCamera = true;
 		titleLogo->GetSprite()->keepScaleRelativeToCamera = true;
@@ -297,8 +294,8 @@ MenuScreen::~MenuScreen()
 {
 	for (int i = 0; i < buttons.size(); i++)
 	{
-		//if (buttons[i] != nullptr)
-		//	delete_it(buttons[i]);
+		if (buttons[i] != nullptr)
+			delete_it(buttons[i]);
 	}
 
 	for (int i = 0; i < texts.size(); i++)

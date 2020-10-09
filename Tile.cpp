@@ -21,11 +21,8 @@ Tile::~Tile()
 // TODO: Move this inside the Game class: ChangeTileSprite
 void Tile::ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer)
 {
-	if (currentSprite != nullptr)
-		delete currentSprite;
-	
 	tileCoordinates = frame;
-	currentSprite = neww Sprite(frame, image, renderer->shaders[ShaderName::Default]);
+	currentSprite = Sprite(frame, image, renderer->shaders[ShaderName::Default]);
 }
 
 void Tile::Animate()

@@ -45,7 +45,7 @@ void Shroom::Init(const std::string& n)
 
 void Shroom::Update(Game& game)
 {
-	if (animator->GetBool("isBouncing") && currentSprite->HasAnimationElapsed())
+	if (animator->GetBool("isBouncing") && currentSprite.HasAnimationElapsed())
 	{
 		animator->SetBool("isBouncing", false);
 	}

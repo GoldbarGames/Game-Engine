@@ -39,7 +39,7 @@ private:
 	TTF_Font* font = nullptr;
 
 	//TODO: Maybe move this to a location where multiple text objects can all share the same memory
-	std::unordered_map<GlyphSurfaceData, std::unique_ptr<Texture, ImageDeleter>, GlyphHashFunction> glyphTextures;
+	std::unordered_map<GlyphSurfaceData, Texture*, GlyphHashFunction> glyphTextures;
 	void SetTextAsOneSprite(string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth = 0);
 
 public:
@@ -70,6 +70,7 @@ public:
 	void SetScale(Vector2 newScale);
 	Vector2 currentScale = Vector2(1, 1);
 
+	Text();
 	Text(FontInfo* newFontInfo);
 	Text(FontInfo* newFontInfo, const std::string& txt, Color color);
 	Text(FontInfo* newFontInfo, const std::string& txt,

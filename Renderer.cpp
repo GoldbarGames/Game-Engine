@@ -58,6 +58,12 @@ Renderer::~Renderer()
 		if (val != nullptr)
 			delete_it(val);
 	}
+
+	if (debugSprite != nullptr)
+		delete_it(debugSprite);
+
+	if (overlaySprite != nullptr)
+		delete_it(overlaySprite);
 }
 
 void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, Color color) const
@@ -146,7 +152,7 @@ void Renderer::FadeOverlay(const int screenWidth, const int screenHeight) const
 void Renderer::CreateShader(const ShaderName shaderName, const char* vertexFilePath, const char* fragmentFilePath)
 {
 	if (shaders[shaderName] != nullptr)
-		delete shaders[shaderName];
+		delete_it(shaders[shaderName]);
 
 	shaders[shaderName] = neww ShaderProgram(shaderName, vertexFilePath, fragmentFilePath);
 }

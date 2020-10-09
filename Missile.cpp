@@ -91,7 +91,7 @@ void Missile::Update(Game& game)
 	if (destroyAfterTime && timeToLive.HasElapsed())
 	{
 		if (animator->GetBool("destroyed") && 
-			currentSprite->HasAnimationElapsed())
+			currentSprite.HasAnimationElapsed())
 		{
 			shouldDelete = true;
 		}
@@ -107,7 +107,7 @@ void Missile::Update(Game& game)
 			// check for collisions, and destroy if it hits a wall or an enemy'
 			if (physics->hadCollisionsThisFrame)
 			{
-				if (animator->GetBool("destroyed") && currentSprite->HasAnimationElapsed())
+				if (animator->GetBool("destroyed") && currentSprite.HasAnimationElapsed())
 				{
 					shouldDelete = true;
 				}
@@ -147,7 +147,7 @@ void Missile::Update(Game& game)
 			{
 				position = landedPosition;
 				// pop_fire_init: Check that the fire starts up
-				animator->SetBool("animationElapsed", currentSprite->HasAnimationElapsed());
+				animator->SetBool("animationElapsed", currentSprite.HasAnimationElapsed());
 				if (animator->GetBool("animationElapsed"))
 				{
 					actionTimer.Start(3000);
@@ -166,7 +166,7 @@ void Missile::Update(Game& game)
 			{
 				position = landedPosition;
 				// pop_fire_end: After the last animation plays, destroy the object
-				if (currentSprite->HasAnimationElapsed())
+				if (currentSprite.HasAnimationElapsed())
 				{
 					shouldDelete = true;
 				}
@@ -252,8 +252,8 @@ void Missile::Update(Game& game)
 
 			if (state.name == "carry_init")
 			{				
-				currentSprite->shouldLoop = false;
-				if (currentSprite->HasAnimationElapsed())
+				currentSprite.shouldLoop = false;
+				if (currentSprite.HasAnimationElapsed())
 				{
 					animator->SetBool("animationElapsed", true);
 					//timeToLive.Start(1000);
@@ -280,8 +280,8 @@ void Missile::Update(Game& game)
 			else if (state.name == "carry_end")
 			{
 				physics->SetVelocity(Vector2(0, 0));
-				currentSprite->shouldLoop = false;				
-				if (actionTimer.HasElapsed() && currentSprite->HasAnimationElapsed())
+				currentSprite.shouldLoop = false;				
+				if (actionTimer.HasElapsed() && currentSprite.HasAnimationElapsed())
 				{
 					shouldDelete = true;
 					(*selfPointer) = nullptr;

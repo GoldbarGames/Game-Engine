@@ -132,7 +132,10 @@ Editor::~Editor()
 	}
 
 	if (dialog != nullptr)
-		delete_it(dialog);		
+		delete_it(dialog);	
+
+	if (grid != nullptr)
+		delete_it(grid);
 }
 
 // Updates the level file based on changes in how entities are saved/loaded
@@ -354,8 +357,7 @@ void Editor::CreateEditorButtons()
 	// Create all the buttons for the bottom of the editor
 	for (unsigned int i = 0; i < buttons.size(); i++)
 	{
-		delete buttons[i];
-		buttons[i] = nullptr;
+		delete_it(buttons[i]);
 	}
 
 	buttons.clear();
@@ -443,11 +445,11 @@ void Editor::StartEdit()
 	// Create the layer buttons
 
 	for (unsigned int i = 0; i < layerButtons.size(); i++)
-		delete layerButtons[i];
+		delete_it(layerButtons[i]);
 	layerButtons.clear();
 
 	for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
-		delete layerVisibleButtons[i];
+		delete_it(layerVisibleButtons[i]);
 	layerVisibleButtons.clear();
 
 	int buttonX = 200;
@@ -2345,6 +2347,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 	}
 
 	// Initialize starting properties
+	// TODO: Move these to the GUI or somewhere
 	game->currentEther = game->startingEther;
 	game->bugsRemaining = 0;
 	for (unsigned int i = 0; i < game->entities.size(); i++)
@@ -2352,7 +2355,8 @@ void Editor::InitLevelFromFile(std::string levelName)
 		if (game->entities[i]->etype == "bug")
 			game->bugsRemaining++;
 	}
-	game->ResetText();
+
+	game->gui.ResetText();
 
 	// Play the cutscene for the current level, if any
 	if (game->levelStartCutscene != "")

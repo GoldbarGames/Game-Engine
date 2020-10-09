@@ -12,6 +12,7 @@
 class Entity;
 class Sprite;
 class Vector2;
+class SpriteManager;
 
 class Animator
 {
@@ -19,17 +20,18 @@ private:
 	//std::unordered_map<std::string, Sprite*> mapStateToSprite;
 
 	// These are the keys for the below maps
-	static std::map<unsigned int, AnimatorInfo*> mapTypeToInfo;
 	static std::unordered_map<std::string, unsigned int> mapNamesToAnimType;
+
 
 	// parameters for triggering transitions between states
 	std::unordered_map<unsigned int, bool> mapParamsBool;
 	std::unordered_map<unsigned int, float> mapParamsFloat;
 	std::unordered_map<unsigned int, int> mapParamsInt;
 
-	std::unordered_map<std::string, AnimState*> mapNamesToStates;
+	std::unordered_map<std::string, AnimState*> animStates;
 public:
-
+	static SpriteManager* spriteManager;
+	static std::map<unsigned int, AnimatorInfo*> mapTypeToInfo;
 	Sprite* GetCurrentSprite();
 
 	Timer animationTimer;

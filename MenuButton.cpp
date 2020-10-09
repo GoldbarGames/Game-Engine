@@ -37,7 +37,11 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 
 MenuButton::~MenuButton()
 {
+	if (image != nullptr)
+		delete_it(image);
 
+	if (text != nullptr)
+		delete_it(text);
 }
 
 void MenuButton::Render(const Renderer& renderer)
