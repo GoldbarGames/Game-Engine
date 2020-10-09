@@ -10,6 +10,7 @@ DebugScreen::DebugScreen(Game& g)
 	game = &g;
 	sprite = game->CreateSprite("assets/editor/1pixel.png");
 	camera = &game->renderer.camera;
+
 	CreateDebugText(DebugText::cursorPositionInScreen, 400, 50);
 	CreateDebugText(DebugText::cursorPositionInWorld, 400, 100);
 	CreateDebugText(DebugText::currentEditModeLayer, 400, 200);
@@ -31,6 +32,9 @@ DebugScreen::~DebugScreen()
 		if (val != nullptr)
 			delete_it(val);
 	}
+
+	if (sprite != nullptr)
+		delete_it(sprite);
 }
 
 void DebugScreen::CreateDebugText(const DebugText textName, const int x, const int y)

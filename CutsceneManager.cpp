@@ -1235,6 +1235,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 
 			// Add the image to the text here
 			//TODO: Check this for memory leaks!
+			
 			Sprite* sprite = game->CreateSprite(commands.ParseStringValue(imageName), ShaderName::Default);
 
 			text->AddImage(sprite);

@@ -64,7 +64,7 @@ int Text::GetTextWidth()
 			width += glyphs[i]->sprite.texture->GetWidth();
 		}
 	}
-	else
+	else if (currentSprite.texture != nullptr)
 	{		
 		return currentSprite.texture->GetWidth();
 	}
@@ -343,7 +343,12 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 
 	bool renderRelative = currentSprite.keepPositionRelativeToCamera;
 	bool keepScaleRelative = currentSprite.keepScaleRelativeToCamera;
-	delete_it(currentSprite.texture);
+
+	if (currentSprite.texture != nullptr)
+	{
+		std::cout << currentSprite.texture << " Deleting text " << currentSprite.filename << std::endl;
+		delete_it(currentSprite.texture);
+	}
 
 	textColor = color;
 	txt = text; // translate the text here
@@ -371,7 +376,8 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 		Texture* textTexture = neww Texture(txt.c_str());
 		textTexture->LoadTexture(textSurface);		
 
-		currentSprite = Sprite(textTexture, Renderer::GetTextShader());
+		currentSprite.SetTexture(textTexture);
+		currentSprite.SetShader(Renderer::GetTextShader());
 		currentSprite.filename = txt;
 		std::cout << currentSprite.texture << " Creating text " << txt << std::endl;
 		currentSprite.keepScaleRelativeToCamera = keepScaleRelative;
@@ -379,6 +385,10 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 
 		if (textSurface != nullptr)
 			SDL_FreeSurface(textSurface);
+	}
+	else
+	{
+		std::cout << "ERROR loading SDL Surface" << std::endl;
 	}
 }
 
