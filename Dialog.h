@@ -9,6 +9,7 @@ class Dialog
 public:
 	bool visible = false;
 	Vector2 position = Vector2(0, 0);
+	Vector2 scale = Vector2(1, 1);
 	Sprite* sprite = nullptr;
 	Text* text = nullptr;
 	Text* input = nullptr;

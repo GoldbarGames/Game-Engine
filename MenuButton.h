@@ -15,6 +15,7 @@ private:
 	int thickness = 2;
 	Vector2 position = Vector2(0, 0);	
 	Vector2 imagePosition = Vector2(0, 0);
+	Vector2 scale = Vector2(1, 1);
 public:	
 	MenuButton(const std::string& txt, const std::string& filepath, 
 		const std::string& function, const Vector2& pos, Game& game);

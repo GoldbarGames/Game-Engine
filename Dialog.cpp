@@ -29,7 +29,7 @@ void Dialog::Update()
 
 void Dialog::Render(const Renderer& renderer)
 {
-	sprite->Render(position, renderer);
+	sprite->Render(position, renderer, scale);
 
 	text->Render(renderer);
 

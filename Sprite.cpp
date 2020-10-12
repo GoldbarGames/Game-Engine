@@ -34,7 +34,7 @@ unsigned int Sprite::Size()
 	totalSize += sizeof(lastAnimTime);
 	totalSize += sizeof(frameWidth);
 	totalSize += sizeof(frameHeight);
-	totalSize += sizeof(scale);
+	//totalSize += sizeof(scale);
 	totalSize += sizeof(shouldLoop);
 	totalSize += sizeof(startFrame);
 	totalSize += sizeof(endFrame);
@@ -280,9 +280,9 @@ Sprite::~Sprite()
 
 }
 
-void Sprite::Render(const Vector2& position, const Renderer& renderer, const glm::vec3& rotation)
+void Sprite::Render(const Vector2& position, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)
 {
-	Render(position, 0, renderer, rotation);
+	Render(position, 0, renderer, scale, rotation);
 }
 
 bool Sprite::ShouldAnimate(float time)
@@ -376,7 +376,7 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 	return texOffset;
 }
 
-void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, const Renderer& renderer)
+void Sprite::CalculateModel(Vector2 position, const glm::vec3& rotation, const Vector2& scale, const Renderer& renderer)
 {
 	if (rotation.x >= 89)
 		int test = 0;
@@ -445,7 +445,7 @@ void Sprite::CalculateModel(Vector2 position, glm::vec3 rotation, const Renderer
 
 // NOTE: This function expects a center-coordinate rectangle to be rendered,
 // so if you pass in a top-left rectangle, you'll see something wrong
-void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer, const glm::vec3& rotation)
+void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)
 {
 	renderer.drawCallsPerFrame++;
 
@@ -515,7 +515,7 @@ void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer
 		break;
 	}
 
-	CalculateModel(position, rotation, renderer);
+	CalculateModel(position, rotation, scale, renderer);
 
 	// Projection
 	if (keepScaleRelativeToCamera)
@@ -543,11 +543,6 @@ void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer
 const SDL_Rect* Sprite::GetRect()
 {
 	return &rect;
-}
-
-void Sprite::SetScale(Vector2 s)
-{
-	scale = s;
 }
 
 bool Sprite::HasAnimationElapsed()

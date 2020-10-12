@@ -397,11 +397,11 @@ void Enemy::Render(const Renderer& renderer)
 
 				debugSprite->color = { 255, 255, 255, 255 };
 				//debugSprite->pivot = GetSprite()->pivot;
-				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+				renderer.debugScale = Vector2(targetWidth / rWidth, targetHeight / rHeight);
 
 				Vector2 colliderPosition = Vector2(position.x + bottomLeftGround->offset.x, 
 					position.y + bottomLeftGround->offset.y);
-				debugSprite->Render(colliderPosition, renderer);
+				debugSprite->Render(colliderPosition, renderer, renderer.debugScale);
 			}
 
 			if (bottomRightGround != nullptr)
@@ -412,11 +412,11 @@ void Enemy::Render(const Renderer& renderer)
 
 				debugSprite->color = { 255, 255, 255, 255 };
 				//debugSprite->pivot = GetSprite()->pivot;
-				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+				renderer.debugScale = (Vector2(targetWidth / rWidth, targetHeight / rHeight));
 
 				Vector2 colliderPosition = Vector2(position.x + bottomRightGround->offset.x,
 					position.y + bottomRightGround->offset.y);
-				debugSprite->Render(colliderPosition, renderer);
+				debugSprite->Render(colliderPosition, renderer, renderer.debugScale);
 			}
 		}
 	}

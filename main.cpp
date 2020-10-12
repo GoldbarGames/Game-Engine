@@ -25,7 +25,7 @@ int main(int argc, char *args[])
 	SDL_Quit();
 	IMG_Quit();
 
-	_CrtDumpMemoryLeaks();
+	//_CrtDumpMemoryLeaks();
 
 	return 0;
 }

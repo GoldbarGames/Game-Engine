@@ -454,7 +454,6 @@ Sprite* Game::InitFramebuffer(unsigned int& fbo, unsigned int& tex, unsigned int
 	Sprite* sprite = neww Sprite(screenTexture, renderer.shaders[ShaderName::Default]);
 	sprite->keepPositionRelativeToCamera = true;
 	sprite->keepScaleRelativeToCamera = true;
-	sprite->SetScale(Vector2(1.0f, -1.0f));
 
 	// attach it to currently bound framebuffer object
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
@@ -1712,11 +1711,11 @@ void Game::Render()
 	// TODO: Set post-processing shaders here
 
 	screenSprite->SetShader(renderer.shaders[ShaderName::Default]);
-	screenSprite->Render(Vector2(screenWidth, screenHeight), renderer);
+	screenSprite->Render(Vector2(screenWidth, screenHeight), renderer, Vector2(1, -1));
 
 	if (renderSecondFrameBuffer)
 	{
-		prevScreenSprite->Render(Vector2(screenWidth, screenHeight), renderer);
+		prevScreenSprite->Render(Vector2(screenWidth, screenHeight), renderer, Vector2(1, -1));
 	}
 
 	/*

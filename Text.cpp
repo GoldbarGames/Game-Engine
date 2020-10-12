@@ -30,7 +30,7 @@ Text::~Text()
 	{
 		if (currentSprite.texture != nullptr)
 		{
-			std::cout << currentSprite.texture << " Deleting text " << currentSprite.filename << std::endl;
+			//std::cout << currentSprite.texture << " Deleting text " << currentSprite.filename << std::endl;
 			delete_it(currentSprite.texture);
 		}
 	}
@@ -234,7 +234,7 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 			newGlyph->sprite.keepScaleRelativeToCamera = keepScaleRelative;
 			newGlyph->sprite.keepPositionRelativeToCamera = renderRelative;
 			newGlyph->sprite.filename = txt[i];
-			newGlyph->sprite.SetScale(currentScale);
+			newGlyph->scale = currentScale;
 
 			glyphs.push_back(newGlyph);
 
@@ -282,9 +282,9 @@ void Text::AddImage(Sprite* newSprite)
 	{
 		newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		newSprite->keepPositionRelativeToCamera = renderRelative;
-		newSprite->SetScale(currentScale);
-
+		
 		Glyph* newGlyph = neww Glyph;
+		newGlyph->scale = currentScale;
 		newGlyph->sprite = Sprite(newSprite->texture, newSprite->shader);
 		delete_it(newSprite);
 
@@ -292,16 +292,16 @@ void Text::AddImage(Sprite* newSprite)
 		{
 			Sprite* previousSprite = &glyphs[glyphs.size() - 1]->sprite;
 
-			float oldRatioX = (previousSprite->frameWidth * previousSprite->scale.x);
-			float oldRatioY = (previousSprite->frameHeight * previousSprite->scale.y);
+			float oldRatioX = (previousSprite->frameWidth * glyphs[glyphs.size() - 1]->scale.x);
+			float oldRatioY = (previousSprite->frameHeight * glyphs[glyphs.size() - 1]->scale.y);
 
-			float newRatioX = (newSprite->frameWidth * newSprite->scale.x);
-			float newRatioY = (newSprite->frameHeight * newSprite->scale.y);
+			float newRatioX = (newSprite->frameWidth * newGlyph->scale.x);
+			float newRatioY = (newSprite->frameHeight * newGlyph->scale.y);
 
 			float scaleX = oldRatioX / (float)newRatioX;
 			float scaleY = oldRatioY / (float)newRatioY;
 
-			newGlyph->sprite.SetScale(Vector2(scaleY, scaleY));
+			newGlyph->scale = Vector2(scaleY, scaleY);
 		}
 
 		glyphs.push_back(newGlyph);
@@ -326,7 +326,7 @@ void Text::AddText(char c, Color color)
 		newGlyph->sprite.keepScaleRelativeToCamera = keepScaleRelative;
 		newGlyph->sprite.keepPositionRelativeToCamera = renderRelative;
 		newGlyph->sprite.filename = c;
-		newGlyph->sprite.SetScale(currentScale);
+		newGlyph->scale = currentScale;
 
 		glyphs.push_back(newGlyph);
 		txt += c;
@@ -346,7 +346,7 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 
 	if (currentSprite.texture != nullptr)
 	{
-		std::cout << currentSprite.texture << " Deleting text " << currentSprite.filename << std::endl;
+		//std::cout << currentSprite.texture << " Deleting text " << currentSprite.filename << std::endl;
 		delete_it(currentSprite.texture);
 	}
 
@@ -379,7 +379,7 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 		currentSprite.SetTexture(textTexture);
 		currentSprite.SetShader(Renderer::GetTextShader());
 		currentSprite.filename = txt;
-		std::cout << currentSprite.texture << " Creating text " << txt << std::endl;
+		//std::cout << currentSprite.texture << " Creating text " << txt << std::endl;
 		currentSprite.keepScaleRelativeToCamera = keepScaleRelative;
 		currentSprite.keepPositionRelativeToCamera = renderRelative;
 
@@ -402,17 +402,17 @@ void Text::Render(const Renderer& renderer)
 			if (glyphs[i]->animator != nullptr)
 			{
 				glyphs[i]->sprite.Render(glyphs[i]->position,
-					glyphs[i]->animator->GetSpeed(), renderer, rotation);
+					glyphs[i]->animator->GetSpeed(), renderer, scale, rotation);
 			}
 			else
 			{
-				glyphs[i]->sprite.Render(glyphs[i]->position, 0, renderer, rotation);
+				glyphs[i]->sprite.Render(glyphs[i]->position, 0, renderer, scale, rotation);
 			}
 		}
 	}
 	else
 	{
-		currentSprite.Render(position, renderer);
+		currentSprite.Render(position, renderer, scale, rotation);
 	}
 
 }
@@ -423,12 +423,12 @@ void Text::Render(const Renderer& renderer, Vector2 offset)
 	{
 		for (int i = 0; i < glyphs.size(); i++)
 		{
-			glyphs[i]->sprite.Render(glyphs[i]->position + offset, renderer);
+			glyphs[i]->sprite.Render(glyphs[i]->position + offset, renderer, scale);
 		}
 	}
 	else
 	{
-		currentSprite.Render(position + offset, renderer);
+		currentSprite.Render(position + offset, renderer, scale);
 	}
 }
 
@@ -440,12 +440,12 @@ void Text::SetScale(Vector2 newScale)
 	{
 		for (int i = 0; i < glyphs.size(); i++)
 		{
-			glyphs[i]->sprite.SetScale(newScale);
+			glyphs[i]->scale = newScale;
 		}
 	}
 	else
 	{
-		currentSprite.SetScale(scale);
+		//SetScale(scale);
 	}
 
 	SetPosition(position.x, position.y);
@@ -507,11 +507,11 @@ void Text::SetPosition(const float x, const float y)
 	for (int i = 0; i < glyphs.size(); i++)
 	{
 		//TODO: Maybe add some space between the letters?
-		int width = glyphs[i]->sprite.frameWidth * glyphs[i]->sprite.scale.x * 2;
+		int width = glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 
 		if (i == 0)
 		{
-			glyphHeight = glyphs[i]->sprite.frameHeight * glyphs[i]->sprite.scale.y * 2;
+			glyphHeight = glyphs[i]->sprite.frameHeight * glyphs[i]->scale.y * Camera::MULTIPLIER;
 		}
 
 		// The only reason to keep track of the current line is to get the total size
@@ -571,14 +571,14 @@ void Text::SetPosition(const float x, const float y)
 
 		for (int i = 0; i < glyphs.size(); i++)
 		{
-			currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->sprite.scale.x * 2;
+			currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 			glyphs[i]->position = currentPosition;
 
 			if (i > 0 && i == lineNumToIndex[lineNumber])
 			{
 				lineNumber++;
 				currentPosition.x = position.x;
-				currentPosition.y += glyphs[i]->sprite.frameHeight * glyphs[i]->sprite.scale.y * 2;;
+				currentPosition.y += glyphs[i]->sprite.frameHeight * glyphs[i]->scale.y * Camera::MULTIPLIER;
 			}
 		}
 
@@ -601,7 +601,7 @@ void Text::SetPosition(const float x, const float y)
 			// On each line, sum together the width of all glyphs on that line, and subtract half of that from the position
 			for (int i = 0; i < glyphs.size(); i++)
 			{
-				lineWidth += glyphs[i]->sprite.frameWidth * glyphs[i]->sprite.scale.x * 2;
+				lineWidth += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 
 				if (i > 0 && i == lineNumToIndex[lineNumber])
 				{
@@ -616,10 +616,10 @@ void Text::SetPosition(const float x, const float y)
 
 			for (int i = 0; i < glyphs.size(); i++)
 			{			
-				currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->sprite.scale.x * 2;
+				currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 
 				glyphs[i]->position = currentPosition;
-				glyphs[i]->position.x -= lineWidths[lineNumber] / 2.0f;
+				glyphs[i]->position.x -= lineWidths[lineNumber] / Camera::MULTIPLIER;
 
 				if (i > 0 && i == lineNumToIndex[lineNumber])
 				{
@@ -629,7 +629,7 @@ void Text::SetPosition(const float x, const float y)
 						currentPosition.x = position.x;
 					else
 						currentPosition.x = wrapWidth;
-					currentPosition.y += glyphs[i]->sprite.frameHeight * glyphs[i]->sprite.scale.y * 2;;
+					currentPosition.y += glyphs[i]->sprite.frameHeight * glyphs[i]->scale.y * Camera::MULTIPLIER;
 				}
 			}
 
@@ -648,7 +648,7 @@ void Text::SetPosition(const float x, const float y)
 		for (int i = glyphs.size() - 1; i >= 0; i--)
 		{
 			// To avoid having the earlier lines on the bottom, we need to subtract here to make the next lines move up,
-			currentPosition.x -= glyphs[i]->sprite.frameWidth * glyphs[i]->sprite.scale.x * 2;
+			currentPosition.x -= glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 			glyphs[i]->position = currentPosition;
 
 			int lineIndexFromEnd = lineNumToIndex.size() - lineNumber - 1;
@@ -656,7 +656,7 @@ void Text::SetPosition(const float x, const float y)
 			{
 				lineNumber++;
 				currentPosition.x = position.x + (wrapWidth * 2);
-				currentPosition.y -= glyphs[i]->sprite.frameHeight * glyphs[i]->sprite.scale.y * 2;
+				currentPosition.y -= glyphs[i]->sprite.frameHeight * glyphs[i]->scale.y * Camera::MULTIPLIER;
 			}
 		}
 

@@ -116,35 +116,15 @@ std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFileP
 {
 	std::vector<AnimState*> animStates;
 
-	std::cout << dataFilePath << std::endl;
+	//std::cout << dataFilePath << std::endl;
 
 	// If we have already read this file, grab it from the table
 	if (animationStates.count(dataFilePath) != 0)
 	{
 		return animationStates[dataFilePath];
-
-		/*
-		for (int i = 0; i < animationStates[dataFilePath].size(); i++)
-		{
-			AnimState* state = animationStates[dataFilePath][i];
-
-			// TODO: Maybe it is better for each Sprite to have its own Animator*
-			// which contains the set of AnimStates*, and then when there is a state change,
-			// the sprite's values are changed according to the new AnimState.
-			// Rather than states pointing to sprites.
-			// Thus we would not need copies of Animators or anything animation-related			
-
-			animStates.push_back(neww AnimState(state->name, state->speed,
-				neww Sprite(state->sprite->startFrame, state->sprite->endFrame, 
-					state->sprite->frameWidth, state->sprite->frameHeight, *this, state->sprite->filename,
-					renderer->shaders[ShaderName::Default],
-					Vector2(state->sprite->pivot.x, state->sprite->pivot.y))));
-		}
-
-		return animStates;*/
 	}
 
-	std::cout << "Base anim: " << std::endl;
+	//std::cout << "Base anim: " << std::endl;
 
 	// Get anim data from the file
 	std::ifstream fin;

@@ -106,21 +106,30 @@ void Animator::OnEnter(AnimState state)
 
 void Animator::DoState(Entity& entity)
 {
-	if (currentState != nullptr && spriteManager != nullptr)
+	SetSpriteFromState(currentState, *(entity.GetSprite()));
+}
+
+void Animator::SetSpriteFromState(AnimState* animState, Sprite& sprite)
+{
+	if (animState != nullptr && spriteManager != nullptr)
 	{
-		Sprite* sprite = entity.GetSprite();
-		sprite->texture = spriteManager->GetImage(currentState->filename);
-		sprite->filename = currentState->filename;
-		sprite->startFrame = currentState->startFrame;
-		sprite->endFrame = currentState->endFrame;
-		sprite->frameWidth = currentState->frameWidth;
-		sprite->frameHeight = currentState->frameHeight;
-		sprite->pivot = Vector2(currentState->pivotX, currentState->pivotY);
+		sprite.texture = spriteManager->GetImage(animState->filename);
+		sprite.filename = animState->filename;
+		sprite.startFrame = animState->startFrame;
+		sprite.endFrame = animState->endFrame;
+		sprite.frameWidth = animState->frameWidth;
+		sprite.frameHeight = animState->frameHeight;
+		sprite.pivot = Vector2(animState->pivotX, animState->pivotY);
 
 		//TODO: This only works if there is only one row, but that is okay for now
-		sprite->numberFramesInTexture = sprite->texture->GetWidth() / currentState->frameWidth;
-		sprite->framesPerRow = sprite->numberFramesInTexture;
+		sprite.numberFramesInTexture = sprite.texture->GetWidth() / animState->frameWidth;
+		sprite.framesPerRow = sprite.numberFramesInTexture;
 	}
+}
+
+void Animator::SetSpriteFromState(const std::string& state, Sprite& sprite)
+{
+	SetSpriteFromState(GetState(state), sprite);
 }
 
 void Animator::OnExit(AnimState state)
@@ -171,17 +180,8 @@ void Animator::Update(Entity& entity)
 
 			if (allConditionsTrue) // then go to the next state
 			{
-				
-				if (condition != nullptr && currentState->name != condition->nextState.c_str())
-				{
-					if (currentState->name == "debug")
-						int test = 0;
-					if (currentState->name == "idle")
-						int test = 0;
-				}
-
-				if (entity.etype == "player")
-					std::cout << condition->nextState.c_str() << std::endl;
+				//if (entity.etype == "player")
+				//	std::cout << condition->nextState.c_str() << std::endl;
 
 				SetState(condition->nextState.c_str());
 				DoState(entity);
@@ -224,33 +224,6 @@ Sprite* Animator::GetCurrentSprite()
 int Animator::GetSpeed()
 {
 	return currentState->speed;
-}
-
-void Animator::SetScaleAllStates(const Vector2& newScale)
-{
-	/*
-	for (auto const& [key, val] : animStates)
-	{
-		if (val->sprite != nullptr)
-		{
-			val->sprite->SetScale(newScale);
-		}
-	}
-	*/
-}
-
-void  Animator::SetRelativeAllStates(bool b)
-{
-	/*
-	for (auto const& [key, val] : animStates)
-	{
-		if (val->sprite != nullptr)
-		{
-			val->sprite->keepPositionRelativeToCamera = b;
-			val->sprite->keepScaleRelativeToCamera = b;
-		}
-	}
-	*/
 }
 
 void Animator::SetState(const char* state)

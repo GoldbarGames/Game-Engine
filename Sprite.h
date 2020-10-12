@@ -61,7 +61,6 @@ public:
 
 	int frameWidth = 1;
 	int frameHeight = 1;
-	Vector2 scale = Vector2(1, 1);
 
 	Vector2 lastPosition = Vector2(0, 0);
 	glm::vec3 lastRotation = glm::vec3(0, 0, 0);
@@ -88,10 +87,9 @@ public:
 	SDL_Rect rect; //TODO: Get rid of this?
 	const SDL_Rect* GetRect();
 
-	void Render(const Vector2& position, const Renderer& renderer, const glm::vec3& rotation=glm::vec3(0,0,0));
-	void Render(const Vector2& position, int speed, const Renderer& renderer, const glm::vec3& rotation);
+	void Render(const Vector2& position, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation=glm::vec3(0,0,0));
+	void Render(const Vector2& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation);
 
-	void SetScale(Vector2 s);
 	bool ShouldAnimate(float time);
 	void CreateMesh(MeshType meshType = MeshType::Quad);
 	
@@ -102,7 +100,7 @@ public:
 	Sprite(int numFrames, const SpriteManager& manager, const std::string& filepath, ShaderProgram* shader, Vector2 newPivot);
 
 	glm::vec2 CalculateRenderFrame(const Renderer& renderer, float animSpeed);
-	void CalculateModel(Vector2 position, glm::vec3 rotation, const Renderer& renderer);
+	void CalculateModel(Vector2 position, const glm::vec3& rotation, const Vector2& scale, const Renderer& renderer);
 
 	//TODO: What should we do here?
 	// start = first frame of animation

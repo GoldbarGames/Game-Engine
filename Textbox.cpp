@@ -25,7 +25,6 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 
 	//TODO: Should we have a way to define the starting box position?
 	boxObject = neww Entity(Vector2(1280, 720));
-	
 	//TODO: Have a way to specify the image for the box
 	boxObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/textbox1.png"));
 	boxObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
@@ -52,14 +51,13 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	clickToContinue = neww Entity(Vector2(0,0));
 
 	std::vector<AnimState*> animStates = spriteManager->ReadAnimData("data/animators/cursor/cursor.animations");
-
 	Animator* newAnimator = neww Animator("cursor", animStates, "samepage");
 	newAnimator->SetBool("endOfPage", false);
-	newAnimator->SetRelativeAllStates(true);
-	//newAnimator->SetScaleAllStates(Vector2(0.5f, 0.5f));
-
+	
 	clickToContinue->SetAnimator(*newAnimator);
-	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+	clickToContinue->SetScale(Vector2(0.5f, 0.5f));
+	clickToContinue->GetSprite()->keepPositionRelativeToCamera = true;
+	clickToContinue->GetSprite()->keepScaleRelativeToCamera = true;
 
 	speaker->SetText(" ");
 	text->SetText(" ", text->textColor, boxWidth);
@@ -69,10 +67,6 @@ Textbox::~Textbox()
 {
 	if (clickToContinue != nullptr)
 		delete_it(clickToContinue);
-
-	// TODO: When we try to delete these (text and speaker)
-	// they are dangling pointers (trying to delete already deleted data)
-	// and should have been set to nullptr some time before
 
 	if (text != nullptr)
 		delete_it(text);
@@ -111,7 +105,7 @@ void Textbox::SetCursorPosition(bool endOfPage, Vector2 newCursorPos)
 	clickToContinue->GetAnimator()->SetBool("endOfPage", endOfPage);
 	clickToContinue->GetAnimator()->Update(*clickToContinue);
 	clickToContinue->GetAnimator()->DoState(*clickToContinue);
-	clickToContinue->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+	clickToContinue->SetScale(Vector2(0.5f, 0.5f));
 
 	newCursorPos.x += clickToContinue->GetSprite()->frameWidth;
 	clickToContinue->SetPosition(newCursorPos);

@@ -89,12 +89,12 @@ void Player::RenderDebug(const Renderer& renderer)
 
 				debugSprite->color = { 255, 255, 255, 255 };
 				//debugSprite->pivot = GetSprite()->pivot;
-				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
+				renderer.debugScale = Vector2(targetWidth / rWidth, targetHeight / rHeight);
 
 				Vector2 colliderPosition = Vector2(position.x + closeRangeAttackCollider->offset.x, 
 					position.y + closeRangeAttackCollider->offset.y);
 
-				debugSprite->Render(colliderPosition, renderer);
+				debugSprite->Render(colliderPosition, renderer, renderer.debugScale);
 			}
 		}
 	}
@@ -115,9 +115,6 @@ void Player::Update(Game& game)
 {	
 	static unsigned int count = 0;
 	updatedAnimator = false;
-
-	if (isDouble)
-		int test = 0;
 
 	currentSprite.color = color;
 
@@ -156,7 +153,6 @@ void Player::Update(Game& game)
 		{
 			spell.Update(game);
 		}
-		
 
 		// Check if an enemy has been hit by our attack
 		if (closeRangeAttackCollider != nullptr)
@@ -244,7 +240,6 @@ void Player::UpdateNormally(Game& game)
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
 	bool wasHoldingUp = animator->GetBool("holdingUp");
-
 
 	if (isDouble)
 	{
@@ -630,5 +625,4 @@ void Player::Save(std::unordered_map<std::string, std::string>& map)
 void Player::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
 	Entity::Load(map, game);
-
 }

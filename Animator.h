@@ -54,10 +54,10 @@ public:
 	void StartTimer();
 	void MapStateNameToState(const std::string& name, AnimState* state);
 
-	unsigned int GetNumberOfStateFromName(const char* name);
+	void SetSpriteFromState(AnimState* animState, Sprite& sprite);
+	void SetSpriteFromState(const std::string& state, Sprite& sprite);
 
-	void SetScaleAllStates(const Vector2& newScale);
-	void SetRelativeAllStates(bool b);
+	unsigned int GetNumberOfStateFromName(const char* name);
 
 	AnimState* GetState(const std::string& name);
 	const AnimState& GetCurrentState();

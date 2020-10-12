@@ -98,7 +98,7 @@ void DebugScreen::Render(const Renderer& renderer)
 
 		if (sprite != nullptr)
 		{
-			sprite->Render(worldPosition, renderer);
+			sprite->Render(worldPosition, renderer, scale);
 		}
 
 		if (camera != nullptr && !camera->useOrthoCamera)

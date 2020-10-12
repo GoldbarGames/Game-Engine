@@ -10,12 +10,12 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 
 	//TODO: Deal with issues involving extra whitespace (it breaks things)
 	std::vector<std::string> stateNames;
-	mapStateNamesToNumbers[""] = 0;
-	stateMachines[""] = neww AnimStateMachine();
+	//mapStateNamesToNumbers[""] = 0;
+	//stateMachines[""] = neww AnimStateMachine();
 
 	bool readingInConditions = false;
 	// Read in the state machine animator file
-	std::cout << "Reading animator file:" << std::endl;
+	// std::cout << "Reading animator file:" << std::endl;
 	fin.open(animatorFile);
 	if (fin.is_open())
 	{
@@ -115,6 +115,7 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 				{
 					if (stateMachines.count(stateNames[i]) != 1)
 					{
+						//std::cout << "Creating sm " << stateNames[i] << std::endl;
 						stateMachines[stateNames[i]] = neww AnimStateMachine();
 					}
 					stateMachines[stateNames[i]]->conditions[nextStateName] = conditions;
@@ -128,8 +129,10 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 
 AnimatorInfo::~AnimatorInfo()
 {	
+	
 	for (auto& [key, stateMachine] : stateMachines)
 	{
+		//std::cout << "Deleting sm " << key << std::endl;
 		if (stateMachine != nullptr)
 			delete_it(stateMachine);
 	}	

@@ -93,7 +93,6 @@ void HealthComponent::CreateHealthBar(const Renderer& renderer, const Vector2& s
 		delete healthbarFront;
 
 	healthbarFront = neww Sprite(renderer.shaders[ShaderName::SolidColor]);
-	healthbarFront->scale = scale;
 	healthbarFront->color = colorFront;
 	healthbarFront->keepPositionRelativeToCamera = relativeToCamera;
 	healthbarFront->keepScaleRelativeToCamera = relativeToCamera;
@@ -102,7 +101,6 @@ void HealthComponent::CreateHealthBar(const Renderer& renderer, const Vector2& s
 		delete healthbarBack;
 
 	healthbarBack = neww Sprite(renderer.shaders[ShaderName::SolidColor]);
-	healthbarBack->scale = scale;
 	healthbarBack->color = colorBack;
 	healthbarBack->keepPositionRelativeToCamera = relativeToCamera;
 	healthbarBack->keepScaleRelativeToCamera = relativeToCamera;
@@ -121,8 +119,7 @@ void HealthComponent::Render(const Renderer& renderer)
 		if (healthbarBack != nullptr)
 		{			
 			Vector2 positionBack = position;
-			healthbarBack->SetScale(initialHealthBarScale);
-			healthbarBack->Render(positionBack, renderer);
+			healthbarBack->Render(positionBack, renderer, initialHealthBarScale);
 		}
 
 		if (healthbarFront != nullptr)
@@ -132,8 +129,7 @@ void HealthComponent::Render(const Renderer& renderer)
 			float offset = (initialHealthBarScale.x - (width));
 			positionFront.x -= offset;
 
-			healthbarFront->SetScale(Vector2(width, initialHealthBarScale.y));
-			healthbarFront->Render(positionFront, renderer);
+			healthbarFront->Render(positionFront, renderer, Vector2(width, initialHealthBarScale.y));
 		}
 	}
 
@@ -168,7 +164,7 @@ void HealthComponent::Render(const Renderer& renderer)
 				healthIcons[i]->color = { 255, 255, 255, 255 };
 			}
 
-			healthIcons[i]->Render(currentPosition, renderer);
+			healthIcons[i]->Render(currentPosition, renderer, Vector2(1,1));
 			currentPosition += Vector2(100, 0);
 		}
 	}

@@ -72,7 +72,7 @@ void EditorButton::Render(const Renderer& renderer)
 	// Render the button's image and text
 	//Vector2 cameraPosition = Vector2(renderer->camera.position.x, renderer->camera.position.y);
 	
-	image->Render(position, renderer);
+	image->Render(position, renderer, Vector2(1,1));
 	text->Render(renderer, Vector2(0,0));
 }
 

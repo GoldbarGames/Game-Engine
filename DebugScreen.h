@@ -26,6 +26,7 @@ public:
 	Sprite* sprite = nullptr;
 	Camera* camera = nullptr;
 	Vector2 worldPosition = Vector2(0, 0);
+	Vector2 scale = Vector2(1, 1);
 	std::unordered_map<DebugText, Text*> debugText;
 	DebugScreen(Game& g);
 	~DebugScreen();

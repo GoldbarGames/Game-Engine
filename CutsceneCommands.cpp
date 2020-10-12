@@ -2765,12 +2765,12 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 
 			Animator* anim1 = neww Animator("cursor", animStates, parameters[5]);
 			anim1->SetBool("endOfPage", false);
-			anim1->SetRelativeAllStates(true);
-			//anim1->SetScaleAllStates(Vector2(0.5f, 0.5f));
 
 			manager->animatedImages[animationName]->SetAnimator(*anim1);
 			manager->animatedImages[animationName]->GetAnimator()->Update(*manager->animatedImages[animationName]);
-			manager->animatedImages[animationName]->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+			manager->animatedImages[animationName]->SetScale(Vector2(0.5f, 0.5f));
+			manager->animatedImages[animationName]->GetSprite()->keepPositionRelativeToCamera = true;
+			manager->animatedImages[animationName]->GetSprite()->keepScaleRelativeToCamera = true;
 		}
 	}
 

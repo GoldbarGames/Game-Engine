@@ -69,23 +69,8 @@ Renderer::~Renderer()
 void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, Color color) const
 {
 	debugSprite->color = color;
-	debugSprite->SetScale(CalculateScale(*debugSprite, targetRect.w, targetRect.h, targetScale));
-	debugSprite->Render(Vector2(targetRect.x, targetRect.y), *this);
-}
-
-// This function takes two sprites, the source and the target
-// It returns a vector2 representing the amount that the source 
-// should be scaled by in order to equal the scaled size of the target
-Vector2 Renderer::CalculateScale(const Sprite& sourceSprite, const Sprite& targetSprite) const
-{
-	float sourceWidth = sourceSprite.texture->GetWidth();
-	float sourceHeight = sourceSprite.texture->GetHeight();
-
-	float targetWidth = targetSprite.frameWidth;
-	float targetHeight = targetSprite.frameHeight;
-
-	return Vector2(targetWidth * targetSprite.scale.x / sourceWidth, 
-		targetHeight * targetSprite.scale.y / sourceHeight);
+	debugScale = Vector2(CalculateScale(*debugSprite, targetRect.w, targetRect.h, targetScale));
+	debugSprite->Render(Vector2(targetRect.x, targetRect.y), *this, debugScale);
 }
 
 Vector2 Renderer::CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const
@@ -146,7 +131,7 @@ void Renderer::FadeOverlay(const int screenWidth, const int screenHeight) const
 	float rHeight = overlaySprite->texture->GetHeight();
 	overlaySprite->color = overlayColor;
 	overlaySprite->pivot = Vector2(0, 0);
-	overlaySprite->SetScale(Vector2(screenWidth / rWidth, screenHeight / rHeight));
+	overlayScale = Vector2(screenWidth / rWidth, screenHeight / rHeight);
 }
 
 void Renderer::CreateShader(const ShaderName shaderName, const char* vertexFilePath, const char* fragmentFilePath)

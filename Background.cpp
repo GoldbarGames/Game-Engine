@@ -125,7 +125,7 @@ void Background::CreateBackground(const std::string& n, Vector2 pos,
 		Entity* blueBG = AddLayer(pos + Vector2(0, -1440), spriteManager, 
 			renderer, "assets/gui/white.png", -99, 0.0f);
 		blueBG->GetSprite()->color = { 0, 0, 83, 255 };
-		blueBG->GetSprite()->SetScale(Vector2(19.875f, 11.2f * 4));
+		blueBG->SetScale(Vector2(19.875f, 11.2f * 4));
 	}
 
 	BackgroundData* data = bgData[name];

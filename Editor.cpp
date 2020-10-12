@@ -54,7 +54,7 @@ Editor::Editor(Game& g)
 	dialog->sprite->color = { 255, 0, 0, 255 };
 	dialog->sprite->keepPositionRelativeToCamera = true;
 	dialog->sprite->keepScaleRelativeToCamera = true;
-	dialog->sprite->SetScale(game->renderer.CalculateScale(*dialog->sprite, 
+	dialog->scale = (game->renderer.CalculateScale(*dialog->sprite, 
 		dialog->text->GetTextWidth(), dialog->text->GetTextHeight() * 4, dialog->text->scale));
 
 	dialog->text->GetSprite()->keepPositionRelativeToCamera = true;
@@ -64,7 +64,7 @@ Editor::Editor(Game& g)
 
 
 	grid = neww Sprite(game->renderer.shaders[ShaderName::Grid]);
-	grid->SetScale(Vector2(game->screenWidth, game->screenHeight));
+	//grid->SetScale(Vector2(game->screenWidth, game->screenHeight));
 
 	previewMap["tile"] = game->CreateTile(Vector2(0,0), "assets/editor/rect-outline.png", 
 		Vector2(0,0), DrawingLayer::FRONT);
@@ -1715,7 +1715,7 @@ void Editor::Render(const Renderer& renderer)
 	// Draw the object or tile that will be placed here, if any
 	if (objectPreview != nullptr && objectPreview->GetSprite() != nullptr)
 	{	
-		objectPreview->GetSprite()->Render(objPreviewPosition, 0, renderer, objectPreview->rotation);
+		objectPreview->GetSprite()->Render(objPreviewPosition, 0, renderer, objectPreview->scale, objectPreview->rotation);
 	}
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
@@ -1746,25 +1746,26 @@ void Editor::Render(const Renderer& renderer)
 			rectSprite->keepPositionRelativeToCamera = true;
 			rectSprite->keepScaleRelativeToCamera = true;
 		}
-			
+
+		Vector2 scale;
 
 		// Draw a yellow rectangle around the currently selected object
 		outlineSprite->color = { 0, 255, 255, 128 };
-		outlineSprite->SetScale(Vector2(selectedEntity->GetBounds()->w / outlineSprite->texture->GetWidth(),
+		scale = (Vector2(selectedEntity->GetBounds()->w / outlineSprite->texture->GetWidth(),
 			selectedEntity->GetBounds()->h / outlineSprite->texture->GetWidth()));
-		outlineSprite->Render(selectedEntity->position, renderer);
+		outlineSprite->Render(selectedEntity->position, renderer, scale);
 
 		// Draw the box that goes underneath all the properties
 		rectSprite->color = { 0, 255, 255, 128 };
-		rectSprite->SetScale(Vector2(objectPropertiesRect.w, objectPropertiesRect.h));
-		rectSprite->Render(Vector2(objectPropertiesRect.x, objectPropertiesRect.y), renderer);
+		scale = (Vector2(objectPropertiesRect.w, objectPropertiesRect.h));
+		rectSprite->Render(Vector2(objectPropertiesRect.x, objectPropertiesRect.y), renderer, scale);
 
 		for (unsigned int k = 0; k < properties.size(); k++)
 		{
 			float targetWidth = properties[k]->text->GetSprite()->frameWidth;
 			float targetHeight = properties[k]->text->GetSprite()->frameHeight;
 			rectSprite->color = { 0, 0, 255, 128 };
-			rectSprite->SetScale(Vector2(targetWidth, targetHeight));
+			scale = (Vector2(targetWidth, targetHeight));
 
 			if (propertyIndex > -1)
 			{
@@ -1775,7 +1776,7 @@ void Editor::Render(const Renderer& renderer)
 				}
 			}
 
-			rectSprite->Render(properties[k]->text->position, renderer);
+			rectSprite->Render(properties[k]->text->position, renderer, scale);
 		}
 		
 		// Draw the text for all the properties
@@ -1791,14 +1792,14 @@ void Editor::Render(const Renderer& renderer)
 		if (objectMode == "tile" || objectMode == "replace" || objectMode == "copy")
 		{
 			// Draw the tilesheet (only if we are placing a tile)
-			tilesheetSprites[tilesheetIndex]->Render(tilesheetPosition, game->renderer);
+			tilesheetSprites[tilesheetIndex]->Render(tilesheetPosition, game->renderer, Vector2(1,1));
 
 			// Draw a yellow rectangle around the currently selected tileset tile
 			game->renderer.debugSprite->color = { 255, 255, 0, 255 };
-			game->renderer.debugSprite->scale = Vector2(1, 1);
+			//game->renderer.debugSprite->scale = Vector2(1, 1);
 			game->renderer.debugSprite->keepPositionRelativeToCamera = true;
 			game->renderer.debugSprite->keepScaleRelativeToCamera = true;
-			game->renderer.debugSprite->Render(selectedTilePosition, renderer);
+			game->renderer.debugSprite->Render(selectedTilePosition, renderer, Vector2(1, 1));
 			game->renderer.debugSprite->keepPositionRelativeToCamera = false;
 			game->renderer.debugSprite->keepScaleRelativeToCamera = false;
 		}
@@ -1860,7 +1861,7 @@ void Editor::CreateDialog(const std::string& txt)
 		dialog->text->SetText(txt);
 		dialog->input->SetText("");
 		dialog->visible = true;
-		dialog->sprite->SetScale(game->renderer.CalculateScale(*dialog->sprite,
+		dialog->scale = (game->renderer.CalculateScale(*dialog->sprite,
 			dialog->text->GetTextWidth(), dialog->text->GetTextHeight() * 4, dialog->text->scale));
 	}
 }

@@ -20,7 +20,7 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 
 		Text* header = neww Text(game.headerFont, "Game Paused", true, true);
 		header->SetPosition(startPosX, newStartPosY);
-		header->GetSprite()->SetScale(Vector2(2.0f, 2.0f));
+		header->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(header);
 
 		MenuButton* buttonResume = neww MenuButton("Resume", "assets/gui/menu.png",
@@ -82,7 +82,7 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 			textLine->SetPosition(game.screenWidth + offsetX - (textLine->GetTextWidth() / 2),
 				startHeight + (distance * (i + 1)));
 
-			textLine->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
+			textLine->SetScale(Vector2(1.0f, 1.0f));
 			texts.emplace_back(textLine);
 		}
 
@@ -117,13 +117,13 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		Text* textCopyright = neww Text(game.headerFont, "Copyright 2020 Goldbar Games LLC", true, true);
 		//textCopyright->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
 		textCopyright->SetPosition(startPosX - 400, 1200);
-		textCopyright->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
+		textCopyright->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textCopyright);
 
 		Text* textVersion = neww Text(game.headerFont, "Demo Version 2020-10-31", true, true);
 		//textVersion->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
 		textVersion->SetPosition(startPosX - 100, 1300);
-		textVersion->GetSprite()->SetScale(Vector2(1.0f, 1.0f));
+		textVersion->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textVersion);
 
 		Entity* titleCharacter = neww Entity(Vector2(600, 350));
@@ -134,7 +134,7 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 
 		titleCharacter->GetSprite()->SetTexture(game.spriteManager.GetImage("assets/gui/wdk_character.png"));
 		titleCharacter->GetSprite()->SetShader(game.renderer.shaders[ShaderName::FadeInOut]);
-		titleCharacter->GetSprite()->SetScale(Vector2(0.5f, 0.5f));
+		titleCharacter->SetScale(Vector2(0.5f, 0.5f));
 		titleCharacter->GetSprite()->keepPositionRelativeToCamera = true;
 		titleCharacter->GetSprite()->keepScaleRelativeToCamera = true;
 		images.emplace_back(titleCharacter);
@@ -142,7 +142,7 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		Entity* titleLogo = neww Entity(Vector2(1600, 350));
 		titleLogo->GetSprite()->SetTexture(game.spriteManager.GetImage("assets/gui/wdk_logo.png"));
 		titleLogo->GetSprite()->SetShader(game.renderer.shaders[ShaderName::Default]);
-		titleLogo->GetSprite()->SetScale(Vector2(0.25f, 0.25f));
+		titleLogo->SetScale(Vector2(0.25f, 0.25f));
 		titleLogo->GetSprite()->keepPositionRelativeToCamera = true;
 		titleLogo->GetSprite()->keepScaleRelativeToCamera = true;
 		images.emplace_back(titleLogo);

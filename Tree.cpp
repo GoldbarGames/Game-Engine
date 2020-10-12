@@ -26,8 +26,8 @@ Tree::~Tree()
 void Tree::Init(const std::string& n)
 {
 	name = n;
-	//TODO: Maybe we don't need the local variable?
-	//bottomSprite = animator->GetState("trunk")->sprite;
+	bottomSprite = neww Sprite();
+	animator->SetSpriteFromState("trunk", *bottomSprite);
 }
 
 void Tree::Update(Game& game)
@@ -71,7 +71,7 @@ void Tree::Render(const Renderer& renderer)
 {
 	if (bottomSprite != nullptr)
 	{
-		bottomSprite->Render(position, renderer);
+		bottomSprite->Render(position, renderer, scale);
 	}
 
 	if (hiddenEntity != nullptr)

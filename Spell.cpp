@@ -89,7 +89,7 @@ void Spell::Render(const Renderer& renderer)
 {
 	if (activeSpell >= 0 && activeSpell < spellIcons.size())
 	{
-		spellIcons[activeSpell]->Render(Vector2(100 * Camera::MULTIPLIER, 600 * Camera::MULTIPLIER), renderer);
+		spellIcons[activeSpell]->Render(Vector2(100 * Camera::MULTIPLIER, 600 * Camera::MULTIPLIER), renderer, Vector2(1,1));
 	}
 }
 
@@ -97,14 +97,14 @@ void Spell::Update(Game& game)
 {
 	if (spellIcons.size() == 0)
 	{
-		std::cout << "SPELL ICONS " << spellIcons.size() << std::endl;
-		std::cout << "SPELL NAMES " << names.size() << std::endl;
+		//std::cout << "SPELL ICONS " << spellIcons.size() << std::endl;
+		//std::cout << "SPELL NAMES " << names.size() << std::endl;
 		for (int i = 0; i < names.size(); i++)
 		{
 			Sprite* sprite = game.CreateSprite("assets/gui/icon/icon_" + names[i] + ".png");
 			sprite->keepPositionRelativeToCamera = true;
 			sprite->keepScaleRelativeToCamera = true;
-			std::cout << i << std::endl;
+			//std::cout << i << std::endl;
 			spellIcons.push_back(sprite);
 		}
 	}

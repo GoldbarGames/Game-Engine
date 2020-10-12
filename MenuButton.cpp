@@ -19,8 +19,7 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 	text->SetPosition(pos.x, pos.y - (text->GetTextHeight() / 4));
 	text->SetScale(Vector2(2, 2));	
 
-	image->SetScale(game.renderer.CalculateScale(*image, text->GetTextWidth(),
-		text->GetTextHeight(), text->scale));
+	scale = (game.renderer.CalculateScale(*image, text->GetTextWidth(), text->GetTextHeight(), text->scale));
 	
 	name = function;
 
@@ -52,13 +51,13 @@ void MenuButton::Render(const Renderer& renderer)
 		{
 		default:
 		case AlignmentX::LEFT:
-			imagePosition = Vector2(position.x + (image->frameWidth * image->scale.x), position.y);
+			imagePosition = Vector2(position.x + (image->frameWidth * scale.x), position.y);
 			break;
 		case AlignmentX::CENTER:
 			imagePosition = position;
 			break;
 		case AlignmentX::RIGHT:
-			imagePosition = Vector2(position.x - (image->frameWidth * image->scale.x), position.y);
+			imagePosition = Vector2(position.x - (image->frameWidth * scale.x), position.y);
 			break;
 		}
 	}
@@ -67,7 +66,7 @@ void MenuButton::Render(const Renderer& renderer)
 		imagePosition = position;
 	}	
 
-	image->Render(imagePosition, renderer);
+	image->Render(imagePosition, renderer, scale);
 	text->Render(renderer);
 }
 

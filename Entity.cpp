@@ -275,8 +275,8 @@ void Entity::RenderDebug(const Renderer& renderer)
 				}
 
 				//debugSprite->pivot = GetSprite()->pivot;
-				debugSprite->SetScale(Vector2(targetWidth / rWidth, targetHeight / rHeight));
-				debugSprite->Render(position, renderer);
+				renderer.debugScale = (Vector2(targetWidth / rWidth, targetHeight / rHeight));
+				debugSprite->Render(position, renderer, renderer.debugScale);
 			}
 
 
@@ -285,8 +285,8 @@ void Entity::RenderDebug(const Renderer& renderer)
 				// draw collider
 				debugSprite->color = { 255, 255, 255, 255 };
 				//debugSprite->pivot = GetSprite()->pivot;
-				debugSprite->SetScale(Vector2(collider->bounds->w / rWidth, collider->bounds->h / rHeight));
-				debugSprite->Render(Vector2(collider->bounds->x, collider->bounds->y), renderer);
+				renderer.debugScale = (Vector2(collider->bounds->w / rWidth, collider->bounds->h / rHeight));
+				debugSprite->Render(Vector2(collider->bounds->x, collider->bounds->y), renderer, renderer.debugScale);
 			}
 		}
 	}
@@ -297,9 +297,9 @@ void Entity::Render(const Renderer& renderer)
 	if (renderer.IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite.Render(position, animator->GetSpeed(), renderer, rotation);
+			currentSprite.Render(position, animator->GetSpeed(), renderer, scale, rotation);
 		else
-			currentSprite.Render(position, 0, renderer, rotation);
+			currentSprite.Render(position, 0, renderer, scale, rotation);
 	}
 }
 
@@ -310,16 +310,15 @@ void Entity::RenderParallax(const Renderer& renderer, float p)
 	if (renderer.IsVisible(layer))
 	{
 		if (animator != nullptr)
-			currentSprite.Render(renderPosition, animator->GetSpeed(), renderer, rotation);
+			currentSprite.Render(renderPosition, animator->GetSpeed(), renderer, scale, rotation);
 		else
-			currentSprite.Render(renderPosition, 0, renderer, rotation);
+			currentSprite.Render(renderPosition, 0, renderer, scale, rotation);
 	}
 }
 
 void Entity::SetSprite(Sprite& sprite)
 {
 	currentSprite = sprite;
-	currentSprite.scale = scale;
 }
 
 bool Entity::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)

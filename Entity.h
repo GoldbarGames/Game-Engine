@@ -80,6 +80,12 @@ public:
 
 	bool shouldSave = false;
 
+	Vector2 GetScale() const { return scale; }
+
+	void SetScale(const Vector2& newScale) {
+		scale = newScale;
+	}
+
 	Sprite* GetSprite();
 	Animator* GetAnimator();
 	virtual const SDL_Rect* GetBounds();
