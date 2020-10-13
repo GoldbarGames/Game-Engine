@@ -778,7 +778,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 
 			if (tile != nullptr)
 			{
-				tilesheetIndex = tile->tilesheetIndex;
+				tilesheetIndex = tile->subtype;
 
 				StartEdit();
 				objectMode = "tile";
@@ -2171,7 +2171,7 @@ void Editor::CreateLevelFromString(std::string level)
 					if (std::stoi(map[STR_PASSABLESTATE]) == 2)
 						newTile->jumpThru = true;
 
-					newTile->tilesheetIndex = tilesheetIndex;
+					newTile->subtype = tilesheetIndex;
 				}
 				else if (etype == "cutscene-start")
 				{

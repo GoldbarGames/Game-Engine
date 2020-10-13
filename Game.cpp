@@ -220,6 +220,8 @@ Game::Game() : logger("logs/output.log")
 	cubeMesh = CreateCubeMesh();
 
 	// Initialize the font before all text
+
+	// TODO: Load all these from a file
 	theFont = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
 	theFont->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
 	theFont->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
@@ -699,7 +701,7 @@ Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet,
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION 
 		|| drawingLayer == DrawingLayer::COLLISION2;
 
-	tile->tilesheetIndex = editor->tilesheetIndex;
+	tile->subtype = editor->tilesheetIndex;
 	entities.emplace_back(tile);
 
 	return tile;
@@ -1133,11 +1135,14 @@ void Game::LoadSettings()
 		std::istream_iterator<std::string> beg(buf), end;
 		std::vector<std::string> tokens(beg, end);
 
+		// TODO: Refactor to avoid the dynamic cast
+		// 1. All buttons should just be one class, no inheritance
+		// 2. Match tokens[0] perfectly with the button name (i.e. [Music Volume])
+
 		if (tokens[0] == "music_volume")
 		{
 			soundManager.SetVolumeBGM(std::stoi(tokens[1]));
 
-			//TODO: Refactor to avoid the dynamic cast
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Music Volume"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
@@ -1145,7 +1150,6 @@ void Game::LoadSettings()
 		{
 			soundManager.SetVolumeSound(std::stoi(tokens[1]));
 
-			//TODO: Refactor to avoid the dynamic cast
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Sound Volume"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
@@ -1158,7 +1162,6 @@ void Game::LoadSettings()
 			else
 				SDL_SetWindowFullscreen(window, 0);				
 
-			//TODO: Refactor to avoid the dynamic cast
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Windowed"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
@@ -1166,7 +1169,6 @@ void Game::LoadSettings()
 		{
 			indexScreenResolution = std::stoi(tokens[1]);
 
-			//TODO: Refactor to avoid the dynamic cast
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Screen Resolution"));
 			button->selectedOption = indexScreenResolution;
 			button->ExecuteSelectedOption(*this);
@@ -1175,7 +1177,6 @@ void Game::LoadSettings()
 		{
 			showFPS = std::stoi(tokens[1]);
 
-			//TODO: Refactor to avoid the dynamic cast
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Display FPS"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
@@ -1183,7 +1184,6 @@ void Game::LoadSettings()
 		{
 			showTimer = std::stoi(tokens[1]);
 
-			//TODO: Refactor to avoid the dynamic cast
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Display Timer"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
@@ -1191,7 +1191,6 @@ void Game::LoadSettings()
 		{
 			//TODO: Deal with this later
 
-			//TODO: Refactor to avoid the dynamic cast
 			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Language"));
 			button->selectedOption = std::stoi(tokens[1]);
 		}
@@ -1764,7 +1763,7 @@ void Game::RenderScene()
 				entities[i]->position.y < renderer.camera.position.y + maxHeight + TILE_SIZE)
 			{
 				entities[i]->Render(renderer);
-				if (debugMode && (entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru))
+				if (debugMode && (entities[i]->etype == "player" || entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru))
 					entitiesToRender.push_back(entities[i]);
 				//	entities[i]->RenderDebug(renderer);
 			}

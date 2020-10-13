@@ -73,7 +73,7 @@ void Tile::Save(std::unordered_map<std::string, std::string>& map)
 	map[STR_DRAWORDER] = std::to_string(drawOrder);
 	map[STR_LAYER] = std::to_string((int)layer);
 	map[STR_PASSABLESTATE] = std::to_string(passableState);
-	map[STR_TILESHEET] = std::to_string(tilesheetIndex); //TODO: Make this the subtype
+	map[STR_TILESHEET] = std::to_string(subtype);
 	map[STR_FRAMEX] = std::to_string((int)tileCoordinates.x);
 	map[STR_FRAMEY] = std::to_string((int)tileCoordinates.y);
 }
@@ -89,5 +89,5 @@ void Tile::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 	if (std::stoi(map["passableState"]) == 2)
 		newTile->jumpThru = true;
 
-	newTile->tilesheetIndex = std::stoi(map["tilesheet"]);
+	newTile->subtype = std::stoi(map["tilesheet"]);
 }

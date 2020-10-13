@@ -49,6 +49,7 @@ public:
 	mutable Vector2 overlayScale = Vector2(1, 1);
 
 	void RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, Color color = { 255, 255, 255, 255 }) const;
+	void RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, const Vector2& targetPivot, Color color = { 255, 255, 255, 255 }) const;
 	Vector2 CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const;
 	Vector2 screenScale = Vector2(1, 1);
 

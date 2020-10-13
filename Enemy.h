@@ -9,15 +9,13 @@ public:
 	Enemy(Vector2 pos);
 	~Enemy();
 
-	//TODO: Make different member variables for each type of enemy....
-	bool playerIsToTheRight = false;
-
 	Timer actionTimer;
 	Collider* bottomLeftGround = nullptr;
 	Collider* bottomRightGround = nullptr;
 
 	void Update(Game& game);
 	void Render(const Renderer& renderer);
+	void RenderDebug(const Renderer& renderer);
 
 	void Init(const std::string& n);
 

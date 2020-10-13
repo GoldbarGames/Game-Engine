@@ -113,9 +113,6 @@ Entity::~Entity()
 		delete_it(animator);
 	}
 		
-	if (debugSprite != nullptr)
-		delete_it(debugSprite);
-
 	if (collider != nullptr)
 		delete_it(collider);
 	if (bounds != nullptr)
@@ -237,7 +234,6 @@ void Entity::SetPosition(const Vector2& newPosition)
 void Entity::SetAnimator(Animator& anim)
 {
 	animator = &anim;
-	animator->StartTimer();
 	animator->DoState(*this);
 }
 
@@ -245,48 +241,36 @@ void Entity::RenderDebug(const Renderer& renderer)
 {
 	if (renderer.game->debugMode && drawDebugRect && GetSprite() != nullptr)
 	{
-		//TODO: Refactor this? It seems like this is not very efficient
-		if (debugSprite == nullptr)
-			debugSprite = neww Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
-
 		if (renderer.IsVisible(layer))
 		{
-			//TODO: Make this a function inside the renderer
-
-			float rWidth = debugSprite->texture->GetWidth();
-			float rHeight = debugSprite->texture->GetHeight();
-
-			float targetWidth = GetSprite()->frameWidth;
-			float targetHeight = GetSprite()->frameHeight;
-
 			if (impassable || trigger || jumpThru)
 			{
+				static SDL_Rect rect;
+				rect.x = position.x;
+				rect.y = position.y;
+				rect.w = currentSprite.frameWidth;
+				rect.h = currentSprite.frameHeight;
+				static Color debugColor = { 255, 255, 255, 255 };
+
 				if (impassable)
 				{
-					debugSprite->color = { 255, 0, 0, 255 };
+					debugColor = { 255, 0, 0, 255 };
 				}
 				else if (trigger)
 				{
-					debugSprite->color = { 0, 255, 0, 255 };
+					debugColor = { 0, 255, 0, 255 };
 				}
 				else if (jumpThru)
 				{
-					debugSprite->color = { 255, 255, 0, 255 };
+					debugColor = { 255, 255, 0, 255 };
 				}
 
-				//debugSprite->pivot = GetSprite()->pivot;
-				renderer.debugScale = (Vector2(targetWidth / rWidth, targetHeight / rHeight));
-				debugSprite->Render(position, renderer, renderer.debugScale);
+				renderer.RenderDebugRect(rect, scale, debugColor);
 			}
-
 
 			if (collider != nullptr && physics != nullptr)
 			{
-				// draw collider
-				debugSprite->color = { 255, 255, 255, 255 };
-				//debugSprite->pivot = GetSprite()->pivot;
-				renderer.debugScale = (Vector2(collider->bounds->w / rWidth, collider->bounds->h / rHeight));
-				debugSprite->Render(Vector2(collider->bounds->x, collider->bounds->y), renderer, renderer.debugScale);
+				renderer.RenderDebugRect(*collider->bounds, scale);
 			}
 		}
 	}

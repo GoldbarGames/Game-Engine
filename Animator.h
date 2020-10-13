@@ -51,7 +51,6 @@ public:
 	float GetFloat(const char* param);
 	int GetInt(const char* param);
 
-	void StartTimer();
 	void MapStateNameToState(const std::string& name, AnimState* state);
 
 	void SetSpriteFromState(AnimState* animState, Sprite& sprite);

@@ -18,7 +18,6 @@ class Renderer;
 class Tile : public Entity
 {
 public:
-	int tilesheetIndex = 0;
 	Vector2 tileCoordinates = Vector2(0, 0);
 
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);

@@ -175,7 +175,7 @@ void Enemy::Update(Game& game)
 			actionTimer.Start(2000);
 
 			// Don't update this every frame so we stick to the same direction we initially jumped
-			playerIsToTheRight = game.player->position.x > position.x;
+			animator->SetBool("playerIsToTheRight", game.player->position.x > position.x);
 		}
 		else
 		{
@@ -196,7 +196,7 @@ void Enemy::Update(Game& game)
 				}
 				else
 				{
-					if (playerIsToTheRight)
+					if (animator->GetBool("playerIsToTheRight"))
 						physics->velocity.x = std::min(MAX_SPEED, physics->velocity.x + accel);
 					else
 						physics->velocity.x = std::max(-MAX_SPEED, physics->velocity.x - accel);
@@ -375,48 +375,34 @@ void Enemy::Render(const Renderer& renderer)
 	Entity::Render(renderer);
 
 	renderer.game->gui.healthComponents.push_back(health);
+}
+
+void Enemy::RenderDebug(const Renderer& renderer)
+{
+	Entity::RenderDebug(renderer);
 
 	if (renderer.game->debugMode && drawDebugRect)
 	{
-		//TODO: Refactor this? It seems like this is not very efficient
-		if (debugSprite == nullptr)
-			debugSprite = neww Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
-
 		if (renderer.IsVisible(layer))
 		{
-			//TODO: Make this a function inside the renderer
-
-			float rWidth = debugSprite->texture->GetWidth();
-			float rHeight = debugSprite->texture->GetHeight();
-
 			if (bottomLeftGround != nullptr)
 			{
-				// draw collider
-				float targetWidth = bottomLeftGround->bounds->w;
-				float targetHeight = bottomLeftGround->bounds->h;
-
-				debugSprite->color = { 255, 255, 255, 255 };
-				//debugSprite->pivot = GetSprite()->pivot;
-				renderer.debugScale = Vector2(targetWidth / rWidth, targetHeight / rHeight);
-
-				Vector2 colliderPosition = Vector2(position.x + bottomLeftGround->offset.x, 
-					position.y + bottomLeftGround->offset.y);
-				debugSprite->Render(colliderPosition, renderer, renderer.debugScale);
+				SDL_Rect blRect;
+				blRect.x = position.x + bottomLeftGround->offset.x;
+				blRect.y = position.y + bottomLeftGround->offset.y;
+				blRect.w = bottomLeftGround->bounds->w;
+				blRect.h = bottomLeftGround->bounds->h;
+				renderer.RenderDebugRect(blRect, Vector2(1, 1));
 			}
 
 			if (bottomRightGround != nullptr)
 			{
-				// draw collider
-				float targetWidth = bottomRightGround->bounds->w;
-				float targetHeight = bottomRightGround->bounds->h;
-
-				debugSprite->color = { 255, 255, 255, 255 };
-				//debugSprite->pivot = GetSprite()->pivot;
-				renderer.debugScale = (Vector2(targetWidth / rWidth, targetHeight / rHeight));
-
-				Vector2 colliderPosition = Vector2(position.x + bottomRightGround->offset.x,
-					position.y + bottomRightGround->offset.y);
-				debugSprite->Render(colliderPosition, renderer, renderer.debugScale);
+				SDL_Rect brRect;
+				brRect.x = position.x + bottomRightGround->offset.x;
+				brRect.y = position.y + bottomRightGround->offset.y;
+				brRect.w = bottomRightGround->bounds->w;
+				brRect.h = bottomRightGround->bounds->h;
+				renderer.RenderDebugRect(brRect, Vector2(1, 1));
 			}
 		}
 	}

@@ -53,7 +53,6 @@ bool Checkpoint::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool use
 
 	bool shouldSpawn = true;
 
-
 	//TODO: Set this to false. It fails right now because the other entities sprites
 	// have not had their window rects set, so they are at 0,0 which would always fail
 	// to cause a collision and therefore shouldSpawn always becomes false

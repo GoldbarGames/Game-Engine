@@ -100,9 +100,6 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 					}
 
 					// Add this condition to the list of conditions for this state
-					//TODO: Make sure this does not cause a memory leak
-					//states[stateName]->conditions
-
 					conditions.push_back(AnimCondition(nextStateName, variableName,
 						conditionCheck, (expectedValue == "true")));
 
@@ -116,9 +113,9 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 					if (stateMachines.count(stateNames[i]) != 1)
 					{
 						//std::cout << "Creating sm " << stateNames[i] << std::endl;
-						stateMachines[stateNames[i]] = neww AnimStateMachine();
+						stateMachines[stateNames[i]] = AnimStateMachine();
 					}
-					stateMachines[stateNames[i]]->conditions[nextStateName] = conditions;
+					stateMachines[stateNames[i]].conditions[nextStateName] = conditions;
 				}
 			}
 		}
@@ -133,8 +130,8 @@ AnimatorInfo::~AnimatorInfo()
 	for (auto& [key, stateMachine] : stateMachines)
 	{
 		//std::cout << "Deleting sm " << key << std::endl;
-		if (stateMachine != nullptr)
-			delete_it(stateMachine);
+		//if (stateMachine != nullptr)
+		//	delete_it(stateMachine);
 	}	
 }
 

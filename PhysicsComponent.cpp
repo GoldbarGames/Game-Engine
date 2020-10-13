@@ -379,7 +379,6 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 						//our->GetAnimator()->SetBool("isGrounded", true);
 						isGrounded = true;
 
-						//TODO: Can we do this without casting?
 						// Sets the parent object that the player is standing on, if there is one, if we have not jumped
 						if (entity->physics != nullptr && !jumped)
 						{
@@ -629,7 +628,7 @@ bool PhysicsComponent::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
 
 void PhysicsComponent::Push(const Vector2& pushVelocity)
 {
-	// TODO: Should wind resitance be based on mass, rather than a totally neww number?
+	// TODO: Should wind resitance be based on mass, rather than a totally new number?
 	// Also, should there be a discrete number of levels of mass (Light, Medium, Heavy) for consistency?
 	if (our->GetAnimator() != nullptr)
 	{

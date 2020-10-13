@@ -68,7 +68,13 @@ Renderer::~Renderer()
 
 void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, Color color) const
 {
+	RenderDebugRect(targetRect, targetScale, Vector2(0, 0), color);
+}
+
+void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, const Vector2& targetPivot, Color color) const
+{
 	debugSprite->color = color;
+	debugSprite->pivot = targetPivot;
 	debugScale = Vector2(CalculateScale(*debugSprite, targetRect.w, targetRect.h, targetScale));
 	debugSprite->Render(Vector2(targetRect.x, targetRect.y), *this, debugScale);
 }

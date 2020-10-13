@@ -75,26 +75,15 @@ void Player::RenderDebug(const Renderer& renderer)
 	{
 		if (renderer.game->debugMode && drawDebugRect)
 		{
-			if (debugSprite == nullptr)
-				debugSprite = neww Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
-
 			if (renderer.IsVisible(layer))
 			{
-				//TODO: Make this a function inside the renderer
-				float rWidth = debugSprite->texture->GetWidth();
-				float rHeight = debugSprite->texture->GetHeight();
+				SDL_Rect rect;
+				rect.x = position.x + closeRangeAttackCollider->offset.x;
+				rect.y = position.y + closeRangeAttackCollider->offset.y;
+				rect.w = closeRangeAttackCollider->bounds->w;
+				rect.h = closeRangeAttackCollider->bounds->h;
 
-				float targetWidth = closeRangeAttackCollider->bounds->w;
-				float targetHeight = closeRangeAttackCollider->bounds->h;
-
-				debugSprite->color = { 255, 255, 255, 255 };
-				//debugSprite->pivot = GetSprite()->pivot;
-				renderer.debugScale = Vector2(targetWidth / rWidth, targetHeight / rHeight);
-
-				Vector2 colliderPosition = Vector2(position.x + closeRangeAttackCollider->offset.x, 
-					position.y + closeRangeAttackCollider->offset.y);
-
-				debugSprite->Render(colliderPosition, renderer, renderer.debugScale);
+				renderer.RenderDebugRect(rect, scale);
 			}
 		}
 	}

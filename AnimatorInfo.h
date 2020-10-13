@@ -62,7 +62,7 @@ public:
 class AnimatorInfo
 {
 public:
-	std::unordered_map<std::string, AnimStateMachine*> stateMachines;
+	std::unordered_map<std::string, AnimStateMachine> stateMachines;
 	std::unordered_map<std::string, unsigned int> mapStateNamesToNumbers;
 	std::unordered_map<std::string, unsigned int> mapKeysBool;
 	std::unordered_map<std::string, unsigned int> mapKeysFloat;

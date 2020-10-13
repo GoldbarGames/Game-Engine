@@ -121,6 +121,9 @@ void Animator::SetSpriteFromState(AnimState* animState, Sprite& sprite)
 		sprite.frameHeight = animState->frameHeight;
 		sprite.pivot = Vector2(animState->pivotX, animState->pivotY);
 
+		if (sprite.currentFrame > sprite.endFrame)
+			sprite.currentFrame = sprite.startFrame;
+
 		//TODO: This only works if there is only one row, but that is okay for now
 		sprite.numberFramesInTexture = sprite.texture->GetWidth() / animState->frameWidth;
 		sprite.framesPerRow = sprite.numberFramesInTexture;
@@ -143,7 +146,7 @@ void Animator::Update(Entity& entity)
 	// Else, stay in current state
 
 	AnimatorInfo* info = mapTypeToInfo[animatorType];
-	AnimStateMachine* stateMachine = info->stateMachines[currentState->name];
+	AnimStateMachine* stateMachine = &(info->stateMachines[currentState->name]);
 
 	//TODO: Make sure to run through each condition, and if the whole expression is true,
 	// then we go to the first state that has the whole expression true
@@ -205,12 +208,6 @@ void Animator::Update(Entity& entity)
 // or done by a singleton so that each entity
 // does not need to have the parsing logic in it
 
-void Animator::StartTimer()
-{
-	// set duration of the animation based on the playback speed and number of frames
-	//animationTimer.Start(currentState->speed * GetCurrentSprite()->endFrame, GetCurrentSprite()->shouldLoop);
-}
-
 const AnimState& Animator::GetCurrentState()
 {
 	return *currentState;
@@ -232,8 +229,6 @@ void Animator::SetState(const char* state)
 
 	// TODO: If we're going into the same state, don't reset the current frame
 	//if (previousState != nullptr && previousState->name == state)
-		
-	StartTimer();
 }
 
 bool Animator::GetBool(const char* param)

@@ -50,7 +50,6 @@ unsigned int Sprite::Size()
 
 void Sprite::CreateMesh(MeshType meshType)
 {
-	//TODO: This assumes every mesh is a quad, allow for other shapes
 	if (mesh == nullptr)
 	{
 		if (meshType == MeshType::Quad)

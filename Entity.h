@@ -33,7 +33,6 @@ class Entity
 protected:	
 	Animator* animator = nullptr;
 	Sprite currentSprite;
-	Sprite* debugSprite = nullptr;
 public:
 	Vector2 position = Vector2(0, 0);
 	Vector2 startPosition = Vector2(0, 0);
