@@ -22,6 +22,18 @@ SpriteManager::~SpriteManager()
 			delete_it(val);
 	}
 
+	for (auto& [key, val] : glyphTextures)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
+
+	for (auto& [key, val] : textImages)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
+
 	for (auto& [key, val] : animationStates)
 	{
 		for (int i = 0; i < val.size(); i++)
@@ -101,13 +113,77 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 	return images[imagePath];
 }
 
+Texture* SpriteManager::GetTexture(TTF_Font* f, char c, SDL_Color col)
+{
+	GlyphSurfaceData data;
+	data.fontName = TTF_FontFaceStyleName(f);
+	data.glyph = c; //TODO: What happens if this is /0?
+	data.color = col;
+
+	if (glyphTextures.count(data) == 0)
+	{
+		SDL_Surface* textSurface = TTF_RenderGlyph_Blended(f, data.glyph, data.color);
+
+		Texture* textTexture = nullptr;
+		textTexture = neww Texture(&data.glyph);
+		textTexture->LoadTexture(textSurface);
+
+		glyphTextures[data] = textTexture;
+
+		if (textSurface != nullptr)
+			SDL_FreeSurface(textSurface);
+	}
+
+	return glyphTextures[data];
+}
+
+Texture* SpriteManager::GetTexture(TTF_Font* f, const std::string& txt, int wrapWidth)
+{
+	Texture* textTexture = nullptr;
+	SDL_Surface* textSurface = nullptr;
+	SDL_Color textColor = { 255, 255, 255, 255 };
+
+	if (wrapWidth > 0)
+	{
+		textSurface = TTF_RenderText_Blended_Wrapped(f, txt.c_str(), textColor, wrapWidth);
+	}
+	else
+	{
+		textSurface = TTF_RenderText_Blended(f, txt.c_str(), textColor);
+	}
+
+	if (textSurface != nullptr)
+	{
+		if (textImages.count(txt) == 0)
+		{
+			textTexture = neww Texture(txt.c_str());
+			textTexture->LoadTexture(textSurface);
+
+			// TODO: Include the font name in the key
+			textImages[txt] = textTexture;
+		}
+		else
+		{
+			textTexture = textImages[txt];
+		}		
+
+		if (textSurface != nullptr)
+			SDL_FreeSurface(textSurface);
+	}
+	else
+	{
+		std::cout << "ERROR loading SDL Surface" << std::endl;
+	}
+
+	return textTexture;
+}
+
+
 std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFilePath)
 {
 	std::unordered_map<std::string, std::string> args;
 	return ReadAnimData(dataFilePath, args);
 }
-
-
 
 // We want to read in the file only once, creating a base set of states that are stored here.
 // Then whenever an object is created, we give the object its own copy of the states.

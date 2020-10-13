@@ -37,9 +37,6 @@ class Text : public Entity
 {
 private:
 	TTF_Font* font = nullptr;
-
-	//TODO: Maybe move this to a location where multiple text objects can all share the same memory
-	std::unordered_map<GlyphSurfaceData, Texture*, GlyphHashFunction> glyphTextures;
 	void SetTextAsOneSprite(string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth = 0);
 
 public:

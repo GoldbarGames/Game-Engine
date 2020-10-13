@@ -2,12 +2,12 @@
 #include "Renderer.h"
 #include "Sprite.h"
 #include "FontInfo.h"
+#include "Animator.h"
 
 Text::Text() : Entity(Vector2(0,0))
 {
 
 }
-
 
 Text::~Text()
 {
@@ -17,26 +17,7 @@ Text::~Text()
 	}
 
 	glyphs.clear();
-
-	if (glyphTextures.size() > 0)
-	{
-		for (auto& [key, val] : glyphTextures)
-		{
-			if (val != nullptr)
-				delete_it(val);
-		}
-	}
-	else
-	{
-		if (currentSprite.texture != nullptr)
-		{
-			//std::cout << currentSprite.texture << " Deleting text " << currentSprite.filename << std::endl;
-			delete_it(currentSprite.texture);
-		}
-	}
-	
 }
-
 
 void Text::SetColor(Color newColor)
 {
@@ -251,26 +232,7 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 
 Texture* Text::GetTexture(TTF_Font* f, char c, SDL_Color col)
 {	
-	GlyphSurfaceData data;
-	data.fontName = TTF_FontFaceStyleName(f);
-	data.glyph = c; //TODO: What happens if this is /0?
-	data.color = col;
-
-	if (glyphTextures.count(data) == 0)
-	{
-		SDL_Surface* textSurface = TTF_RenderGlyph_Blended(f, data.glyph, data.color);
-		
-		Texture* textTexture = nullptr;
-		textTexture = neww Texture(&data.glyph);
-		textTexture->LoadTexture(textSurface);
-		
-		glyphTextures[data] = textTexture;
-
-		if (textSurface != nullptr)
-			SDL_FreeSurface(textSurface);
-	}
-
-	return glyphTextures[data];
+	return Animator::spriteManager->GetTexture(f, c, col);
 }
 
 void Text::AddImage(Sprite* newSprite)
@@ -344,12 +306,6 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 	bool renderRelative = currentSprite.keepPositionRelativeToCamera;
 	bool keepScaleRelative = currentSprite.keepScaleRelativeToCamera;
 
-	if (currentSprite.texture != nullptr)
-	{
-		//std::cout << currentSprite.texture << " Deleting text " << currentSprite.filename << std::endl;
-		delete_it(currentSprite.texture);
-	}
-
 	textColor = color;
 	txt = text; // translate the text here
 	id = text;
@@ -359,36 +315,20 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 	if (txt == "")
 		txt = " ";
 
-	SDL_Surface* textSurface = nullptr;
-	SDL_Color textColor = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
-
-	if (wrapWidth > 0)
+	Texture* textTexture = Animator::spriteManager->GetTexture(font, txt, wrapWidth);
+	if (textTexture != nullptr)
 	{
-		textSurface = TTF_RenderText_Blended_Wrapped(font, txt.c_str(), textColor, wrapWidth);
-	}
-	else
-	{
-		textSurface = TTF_RenderText_Blended(font, txt.c_str(), textColor);
-	}
-
-	if (textSurface != nullptr)
-	{
-		Texture* textTexture = neww Texture(txt.c_str());
-		textTexture->LoadTexture(textSurface);		
-
 		currentSprite.SetTexture(textTexture);
 		currentSprite.SetShader(Renderer::GetTextShader());
+		currentSprite.color = textColor;
 		currentSprite.filename = txt;
 		//std::cout << currentSprite.texture << " Creating text " << txt << std::endl;
 		currentSprite.keepScaleRelativeToCamera = keepScaleRelative;
 		currentSprite.keepPositionRelativeToCamera = renderRelative;
-
-		if (textSurface != nullptr)
-			SDL_FreeSurface(textSurface);
 	}
 	else
 	{
-		std::cout << "ERROR loading SDL Surface" << std::endl;
+		std::cout << "ERROR loading Text texture" << std::endl;
 	}
 }
 

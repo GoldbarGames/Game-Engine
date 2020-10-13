@@ -247,13 +247,13 @@ void Camera::ResetProjection()
 {
 	if (useOrthoCamera)
 	{
-		float zoomX = (800 * startingZoom);
-		float zoomY = (600 * startingZoom);
+		float zoomX = (startScreenWidth * startingZoom);
+		float zoomY = (startScreenHeight * startingZoom);
 		projection = glm::ortho(0.0f, zoomX, zoomY, 0.0f, -1.0f, 10.0f);
 	}
 	else
 	{
-		float aspectRatio = 1280.0f / 720.0f;
+		float aspectRatio = startScreenWidth / startScreenHeight;
 		projection = glm::perspective(angle, -aspectRatio, 0.001f, 10000.0f);
 	}
 }

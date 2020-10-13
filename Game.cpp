@@ -1642,11 +1642,26 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 	screenHeight = height;
 
 	SDL_SetWindowSize(window, screenWidth, screenHeight);
-	renderer.camera.Zoom(0.0f, screenWidth, screenHeight);
-	renderer.guiCamera.Zoom(0.0f, screenWidth, screenHeight);
+	renderer.camera.ResetProjection(); // Zoom(0.0f, 1280.0f * Camera::MULTIPLIER, 720.0f * Camera::MULTIPLIER);
+	renderer.guiCamera.Zoom(0.0f, screenWidth * Camera::MULTIPLIER, screenHeight * Camera::MULTIPLIER);
+
+	if (prevScreenSprite != nullptr)
+	{
+		if (prevScreenSprite->texture != nullptr)
+			delete_it(prevScreenSprite->texture);
+		delete_it(prevScreenSprite);
+	}
+	if (screenSprite != nullptr)
+	{
+		if (screenSprite->texture != nullptr)
+			delete_it(screenSprite->texture);
+		delete_it(screenSprite);
+	}
+
+	screenSprite = InitFramebuffer(framebuffer, textureColorBuffer, renderBufferObject);
+	prevScreenSprite = InitFramebuffer(prevFramebuffer, prevTextureColorBuffer, prevRenderBufferObject);
 
 	glViewport(0, 0, screenWidth, screenHeight);
-	renderer.screenScale = Vector2(screenWidth / 1280.0f, screenHeight / 720.0f);
 }
 
 
@@ -1710,23 +1725,25 @@ void Game::Render()
 	// TODO: Set post-processing shaders here
 
 	screenSprite->SetShader(renderer.shaders[ShaderName::Default]);
-	screenSprite->Render(Vector2(screenWidth, screenHeight), renderer, Vector2(1, -1));
+
+	Vector2 screenPos = Vector2(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
+	Vector2 screenScale = Vector2(renderer.camera.startScreenWidth / screenWidth, renderer.camera.startScreenHeight / -screenHeight);
+	screenSprite->Render(screenPos, renderer, screenScale);
 
 	if (renderSecondFrameBuffer)
 	{
-		prevScreenSprite->Render(Vector2(screenWidth, screenHeight), renderer, Vector2(1, -1));
+		prevScreenSprite->Render(Vector2(screenWidth, screenHeight), renderer, Vector2(1,-1));
 	}
 
 	/*
-	screenSprite->SetScale(Vector2(0.5f, -0.5f));
 	screenSprite->SetShader(renderer.shaders[ShaderName::Sharpen]);
-	screenSprite->Render(Vector2(screenWidth/2, screenHeight/2), *renderer);
+	screenSprite->Render(Vector2(screenWidth/2, screenHeight/2), renderer, Vector2(0.5f, -0.5f));
 	screenSprite->SetShader(renderer.shaders[ShaderName::Test]);
-	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight + (screenHeight / 2)), *renderer);
+	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight + (screenHeight / 2)), renderer, Vector2(0.5f, -0.5f));
 	screenSprite->SetShader(renderer.shaders[ShaderName::Grayscale]);
-	screenSprite->Render(Vector2(screenWidth/2, screenHeight + (screenHeight/2)), *renderer);
+	screenSprite->Render(Vector2(screenWidth/2, screenHeight + (screenHeight/2)), renderer, Vector2(0.5f, -0.5f));
 	screenSprite->SetShader(renderer.shaders[ShaderName::Edge]);
-	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight/2), *renderer);
+	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight/2), renderer, Vector2(0.5f, -0.5f));
 	*/
 
 	glUseProgram(0);
