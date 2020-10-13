@@ -1452,6 +1452,20 @@ void Game::LoadFile(const std::string& filename)
 		openedMenus.clear();
 		editor->InitLevelFromFile(nextLevel);
 
+		// Load data from the current save file
+		if (player != nullptr)
+		{
+			player->position.x = cutsceneManager.commands.numberVariables[202];
+			player->position.y = cutsceneManager.commands.numberVariables[203];
+			player->startPosition = player->position;
+
+			if (player->health != nullptr)
+			{
+				player->health->SetMaxHP(cutsceneManager.commands.numberVariables[204]);
+				player->health->SetCurrentHP(cutsceneManager.commands.numberVariables[205]);
+			}
+		}
+
 		renderer.camera.FollowTarget(*this, true);
 	}
 	catch (std::exception ex)

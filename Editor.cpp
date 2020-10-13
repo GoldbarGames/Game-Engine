@@ -2142,6 +2142,8 @@ void Editor::CreateLevelFromString(std::string level)
 
 				if (etype == "player")
 				{
+					positionX = std::stoi(tokens[indexOfPositionX]);
+					positionY = std::stoi(tokens[indexOfPositionY]);
 					game->player = game->SpawnPlayer(Vector2(positionX, positionY));
 				}
 				else if (etype == "tile")
@@ -2316,9 +2318,7 @@ void Editor::ClearLevelEntities()
 	game->entities.clear();
 }
 
-// TODO: There is some kind of memory leak here
-// when we go from level to level,
-// and it is also kind of slow
+// TODO: Loading levels is kind of slow
 void Editor::InitLevelFromFile(std::string levelName)
 {
 	game->debugRectangles.clear();
@@ -2371,20 +2371,6 @@ void Editor::InitLevelFromFile(std::string levelName)
 		else
 		{
 			game->cutsceneManager.PlayCutscene(game->levelStartCutscene.c_str());
-		}
-	}
-
-	// Load data from the current save file
-	if (game->player != nullptr)
-	{
-		game->player->position.x = game->cutsceneManager.commands.numberVariables[202];
-		game->player->position.y = game->cutsceneManager.commands.numberVariables[203];
-		game->player->startPosition = game->player->position;
-		
-		if (game->player->health != nullptr)
-		{
-			game->player->health->SetMaxHP(game->cutsceneManager.commands.numberVariables[204]);
-			game->player->health->SetCurrentHP(game->cutsceneManager.commands.numberVariables[205]);
 		}
 	}
 
