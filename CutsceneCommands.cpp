@@ -96,6 +96,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"textcolor", &CutsceneCommands::TextColor },
 	{"textspeed", &CutsceneCommands::TextSpeed },
 	{"timer", &CutsceneCommands::TimerFunction},
+	{"quake", &CutsceneCommands::Quake },
 	{"wait",& CutsceneCommands::Wait },
 	{"window", &CutsceneCommands::WindowFunction }
 };
@@ -155,7 +156,7 @@ CutsceneCommands::~CutsceneCommands()
 	}
 }
 
-bool CutsceneCommands::ExecuteCommand(std::string& command)
+bool CutsceneCommands::ExecuteCommand(std::string command)
 {
 	//std::cout << "Command: " << command << std::endl;
 	Timer cTimer;
@@ -2773,6 +2774,36 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 			manager->animatedImages[animationName]->GetSprite()->keepScaleRelativeToCamera = true;
 		}
 	}
+
+	return 0;
+}
+
+// quake 6 600
+// quake x 4 400
+// quake y 4 400
+int CutsceneCommands::Quake(CutsceneParameters parameters)
+{
+	int quakeIntensity = 0; // number of times to shake 
+	int quakeDelay = 0;     // length of time to shake up
+
+	// direction to shake
+	if (parameters[1] == "x")
+	{
+		quakeIntensity = ParseNumberValue(parameters[2]);
+		quakeDelay = ParseNumberValue(parameters[3]);
+	}
+	else if (parameters[1] == "y")
+	{
+		quakeIntensity = ParseNumberValue(parameters[2]);
+		quakeDelay = ParseNumberValue(parameters[3]);
+	}
+	else // both
+	{
+		quakeIntensity = ParseNumberValue(parameters[1]);
+		quakeDelay = ParseNumberValue(parameters[2]);
+	}
+
+	// TODO: Actually shake the screen
 
 	return 0;
 }

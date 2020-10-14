@@ -111,6 +111,11 @@ void Platform::Update(Game& game)
 			switchID = -1;
 		}
 	}
+	else
+	{
+		// TODO: Put moving platform code here
+		physics->velocity = Vector2(0, 0);
+	}
 
 	return;
 
@@ -324,6 +329,11 @@ void Platform::SetProperty(const std::string& key, const std::string& newValue)
 		{
 			if (newValue != "")
 				switchID = std::stoi(newValue);
+
+			if (switchID == -1)
+			{
+				attachedSwitch = nullptr;
+			}
 		}
 		else if (key == "Switch Distance X")
 		{

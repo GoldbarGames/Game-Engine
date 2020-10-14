@@ -219,7 +219,6 @@ void Editor::UpdateLevelFiles()
 				}
 			}
 
-
 			// Update the level files
 			std::ofstream fout;
 			std::stringstream ss{ ReadLevelFromFile(levelName) };
@@ -749,7 +748,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 					{
 						// Set the index of the tile
 						tilesInLevel[i]->ChangeSprite(spriteSheetTileFrame,
-							game->spriteManager.GetImage(tilesheetFilenames[tilesheetIndex]), &game->renderer);
+							game->spriteManager.GetImage(tilesheetFilenames[tilesheetIndex]), game->renderer);
 					}
 				}
 
@@ -778,7 +777,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 
 			if (tile != nullptr)
 			{
-				tilesheetIndex = tile->subtype;
+				tilesheetIndex = tile->tilesheetIndex;
 
 				StartEdit();
 				objectMode = "tile";
@@ -1742,7 +1741,7 @@ void Editor::Render(const Renderer& renderer)
 
 		if (rectSprite == nullptr)
 		{
-			rectSprite = neww Sprite(renderer.debugSprite->shader);
+			rectSprite = neww Sprite(renderer.shaders[ShaderName::SolidColor]);
 			rectSprite->keepPositionRelativeToCamera = true;
 			rectSprite->keepScaleRelativeToCamera = true;
 		}
@@ -1769,7 +1768,6 @@ void Editor::Render(const Renderer& renderer)
 
 			if (propertyIndex > -1)
 			{
-				//TODO: Fix for OpenGL
 				if (k == propertyIndex)
 				{
 					rectSprite->color = { 0, 255, 0, 128 };
@@ -2321,6 +2319,13 @@ void Editor::ClearLevelEntities()
 // TODO: Loading levels is kind of slow
 void Editor::InitLevelFromFile(std::string levelName)
 {
+	for (auto& [key, val] : game->cutsceneManager.images)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
+	game->cutsceneManager.images.clear();
+
 	game->debugRectangles.clear();
 	game->levelStartCutscene = "";
 

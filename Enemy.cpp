@@ -76,6 +76,22 @@ void Enemy::Init(const std::string& n)
 		CreateCollider(0, 0, 14, 14);
 		actionTimer.Start(1000);
 	}
+	else if (name == "caterpillar")
+	{
+		CreateCollider(0, 0, 33, 29);
+		//animator->SetBool("directionIsRight", true);
+	}
+	else if (name == "worm")
+	{
+		CreateCollider(0, 38, 18, 38);
+		animator->SetBool("shouldAppear", true);
+		//animator->SetBool("directionIsRight", true);
+	}
+	else if (name == "termite")
+	{
+		CreateCollider(0, 0, 60, 28);
+		//animator->SetBool("directionIsRight", true);
+	}
 }
 
 Enemy::~Enemy()

@@ -7,9 +7,8 @@
 #include "Player.h"
 #include "Entity.h"
 
-NPC::NPC(const std::string& n, const Vector2& pos) : Entity(pos)
+NPC::NPC(const Vector2& pos) : Entity(pos)
 {
-	name = n;
 	etype = "npc";
 	CreateCollider(0, 0, 0, 0);
 	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
@@ -30,6 +29,28 @@ NPC::NPC(const std::string& n, const Vector2& pos) : Entity(pos)
 NPC::~NPC()
 {
 
+}
+
+void NPC::Init(const std::string& n)
+{
+	name = n;
+
+	if (name == "gramps")
+	{
+		CreateCollider(0, 0, 22, 39);
+	}
+	else if (name == "the_man")
+	{
+		CreateCollider(0, 0, 32, 60);
+	}
+	else if (name == "signpost")
+	{
+		CreateCollider(0, 24, 24, 32);
+	}
+	else if (name == "daisy")
+	{
+		CreateCollider(0, 8, 42, 44);
+	}
 }
 
 void NPC::ChangeCollider(float x, float y, float w, float h)

@@ -42,6 +42,9 @@ private:
 	Mesh* CreateCubeMesh();
 public:
 
+	// TODO: Put this in the constructor?
+	std::string currentGame = "WDK";
+
 	std::unordered_map<std::string, std::vector<std::string>> entityTypes;
 
 	std::string windowIconFilepath = "";

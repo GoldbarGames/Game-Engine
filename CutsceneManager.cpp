@@ -30,7 +30,6 @@ void CutsceneManager::Init(Game& g)
 
 	std::ifstream fin;
 
-	bool testVN = true;
 	std::string directory = "";
 	std::string line = "";
 
@@ -39,7 +38,7 @@ void CutsceneManager::Init(Game& g)
 	tags["bi"] = neww TextTag();
 	tags["s"] = neww TextTag();
 
-	if (testVN)
+	if (game->currentGame == "DB1")
 	{
 		commands.pathPrefix = "assets\\arc\\";
 		currentScript = "butler1";
@@ -487,8 +486,6 @@ void CutsceneManager::ParseConfig(const char* configName)
 	}
 }
 
-
-
 void CutsceneManager::Render(const Renderer& renderer)
 {
 	if (watchingCutscene)
@@ -606,6 +603,8 @@ void CutsceneManager::PlayCutscene(const char* labelName)
 		// if failed to load label, exit cutscenes
 		if (currentLabel == nullptr)
 		{
+			std::string error = "ERROR: Could not find cutscene label " + std::string(labelName);
+			game->logger.Log(error.c_str());
 			watchingCutscene = false;
 		}			
 

@@ -27,13 +27,13 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 			"Resume Game", Vector2(startPosX, newStartPosY + (distance * 2)), game);
 
 		MenuButton* buttonSpellbook = neww MenuButton("Spellbook", "assets/gui/menu.png",
-			"Spellbook", Vector2(startPosX, newStartPosY + (distance * 2)), game);
+			"Spellbook", Vector2(startPosX, newStartPosY + (distance * 3)), game);
 
 		MenuButton* buttonSettings = neww MenuButton("Settings", "assets/gui/menu.png",
-			"Settings", Vector2(startPosX, newStartPosY + (distance * 3)), game);
+			"Settings", Vector2(startPosX, newStartPosY + (distance * 4)), game);
 
 		MenuButton* buttonExit = neww MenuButton("Title Screen", "assets/gui/menu.png",
-			"Title Screen", Vector2(startPosX, newStartPosY + (distance * 4)), game);
+			"Title Screen", Vector2(startPosX, newStartPosY + (distance * 5)), game);
 
 		buttons.emplace_back(buttonResume);		
 		buttons.emplace_back(buttonSpellbook);
@@ -400,30 +400,29 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	{
 		game.openedMenus.clear();
 
-		//game.cutscene->commands.ExecuteCommand("fade black 1000");
-		//game.cutscene->commands.ExecuteCommand("wait 1000");
+		game.cutsceneManager.commands.ExecuteCommand("fade black 1000");
+		game.cutsceneManager.commands.ExecuteCommand("wait 1000");
 
-		std::string currentGame = "DB1";
-
-		if (currentGame == "WDK")
+		if (game.currentGame == "WDK")
 		{
+			// Title screen transition
 			//game.LoadLevel("demo", 1, 1);
 #if _DEBUG
 			if (game.editor->startEditorLevel != "")
-				game.LoadLevel(game.editor->startEditorLevel);
+				game.LoadLevel(game.editor->startEditorLevel, 1, 1);
 			else
-				game.LoadLevel("demo");
+				game.LoadLevel("demo", 1, 1);
 #else
 			game.LoadLevel("demo");
 #endif
 		}
-		else if (currentGame == "DB1")
+		else if (game.currentGame == "DB1")
 		{
-			game.LoadLevel("test-vn");
+			game.LoadLevel("test-vn", 1, 1);
 		}
-		else if (currentGame == "DB2")
+		else if (game.currentGame == "DB2")
 		{
-			game.LoadLevel("test-vn");
+			game.LoadLevel("test-vn", 1, 1);
 		}
 	}
 	else if (selectedButton->name == "Play Game")

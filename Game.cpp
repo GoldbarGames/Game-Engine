@@ -276,7 +276,7 @@ Game::Game() : logger("logs/output.log")
 	
 	entities.clear();
 
-	SetScreenResolution(1280, 720);
+	SetScreenResolution(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
 
 	// Initialize GUI (do this AFTER fonts and resolution)
 	gui.Init(this);
@@ -683,7 +683,7 @@ Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE
 Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet, 
 	const Vector2& position, DrawingLayer drawingLayer)
 {
-	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), &renderer);
+	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION
@@ -695,13 +695,13 @@ Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet,
 Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet, 
 	const Vector2& position, DrawingLayer drawingLayer)
 {
-	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), &renderer);
+	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION 
 		|| drawingLayer == DrawingLayer::COLLISION2;
 
-	tile->subtype = editor->tilesheetIndex;
+	tile->tilesheetIndex = editor->tilesheetIndex;
 	entities.emplace_back(tile);
 
 	return tile;
@@ -853,6 +853,7 @@ void Game::TransitionLevel()
 		if (conditionMet)
 		{
 			transitionState = 3;
+
 			if (nextLevel == "")
 			{
 				levelNumber++;

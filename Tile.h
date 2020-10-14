@@ -15,17 +15,21 @@
 class Texture;
 class Renderer;
 
+// This is the tile's subtype
+enum class TileType { None, Grass, Wood, Metal, Ice, Water, Spike, Lava};
+
 class Tile : public Entity
 {
 public:
+	int tilesheetIndex = 0;
 	Vector2 tileCoordinates = Vector2(0, 0);
 
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 	void Destroy();
-	void ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer);
+	void ChangeSprite(const Vector2& frame, Texture* image, const Renderer& renderer);
 	void Animate();
 	bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
-	Tile(const Vector2& pos, const Vector2& frame, Texture* image, Renderer* renderer);
+	Tile(const Vector2& pos, const Vector2& frame, Texture* image, const Renderer& renderer);
 	~Tile();
 
 	void Save(std::unordered_map<std::string, std::string>& map);

@@ -7,7 +7,7 @@
 #include "Renderer.h"
 #include "Editor.h"
 
-Tile::Tile(const Vector2& pos, const Vector2& frame, Texture* image, Renderer* renderer) : Entity(pos)
+Tile::Tile(const Vector2& pos, const Vector2& frame, Texture* image, const Renderer& renderer) : Entity(pos)
 {	
 	ChangeSprite(frame, image, renderer);
 	etype = "tile";
@@ -18,11 +18,11 @@ Tile::~Tile()
 
 }
 
-// TODO: Move this inside the Game class: ChangeTileSprite
-void Tile::ChangeSprite(const Vector2& frame, Texture* image, Renderer* renderer)
+// TODO: Move this inside the Game class: ChangeTileSprite?
+void Tile::ChangeSprite(const Vector2& frame, Texture* image, const Renderer& renderer)
 {
 	tileCoordinates = frame;
-	currentSprite = Sprite(frame, image, renderer->shaders[ShaderName::Default]);
+	currentSprite = Sprite(frame, image, renderer.shaders[ShaderName::Default]);
 }
 
 void Tile::Animate()
@@ -68,12 +68,14 @@ void Tile::Save(std::unordered_map<std::string, std::string>& map)
 	static const std::string STR_TILESHEET("tilesheet");
 	static const std::string STR_DRAWORDER("drawOrder");
 	static const std::string STR_LAYER("layer");
+	static const std::string STR_SUBTYPE("subtype");
 	static const std::string STR_PASSABLESTATE("passableState");
 
 	map[STR_DRAWORDER] = std::to_string(drawOrder);
 	map[STR_LAYER] = std::to_string((int)layer);
 	map[STR_PASSABLESTATE] = std::to_string(passableState);
-	map[STR_TILESHEET] = std::to_string(subtype);
+	map[STR_TILESHEET] = std::to_string(tilesheetIndex);
+	map[STR_SUBTYPE] = std::to_string(subtype);
 	map[STR_FRAMEX] = std::to_string((int)tileCoordinates.x);
 	map[STR_FRAMEY] = std::to_string((int)tileCoordinates.y);
 }
@@ -89,5 +91,5 @@ void Tile::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 	if (std::stoi(map["passableState"]) == 2)
 		newTile->jumpThru = true;
 
-	newTile->subtype = std::stoi(map["tilesheet"]);
+	newTile->tilesheetIndex = std::stoi(map["tilesheet"]);
 }

@@ -48,7 +48,7 @@ public:
 	~CutsceneCommands();
 
 	//TODO: Make parameter const
-	bool ExecuteCommand(std::string& command);
+	bool ExecuteCommand(std::string command);
 	
 	// Load graphics
 	int LoadSprite(CutsceneParameters parameters);
@@ -134,7 +134,7 @@ public:
 	int FlipSprite(CutsceneParameters parameters);
 
 	int RightClickSettings(CutsceneParameters parameters);
-
+	int Quake(CutsceneParameters parameters);
 	
 	Color ParseColorFromParameters(const std::vector<std::string>& parameters, const int index);
 
