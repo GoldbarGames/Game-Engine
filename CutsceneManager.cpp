@@ -1002,7 +1002,10 @@ void CutsceneManager::UpdateText()
 					commandIndex++;
 					if (commandIndex >= currentLabel->lines[lineIndex].commands.size())
 						break;
-				} while (!autoprint && printNumber == 0);	
+					
+					// run all commands until we hit a print or wait command
+				} while (!autoprint && printNumber == 0 && msGlyphTime > 0); 
+				
 				game->updateScreenTexture = true;
 
 				if (printNumber > 0 && !input[skipButton])

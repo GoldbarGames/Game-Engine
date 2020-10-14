@@ -14,7 +14,7 @@ int main(int argc, char *args[])
 	// TODO: Move SDL Init outside of Game?
 
 	{
-		Game game;
+		Game game("WDK");
 		game.MainLoop();
 	}
 

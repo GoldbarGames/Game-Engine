@@ -91,42 +91,71 @@ Vector2 Renderer::CalculateScale(const Sprite& sourceSprite, int targetWidth, in
 		targetHeight * targetScale.y / sourceHeight);
 }
 
+void Renderer::LerpColor(float& color, float target, const float& speed)
+{
+	if (color > target)
+	{
+		color -= speed * game->dt;
+		if (color < target)
+			color = target;
+	}
+	else
+	{
+		color += speed * game->dt;
+		if (color > target)
+			color = target;
+	}
+}
+
 void Renderer::Update()
 {
 	if (changingOverlayColor) // && timerOverlayColor.HasElapsed())
 	{		
-		changingOverlayColor = false;
+		//changingOverlayColor = false;
 
-		float difference = 0;
-		float currentTime = game->timer.GetTicks() - overlayStartTime;
-		float t = 1.0f;
-		if (overlayEndTime != 0)
+		static float colorSpeed = -1.0f;
+		static float r, g, b, a = 0.0f;
+
+		if (colorSpeed < 0.0f)
 		{
-			difference = overlayEndTime - overlayStartTime;
-			t = currentTime / difference;
+			// Calculate the longest amount of time it should take to change all colors
+			int maxDiff = std::abs(overlayColor.r - targetColor.r);
+			maxDiff = std::max(maxDiff, std::abs(overlayColor.g - targetColor.g));
+			maxDiff = std::max(maxDiff, std::abs(overlayColor.b - targetColor.b));
+			maxDiff = std::max(maxDiff, std::abs(overlayColor.a - targetColor.a));
+
+			// Calculate the speed to change colors based on the desired time
+			colorSpeed = maxDiff / (float)(overlayEndTime - overlayStartTime);
+
+			std::cout << colorSpeed << std::endl;
+
+			r = overlayColor.r;
+			g = overlayColor.g;
+			b = overlayColor.b;
+			a = overlayColor.a;
 		}
 
 		//std::cout << currentTime << " / " << difference << " = " << t << std::endl;
 
-		UpdateOverlayColor(overlayColor.r, startColor.r, targetColor.r, t);
-		UpdateOverlayColor(overlayColor.g, startColor.g, targetColor.g, t);
-		UpdateOverlayColor(overlayColor.b, startColor.b, targetColor.b, t);
-		UpdateOverlayColor(overlayColor.a, startColor.a, targetColor.a, t);
-		//std::cout << overlayColor.a << std::endl;
-		//std::cout << timerOverlayColor.GetTicks() << std::endl;
-		//timerOverlayColor.Start(1);
-	}
-}
+		// Only update every millisecond
+		LerpColor(r, targetColor.r, colorSpeed);
+		LerpColor(g, targetColor.g, colorSpeed);
+		LerpColor(b, targetColor.b, colorSpeed);
+		LerpColor(a, targetColor.a, colorSpeed);
 
-void Renderer::UpdateOverlayColor(uint8_t& color, const int& start, const int& target, const float& t)
-{
-	if (color != target)
-	{
-		changingOverlayColor = true;
-		color = start + (t * (target - start));
+		// std::cout << a << " / " << (int)targetColor.a << std::endl;
 
-		if ((color - target) * (color - target) < 3)
-			color = target;
+		overlayColor = { (uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)a };
+
+		if (overlayColor.r == targetColor.r
+			&& overlayColor.g == targetColor.g
+			&& overlayColor.b == targetColor.b
+			&& overlayColor.a == targetColor.a)
+		{
+			changingOverlayColor = false;
+			colorSpeed = -1.0f;
+			std::cout << colorSpeed << std::endl;
+		}
 	}
 }
 

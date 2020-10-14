@@ -203,8 +203,9 @@ Mesh* Game::CreateCubeMesh()
 	return mesh;
 }
 
-Game::Game() : logger("logs/output.log")
+Game::Game(const std::string& n) : logger("logs/output.log")
 {
+	currentGame = n;
 	startOfGame = std::chrono::steady_clock::now();
 	entityFactory = EntityFactory::Get();
 
@@ -246,6 +247,8 @@ Game::Game() : logger("logs/output.log")
 
 	// Initialize overlay sprite
 	renderer.overlaySprite = CreateSprite("assets/gui/white.png");
+	renderer.overlaySprite->keepPositionRelativeToCamera = true;
+	//renderer.overlaySprite->keepScaleRelativeToCamera = true;
 
 	// Initialize the sprite map (do this BEFORE the editor)
 
@@ -707,18 +710,13 @@ Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet,
 	return tile;
 }
 
+// NOTE: Spawning more than one player this way breaks things
 Player* Game::SpawnPlayer(const Vector2& position)
 {
-	// NOTE: Spawning more than one player breaks things
 	Player* player = static_cast<Player*>(SpawnEntity("player", position, 0));
 	player->game = this;
-
 	renderer.camera.target = player;
-	renderer.guiCamera.target = player;
-
 	renderer.camera.FollowTarget(*this);
-	renderer.guiCamera.FollowTarget(*this);
-
 	return player;
 }
 
@@ -864,6 +862,26 @@ void Game::TransitionLevel()
 				openedMenus.clear();
 				editor->InitLevelFromFile(nextLevel);
 			}
+
+			if (loadingFromSaveFile)
+			{
+				loadingFromSaveFile = false;
+				// Load data from the current save file
+				if (player != nullptr)
+				{
+					player->position.x = cutsceneManager.commands.numberVariables[202];
+					player->position.y = cutsceneManager.commands.numberVariables[203];
+					player->startPosition = player->position;
+
+					if (player->health != nullptr)
+					{
+						player->health->SetMaxHP(cutsceneManager.commands.numberVariables[204]);
+						player->health->SetCurrentHP(cutsceneManager.commands.numberVariables[205]);
+					}
+				}
+			}
+
+			renderer.camera.FollowTarget(*this, true);			
 		}
 	}
 	else if (transitionState == 3) // enter the neww level, start condition
@@ -1451,23 +1469,8 @@ void Game::LoadFile(const std::string& filename)
 		cutsceneManager.LoadGame(filename.c_str());
 		nextLevel = cutsceneManager.commands.stringVariables[201];
 		openedMenus.clear();
-		editor->InitLevelFromFile(nextLevel);
-
-		// Load data from the current save file
-		if (player != nullptr)
-		{
-			player->position.x = cutsceneManager.commands.numberVariables[202];
-			player->position.y = cutsceneManager.commands.numberVariables[203];
-			player->startPosition = player->position;
-
-			if (player->health != nullptr)
-			{
-				player->health->SetMaxHP(cutsceneManager.commands.numberVariables[204]);
-				player->health->SetCurrentHP(cutsceneManager.commands.numberVariables[205]);
-			}
-		}
-
-		renderer.camera.FollowTarget(*this, true);
+		LoadLevel(nextLevel, 1, 1);
+		loadingFromSaveFile = true;
 	}
 	catch (std::exception ex)
 	{
@@ -1562,9 +1565,6 @@ void Game::Update()
 		updateScreenTexture = !cutsceneManager.watchingCutscene || cutsceneManager.printNumber > 0;
 	}
 
-	//if (updateScreenTexture)
-	//	return;
-
 	renderer.Update();
 
 	if (openedMenus.size() > 0)
@@ -1647,7 +1647,7 @@ void Game::Update()
 		if (renderer.camera.useOrthoCamera)
 			renderer.camera.FollowTarget(*this);
 
-		renderer.guiCamera.FollowTarget(*this);
+		//renderer.guiCamera.FollowTarget(*this);
 	}
 }
 

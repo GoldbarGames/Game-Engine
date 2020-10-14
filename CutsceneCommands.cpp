@@ -1898,6 +1898,8 @@ int CutsceneCommands::Fade(CutsceneParameters parameters)
 
 	manager->game->renderer.startColor = manager->game->renderer.overlayColor;
 
+	std::cout << "change target color: " << parameters[1] << std::endl;
+
 	if (parameters[1] == "clear")
 	{
 		manager->game->renderer.targetColor = Color { 0, 0, 0, 0 };

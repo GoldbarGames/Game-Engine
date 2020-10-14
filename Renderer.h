@@ -23,7 +23,6 @@ class Renderer
 private:
 	static ShaderProgram* textShader;
 	mutable std::unordered_map<DrawingLayer, bool> layersVisible;
-	void UpdateOverlayColor(uint8_t& color, const int& start, const int& target, const float& t);
 public:
 	Camera camera;
 	Camera guiCamera;
@@ -55,6 +54,7 @@ public:
 
 	mutable std::unordered_map<ShaderName, ShaderProgram*> shaders;
 	
+	void LerpColor(float& color, float target, const float& speed);
 	void FadeOverlay(const int screenWidth, const int screenHeight) const;
 	void ToggleVisibility(DrawingLayer layer);
 	bool IsVisible(DrawingLayer layer) const;

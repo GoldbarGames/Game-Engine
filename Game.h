@@ -42,8 +42,7 @@ private:
 	Mesh* CreateCubeMesh();
 public:
 
-	// TODO: Put this in the constructor?
-	std::string currentGame = "WDK";
+	std::string currentGame = "";
 
 	std::unordered_map<std::string, std::vector<std::string>> entityTypes;
 
@@ -191,6 +190,8 @@ public:
 	SDL_Window* window = nullptr;
 	Player* player = nullptr;
 
+	bool loadingFromSaveFile = false;
+
 	bool isFullscreen = false;
 	bool showFPS = false;
 	bool showTimer = false;
@@ -208,7 +209,7 @@ public:
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
 
-	Game();
+	Game(const std::string& n);
 	~Game();
 
 	void InitSDL();
