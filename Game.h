@@ -52,9 +52,10 @@ public:
 	std::string currentSaveFileName = "";
 
 	Logger logger;
-	SDL_GameController* controller;
+	SDL_GameController* controller = nullptr;
 
-	EntityFactory* entityFactory;
+	// Keep this a pointer so we can use polymorphism
+	const EntityFactory* entityFactory = nullptr;
 
 	SDL_Rect mouseRect;
 	Uint32 mouseState;
@@ -209,7 +210,7 @@ public:
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
 
-	Game(const std::string& n);
+	Game(const std::string& n, const EntityFactory& e);
 	~Game();
 
 	void InitSDL();

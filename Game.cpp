@@ -2,60 +2,51 @@
 
 #include "Game.h"
 
-#include <cmath>
-#include <vector>
-#include <unordered_map>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <cmath>
+#include <vector>
+#include <unordered_map>
+#include <string>
+#include <iostream>
+#include <memory>
+#include <cmath>
+#include <chrono>
+#include "sdl_helpers.h"
 
 #include "Mesh.h"
 #include "Shader.h"
 #include "Camera.h"
 #include "Texture.h"
-
 #include "Logger.h"
 
-#include <string>
-#include <iostream>
-#include <vector>
 #include "Sprite.h"
-#include <memory>
-#include <cmath>
 #include "Entity.h"
 #include "SpriteManager.h"
-#include "Player.h"
+
 #include "Background.h"
 #include "Editor.h"
 #include "Tile.h"
 #include "Timer.h"
 #include "MenuScreen.h"
-#include "Missile.h"
-#include "Door.h"
-#include "Ladder.h"
 #include "Renderer.h"
-#include "NPC.h"
-#include "Block.h"
-#include "Platform.h"
-#include "Shroom.h"
-#include "HealthComponent.h"
 
-#include "SettingsButton.h"
+#include "Player.h" // TODO: Remove this?
+#include "HealthComponent.h" // TODO: Remove this
+#include "SettingsButton.h" // TODO: Remove this
 
 #include "DebugScreen.h"
 #include "EntityFactory.h"
 #include "QuadTree.h"
 #include "GUI.h"
-
+#include "Dialog.h"
 #include "CutsceneManager.h"
 #include "SoundManager.h"
 #include "RandomManager.h"
-#include <chrono>
 
-#include "Dialog.h"
 
-#include "sdl_helpers.h"
 
 static unsigned int allocationCount = 0;
 
@@ -203,11 +194,11 @@ Mesh* Game::CreateCubeMesh()
 	return mesh;
 }
 
-Game::Game(const std::string& n) : logger("logs/output.log")
+Game::Game(const std::string& n, const EntityFactory& e) : logger("logs/output.log")
 {
 	currentGame = n;
 	startOfGame = std::chrono::steady_clock::now();
-	entityFactory = EntityFactory::Get();
+	entityFactory = &e;
 
 	logger.SetOutputFile("logs/output2.log");
 	InitSDL();

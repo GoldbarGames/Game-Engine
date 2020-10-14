@@ -2,6 +2,7 @@
 
 #include "leak_check.h"
 #include "Game.h"
+#include "MyEntityFactory.h"
 
 int main(int argc, char *args[])
 {
@@ -14,7 +15,10 @@ int main(int argc, char *args[])
 	// TODO: Move SDL Init outside of Game?
 
 	{
-		Game game("WDK");
+		// For your own custom entity types
+		EntityFactory* e = MyEntityFactory::Get();
+
+		Game game("WDK", *e);
 		game.MainLoop();
 	}
 
