@@ -60,16 +60,7 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		creditsHeader->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(creditsHeader);
 
-		std::vector<string> textLines = { 
-			"Programming: Kinjo",
-			"Concept Art: Osato", 
-			"Pixel Art: TahYllis",
-			"Music: Solo Acapello", 
-			" ", 
-			"Special thanks to our Patreon and Twitch supporters:", 
-			" ",
-			"Van Kadix, NovelistEzhno, M.E. Hatch, JimmyJDogg,", 
-			"Sajo8, Zephilinox, MrJontel, EminentVirtue" };
+		std::vector<string> textLines = game.ReadStringsFromFile("data/english/credits.txt");
 
 		for (unsigned int i = 0; i < textLines.size(); i++)
 		{

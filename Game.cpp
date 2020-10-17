@@ -1362,16 +1362,19 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_r:
 				//if (player != nullptr)
 				//	player->ResetPosition();
-				ResetLevel();
+				if (!editMode)
+					ResetLevel();
 				break;			
 			case SDLK_t:
-				LoadLevel(nextLevel);
+				if (!editMode)
+					LoadLevel(nextLevel);
 				break;
 			case SDLK_8: // save game
 				SaveFile(currentSaveFileName);
 				break;
 			case SDLK_9: // load game
-				LoadFile(currentSaveFileName);
+				if (!editMode)
+					LoadFile(currentSaveFileName);
 				break;
 			case SDLK_1: // toggle Debug mode
 				debugMode = !debugMode;
