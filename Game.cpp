@@ -1817,7 +1817,7 @@ void Game::RenderScene()
 		}
 	}
 
-	if (currentLevel != "title" && !cutsceneManager.watchingCutscene)
+	if (currentLevel != "title" && !cutsceneManager.watchingCutscene && !editMode)
 	{
 		gui.Render(renderer);
 	}

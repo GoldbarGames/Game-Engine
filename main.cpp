@@ -12,6 +12,7 @@ int main(int argc, char *args[])
 	//#endif
 #endif
 
+	// TODO: How to deal with loading the first level?
 	// TODO: Move SDL Init outside of Game?
 
 	{

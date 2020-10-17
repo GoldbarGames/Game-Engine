@@ -42,6 +42,13 @@ Editor::Editor(Game& g)
 		tilesheetFilenames[i] = "assets/tiles/" + tilesheetFilenames[i] + ".png";
 	}
 
+	GetLevelList();
+
+	currentLevelText = neww Text(game->theFont, "");
+	currentLevelText->SetPosition(100, 50);
+	currentLevelText->GetSprite()->keepPositionRelativeToCamera = true;
+	currentLevelText->GetSprite()->keepScaleRelativeToCamera = true;
+
 	playOpeningDemoCutscene = false;
 	dialog = neww Dialog(Vector2(g.screenWidth, g.screenHeight), &g.spriteManager);
 	dialog->text = neww Text(game->theFont, "");
@@ -135,6 +142,9 @@ Editor::~Editor()
 
 	if (grid != nullptr)
 		delete_it(grid);
+
+	if (currentLevelText != nullptr)
+		delete_it(currentLevelText);
 }
 
 // Updates the level file based on changes in how entities are saved/loaded
@@ -389,7 +399,8 @@ void Editor::CreateEditorButtons()
 		editorButton->image->keepScaleRelativeToCamera = true;
 		buttons.emplace_back(editorButton);
 
-		buttonX += buttonWidth + buttonSpacing; // TODO: is there a way to not make this hard-coded? is it worth it?
+		// TODO: is there a way to not make this hard-coded? is it worth it?
+		buttonX += buttonWidth + buttonSpacing; 
 	}
 
 	EditorButton* previousButton = neww EditorButton("", "prevpage", 
@@ -404,6 +415,22 @@ void Editor::CreateEditorButtons()
 	
 	nextButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(nextButton);
+
+	// Level navigation
+
+	EditorButton* previousLevelButton = neww EditorButton("", "prevlevel",
+		Vector2(buttonStartX * Camera::MULTIPLIER, 
+			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER), *game);
+
+	previousLevelButton->image->keepScaleRelativeToCamera = true;
+	buttons.emplace_back(previousLevelButton);
+
+	EditorButton* nextLevelButton = neww EditorButton("", "nextlevel",
+		Vector2((buttonStartX + (buttonWidth + buttonSpacing)) * Camera::MULTIPLIER,
+			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER), *game);
+
+	nextLevelButton->image->keepScaleRelativeToCamera = true;
+	buttons.emplace_back(nextLevelButton);
 }
 
 void Editor::StartEdit()
@@ -411,6 +438,7 @@ void Editor::StartEdit()
 	game->LoadEditorSettings();
 
 	//game->renderer.camera.ResetProjection();
+	currentLevelText->SetText(game->currentLevel);
 
 	// TILE SHEET FOR TOOLBOX
 	if (tilesheetSprites.empty())
@@ -1529,6 +1557,42 @@ void Editor::ClickedButton()
 			clickedButton->isClicked = false;
 		}
 	}
+	else if (clickedButton->name == "prevlevel")
+	{
+		auto it = std::find(levelNames.begin(), levelNames.end(), game->currentLevel);
+
+		int index = 0;
+		if (it != levelNames.end())
+		{
+			index = std::distance(levelNames.begin(),it);
+		}
+
+		// Update the index
+		index = (index > 0) ? index - 1 : levelNames.size() - 1;
+
+		// Load the level
+		InitLevelFromFile(levelNames[index]);
+
+		clickedButton->isClicked = false;
+	}
+	else if (clickedButton->name == "nextlevel")
+	{
+		auto it = std::find(levelNames.begin(), levelNames.end(), game->currentLevel);
+
+		int index = 0;
+		if (it != levelNames.end())
+		{
+			index = std::distance(levelNames.begin(), it);
+		}
+
+		// Update the index
+		index = (index < levelNames.size() - 1) ? index + 1 : 0;
+
+		// Load the level
+		InitLevelFromFile(levelNames[index]);
+
+		clickedButton->isClicked = false;
+	}
 	else if (clickedButton->name == "path")
 	{
 		if (currentPath != nullptr)
@@ -1841,6 +1905,11 @@ void Editor::Render(const Renderer& renderer)
 	{
 		dialog->Render(renderer);
 	}
+
+	if (currentLevelText != nullptr)
+	{
+		currentLevelText->Render(renderer);
+	}
 }
 
 void Editor::DestroyDialog()
@@ -2000,6 +2069,23 @@ const std::string& Editor::GetTileSheetFileName(const int index) const
 	return tilesheetFilenames[index];
 }
 
+void Editor::GetLevelList()
+{
+	levelNames.clear();
+
+	std::string levelsFolder = "data\\levels\\";
+	std::filesystem::path path = std::filesystem::current_path().append(levelsFolder);
+	for (const auto& entry : std::filesystem::directory_iterator(path))
+	{
+		if (entry.path().extension().string() == ".lvl")
+		{
+			std::string levelName = entry.path().stem().string();
+			//std::cout << levelName << std::endl;
+			levelNames.push_back(levelName);
+		}
+	}
+}
+
 // TODO: This is VERY slow!
 void Editor::CreateLevelFromString(std::string level)
 {
@@ -2010,6 +2096,11 @@ void Editor::CreateLevelFromString(std::string level)
 
 		// Remove all backgrounds
 		game->background->ResetBackground();
+
+		if (game->editMode)
+		{
+			GetLevelList();
+		}
 
 		loadListPaths.clear();
 		loadListMovingPlatforms.clear();
@@ -2327,6 +2418,10 @@ void Editor::InitLevelFromFile(std::string levelName)
 		if (val != nullptr)
 			delete_it(val);
 	}
+
+	currentLevelText->SetText(levelName);
+	game->cutsceneManager.watchingCutscene = false;
+
 	game->cutsceneManager.images.clear();
 
 	game->debugRectangles.clear();

@@ -99,6 +99,10 @@ public:
 
 	Dialog* dialog;
 	EditorButton* clickedButton = nullptr;
+	Text* currentLevelText = nullptr;
+
+	std::vector<std::string> levelNames;
+	void GetLevelList();
 
 	// Settings
 	int replaceSettingIndex = 0;

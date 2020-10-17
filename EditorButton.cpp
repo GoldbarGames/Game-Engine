@@ -48,7 +48,11 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 
 EditorButton::~EditorButton()
 {
+	if (text != nullptr)
+		delete_it(text);
 
+	if (image != nullptr)
+		delete_it(image);
 }
 
 void EditorButton::Render(const Renderer& renderer)
