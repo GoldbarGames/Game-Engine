@@ -188,16 +188,22 @@ std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFileP
 // We want to read in the file only once, creating a base set of states that are stored here.
 // Then whenever an object is created, we give the object its own copy of the states.
 // That way, those states can be manipulated (and eventually deleted) by the local object.
-std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFilePath, std::unordered_map<std::string, std::string>& args)
+std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFilePath, 
+	std::unordered_map<std::string, std::string>& args)
 {
 	std::vector<AnimState*> animStates;
 
 	//std::cout << dataFilePath << std::endl;
+	std::string animStateKey = dataFilePath;
+	for (auto& [key, val] : args)
+	{
+		animStateKey += val;
+	}
 
 	// If we have already read this file, grab it from the table
-	if (animationStates.count(dataFilePath) != 0)
+	if (animationStates.count(animStateKey) != 0)
 	{
-		return animationStates[dataFilePath];
+		return animationStates[animStateKey];
 	}
 
 	//std::cout << "Base anim: " << std::endl;
@@ -300,8 +306,8 @@ std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFileP
 		std::cout << message << std::endl;
 	}
 
-	animationStates[dataFilePath] = animStates;
+	animationStates[animStateKey] = animStates;
 
 	// Call recursively so that the object's animator points to a copy.
-	return ReadAnimData(dataFilePath);
+	return animationStates[animStateKey];
 }

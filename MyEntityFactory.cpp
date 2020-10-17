@@ -13,6 +13,7 @@
 #include "Checkpoint.h"
 #include "Tree.h"
 #include "Tile.h"
+#include "Decoration.h"
 
 MyEntityFactory::MyEntityFactory() : EntityFactory()
 {
@@ -30,4 +31,5 @@ MyEntityFactory::MyEntityFactory() : EntityFactory()
     Register("switch", &Switch::Create);
     Register("checkpoint", &Checkpoint::Create);
     Register("tree", &Tree::Create);
+    Register("decoration", &Decoration::Create);
 }

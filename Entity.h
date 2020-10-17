@@ -51,9 +51,9 @@ public:
 
 	unsigned int Size();
 
-	static unsigned int GetNextValidID();
-	static unsigned int nextValidID;
-	static std::unordered_map<unsigned int, bool> takenIDs;
+	static uint32_t GenerateValidID();
+	static uint32_t nextValidID;
+	static std::unordered_map<uint32_t, bool> takenIDs;
 	
 	virtual ~Entity();
 	Entity(const Vector2& pos);
@@ -64,7 +64,7 @@ public:
 	std::string name = "";
 	bool shouldDelete = false;
 	std::string etype = "entity";
-	int id = 0; //TODO
+	uint32_t id = 0; //TODO
 	int drawOrder = 0; // order for drawing
 	DrawingLayer layer = DrawingLayer::FRONT;	
 

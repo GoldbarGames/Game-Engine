@@ -145,7 +145,13 @@ public:
 	unsigned int globalStart = 1000; //TODO: Should this be a config variable?
 	//TODO: Move these button configurations to some place more relevant
 	// This class should have a reference to the controller and get the bindings from it
+
 	SDL_Scancode skipButton = SDL_Scancode::SDL_SCANCODE_LCTRL; //TODO: multiple buttons?
+	SDL_Scancode skipButton2 = SDL_Scancode::SDL_SCANCODE_RCTRL;
+
+	SDL_Scancode readButton = SDL_Scancode::SDL_SCANCODE_SPACE;
+	SDL_Scancode readButton2 = SDL_Scancode::SDL_SCANCODE_RETURN;
+
 	SDL_Scancode autoButton = SDL_Scancode::SDL_SCANCODE_A;
 
 	std::vector<SceneLabel> labels;
@@ -228,6 +234,8 @@ public:
 	void ModifyGlobalVariableVector(std::vector<string>& globalData, unsigned int key, const std::string& value);
 
 	void SetSpeakerText(const std::string& name);
+
+	void ReadCutsceneFile();
 
 	SceneLabel* GetCurrentLabel();
 	SceneLine* GetCurrentLine();

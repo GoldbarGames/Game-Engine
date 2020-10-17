@@ -117,15 +117,15 @@ void Animator::SetSpriteFromState(AnimState* animState, Sprite& sprite)
 		sprite.filename = animState->filename;
 		sprite.startFrame = animState->startFrame;
 		sprite.endFrame = animState->endFrame;
-		sprite.frameWidth = animState->frameWidth;
-		sprite.frameHeight = animState->frameHeight;
+		sprite.frameWidth = std::min(animState->frameWidth, sprite.texture->GetWidth());
+		sprite.frameHeight = std::min(animState->frameHeight, sprite.texture->GetHeight());
 		sprite.pivot = Vector2(animState->pivotX, animState->pivotY);
 
 		if (sprite.currentFrame > sprite.endFrame)
 			sprite.currentFrame = sprite.startFrame;
 
 		//TODO: This only works if there is only one row, but that is okay for now
-		sprite.numberFramesInTexture = sprite.texture->GetWidth() / animState->frameWidth;
+		sprite.numberFramesInTexture = sprite.texture->GetWidth() / sprite.frameWidth;
 		sprite.framesPerRow = sprite.numberFramesInTexture;
 	}
 }

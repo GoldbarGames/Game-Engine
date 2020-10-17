@@ -13,6 +13,7 @@
 #include "Ladder.h"
 #include "Door.h"
 #include "NPC.h"
+#include "Decoration.h"
 #include "SoundManager.h"
 #include "Property.h"
 #include "Missile.h"
@@ -270,6 +271,10 @@ void Player::UpdateNormally(Game& game)
 			if (currentNPC != nullptr)
 			{
 				game.cutsceneManager.PlayCutscene(currentNPC->cutsceneLabel.c_str());
+			}
+			else if (currentDecoration != nullptr)
+			{
+				game.cutsceneManager.PlayCutscene(currentDecoration->cutsceneLabel.c_str());
 			}
 			else if (currentLadder != nullptr)
 			{

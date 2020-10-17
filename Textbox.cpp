@@ -51,7 +51,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	clickToContinue = neww Entity(Vector2(0,0));
 
 	std::vector<AnimState*> animStates = spriteManager->ReadAnimData("data/animators/cursor/cursor.animations");
-	Animator* newAnimator = neww Animator("cursor", animStates, "samepage");
+	Animator* newAnimator = neww Animator("cursor/cursor", animStates, "samepage");
 	newAnimator->SetBool("endOfPage", false);
 	
 	clickToContinue->SetAnimator(*newAnimator);

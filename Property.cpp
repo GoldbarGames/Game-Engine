@@ -33,6 +33,20 @@ Property::Property(const std::string& k, const int v, const std::vector<std::str
 	text = neww Text(fontInfo, key + ": " + value);
 }
 
+Property::Property(const std::string& k, const uint32_t v, const std::vector<std::string>& o)
+	: key(k), value(std::to_string(v)), pType(PropertyType::Integer)
+{
+	if (fontInfo == nullptr)
+	{
+		fontInfo = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
+		fontInfo->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
+		fontInfo->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
+		fontInfo->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
+	}
+
+	text = neww Text(fontInfo, key + ": " + value);
+}
+
 Property::Property(const std::string& k, const float v, const std::vector<std::string>& o) 
 	: key(k), value(std::to_string(v)), pType(PropertyType::Float)
 {

@@ -84,6 +84,10 @@ void Tile::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
 	Entity::Load(map, game);
 
+	// TODO: The below code breaks things, but we should ultimately use something like it
+	// rather than calling the spawn tile function when loading tiles
+
+	/*
 	Tile* newTile = game.SpawnTile(Vector2(std::stoi(map["frameX"]), std::stoi(map["frameY"])),
 		"assets/tiles/" + game.editor->GetTileSheetFileName(std::stoi(map["tilesheet"])) + ".png",
 		Vector2(std::stoi(map["positionX"]), std::stoi(map["positionY"])), (DrawingLayer)layer);
@@ -92,4 +96,5 @@ void Tile::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 		newTile->jumpThru = true;
 
 	newTile->tilesheetIndex = std::stoi(map["tilesheet"]);
+	*/
 }

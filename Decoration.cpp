@@ -1,4 +1,4 @@
-#include "NPC.h"
+#include "Decoration.h"
 #include "Game.h"
 #include "PhysicsComponent.h"
 #include "HealthComponent.h"
@@ -7,9 +7,9 @@
 #include "Player.h"
 #include "Entity.h"
 
-NPC::NPC(const Vector2& pos) : Entity(pos)
+Decoration::Decoration(const Vector2& pos) : Entity(pos)
 {
-	etype = "npc";
+	etype = "decoration";
 	CreateCollider(0, 0, 0, 0);
 	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 	layer = DrawingLayer::COLLISION;
@@ -26,67 +26,53 @@ NPC::NPC(const Vector2& pos) : Entity(pos)
 }
 
 
-NPC::~NPC()
+Decoration::~Decoration()
 {
 
 }
 
-void NPC::Init(const std::string& n)
+void Decoration::Init(const std::string& n)
 {
 	name = n;
-
-	if (name == "gramps")
-	{
-		CreateCollider(0, 0, 22, 39);
-	}
-	else if (name == "the_man")
-	{
-		CreateCollider(0, 0, 32, 60);
-	}
-	else if (name == "signpost")
-	{
-		CreateCollider(0, 24, 24, 32);
-	}
-	else if (name == "daisy")
-	{
-		CreateCollider(0, 8, 42, 44);
-	}
+	animator->SetState(name.c_str());
+	animator->Update(*this);
+	CreateCollider(0, 0, currentSprite.frameWidth, currentSprite.frameHeight);
 }
 
-void NPC::ChangeCollider(float x, float y, float w, float h)
+void Decoration::ChangeCollider(float x, float y, float w, float h)
 {
 	CreateCollider(x, y, w, h);
 }
 
-bool NPC::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
+bool Decoration::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
 {
 	return true; //TODO: Deal with this later. NPCs could have different sizes!
 }
 
-void NPC::OnTriggerStay(Entity& other, Game& game)
+void Decoration::OnTriggerStay(Entity& other, Game& game)
 {
 
 }
 
-void NPC::OnTriggerEnter(Entity& other, Game& game)
-{
-	if (other.etype == "player")
-	{
-		Player* player = static_cast<Player*>(&other);
-		player->currentNPC = this;
-	}
-}
-
-void NPC::OnTriggerExit(Entity& other, Game& game)
+void Decoration::OnTriggerEnter(Entity& other, Game& game)
 {
 	if (other.etype == "player")
 	{
 		Player* player = static_cast<Player*>(&other);
-		player->currentNPC = nullptr;
+		player->currentDecoration = this;
 	}
 }
 
-void NPC::GetProperties(std::vector<Property*>& properties)
+void Decoration::OnTriggerExit(Entity& other, Game& game)
+{
+	if (other.etype == "player")
+	{
+		Player* player = static_cast<Player*>(&other);
+		player->currentDecoration = nullptr;
+	}
+}
+
+void Decoration::GetProperties(std::vector<Property*>& properties)
 {
 	Entity::GetProperties(properties);
 
@@ -99,7 +85,7 @@ void NPC::GetProperties(std::vector<Property*>& properties)
 	properties.emplace_back(new Property("Collider Height", collider->scale.y));
 }
 
-void NPC::SetProperty(const std::string& key, const std::string& newValue)
+void Decoration::SetProperty(const std::string& key, const std::string& newValue)
 {
 	// Based on the key, change its value
 	if (key == "Label")
@@ -132,7 +118,7 @@ void NPC::SetProperty(const std::string& key, const std::string& newValue)
 	}
 }
 
-void NPC::Save(std::unordered_map<std::string, std::string>& map)
+void Decoration::Save(std::unordered_map<std::string, std::string>& map)
 {
 	Entity::Save(map);
 
@@ -144,7 +130,7 @@ void NPC::Save(std::unordered_map<std::string, std::string>& map)
 	map["impassable"] = std::to_string(impassable);
 }
 
-void NPC::Load(std::unordered_map<std::string, std::string>& map, Game& game)
+void Decoration::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
 	shouldSave = true;
 	Entity::Load(map, game);

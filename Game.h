@@ -242,6 +242,8 @@ public:
 
 	void EscapeMenu();
 
+	void ResetLevel();
+
 	void SaveFile(const std::string& filename);
 	void LoadFile(const std::string& filename);
 

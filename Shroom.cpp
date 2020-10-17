@@ -18,7 +18,7 @@ Shroom::Shroom(const Vector2& pos) : Entity(pos)
 	physics->canBePushed = true;
 	physics->standAboveGround = true;
 	physics->respawnOnDeath = true;
-	physics->mass = 5;
+	physics->mass = 10;
 }
 
 Shroom::~Shroom()

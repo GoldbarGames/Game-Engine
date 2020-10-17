@@ -556,13 +556,14 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 
 		args["0"] = std::to_string(subtype);
 		args["1"] = "";
-
+		
 		if (entityTypes.count(entityName) > 0 && entityTypes[entityName].size() > subtype)
 		{
 			args["1"] = entityTypes[entityName][subtype];
 		}
 
-		// TODO: Don't hardcode this part
+		// TODO: Don't hardcode this part, store these in an external file
+		// and check to see if it matches any entity type in that file...
 		if (args["1"] != "" && (entityName == "enemy" || entityName == "npc" || entityName == "collectible"))
 		{
 			filepath += args["1"] + "/" + args["1"];
@@ -1240,6 +1241,11 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 	return quit;
 }
 
+void Game::ResetLevel()
+{
+	editor->InitLevelFromFile(currentLevel);
+}
+
 bool Game::HandleEvent(SDL_Event& event)
 {
 	bool quit = false;
@@ -1356,7 +1362,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_r:
 				//if (player != nullptr)
 				//	player->ResetPosition();
-				editor->InitLevelFromFile(currentLevel);
+				ResetLevel();
 				break;			
 			case SDLK_t:
 				LoadLevel(nextLevel);
@@ -1460,7 +1466,7 @@ void Game::LoadFile(const std::string& filename)
 		cutsceneManager.LoadGame(filename.c_str());
 		nextLevel = cutsceneManager.commands.stringVariables[201];
 		openedMenus.clear();
-		LoadLevel(nextLevel, 1, 1);
+		LoadLevel(nextLevel);// , 1, 1);
 		loadingFromSaveFile = true;
 	}
 	catch (std::exception ex)

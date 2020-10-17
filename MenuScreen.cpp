@@ -400,8 +400,8 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	{
 		game.openedMenus.clear();
 
-		game.cutsceneManager.commands.ExecuteCommand("fade black 1000");
-		game.cutsceneManager.commands.ExecuteCommand("wait 1000");
+		//game.cutsceneManager.commands.ExecuteCommand("fade black 1000");
+		//game.cutsceneManager.commands.ExecuteCommand("wait 1000");
 
 		if (game.currentGame == "WDK")
 		{
@@ -409,9 +409,9 @@ bool MenuScreen::PressSelectedButton(Game& game)
 			//game.LoadLevel("demo", 1, 1);
 #if _DEBUG
 			if (game.editor->startEditorLevel != "")
-				game.LoadLevel(game.editor->startEditorLevel, 1, 1);
+				game.LoadLevel(game.editor->startEditorLevel); // , 1, 1);
 			else
-				game.LoadLevel("demo", 1, 1);
+				game.LoadLevel("demo"); // , 1, 1);
 #else
 			game.LoadLevel("demo");
 #endif

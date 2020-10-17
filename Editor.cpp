@@ -71,9 +71,8 @@ Editor::Editor(Game& g)
 
 	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 
-	//TODO: Read this in from a file
-	previewMapObjectNames = { "door", "ladder", "npc", "enemy", "checkpoint", "switch", "platform",
-		"tree", "block", "collectible", "shroom" };
+	// Create a preview object of every entity type
+	previewMapObjectNames = game->ReadStringsFromFile("data/lists/entityTypes.list");
 
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
 	{
@@ -368,9 +367,7 @@ void Editor::CreateEditorButtons()
 
 	int buttonX = buttonStartX + buttonWidth + buttonSpacing;
 
-	// TODO: Maybe read these in from a file too
-	std::vector<string> buttonNames = { "newlevel", "load", "save", "tileset", "inspect", 
-		"grid", "map", "undo", "redo", "replace", "copy", "grab", "rotate", "path"};
+	std::vector<string> buttonNames = game->ReadStringsFromFile("data/lists/editorbuttons.list"); 
 
 	buttonNames.insert(buttonNames.begin() + 7, previewMapObjectNames.begin(), previewMapObjectNames.end());
 
@@ -1574,6 +1571,7 @@ void Editor::ToggleSpriteMap(int num)
 	else
 	{		
 		prev = game->CreateEntity(objectMode, Vector2(0, 0), entitySubtype);
+		prev->Init(game->entityTypes[objectMode][entitySubtype]);
 	}
 
 	//TODO: How to deal with object modes that return nullptr?
@@ -1747,7 +1745,6 @@ void Editor::Render(const Renderer& renderer)
 		}
 
 		Vector2 scale;
-
 		// Draw a yellow rectangle around the currently selected object
 		outlineSprite->color = { 0, 255, 255, 128 };
 		scale = (Vector2(selectedEntity->GetBounds()->w / outlineSprite->texture->GetWidth(),
@@ -1903,7 +1900,7 @@ std::string Editor::SaveLevelAsString()
 		level << "\n";
 	}
 
-	// TODO: Maybe don't seprate the bg from the other types?
+	// TODO: Maybe don't separate the bg from the other types?
 	map.clear();
 	game->background->Save(map);
 	std::vector<std::string> list = { "id", "type", "positionX", "positionY", "subtype" }; // loadDataMap["bg"];
@@ -2090,6 +2087,10 @@ void Editor::CreateLevelFromString(std::string level)
 
 		std::cout << "START" << std::endl;
 
+		// Make sure to clear the list of taken IDs 
+		// at the start of loading a level
+		Entity::takenIDs.clear();
+
 		lineNumber = 0;
 		while (lineNumber < lines.size())
 		{
@@ -2151,8 +2152,6 @@ void Editor::CreateLevelFromString(std::string level)
 					//map["positionX"] = tokens[index++];
 					//map["positionY"] = tokens[index++];
 
-					Entity::nextValidID = std::stoi(map[STR_ID]);
-
 					//map["drawOrder"] = tokens[index++];
 					//map["layer"] = tokens[index++];
 
@@ -2161,12 +2160,16 @@ void Editor::CreateLevelFromString(std::string level)
 					//map["frameX"] = tokens[index++];
 					//map["frameY"] = tokens[index++];
 
+					Entity::nextValidID = std::stoi(map[STR_ID]);
+
 					int tilesheetIndex = std::stoi(map[STR_TILESHEET]);
 
 					Tile* newTile = game->SpawnTile(Vector2(std::stoi(map[STR_FRAMEX]), std::stoi(map[STR_FRAMEY])),
 						GetTileSheetFileName(tilesheetIndex),
 						Vector2(std::stoi(map[STR_POSITIONX]), std::stoi(map[STR_POSITIONY])), 
 						(DrawingLayer)std::stoi(map[STR_LAYER]));
+
+					newTile->Load(map, *game);
 
 					if (std::stoi(map[STR_PASSABLESTATE]) == 2)
 						newTile->jumpThru = true;

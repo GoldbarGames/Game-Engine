@@ -15,6 +15,16 @@ CutsceneManager::CutsceneManager()
 void CutsceneManager::Init(Game& g)
 {
 	game = &g;
+
+	for (auto& [key, val] : tags)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
+
+	if (textbox != nullptr)
+		delete_it(textbox);
+
 	textbox = neww Textbox(g.spriteManager, g.renderer);
 
 	commands.manager = this;
@@ -28,57 +38,12 @@ void CutsceneManager::Init(Game& g)
 
 	LoadGlobalVariables();
 
-	std::ifstream fin;
-
-	std::string directory = "";
-	std::string line = "";
-
 	tags["b"] = neww TextTag();
 	tags["i"] = neww TextTag();
 	tags["bi"] = neww TextTag();
 	tags["s"] = neww TextTag();
 
-	if (game->currentGame == "DB1")
-	{
-		commands.pathPrefix = "assets\\arc\\";
-		currentScript = "butler1";
-		directory = "data/" + language + "/" + currentScript + ".txt";
-
-		fin.open(directory);
-
-		if (fin.is_open())
-		{
-			data = "";
-			for (line; std::getline(fin, line); )
-			{
-				if (line[0] == '*')
-					data += line + "*";
-				else
-					data += line + " ;";
-			}
-			fin.close();
-			//PlayCutscene("define");
-		}
-	}
-	else
-	{
-		commands.pathPrefix = "";
-		currentScript = "cutscenes";
-		directory = "data/" + language + "/" + currentScript + ".txt";
-
-		fin.open(directory);
-
-		if (fin.is_open())
-		{
-			data = "";
-			for (line; std::getline(fin, line); )
-			{
-				data += line + " ;";
-			}
-			fin.close();
-			//PlayCutscene("define");
-		}
-	}	
+	ReadCutsceneFile();
 }
 
 CutsceneManager::~CutsceneManager()
@@ -121,6 +86,55 @@ CutsceneManager::~CutsceneManager()
 		delete_it(textbox);
 }
 
+void CutsceneManager::ReadCutsceneFile()
+{
+	std::ifstream fin;
+	std::string directory = "";
+	std::string line = "";
+
+	if (game->currentGame == "DB1")
+	{
+		commands.pathPrefix = "assets\\arc\\";
+		currentScript = "butler1";
+		directory = "data/" + language + "/" + currentScript + ".txt";
+
+		fin.open(directory);
+
+		if (fin.is_open())
+		{
+			data = "";
+			for (line; std::getline(fin, line); )
+			{
+				if (line[0] == '*')
+					data += line + "*";
+				else
+					data += line + " ;";
+			}
+			fin.close();
+			//PlayCutscene("define");
+		}
+	}
+	else
+	{
+		commands.pathPrefix = "";
+		currentScript = "cutscenes";
+		directory = "data/" + language + "/" + currentScript + ".txt";
+
+		fin.open(directory);
+
+		if (fin.is_open())
+		{
+			data = "";
+			for (line; std::getline(fin, line); )
+			{
+				data += line + " ;";
+			}
+			fin.close();
+			//PlayCutscene("define");
+		}
+	}
+}
+
 void CutsceneManager::SetSpeakerText(const std::string& name)
 {
 	if (namesToNames.count(name) == 1)
@@ -159,15 +173,14 @@ void CutsceneManager::CheckKeysWhileReading()
 	{
 		if (!readingBacklog)
 		{
-			if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN] || input[skipButton]
+			if ( ((input[readButton] || input[readButton2]) && inputTimer.HasElapsed()) 
+				|| input[skipButton] || input[skipButton2]
 				|| (automaticallyRead && autoReaderTimer.HasElapsed()))
 			{
 				clickedMidPage = true;
 			}
 		}
 	}
-
-
 }
 
 // Check input after textbox line has been fully read
@@ -216,7 +229,7 @@ void CutsceneManager::CheckKeys()
 		}
 	}
 
-	if (useKeyboardControls)
+	if (useKeyboardControls && inputTimer.HasElapsed())
 	{
 		if (readingBacklog)
 		{
@@ -246,11 +259,11 @@ void CutsceneManager::CheckKeys()
 				inputTimer.Start(inputTimeToWait);
 			}
 		}
-		else if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN] || input[skipButton]
+		else if (input[readButton] || input[readButton2] || input[skipButton] || input[skipButton2]
 			|| (automaticallyRead && autoReaderTimer.HasElapsed()))
 		{
-			// TODO: Make sure that you can't hold space/enter to advance the text
 			ReadNextLine();
+			inputTimer.Start(inputTimeToWait);
 		}
 		else if (input[SDL_SCANCODE_UP])
 		{
@@ -266,18 +279,28 @@ void CutsceneManager::CheckKeys()
 		else if (input[SDL_SCANCODE_S]) // save game
 		{
 			SaveGame("file1.sav");
+			inputTimer.Start(inputTimeToWait);
 		}
 		else if (input[SDL_SCANCODE_L]) // load game
 		{
 			LoadGame("file1.sav");
 			ReadNextLine();
 			isCarryingOutCommands = false;
+			inputTimer.Start(inputTimeToWait);
+		}
+		else if (input[SDL_SCANCODE_P])
+		{
+			ReadCutsceneFile();
+			ParseScene();
+			game->ResetLevel();
+			inputTimer.Start(inputTimeToWait);
 		}
 		else if (input[SDL_SCANCODE_TAB])
 		{
 			//TODO: This is not perfect, it just breaks out of the cutscene and does not carry out commands
 			// Also, should maybe disable this outside of development mode or make it an option
 			EndCutscene();
+			inputTimer.Start(inputTimeToWait);
 		}
 #endif
 		else
@@ -288,6 +311,7 @@ void CutsceneManager::CheckKeys()
 				{
 					commandIndex--;
 					commands.GoSubroutine({ button.second, button.second });
+					inputTimer.Start(inputTimeToWait);
 					break;
 				}
 			}
@@ -906,7 +930,7 @@ void CutsceneManager::UpdateText()
 				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
 				inputTimer.Start(inputTimeToWait);
 			}
-			else if (input[SDL_SCANCODE_SPACE] || input[SDL_SCANCODE_RETURN])
+			else if (input[readButton] || input[readButton2])
 			{
 				// Return the result in the specified variable and resume reading
 				// TODO: This can be buggy if the btnwait variable is not reset beforehand
@@ -946,7 +970,7 @@ void CutsceneManager::UpdateText()
 	// render the textbox when not waiting
 	textbox->isReading = (msGlyphTime > 0);
 
-	if (input[skipButton])
+	if (input[skipButton] || input[skipButton2])
 		msDelayBetweenGlyphs = 0.0f;
 	else
 		msDelayBetweenGlyphs = msInitialDelayBetweenGlyphs;
@@ -1008,7 +1032,7 @@ void CutsceneManager::UpdateText()
 				
 				game->updateScreenTexture = true;
 
-				if (printNumber > 0 && !input[skipButton])
+				if (printNumber > 0 && !(input[skipButton] || input[skipButton2]))
 				{
 					switch (printNumber)
 					{

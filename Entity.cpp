@@ -12,7 +12,7 @@
 #include "Animator.h"
 #include "AnimatorInfo.h"
 
-unsigned int Entity::nextValidID = 0;
+uint32_t Entity::nextValidID = 0;
 std::unordered_map<unsigned int, bool> Entity::takenIDs;
 
 unsigned int Entity::Size()
@@ -52,14 +52,36 @@ unsigned int Entity::Size()
 
 // TODO: We don't just want to always increase this,
 // we want to make sure that there are no gaps
-unsigned int Entity::GetNextValidID()
+uint32_t Entity::GenerateValidID()
 {
+	// If the next ID has already been taken, increment by 1
+	if (takenIDs.count(nextValidID) != 0)
+	{
+		unsigned int i = nextValidID;
+		do
+		{
+			i++;
+
+			if (i == 0)
+			{
+				std::cout << "ERROR generating neww ID - overflow" << std::endl;
+				break;
+			}
+
+		} while (takenIDs.count(i) != 0);
+		nextValidID = i;
+	}
+
+	takenIDs[nextValidID] = true;
+	return nextValidID;
+
+	/*
 	if (takenIDs.find(nextValidID) == takenIDs.end())
 	{
 		return nextValidID;
 	}
 
-	return nextValidID;
+	return nextValidID;*/
 
 	// If the nextValidID is already taken,
 	// loop through all taken IDs and fill in the gaps
@@ -94,10 +116,7 @@ Entity::Entity(const Vector2& pos)
 	position = pos;
 	startPosition = position;
 
-	id = GetNextValidID();
-	takenIDs[id] = true;
-	nextValidID++;
-
+	id = GenerateValidID();
 	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 }
 
@@ -430,7 +449,15 @@ void Entity::Save(std::unordered_map<std::string, std::string>& map)
 
 void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	Entity::nextValidID = id;
+	// We only want to call this function once, when the instance is spawned.
+	// Since we know that id starts at 0, we should only generate an ID
+	// when the id is 0. Otherwise, this entity already has a valid ID.
+	if (id == 0)
+	{
+		nextValidID = std::stoi(map["id"]);
+		id = GenerateValidID();
+	}		
+
 	rotation.z = std::stoi(map["rotationZ"]);
 }
 

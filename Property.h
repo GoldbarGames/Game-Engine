@@ -22,6 +22,7 @@ public:
 	Property(const std::string& k, const std::string& v, const std::vector<std::string>& o = std::vector<std::string>());
 	Property(const std::string& k, const float v, const std::vector<std::string>& o = std::vector<std::string>());
 	Property(const std::string& k, const int v, const std::vector<std::string>& o = std::vector<std::string>());
+	Property(const std::string& k, const uint32_t v, const std::vector<std::string>& o = std::vector<std::string>());
 	~Property();
 };
 
