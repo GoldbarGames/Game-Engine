@@ -194,11 +194,14 @@ Mesh* Game::CreateCubeMesh()
 	return mesh;
 }
 
-Game::Game(const std::string& n, const EntityFactory& e) : logger("logs/output.log")
+Game::Game(const std::string& n, const std::string& title, const std::string& icon, const EntityFactory& e) : logger("logs/output.log")
 {
 	currentGame = n;
 	startOfGame = std::chrono::steady_clock::now();
 	entityFactory = &e;
+
+	windowTitle = title;
+	windowIconFilepath = icon;
 
 	logger.SetOutputFile("logs/output2.log");
 	InitSDL();
@@ -229,7 +232,7 @@ Game::Game(const std::string& n, const EntityFactory& e) : logger("logs/output.l
 
 	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager and random)
 	cutsceneManager.Init(*this);
-	cutsceneManager.ParseScene();	
+	cutsceneManager.ParseCutsceneFile();	
 
 	//ShaderProgram* shader = renderer.shaders[ShaderName::Default];
 
@@ -497,12 +500,8 @@ void Game::InitSDL()
 		SDL_JoystickClose(joystick);
 	}
 
-	windowTitle = "Witch Doctor Kaneko";
-	windowIconFilepath = "assets/gui/icon.png";
-
 	window = SDL_CreateWindow(windowTitle.c_str(),
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
-
 	SDL_SetWindowIcon(window, IMG_Load(windowIconFilepath.c_str()));
 }
 

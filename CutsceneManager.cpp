@@ -89,49 +89,51 @@ CutsceneManager::~CutsceneManager()
 void CutsceneManager::ReadCutsceneFile()
 {
 	std::ifstream fin;
-	std::string directory = "";
 	std::string line = "";
+	std::string directory = "data/cutscenes/" + game->currentGame + "/" + language + "/";
+	std::string filepath = directory + game->currentGame + ".txt";
+	std::string defineFilePath = directory + game->currentGame + ".define";
 
+	// TODO: Customize this path
 	if (game->currentGame == "DB1")
 	{
 		commands.pathPrefix = "assets\\arc\\";
-		currentScript = "butler1";
-		directory = "data/" + language + "/" + currentScript + ".txt";
-
-		fin.open(directory);
-
-		if (fin.is_open())
-		{
-			data = "";
-			for (line; std::getline(fin, line); )
-			{
-				if (line[0] == '*')
-					data += line + "*";
-				else
-					data += line + " ;";
-			}
-			fin.close();
-			//PlayCutscene("define");
-		}
 	}
 	else
 	{
 		commands.pathPrefix = "";
-		currentScript = "cutscenes";
-		directory = "data/" + language + "/" + currentScript + ".txt";
+	}
 
-		fin.open(directory);
-
-		if (fin.is_open())
+	// First try to read a separate define file
+	fin.open(defineFilePath);
+	if (fin.is_open())
+	{
+		data = "";
+		for (line; std::getline(fin, line); )
 		{
-			data = "";
-			for (line; std::getline(fin, line); )
-			{
+			if (line[0] == '*')
+				data += line + "*";
+			else
 				data += line + " ;";
-			}
-			fin.close();
-			//PlayCutscene("define");
 		}
+		fin.close();
+		ParseCutsceneFile();
+	}
+
+	// TODO: Allow reading in multiple files at once
+	// (spreading the script across files)
+	fin.open(filepath);
+	if (fin.is_open())
+	{
+		data = "";
+		for (line; std::getline(fin, line); )
+		{
+			if (line[0] == '*')
+				data += line + "*";
+			else
+				data += line + " ;";
+		}
+		fin.close();
 	}
 }
 
@@ -291,9 +293,24 @@ void CutsceneManager::CheckKeys()
 		else if (input[SDL_SCANCODE_P])
 		{
 			ReadCutsceneFile();
-			ParseScene();
+			ParseCutsceneFile();
 			game->ResetLevel();
 			inputTimer.Start(inputTimeToWait);
+		}
+		else if (input[SDL_SCANCODE_I]) // make checkpoint
+		{
+#if _DEBUG
+			checkpoint.labelIndex = labelIndex;
+			checkpoint.lineIndex = lineIndex;
+#endif
+		}
+		else if (input[SDL_SCANCODE_O]) // load checkpoint
+		{
+#if _DEBUG
+			labelIndex = checkpoint.labelIndex;
+			lineIndex = checkpoint.lineIndex;
+			commandIndex = 0;			
+#endif
 		}
 		else if (input[SDL_SCANCODE_TAB])
 		{
@@ -321,7 +338,7 @@ void CutsceneManager::CheckKeys()
 	
 }
 
-void CutsceneManager::ParseScene()
+void CutsceneManager::ParseCutsceneFile()
 {
 	//for (unsigned int i = 0; i < labels.size(); i++)
 	//	delete labels[i];
@@ -485,12 +502,12 @@ void CutsceneManager::ParseScene()
 
 	} while (index < data.length());
 
-	ParseConfig("define");
+	ExecuteDefineBlock("define");
 }
 
 
 
-void CutsceneManager::ParseConfig(const char* configName)
+void CutsceneManager::ExecuteDefineBlock(const char* configName)
 {
 	int cmdIndex = 0;
 
@@ -610,6 +627,12 @@ SceneLabel* CutsceneManager::JumpToLabel(const char* newLabelName)
 		if (labels[i].name == newLabelName)
 		{
 			labelIndex = i;
+
+#if _DEBUG
+			checkpoint.labelIndex = labelIndex;
+			checkpoint.lineIndex = 0;
+#endif
+
 			return &labels[i];
 		}
 	}
@@ -1125,7 +1148,7 @@ void CutsceneManager::UpdateText()
 		}
 	}
 
-	if (msDelayBetweenGlyphs > 0)
+	if (msDelayBetweenGlyphs > 0 && !(input[skipButton] || input[skipButton2]))
 	{
 		while (msGlyphTime > msDelayBetweenGlyphs)
 		{

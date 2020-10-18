@@ -409,11 +409,11 @@ bool MenuScreen::PressSelectedButton(Game& game)
 		}
 		else if (game.currentGame == "DB1")
 		{
-			game.LoadLevel("test-vn", 1, 1);
+			game.LoadLevel("test-vn");// , 1, 1);
 		}
 		else if (game.currentGame == "DB2")
 		{
-			game.LoadLevel("test-vn", 1, 1);
+			game.LoadLevel("test-vn");// , 1, 1);
 		}
 	}
 	else if (selectedButton->name == "Play Game")

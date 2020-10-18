@@ -210,7 +210,7 @@ public:
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
 
-	Game(const std::string& n, const EntityFactory& e);
+	Game(const std::string& n, const std::string& title, const std::string& icon, const EntityFactory& e);
 	~Game();
 
 	void InitSDL();

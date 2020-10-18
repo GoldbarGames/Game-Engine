@@ -159,6 +159,9 @@ public:
 	SceneLabel* currentLabel = nullptr;
 	std::vector<SceneData*> gosubStack;
 
+	// Checkpoint for debugging purposes
+	SceneData checkpoint;
+
 	const int choiceSpriteStartNumber = 10000;
 	int buttonIndex = 0;
 	int buttonResult = 0;
@@ -201,8 +204,8 @@ public:
 
 	CutsceneManager();
 	void Init(Game& g);
-	void ParseScene();
-	void ParseConfig(const char* configName);
+	void ParseCutsceneFile();
+	void ExecuteDefineBlock(const char* configName);
 	void Update();
 	void Render(const Renderer& renderer);
 	SceneLabel* JumpToLabel(const char* newLabelName);

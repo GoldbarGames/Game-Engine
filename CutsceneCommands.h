@@ -87,6 +87,7 @@ public:
 	int ConcatenateStringVariables(CutsceneParameters parameters);
 
 	// Numeric Operations
+	void CacheNumberVariables(CutsceneParameters parameters);
 	int AddNumberVariables(CutsceneParameters parameters);
 	int SubtractNumberVariables(CutsceneParameters parameters);
 	int MultiplyNumberVariables(CutsceneParameters parameters);

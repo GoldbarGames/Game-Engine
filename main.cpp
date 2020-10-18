@@ -19,7 +19,8 @@ int main(int argc, char *args[])
 		// For your own custom entity types
 		EntityFactory* e = MyEntityFactory::Get();
 
-		Game game("WDK", *e);
+		Game game("DB1", "Witch Doctor Kaneko", "assets/gui/icon.png", *e);
+
 		game.MainLoop();
 	}
 

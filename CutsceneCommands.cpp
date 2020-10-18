@@ -739,7 +739,7 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 
 	unsigned int numberOfChoices = ParseNumberValue(parameters[1]);
 
-	int index = 2;
+	int index = 3; // skip 2
 	int spriteNumber = manager->choiceSpriteStartNumber;
 	std::string choiceQuestion = ParseStringValue(parameters[index]);
 
@@ -781,15 +781,13 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 			manager->images[std::stoi(choiceNumber)]->SetColor({ 255, 255, 0, 255 });
 		}
 
-		// Wait for button input
-		//TODO: Why is this number hard-coded to 42?
-		std::string variableNumber = std::to_string(42);
-		WaitForButton({ "",  variableNumber });
+		// Wait for button input, store result in variable
+		WaitForButton({ "",  parameters[2] });
 
 		// Construct the if-statement and store it
 		//if %42 == 21 goto label_left ;
 
-		manager->choiceIfStatements.push_back("if %" + variableNumber + " == " + choiceNumber + " goto " + choiceLabel + " ;");
+		manager->choiceIfStatements.push_back("if %" + parameters[2] + " == " + choiceNumber + " goto " + choiceLabel + " ;");
 
 		manager->inputTimer.Start(manager->inputTimeToWait);
 	}
@@ -804,13 +802,6 @@ int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
 	{
 		// Get the variable number to store the result in
 		manager->buttonResult = ParseNumberValue(parameters[1]);
-
-		/* OLD
-		if (parameters[1][0] == '%')
-			manager->buttonResult = GetNumberVariable(GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1)));
-		else
-			manager->buttonResult = GetNumAlias(parameters[1]);
-			*/
 
 		// Change the state of the game to wait until a button has been pressed
 		manager->waitingForButton = true;
@@ -975,21 +966,8 @@ int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 	return 0;
 }
 
-//TODO: Check and see if both parameters are strings.
-// If so, then call the function that adds strings together
-int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
+void CutsceneCommands::CacheNumberVariables(CutsceneParameters parameters)
 {
-	if (parameters[1][0] == '$')
-	{
-		ConcatenateStringVariables({ "concat", parameters[1], parameters[2] });
-		return 0;
-	}
-
-	if (parameters[1][0] == '%')
-		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
-	else
-		key = GetNumAlias(parameters[1]);
-
 	if (cacheParseNumbers.contains(parameters[1]))
 	{
 		number1 = cacheParseNumbers[parameters[1]];
@@ -1007,7 +985,25 @@ int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 	{
 		number2 = ParseNumberValue(parameters[2]);
 	}
-	
+}
+
+//TODO: Check and see if both parameters are strings.
+// If so, then call the function that adds strings together
+int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
+{
+	if (parameters[1][0] == '$')
+	{
+		ConcatenateStringVariables({ "concat", parameters[1], parameters[2] });
+		return 0;
+	}
+
+	if (parameters[1][0] == '%')
+		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+	else
+		key = GetNumAlias(parameters[1]);
+
+	CacheNumberVariables(parameters);
+
 	numberVariables[key] = number1 + number2;
 	cacheParseNumbers[parameters[1]] = numberVariables[key];
 
@@ -1020,14 +1016,15 @@ int CutsceneCommands::AddNumberVariables(CutsceneParameters parameters)
 
 int CutsceneCommands::SubtractNumberVariables(CutsceneParameters parameters)
 {
-	key = GetNumAlias(parameters[1]);
 	if (parameters[1][0] == '%')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+	else
+		key = GetNumAlias(parameters[1]);
 
-	number1 = ParseNumberValue(parameters[1]);
-	number2 = ParseNumberValue(parameters[2]);
+	CacheNumberVariables(parameters);
 
 	numberVariables[key] = number1 - number2;
+	cacheParseNumbers[parameters[1]] = numberVariables[key];
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
@@ -1038,14 +1035,15 @@ int CutsceneCommands::SubtractNumberVariables(CutsceneParameters parameters)
 
 int CutsceneCommands::MultiplyNumberVariables(CutsceneParameters parameters)
 {
-	key = GetNumAlias(parameters[1]);
 	if (parameters[1][0] == '%')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+	else
+		key = GetNumAlias(parameters[1]);
 
-	number1 = ParseNumberValue(parameters[1]);
-	number2 = ParseNumberValue(parameters[2]);
+	CacheNumberVariables(parameters);
 
 	numberVariables[key] = number1 * number2;
+	cacheParseNumbers[parameters[1]] = numberVariables[key];
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
@@ -1056,14 +1054,15 @@ int CutsceneCommands::MultiplyNumberVariables(CutsceneParameters parameters)
 
 int CutsceneCommands::DivideNumberVariables(CutsceneParameters parameters)
 {
-	key = GetNumAlias(parameters[1]);
 	if (parameters[1][0] == '%')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+	else
+		key = GetNumAlias(parameters[1]);
 
-	number1 = ParseNumberValue(parameters[1]);
-	number2 = ParseNumberValue(parameters[2]);
+	CacheNumberVariables(parameters);
 
 	numberVariables[key] = number1 / number2;
+	cacheParseNumbers[parameters[1]] = numberVariables[key];
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
@@ -1074,14 +1073,15 @@ int CutsceneCommands::DivideNumberVariables(CutsceneParameters parameters)
 
 int CutsceneCommands::ModNumberVariables(CutsceneParameters parameters)
 {
-	key = GetNumAlias(parameters[1]);
 	if (parameters[1][0] == '%')
 		key = GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
+	else
+		key = GetNumAlias(parameters[1]);
 
-	number1 = ParseNumberValue(parameters[1]);
-	number2 = ParseNumberValue(parameters[2]);
+	CacheNumberVariables(parameters);
 
 	numberVariables[key] = number1 % number2;
+	cacheParseNumbers[parameters[1]] = numberVariables[key];
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
@@ -1151,15 +1151,13 @@ int CutsceneCommands::SubstringVariables(CutsceneParameters parameters)
 // TODO: mov x,y -> comma does not work when inside of an "if" condition
 int CutsceneCommands::MoveVariables(CutsceneParameters parameters)
 {
-	if (parameters[1] == "$var1" && parameters[2] == "tati/")
-		int test = 0;
-
 	if (parameters[1][0] == '$')
 	{
 		SetStringVariable({ "mov", parameters[1].substr(1, parameters[1].size() - 1), parameters[2] });
 	}
 	else if (parameters[1][0] == '%')
 	{
+		cacheParseNumbers.erase(parameters[1]); // remove %var (with % sign) from cache
 		SetNumberVariable({ "mov", parameters[1].substr(1, parameters[1].size() - 1), parameters[2] });
 	}
 	else
@@ -1367,7 +1365,7 @@ int CutsceneCommands::ClearSprite(CutsceneParameters parameters)
 
 int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 {
-	std::cout << "Loading sprite: " << parameters[1] << std::endl;
+	// std::cout << "Loading sprite: " << parameters[1] << std::endl;
 
 	Vector2 pos = Vector2(0, 0);
 
@@ -1549,8 +1547,9 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	int letterIndex = 0;
 	std::string finalText = "";
 
-	newText = neww Text(manager->game->theFont, "", textColor);
-	newText->SetPosition(pos.x, pos.y); // use the Text SetPosition function, not Entity
+	// TODO: Can customize this font via script
+	newText = neww Text(manager->textbox->currentFontInfo, "", textColor);
+	newText->SetPosition(pos.x, pos.y);
 	newText->isRichText = true;
 
 	while (letterIndex < text.size())
@@ -2290,15 +2289,15 @@ int CutsceneCommands::WindowFunction(CutsceneParameters parameters)
 {
 	if (parameters.size() > 1)
 	{
-		if (parameters[1] == "icon")
+		if (parameters[1] == "icon") // NOTE: Icon must be at most 256x256
 		{			
 			manager->game->windowIconFilepath = ParseStringValue(parameters[2]);
-			SDL_SetWindowIcon(manager->game->window, IMG_Load(ParseStringValue(parameters[2]).c_str()));
+			SDL_SetWindowIcon(manager->game->window, IMG_Load(manager->game->windowIconFilepath.c_str()));
 		}
 		else if (parameters[1] == "title")
 		{
 			manager->game->windowTitle = ParseStringValue(parameters[2]);
-			SDL_SetWindowTitle(manager->game->window, ParseStringValue(parameters[2]).c_str());
+			SDL_SetWindowTitle(manager->game->window, manager->game->windowTitle.c_str());
 		}
 	}
 
