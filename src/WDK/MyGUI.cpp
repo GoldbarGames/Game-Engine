@@ -1,11 +1,12 @@
-#include "GUI.h"
-#include "HealthComponent.h"
-#include "Game.h"
+#include "MyGUI.h"
+#include "Spell.h"
+#include "../ENGINE/HealthComponent.h"
+#include "../ENGINE/Game.h"
 
-void GUI::Init(Game* g)
+void MyGUI::Init(Game* g)
 {
 	game = g;
-	textNames = { "FPS", "timer" };
+	textNames = { "FPS", "timer", "bug", "ether" };
 
 	for (int i = 0; i < textNames.size(); i++)
 	{
@@ -18,16 +19,7 @@ void GUI::Init(Game* g)
 	ResetText();
 }
 
-GUI::~GUI()
-{
-	for (auto& [key, val] : texts)
-	{
-		if (val != nullptr)
-			delete_it(val);
-	}
-}
-
-void GUI::Render(const Renderer& renderer)
+void MyGUI::Render(const Renderer& renderer)
 {
 	for (int i = 0; i < healthComponents.size(); i++)
 	{
@@ -35,6 +27,11 @@ void GUI::Render(const Renderer& renderer)
 	}
 
 	healthComponents.clear();
+
+	if (playerSpell != nullptr)
+	{
+		playerSpell->Render(renderer);
+	}
 
 	// TODO: Refactor these texts into structs with bools in them
 
@@ -45,7 +42,7 @@ void GUI::Render(const Renderer& renderer)
 		texts[textNames[1]]->Render(renderer);
 }
 
-void GUI::ResetText()
+void MyGUI::ResetText()
 {
 	// FPS text
 	texts[textNames[0]]->SetText("FPS:");

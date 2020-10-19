@@ -39,32 +39,25 @@ public:
 	Vector2 lastPosition = Vector2(0, 0);
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	Vector2 scale = Vector2(1, 1);
-	int subtype = 0;
+	
 
-	Switch* attachedSwitch = nullptr;
+	Entity* attachedSwitch = nullptr;
 	PhysicsComponent* physics = nullptr;
-	bool clickable = false;
-	QuadTree* quadrant = nullptr;
 	HealthComponent* health = nullptr;
+
+	QuadTree* quadrant = nullptr;
+	
 
 	Color color = { 255, 255, 255, 255 };
 
-	unsigned int Size();
-
-	static uint32_t GenerateValidID();
 	static uint32_t nextValidID;
 	static std::unordered_map<uint32_t, bool> takenIDs;
-	
-	virtual ~Entity();
-	Entity(const Vector2& pos);
-	Entity(const Vector2& pos, Sprite* sprite);
-	
-	bool drawDebugRect = true;
 
 	std::string name = "";
-	bool shouldDelete = false;
 	std::string etype = "entity";
-	uint32_t id = 0; //TODO
+
+	uint32_t id = 0;
+	int subtype = 0;
 	int drawOrder = 0; // order for drawing
 	DrawingLayer layer = DrawingLayer::FRONT;	
 
@@ -73,20 +66,29 @@ public:
 
 	//int collisionLayerID = 0;
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
-
 	bool trigger = false;	
 	bool jumpThru = false;
-
+	bool drawDebugRect = true;
+	bool shouldDelete = false;
 	bool shouldSave = false;
+	bool clickable = false;
 
-	Vector2 GetScale() const { return scale; }
 
-	void SetScale(const Vector2& newScale) {
-		scale = newScale;
-	}
+	unsigned int Size();
+
+	static uint32_t GenerateValidID();
+
+	virtual ~Entity();
+	Entity(const Vector2& pos);
+	Entity(const Vector2& pos, Sprite* sprite);
+
+	Vector2 GetScale() const;
+
+	void SetScale(const Vector2& newScale);
 
 	Sprite* GetSprite();
 	Animator* GetAnimator();
+
 	virtual const SDL_Rect* GetBounds();
 	Vector2 GetPosition() const;
 	Vector2 GetCenter() const;

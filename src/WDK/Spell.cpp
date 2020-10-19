@@ -1,6 +1,6 @@
 #include "Spell.h"
 #include "../ENGINE/Game.h"
-#include "PhysicsComponent.h"
+#include "../ENGINE/PhysicsComponent.h"
 #include "Tree.h"
 #include "Missile.h"
 #include "../ENGINE/SpriteManager.h"
@@ -37,9 +37,17 @@ std::vector<SpellLUT> spellFunctions = {
 	{"sleep", &Spell::CastSleep }
 };
 
+// TODO: Remove this, just use the other constructor
+Spell::Spell()
+{
+	names = { "push", "pop", "float", "freeze", "carry", "protect",
+		"return", "seed", "double", "short", "flash", "break",
+		"search", "turbo", "crypt", "sleep" };
+}
 
-Spell::Spell() 
+Spell::Spell(Player* p)
 { 
+	player = p;
 	names = { "push", "pop", "float", "freeze", "carry", "protect",
 		"return", "seed", "double", "short", "flash", "break",
 		"search", "turbo", "crypt", "sleep" };
@@ -109,8 +117,8 @@ void Spell::Update(Game& game)
 		}
 	}
 
-	game.player->GetAnimator()->SetBool("isMovingForward", 
-		(game.player->scale.x > 0 && game.player->physics->velocity.x > 0));
+	player->GetAnimator()->SetBool("isMovingForward", 
+		(player->scale.x > 0 && player->physics->velocity.x > 0));
 
 	bool wasCast = false;
 
@@ -146,7 +154,7 @@ void Spell::Update(Game& game)
 				{
 					// This is used to spawn the missile at a certain frame in the animation
 					// rather than spawning the missile instantly at the initial frame
-					if (game.player->GetSprite()->currentFrame >= specialFrame)
+					if (player->GetSprite()->currentFrame >= specialFrame)
 					{
 						wasCast = (this->*func.method)(game);
 						specialFrame = 9999;
@@ -159,17 +167,17 @@ void Spell::Update(Game& game)
 				}
 				else if (names[activeSpell] == "return")
 				{
-					if (game.player->GetSprite()->currentFrame >= specialFrame)
+					if (player->GetSprite()->currentFrame >= specialFrame)
 					{
 						wasCast = (this->*func.method)(game);
 						specialFrame = 8000;
 					}
-					else if (specialFrame == 8000 && game.player->timerSpellOther.HasElapsed())
+					else if (specialFrame == 8000 && player->timerSpellOther.HasElapsed())
 					{
-						game.player->GetAnimator()->SetBool("returned", false);
-						game.player->GetAnimator()->SetBool("isCasting", false);	
-						game.player->UpdateSpellAnimation("idle");
-						game.player->GetSprite()->ResetFrame();
+						player->GetAnimator()->SetBool("returned", false);
+						player->GetAnimator()->SetBool("isCasting", false);	
+						player->UpdateSpellAnimation("idle");
+						player->GetSprite()->ResetFrame();
 						specialFrame = 9999;
 					}
 				}
@@ -178,7 +186,6 @@ void Spell::Update(Game& game)
 	}
 
 }
-
 
 bool Spell::Cast(Game& game)
 {
@@ -189,13 +196,13 @@ bool Spell::Cast(Game& game)
 	affectedEntities.clear();
 
 	// Stop moving horizontally at the start of casting a spell
-	game.player->physics->velocity.x = 0;
+	player->physics->velocity.x = 0;
 
-	game.player->UpdateSpellAnimation(names[activeSpell].c_str());
+	player->UpdateSpellAnimation(names[activeSpell].c_str());
 
 	if (names[activeSpell] != "protect")
 	{
-		game.player->GetSprite()->ResetFrame();
+		player->GetSprite()->ResetFrame();
 	}
 
 	for (const auto& func : spellFunctions)
@@ -217,8 +224,8 @@ bool Spell::Cast(Game& game)
 bool Spell::CastPush(Game& game)
 {
 	// Create a rectangle collider in front of the player (direction facing)
-	spellRangeRect.x = (int)game.player->position.x;
-	spellRangeRect.y = (int)game.player->position.y;
+	spellRangeRect.x = (int)player->position.x;
+	spellRangeRect.y = (int)player->position.y;
 	spellRangeRect.w = 64;
 	spellRangeRect.h = 52;
 
@@ -226,7 +233,7 @@ bool Spell::CastPush(Game& game)
 	int DISTANCE_FROM_CENTER_Y = 0;
 
 	// Add distance to the center so that it covers the entire cloud of wind
-	if (game.player->scale.x < 0)
+	if (player->scale.x < 0)
 	{
 		//spellRangeRect.w *= -1;
 		spellRangeRect.x -= DISTANCE_FROM_CENTER_X;
@@ -246,7 +253,7 @@ bool Spell::CastPush(Game& game)
 	const float PUSH_SPEED = 0.5f;
 
 	Vector2 pushVelocity = Vector2(PUSH_SPEED, 0.0f);
-	if (game.player->scale.x < 0)
+	if (player->scale.x < 0)
 		pushVelocity = Vector2(-1 * PUSH_SPEED, 0.0f);
 
 	SDL_Rect newRectOurs, newRectTheirs;
@@ -306,10 +313,10 @@ bool Spell::CastPop(Game& game)
 		return true;
 	}
 
-	Vector2 offset = Vector2(game.player->scale.x < 0 ? -16 : 16, 0);
+	Vector2 offset = Vector2(player->scale.x < 0 ? -16 : 16, 0);
 	
 	// TODO: Don't create more than one fireball at a time
-	Missile* fireball = static_cast<Missile*>(game.SpawnEntity("missile", game.player->position + offset, 0));
+	Missile* fireball = static_cast<Missile*>(game.SpawnEntity("missile", player->position + offset, 0));
 
 	if (fireball == nullptr)
 	{
@@ -318,7 +325,7 @@ bool Spell::CastPop(Game& game)
 	}
 
 	fireball->Init("pop");
-	fireball->SetVelocity(Vector2(game.player->scale.x < 0 ? -0.25f : 0.25f, -1.0f));
+	fireball->SetVelocity(Vector2(player->scale.x < 0 ? -0.25f : 0.25f, -1.0f));
 
 	return true;
 }
@@ -331,10 +338,10 @@ bool Spell::CastFloat(Game& game)
 		return true;
 	}
 
-	Vector2 offset = Vector2(game.player->scale.x < 0 ? -16 : 16, 0);
+	Vector2 offset = Vector2(player->scale.x < 0 ? -16 : 16, 0);
 
 	// TODO: Don't create more than one fireball at a time
-	Missile* bubble = static_cast<Missile*>(game.SpawnEntity("missile", game.player->position + offset, 0));
+	Missile* bubble = static_cast<Missile*>(game.SpawnEntity("missile", player->position + offset, 0));
 
 	if (bubble == nullptr)
 	{
@@ -343,7 +350,7 @@ bool Spell::CastFloat(Game& game)
 	}
 
 	bubble->Init("float");
-	bubble->SetVelocity(Vector2(game.player->scale.x < 0 ? -0.25f : 0.25f, 0.0f));
+	bubble->SetVelocity(Vector2(player->scale.x < 0 ? -0.25f : 0.25f, 0.0f));
 
 	return true;
 }
@@ -356,10 +363,10 @@ bool Spell::CastFreeze(Game& game)
 		return true;
 	}
 
-	Vector2 offset = Vector2(game.player->scale.x < 0 ? -64 : 64, 16);
+	Vector2 offset = Vector2(player->scale.x < 0 ? -64 : 64, 16);
 
 	// TODO: Don't create more than one fireball at a time
-	Missile* iceMissile = static_cast<Missile*>(game.SpawnEntity("missile", game.player->position + offset, 0));
+	Missile* iceMissile = static_cast<Missile*>(game.SpawnEntity("missile", player->position + offset, 0));
 
 	if (iceMissile == nullptr)
 	{
@@ -368,9 +375,9 @@ bool Spell::CastFreeze(Game& game)
 	}
 
 	iceMissile->Init("freeze");
-	iceMissile->SetVelocity(Vector2(game.player->scale.x < 0 ? -0.25f : 0.25f, 0.0f));
+	iceMissile->SetVelocity(Vector2(player->scale.x < 0 ? -0.25f : 0.25f, 0.0f));
 
-	if (game.player->scale.x > 0)
+	if (player->scale.x > 0)
 		iceMissile->scale.x = 1.0f;
 	else
 		iceMissile->scale.x = -1.0f;
@@ -397,8 +404,8 @@ bool Spell::CastDouble(Game& game)
 		playerClone = nullptr;
 	}
 	
-	Vector2 offset = Vector2(game.player->scale.x > 0 ? -64 : 64, -16);
-	Vector2 clonePosition = game.player->position + offset;
+	Vector2 offset = Vector2(player->scale.x > 0 ? -64 : 64, -16);
+	Vector2 clonePosition = player->position + offset;
 	playerClone = static_cast<Player*>(game.SpawnEntity("player", clonePosition, 0));
 
 	// If not successful, error out
@@ -419,49 +426,49 @@ bool Spell::CastShort(Game& game)
 	{
 		specialFrame = 5000;
 
-		if (std::abs(game.player->scale.x) < 1.0f)
+		if (std::abs(player->scale.x) < 1.0f)
 		{
 			isShort = true;
-			game.player->UpdateSpellAnimation("short_grow");
-			game.player->GetAnimator()->SetBool("isShort", false);
+			player->UpdateSpellAnimation("short_grow");
+			player->GetAnimator()->SetBool("isShort", false);
 		}
 		else
 		{
 			isShort = false;
-			game.player->UpdateSpellAnimation("short");
-			game.player->GetAnimator()->SetBool("isShort", true);
+			player->UpdateSpellAnimation("short");
+			player->GetAnimator()->SetBool("isShort", true);
 		}
 
 		return true;
 	}
 
-	bool isFacingRight = game.player->scale.x > 0;
+	bool isFacingRight = player->scale.x > 0;
 	int multiplier = isFacingRight ? 1 : -1;
 
 	if (!isShort)
 	{
-		if (std::abs(game.player->scale.x) > SHRINK_SIZE)
+		if (std::abs(player->scale.x) > SHRINK_SIZE)
 		{
-			LerpVector2(game.player->scale, Vector2(multiplier * SHRINK_SIZE, SHRINK_SIZE), 0.05f, 0.025f);
-			game.player->CreateCollider(0, 0, 20.25f * std::abs(game.player->scale.x), 41.40f * game.player->scale.y);
+			LerpVector2(player->scale, Vector2(multiplier * SHRINK_SIZE, SHRINK_SIZE), 0.05f, 0.025f);
+			player->CreateCollider(0, 0, 20.25f * std::abs(player->scale.x), 41.40f * player->scale.y);
 		}
 		else
 		{
 			specialFrame = 9999;	
-			game.player->CreateCollider(0, 0, 2.025f, 4.140f);
+			player->CreateCollider(0, 0, 2.025f, 4.140f);
 		}
 	}
 	else
 	{
-		if (std::abs(game.player->scale.x) < 1.0f)
+		if (std::abs(player->scale.x) < 1.0f)
 		{
-			LerpVector2(game.player->scale, Vector2(multiplier * 1.0f, 1.0f), 0.05f, 0.025f);
-			game.player->CreateCollider(0, 0, 20.25f * std::abs(game.player->scale.x), 41.40f * game.player->scale.y);
+			LerpVector2(player->scale, Vector2(multiplier * 1.0f, 1.0f), 0.05f, 0.025f);
+			player->CreateCollider(0, 0, 20.25f * std::abs(player->scale.x), 41.40f * player->scale.y);
 		}
 		else
 		{
 			specialFrame = 9999;
-			game.player->CreateCollider(0, 0, 20.25f, 41.40f);
+			player->CreateCollider(0, 0, 20.25f, 41.40f);
 		}
 	}
 
@@ -472,9 +479,9 @@ bool Spell::CastProtect(Game& game)
 {
 	isShieldUp = !isShieldUp;
 
-	game.player->GetAnimator()->SetBool("isShieldUp", isShieldUp);
-	game.player->UpdateSpellAnimation(names[activeSpell].c_str());
-	//game.player->GetSprite()->ResetFrame();
+	player->GetAnimator()->SetBool("isShieldUp", isShieldUp);
+	player->UpdateSpellAnimation(names[activeSpell].c_str());
+	//player->GetSprite()->ResetFrame();
 
 	return true;
 }
@@ -488,10 +495,10 @@ bool Spell::CastReturn(Game& game)
 	}
 	else
 	{
-		game.player->position = game.player->startPosition;
-		game.player->GetAnimator()->SetBool("returned", true);
-		game.player->UpdateSpellAnimation("return_exit");
-		game.player->GetSprite()->ResetFrame();
+		player->position = player->startPosition;
+		player->GetAnimator()->SetBool("returned", true);
+		player->UpdateSpellAnimation("return_exit");
+		player->GetSprite()->ResetFrame();
 	}
 
 	return true;
@@ -499,7 +506,7 @@ bool Spell::CastReturn(Game& game)
 
 bool Spell::CastSeed(Game& game)
 {
-	static Vector2 spawnBeanstalkPosition = game.player->position;
+	static Vector2 spawnBeanstalkPosition = player->position;
 
 	static int currentPartNumber = 0;
 	static int startSuffix = 0;
@@ -520,8 +527,8 @@ bool Spell::CastSeed(Game& game)
 		if (currentPartNumber == -1)
 		{
 			currentPartNumber++;
-			game.player->UpdateSpellAnimation("seed_grow");
-			game.player->GetSprite()->ResetFrame();
+			player->UpdateSpellAnimation("seed_grow");
+			player->GetSprite()->ResetFrame();
 			isGrowingSeed = true;
 
 			// Remove any existing beanstalks
@@ -593,7 +600,7 @@ bool Spell::CastSeed(Game& game)
 	else
 	{
 		// Plant the seed at the nearest tile to the player
-		spawnBeanstalkPosition = game.player->position;
+		spawnBeanstalkPosition = player->position;
 		spawnBeanstalkPosition.x -= game.renderer.camera.position.x;
 		spawnBeanstalkPosition.y -= game.renderer.camera.position.y;
 		spawnBeanstalkPosition = game.CalculateObjectSpawnPosition(spawnBeanstalkPosition, game.editor->GRID_SIZE);
@@ -647,10 +654,10 @@ bool Spell::CastCarry(Game& game)
 	}
 	else
 	{
-		Vector2 offset = Vector2(game.player->scale.x < 0 ? -16 : 16, 0);
+		Vector2 offset = Vector2(player->scale.x < 0 ? -16 : 16, 0);
 
 		// TODO: Don't create more than one at a time
-		carryMissile = static_cast<Missile*>(game.SpawnEntity("missile", game.player->position + offset, 0));
+		carryMissile = static_cast<Missile*>(game.SpawnEntity("missile", player->position + offset, 0));
 
 		if (carryMissile == nullptr)
 		{
@@ -661,9 +668,9 @@ bool Spell::CastCarry(Game& game)
 		carryMissile->selfPointer = &carryMissile;
 
 		carryMissile->Init("carry");
-		carryMissile->SetVelocity(Vector2(game.player->scale.x < 0 ? -0.15f : 0.15f, 0.0f));
+		carryMissile->SetVelocity(Vector2(player->scale.x < 0 ? -0.15f : 0.15f, 0.0f));
 
-		if (game.player->scale.x > 0)
+		if (player->scale.x > 0)
 			carryMissile->scale.x = 1.0f;
 		else
 			carryMissile->scale.x = -1.0f;

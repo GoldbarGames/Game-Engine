@@ -33,7 +33,6 @@
 #include "MenuScreen.h"
 #include "Renderer.h"
 
-#include "Player.h" // TODO: Remove this?
 #include "HealthComponent.h" // TODO: Remove this
 #include "SettingsButton.h" // TODO: Remove this
 
@@ -105,7 +104,7 @@ int Game::MainLoop()
 				currentNumberOfFrames = (int)(fpsSum / frames);
 				if (currentNumberOfFrames != previousNumberOfFrames)
 				{
-					gui.texts[guiFPS]->SetText(guiFPS2 + std::to_string(currentNumberOfFrames));
+					gui->texts[guiFPS]->SetText(guiFPS2 + std::to_string(currentNumberOfFrames));
 					previousNumberOfFrames = currentNumberOfFrames;
 				}
 
@@ -119,7 +118,7 @@ int Game::MainLoop()
 
 		if (showTimer)
 		{
-			gui.texts[guiTimer]->SetText(std::to_string(timer.GetTicks() / 1000.0f));
+			gui->texts[guiTimer]->SetText(std::to_string(timer.GetTicks() / 1000.0f));
 		}
 
 		switch (state)
@@ -194,7 +193,7 @@ Mesh* Game::CreateCubeMesh()
 	return mesh;
 }
 
-Game::Game(const std::string& n, const std::string& title, const std::string& icon, const EntityFactory& e) : logger("logs/output.log")
+Game::Game(const std::string& n, const std::string& title, const std::string& icon, const EntityFactory& e, GUI& g) : logger("logs/output.log")
 {
 	currentGame = n;
 	startOfGame = std::chrono::steady_clock::now();
@@ -276,7 +275,8 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	SetScreenResolution(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
 
 	// Initialize GUI (do this AFTER fonts and resolution)
-	gui.Init(this);
+	gui = &g;
+	gui->Init(this);
 
 	// Initialize all the menus
 	// TODO: Read these in and construct them from a file
@@ -702,10 +702,11 @@ Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet,
 }
 
 // NOTE: Spawning more than one player this way breaks things
-Player* Game::SpawnPlayer(const Vector2& position)
+Entity* Game::SpawnPlayer(const Vector2& position)
 {
-	Player* player = static_cast<Player*>(SpawnEntity("player", position, 0));
-	player->game = this;
+	Entity* player = SpawnEntity("player", position, 0);
+		//static_cast<Player*>(SpawnEntity("player", position, 0));
+	//player->game = this;
 	renderer.camera.target = player;
 	renderer.camera.FollowTarget(*this);
 	return player;
@@ -1821,7 +1822,7 @@ void Game::RenderScene()
 
 	if (currentLevel != "title" && !cutsceneManager.watchingCutscene && !editMode)
 	{
-		gui.Render(renderer);
+		gui->Render(renderer);
 	}
 
 	// LAST THING

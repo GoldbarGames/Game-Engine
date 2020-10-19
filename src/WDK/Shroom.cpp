@@ -1,6 +1,6 @@
 #include "Shroom.h"
 #include "../ENGINE/Game.h"
-#include "PhysicsComponent.h"
+#include "../ENGINE/PhysicsComponent.h"
 #include "../ENGINE/SoundManager.h"
 #include "../ENGINE/Sprite.h"
 

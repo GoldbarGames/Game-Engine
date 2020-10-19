@@ -1,7 +1,7 @@
 #include "Platform.h"
 #include "../ENGINE/Renderer.h"
 #include "../ENGINE/Game.h"
-#include "PhysicsComponent.h"
+#include "../ENGINE/PhysicsComponent.h"
 #include "Switch.h"
 #include "../ENGINE/globals.h"
 #include "../ENGINE/Property.h"
@@ -100,7 +100,8 @@ void Platform::Update(Game& game)
 		{
 			if (game.entities[i]->id == switchID && game.entities[i]->etype == "switch")
 			{
-				attachedSwitch = static_cast<Switch*>(game.entities[i]);
+				//attachedSwitch = static_cast<Switch*>(game.entities[i]);
+				attachedSwitch = game.entities[i];
 				foundSwitch = true;
 				break;
 			}

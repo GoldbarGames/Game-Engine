@@ -1,6 +1,5 @@
 #include "CutsceneTrigger.h"
 #include "CutsceneManager.h"
-#include "Player.h"
 #include "Game.h"
 
 CutsceneTrigger::CutsceneTrigger(Vector2 pos) : Entity(pos)

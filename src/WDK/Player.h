@@ -13,6 +13,7 @@ class Renderer;
 class NPC;
 class Checkpoint;
 class Decoration;
+class MyGUI;
 
 class Player : public Entity
 {
@@ -37,6 +38,7 @@ public:
 	Collider* closeRangeAttackCollider = nullptr;
 
 	Spell spell;
+	MyGUI* gui = nullptr;
 
 	bool updatedAnimator = false;
 	bool isDouble = false;

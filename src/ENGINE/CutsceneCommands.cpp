@@ -9,11 +9,11 @@
 #include "Game.h"
 #include "Timer.h"
 #include "Animator.h"
-#include "PhysicsComponent.h"
 #include "Logger.h"
 #include "SoundManager.h"
 #include "RandomManager.h"
 #include "Renderer.h"
+#include "PhysicsComponent.h"
 
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 

@@ -1,11 +1,11 @@
 #include "Player.h"
 #include "../ENGINE/Game.h"
 #include <string>
-#include "PhysicsComponent.h"
+#include "../ENGINE/PhysicsComponent.h"
 #include "../ENGINE/Animator.h"
 #include "../ENGINE/AnimatorInfo.h"
 #include "../ENGINE/Physics.h"
-#include "HealthComponent.h"
+#include "../ENGINE/HealthComponent.h"
 #include "../ENGINE/Text.h"
 #include "../ENGINE/Sprite.h"
 #include "../ENGINE/Renderer.h"
@@ -17,6 +17,7 @@
 #include "../ENGINE/SoundManager.h"
 #include "../ENGINE/Property.h"
 #include "Missile.h"
+#include "MyGUI.h"
 
 Player::Player(const Vector2& pos) : Entity(pos)
 {
@@ -28,6 +29,8 @@ Player::Player(const Vector2& pos) : Entity(pos)
 
 	trigger = false;
 	clickable = true;
+
+	spell.player = this;
 
 	physics = neww PhysicsComponent(this);
 	physics->standAboveGround = true;
@@ -96,8 +99,13 @@ void Player::Render(const Renderer& renderer)
 
 	if (!isDouble)
 	{
-		renderer.game->gui.playerSpell = &spell;
-		renderer.game->gui.healthComponents.push_back(health);
+		if (gui == nullptr)
+		{
+			gui = static_cast<MyGUI*>(renderer.game->gui);
+		}
+
+		gui->playerSpell = &spell;
+		gui->healthComponents.push_back(health);
 	}
 }
 
@@ -387,21 +395,6 @@ void Player::UpdateNormally(Game& game)
 	}
 }
 
-void Player::UpdateSpellAnimation(const char* spellName)
-{
-	// 1. Prevent the player from leaving this state and pressing any other buttons during this time
-	animator->SetBool("isCastingSpell", true);
-
-	// 2. Set the player's animation to the PUSH spell casting animation
-	animator->SetState(spellName);
-
-	// 3. Actually set the player's sprite to the casting sprite
-	animator->Update(*this);
-
-	// 4. Set the timer to the length of the casting animation
-	timerSpellOther.Start(animator->currentState->speed * (currentSprite.endFrame - currentSprite.startFrame));
-}
-
 void Player::CastSpellDebug(Game &game, const Uint8* input)
 {
 	if (game.currentEther <= 0)
@@ -584,6 +577,23 @@ void Player::CheckJumpButton(const Uint8* input)
 void Player::ResetPosition()
 {
 	position = startPosition;
+}
+
+
+void Player::UpdateSpellAnimation(const char* spellName)
+{
+	// 1. Prevent the player from leaving this state and pressing any other buttons during this time
+	animator->SetBool("isCastingSpell", true);
+
+	// 2. Set the player's animation to the PUSH spell casting animation
+	animator->SetState(spellName);
+
+	// 3. Actually set the player's sprite to the casting sprite
+	animator->Update(*this);
+
+	// 4. Set the timer to the length of the casting animation
+	timerSpellOther.Start(animator->currentState->speed *
+		(GetSprite()->endFrame - GetSprite()->startFrame));
 }
 
 void Player::GetProperties(std::vector<Property*>& properties)

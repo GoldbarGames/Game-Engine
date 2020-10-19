@@ -3,6 +3,7 @@
 #include "ENGINE/leak_check.h"
 #include "ENGINE/Game.h"
 #include "WDK/MyEntityFactory.h"
+#include "WDK/MyGUI.h"
 
 int main(int argc, char *args[])
 {
@@ -18,10 +19,13 @@ int main(int argc, char *args[])
 	{
 		// For your own custom entity types
 		EntityFactory* e = MyEntityFactory::Get();
+		GUI* gui = neww MyGUI();
 
-		Game game("DB1", "Witch Doctor Kaneko", "assets/gui/icon.png", *e);
-
+		Game game("DB1", "Witch Doctor Kaneko", "assets/gui/icon.png", *e, *gui);
 		game.MainLoop();
+
+		if (gui != nullptr)
+			delete_it(gui);
 	}
 
 	// Call these outside the scope of the game

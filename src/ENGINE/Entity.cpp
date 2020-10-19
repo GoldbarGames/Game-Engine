@@ -1,14 +1,15 @@
 #include "Entity.h"
 #include "PhysicsComponent.h"
+#include "HealthComponent.h"
+
 #include <iostream>
 #include "Renderer.h"
 #include <sstream>
 #include "Game.h"
 #include "Sprite.h"
-#include "Switch.h"
+//#include "Switch.h"
 #include "Property.h"
 #include "Editor.h"
-#include "HealthComponent.h"
 #include "Animator.h"
 #include "AnimatorInfo.h"
 
@@ -475,4 +476,14 @@ void Entity::OnClickPressed(Uint32 mouseState, Game& game)
 void Entity::OnClickReleased(Uint32 mouseState, Game& game)
 {
 
+}
+
+Vector2 Entity::GetScale() const 
+{ 
+	return scale; 
+}
+
+void Entity::SetScale(const Vector2& newScale) 
+{
+	scale = newScale;
 }

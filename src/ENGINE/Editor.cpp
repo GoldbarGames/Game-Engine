@@ -7,21 +7,11 @@
 #include "Tile.h"
 #include "CutsceneTrigger.h"
 #include "PhysicsComponent.h"
-#include "Enemy.h"
 #include "Dialog.h"
-#include "Switch.h"
-#include "Collectible.h"
-#include "Checkpoint.h"
-#include "Tree.h"
-#include "Platform.h"
-#include "Player.h"
 #include "HealthComponent.h"
 #include "CutsceneCommands.h"
 #include <filesystem>
-
 #include "Renderer.h"
-#include "Door.h"
-#include "Ladder.h"
 #include "DebugScreen.h"
 #include "Quadtree.h"
 #include "Property.h"
@@ -30,7 +20,15 @@
 #include "CutsceneManager.h"
 #include "Background.h"
 
-using std::string;
+//TODO: Move these out somehow
+#include "../WDK/Door.h"
+#include "../WDK/Ladder.h"
+#include "../WDK/Enemy.h"
+#include "../WDK/Switch.h"
+#include "../WDK/Collectible.h"
+#include "../WDK/Checkpoint.h"
+#include "../WDK/Tree.h"
+#include "../WDK/Platform.h"
 
 Editor::Editor(Game& g)
 {
@@ -980,6 +978,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 		if (objectMode == "path")
 		{
 			// If we do not have a path, create a neww one
+			/*
 			if (currentPath == nullptr)
 			{
 				currentPath = neww Path(snappedPosition);
@@ -991,6 +990,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 			{
 				currentPath->AddPointToPath(snappedPosition);
 			}
+			*/
 		}
 		else if (objectMode == "door")
 		{
@@ -1014,9 +1014,6 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 				{
 					std::cout << "placing door set false" << std::endl;
 					placingDoor = false;
-
-					//currentDoor->SetDestination(destination->GetPosition());
-					//destination->SetDestination(currentDoor->GetPosition());
 					currentDoor = nullptr;
 
 					game->SortEntities(game->entities);
@@ -2460,7 +2457,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 			game->bugsRemaining++;
 	}
 
-	game->gui.ResetText();
+	game->gui->ResetText();
 
 	// Play the cutscene for the current level, if any
 	if (game->levelStartCutscene != "")

@@ -1,6 +1,6 @@
 #include "Missile.h"
 #include "../ENGINE/Game.h"
-#include "PhysicsComponent.h"
+#include "../ENGINE/PhysicsComponent.h"
 #include "../ENGINE/Sprite.h"
 #include "Player.h"
 

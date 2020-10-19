@@ -73,7 +73,7 @@ public:
 
 	Mesh* cubeMesh;
 	QuadTree quadTree;
-	GUI gui;
+	GUI* gui;
 
 	unsigned int collisionChecks = 0;
 	unsigned int updateCalls = 0;
@@ -189,7 +189,7 @@ public:
 	DebugScreen* debugScreen = nullptr;
 	Editor* editor = nullptr;
 	SDL_Window* window = nullptr;
-	Player* player = nullptr;
+	Entity* player = nullptr;
 
 	bool loadingFromSaveFile = false;
 
@@ -210,7 +210,7 @@ public:
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
 
-	Game(const std::string& n, const std::string& title, const std::string& icon, const EntityFactory& e);
+	Game(const std::string& n, const std::string& title, const std::string& icon, const EntityFactory& e, GUI& g);
 	~Game();
 
 	void InitSDL();
@@ -223,7 +223,7 @@ public:
 	Tile* SpawnTile(const Vector2& frame, const std::string& tilesheet,
 		const Vector2& position, DrawingLayer drawingLayer);
 
-	Player* SpawnPlayer(const Vector2& position);
+	Entity* SpawnPlayer(const Vector2& position);
 
 	void TransitionLevel();
 

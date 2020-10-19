@@ -5,8 +5,8 @@
 #include "../ENGINE/Collider.h"
 #include "../ENGINE/Timer.h"
 #include "../ENGINE/Vector2.h"
-#include "PhysicsComponent.h"
-#include "HealthComponent.h"
+#include "../ENGINE/PhysicsComponent.h"
+#include "../ENGINE/HealthComponent.h"
 #include <algorithm>
 #include "../ENGINE/Sprite.h"
 #include "../ENGINE/Renderer.h"
@@ -390,7 +390,7 @@ void Enemy::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
 
-	renderer.game->gui.healthComponents.push_back(health);
+	renderer.game->gui->healthComponents.push_back(health);
 }
 
 void Enemy::RenderDebug(const Renderer& renderer)
