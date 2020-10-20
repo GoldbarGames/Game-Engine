@@ -15,6 +15,7 @@
 #include "Property.h"
 #include "Texture.h"
 #include "filesystem_types.h"
+#include "EditorHelper.h"
 
 class Door;
 class Entity;
@@ -29,8 +30,6 @@ class Platform;
 class Editor
 {
 private:
-	Game* game = nullptr;
-
 	Vector2 tilesheetPosition = Vector2(0, 0);
 	
 	std::vector<Sprite*> tilesheetSprites;	
@@ -50,18 +49,6 @@ private:
 
 	std::vector<std::string> previewMapObjectNames;
 
-	Door* currentDoor = nullptr;
-	Ladder* currentLadder = nullptr;
-	NPC* currentNPC = nullptr;
-	Path* currentPath = nullptr;
-
-	int entitySubtype = 0;
-
-	std::unordered_map<std::string, Entity*> previewMap;
-
-	bool placingDoor = false;
-	bool placingLadder = false;
-
 	// Variables for the Properties Inspector
 	Entity* selectedEntity = nullptr;
 	std::vector<Property*> properties;	
@@ -78,6 +65,11 @@ private:
 	Sprite* rectSprite = nullptr;
 	Sprite* outlineSprite = nullptr;
 public:
+	int entitySubtype = 0;
+	Game* game = nullptr;
+	EditorHelper* helper = nullptr;
+	std::unordered_map<std::string, Entity*> previewMap;
+	
 	int tilesheetIndex = 0;
 	unsigned int currentButtonPage = 0;
 	int propertyIndex = -1;
@@ -91,11 +83,6 @@ public:
 
 	Entity* objectPreview = nullptr;
 	Sprite* grid = nullptr;
-
-	std::vector<Path*> loadListPaths;
-	std::vector<Platform*> loadListMovingPlatforms;
-	std::map<int, std::vector<Ladder*>> loadListLadderGroups;
-	std::vector<Door*> loadListDoors;
 
 	Dialog* dialog;
 	EditorButton* clickedButton = nullptr;

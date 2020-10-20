@@ -4,6 +4,7 @@
 #include "Player.h"
 #include "../ENGINE/Property.h"
 #include "../ENGINE/Editor.h"
+#include "MyEditorHelper.h"
 
 Door::Door(Vector2 pos) : Entity(pos)
 {
@@ -149,5 +150,10 @@ void Door::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 	nextLevelName = map["nextLevelName"];
 	destinationID = std::stoi(map["destinationID"]);
 
-	game.editor->loadListDoors.push_back(this);
+	
+	if (game.editor->helper != nullptr)
+	{
+		MyEditorHelper* helper = static_cast<MyEditorHelper*>(game.editor->helper);
+		helper->loadListDoors.push_back(this);
+	}
 }

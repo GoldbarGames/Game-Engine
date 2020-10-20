@@ -6,6 +6,7 @@
 #include "../ENGINE/globals.h"
 #include "../ENGINE/Property.h"
 #include "../ENGINE/Editor.h"
+#include "MyEditorHelper.h"
 
 Platform::Platform(const Vector2& pos) : Entity(pos)
 {
@@ -394,7 +395,12 @@ void Platform::Load(std::unordered_map<std::string, std::string>& map, Game& gam
 		pathID = std::stoi(map["pathID"]);
 		pathSpeed = std::stof(map["pathSpeed"]);
 		endPathBehavior = map["endPathBehavior"];
-		game.editor->loadListMovingPlatforms.emplace_back(this);
+
+		if (game.editor->helper != nullptr)
+		{
+			MyEditorHelper* helper = static_cast<MyEditorHelper*>(game.editor->helper);
+			helper->loadListMovingPlatforms.push_back(this);
+		}
 	}
 	else
 	{

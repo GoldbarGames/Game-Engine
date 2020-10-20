@@ -6,6 +6,7 @@
 #include "../ENGINE/Editor.h"
 #include "../ENGINE/Animator.h"
 #include "../ENGINE/Sprite.h"
+#include "MyEditorHelper.h"
 
 Ladder::Ladder(const Vector2& pos) : Entity(pos)
 {
@@ -70,9 +71,16 @@ void Ladder::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 	std::string ladderState = map["ladderState"];
 	GetAnimator()->SetState(ladderState.c_str());
 
-	if (game.editor->loadListLadderGroups.count(position.x) == 0)
+	if (game.editor->helper != nullptr)
 	{
-		game.editor->loadListLadderGroups[position.x] = std::vector<Ladder*>();
+		MyEditorHelper* helper = static_cast<MyEditorHelper*>(game.editor->helper);
+
+		if (helper->loadListLadderGroups.count(position.x) == 0)
+		{
+			helper->loadListLadderGroups[position.x] = std::vector<Ladder*>();
+		}
+		helper->loadListLadderGroups[position.x].push_back(this);
 	}
-	game.editor->loadListLadderGroups[position.x].push_back(this);
+
+
 }

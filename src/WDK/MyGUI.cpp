@@ -52,6 +52,17 @@ void MyGUI::ResetText()
 	texts[textNames[1]]->SetText("");
 	texts[textNames[1]]->SetPosition((game->screenWidth) - (texts[textNames[1]]->GetTextWidth() * 2), texts[textNames[1]]->GetTextHeight());
 
+	// Initialize starting properties
+	/*
+	game->currentEther = game->startingEther;
+	game->bugsRemaining = 0;
+	for (unsigned int i = 0; i < game->entities.size(); i++)
+	{
+		if (game->entities[i]->etype == "bug")
+			game->bugsRemaining++;
+	}
+	*/
+
 	//texts["bug"].SetText("Bugs Remaining: " + std::to_string(bugsRemaining));
 	//texts["bug"].SetPosition(texts["bug"].GetTextWidth() * 1.25f, texts["bug"].GetTextHeight() * 1.25f);
 

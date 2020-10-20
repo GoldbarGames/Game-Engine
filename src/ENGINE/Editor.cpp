@@ -20,15 +20,17 @@
 #include "CutsceneManager.h"
 #include "Background.h"
 
+#include "EditorHelper.h"
+
 //TODO: Move these out somehow
-#include "../WDK/Door.h"
-#include "../WDK/Ladder.h"
-#include "../WDK/Enemy.h"
-#include "../WDK/Switch.h"
-#include "../WDK/Collectible.h"
-#include "../WDK/Checkpoint.h"
-#include "../WDK/Tree.h"
-#include "../WDK/Platform.h"
+//#include "../WDK/Door.h"
+//#include "../WDK/Ladder.h"
+//#include "../WDK/Enemy.h"
+//#include "../WDK/Switch.h"
+//#include "../WDK/Collectible.h"
+//#include "../WDK/Checkpoint.h"
+//#include "../WDK/Tree.h"
+//#include "../WDK/Platform.h"
 
 Editor::Editor(Game& g)
 {
@@ -975,151 +977,9 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 
 	if (canPlaceObjectHere)
 	{
-		if (objectMode == "path")
+		if (helper != nullptr)
 		{
-			// If we do not have a path, create a neww one
-			/*
-			if (currentPath == nullptr)
-			{
-				currentPath = neww Path(snappedPosition);
-				currentPath->AddPointToPath(snappedPosition);
-				game->entities.push_back(currentPath);
-				game->SortEntities(game->entities);
-			}
-			else // otherwise, add to the current path
-			{
-				currentPath->AddPointToPath(snappedPosition);
-			}
-			*/
-		}
-		else if (objectMode == "door")
-		{
-			if (!placingDoor)
-			{
-				std::cout << "trying to spawn entrance" << std::endl;
-				currentDoor = static_cast<Door*>(game->SpawnEntity(objectMode, snappedPosition, entitySubtype));
-				if (currentDoor != nullptr)
-				{
-					std::cout << "placing door set true" << std::endl;
-					placingDoor = true;
-					game->SortEntities(game->entities);
-				}
-
-			}
-			else
-			{
-				std::cout << "trying to spawn destination" << std::endl;
-				Door* destination = static_cast<Door*>(game->SpawnEntity("door", snappedPosition, entitySubtype));
-				if (destination != nullptr)
-				{
-					std::cout << "placing door set false" << std::endl;
-					placingDoor = false;
-					currentDoor = nullptr;
-
-					game->SortEntities(game->entities);
-				}
-			}
-
-		}
-		else if (objectMode == "ladder")
-		{
-			if (!placingLadder)
-			{
-				std::cout << "trying to spawn ladder start" << std::endl;
-				currentLadder = static_cast<Ladder*>(game->SpawnEntity("ladder", snappedPosition, entitySubtype));
-				if (currentLadder != nullptr)
-				{
-					std::cout << "placing ladder set true" << std::endl;
-					placingLadder = true;
-					game->SortEntities(game->entities);
-				}
-			}
-			else
-			{
-				// only spawn if the position we clicked at is on the same column as the ladder start
-				if (snappedPosition.x == currentLadder->GetPosition().x)
-				{
-					std::cout << "trying to spawn ladder end" << std::endl;
-					Ladder* ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder", snappedPosition, entitySubtype));
-					
-					std::vector<Ladder*> ladderGroup;
-					
-					if (ladderEnd != nullptr)
-					{
-						std::cout << "placing ladder set false" << std::endl;
-						placingLadder = false;
-
-						// Define which edges of the ladder are the top and bottom
-						bool ladderGoesUp = false;
-						if (ladderEnd->GetPosition().y > currentLadder->GetPosition().y)
-						{
-							ladderEnd->GetAnimator()->SetState("bottom");
-							currentLadder->GetAnimator()->SetState("top");
-						}
-						else
-						{
-							ladderEnd->GetAnimator()->SetState("top");
-							currentLadder->GetAnimator()->SetState("bottom");
-							ladderGoesUp = true;
-						}
-
-						ladderGroup.push_back(currentLadder);
-						ladderGroup.push_back(ladderEnd);
-
-						if (ladderGoesUp)
-						{
-							// Connect the two edges by spawning the middle parts
-							while (snappedPosition.y < currentLadder->GetPosition().y)
-							{
-								ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder", 
-									snappedPosition, entitySubtype));
-								if (ladderEnd != nullptr)
-									ladderGroup.push_back(ladderEnd);
-								snappedPosition.y += TILE_SIZE * Camera::MULTIPLIER;
-							}
-						}
-						else
-						{
-							// Connect the two edges by spawning the middle parts
-							while (snappedPosition.y > currentLadder->GetPosition().y)
-							{
-								ladderEnd = static_cast<Ladder*>(game->SpawnEntity("ladder",
-									snappedPosition, entitySubtype));
-								if (ladderEnd != nullptr)
-									ladderGroup.push_back(ladderEnd);
-								snappedPosition.y -= TILE_SIZE * Camera::MULTIPLIER;
-							}
-						}
-
-						currentLadder = nullptr;
-
-						Ladder* topLadder = nullptr;
-						for (unsigned int i = 0; i < ladderGroup.size(); i++)
-						{
-							if (topLadder == nullptr || ladderGroup[i]->position.y < topLadder->position.y)
-							{
-								topLadder = ladderGroup[i];
-							}
-						}
-						for (unsigned int i = 0; i < ladderGroup.size(); i++)
-						{
-							ladderGroup[i]->top = topLadder;
-						}
-
-						game->SortEntities(game->entities);
-					}
-				}
-			}
-		}
-		else
-		{
-			Entity* entity = game->SpawnEntity(objectMode, snappedPosition, entitySubtype);
-			if (entity != nullptr)
-			{
-				entity->Init(game->entityTypes[objectMode][entitySubtype]);
-				entity->rotation = previewMap[objectMode]->rotation;
-				game->SortEntities(game->entities);
-			}				
+			helper->PlaceObject(snappedPosition);
 		}
 	}
 }
@@ -1235,7 +1095,6 @@ void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2
 	}
 	else
 	{
-		int ladderIndex = -1;
 		Entity* entityToDelete = GetClickedEntity(clickedWorldPosition);
 
 		if (entityToDelete != nullptr)
@@ -1265,129 +1124,14 @@ void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2
 				shouldDeleteThis = true;
 			}
 
-			// If this entity is a path, check all points in the path
-			// (This must be dealt with outside of the shouldDelete section
-			// because each path contains multiple points that must each be
-			// deleted individually if any of them have been clicked on)
-			if (entityToDelete->etype == "path")
+			if (helper != nullptr)
 			{
-				Path* path = dynamic_cast<Path*>(entityToDelete);
-				if (path->IsPointInPath(clickedWorldPosition))
-				{
-					path->RemovePointFromPath(clickedWorldPosition);
-
-					// Only if there are no points in the path do we remove the path
-					if (path->nodes.size() == 0)
-					{
-						//game->ShouldDeleteEntity(i);
-						return;
-					}
-				}
-			}
-			else if (entityToDelete->etype == "switch")
-			{
-				for (int k = 0; k < game->entities.size(); k++)
-				{
-					if (entityToDelete->etype == "platform")
-					{
-						Platform* platform = static_cast<Platform*>(game->entities[k]);
-						if (platform->attachedSwitch == entityToDelete)
-						{
-							platform->attachedSwitch = nullptr;
-						}
-					}
-				}
-			}
-
-			if (shouldDeleteThis)
-			{
-				if (entityToDelete->etype == "door")
-				{
-					// Save destination and delete the entry door
-					Door* door = static_cast<Door*>(entityToDelete);
-					Vector2 dest = door->GetDestination();
-
-					// Only delete if both doors have been placed
-					if (dest != Vector2(0, 0))
-					{
-						//game->ShouldDeleteEntity(i);
-
-						// Delete the exit door
-						for (unsigned int k = 0; k < game->entities.size(); k++)
-						{
-							if (game->entities[k]->GetPosition() == dest)
-							{
-								game->ShouldDeleteEntity(k);
-								return;
-							}
-						}
-					}
-				}
-				else if (entityToDelete->etype == "ladder")
-				{
-					//ladderIndex = i;
-				}
-				else
-				{
-					//game->ShouldDeleteEntity(i);
-					return;
-				}
-
-
-			}
-
-
-			if (ladderIndex >= 0 && !placingLadder)
-			{
-				std::string startingState = game->entities[ladderIndex]->GetAnimator()->currentState->name;
-				Vector2 lastPosition = game->entities[ladderIndex]->GetPosition();
-				game->ShouldDeleteEntity(ladderIndex);
-
-				if (startingState == "top")
-					DestroyLadder("top", lastPosition);
-				else if (startingState == "bottom")
-					DestroyLadder("bottom", lastPosition);
-				else if (startingState == "middle")
-				{
-					DestroyLadder("top", lastPosition);
-					DestroyLadder("bottom", lastPosition);
-				}
-			}
+				helper->DeleteObject(shouldDeleteThis, entityToDelete);
+			}			
 		}
 	}
 
 	
-}
-
-void Editor::DestroyLadder(std::string startingState, Vector2 lastPosition)
-{
-	bool exit = false;
-	while (!exit)
-	{
-		// go over all the entities and check to see if there is one at the next position
-		// if it is, and it is a ladder, then delete it and keep going
-		// otherwise, we are done, and can exit the loop
-
-		if (startingState == "top")
-			lastPosition.y += GRID_SIZE;
-		else if (startingState == "bottom")
-			lastPosition.y -= GRID_SIZE;
-
-		exit = true;
-
-		for (unsigned int i = 0; i < game->entities.size(); i++)
-		{
-			if (game->entities[i]->etype == "ladder")
-			{
-				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(lastPosition))
-				{
-					game->ShouldDeleteEntity(i);
-					exit = false;
-					break;
-				}
-			}
-		}
-	}
 }
 
 void Editor::HandleEdit()
@@ -1592,10 +1336,10 @@ void Editor::ClickedButton()
 	}
 	else if (clickedButton->name == "path")
 	{
-		if (currentPath != nullptr)
-		{
-			currentPath = nullptr;
-		}
+		//if (currentPath != nullptr)
+		//{
+		//	currentPath = nullptr;
+		//}
 
 		// TODO: Fix this
 		ToggleObjectMode("path");
@@ -1776,23 +1520,11 @@ void Editor::Render(const Renderer& renderer)
 		objectPreview->GetSprite()->Render(objPreviewPosition, 0, renderer, objectPreview->scale, objectPreview->rotation);
 	}
 
-	for (unsigned int i = 0; i < game->entities.size(); i++)
+	if (helper != nullptr)
 	{
-		if (game->entities[i]->etype == "door")
-		{			
-			Door* door = static_cast<Door*>(game->entities[i]);
-
-			Vector2 destPos = door->GetDestination();
-			if (destPos.x != 0 && destPos.y != 0)
-			{
-				destPos = destPos;
-				Vector2 doorCenter = door->GetCenter();
-				Vector2 doorPos = door->GetPosition() + doorCenter;
-				//SDL_RenderDrawLine(renderer->renderer, doorPos.x, doorPos.y, destPos.x + doorCenter.x, destPos.y + doorCenter.y);
-			}	
-		}
+		helper->Render(renderer);
 	}
-	
+
 	if (objectMode == "inspect" && selectedEntity != nullptr)
 	{
 		if (outlineSprite == nullptr)
@@ -2099,10 +1831,10 @@ void Editor::CreateLevelFromString(std::string level)
 			GetLevelList();
 		}
 
-		loadListPaths.clear();
-		loadListMovingPlatforms.clear();
-		loadListLadderGroups.clear();
-		loadListDoors.clear();
+		if (helper != nullptr)
+		{
+			helper->CreateLevelStart();
+		}
 
 		std::stringstream ss{ level };
 		
@@ -2335,57 +2067,10 @@ void Editor::CreateLevelFromString(std::string level)
 
 		std::cout << "FINISH" << std::endl;
 
-		Entity::nextValidID = 2; // highestID + 1;
-
-		for (auto const& [key, ladderGroup] : loadListLadderGroups)
+		if (helper != nullptr)
 		{
-			Ladder* topLadder = nullptr;
-			for (unsigned int i = 0; i < ladderGroup.size(); i++)
-			{
-				if (topLadder == nullptr || ladderGroup[i]->position.y < topLadder->position.y)
-				{
-					topLadder = ladderGroup[i];
-				}
-			}
-			for (unsigned int i = 0; i < ladderGroup.size(); i++)
-			{
-				ladderGroup[i]->top = topLadder;
-			}
-		}
-
-		if (game->player != nullptr)
-		{
-			// Set the player's start position if we are entering from a door
-			if (game->nextDoorID > -1)
-			{
-				for (unsigned int i = 0; i < loadListDoors.size(); i++)
-				{
-					if (loadListDoors[i]->id == game->nextDoorID)
-					{
-						game->player->SetPosition(loadListDoors[i]->position + game->player->GetSprite()->pivot);
-					}
-				}
-				game->nextDoorID = -1;
-			}
-
-			// Set the camera's position to the player's instantly
-			game->renderer.camera.FollowTarget(*game, true);
-		}
-
-
-		// Match all platforms moving on paths with their assigned path
-		for (unsigned int i = 0; i < loadListMovingPlatforms.size(); i++)
-		{
-			for (unsigned int k = 0; k < loadListPaths.size(); k++)
-			{
-				if (loadListMovingPlatforms[i]->pathID == loadListPaths[k]->id)
-				{
-					loadListMovingPlatforms[i]->currentPath = loadListPaths[k];
-					loadListMovingPlatforms[i]->SetPosition(loadListPaths[k]->nodes[0]->point);
-					break;
-				}
-			}
-		}
+			helper->CreateLevelEnd();
+		}		
 	}
 	catch (std::exception ex)
 	{
@@ -2445,16 +2130,6 @@ void Editor::InitLevelFromFile(std::string levelName)
 	{
 		//TODO: Only add entities that have colliders or are impassable
 		game->quadTree.Insert(game->entities[i]);
-	}
-
-	// Initialize starting properties
-	// TODO: Move these to the GUI or somewhere
-	game->currentEther = game->startingEther;
-	game->bugsRemaining = 0;
-	for (unsigned int i = 0; i < game->entities.size(); i++)
-	{
-		if (game->entities[i]->etype == "bug")
-			game->bugsRemaining++;
 	}
 
 	game->gui->ResetText();

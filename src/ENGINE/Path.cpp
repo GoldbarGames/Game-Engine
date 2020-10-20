@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "Property.h"
 #include "Editor.h"
+#include "../WDK/MyEditorHelper.h"
 
 Path::Path(const Vector2& pos) : Entity(pos)
 {
@@ -140,5 +141,10 @@ void Path::Load(int& index, const std::vector<std::string>& tokens,
 		AddPointToPath(Vector2(pointX, pointY));
 	}
 
-	game.editor->loadListPaths.emplace_back(this);
+	if (game.editor->helper != nullptr)
+	{
+		MyEditorHelper* helper = static_cast<MyEditorHelper*>(game.editor->helper);
+		helper->loadListPaths.emplace_back(this);
+	}
+
 }
