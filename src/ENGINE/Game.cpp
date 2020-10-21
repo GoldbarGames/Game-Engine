@@ -719,9 +719,12 @@ void Game::ShouldDeleteEntity(int index)
 
 void Game::ShouldDeleteEntity(Entity* entity)
 {
-	//std::vector<Entity*>::iterator index = std::find(entities.begin(), entities.end(), entity);
-	//if (index != entities.end()) // means the element was not found
-	//	index->shouldDelete = true;
+	std::vector<Entity*>::iterator iter = std::find(entities.begin(), entities.end(), entity);
+	if (iter != entities.end())
+	{
+		int index = std::distance(entities.begin(), iter);
+		entities[index]->shouldDelete = true;
+	}
 }
 
 void Game::DeleteEntity(Entity* entity)
@@ -1768,6 +1771,8 @@ void Game::Render()
 
 void Game::RenderScene()
 {
+	gui->RenderStart();
+
 	// Render editor grid
 	if (editMode)
 	{

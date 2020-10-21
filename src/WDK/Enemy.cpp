@@ -10,6 +10,7 @@
 #include <algorithm>
 #include "../ENGINE/Sprite.h"
 #include "../ENGINE/Renderer.h"
+#include "MyGUI.h"
 
 Enemy::Enemy(Vector2 pos) : Entity(pos)
 {
@@ -390,7 +391,9 @@ void Enemy::Render(const Renderer& renderer)
 {
 	Entity::Render(renderer);
 
-	renderer.game->gui->healthComponents.push_back(health);
+	// TODO: Find a way to get rid of this cast
+	MyGUI* myGUI = static_cast<MyGUI*>(renderer.game->gui);
+	myGUI->healthComponents.push_back(health);
 }
 
 void Enemy::RenderDebug(const Renderer& renderer)

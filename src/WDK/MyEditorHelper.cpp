@@ -311,7 +311,7 @@ void MyEditorHelper::DeleteObject(bool shouldDeleteThis, Entity* entityToDelete)
 		}
 		else
 		{
-			//game->ShouldDeleteEntity(i);
+			editor->game->ShouldDeleteEntity(entityToDelete);
 			return;
 		}
 

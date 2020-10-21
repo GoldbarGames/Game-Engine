@@ -11,7 +11,7 @@
 Platform::Platform(const Vector2& pos) : Entity(pos)
 {
 	etype = "platform";
-	CreateCollider(0, 24, 72, 24);
+	CreateCollider(0, 48, 72, 24);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 9;
 	
@@ -28,6 +28,20 @@ Platform::Platform(const Vector2& pos) : Entity(pos)
 Platform::~Platform()
 {
 
+}
+
+void Platform::Init(const std::string& n)
+{
+	name = n;
+
+	if (name == "platform1")
+	{
+		jumpThru = true;
+	}
+	else if (name == "platform2")
+	{
+		jumpThru = false;
+	}
 }
 
 std::string Platform::CalcDirection(bool x)

@@ -33,7 +33,7 @@ private:
 	Vector2 tilesheetPosition = Vector2(0, 0);
 	
 	std::vector<Sprite*> tilesheetSprites;	
-	std::vector<string> tilesheetFilenames;
+	std::vector<std::string> tilesheetFilenames;
 
 	Vector2 spriteSheetTileFrame = Vector2(0,0);
 	Vector2 selectedTilePosition = Vector2(0, 0);
@@ -133,7 +133,7 @@ public:
 	void RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition);
 	void MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition);
 
-	Entity* GetClickedEntity(const Vector2& clickedWorldPosition);
+	Entity* GetClickedEntity(const Vector2& clickedWorldPosition, bool includeTiles=false);
 
 	void SetLayer(DrawingLayer layer);
 	void DestroyLadder(std::string startingState, Vector2 lastPosition);

@@ -29,6 +29,9 @@ public:
 
 	Platform(const Vector2& pos);
 	~Platform();
+
+	void Init(const std::string& n);
+
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
 	void Render(const Renderer& renderer);

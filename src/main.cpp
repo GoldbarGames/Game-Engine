@@ -23,15 +23,18 @@ int main(int argc, char *args[])
 		// For your own custom entity types
 		EntityFactory* e = MyEntityFactory::Get();
 		GUI* gui = neww MyGUI();
-		EditorHelper* h = neww MyEditorHelper();
+		EditorHelper* helper = neww MyEditorHelper();
 
-		Game game("DB1", "Witch Doctor Kaneko", "assets/gui/icon.png", *e, *gui);
-		game.editor->helper = h;
+		Game game("WDK", "Witch Doctor Kaneko", "assets/gui/icon.png", *e, *gui);
+		game.editor->helper = helper;
 		game.editor->helper->editor = game.editor;
 		game.MainLoop();
 
 		if (gui != nullptr)
 			delete_it(gui);
+
+		if (helper != nullptr)
+			delete_it(helper);
 	}
 
 	// Call these outside the scope of the game

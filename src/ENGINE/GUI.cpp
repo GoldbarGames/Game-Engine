@@ -27,15 +27,13 @@ GUI::~GUI()
 	}
 }
 
+void GUI::RenderStart()
+{
+
+}
+
 void GUI::Render(const Renderer& renderer)
 {
-	for (int i = 0; i < healthComponents.size(); i++)
-	{
-		healthComponents[i]->Render(renderer);
-	}
-
-	healthComponents.clear();
-
 	// TODO: Refactor these texts into structs with bools in them
 
 	if (game->showFPS)

@@ -19,14 +19,17 @@ void MyGUI::Init(Game* g)
 	ResetText();
 }
 
+void MyGUI::RenderStart()
+{
+	healthComponents.clear();
+}
+
 void MyGUI::Render(const Renderer& renderer)
 {
 	for (int i = 0; i < healthComponents.size(); i++)
 	{
 		healthComponents[i]->Render(renderer);
 	}
-
-	healthComponents.clear();
 
 	if (playerSpell != nullptr)
 	{

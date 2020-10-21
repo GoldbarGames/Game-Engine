@@ -8,9 +8,11 @@ class Spell;
 class MyGUI : public GUI
 {
 public:
+	std::vector<HealthComponent*> healthComponents;
 	Spell* playerSpell;
 
 	void Init(Game* g);
+	void RenderStart();
 	void Render(const Renderer& renderer);
 	void ResetText();
 };

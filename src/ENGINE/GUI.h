@@ -14,11 +14,11 @@ class GUI
 {
 public:
 	Game* game;
-	std::vector<HealthComponent*> healthComponents;
 	std::unordered_map<std::string, Text*> texts;
 	std::vector<std::string> textNames;
 
 	virtual void Init(Game* g);
+	virtual void RenderStart();
 	virtual void Render(const Renderer& renderer);
 	virtual void ResetText();
 

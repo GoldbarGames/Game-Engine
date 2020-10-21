@@ -6,9 +6,7 @@
 #include <iterator>
 #include "Tile.h"
 #include "CutsceneTrigger.h"
-#include "PhysicsComponent.h"
 #include "Dialog.h"
-#include "HealthComponent.h"
 #include "CutsceneCommands.h"
 #include <filesystem>
 #include "Renderer.h"
@@ -16,21 +14,13 @@
 #include "Quadtree.h"
 #include "Property.h"
 #include "Logger.h"
-#include "Editor.h"
 #include "CutsceneManager.h"
 #include "Background.h"
 
-#include "EditorHelper.h"
+#include "HealthComponent.h"
+#include "PhysicsComponent.h"
 
-//TODO: Move these out somehow
-//#include "../WDK/Door.h"
-//#include "../WDK/Ladder.h"
-//#include "../WDK/Enemy.h"
-//#include "../WDK/Switch.h"
-//#include "../WDK/Collectible.h"
-//#include "../WDK/Checkpoint.h"
-//#include "../WDK/Tree.h"
-//#include "../WDK/Platform.h"
+#include "EditorHelper.h"
 
 Editor::Editor(Game& g)
 {
@@ -718,6 +708,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 					if (grabbedEntity->physics != nullptr)
 					{
 						grabbedEntity->startPosition = grabbedEntity->position;
+						grabbedEntity->CalculateCollider();
 					}
 					grabbedEntity = nullptr;
 					DoAction();
@@ -826,7 +817,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	}
 }
 
-Entity* Editor::GetClickedEntity(const Vector2& clickedWorldPosition)
+Entity* Editor::GetClickedEntity(const Vector2& clickedWorldPosition, bool includeTiles)
 {
 	SDL_Rect point;
 	point.x = clickedWorldPosition.x;
@@ -845,15 +836,25 @@ Entity* Editor::GetClickedEntity(const Vector2& clickedWorldPosition)
 		bounds.w *= 2;
 		bounds.h *= 2;
 
-		if (game->entities[i]->etype != "tile" && HasIntersection(point, bounds))
+		if (includeTiles)
 		{
-			return game->entities[i];
+			if (HasIntersection(point, bounds))
+			{
+				return game->entities[i];
+			}
+		}
+		else
+		{
+			if (game->entities[i]->etype != "tile" && 
+				HasIntersection(point, bounds))
+			{
+				return game->entities[i];
+			}
 		}
 	}
 
 	return nullptr;
 }
-
 
 void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& clickedScreenPosition)
 {
@@ -1034,37 +1035,42 @@ void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector
 	if (previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE))
 		return;
 
-	Vector2 worldPosition = Vector2(clickedPosition.x + game->renderer.camera.position.x,
-		clickedPosition.y + game->renderer.camera.position.y);
+	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	SDL_Rect mouseRect;
-	mouseRect.x = worldPosition.x;
-	mouseRect.y = worldPosition.y;
-	mouseRect.w = TILE_SIZE;
-	mouseRect.h = TILE_SIZE;
-
-	// NOTE: You will need to exit out of edit mode and then go back in
-	// to change tiles that are being placed via the editor
-	for (unsigned int i = 0; i < game->entities.size(); i++)
+	// TODO: Maybe assign this to a different button or something?
+	if (input[SDL_SCANCODE_LCTRL])
 	{
-		if (HasIntersection(mouseRect, *game->entities[i]->GetBounds()))
+		Vector2 worldPosition = Vector2(clickedPosition.x + game->renderer.camera.position.x,
+			clickedPosition.y + game->renderer.camera.position.y);
+
+		SDL_Rect mouseRect;
+		mouseRect.x = worldPosition.x;
+		mouseRect.y = worldPosition.y;
+		mouseRect.w = TILE_SIZE;
+		mouseRect.h = TILE_SIZE;
+
+		// NOTE: You will need to exit out of edit mode and then go back in
+		// to change tiles that are being placed via the editor
+		for (unsigned int i = 0; i < game->entities.size(); i++)
 		{
-			// Toggle the jump thru property of tiles
-			if (game->entities[i]->etype == "tile")
+			if (HasIntersection(mouseRect, *game->entities[i]->GetBounds()))
 			{
-				game->entities[i]->jumpThru = !game->entities[i]->jumpThru;
-				break;
-			}			
+				// Toggle the jump thru property of tiles
+				if (game->entities[i]->etype == "tile")
+				{
+					game->entities[i]->jumpThru = !game->entities[i]->jumpThru;
+					break;
+				}
+			}
 		}
 	}
+	else
+	{
+		previewMap[objectMode]->rotation.z -= 90;
+		if (previewMap[objectMode]->rotation.z < 0)
+			previewMap[objectMode]->rotation.z += 360;
+	}
 
-	clickedWorldPosition = Vector2(mouseX / Camera::MULTIPLIER, mouseY / Camera::MULTIPLIER);
-	clickedWorldPosition.x += game->renderer.camera.position.x;
-	clickedWorldPosition.y += game->renderer.camera.position.y;
-
-	previewMap[objectMode]->rotation.z -= 90;
-	if (previewMap[objectMode]->rotation.z < 0)
-		previewMap[objectMode]->rotation.z += 360;
 }
 
 //TODO: Figure out how to structure this so we can add deleting stuff as an Action
@@ -1095,7 +1101,7 @@ void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2
 	}
 	else
 	{
-		Entity* entityToDelete = GetClickedEntity(clickedWorldPosition);
+		Entity* entityToDelete = GetClickedEntity(clickedWorldPosition, true);
 
 		if (entityToDelete != nullptr)
 		{
