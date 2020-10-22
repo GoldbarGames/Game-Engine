@@ -679,6 +679,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 				rotatedEntity->rotation.z += 90;
 				if (rotatedEntity->rotation.z >= 360)
 					rotatedEntity->rotation.z -= 360;
+				rotatedEntity->CalculateCollider();
 			}
 		}
 	}
@@ -1064,9 +1065,9 @@ void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector
 			}
 		}
 	}
-	else
+	else if (previewMap[objectMode] != nullptr)
 	{
-		previewMap[objectMode]->rotation.z -= 90;
+		previewMap[objectMode]->rotation.z -= 45;
 		if (previewMap[objectMode]->rotation.z < 0)
 			previewMap[objectMode]->rotation.z += 360;
 	}
@@ -1090,13 +1091,17 @@ void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2
 
 	if (objectMode == "rotate")
 	{
-		Entity* rotatedEntity = GetClickedEntity(clickedWorldPosition);
-
-		if (rotatedEntity != nullptr)
+		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)))
 		{
-			rotatedEntity->rotation.z -= 90;
-			if (rotatedEntity->rotation.z < 0)
-				rotatedEntity->rotation.z += 360;
+			Entity* rotatedEntity = GetClickedEntity(clickedWorldPosition);
+
+			if (rotatedEntity != nullptr)
+			{
+				rotatedEntity->rotation.z -= 90;
+				if (rotatedEntity->rotation.z < 0)
+					rotatedEntity->rotation.z += 360;
+				rotatedEntity->CalculateCollider();
+			}
 		}
 	}
 	else

@@ -68,15 +68,17 @@ Renderer::~Renderer()
 
 void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, Color color) const
 {
-	RenderDebugRect(targetRect, targetScale, Vector2(0, 0), color);
+	const glm::vec3 rotation = glm::vec3(0, 0, 0);
+	RenderDebugRect(targetRect, targetScale, Vector2(0, 0), rotation, color);
 }
 
-void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, const Vector2& targetPivot, Color color) const
+void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, 
+	const Vector2& targetPivot, const glm::vec3& rotation, Color color) const
 {
 	debugSprite->color = color;
 	debugSprite->pivot = targetPivot;
 	debugScale = Vector2(CalculateScale(*debugSprite, targetRect.w, targetRect.h, targetScale));
-	debugSprite->Render(Vector2(targetRect.x, targetRect.y), *this, debugScale);
+	debugSprite->Render(Vector2(targetRect.x, targetRect.y), *this, debugScale, rotation);
 }
 
 Vector2 Renderer::CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const

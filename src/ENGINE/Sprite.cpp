@@ -380,36 +380,55 @@ void Sprite::CalculateModel(Vector2 position, const glm::vec3& rotation, const V
 	if (rotation.x >= 89)
 		int test = 0;
 
+		/*
+	mat4 result = glm::translate(-pivot) *
+			  glm::scale(..) *
+			  glm::rotate(..) *
+			  glm::translate(pivot) *
+			  glm::translate(..);
+
+			    0.x = width
+				1.y = height
+				3.x = pos.x
+				3.y = pos.y
+
+				RECT
+				x1 = pos.x
+				y1 = pos.y
+				x2 = pos.x + width
+				y2 = pos.y + height
+
+				Check if point is within RECT
+	*/
+
+
 	// TODO: Maybe do a clever multiplication trick instead
+	/*
 	if (scale.x > 0) // flip the pivot x based on direction
 		position += Vector2(Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y);
 	else
 		position += Vector2(-Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y);
+		*/
 
 	// Only recalculate the model if position, rotation, or scale have changed
 	if (position != lastPosition || rotation != lastRotation || scale != lastScale || keepPositionRelativeToCamera)
 	{
 		model = glm::mat4(1.0f);
 
+		Vector2 pivotPoint = Vector2(Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y);
+
 		lastPosition = position;
 		lastRotation = rotation;
 		lastScale = scale;
 
 		// Translate, Rotate, Scale
+		float z = (renderer.guiCamera.useOrthoCamera) ? -2.0f : renderer.guiCamera.position.z;
 
 		// Position
 		if (keepPositionRelativeToCamera)
 		{
-			if (renderer.guiCamera.useOrthoCamera)
-			{
-				model = glm::translate(model, glm::vec3(position.x + renderer.guiCamera.position.x,
-					position.y + renderer.guiCamera.position.y, -2.0f));
-			}
-			else
-			{
-				model = glm::translate(model, glm::vec3(position.x + renderer.guiCamera.position.x,
-					position.y + renderer.guiCamera.position.y, renderer.guiCamera.position.z));
-			}
+			model = glm::translate(model, glm::vec3(position.x + renderer.guiCamera.position.x,
+				position.y + renderer.guiCamera.position.y, z));
 		}
 		else
 		{
@@ -417,16 +436,13 @@ void Sprite::CalculateModel(Vector2 position, const glm::vec3& rotation, const V
 		}
 
 		// Rotation
-		/*
-		if (!keepPositionRelativeToCamera)
-		{
-			
-		}*/
-
 		const float toRadians = 3.14159265f / 180.0f;
 		model = glm::rotate(model, rotation.x * toRadians, glm::vec3(-1.0f, 0.0f, 0.0f));
 		model = glm::rotate(model, rotation.y * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
 		model = glm::rotate(model, rotation.z * toRadians, glm::vec3(0.0f, 0.0f, -1.0f));
+
+		// We translate the pivot point here so that our rotations are aligned properly
+		model = glm::translate(model, glm::vec3(pivotPoint.x, pivotPoint.y, -2.0f));
 
 		// Scale
 		int width = 1;
@@ -439,7 +455,7 @@ void Sprite::CalculateModel(Vector2 position, const glm::vec3& rotation, const V
 
 		model = glm::scale(model, glm::vec3(-1 * scale.x * width / (GLfloat)(framesPerRow),
 			scale.y * height / (GLfloat)numberRows, 1.0f));
-	}	
+	}
 }
 
 // NOTE: This function expects a center-coordinate rectangle to be rendered,
