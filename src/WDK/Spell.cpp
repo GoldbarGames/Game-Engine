@@ -195,10 +195,33 @@ bool Spell::Cast(Game& game)
 	// by the current casting of the current spell
 	affectedEntities.clear();
 
-	// Stop moving horizontally at the start of casting a spell
-	player->physics->velocity.x = 0;
+	// TODO: Don't compare to strings, use numbers instead
+	if (names[activeSpell] != "push")
+	{
+		// Stop moving horizontally at the start of casting a spell
+		player->physics->velocity.x = 0;
+		player->canMove = false;
+		player->UpdateSpellAnimation(names[activeSpell].c_str());
+	}	
+	else
+	{
+		player->GetAnimator()->SetBool("timerElapsedPushStart", false);
+		player->GetAnimator()->SetBool("timerElapsedPushEnd", false);
 
-	player->UpdateSpellAnimation(names[activeSpell].c_str());
+		if (player->GetAnimator()->currentState->name == "push_loop"
+			|| player->GetAnimator()->currentState->name == "push_end")
+		{
+			player->GetAnimator()->SetBool("isCastingSpell", true);
+
+			// 4. Set the timer to the length of the casting animation
+			player->timerSpellOther.Start(player->GetAnimator()->currentState->speed *
+				(player->GetSprite()->endFrame - player->GetSprite()->startFrame));
+		}
+		else
+		{
+			player->UpdateSpellAnimation(names[activeSpell].c_str());
+		}
+	}	
 
 	if (names[activeSpell] != "protect")
 	{
@@ -229,6 +252,13 @@ bool Spell::CastPush(Game& game)
 	spellRangeRect.w = 64;
 	spellRangeRect.h = 52;
 
+	player->canMove = true;
+	if (player->GetAnimator()->currentState->name == "push" 
+		&& player->GetSprite()->HasAnimationElapsed())
+	{
+		player->GetAnimator()->SetBool("timerElapsedPushStart", true);
+	}
+
 	int DISTANCE_FROM_CENTER_X = 90;
 	int DISTANCE_FROM_CENTER_Y = 0;
 
@@ -250,7 +280,7 @@ bool Spell::CastPush(Game& game)
 	//	spellRange->w << "," << spellRange->h << ")" << std::endl;
 	//game.debugRectangles.push_back(spellRange);
 
-	const float PUSH_SPEED = 0.5f;
+	const float PUSH_SPEED = 0.012f;
 
 	Vector2 pushVelocity = Vector2(PUSH_SPEED, 0.0f);
 	if (player->scale.x < 0)
@@ -267,7 +297,7 @@ bool Spell::CastPush(Game& game)
 		{
 			if (game.entities[i] == affectedEntities[k])
 			{
-				alreadyAffectedBySpell = true;
+				alreadyAffectedBySpell = false;
 				break;
 			}
 		}

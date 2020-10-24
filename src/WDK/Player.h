@@ -43,6 +43,8 @@ public:
 	bool updatedAnimator = false;
 	bool isDouble = false;
 
+	bool canMove = true;
+
 	Player(const Vector2& pos);
 	~Player();
 	void Update(Game& game);

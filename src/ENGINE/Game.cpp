@@ -45,8 +45,6 @@
 #include "SoundManager.h"
 #include "RandomManager.h"
 
-
-
 static unsigned int allocationCount = 0;
 
 /*
@@ -1351,7 +1349,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			// NOT IMPLEMENTED YET
 				
 			case SDLK_v:
-				pressedSpellButton = true;
+				// pressedSpellButton = true;
 				break;
 			case SDLK_q:
 				pressedLeftTrigger = true;

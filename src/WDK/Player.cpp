@@ -134,18 +134,7 @@ void Player::Update(Game& game)
 	}
 	else
 	{
-		if (!spell.isCasting)
-		{
-			UpdateNormally(game);
-		}
-		else
-		{
-			// Update Physics while we cast the spell
-			if (physics->velocity.y < physics->CalcTerminalVelocity())
-				physics->velocity.y += Physics::GRAVITY * game.dt;
-
-			physics->CheckCollisions(game);
-		}
+		UpdateNormally(game);
 
 		if (!isDouble)
 		{
@@ -258,10 +247,19 @@ void Player::UpdateNormally(Game& game)
 	physics->pressingJumpButton = input[SDL_SCANCODE_X];
 	pressingRun = input[SDL_SCANCODE_Z];
 
+	// Press or hold the button down to cast a spell
+	game.pressedSpellButton = input[SDL_SCANCODE_V];
+
 	animator->SetBool("isRunning", false);
 	animator->SetBool("walking", false);
 	animator->SetBool("holdingUp", pressingUp);
 	animator->SetBool("holdingDown", pressingDown);
+	animator->SetBool("isHoldingSpellButton", game.pressedSpellButton);
+
+	if (animator->currentState->name == "push_end" && GetSprite()->HasAnimationElapsed())
+	{
+		animator->SetBool("timerElapsedPushEnd", true);
+	}
 
 	if (currentLadder != nullptr && !physics->hadPressedJump && physics->pressingJumpButton)
 	{
@@ -349,50 +347,62 @@ void Player::UpdateNormally(Game& game)
 		{
 			//TODO: Should we limit the number that can be spawned?
 			//TODO: Add a time limit between shots
-			if (game.pressedDebugButton && timerSpellDebug.HasElapsed() && !animator->GetBool("isCastingDebug"))
+			if (game.pressedDebugButton && timerSpellDebug.HasElapsed() 
+				&& !animator->GetBool("isCastingDebug"))
 			{
 				CastSpellDebug(game, input);
 			}
-			else if (game.pressedSpellButton && timerSpellOther.HasElapsed() && !spell.isCasting && !animator->GetBool("isCastingSpell"))
+			else if (game.pressedSpellButton && timerSpellOther.HasElapsed() && 
+				!spell.isCasting && !animator->GetBool("isCastingSpell"))
 			{
 				spell.isCasting = spell.Cast(game);
-				return;
 			}
 		}
 
-		spell.CycleSpells(game);
+		// If we're not currently casting a spell,
+		// allow the player to switch spells
+		if (!spell.isCasting)
+		{
+			spell.CycleSpells(game);
+		}		
 	}
 
-	// If on the ladder, only move up or down
-	if (animator->GetBool("onLadder"))
+	if (canMove)
 	{
-		GetLadderInput(input);
+		// If on the ladder, only move up or down
+		if (animator->GetBool("onLadder"))
+		{
+			GetLadderInput(input);
+		}
+		else
+		{
+			// Don't move if we are casting debug, or looking up/down
+			if (!animator->GetBool("holdingUp") && !animator->GetBool("holdingDown")
+				&& !animator->GetBool("isCastingDebug"))
+			{
+				GetMoveInput(input);
+			}
+			else if (physics->isGrounded)
+			{
+				physics->velocity.x = 0;
+			}
+
+			// Update Physics
+			if (physics->velocity.y < physics->CalcTerminalVelocity())
+				physics->velocity.y += Physics::GRAVITY * game.dt;
+		}
 
 		CheckJumpButton(input);
-
-		physics->CheckCollisions(game);
-	}
+	}	
 	else
 	{
-		// Don't move if we are casting debug, or looking up/down
-		if (!animator->GetBool("holdingUp") && !animator->GetBool("holdingDown") 
-			&& !animator->GetBool("isCastingDebug"))
+		if (timerSpellOther.HasElapsed())
 		{
-			GetMoveInput(input);
+			canMove = true;
 		}
-		else if (physics->isGrounded)
-		{
-			physics->velocity.x = 0;
-		}
-
-		CheckJumpButton(input);
-
-		// Update Physics
-		if (physics->velocity.y < physics->CalcTerminalVelocity())
-			physics->velocity.y += Physics::GRAVITY * game.dt;
-
-		physics->CheckCollisions(game);
 	}
+
+	physics->CheckCollisions(game);
 }
 
 void Player::CastSpellDebug(Game &game, const Uint8* input)

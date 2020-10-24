@@ -1916,6 +1916,7 @@ void Editor::CreateLevelFromString(std::string level)
 		// Make sure to clear the list of taken IDs 
 		// at the start of loading a level
 		Entity::takenIDs.clear();
+		Entity::nextValidID = 0;
 
 		lineNumber = 0;
 		while (lineNumber < lines.size())

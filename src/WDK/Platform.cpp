@@ -24,7 +24,6 @@ Platform::Platform(const Vector2& pos) : Entity(pos)
 	physics->mass = 10;
 }
 
-
 Platform::~Platform()
 {
 

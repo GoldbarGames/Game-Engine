@@ -77,6 +77,7 @@ uint32_t Entity::GenerateValidID()
 	return nextValidID;
 
 	/*
+	
 	if (takenIDs.find(nextValidID) == takenIDs.end())
 	{
 		return nextValidID;
@@ -106,7 +107,6 @@ uint32_t Entity::GenerateValidID()
 
 	nextValidID = i;
 	return nextValidID;*/
-
 }
 
 //TODO: Figure out what to do with the background layers
