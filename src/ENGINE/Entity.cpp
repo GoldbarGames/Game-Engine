@@ -284,19 +284,13 @@ void Entity::RenderDebug(const Renderer& renderer)
 				{
 					debugColor = { 255, 255, 0, 255 };
 				}
-				
-				renderer.RenderDebugRect(rect, scale, GetSprite()->pivot, rotation, debugColor);
+
+				renderer.RenderDebugRect(rect, scale, debugColor);
 			}
 
 			if (collider != nullptr && physics != nullptr)
 			{
-				SDL_Rect rect2;
-				rect2.x = collider->bounds->x - (Camera::MULTIPLIER * collider->offset.x);
-				rect2.y = collider->bounds->y - (Camera::MULTIPLIER * collider->offset.y);
-				rect2.w = collider->bounds->w;
-				rect2.h = collider->bounds->h;
-
-				renderer.RenderDebugRect(rect2, scale, collider->offset, rotation);
+				renderer.RenderDebugRect(*collider->bounds, scale);
 			}
 		}
 	}

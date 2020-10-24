@@ -7,7 +7,7 @@
 Shroom::Shroom(const Vector2& pos) : Entity(pos)
 {
 	etype = "shroom";
-	CreateCollider(0, 0, 24, 32);
+	CreateCollider(0, -15, 24, 32);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 10;
 
