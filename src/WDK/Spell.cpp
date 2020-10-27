@@ -134,6 +134,12 @@ void Spell::Update(Game& game)
 		}				
 	}
 
+	if (player->GetAnimator()->currentState->name == "push"
+		&& player->GetSprite()->HasAnimationElapsed())
+	{
+		player->GetAnimator()->SetBool("timerElapsedPushStart", true);
+	}
+
 	if (isCasting)
 	{
 		for (const auto& func : spellFunctions)
@@ -219,6 +225,7 @@ bool Spell::Cast(Game& game)
 		}
 		else
 		{
+			counter = 0;
 			player->UpdateSpellAnimation(names[activeSpell].c_str());
 		}
 	}	
@@ -253,11 +260,6 @@ bool Spell::CastPush(Game& game)
 	spellRangeRect.h = 52;
 
 	player->canMove = true;
-	if (player->GetAnimator()->currentState->name == "push" 
-		&& player->GetSprite()->HasAnimationElapsed())
-	{
-		player->GetAnimator()->SetBool("timerElapsedPushStart", true);
-	}
 
 	int DISTANCE_FROM_CENTER_X = 90;
 	int DISTANCE_FROM_CENTER_Y = 0;
@@ -280,7 +282,16 @@ bool Spell::CastPush(Game& game)
 	//	spellRange->w << "," << spellRange->h << ")" << std::endl;
 	//game.debugRectangles.push_back(spellRange);
 
-	const float PUSH_SPEED = 0.012f;
+	const float PUSH_SPEED = 0.03f;
+
+	counter++;
+	
+	if (counter < 2)
+	{
+		return true;
+	}
+
+	counter = 0;
 
 	Vector2 pushVelocity = Vector2(PUSH_SPEED, 0.0f);
 	if (player->scale.x < 0)

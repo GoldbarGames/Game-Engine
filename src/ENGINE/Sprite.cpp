@@ -352,6 +352,7 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 
 			if (currentFrame > endFrame)
 			{
+				playedOnce = true;
 				if (shouldLoop)
 				{
 					currentFrame = startFrame;
@@ -546,7 +547,7 @@ const SDL_Rect* Sprite::GetRect()
 
 bool Sprite::HasAnimationElapsed()
 {
-	return (previousFrame > currentFrame) || (endFrame - startFrame == 0) || (!shouldLoop && currentFrame == endFrame);
+	return (previousFrame > currentFrame && playedOnce) || (endFrame - startFrame == 0) || (!shouldLoop && currentFrame == endFrame);
 }
 
 void Sprite::ResetFrame()

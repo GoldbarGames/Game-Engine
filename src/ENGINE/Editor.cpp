@@ -1966,6 +1966,9 @@ void Editor::CreateLevelFromString(std::string level)
 					}
 				}
 
+				if (etype == "pathnode")
+					int test = 0;
+
 				if (etype == "player")
 				{
 					positionX = std::stoi(tokens[indexOfPositionX]);
@@ -2049,10 +2052,12 @@ void Editor::CreateLevelFromString(std::string level)
 					positionY = std::stoi(tokens[indexOfPositionY]);
 					subtype = tokens[indexOfSubtype];
 
+					// To prevent errors
+					if (subtype == "")
+						subtype = "0";
+
 					Entity* newEntity = game->SpawnEntity(etype,
-						Vector2(std::stoi(tokens[indexOfPositionX]), 
-							std::stoi(tokens[indexOfPositionY])), 
-						std::stoi(tokens[indexOfSubtype]));
+						Vector2(positionX,positionY), std::stoi(subtype));
 
 					if (newEntity != nullptr)
 					{

@@ -300,16 +300,29 @@ void CutsceneManager::CheckKeys()
 		else if (input[SDL_SCANCODE_I]) // make checkpoint
 		{
 #if _DEBUG
-			checkpoint.labelIndex = labelIndex;
-			checkpoint.lineIndex = lineIndex;
+			SaveGame("checkpoint.sav");
+			inputTimer.Start(inputTimeToWait);
+			//checkpoint.labelIndex = labelIndex;
+			//checkpoint.lineIndex = lineIndex;
 #endif
 		}
 		else if (input[SDL_SCANCODE_O]) // load checkpoint
 		{
 #if _DEBUG
-			labelIndex = checkpoint.labelIndex;
-			lineIndex = checkpoint.lineIndex;
-			commandIndex = 0;			
+			// Reload the script for any changes
+			ReadCutsceneFile();
+			ParseCutsceneFile();
+			game->ResetLevel();
+
+			// Jump to the checkpoint
+			LoadGame("checkpoint.sav");
+			ReadNextLine();
+			isCarryingOutCommands = false;
+			inputTimer.Start(inputTimeToWait);
+
+			//labelIndex = checkpoint.labelIndex;
+			//lineIndex = checkpoint.lineIndex;
+			//commandIndex = 0;			
 #endif
 		}
 		else if (input[SDL_SCANCODE_TAB])
@@ -602,18 +615,33 @@ void CutsceneManager::JumpBack()
 
 void CutsceneManager::JumpForward()
 {
-	for (unsigned int i = 0; i < labels.size(); i++)
+	for (unsigned int i = labelIndex; i < labels.size(); i++)
 	{
-		for (unsigned int j = 0; j < labels[i].lines.size(); j++)
+		unsigned int j = 0;
+		if (i == labelIndex)
 		{
-			for (unsigned int k = 0; k < labels[i].lines[j].commands.size(); k++)
+			j = lineIndex;
+		}
+
+		for (j; j < labels[i].lines.size(); j++)
+		{
+			unsigned int k = 0;
+			if (j == lineIndex)
 			{
-				if (labels[i].lines[j].commands[k][0] == '~')
+				k = commandIndex;
+			}
+
+			for (k; k < labels[i].lines[j].commands.size(); k++)
+			{
+				std::string cmd = labels[i].lines[j].commands[k];
+
+				if (cmd[0] == '~')
 				{
 					currentLabel = JumpToLabel(labels[i].name.c_str());
 					labelIndex = i;
 					lineIndex = j;
 					commandIndex = k;
+					return;
 				}
 			}
 		}
@@ -1047,6 +1075,10 @@ void CutsceneManager::UpdateText()
 						unfinishedCommands.push_back(currentLabel->lines[lineIndex].commands[commandIndex]);
 					}
 					commandIndex++;
+					// TODO: What happens if current label is nullptr here?
+					if (currentLabel == nullptr)
+						return;
+
 					if (commandIndex >= currentLabel->lines[lineIndex].commands.size())
 						break;
 					
@@ -1624,9 +1656,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 
 				if (entity != nullptr)
 				{
-					std::string s = typeid(*entity).name();
-					std::cout << s << std::endl;
-					if (s == "class Text")
+					if (entity->etype == "text")
 					{
 						//TODO: Store font, size, style, etc. (for each letter)
 						Text* text = static_cast<Text*>(entity);
@@ -1661,9 +1691,14 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 					}
 					else
 					{
+						std::string fname = entity->GetSprite()->filename;
+
+						if (fname.size() < 1)
+							fname = "None";
+
 						fout << var.first  // key
 							<< " "
-							<< entity->GetSprite()->filename
+							<< fname
 							<< " "
 							<< entity->position.x
 							<< " "
@@ -1767,6 +1802,11 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 	fin.close();
 
 	gosubStack.clear();
+
+	// Temporarily remove the path prefix
+	// to correctly load sprites
+	std::string pathPrefix = commands.pathPrefix;
+	commands.pathPrefix = "";
 
 	// While we have lines to examine
 	// Check the first character for an @ symbol
@@ -1903,15 +1943,15 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				break;
 			case SaveSections::OTHER_STUFF:
 
-				if (lineParams[0] == "bgm")
+				if (lineParams[0] == "bgm" && lineParams.size() > 1)
 				{
 					game->soundManager.PlayBGM(lineParams[1]);
 				}
-				else if (lineParams[0] == "me")
+				else if (lineParams[0] == "me" && lineParams.size() > 2)
 				{
 					game->soundManager.PlaySound(lineParams[2], std::stoi(lineParams[1]));
 				}
-				else if (lineParams[0] == "se")
+				else if (lineParams[0] == "se" && lineParams.size() > 3)
 				{
 					game->soundManager.PlaySound(lineParams[2], std::stoi(lineParams[1]), std::stoi(lineParams[3]));
 				}
@@ -1944,12 +1984,5 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 		index++;
 	}
 
-	// 2. Load string variables (keys and values)
-	// 3. Load number variables (keys and values)
-	// 4. Load string aliases (keys and values)
-	// 5. Load number aliases (keys and values)
-	// 6. Load object information (sprite number, filepath/text, position, rotation, color, etc.)
-	// 7. Load other important things (random seed, music volume, textbox color, etc.)
-
-
+	commands.pathPrefix = pathPrefix;
 }

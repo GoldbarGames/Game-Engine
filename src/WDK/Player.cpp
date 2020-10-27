@@ -256,9 +256,12 @@ void Player::UpdateNormally(Game& game)
 	animator->SetBool("holdingDown", pressingDown);
 	animator->SetBool("isHoldingSpellButton", game.pressedSpellButton);
 
-	if (animator->currentState->name == "push_end" && GetSprite()->HasAnimationElapsed())
+	if (animator->currentState->name == "push_end")
 	{
-		animator->SetBool("timerElapsedPushEnd", true);
+		if (currentSprite.currentFrame == currentSprite.endFrame)
+		{
+			animator->SetBool("timerElapsedPushEnd", true);
+		}		
 	}
 
 	if (currentLadder != nullptr && !physics->hadPressedJump && physics->pressingJumpButton)
@@ -563,10 +566,10 @@ void Player::GetMoveInput(const Uint8* input)
 		physics->ApplyFriction(0.05f);
 	}
 
-	float runFactor = 1.0f;
+	float runFactor = 0.8f;
 	if (pressingRun)
 	{
-		runFactor = 1.5f;
+		runFactor = 1.2f;
 	}
 
 	if (physics->velocity.x > runFactor * physics->maxHorizontalSpeed)

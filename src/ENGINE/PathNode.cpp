@@ -1,19 +1,10 @@
 #include "PathNode.h"
 #include "Renderer.h"
 
-PathNode::PathNode(const Vector2& pos)
+PathNode::PathNode(const Vector2& pos) : Entity(pos)
 {
-	point = pos;
-
-	rect.x = (int)pos.x;
-	rect.y = (int)pos.y;
-	rect.w = (TILE_SIZE / 2);
-	rect.h = (TILE_SIZE / 2);
-
-	renderRect.x = (int)pos.x;
-	renderRect.y = (int)pos.y;
-	renderRect.w = (TILE_SIZE / 2);
-	renderRect.h = (TILE_SIZE / 2);
+	etype = "pathnode";
+	shouldSave = true;
 }
 
 PathNode::~PathNode()
@@ -21,21 +12,28 @@ PathNode::~PathNode()
 
 }
 
-const SDL_Rect* PathNode::GetRect()
+void PathNode::Render(const Renderer& renderer)
 {
-	return &rect;
+	renderer.debugSprite->color = { 0, 255, 255, 255 };
+	renderer.debugSprite->Render(position, renderer, scale);
 }
 
-const SDL_Rect* PathNode::GetRenderRect()
+void PathNode::Save(std::unordered_map<std::string, std::string>& map)
 {
-	return &renderRect;
+	Entity::Save(map);
 }
 
-const SDL_Rect* PathNode::CalcRenderRect(Vector2 cameraOffset)
+void PathNode::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	renderRect.x = (int)(rect.x - cameraOffset.x);
-	renderRect.y = (int)(rect.y - cameraOffset.y);
-	renderRect.w = (int)(TILE_SIZE / 2);
-	renderRect.h = (int)(TILE_SIZE / 2);
-	return &renderRect;
+	Entity::Load(map, game);
+}
+
+void PathNode::GetProperties(std::vector<Property*>& properties)
+{
+	Entity::GetProperties(properties);
+}
+
+void PathNode::SetProperty(const std::string& key, const std::string& newValue)
+{
+
 }

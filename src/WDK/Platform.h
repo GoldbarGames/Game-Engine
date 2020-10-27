@@ -17,6 +17,7 @@ public:
 	int pathID = 0;
 	int pathNodeID = 0;
 	float pathSpeed = 0;
+	bool movingForwardOnPath = true;
 	bool traversePathForward = true;
 	std::string endPathBehavior = "";
 	std::string directionX = "none";

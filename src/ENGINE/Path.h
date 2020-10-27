@@ -11,22 +11,27 @@ class Path : public Entity
 
 public:
 	bool shouldLoop = false;
+	int nodeCount = 0;
 	std::vector<PathNode*> nodes;
+	std::unordered_map<int, int> nodeIDs;
+
+
 	Path(const Vector2& startPoint);
 	~Path();
 	void AddPointToPath(const Vector2& point);
 	void RemovePointFromPath(const Vector2& point);	
 	bool IsPointInPath(const Vector2& point);
 
-	void Render(const Renderer& renderer, unsigned int uniformModel);
-	const SDL_Rect* GetBounds();
+	void Update(Game& game);
+	void Render(const Renderer& renderer);
 
 	void Save(std::unordered_map<std::string, std::string>& map);
-	void Load(int& index, const std::vector<std::string>& tokens,
-		std::unordered_map<std::string, std::string>& map, Game& game);
+	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
+
+	static Entity* __stdcall Create(const Vector2& pos) { return neww Path(pos); };
 };
 
 #endif

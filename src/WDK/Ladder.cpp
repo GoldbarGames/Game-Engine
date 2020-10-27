@@ -15,6 +15,7 @@ Ladder::Ladder(const Vector2& pos) : Entity(pos)
 	drawOrder = 90;
 	trigger = true;
 	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
+	shouldSave = true;
 }
 
 Ladder::~Ladder()

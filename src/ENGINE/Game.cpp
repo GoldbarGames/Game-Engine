@@ -1628,7 +1628,8 @@ void Game::Update()
 	quadTree.Reset();
 	for (int i = 0; i < entities.size(); i++)
 	{
-		if (entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru || entities[i]->etype == "player")
+		if (entities[i]->impassable || entities[i]->trigger 
+			|| entities[i]->jumpThru || entities[i]->etype == "player")
 			quadTree.Insert(entities[i]);
 	}
 		

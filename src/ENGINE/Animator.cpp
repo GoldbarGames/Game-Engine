@@ -122,7 +122,12 @@ void Animator::SetSpriteFromState(AnimState* animState, Sprite& sprite)
 		sprite.pivot = Vector2(animState->pivotX, animState->pivotY);
 
 		if (sprite.currentFrame > sprite.endFrame)
+		{
 			sprite.currentFrame = sprite.startFrame;
+			sprite.previousFrame = sprite.currentFrame;
+		}
+
+		sprite.playedOnce = false;
 
 		//TODO: This only works if there is only one row, but that is okay for now
 		sprite.numberFramesInTexture = sprite.texture->GetWidth() / sprite.frameWidth;

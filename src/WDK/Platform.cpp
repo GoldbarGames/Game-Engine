@@ -50,12 +50,12 @@ std::string Platform::CalcDirection(bool x)
 	if (x)
 	{
 		// if we need to go to the right...
-		if (nextPos.x < currentPath->nodes[pathNodeID]->point.x)
+		if (nextPos.x < currentPath->nodes[pathNodeID]->position.x)
 		{
 			return "right";
 		}
 		// if we need to go to the left...
-		else if (nextPos.x > currentPath->nodes[pathNodeID]->point.x)
+		else if (nextPos.x > currentPath->nodes[pathNodeID]->position.x)
 		{
 			return "left";
 		}
@@ -67,12 +67,12 @@ std::string Platform::CalcDirection(bool x)
 	else
 	{
 		// if we need to go down...
-		if (nextPos.y < currentPath->nodes[pathNodeID]->point.y)
+		if (nextPos.y < currentPath->nodes[pathNodeID]->position.y)
 		{
 			return "down";
 		}
 		// if we need to go up...
-		else if (nextPos.y > currentPath->nodes[pathNodeID]->point.y)
+		else if (nextPos.y > currentPath->nodes[pathNodeID]->position.y)
 		{
 			return "up";
 		}
@@ -132,6 +132,71 @@ void Platform::Update(Game& game)
 		physics->velocity = Vector2(0, 0);
 	}
 
+	if (platformType == "Path")
+	{
+		if (currentPath == nullptr && pathID > -1)
+		{
+			// Find the path and assign it
+			bool foundPath = false;
+			for (int i = 0; i < game.entities.size(); i++)
+			{
+				if (game.entities[i]->id == pathID && game.entities[i]->etype == "path")
+				{
+					currentPath = static_cast<Path*>(game.entities[i]);
+					foundPath = true;
+					break;
+				}
+			}
+
+			if (!foundPath)
+			{
+				pathID = -1;
+			}
+		}
+		else if (currentPath != nullptr) // if we have the path, move to the next point
+		{
+			if (pathNodeID >= currentPath->nodes.size())
+				return;
+
+			lastPosition = position;
+
+			LerpVector2(position, currentPath->nodes[pathNodeID]->position, 50.0f, 2.0f);
+
+			if (position.RoundToInt() == currentPath->nodes[pathNodeID]->position.RoundToInt())
+			{
+				// loop for now
+				if (movingForwardOnPath)
+				{
+					pathNodeID++;					
+					if (pathNodeID >= currentPath->nodes.size())
+					{
+						movingForwardOnPath = false;
+						pathNodeID--;
+					}						
+				}
+				else
+				{
+					pathNodeID--;
+					if (pathNodeID < 0)
+					{
+						movingForwardOnPath = true;
+						pathNodeID++;
+					}						
+				}
+
+			}
+
+			// Set velocity based on the distance traveled
+			physics->velocity = Vector2((position.x - lastPosition.x) / game.dt,
+				(position.y - lastPosition.y) / game.dt);
+
+			if (collider != nullptr)
+			{
+				CalculateCollider();
+			}
+		}
+	}
+
 	return;
 
 
@@ -164,8 +229,8 @@ void Platform::Update(Game& game)
 		//Vector2 posCenter = Vector2(posCenterX, posCenterY);
 
 		// Move towards the next point in the path at the specified speed
-		float dx = currentPath->nodes[pathNodeID]->point.x - position.x;
-		float dy = currentPath->nodes[pathNodeID]->point.y - position.y;
+		float dx = currentPath->nodes[pathNodeID]->position.x - position.x;
+		float dy = currentPath->nodes[pathNodeID]->position.y - position.y;
 
 		float length = sqrtf(dx*dx + dy*dy);
 
@@ -190,7 +255,7 @@ void Platform::Update(Game& game)
 
 		// If we are at the point, then set the destination to the next point
 
-		if (wrongDirection || RoundToInt(position) == RoundToInt(currentPath->nodes[pathNodeID]->point))
+		if (wrongDirection || RoundToInt(position) == RoundToInt(currentPath->nodes[pathNodeID]->position))
 		{
 			physics->velocity.x = 0;
 			physics->velocity.y = 0;
@@ -269,6 +334,13 @@ void Platform::GetProperties(std::vector<Property*>& properties)
 	{
 		properties.emplace_back(new Property("Switch Distance X", switchDistanceMoved.x));
 		properties.emplace_back(new Property("Switch Distance Y", switchDistanceMoved.y));
+	}
+
+	properties.emplace_back(new Property("Platform Type", platformType));
+	if (platformType == "Path")
+	{
+		properties.emplace_back(new Property("Path ID", pathID));
+		properties.emplace_back(new Property("Speed", pathSpeed));
 	}
 
 	/*

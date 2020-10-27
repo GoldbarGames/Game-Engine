@@ -40,6 +40,8 @@ public:
 	std::vector<Sprite*> spellIcons;
 	std::vector<Entity*> affectedEntities;
 
+	int counter = 0;
+
 	Player* player = nullptr;
 	Player* playerClone = nullptr;
 

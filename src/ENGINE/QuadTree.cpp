@@ -230,7 +230,8 @@ void QuadTree::Insert(Entity* newEntity)
         }        
     }
 
-    entities.push_back(newEntity);
+    // TODO: This line crashes when there are less than 6 entities in the level. Why???
+    entities.emplace_back(newEntity);
     newEntity->quadrant = this;
 
     int MAX_ENTITIES = 4;

@@ -2,20 +2,25 @@
 #define PATHNODE_H
 #pragma once
 
+#include "Entity.h"
 #include "Vector2.h"
 #include <SDL.h>
-class PathNode
+class PathNode : public Entity
 {
-	SDL_Rect rect;
-	SDL_Rect renderRect;
+
 public:
-	Vector2 point = Vector2(0,0);
-	
 	PathNode(const Vector2& pos);
 	~PathNode();
-	const SDL_Rect* GetRect();
-	const SDL_Rect* GetRenderRect();
-	const SDL_Rect* CalcRenderRect(Vector2 cameraOffset);
+
+	void Render(const Renderer& renderer);
+
+	void Save(std::unordered_map<std::string, std::string>& map);
+	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
+
+	void GetProperties(std::vector<Property*>& properties);
+	void SetProperty(const std::string& key, const std::string& newValue);
+
+	static Entity* __stdcall Create(const Vector2& pos) { return neww PathNode(pos); };
 };
 
 #endif

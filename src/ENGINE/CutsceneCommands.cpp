@@ -627,7 +627,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 
 					for (int i = 0; i < subcommands.size(); i++)
 					{
-						ExecuteCommand(subcommands[i]);
+						ExecuteCommand(Trim(subcommands[i]));
 					}
 				}
 				else
@@ -635,7 +635,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 					// If this is from a choice, don't evaluate any more
 					manager->choiceIfStatements.clear();
 
-					ExecuteCommand(nextCommand);
+					ExecuteCommand(Trim(nextCommand));
 				}
 
 				
@@ -1270,6 +1270,7 @@ int CutsceneCommands::SetNumAlias(CutsceneParameters parameters)
 {
 	cacheParseNumbers.erase(parameters[1]);
 	numalias[parameters[1]] = ParseNumberValue(parameters[2]);
+	SetNumberVariable({ "", parameters[2], "0" });
 	return 0;
 }
 

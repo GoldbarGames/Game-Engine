@@ -553,6 +553,7 @@ void PhysicsComponent::ApplyFriction(float friction)
 		}
 	}
 
+
 }
 
 void PhysicsComponent::PreviousFrameCollisions(Game& game)
@@ -684,6 +685,16 @@ void PhysicsComponent::Update(Game& game)
 		}
 	}
 	*/
+
+	if (velocity.y > maxHorizontalSpeed)
+		velocity.y = maxHorizontalSpeed;
+	else if (velocity.y < -maxHorizontalSpeed)
+		velocity.y = -maxHorizontalSpeed;
+
+	if (velocity.x > maxHorizontalSpeed)
+		velocity.x = maxHorizontalSpeed;
+	else if (velocity.x < -maxHorizontalSpeed)
+		velocity.x = -maxHorizontalSpeed;
 
 	if (our->GetAnimator() != nullptr)
 		our->GetAnimator()->Update(*our);

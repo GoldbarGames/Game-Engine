@@ -6,7 +6,7 @@
 
 Text::Text() : Entity(Vector2(0,0))
 {
-
+	etype = "text";
 }
 
 Text::~Text()

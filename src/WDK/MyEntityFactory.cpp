@@ -1,6 +1,8 @@
 #include "MyEntityFactory.h"
 #include "Door.h"
 #include "Ladder.h"
+#include "../ENGINE/Path.h"
+#include "../ENGINE/PathNode.h"
 #include "Platform.h"
 #include "Player.h"
 #include "NPC.h"
@@ -20,6 +22,8 @@ MyEntityFactory::MyEntityFactory() : EntityFactory()
     Register("door", &Door::Create);
     Register("ladder", &Ladder::Create);
     Register("platform", &Platform::Create);
+    Register("path", &Path::Create);
+    Register("pathnode", &PathNode::Create);
     Register("player", &Player::Create);
     Register("npc", &NPC::Create);
     Register("block", &Block::Create);

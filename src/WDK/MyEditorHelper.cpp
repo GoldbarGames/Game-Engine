@@ -65,7 +65,7 @@ void MyEditorHelper::CreateLevelEnd()
 			if (loadListMovingPlatforms[i]->pathID == loadListPaths[k]->id)
 			{
 				loadListMovingPlatforms[i]->currentPath = loadListPaths[k];
-				loadListMovingPlatforms[i]->SetPosition(loadListPaths[k]->nodes[0]->point);
+				loadListMovingPlatforms[i]->SetPosition(loadListPaths[k]->nodes[0]->position);
 				break;
 			}
 		}
@@ -95,7 +95,7 @@ void MyEditorHelper::Render(const Renderer& renderer)
 
 void MyEditorHelper::PlaceObject(Vector2& snappedPosition)
 {
-	if (editor->objectMode == "path")
+	if (editor->objectMode == "path2") // TODO: Make this better
 	{
 		// If we do not have a path, create a neww one
 		/*

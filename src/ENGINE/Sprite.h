@@ -62,6 +62,8 @@ public:
 	int frameWidth = 1;
 	int frameHeight = 1;
 
+	bool playedOnce = false;
+
 	Vector2 lastPosition = Vector2(0, 0);
 	glm::vec3 lastRotation = glm::vec3(0, 0, 0);
 	Vector2 lastScale = Vector2(0, 0);
