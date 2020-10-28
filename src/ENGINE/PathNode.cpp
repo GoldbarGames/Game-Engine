@@ -1,5 +1,6 @@
 #include "PathNode.h"
 #include "Renderer.h"
+#include "Game.h"
 
 PathNode::PathNode(const Vector2& pos) : Entity(pos)
 {
@@ -14,8 +15,11 @@ PathNode::~PathNode()
 
 void PathNode::Render(const Renderer& renderer)
 {
-	renderer.debugSprite->color = { 0, 255, 255, 255 };
-	renderer.debugSprite->Render(position, renderer, scale);
+	if (renderer.game->editMode || renderer.game->debugMode)
+	{
+		renderer.debugSprite->color = { 0, 255, 255, 255 };
+		renderer.debugSprite->Render(position, renderer, scale);
+	}
 }
 
 void PathNode::Save(std::unordered_map<std::string, std::string>& map)

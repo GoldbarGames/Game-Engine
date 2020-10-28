@@ -58,6 +58,7 @@ void MyEditorHelper::CreateLevelEnd()
 
 
 	// Match all platforms moving on paths with their assigned path
+	/*
 	for (unsigned int i = 0; i < loadListMovingPlatforms.size(); i++)
 	{
 		for (unsigned int k = 0; k < loadListPaths.size(); k++)
@@ -70,6 +71,7 @@ void MyEditorHelper::CreateLevelEnd()
 			}
 		}
 	}
+	*/
 }
 
 void MyEditorHelper::Render(const Renderer& renderer)

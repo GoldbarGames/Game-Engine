@@ -385,10 +385,44 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 							//std::cout << "set parent!" << std::endl;
 							parent = entity;
 							our->GetAnimator()->SetBool("hasParent", true);
-						}
+							
+							if (parent != nullptr && parent->physics != nullptr)
+							{
+								// If we need to slow down to stay on the platform, apply friction
+								if (std::abs(velocity.x) > std::abs(parent->physics->velocity.x))
+								{
+									ApplyFriction(0.005f);
+								}
 
-						// Apply friction horizontally
-						ApplyFriction(0.005f);
+								// If parent is moving and we are not, then make us move with parent
+								// Otherwise, just move according to our own speed
+								bool p = (velocity.x == parent->physics->previousVelocity.x);
+
+								if ((velocity.x == 0 || p))
+								{
+									velocity.x = parent->physics->velocity.x;
+								}
+
+								if (parent->physics->velocity.y != 0)
+								{
+									velocity.y = parent->physics->velocity.y;
+								}
+							}
+
+							if (parent != nullptr && parent->physics->velocity.y != 0)
+							{
+								isGrounded = true;
+
+								if (parent->physics->velocity.y > 0)
+								{
+									velocity.y = parent->physics->velocity.y;
+								}
+							}
+						}
+						else
+						{
+							ApplyFriction(0.005f);
+						}
 
 						jumpsRemaining = 1;
 
@@ -462,6 +496,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	if (prevParent != nullptr && parent == nullptr)
 	{
 		//std::cout << "lost parent!" << std::endl;
+		velocity.x = 0;
 	}
 
 	// When a collision is only horizontal and not vertical,
@@ -552,8 +587,6 @@ void PhysicsComponent::ApplyFriction(float friction)
 			velocity.x = std::min(velocity.x + friction, 0.0f);
 		}
 	}
-
-
 }
 
 void PhysicsComponent::PreviousFrameCollisions(Game& game)

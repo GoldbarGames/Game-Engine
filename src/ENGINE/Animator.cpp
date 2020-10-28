@@ -188,8 +188,8 @@ void Animator::Update(Entity& entity)
 
 			if (allConditionsTrue) // then go to the next state
 			{
-				if (entity.etype == "player")
-					std::cout << condition->nextState.c_str() << std::endl;
+				//if (entity.etype == "player")
+				//	std::cout << condition->nextState.c_str() << std::endl;
 
 				SetState(condition->nextState.c_str());
 				DoState(entity);

@@ -380,8 +380,7 @@ void Player::UpdateNormally(Game& game)
 		else
 		{
 			// Don't move if we are casting debug, or looking up/down
-			if (!animator->GetBool("holdingUp") && !animator->GetBool("holdingDown")
-				&& !animator->GetBool("isCastingDebug"))
+			if (!pressingUp && !pressingDown && !animator->GetBool("isCastingDebug"))
 			{
 				GetMoveInput(input);
 			}
@@ -563,7 +562,16 @@ void Player::GetMoveInput(const Uint8* input)
 	{
 		//physics->velocity.x = 0;
 		animator->SetBool("isRunning", false);
-		physics->ApplyFriction(0.05f);
+
+		// If we are on a moving platform, set velocity to zero, no friction
+		if (physics->parent != nullptr)
+		{
+			physics->velocity.x = 0;
+		}
+		else
+		{
+			physics->ApplyFriction(0.05f);
+		}
 	}
 
 	float runFactor = 0.8f;

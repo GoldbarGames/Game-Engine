@@ -705,11 +705,8 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 				// If the entity is allowed to spawn here, then place it there
 				if (grabbedEntity->CanSpawnHere(Vector2(mouseX, mouseY), *game, false))
 				{
-					if (grabbedEntity->physics != nullptr)
-					{
-						grabbedEntity->startPosition = grabbedEntity->position;
-						grabbedEntity->CalculateCollider();
-					}
+					grabbedEntity->startPosition = grabbedEntity->position;
+					grabbedEntity->CalculateCollider();
 					grabbedEntity = nullptr;
 					DoAction();
 				}
@@ -1701,6 +1698,19 @@ std::string Editor::SaveLevelAsString()
 				level << "0 ";
 			}
 		}
+
+		// TODO: Don't hardcode this
+		if (game->entities[i]->etype == "path")
+		{
+			int nodeCount = std::stoi(map["nodeCount"]);
+			std::string key = "";
+			for (int i = 0; i < nodeCount; i++)
+			{
+				key = "nodeID_" + std::to_string(i);
+				level << map[key] << " ";
+			}
+		}
+
 		level << "\n";
 	}
 
@@ -1966,8 +1976,14 @@ void Editor::CreateLevelFromString(std::string level)
 					}
 				}
 
-				if (etype == "pathnode")
-					int test = 0;
+				if (etype == "path")
+				{
+					int nodeCount = std::stoi(map["nodeCount"]);
+					for (int i = 0; i < nodeCount; i++)
+					{
+						map["nodeID_" + std::to_string(i)] = tokens[index++];
+					}
+				}
 
 				if (etype == "player")
 				{
@@ -1977,19 +1993,6 @@ void Editor::CreateLevelFromString(std::string level)
 				}
 				else if (etype == "tile")
 				{
-					//map["id"] = tokens[index++];
-					//map["type"] = tokens[index++];
-					//map["positionX"] = tokens[index++];
-					//map["positionY"] = tokens[index++];
-
-					//map["drawOrder"] = tokens[index++];
-					//map["layer"] = tokens[index++];
-
-					//map["passableState"] = tokens[index++];
-					//map["tilesheet"] = tokens[index++];
-					//map["frameX"] = tokens[index++];
-					//map["frameY"] = tokens[index++];
-
 					Entity::nextValidID = std::stoi(map[STR_ID]);
 
 					int tilesheetIndex = std::stoi(map[STR_TILESHEET]);
@@ -2062,7 +2065,7 @@ void Editor::CreateLevelFromString(std::string level)
 					if (newEntity != nullptr)
 					{
 						newEntity->Load(map, *game);
-						newEntity->Init(game->entityTypes[etype][std::stoi(tokens[5])]);
+						newEntity->Init(game->entityTypes[etype][std::stoi(tokens[indexOfSubtype])]);
 					}
 				}
 			}

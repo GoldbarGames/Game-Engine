@@ -12,7 +12,7 @@ Ladder::Ladder(const Vector2& pos) : Entity(pos)
 {
 	etype = "ladder";
 	layer = DrawingLayer::COLLISION;
-	drawOrder = 90;
+	drawOrder = 8;
 	trigger = true;
 	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
 	shouldSave = true;

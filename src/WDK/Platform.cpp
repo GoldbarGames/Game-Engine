@@ -22,6 +22,8 @@ Platform::Platform(const Vector2& pos) : Entity(pos)
 	physics->canBePushed = false; // TODO: Is there some potential here?
 	physics->useGravity = false;
 	physics->mass = 10;
+
+	shouldSave = true;
 }
 
 Platform::~Platform()
@@ -85,6 +87,8 @@ std::string Platform::CalcDirection(bool x)
 
 void Platform::Update(Game& game)
 {
+	physics->previousVelocity = physics->velocity;
+
 	if (attachedSwitch != nullptr)
 	{
 		lastPosition = position;
@@ -158,9 +162,19 @@ void Platform::Update(Game& game)
 			if (pathNodeID >= currentPath->nodes.size())
 				return;
 
+			// If we just changed directions, wait a bit before moving again
+			if (wasMovingForward != movingForwardOnPath)
+			{
+				delayCounter++;
+				if (delayCounter < delayMax)
+					return;
+			}
+
+			delayCounter = 0;
+			wasMovingForward = movingForwardOnPath;
 			lastPosition = position;
 
-			LerpVector2(position, currentPath->nodes[pathNodeID]->position, 50.0f, 2.0f);
+			LerpVector2(position, currentPath->nodes[pathNodeID]->position, pathSpeed, 2.0f);
 
 			if (position.RoundToInt() == currentPath->nodes[pathNodeID]->position.RoundToInt())
 			{
@@ -197,9 +211,14 @@ void Platform::Update(Game& game)
 		}
 	}
 
+	// NOTE: We do not want to update this the normal way here,
+	// because it is already changing its position,
+	// so we do not want to do it again
+	//Entity::Update(game);
+
 	return;
 
-
+	/*
 	if (platformType == "Move")
 	{
 		physics->SetVelocity(startVelocity);
@@ -307,10 +326,7 @@ void Platform::Update(Game& game)
 		physics->velocity.y = 0;
 	}
 
-	
-
-	Entity::Update(game);
-
+	*/
 
 }
 
@@ -442,7 +458,6 @@ void Platform::SetProperty(const std::string& key, const std::string& newValue)
 
 void Platform::Save(std::unordered_map<std::string, std::string>& map)
 {
-	shouldSave = true;
 	Entity::Save(map);
 
 	if (platformType == "Path")

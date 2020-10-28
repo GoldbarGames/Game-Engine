@@ -88,46 +88,13 @@ void Path::Update(Game& game)
 
 void Path::Render(const Renderer& renderer)
 {
-	// Draw the path object itself
-	renderer.debugSprite->color = {255, 255, 255, 255 };
-	renderer.debugSprite->Render(position, renderer, scale);
-
-	// Draw a red square for every point in the path
-	
-	for (unsigned int i = 0; i < nodes.size(); i++)
+	if (renderer.game->editMode || renderer.game->debugMode)
 	{
-		// Draw a red square in the center of the point
-		//const SDL_Rect* pointRect = nodes[i]->CalcRenderRect(Vector2(0,0));
+		// Draw the path object itself
+		renderer.debugSprite->color = { 255, 255, 255, 255 };
+		renderer.debugSprite->Render(position, renderer, scale);
 
-		// Only show the points in the editor
-		if (renderer.game->editMode)
-		{		
-
-			/*
-			if (i == 0)
-				SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 0, 255);
-			else if (i == nodes.size() - 1)
-				SDL_SetRenderDrawColor(renderer->renderer, 0, 255, 255, 255);
-			else
-				SDL_SetRenderDrawColor(renderer->renderer, 255, 0, 0, 255);
-
-			SDL_RenderFillRect(renderer->renderer, pointRect);
-			*/
-		}
-
-		// Draw a white line connecting to the next point
-		int nextIndex = i + 1;
-		if (nextIndex >= nodes.size())
-		{
-			if (shouldLoop)
-				nextIndex = 0;
-			else
-				continue;
-		}
-
-		//const SDL_Rect* nextRect = nodes[nextIndex]->CalcRenderRect(Vector2(0,0));
-		//SDL_SetRenderDrawColor(renderer->renderer, 255, 255, 255, 255);
-		//SDL_RenderDrawLine(renderer->renderer, pointRect->x, pointRect->y, nextRect->x, nextRect->y);
+		// TODO: Draw a line connecting each point in the path
 	}
 }
 
@@ -169,24 +136,25 @@ void Path::SetProperty(const std::string& key, const std::string& newValue)
 			if (key == "Node " + std::to_string(i) + " ID")
 			{
 				nodeIDs[i] = std::stoi(newValue);
+				nodes.clear(); // clear the list to find the new object
 			}
 		}
 	}
 }
 
 void Path::Save(std::unordered_map<std::string, std::string>& map)
-{
-	shouldSave = true;
+{	
 	Entity::Save(map);
 
 	map["shouldLoop"] = std::to_string(shouldLoop);
 	map["nodeCount"] = std::to_string(nodes.size());
 
-	//TODO: Handle this as a special case in the main Save() function
+	std::string key = "";
+
 	for (int i = 0; i < nodes.size(); i++)
 	{
-		map["nodeX" + i] = std::to_string(nodes[i]->position.x);
-		map["nodeY" + i] = std::to_string(nodes[i]->position.y);
+		key = "nodeID_" + std::to_string(i);
+		map[key] = std::to_string(nodes[i]->id);
 	}
 }
 
@@ -197,18 +165,14 @@ void Path::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 	shouldLoop = std::stoi(map["shouldLoop"]);
 	nodeCount = std::stoi(map["nodeCount"]);
 
-	/*
 	for (int i = 0; i < nodeCount; i++)
 	{
-		int pointX = std::stoi(map["pointX"]);
-		int pointY = std::stoi(map["pointY"]);
-		AddPointToPath(Vector2(pointX, pointY));
-	}*/
+		nodeIDs[i] = std::stoi(map["nodeID_" + std::to_string(i)]);
+	}
 
 	if (game.editor->helper != nullptr)
 	{
 		MyEditorHelper* helper = static_cast<MyEditorHelper*>(game.editor->helper);
 		helper->loadListPaths.emplace_back(this);
 	}
-
 }
