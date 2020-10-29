@@ -6,6 +6,7 @@
 #include "Sprite.h"
 #include "Renderer.h"
 #include "Editor.h"
+#include "Entity.h"
 
 Tile::Tile(const Vector2& pos, const Vector2& frame, Texture* image, const Renderer& renderer) : Entity(pos)
 {	

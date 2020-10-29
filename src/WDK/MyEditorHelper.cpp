@@ -156,7 +156,7 @@ void MyEditorHelper::PlaceObject(Vector2& snappedPosition)
 				editor->game->SortEntities(editor->game->entities);
 			}
 		}
-		else
+		else if (currentLadder != nullptr)
 		{
 			// only spawn if the position we clicked at is on the same column as the ladder start
 			if (snappedPosition.x == currentLadder->GetPosition().x)
@@ -231,6 +231,10 @@ void MyEditorHelper::PlaceObject(Vector2& snappedPosition)
 					editor->game->SortEntities(editor->game->entities);
 				}
 			}
+		}
+		else
+		{
+			placingLadder = false;
 		}
 	}
 	else

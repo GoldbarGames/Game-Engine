@@ -719,10 +719,10 @@ void PhysicsComponent::Update(Game& game)
 	}
 	*/
 
-	if (velocity.y > maxHorizontalSpeed)
-		velocity.y = maxHorizontalSpeed;
-	else if (velocity.y < -maxHorizontalSpeed)
-		velocity.y = -maxHorizontalSpeed;
+	if (velocity.y > maxVerticalSpeed)
+		velocity.y = maxVerticalSpeed;
+	else if (velocity.y < -maxVerticalSpeed)
+		velocity.y = -maxVerticalSpeed;
 
 	if (velocity.x > maxHorizontalSpeed)
 		velocity.x = maxHorizontalSpeed;

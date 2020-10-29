@@ -21,6 +21,7 @@ public:
 
 	Vector2 velocity = Vector2(0, 0);
 	Vector2 previousVelocity = Vector2(0, 0);
+	float maxVerticalSpeed = 1.5f;
 	float maxHorizontalSpeed = 0.5f;
 	float horizontalSpeed = 0.5f;
 	int jumpsRemaining = 2;
