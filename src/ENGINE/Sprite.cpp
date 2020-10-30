@@ -484,25 +484,44 @@ void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
 
-	GLfloat fadePoint;
+	float fadePoint, fadeR, fadeG, fadeB, fadeA, freq;
 	glm::vec4 fadeColor;
 
 	switch (shader->GetName())
 	{
 	case ShaderName::FadeInOut:
-		fadePoint = abs(sin(renderer.now / 1000));
-		fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
-
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)		
+		// To fade to red, oscillate blue and green, but not red or alpha
+		fadePoint = abs(sin(renderer.now / 1000));
+
+		// TODO: Change the /255.0f to a custom max amount < 1 (255/255)
+		fadeR = color.r > 0 ? (color.r/255.0f) : fadePoint;
+		fadeG = color.g > 0 ? (color.g/255.0f) : fadePoint;
+		fadeB = color.b > 0 ? (color.b/255.0f) : fadePoint;
+		fadeA = color.a > 0 ? (color.a/255.0f) : fadePoint;
+
+		fadeColor = glm::vec4(fadeR, fadeG, fadeB, fadeA);
 
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
 		break;
 	case ShaderName::Glow:
-		fadePoint = abs(sin(renderer.now / 1000));
-		fadeColor = glm::vec4(fadePoint, fadePoint, fadePoint, fadePoint);
+		freq = 0.002f;
+		fadePoint = abs(sin(renderer.now * freq));
+		fadeR = color.r > fadePoint ? (color.r / 255.0f) : fadePoint;
+		fadeG = color.g > fadePoint ? (color.g / 255.0f) : fadePoint;
+		fadeB = color.b > fadePoint ? (color.b / 255.0f) : fadePoint;
+		fadeA = color.a > fadePoint ? (color.a / 255.0f) : fadePoint;
+
+		fadeR = std::max(fadeR, 0.5f);
+		fadeG = std::max(fadeG, 0.5f);
+		fadeB = std::max(fadeB, 0.5f);
+		fadeA = std::max(fadeA, 0.5f);
+
+		fadeColor = glm::vec4(fadeR, fadeG, fadeB, fadeA);
 
 		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer.now);
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
 
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)

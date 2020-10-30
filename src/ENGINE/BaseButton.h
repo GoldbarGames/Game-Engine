@@ -16,6 +16,7 @@ class Game;
 class BaseButton
 {
 public:
+	Vector2 scale = Vector2(1, 1);
 	Sprite* image = nullptr;
 	std::string name = ""; // function to execute when button is pressed
 	Text* text = nullptr;

@@ -8,8 +8,8 @@ bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, c
 	bool xDirectionPositive = (current.x < target.x);
 	bool yDirectionPositive = (current.y < target.y);
 
-	float xStep = std::max((std::abs(target.x - current.x) / std::abs(target.x)) * maxStep, minStep);
-	float yStep = std::max((std::abs(target.y - current.y) / std::abs(target.y)) * maxStep, minStep);
+	float xStep = std::max((std::abs(target.x - current.x) / std::abs(target.x)) * minStep, maxStep);
+	float yStep = std::max((std::abs(target.y - current.y) / std::abs(target.y)) * minStep, maxStep);
 
 	if (xDirectionPositive)
 		current.x = std::min(target.x, current.x + xStep);

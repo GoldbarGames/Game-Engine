@@ -66,6 +66,7 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     //TODO: What is a good way for us to define variables for specific shaders?
     uniformVariables[ShaderVariable::fadeColor] = glGetUniformLocation(programID, "fadeColor");
     uniformVariables[ShaderVariable::currentTime] = glGetUniformLocation(programID, "currentTime");
+    uniformVariables[ShaderVariable::frequency] = glGetUniformLocation(programID, "freq");
 }
 
 GLuint ShaderProgram::GetUniformVariable(ShaderVariable variable)

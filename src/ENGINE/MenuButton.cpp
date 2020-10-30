@@ -8,6 +8,7 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 	position = pos;
 
 	image = neww Sprite(1, game.spriteManager, filepath, game.renderer.shaders[ShaderName::GUI], Vector2(0,0));
+	image->color = { 200, 55, 161, 255 };
 
 	text = neww Text(game.theFont);
 
@@ -17,7 +18,7 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 
 	//text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->GetTextHeight()/2));
 	text->SetPosition(pos.x, pos.y - (text->GetTextHeight() / 4));
-	text->SetScale(Vector2(2, 2));	
+	text->SetScale(Vector2(Camera::MULTIPLIER, Camera::MULTIPLIER));	
 
 	scale = (game.renderer.CalculateScale(*image, text->GetTextWidth(), text->GetTextHeight(), text->scale));
 	

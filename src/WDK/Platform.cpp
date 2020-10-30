@@ -11,7 +11,7 @@
 Platform::Platform(const Vector2& pos) : Entity(pos)
 {
 	etype = "platform";
-	CreateCollider(0, 48, 72, 24);
+	CreateCollider(0, 72, 72, 24);
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 9;
 	
@@ -95,11 +95,11 @@ void Platform::Update(Game& game)
 
 		if (attachedSwitch->GetAnimator()->GetBool("isPressed"))
 		{
-			LerpVector2(position, startPosition + switchDistanceMoved, 50.0f, 2.0f);
+			LerpVector2(position, startPosition + switchDistanceMoved, 30.0f, 2.0f);
 		}
 		else
 		{
-			LerpVector2(position, startPosition, 50.0f, 2.0f);
+			LerpVector2(position, startPosition, 30.0f, 2.0f);
 		}
 
 		// Set velocity based on the distance traveled

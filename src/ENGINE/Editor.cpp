@@ -1887,6 +1887,10 @@ void Editor::CreateLevelFromString(std::string level)
 		std::string subtype = "";
 		
 		std::unordered_map<std::string, std::string> map;
+
+		int indexOfID = std::distance(loadDataMap["entity"].begin(),
+			std::find(loadDataMap["entity"].begin(),
+				loadDataMap["entity"].end(), "id"));
 	
 		int indexOfPositionX = std::distance(loadDataMap["entity"].begin(),
 			std::find(loadDataMap["entity"].begin(),
@@ -1993,7 +1997,7 @@ void Editor::CreateLevelFromString(std::string level)
 				}
 				else if (etype == "tile")
 				{
-					Entity::nextValidID = std::stoi(map[STR_ID]);
+					Entity::nextValidID = std::stoi(tokens[indexOfID]);
 
 					int tilesheetIndex = std::stoi(map[STR_TILESHEET]);
 
@@ -2051,6 +2055,7 @@ void Editor::CreateLevelFromString(std::string level)
 				}
 				else
 				{
+					Entity::nextValidID = std::stoi(tokens[indexOfID]);
 					positionX = std::stoi(tokens[indexOfPositionX]);
 					positionY = std::stoi(tokens[indexOfPositionY]);
 					subtype = tokens[indexOfSubtype];

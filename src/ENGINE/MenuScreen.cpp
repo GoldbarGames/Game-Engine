@@ -23,22 +23,17 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		header->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(header);
 
-		MenuButton* buttonResume = neww MenuButton("Resume", "assets/gui/menu.png",
-			"Resume Game", Vector2(startPosX, newStartPosY + (distance * 2)), game);
+		buttons.emplace_back(neww MenuButton("Resume", "assets/gui/menu.png",
+			"Resume Game", Vector2(startPosX, newStartPosY + (distance * 2)), game));
 
-		MenuButton* buttonSpellbook = neww MenuButton("Spellbook", "assets/gui/menu.png",
-			"Spellbook", Vector2(startPosX, newStartPosY + (distance * 3)), game);
-
-		MenuButton* buttonSettings = neww MenuButton("Settings", "assets/gui/menu.png",
-			"Settings", Vector2(startPosX, newStartPosY + (distance * 4)), game);
-
-		MenuButton* buttonExit = neww MenuButton("Title Screen", "assets/gui/menu.png",
-			"Title Screen", Vector2(startPosX, newStartPosY + (distance * 5)), game);
-
-		buttons.emplace_back(buttonResume);		
-		buttons.emplace_back(buttonSpellbook);
-		buttons.emplace_back(buttonSettings);
-		buttons.emplace_back(buttonExit);
+		buttons.emplace_back(neww MenuButton("Spellbook", "assets/gui/menu.png",
+			"Spellbook", Vector2(startPosX, newStartPosY + (distance * 3)), game));
+		
+		buttons.emplace_back(neww MenuButton("Settings", "assets/gui/menu.png",
+			"Settings", Vector2(startPosX, newStartPosY + (distance * 4)), game));
+		
+		buttons.emplace_back(neww MenuButton("Title Screen", "assets/gui/menu.png",
+			"Title Screen", Vector2(startPosX, newStartPosY + (distance * 5)), game));
 
 		AssignButtons(true);
 	}
@@ -60,7 +55,8 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		creditsHeader->SetScale(Vector2(2.0f, 2.0f));
 		texts.emplace_back(creditsHeader);
 
-		std::vector<string> textLines = game.ReadStringsFromFile("data/english/credits.txt");
+		std::vector<string> textLines = game.ReadStringsFromFile("data/cutscenes/" + game.currentGame + "/" 
+			+ game.cutsceneManager.GetLanguage() + "/credits.txt");
 
 		for (unsigned int i = 0; i < textLines.size(); i++)
 		{
@@ -103,17 +99,23 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		buttons.emplace_back(buttonCredits);
 		buttons.emplace_back(buttonExit);
 
+		for (int i = 0; i < buttons.size(); i++)
+		{
+			buttons[i]->scale = Vector2(3.0f, 1.0f);
+			buttons[i]->text->SetScale(Vector2(1.0f, 1.0f));
+		}
+
 		AssignButtons(true);
 
 		Text* textCopyright = neww Text(game.headerFont, "Copyright 2020 Goldbar Games LLC", true, true);
 		//textCopyright->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
-		textCopyright->SetPosition(startPosX - 400, 1200);
+		textCopyright->SetPosition(startPosX, 1200);
 		textCopyright->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textCopyright);
 
 		Text* textVersion = neww Text(game.headerFont, "Demo Version 2020-10-31", true, true);
 		//textVersion->SetPosition(game.screenWidth - (textCopyright->GetTextWidth() / 2), 700);
-		textVersion->SetPosition(startPosX - 100, 1300);
+		textVersion->SetPosition(startPosX, 1300);
 		textVersion->SetScale(Vector2(1.0f, 1.0f));
 		texts.emplace_back(textVersion);
 
@@ -128,6 +130,7 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		titleCharacter->SetScale(Vector2(0.5f, 0.5f));
 		titleCharacter->GetSprite()->keepPositionRelativeToCamera = true;
 		titleCharacter->GetSprite()->keepScaleRelativeToCamera = true;
+		titleCharacter->GetSprite()->color = { 0, 255, 0, 255 };
 		images.emplace_back(titleCharacter);
 
 		Entity* titleLogo = neww Entity(Vector2(1600, 350));
@@ -334,7 +337,7 @@ bool MenuScreen::Update(Game& game)
 		if (selectedButton->image != nullptr)
 			selectedButton->image->SetShader(game.renderer.shaders[ShaderName::Glow]);
 		if (lastButton->image != nullptr)
-			lastButton->image->SetShader(game.renderer.shaders[ShaderName::Default]);
+			lastButton->image->SetShader(game.renderer.shaders[ShaderName::GUI]);
 	}
 
 	return (lastButton->pressedAnyKey);

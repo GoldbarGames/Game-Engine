@@ -1791,12 +1791,17 @@ void Game::RenderScene()
 		// TODO: Don't hardcode this
 		const int maxWidth = (30 * TILE_SIZE) * Camera::MULTIPLIER;
 		const int maxHeight = (17 * TILE_SIZE) * Camera::MULTIPLIER;
+		const int camPosX = renderer.camera.position.x - (2 * TILE_SIZE);
+		const int camPosY = renderer.camera.position.y - (2 * TILE_SIZE);
+		const int camEndX = (renderer.camera.position.x + maxWidth + TILE_SIZE);
+		const int camEndY = (renderer.camera.position.y + maxHeight + TILE_SIZE);
+
 		for (unsigned int i = 0; i < entities.size(); i++)
 		{
-			if (entities[i]->position.x > renderer.camera.position.x - TILE_SIZE &&
-				entities[i]->position.y > renderer.camera.position.y - TILE_SIZE &&
-				entities[i]->position.x < renderer.camera.position.x + maxWidth + TILE_SIZE &&
-				entities[i]->position.y < renderer.camera.position.y + maxHeight + TILE_SIZE)
+			if (entities[i]->position.x > camPosX &&
+				entities[i]->position.y > camPosY &&
+				entities[i]->position.x < camEndX &&
+				entities[i]->position.y < camEndY)
 			{
 				entities[i]->Render(renderer);
 				if (debugMode && (entities[i]->etype == "player" || entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru))

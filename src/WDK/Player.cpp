@@ -306,15 +306,22 @@ void Player::UpdateNormally(Game& game)
 			}
 			else if (currentDoor != nullptr && doorTimer.HasElapsed())
 			{
+				// Entering a door loads a new level
+				if (!currentDoor->isLocked)
+				{
+					game.state = GameState::LOAD_NEXT_LEVEL;
+					game.nextLevel = currentDoor->nextLevelName;
+					game.nextDoorID = currentDoor->destinationID;
+					return;
+				}
+
+				/*
+				* 
+				*  Old code for using doors to teleport around a level
+				* 
 				if (currentDoor->name == "goal")
 				{
-					if (!currentDoor->isLocked)
-					{
-						game.state = GameState::LOAD_NEXT_LEVEL;
-						game.nextLevel = currentDoor->nextLevelName;
-						game.nextDoorID = currentDoor->destinationID;
-						return;
-					}
+					
 				}
 				else
 				{
@@ -326,7 +333,7 @@ void Player::UpdateNormally(Game& game)
 						doorTimer.Start(500);
 					}
 				}
-
+				*/
 
 			}
 		}

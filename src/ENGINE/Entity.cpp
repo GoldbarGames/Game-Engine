@@ -445,6 +445,7 @@ void Entity::Save(std::unordered_map<std::string, std::string>& map)
 		map["positionX"] = std::to_string((int)startPosition.x);
 		map["positionY"] = std::to_string((int)startPosition.y);
 		map["rotationZ"] = std::to_string((int)rotation.z);
+		map["subtype"] = std::to_string(subtype);
 	}
 }
 

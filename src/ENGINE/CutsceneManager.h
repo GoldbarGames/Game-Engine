@@ -201,6 +201,8 @@ public:
 	Timer nextLetterTimer;
 	Uint32 previousMouseState = 0;
 	bool clickedMidPage = false;
+	
+	const std::string& GetLanguage() { return language;  }
 
 	CutsceneManager();
 	void Init(Game& g);
