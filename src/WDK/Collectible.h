@@ -13,7 +13,7 @@ public:
 	void Update(Game& game);
 	void Render(const Renderer& renderer);
 
-	void Init(const std::string& n);
+	void Init(const Game& g, const std::string& n);
 
 	void OnTriggerStay(Entity& other, Game& game);
 	void OnTriggerEnter(Entity& other, Game& game);

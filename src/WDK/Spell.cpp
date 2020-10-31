@@ -79,9 +79,9 @@ void Spell::CycleSpells(Game& game)
 	}
 
 	if (activeSpell < 0)
-		activeSpell = activeSpell = names.size() - 1;
+		activeSpell = 1; // activeSpell = names.size() - 1;
 
-	if (activeSpell > names.size() - 1)
+	if (activeSpell > 1) // names.size() - 1)
 		activeSpell = 0;
 }
 
@@ -365,7 +365,7 @@ bool Spell::CastPop(Game& game)
 		return false; // failed to create fireball
 	}
 
-	fireball->Init("pop");
+	fireball->Init(game, "pop");
 	fireball->SetVelocity(Vector2(player->scale.x < 0 ? -0.25f : 0.25f, -1.0f));
 
 	return true;
@@ -390,7 +390,7 @@ bool Spell::CastFloat(Game& game)
 		return false; // failed to create missile
 	}
 
-	bubble->Init("float");
+	bubble->Init(game, "float");
 	bubble->SetVelocity(Vector2(player->scale.x < 0 ? -0.25f : 0.25f, 0.0f));
 
 	return true;
@@ -415,7 +415,7 @@ bool Spell::CastFreeze(Game& game)
 		return false; // failed to create missile
 	}
 
-	iceMissile->Init("freeze");
+	iceMissile->Init(game, "freeze");
 	iceMissile->SetVelocity(Vector2(player->scale.x < 0 ? -0.25f : 0.25f, 0.0f));
 
 	if (player->scale.x > 0)
@@ -708,7 +708,7 @@ bool Spell::CastCarry(Game& game)
 
 		carryMissile->selfPointer = &carryMissile;
 
-		carryMissile->Init("carry");
+		carryMissile->Init(game, "carry");
 		carryMissile->SetVelocity(Vector2(player->scale.x < 0 ? -0.15f : 0.15f, 0.0f));
 
 		if (player->scale.x > 0)

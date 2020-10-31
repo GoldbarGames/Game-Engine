@@ -105,7 +105,7 @@ public:
 	void CreateCollider(float x, float y, float w, float h);
 	void CalculateCollider();
 
-	virtual void Init(const std::string& n);
+	virtual void Init(const Game& g, const std::string& n);
 
 	virtual void Pause(Uint32 ticks);
 	virtual void Unpause(Uint32 ticks);

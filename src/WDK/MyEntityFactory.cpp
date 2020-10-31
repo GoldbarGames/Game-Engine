@@ -15,6 +15,7 @@
 #include "Checkpoint.h"
 #include "Tree.h"
 #include "Decoration.h"
+#include "../ENGINE/CameraBounds.h"
 
 MyEntityFactory::MyEntityFactory() : EntityFactory()
 {
@@ -35,4 +36,5 @@ MyEntityFactory::MyEntityFactory() : EntityFactory()
     Register("checkpoint", &Checkpoint::Create);
     Register("tree", &Tree::Create);
     Register("decoration", &Decoration::Create);
+    Register("cameraBounds", &CameraBounds::Create);
 }

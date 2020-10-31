@@ -673,7 +673,7 @@ Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE
 }
 
 Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet, 
-	const Vector2& position, DrawingLayer drawingLayer)
+	const Vector2& position, DrawingLayer drawingLayer) const
 {
 	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer);
 
@@ -685,7 +685,7 @@ Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet,
 }
 
 Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet, 
-	const Vector2& position, DrawingLayer drawingLayer)
+	const Vector2& position, DrawingLayer drawingLayer) const
 {
 	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer);
 
@@ -872,9 +872,7 @@ void Game::TransitionLevel()
 						player->health->SetCurrentHP(cutsceneManager.commands.numberVariables[205]);
 					}
 				}
-			}
-
-			renderer.camera.FollowTarget(*this, true);			
+			}			
 		}
 	}
 	else if (transitionState == 3) // enter the neww level, start condition
@@ -1791,20 +1789,23 @@ void Game::RenderScene()
 		// TODO: Don't hardcode this
 		const int maxWidth = (30 * TILE_SIZE) * Camera::MULTIPLIER;
 		const int maxHeight = (17 * TILE_SIZE) * Camera::MULTIPLIER;
-		const int camPosX = renderer.camera.position.x - (2 * TILE_SIZE);
-		const int camPosY = renderer.camera.position.y - (2 * TILE_SIZE);
+		const int camPosX = renderer.camera.position.x - (6 * TILE_SIZE);
+		const int camPosY = renderer.camera.position.y - (6 * TILE_SIZE);
 		const int camEndX = (renderer.camera.position.x + maxWidth + TILE_SIZE);
 		const int camEndY = (renderer.camera.position.y + maxHeight + TILE_SIZE);
 
 		for (unsigned int i = 0; i < entities.size(); i++)
 		{
+			// TODO: Instead of checking if the position is within the screen,
+			// check for all collisions with the screen's collider
 			if (entities[i]->position.x > camPosX &&
 				entities[i]->position.y > camPosY &&
 				entities[i]->position.x < camEndX &&
 				entities[i]->position.y < camEndY)
 			{
 				entities[i]->Render(renderer);
-				if (debugMode && (entities[i]->etype == "player" || entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru))
+				if (debugMode && (entities[i]->etype == "player" 
+					|| entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru))
 					entitiesToRender.push_back(entities[i]);
 				//	entities[i]->RenderDebug(renderer);
 			}

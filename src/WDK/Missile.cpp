@@ -23,7 +23,7 @@ Missile::~Missile()
 
 }
 
-void Missile::Init(const std::string& n)
+void Missile::Init(const Game& g, const std::string& n)
 {
 	name = n;
 
@@ -147,6 +147,7 @@ void Missile::Update(Game& game)
 			{
 				position = landedPosition;
 				// pop_fire_init: Check that the fire starts up
+				currentSprite.playedOnce = true;
 				animator->SetBool("animationElapsed", currentSprite.HasAnimationElapsed());
 				if (animator->GetBool("animationElapsed"))
 				{
@@ -166,6 +167,7 @@ void Missile::Update(Game& game)
 			{
 				position = landedPosition;
 				// pop_fire_end: After the last animation plays, destroy the object
+				currentSprite.playedOnce = true;
 				if (currentSprite.HasAnimationElapsed())
 				{
 					shouldDelete = true;

@@ -15,7 +15,7 @@ public:
 
 	Entity* pickedUpEntity = nullptr;
 	bool destroyAfterTime = true;
-	void Init(const std::string& n);
+	void Init(const Game& g, const std::string& n);
 	Missile(const Vector2& pos);
 	~Missile();
 	void Update(Game& game);

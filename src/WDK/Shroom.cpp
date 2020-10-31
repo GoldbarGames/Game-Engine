@@ -26,7 +26,7 @@ Shroom::~Shroom()
 
 }
 
-void Shroom::Init(const std::string& n)
+void Shroom::Init(const Game& g, const std::string& n)
 {
 	name = n;
 

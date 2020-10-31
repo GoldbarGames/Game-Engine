@@ -31,7 +31,7 @@ void Collectible::Render(const Renderer& renderer)
 	Entity::Render(renderer);
 }
 
-void Collectible::Init(const std::string& n)
+void Collectible::Init(const Game& g, const std::string& n)
 {
 	name = n;
 

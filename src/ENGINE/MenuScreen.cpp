@@ -26,14 +26,14 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 		buttons.emplace_back(neww MenuButton("Resume", "assets/gui/menu.png",
 			"Resume Game", Vector2(startPosX, newStartPosY + (distance * 2)), game));
 
-		buttons.emplace_back(neww MenuButton("Spellbook", "assets/gui/menu.png",
-			"Spellbook", Vector2(startPosX, newStartPosY + (distance * 3)), game));
+		//buttons.emplace_back(neww MenuButton("Spellbook", "assets/gui/menu.png",
+		//	"Spellbook", Vector2(startPosX, newStartPosY + (distance * 3)), game));
 		
 		buttons.emplace_back(neww MenuButton("Settings", "assets/gui/menu.png",
-			"Settings", Vector2(startPosX, newStartPosY + (distance * 4)), game));
+			"Settings", Vector2(startPosX, newStartPosY + (distance * 3)), game));
 		
 		buttons.emplace_back(neww MenuButton("Title Screen", "assets/gui/menu.png",
-			"Title Screen", Vector2(startPosX, newStartPosY + (distance * 5)), game));
+			"Title Screen", Vector2(startPosX, newStartPosY + (distance * 4)), game));
 
 		AssignButtons(true);
 	}
@@ -423,7 +423,11 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	{
 		game.openedMenus.clear();
 
+#if _DEBUG
 		game.openedMenus.emplace_back(game.allMenus["File Select"]);
+#else
+		game.LoadLevel("demo");
+#endif
 	}
 	else if (selectedButton->name == "Title Screen")
 	{

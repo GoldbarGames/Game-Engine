@@ -4,6 +4,8 @@
 
 #include "../ENGINE/Path.h"
 
+class Tile;
+
 class Platform : public Entity
 {
 public:
@@ -11,6 +13,8 @@ public:
 	int tilesToMove = 3;
 	bool shouldLoop = true;
 	Vector2 startVelocity = Vector2(0, 0);
+	
+	std::vector<Tile*> tiles;
 
 	// Path variables
 	Path* currentPath = nullptr;
@@ -36,7 +40,7 @@ public:
 	Platform(const Vector2& pos);
 	~Platform();
 
-	void Init(const std::string& n);
+	void Init(const Game& g, const std::string& n);
 
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);

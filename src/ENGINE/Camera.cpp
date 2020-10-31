@@ -101,7 +101,69 @@ void Camera::FollowTarget(const Game& game, bool instantFollow)
 			{
 				//TODO: Seems like when moving right, the target outpaces the camera for some reason?
 				//TODO: This probably needs to be multiplied by game.dt
-				isLerping = !LerpVector3(position, targetCenter, 50.0f, 2.0f);
+				glm::vec3 nextPosition = position;
+				isLerping = !LerpVector3(nextPosition, targetCenter, 50.0f, 2.0f);
+
+				bool hasCollisions = false;
+
+				// Get bounds assuming the move is valid
+				SDL_Rect myBounds;
+				myBounds.x = position.x;
+				myBounds.y = position.y;
+				myBounds.w = startScreenWidth;
+				myBounds.h = startScreenHeight;
+
+				//myBounds.x -= (myBounds.w / 2);
+
+				SDL_Rect newBoundsHorizontal = myBounds;
+				newBoundsHorizontal.x = nextPosition.x;
+
+				SDL_Rect newBoundsVertical = myBounds;
+				newBoundsVertical.y = nextPosition.y;
+				newBoundsVertical.y += 1;
+
+				bool horizontalCollision = false;
+				bool verticalCollision = false;
+
+				SDL_Rect theirBounds;
+
+				Entity* entity = nullptr;
+				for (int i = 0; i < game.cameraBoundsEntities.size(); i++)
+				{
+					entity = game.cameraBoundsEntities[i];
+					theirBounds = *(entity->GetBounds());
+
+					if (!horizontalCollision && HasIntersection(newBoundsHorizontal, theirBounds))
+					{
+						horizontalCollision = true;
+					}
+
+					if (!verticalCollision && HasIntersection(newBoundsVertical, theirBounds))
+					{
+						verticalCollision = true;
+					}
+				}
+
+				if (horizontalCollision)
+				{
+					// only move the camera up to the point
+					// where the collision hits					
+				}
+				else
+				{
+					position.x = nextPosition.x;
+				}
+
+				if (verticalCollision)
+				{
+					// only move the camera up to the point
+					// where the collision hits
+				}
+				else
+				{		
+					position.y = nextPosition.y;
+				}
+
 			}
 		}
 	}

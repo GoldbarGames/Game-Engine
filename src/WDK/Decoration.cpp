@@ -31,7 +31,7 @@ Decoration::~Decoration()
 
 }
 
-void Decoration::Init(const std::string& n)
+void Decoration::Init(const Game& g, const std::string& n)
 {
 	name = n;
 	animator->SetState(name.c_str());

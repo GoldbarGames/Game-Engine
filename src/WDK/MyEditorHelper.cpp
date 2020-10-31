@@ -53,7 +53,7 @@ void MyEditorHelper::CreateLevelEnd()
 		}
 
 		// Set the camera's position to the player's instantly
-		editor->game->renderer.camera.FollowTarget(*editor->game, true);
+		editor->game->renderer.camera.FollowTarget(*editor->game, !editor->switchTargetBackToPlayer);
 	}
 
 
@@ -242,7 +242,7 @@ void MyEditorHelper::PlaceObject(Vector2& snappedPosition)
 		Entity* entity = editor->game->SpawnEntity(editor->objectMode, snappedPosition, editor->entitySubtype);
 		if (entity != nullptr)
 		{
-			entity->Init(editor->game->entityTypes[editor->objectMode][editor->entitySubtype]);
+			entity->Init(*editor->game, editor->game->entityTypes[editor->objectMode][editor->entitySubtype]);
 			entity->rotation = editor->previewMap[editor->objectMode]->rotation;
 			editor->game->SortEntities(editor->game->entities);
 		}

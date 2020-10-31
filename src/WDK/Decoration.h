@@ -10,7 +10,7 @@ public:
 	Decoration(const Vector2& pos);
 	~Decoration();
 
-	void Init(const std::string& n);
+	void Init(const Game& g, const std::string& n);
 	bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
 	void OnTriggerStay(Entity& other, Game& game);
 	void OnTriggerEnter(Entity& other, Game& game);

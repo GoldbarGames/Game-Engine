@@ -204,8 +204,10 @@ public:
 	bool pressedLeftTrigger = false;
 	bool pressedRightTrigger = false;
 
-	std::vector<Entity*> entities;
+	mutable std::vector<Entity*> entities;
 	std::vector<Entity*> bgEntities;
+
+	std::vector<Entity*> cameraBoundsEntities;
 
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
@@ -219,9 +221,9 @@ public:
 	
 	// Spawn functions
 	Tile* CreateTile(const Vector2& frame, const std::string& tilesheet,
-		const Vector2& position, DrawingLayer drawingLayer);
+		const Vector2& position, DrawingLayer drawingLayer) const;
 	Tile* SpawnTile(const Vector2& frame, const std::string& tilesheet,
-		const Vector2& position, DrawingLayer drawingLayer);
+		const Vector2& position, DrawingLayer drawingLayer) const;
 
 	Entity* SpawnPlayer(const Vector2& position);
 

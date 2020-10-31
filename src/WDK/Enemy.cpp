@@ -33,7 +33,7 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 	health->initialHealthBarScale = Vector2(40, 10);
 }
 
-void Enemy::Init(const std::string& n)
+void Enemy::Init(const Game& g, const std::string& n)
 {
 	name = n;
 
@@ -331,12 +331,12 @@ void Enemy::Update(Game& game)
 				if (game.entityTypes["enemy"][i] == "bees")
 				{
 					Enemy* bees = static_cast<Enemy*>(game.SpawnEntity("enemy", position, i));
-					bees->Init("bees");
+					bees->Init(game, "bees");
 					animator->SetBool("spawnedBees", true);
 					trigger = false;
 					break;
 				}
-			}					
+			}
 		}
 	}
 	else if (name == "bees")

@@ -356,8 +356,6 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 				if (shouldLoop)
 				{
 					currentFrame = startFrame;
-					if (startFrame != 0)
-						int test = 0;
 				}
 				else
 				{

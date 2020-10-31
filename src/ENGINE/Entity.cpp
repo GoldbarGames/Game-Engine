@@ -143,7 +143,7 @@ Entity::~Entity()
 		delete_it(health);
 }
 
-void Entity::Init(const std::string& n)
+void Entity::Init(const Game& g, const std::string& n)
 {
 	name = n;
 }

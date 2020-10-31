@@ -1379,7 +1379,7 @@ void Editor::ToggleSpriteMap(int num)
 	else
 	{		
 		prev = game->CreateEntity(objectMode, Vector2(0, 0), entitySubtype);
-		prev->Init(game->entityTypes[objectMode][entitySubtype]);
+		prev->Init(*game, game->entityTypes[objectMode][entitySubtype]);
 	}
 
 	//TODO: How to deal with object modes that return nullptr?
@@ -1857,6 +1857,9 @@ void Editor::CreateLevelFromString(std::string level)
 		int lineNumber = 0;
 		int index = 0;
 
+		cameraTargetID = -1;
+		switchTargetBackToPlayer = false;
+
 		std::vector<std::string> lines;
 		std::string line = "";
 
@@ -2023,6 +2026,22 @@ void Editor::CreateLevelFromString(std::string level)
 					index = 4;
 					game->nextBGM = tokens[index++];
 				}
+				else if (etype == "camera-target")
+				{
+					// TODO: This won't get saved if we make changes to the level from the editor,
+					// so we need a way to set the camera's properties within a level
+					index = 4;
+					cameraTargetID = std::stoi(tokens[index++]);
+					switchTargetBackToPlayer = false;
+				}
+				else if (etype == "camera-target-player") // TODO: rename this
+				{
+					// TODO: This won't get saved if we make changes to the level from the editor,
+					// so we need a way to set the camera's properties within a level
+					index = 4;
+					cameraTargetID = std::stoi(tokens[index++]);
+					switchTargetBackToPlayer = true;
+				}
 				else if (etype == "bg")
 				{
 					index = 4;
@@ -2070,7 +2089,12 @@ void Editor::CreateLevelFromString(std::string level)
 					if (newEntity != nullptr)
 					{
 						newEntity->Load(map, *game);
-						newEntity->Init(game->entityTypes[etype][std::stoi(tokens[indexOfSubtype])]);
+						newEntity->Init(*game, game->entityTypes[etype][std::stoi(tokens[indexOfSubtype])]);
+
+						if (newEntity->etype == "cameraBounds")
+						{
+							game->cameraBoundsEntities.push_back(newEntity);
+						}
 					}
 				}
 			}
@@ -2086,6 +2110,24 @@ void Editor::CreateLevelFromString(std::string level)
 		}
 
 		std::cout << "FINISH" << std::endl;
+
+		// Switch the camera's target
+		if (cameraTargetID >= 0)
+		{
+			for (int i = 0; i < game->entities.size(); i++)
+			{
+				if (game->entities[i]->id == cameraTargetID)
+				{
+					game->renderer.camera.SwitchTarget(*game->entities[i]);
+					game->renderer.camera.FollowTarget(*game, true);
+				}
+			}
+		}
+
+		if (switchTargetBackToPlayer)
+		{
+			game->renderer.camera.SwitchTarget(*game->player);
+		}
 
 		if (helper != nullptr)
 		{
@@ -2110,6 +2152,7 @@ void Editor::ClearLevelEntities()
 	}
 		
 	game->entities.clear();
+	game->cameraBoundsEntities.clear();
 }
 
 // TODO: Loading levels is kind of slow

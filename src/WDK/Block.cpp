@@ -32,7 +32,7 @@ Block::~Block()
 
 }
 
-void Block::Init(const std::string& n)
+void Block::Init(const Game& g, const std::string& n)
 {
 	name = n;
 

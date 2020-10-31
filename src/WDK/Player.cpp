@@ -453,7 +453,7 @@ void Player::CastSpellDebug(Game &game, const Uint8* input)
 
 		Missile* missile = static_cast<Missile*>(game.SpawnEntity("missile", missilePosition, 0));
 
-		missile->Init("debug");
+		missile->Init(game, "debug");
 		if (missile != nullptr)
 		{
 			missile->SetVelocity(missileVelocity);

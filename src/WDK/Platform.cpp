@@ -7,6 +7,8 @@
 #include "../ENGINE/Property.h"
 #include "../ENGINE/Editor.h"
 #include "MyEditorHelper.h"
+#include "../ENGINE/Tile.h"
+#include "../ENGINE/Game.h"
 
 Platform::Platform(const Vector2& pos) : Entity(pos)
 {
@@ -31,9 +33,20 @@ Platform::~Platform()
 
 }
 
-void Platform::Init(const std::string& n)
+void Platform::Init(const Game& g, const std::string& n)
 {
 	name = n;
+
+	const std::string tilesheet = "assets/tiles/foresttiles.png";
+
+	tiles.push_back(g.SpawnTile(Vector2(2, 1), tilesheet, position + Vector2(0, TILE_SIZE), DrawingLayer::FRONT));
+	tiles.push_back(g.SpawnTile(Vector2(2, 1), tilesheet, position + Vector2(-2 * TILE_SIZE, TILE_SIZE), DrawingLayer::FRONT));
+	tiles.push_back(g.SpawnTile(Vector2(2, 1), tilesheet, position + Vector2(2 * TILE_SIZE, TILE_SIZE), DrawingLayer::FRONT));
+
+	for (int i = 0; i < tiles.size(); i++)
+	{
+		tiles[i]->shouldSave = false;
+	}
 
 	if (name == "platform1")
 	{
@@ -88,6 +101,14 @@ std::string Platform::CalcDirection(bool x)
 void Platform::Update(Game& game)
 {
 	physics->previousVelocity = physics->velocity;
+
+	// TODO: Make this more robust for different platform types
+	if (tiles.size() == 3)
+	{
+		tiles[0]->position = position + Vector2(0, TILE_SIZE);
+		tiles[1]->position = position + Vector2(-2 * TILE_SIZE, TILE_SIZE);
+		tiles[2]->position = position + Vector2(2 * TILE_SIZE, TILE_SIZE);
+	}
 
 	if (attachedSwitch != nullptr)
 	{

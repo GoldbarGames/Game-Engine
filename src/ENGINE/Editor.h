@@ -65,6 +65,8 @@ private:
 	Sprite* rectSprite = nullptr;
 	Sprite* outlineSprite = nullptr;
 public:
+	int cameraTargetID = -1;
+	bool switchTargetBackToPlayer = false;
 	int entitySubtype = 0;
 	Game* game = nullptr;
 	EditorHelper* helper = nullptr;

@@ -24,7 +24,7 @@ Tree::~Tree()
 		delete_it(bottomSprite);
 }
 
-void Tree::Init(const std::string& n)
+void Tree::Init(const Game& g, const std::string& n)
 {
 	name = n;
 	bottomSprite = neww Sprite();

@@ -15,7 +15,7 @@ public:
 	Tree(Vector2 pos);
 	~Tree();
 
-	void Init(const std::string& n);
+	void Init(const Game& g, const std::string& n);
 
 	void Update(Game& game);
 	void Render(const Renderer& renderer);

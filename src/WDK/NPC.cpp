@@ -31,7 +31,7 @@ NPC::~NPC()
 
 }
 
-void NPC::Init(const std::string& n)
+void NPC::Init(const Game& g, const std::string& n)
 {
 	name = n;
 

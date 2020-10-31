@@ -11,7 +11,7 @@ public:
 	Block(const Vector2& pos);
 	~Block();
 
-	void Init(const std::string& n);
+	void Init(const Game& g, const std::string& n);
 
 	//void Push(Vector2 direction, Game &game);
 	void GetProperties(std::vector<Property*>& properties);

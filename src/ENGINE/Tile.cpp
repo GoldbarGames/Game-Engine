@@ -10,6 +10,7 @@
 
 Tile::Tile(const Vector2& pos, const Vector2& frame, Texture* image, const Renderer& renderer) : Entity(pos)
 {	
+	shouldSave = true;
 	ChangeSprite(frame, image, renderer);
 	etype = "tile";
 }
@@ -55,7 +56,6 @@ bool Tile::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera
 
 void Tile::Save(std::unordered_map<std::string, std::string>& map)
 {
-	shouldSave = true;
 	Entity::Save(map);
 
 	int passableState = 0;
