@@ -1,4 +1,3 @@
-
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
 
@@ -17,4 +16,6 @@
 
 #endif
 
+#else
+	#define neww new
 #endif

@@ -415,6 +415,7 @@ void Entity::OnTriggerExit(Entity& other, Game& game)
 void Entity::GetProperties(std::vector<Property*>& properties)
 {
 	Entity::DeleteProperties(properties);
+	// TODO: MEMORY LEAK
 	Property* property = neww Property("ID", id);
 	property->pType = PropertyType::ReadOnly;
 	properties.emplace_back(property);

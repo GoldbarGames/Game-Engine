@@ -22,8 +22,13 @@ void Switch::OnTriggerEnter(Entity& other, Game& game)
 {
 	if (animator != nullptr)
 	{
+		if (!animator->GetBool("isPressed"))
+		{
+			game.soundManager.PlaySound("se/switch.wav", 2);
+		}		
+
 		collidingEntities[other.id] = &other;
-		animator->SetBool("isPressed", true);		
+		animator->SetBool("isPressed", true);	
 	}
 }
 

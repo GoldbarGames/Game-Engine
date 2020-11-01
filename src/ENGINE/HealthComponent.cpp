@@ -108,7 +108,7 @@ void HealthComponent::CreateHealthBar(const Renderer& renderer, const Vector2& s
 
 void HealthComponent::Render(const Renderer& renderer)
 {
-	if (showHealthBar)
+	if (showHealthBar && !timer.HasElapsed())
 	{
 		if (healthbarBack == nullptr || healthbarFront == nullptr)
 		{

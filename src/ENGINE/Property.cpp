@@ -30,6 +30,7 @@ Property::Property(const std::string& k, const int v, const std::vector<std::str
 		fontInfo->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 	}
 
+	// TODO: MEMORY LEAK
 	text = neww Text(fontInfo, key + ": " + value);
 }
 
@@ -38,12 +39,14 @@ Property::Property(const std::string& k, const uint32_t v, const std::vector<std
 {
 	if (fontInfo == nullptr)
 	{
+		// TODO: MEMORY LEAK
 		fontInfo = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
 		fontInfo->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
 		fontInfo->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
 		fontInfo->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
 	}
 
+	// TODO: MEMORY LEAK
 	text = neww Text(fontInfo, key + ": " + value);
 }
 

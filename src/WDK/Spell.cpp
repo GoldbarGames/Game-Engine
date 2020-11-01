@@ -68,6 +68,8 @@ Spell::~Spell()
 
 void Spell::CycleSpells(Game& game)
 {
+	return;
+
 	//TODO: What should happen if multiple buttons are pressed at the same time?
 	if (game.pressedLeftTrigger)
 	{
@@ -256,7 +258,7 @@ bool Spell::CastPush(Game& game)
 	// Create a rectangle collider in front of the player (direction facing)
 	spellRangeRect.x = (int)player->position.x;
 	spellRangeRect.y = (int)player->position.y;
-	spellRangeRect.w = 64;
+	spellRangeRect.w = 72;
 	spellRangeRect.h = 52;
 
 	player->canMove = true;
@@ -289,7 +291,7 @@ bool Spell::CastPush(Game& game)
 	if (counter < 2)
 	{
 		return true;
-	}
+	}	
 
 	counter = 0;
 

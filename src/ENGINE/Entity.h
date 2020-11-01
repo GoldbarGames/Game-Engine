@@ -28,7 +28,7 @@ class HealthComponent;
 class FontInfo;
 #endif
 
-class __declspec(dllexport) Entity
+class Entity
 {
 protected:	
 	Animator* animator = nullptr;

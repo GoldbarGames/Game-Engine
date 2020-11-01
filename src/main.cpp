@@ -25,7 +25,7 @@ int main(int argc, char *args[])
 		GUI* gui = neww MyGUI();
 		EditorHelper* helper = neww MyEditorHelper();
 
-		Game game("WDK", "Witch Doctor Kaneko", "assets/gui/icon.png", *e, *gui);
+		Game game("WDK", "Witch Doctor Kaneko", "icon.png", *e, *gui);
 		game.editor->helper = helper;
 		game.editor->helper->editor = game.editor;
 		game.MainLoop();

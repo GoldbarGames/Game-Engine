@@ -46,10 +46,12 @@ Player::Player(const Vector2& pos) : Entity(pos)
 
 	//rotation = glm::vec3(90.0f, 0.0f, 0.0f);
 	health = neww HealthComponent(10);
-	health->showRelativeToCamera = true;
+	//health->showRelativeToCamera = true;
 	health->showHealthBar = true;
-	health->initialHealthBarScale = Vector2(200, 50);
-	health->position = Vector2(1280 * 0.1f * Camera::MULTIPLIER, 720 * 0.1f * Camera::MULTIPLIER);
+	health->initialHealthBarScale = Vector2(40, 10);
+	//health->initialHealthBarScale = Vector2(200, 50);
+	//health->position = Vector2(1280 * 0.1f * Camera::MULTIPLIER, 720 * 0.1f * Camera::MULTIPLIER);
+
 	//health->showHealthIcons = true;
 	//health->iconPath = "assets/gui/heart.png";
 	//health->position = Vector2(1280 * 0.8f * Camera::MULTIPLIER, 720 * 0.9f * Camera::MULTIPLIER);
@@ -115,6 +117,7 @@ void Player::Update(Game& game)
 	updatedAnimator = false;
 
 	currentSprite.color = color;
+	health->position = position + Vector2(0, -50);
 
 	//TODO: Change this so that we collide with an object instead of hard-coding a number
 	// Also, maybe draw an outline of the death barrier so the player can see where this is
@@ -309,6 +312,7 @@ void Player::UpdateNormally(Game& game)
 				// Entering a door loads a new level
 				if (!currentDoor->isLocked)
 				{
+					game.soundManager.PlaySound("se/door1.wav", 0);
 					game.state = GameState::LOAD_NEXT_LEVEL;
 					game.nextLevel = currentDoor->nextLevelName;
 					game.nextDoorID = currentDoor->destinationID;
@@ -366,6 +370,7 @@ void Player::UpdateNormally(Game& game)
 				!spell.isCasting && !animator->GetBool("isCastingSpell"))
 			{
 				spell.isCasting = spell.Cast(game);
+				game.soundManager.PlaySound("se/push.wav", 1);
 			}
 		}
 

@@ -17,7 +17,7 @@
 
 enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
 
-class __declspec(dllexport) Game
+class Game
 {
 private:
 	SDL_Surface* screenSurface = nullptr;

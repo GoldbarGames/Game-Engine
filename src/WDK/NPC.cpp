@@ -20,6 +20,7 @@ NPC::NPC(const Vector2& pos) : Entity(pos)
 	physics->standAboveGround = true;
 	physics->useGravity = true;
 	startPosition = pos;
+	shouldSave = true;
 
 	//health = neww HealthComponent(1);
 	//health->invincible = true;
@@ -146,7 +147,6 @@ void NPC::Save(std::unordered_map<std::string, std::string>& map)
 
 void NPC::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	shouldSave = true;
 	Entity::Load(map, game);
 
 	subtype = std::stoi(map["subtype"]);

@@ -23,7 +23,7 @@ public:
 	float pathSpeed = 0;
 
 	int delayCounter = 0;
-	int delayMax = 100;
+	int delayMax = 120;
 	bool wasMovingForward = true;
 	bool movingForwardOnPath = true;
 

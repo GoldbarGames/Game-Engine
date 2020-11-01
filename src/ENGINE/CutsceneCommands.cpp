@@ -263,7 +263,7 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 		}
 
 		bool commandFound = false;
-		for (auto cmd : cmd_lut)
+		for (const auto& cmd : cmd_lut)
 		{
 			if (cmd.command == parameters[0])
 			{

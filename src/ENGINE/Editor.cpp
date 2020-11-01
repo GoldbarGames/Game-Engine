@@ -89,10 +89,7 @@ Editor::Editor(Game& g)
 
 	// Check to see if the object properties (saving/loading)
 	// require the level to be re-calculated
-#if _DEBUG
 	UpdateLevelFiles();
-#endif
-
 }
 
 Editor::~Editor()
@@ -135,6 +132,12 @@ Editor::~Editor()
 
 	if (currentLevelText != nullptr)
 		delete_it(currentLevelText);
+
+	if (outlineSprite != nullptr)
+		delete_it(outlineSprite);
+
+	if (rectSprite != nullptr)
+		delete_it(rectSprite);
 }
 
 // Updates the level file based on changes in how entities are saved/loaded
@@ -155,6 +158,7 @@ void Editor::UpdateLevelFiles()
 		return;
 	}
 
+#if _DEBUG
 	const std::string STR_ENTITY("entity");
 
 	std::string levelsFolder = "data\\levels\\";
@@ -306,6 +310,9 @@ void Editor::UpdateLevelFiles()
 	fout.open(OLD_FILEPATH);
 	fout << newData;
 	fout.close();
+#endif
+
+	
 }
 
 std::string Editor::ReadLoadingData(const std::string& filepath, 
@@ -1737,6 +1744,18 @@ std::string Editor::SaveLevelAsString()
 	if (game->levelStartCutscene != "")
 	{
 		level << "1 cutscene-start 0 0 " << game->levelStartCutscene << std::endl;
+	}
+
+	if (cameraTargetID > -1)
+	{
+		if (switchTargetBackToPlayer)
+		{
+			level << "0 camera-target-player 0 0 " << cameraTargetID << std::endl;
+		}
+		else
+		{
+			level << "0 camera-target 0 0 " << cameraTargetID << std::endl;
+		}
 	}
 
 	return level.str();

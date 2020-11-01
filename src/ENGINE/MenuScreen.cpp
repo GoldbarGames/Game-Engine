@@ -405,9 +405,9 @@ bool MenuScreen::PressSelectedButton(Game& game)
 			if (game.editor->startEditorLevel != "")
 				game.LoadLevel(game.editor->startEditorLevel); // , 1, 1);
 			else
-				game.LoadLevel("demo"); // , 1, 1);
+				game.LoadLevel("demo2hub"); // , 1, 1);
 #else
-			game.LoadLevel("demo");
+			game.LoadLevel("demo2hub");
 #endif
 		}
 		else if (game.currentGame == "DB1")
@@ -426,7 +426,8 @@ bool MenuScreen::PressSelectedButton(Game& game)
 #if _DEBUG
 		game.openedMenus.emplace_back(game.allMenus["File Select"]);
 #else
-		game.LoadLevel("demo");
+		//game.openedMenus.emplace_back(game.allMenus["File Select"]);
+		game.LoadLevel("demo2hub");
 #endif
 	}
 	else if (selectedButton->name == "Title Screen")

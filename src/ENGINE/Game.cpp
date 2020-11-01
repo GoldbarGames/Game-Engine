@@ -786,6 +786,8 @@ void Game::LoadTitleScreen()
 	openedMenus.clear();
 	editor->InitLevelFromFile("title");
 	openedMenus.emplace_back(allMenus["Title"]);
+	if (soundManager.bgmFilepath != soundManager.bgmNames[nextBGM])
+		soundManager.PlayBGM(soundManager.bgmNames[nextBGM]);
 }
 
 // If we have a name for the next level, then load that level
@@ -892,7 +894,8 @@ void Game::TransitionLevel()
 			renderer.targetColor = Color{ 0, 0, 0, 0 };
 		}
 
-		soundManager.PlayBGM(soundManager.bgmNames[nextBGM]);
+		if (soundManager.bgmFilepath != soundManager.bgmNames[nextBGM])
+			soundManager.PlayBGM(soundManager.bgmNames[nextBGM]);
 
 		transitionState = 4;
 	}
@@ -1342,10 +1345,6 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_c:
 				pressedDebugButton = true;
 				break;
-
-#if _DEBUG
-			// NOT IMPLEMENTED YET
-				
 			case SDLK_v:
 				// pressedSpellButton = true;
 				break;
@@ -1356,6 +1355,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				pressedRightTrigger = true;
 				break;
 
+#if _DEBUG
 			// DEVELOPER BUTTONS
 
 			case SDLK_r:

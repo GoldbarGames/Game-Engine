@@ -33,7 +33,7 @@ void MyGUI::Render(const Renderer& renderer)
 
 	if (playerSpell != nullptr)
 	{
-		playerSpell->Render(renderer);
+		//playerSpell->Render(renderer);
 	}
 
 	// TODO: Refactor these texts into structs with bools in them

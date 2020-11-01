@@ -28,7 +28,7 @@ Enemy::Enemy(Vector2 pos) : Entity(pos)
 	startPosition = pos;
 	physics->standAboveGround = true;
 
-	health = neww HealthComponent(4);
+	health = neww HealthComponent(1);
 	health->showHealthBar = true;
 	health->initialHealthBarScale = Vector2(40, 10);
 }
@@ -50,6 +50,8 @@ void Enemy::Init(const Game& g, const std::string& n)
 		CreateCollider(6, 18, 55, 23);
 		actionTimer.Start(1);
 		physics->jumpSpeed = -1.25f;
+		health->SetMaxHP(2);
+		health->SetCurrentHP(2);
 	}
 	else if (name == "fly")
 	{
@@ -60,6 +62,8 @@ void Enemy::Init(const Game& g, const std::string& n)
 	{
 		CreateCollider(0, 0, 33, 29);
 		//animator->SetBool("directionIsRight", true);
+		health->SetMaxHP(2);
+		health->SetCurrentHP(2);
 	}
 	else if (name == "beehive")
 	{
@@ -76,6 +80,8 @@ void Enemy::Init(const Game& g, const std::string& n)
 		health->showHealthBar = true;
 		CreateCollider(0, 0, 14, 14);
 		actionTimer.Start(1000);
+		health->SetMaxHP(2);
+		health->SetCurrentHP(2);
 	}
 	else if (name == "caterpillar")
 	{
@@ -91,6 +97,8 @@ void Enemy::Init(const Game& g, const std::string& n)
 	else if (name == "termite")
 	{
 		CreateCollider(0, 0, 60, 28);
+		health->SetMaxHP(2);
+		health->SetCurrentHP(2);
 		//animator->SetBool("directionIsRight", true);
 	}
 }
@@ -277,9 +285,10 @@ void Enemy::Update(Game& game)
 			std::cout << animator->currentState->name << std::endl;
 			//isFlippedOver = true;
 			//isHurt = false;
+			CreateCollider(0, 0, 55, 29);
 			animator->SetBool("isFlippedOver", true);
 			animator->SetBool("isHurt", false);
-			actionTimer.Start(1500);
+			actionTimer.Start(2500);
 		}
 
 		if (animator->GetBool("isFlippedOver"))
@@ -288,6 +297,7 @@ void Enemy::Update(Game& game)
 			{
 				//isFlippedOver = false;
 				animator->SetBool("isFlippedOver", false);
+				CreateCollider(0, 0, 33, 29);
 			}
 		}
 		else
@@ -465,6 +475,7 @@ void Enemy::OnTriggerEnter(Entity& other, Game& game)
 			return;
 		}
 
+		game.soundManager.PlaySound("se/hurt3.wav", 0);
 		other.GetAnimator()->SetBool("isHurt", true);
 		other.GetAnimator()->SetState("hurt");
 		other.GetAnimator()->Update(other);
