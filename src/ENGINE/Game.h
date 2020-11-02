@@ -140,6 +140,8 @@ public:
 	Entity* CreateEntity(const std::string& entityName, const Vector2& position, int spriteIndex);
 	Entity* SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex);
 
+	void CreateFont(const std::string& fontName, int size);
+
 	Timer timer;
 	Timer fpsLimit;
 	bool limitFPS = false;
@@ -165,6 +167,8 @@ public:
 
 	FontInfo* theFont = nullptr;
 	FontInfo* headerFont = nullptr;
+
+	std::unordered_map<std::string, FontInfo*> fonts;
 
 	std::vector<Entity*> entitiesToRender;
 	std::vector<MenuScreen*> openedMenus;

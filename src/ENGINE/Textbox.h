@@ -19,9 +19,6 @@ public:
 	Entity* nameObject = nullptr;
 	Entity* clickToContinue = nullptr;
 
-	//TODO: Minimize string allocations, use a map of ints to strings
-	std::unordered_map<std::string, FontInfo*> fonts;
-
 	//TODO: Different font info for name?
 	FontInfo* currentFontInfo = nullptr;
 	Text* text = nullptr;

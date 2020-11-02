@@ -2,10 +2,10 @@
 #include <SDL_ttf.h>
 #include <stdexcept>
 
-FontInfo::FontInfo(const char* f, int s)
+FontInfo::FontInfo(const std::string& f, int s)
 {
 	size = s;
-	regular = TTF_OpenFont(f, size);
+	regular = TTF_OpenFont(f.c_str(), size);
 	pathRegular = f;
 
 	if (regular == nullptr)
@@ -57,31 +57,31 @@ void FontInfo::ChangeFontSize(int newSize)
 	SetBoldItalicsFont(pathBoldItalics.c_str());
 }
 
-void FontInfo::SetRegularFont(const char* f)
+void FontInfo::SetRegularFont(const std::string& f)
 {
-	if (f != nullptr)
+	if (f.c_str() != nullptr)
 	{
 		pathRegular = f;
-		regular = TTF_OpenFont(f, size);
+		regular = TTF_OpenFont(f.c_str(), size);
 	}
 }
 
-void FontInfo::SetBoldFont(const char* f)
+void FontInfo::SetBoldFont(const std::string& f)
 {
 	pathBold = f;
-	bold = TTF_OpenFont(f, size);
+	bold = TTF_OpenFont(f.c_str(), size);
 }
 
-void FontInfo::SetItalicsFont(const char* f)
+void FontInfo::SetItalicsFont(const std::string& f)
 {
 	pathItalics = f;
-	italics = TTF_OpenFont(f, size);
+	italics = TTF_OpenFont(f.c_str(), size);
 }
 
-void FontInfo::SetBoldItalicsFont(const char* f)
+void FontInfo::SetBoldItalicsFont(const std::string& f)
 {
 	pathBoldItalics = f;
-	boldItalics = TTF_OpenFont(f, size);
+	boldItalics = TTF_OpenFont(f.c_str(), size);
 }
 
 TTF_Font* FontInfo::GetRegularFont()

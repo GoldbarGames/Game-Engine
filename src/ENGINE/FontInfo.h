@@ -21,7 +21,7 @@ private:
 
 public:
 
-	FontInfo(const char* f, int s);
+	FontInfo(const std::string& f, int s);
 
 	~FontInfo();
 
@@ -29,13 +29,13 @@ public:
 
 	void ChangeFontSize(int newSize);
 
-	void SetRegularFont(const char* f);
+	void SetRegularFont(const std::string& f);
 
-	void SetBoldFont(const char* f);
+	void SetBoldFont(const std::string& f);
 
-	void SetItalicsFont(const char* f);
+	void SetItalicsFont(const std::string& f);
 
-	void SetBoldItalicsFont(const char* f);
+	void SetBoldItalicsFont(const std::string& f);
 
 	TTF_Font* GetRegularFont();
 

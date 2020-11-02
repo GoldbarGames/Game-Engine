@@ -1,6 +1,7 @@
 #include "Textbox.h"
 #include "Renderer.h"
 #include "Entity.h"
+#include "Game.h"
 
 Textbox::Textbox(SpriteManager& m, Renderer& r)
 {
@@ -10,18 +11,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	//TODO: Replace these with the real fonts
 	//TODO: How to deal with font sizes? Maybe map from string to map<int, TTF*>
 
-	fonts["default"] = neww FontInfo("fonts/default.ttf", 24);
-
-	fonts["SourceCodePro"] = neww FontInfo("fonts/source-code-pro/SourceCodePro-Regular.ttf", 24);
-
-	fonts["DejaVuSansMono"] = neww FontInfo("fonts/dejavu-sans-mono/DejaVuSansMono.ttf", 24);
-
-	fonts["SpaceMono"] = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
-	fonts["SpaceMono"]->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
-	fonts["SpaceMono"]->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
-	fonts["SpaceMono"]->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
-
-	currentFontInfo = fonts["SpaceMono"];
+	currentFontInfo = renderer->game->fonts["SpaceMono"];
 
 	//TODO: Should we have a way to define the starting box position?
 	boxObject = neww Entity(Vector2(1280, 720));
@@ -79,12 +69,6 @@ Textbox::~Textbox()
 
 	if (nameObject != nullptr)
 		delete_it(nameObject);
-
-	for (auto& [key, val] : fonts)
-	{
-		if (val != nullptr)
-			delete_it(val);
-	}
 }
 
 void Textbox::SetFontSize(int newSize)
@@ -116,9 +100,9 @@ void Textbox::ChangeBoxFont(const std::string& fontName)
 	//TODO: What about the backlog font?
 	//TODO: How to change the font size?
 	//TODO: Make another map that takes the filepath as the key and has the short name as the value
-	if (fonts.count(fontName) == 1)
+	if (renderer->game->fonts.count(fontName) == 1)
 	{
-		currentFontInfo = fonts[fontName];
+		currentFontInfo = renderer->game->fonts[fontName];
 		text->SetFont(currentFontInfo->GetRegularFont());
 	}		
 }
@@ -128,9 +112,9 @@ void Textbox::ChangeNameFont(const std::string& fontName)
 	//TODO: What about the backlog font?
 	//TODO: How to change the font size?
 	//TODO: Make another map that takes the filepath as the key and has the short name as the value
-	if (fonts.count(fontName) == 1)
+	if (renderer->game->fonts.count(fontName) == 1)
 	{
-		currentFontInfo = fonts[fontName];
+		currentFontInfo = renderer->game->fonts[fontName];
 		speaker->SetFont(currentFontInfo->GetRegularFont());
 	}		
 }

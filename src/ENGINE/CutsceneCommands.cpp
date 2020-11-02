@@ -2450,16 +2450,7 @@ int CutsceneCommands::ErrorLog(CutsceneParameters parameters)
 int CutsceneCommands::FontCommand(CutsceneParameters parameters)
 {
 	// Load fonts from files
-
-	if (manager->textbox->fonts.count(parameters[1]) == 1)
-	{
-		delete manager->textbox->fonts[parameters[1]];
-	}
-
-	manager->textbox->fonts[parameters[1]] = neww FontInfo((parameters[2] + "/" + parameters[1] + "-Regular.ttf").c_str(), 24);
-	manager->textbox->fonts[parameters[1]]->SetBoldFont((parameters[2] + "/" + parameters[1] + "-Bold.ttf").c_str());
-	manager->textbox->fonts[parameters[1]]->SetItalicsFont((parameters[2] + "/" + parameters[1] + "-Italic.ttf").c_str());
-	manager->textbox->fonts[parameters[1]]->SetBoldItalicsFont((parameters[2] + "/" + parameters[1] + "-BoldItalic.ttf").c_str());
+	manager->game->CreateFont(parameters[1], 24);
 
 	return 0;
 }

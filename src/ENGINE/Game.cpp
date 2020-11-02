@@ -214,17 +214,10 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	// Initialize the font before all text
 
-	// TODO: Load all these from a file
-	theFont = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
-	theFont->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
-	theFont->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
-	theFont->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
-
-	//TODO: Header font should be different, at least a bigger size
-	headerFont = neww FontInfo("fonts/space-mono/SpaceMono-Regular.ttf", 24);
-	headerFont->SetBoldFont("fonts/space-mono/SpaceMono-Bold.ttf");
-	headerFont->SetItalicsFont("fonts/space-mono/SpaceMono-Italic.ttf");
-	headerFont->SetBoldItalicsFont("fonts/space-mono/SpaceMono-BoldItalic.ttf");
+	// TODO: Load all fonts from a file
+	CreateFont("SpaceMono", 24);
+	theFont = fonts["SpaceMono"];
+	headerFont = fonts["SpaceMono"];
 
 	soundManager.ReadMusicData("data/bgm.dat");
 
@@ -352,12 +345,29 @@ Game::~Game()
 	if (editor != nullptr)
 		delete_it(editor);
 
+	for (auto& [key, val] : fonts)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
+
 	EndSDL();
 }
 
 Sprite* Game::CreateSprite(const std::string& filepath, const ShaderName shaderName)
 {
 	return neww Sprite(spriteManager.GetImage(filepath), renderer.shaders[shaderName]);
+}
+
+void Game::CreateFont(const std::string& fontName, int size)
+{
+	if (fonts.count(fontName) == 0)
+	{
+		fonts[fontName] = neww FontInfo("fonts/" + fontName + "/" + fontName + "-Regular.ttf", size);
+		fonts[fontName]->SetBoldFont("fonts/" + fontName + "/" + fontName + "-Bold.ttf");
+		fonts[fontName]->SetItalicsFont("fonts/" + fontName + "/" + fontName + "-Italic.ttf");
+		fonts[fontName]->SetBoldItalicsFont("fonts/" + fontName + "/" + fontName + "-BoldItalic.ttf");
+	}
 }
 
 void Game::CalcDt()
@@ -516,9 +526,6 @@ void Game::EndSDL()
 	{
 		SDL_GameControllerClose(controller);
 	}
-	
-	delete_it(theFont);
-	delete_it(headerFont);
 }
 
 bool Game::SetOpenGLAttributes()
