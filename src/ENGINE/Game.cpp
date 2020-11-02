@@ -205,6 +205,7 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	renderer.Init(this);
 	spriteManager.Init(&renderer);
+	soundManager.Init(this);
 
 	InitOpenGL();
 

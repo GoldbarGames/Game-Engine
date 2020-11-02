@@ -7,11 +7,9 @@
 #include "Game.h"
 #include "Logger.h"
 
-SoundManager::SoundManager(Game* g)
+SoundManager::SoundManager()
 {
-	game = g;
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
-	currentBGM = Mix_LoadMUS("bgm/Witchs_Waltz.ogg");
 	volArray = { 0, 30, 60, 90, MIX_MAX_VOLUME };
 }
 
@@ -29,14 +27,21 @@ SoundManager::~SoundManager()
 	Mix_Quit();
 }
 
+void SoundManager::Init(Game* g)
+{
+	game = g;
+}
+
 bool SoundManager::IsPlayingSound(int channel)
 {
 	//TODO
+	return false;
 }
 
 bool SoundManager::IsPlayingBGM()
 {
 	//TODO
+	return false;
 }
 
 bool SoundManager::LoadBGM(const std::string& bgm)
@@ -49,8 +54,12 @@ bool SoundManager::LoadBGM(const std::string& bgm)
 
 	if (currentBGM == nullptr)
 	{
-		std::string error = "ERROR: Failed to load BGM:" + bgm;
-		game->logger.Log(error.c_str());
+		if (game != nullptr)
+		{
+			std::string error = "ERROR: Failed to load BGM:" + bgm;
+			game->logger.Log(error.c_str());
+		}
+
 		bgmFilepath = "";
 		return false;
 	}
@@ -122,8 +131,11 @@ void SoundManager::PlaySound(const std::string& filepath, int channel, int loop)
 	sounds[channel] = soundChannel;
 	if (!sounds[channel]->Play())
 	{
-		std::string error = "ERROR: Failed to load sound:" + filepath;
-		game->logger.Log(error.c_str());
+		if (game != nullptr)
+		{
+			std::string error = "ERROR: Failed to load sound:" + filepath;
+			game->logger.Log(error.c_str());
+		}
 	}
 }
 

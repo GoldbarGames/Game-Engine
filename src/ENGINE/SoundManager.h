@@ -57,7 +57,7 @@ private:
 	Uint32 volumeBGM = 20;
 	Uint32 volumeSound = 20;
 	std::vector<int> volArray;
-	Game* game;
+	Game* game = nullptr;
 public:
 	std::unordered_map<int, SoundChannel*> sounds;
 	std::unordered_map<std::string, std::string> bgmNames;
@@ -67,8 +67,9 @@ public:
 	int soundVolumeIndex = 0;
 	Mix_Music* currentBGM = nullptr;
 	std::string bgmFilepath = "";
-	SoundManager(Game* g);
+	SoundManager();
 	~SoundManager();
+	void Init(Game* g);
 	bool LoadBGM(const std::string& bgm);
 	void PlayBGM(const std::string& bgm, bool loop = true);
 	void StopBGM();
