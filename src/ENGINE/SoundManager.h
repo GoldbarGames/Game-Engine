@@ -7,6 +7,8 @@
 #include <vector>
 #include <unordered_map>
 
+class Game;
+
 struct Sound {
 	Mix_Chunk* chunk;
 	std::string filepath;
@@ -32,7 +34,7 @@ struct SoundChannel {
 			delete sound;
 	}
 
-	void Play()
+	bool Play()
 	{
 		if (sound->chunk != nullptr)
 		{
@@ -41,8 +43,11 @@ struct SoundChannel {
 		}
 		else
 		{
-			//TODO: Log error, could not load file
+			// Log error, could not load file
+			return false;
 		}
+
+		return true;
 	}
 };
 
@@ -52,7 +57,7 @@ private:
 	Uint32 volumeBGM = 20;
 	Uint32 volumeSound = 20;
 	std::vector<int> volArray;
-
+	Game* game;
 public:
 	std::unordered_map<int, SoundChannel*> sounds;
 	std::unordered_map<std::string, std::string> bgmNames;
@@ -62,7 +67,7 @@ public:
 	int soundVolumeIndex = 0;
 	Mix_Music* currentBGM = nullptr;
 	std::string bgmFilepath = "";
-	SoundManager();
+	SoundManager(Game* g);
 	~SoundManager();
 	bool LoadBGM(const std::string& bgm);
 	void PlayBGM(const std::string& bgm, bool loop = true);
@@ -74,6 +79,8 @@ public:
 	void ClearChannel(int channel);
 	void SetVolumeSound(int index);
 	void ReadMusicData(const std::string& dataFilePath);
+	bool IsPlayingSound(int channel);
+	bool IsPlayingBGM();
 };
 
 #endif

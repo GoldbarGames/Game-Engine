@@ -1783,31 +1783,25 @@ void Game::RenderScene()
 	// Render all entities
 	if (renderer.camera.useOrthoCamera && !editMode)
 	{
-
 		entitiesToRender.clear();
 
-		// TODO: Don't hardcode this
-		const int maxWidth = (30 * TILE_SIZE) * Camera::MULTIPLIER;
-		const int maxHeight = (17 * TILE_SIZE) * Camera::MULTIPLIER;
-		const int camPosX = renderer.camera.position.x - (6 * TILE_SIZE);
-		const int camPosY = renderer.camera.position.y - (6 * TILE_SIZE);
-		const int camEndX = (renderer.camera.position.x + maxWidth + TILE_SIZE);
-		const int camEndY = (renderer.camera.position.y + maxHeight + TILE_SIZE);
+		// TODO: Don't hardcode these numbers
+		SDL_Rect cameraBounds;
+		cameraBounds.x = renderer.camera.position.x - (6 * TILE_SIZE);
+		cameraBounds.y = renderer.camera.position.y - (6 * TILE_SIZE);
+		cameraBounds.w = (32 * TILE_SIZE) * Camera::MULTIPLIER;
+		cameraBounds.h = (20 * TILE_SIZE) * Camera::MULTIPLIER;
 
 		for (unsigned int i = 0; i < entities.size(); i++)
 		{
-			// TODO: Instead of checking if the position is within the screen,
-			// check for all collisions with the screen's collider
-			if (entities[i]->position.x > camPosX &&
-				entities[i]->position.y > camPosY &&
-				entities[i]->position.x < camEndX &&
-				entities[i]->position.y < camEndY)
+			const SDL_Rect* theirBounds = entities[i]->GetBounds();
+
+			if (HasIntersection(cameraBounds, *theirBounds))
 			{
 				entities[i]->Render(renderer);
-				if (debugMode && (entities[i]->etype == "player" 
+				if (debugMode && (entities[i]->etype == "player"
 					|| entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru))
 					entitiesToRender.push_back(entities[i]);
-				//	entities[i]->RenderDebug(renderer);
 			}
 		}
 

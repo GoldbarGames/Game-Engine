@@ -4,9 +4,12 @@
 #include <fstream>
 #include <iterator>
 #include <sstream>
+#include "Game.h"
+#include "Logger.h"
 
-SoundManager::SoundManager()
+SoundManager::SoundManager(Game* g)
 {
+	game = g;
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 	currentBGM = Mix_LoadMUS("bgm/Witchs_Waltz.ogg");
 	volArray = { 0, 30, 60, 90, MIX_MAX_VOLUME };
@@ -26,6 +29,16 @@ SoundManager::~SoundManager()
 	Mix_Quit();
 }
 
+bool SoundManager::IsPlayingSound(int channel)
+{
+	//TODO
+}
+
+bool SoundManager::IsPlayingBGM()
+{
+	//TODO
+}
+
 bool SoundManager::LoadBGM(const std::string& bgm)
 {
 	if (currentBGM != nullptr)
@@ -36,7 +49,8 @@ bool SoundManager::LoadBGM(const std::string& bgm)
 
 	if (currentBGM == nullptr)
 	{
-		//TODO: Log error, could not load file
+		std::string error = "ERROR: Failed to load BGM:" + bgm;
+		game->logger.Log(error.c_str());
 		bgmFilepath = "";
 		return false;
 	}
@@ -49,6 +63,7 @@ void SoundManager::PlayBGM(const std::string& bgm, bool loop)
 {
 	if (LoadBGM(bgm))
 	{
+		// TODO: Define loop points to loop within a song
 		if (loop)
 			Mix_PlayMusic(currentBGM, -1);
 		else
@@ -105,7 +120,11 @@ void SoundManager::PlaySound(const std::string& filepath, int channel, int loop)
 	SoundChannel* soundChannel = neww SoundChannel(channel, sound, volumeSound, loop);
 
 	sounds[channel] = soundChannel;
-	sounds[channel]->Play();
+	if (!sounds[channel]->Play())
+	{
+		std::string error = "ERROR: Failed to load sound:" + filepath;
+		game->logger.Log(error.c_str());
+	}
 }
 
 void SoundManager::ClearChannel(int channel)
