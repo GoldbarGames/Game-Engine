@@ -7,7 +7,6 @@
 #include <sstream>
 #include "Game.h"
 #include "Sprite.h"
-//#include "Switch.h"
 #include "Property.h"
 #include "Editor.h"
 #include "Animator.h"
@@ -325,6 +324,9 @@ void Entity::SetSprite(Sprite& sprite)
 	currentSprite = sprite;
 }
 
+// This should check to see whether or not there already exists an object
+// where we are trying to place this object, and possibly (depending on this object)
+// whether or not there is any ground below (classes can override this if needed)
 bool Entity::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
 {
 	bool shouldSpawn = true;

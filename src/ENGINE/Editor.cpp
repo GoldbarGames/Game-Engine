@@ -1256,6 +1256,12 @@ void Editor::ClickedButton()
 		RedoAction();
 		clickedButton->isClicked = false;
 	}
+	else if (clickedButton->name == "BG")
+	{
+		CreateDialog("Type in the name of the background to use:");
+		game->StartTextInput("set_background");
+		clickedButton->isClicked = false;
+	}
 	else if (clickedButton->name == "replace")
 	{
 		if (objectMode == "replace")
@@ -2065,31 +2071,7 @@ void Editor::CreateLevelFromString(std::string level)
 				{
 					index = 4;
 					std::string bgName = tokens[index++];
-
-					// Create the backgrounds
-					unsigned int NUM_BGS = 8;
-
-					//TODO: Get the width of the texture automatically
-					// or read it in from the level file
-					unsigned int BG_WIDTH = 636 * 2;
-					unsigned int X_OFFSET = 636 * -4;
-					unsigned int Y_OFFSET = 0;
-
-					if (bgName == "title")
-					{
-						X_OFFSET = 640; // half the width of the texture
-						Y_OFFSET = 360; // half the height of the texture
-						NUM_BGS = 1;
-					}
-
-					for (unsigned int i = 0; i < NUM_BGS; i++)
-					{
-						//Background* bg = game->SpawnBackground(Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET), bgName);
-						Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
-						game->background->CreateBackground(bgName, bgPos, game->spriteManager, game->renderer);
-					}
-
-					game->SortEntities(game->background->layers);
+					game->background->SpawnBackground(bgName, *game);
 				}
 				else
 				{

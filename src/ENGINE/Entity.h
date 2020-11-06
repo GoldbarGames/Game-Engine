@@ -40,7 +40,6 @@ public:
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	Vector2 scale = Vector2(1, 1);
 	
-
 	Entity* attachedSwitch = nullptr;
 	PhysicsComponent* physics = nullptr;
 	HealthComponent* health = nullptr;

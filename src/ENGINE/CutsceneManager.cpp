@@ -678,8 +678,7 @@ void CutsceneManager::PlayCutscene(const char* labelName)
 		// if failed to load label, exit cutscenes
 		if (currentLabel == nullptr)
 		{
-			std::string error = "ERROR: Could not find cutscene label " + std::string(labelName);
-			game->logger.Log(error.c_str());
+			game->logger.Log("ERROR: Could not find cutscene label " + std::string(labelName));
 			watchingCutscene = false;
 		}			
 

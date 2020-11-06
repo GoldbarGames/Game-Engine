@@ -31,7 +31,7 @@ void Logger::SetOutputFile(const char* filename)
 	Log("File opened");
 }
 
-void Logger::Log(const char* message)
+void Logger::Log(const std::string& message)
 {
 	if (shouldPrintMessage)
 	{

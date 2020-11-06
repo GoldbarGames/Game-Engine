@@ -7,6 +7,11 @@
 #include "Game.h"
 #include "Logger.h"
 
+// TODO: When you don't have any audio output on your device,
+// it fails to load sounds/music. If you then plug in an audio output,
+// it still fails to load, and you must restart the game to hear sound.
+// So we need to detect when the output device changes.
+
 SoundManager::SoundManager()
 {
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
@@ -56,8 +61,7 @@ bool SoundManager::LoadBGM(const std::string& bgm)
 	{
 		if (game != nullptr)
 		{
-			std::string error = "ERROR: Failed to load BGM:" + bgm;
-			game->logger.Log(error.c_str());
+			game->logger.Log("ERROR: Failed to load BGM:" + bgm);
 		}
 
 		bgmFilepath = "";
@@ -133,8 +137,7 @@ void SoundManager::PlaySound(const std::string& filepath, int channel, int loop)
 	{
 		if (game != nullptr)
 		{
-			std::string error = "ERROR: Failed to load sound:" + filepath;
-			game->logger.Log(error.c_str());
+			game->logger.Log("ERROR: Failed to load sound:" + filepath);
 		}
 	}
 }

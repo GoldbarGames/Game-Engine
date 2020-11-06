@@ -18,6 +18,8 @@ SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& g
 
 	std::vector<std::string> optionNames;
 
+	// TODO: Read all of these in from a file
+
 	// Create the options based on the name of the setting
 	if (name == "Music Volume")
 	{

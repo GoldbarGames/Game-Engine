@@ -34,7 +34,7 @@
 #include "Renderer.h"
 
 #include "HealthComponent.h" // TODO: Remove this
-#include "SettingsButton.h" // TODO: Remove this
+#include "SettingsButton.h" // TODO: Allow for customization
 
 #include "DebugScreen.h"
 #include "EntityFactory.h"
@@ -200,7 +200,6 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	windowTitle = title;
 	windowIconFilepath = icon;
 
-	logger.SetOutputFile("logs/output2.log");
 	InitSDL();
 
 	renderer.Init(this);
@@ -784,6 +783,18 @@ void Game::StopTextInput()
 		if (inputText != "")
 		{
 			editor->InitLevelFromFile(inputText);
+		}
+	}
+	else if (inputReason == "set_background")
+	{
+		// If a BG with that name exists, then use it
+		if (background->bgData.count(inputText) != 0)
+		{
+			background->SpawnBackground(inputText, *this);
+		}
+		else
+		{
+			logger.Log("ERROR: Failed to load BG with name " + inputText);
 		}
 	}
 }
@@ -1547,18 +1558,10 @@ void Game::GetMenuInput()
 
 void Game::UpdateTextInput()
 {
+	editor->dialog->input->SetText(inputText);
 	if (inputReason == "properties")
 	{
-		editor->dialog->input->SetText(inputText);
 		editor->SetPropertyText(inputText);
-	}
-	else if (inputReason == "new_level")
-	{
-		editor->dialog->input->SetText(inputText);
-	}
-	else if (inputReason == "load_file_as")
-	{
-		editor->dialog->input->SetText(inputText);
 	}
 }
 

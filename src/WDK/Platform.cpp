@@ -102,12 +102,15 @@ void Platform::Update(Game& game)
 {
 	physics->previousVelocity = physics->velocity;
 
-	// TODO: Make this more robust for different platform types
-	if (tiles.size() == 3)
+	// Draw tiles on front of the platform
+	if (name == "platform1" || name == "platform2")
 	{
-		tiles[0]->position = position + Vector2(0, TILE_SIZE);
-		tiles[1]->position = position + Vector2(-2 * TILE_SIZE, TILE_SIZE);
-		tiles[2]->position = position + Vector2(2 * TILE_SIZE, TILE_SIZE);
+		if (tiles.size() == 3)
+		{
+			tiles[0]->position = position + Vector2(0, TILE_SIZE);
+			tiles[1]->position = position + Vector2(-2 * TILE_SIZE, TILE_SIZE);
+			tiles[2]->position = position + Vector2(2 * TILE_SIZE, TILE_SIZE);
+		}
 	}
 
 	if (attachedSwitch != nullptr)
@@ -184,6 +187,7 @@ void Platform::Update(Game& game)
 				return;
 
 			// If we just changed directions, wait a bit before moving again
+			// TODO: Customize the delay time for each platform/path
 			if (wasMovingForward != movingForwardOnPath)
 			{
 				delayCounter++;
@@ -235,120 +239,8 @@ void Platform::Update(Game& game)
 	// NOTE: We do not want to update this the normal way here,
 	// because it is already changing its position,
 	// so we do not want to do it again
-	//Entity::Update(game);
 
 	return;
-
-	/*
-	if (platformType == "Move")
-	{
-		physics->SetVelocity(startVelocity);
-
-		if (shouldLoop)
-		{
-			int distance = (tilesToMove * TILE_SIZE);
-			if (physics->velocity.x > 0 && position.x >= startPosition.x + distance
-				|| physics->velocity.x < 0 && position.x <= startPosition.x - distance)
-			{
-				//TODO: Add a delay between moving the opposite direction
-				startVelocity.x *= -1;
-			}
-
-			if (physics->velocity.y > 0 && position.y >= startPosition.y + distance
-				|| physics->velocity.y < 0 && position.y <= startPosition.y - distance)
-			{
-				//TODO: Add a delay between moving the opposite direction
-				startVelocity.y *= -1;
-			}
-		}
-	}
-	else if (platformType == "Path" && currentPath != nullptr && pathNodeID < currentPath->nodes.size() - 1)
-	{
-		//float posCenterX = position.x + (GetSprite()->frameWidth / 2);
-		//float posCenterY = position.x + (GetSprite()->frameHeight / 2);
-		//Vector2 posCenter = Vector2(posCenterX, posCenterY);
-
-		// Move towards the next point in the path at the specified speed
-		float dx = currentPath->nodes[pathNodeID]->position.x - position.x;
-		float dy = currentPath->nodes[pathNodeID]->position.y - position.y;
-
-		float length = sqrtf(dx*dx + dy*dy);
-
-		// Normalize the vector
-		dx /= length;
-		dy /= length;
-
-		dx *= pathSpeed;
-		dy *= pathSpeed;
-
-		physics->velocity.x = dx;
-		physics->velocity.y = dy;
-
-		std::string currentDirectionX = CalcDirection(true);
-		std::string currentDirectionY = CalcDirection(false);
-
-		bool wrongDirection = false;
-		if (currentDirectionX != directionX || currentDirectionY != directionY)
-		{
-			wrongDirection = true;
-		}
-
-		// If we are at the point, then set the destination to the next point
-
-		if (wrongDirection || RoundToInt(position) == RoundToInt(currentPath->nodes[pathNodeID]->position))
-		{
-			physics->velocity.x = 0;
-			physics->velocity.y = 0;
-
-			if (traversePathForward)
-				pathNodeID++;
-			else
-				pathNodeID--;
-
-			if (pathNodeID < currentPath->nodes.size() - 1)
-			{
-				directionX = CalcDirection(true);
-				directionY = CalcDirection(false);
-			}
-			else // we have reached the end, so carry out end behavior
-			{
-				if (endPathBehavior == "Stop")
-				{
-					// Do nothing, because this is the default behavior!
-				}
-				else if (endPathBehavior == "Reverse")
-				{
-					// Reverse the direction of our index
-					traversePathForward = !traversePathForward;
-					if (traversePathForward)
-						pathNodeID++;
-					else
-						pathNodeID--;
-				}
-				else if (endPathBehavior == "Selfdestruct")
-				{
-					// Destroy this entity
-					shouldDelete = true;
-				}
-				else if (endPathBehavior == "Fall")
-				{
-					// Detach from the path and fall downward due to gravity
-					physics->useGravity = true;
-					startVelocity = Vector2(0, 0);
-					physics->velocity = startVelocity;
-					platformType = "";
-				}
-			}
-		}
-	}
-	else if (platformType == "Idle")
-	{
-		physics->velocity.x = 0;
-		physics->velocity.y = 0;
-	}
-
-	*/
-
 }
 
 void Platform::Render(const Renderer& renderer)
@@ -378,31 +270,12 @@ void Platform::GetProperties(std::vector<Property*>& properties)
 	{
 		properties.emplace_back(new Property("Path ID", pathID));
 		properties.emplace_back(new Property("Speed", pathSpeed));
+		properties.emplace_back(new Property("Delay", delayMax));
 	}
 
-	/*
-	
+	/*	
 	const std::vector<std::string> platformTypes = { "Idle", "Move", "Path" };
 	properties.emplace_back(new Property("Platform Type", platformType, platformTypes));
-
-	if (platformType == "Move")
-	{
-		properties.emplace_back(new Property("Velocity X", startVelocity.x));
-		properties.emplace_back(new Property("Velocity Y", startVelocity.y));
-		properties.emplace_back(new Property("Distance", tilesToMove));
-		properties.emplace_back(new Property("Loop", shouldLoop));
-	}
-	else if (platformType == "Path")
-	{
-		const std::vector<std::string> behaviorOptions = { "Stop", "Reverse", "Selfdestruct", "Fall" };
-		properties.emplace_back(new Property("Path ID", pathID));
-		properties.emplace_back(new Property("Speed", pathSpeed));
-		properties.emplace_back(new Property("End Behavior", endPathBehavior), behaviorOptions);
-	}
-	else if (platformType == "Idle")
-	{
-
-	}
 	*/
 }
 

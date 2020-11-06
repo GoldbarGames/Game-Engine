@@ -5,6 +5,7 @@
 #include <vector>
 #include "Vector2.h"
 #include <unordered_map>
+#include "globals.h"
 
 class Entity;
 class SpriteManager;
@@ -17,12 +18,20 @@ struct BackgroundLayerData
 	int offsetY = 0;
 	int drawOrder = 0;
 	float parallax = 0.0f;
+	float scaleX = 1;
+	float scaleY = 1;
+	Color color = { 255, 255, 255, 255 };
 	std::string filepath = "";
 };
 
 struct BackgroundData
 {
 	std::string name = "";
+	int width = 1;
+	int height = 1;
+	int numBGs = 1;
+	int xOffset = 0;
+	int yOffset = 0;
 	std::vector<BackgroundLayerData*> layers;
 };
 
@@ -37,10 +46,10 @@ public:
 	void ResetBackground();
 	~Background();
 	void Render(const Renderer& renderer);
-	Entity* AddLayer(const Vector2& offset, const SpriteManager& spriteManager, const Renderer& renderer,
-		const std::string& filepath, int drawOrder, float parallax);
-	void DeleteLayers(Game& game);
+	Entity* AddLayer(const Vector2& pos, const BackgroundLayerData& data, 
+		const SpriteManager& spriteManager, const Renderer& renderer);
 	void Save(std::unordered_map<std::string, std::string>& map);
+	void SpawnBackground(const std::string& n, Game& game);
 
 	static std::unordered_map<std::string, BackgroundData*> bgData;
 	static void ReadBackgroundData(const std::string& dataFilePath);

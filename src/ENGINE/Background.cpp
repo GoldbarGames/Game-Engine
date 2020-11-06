@@ -10,9 +10,6 @@
 #include <fstream>
 #include <sstream>
 
-//TODO: Create a way to import backgrounds via level editor
-// (different levels should use different backgrounds, etc.)
-
 std::unordered_map<std::string, BackgroundData*> Background::bgData;
 
 Background::Background(const std::string& n, const Vector2& pos)
@@ -37,7 +34,6 @@ Background::~Background()
 		}
 		delete_it(val);
 	}
-
 }
 
 void Background::ReadBackgroundData(const std::string& dataFilePath)
@@ -85,24 +81,36 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 			backgroundName = tokens[index++];
 			BackgroundData* newBackgroundData = neww BackgroundData();
 			newBackgroundData->name = backgroundName;
+			newBackgroundData->width = std::stoi(tokens[index++]);
+			newBackgroundData->height = std::stoi(tokens[index++]);
+			newBackgroundData->numBGs = std::stoi(tokens[index++]);
+			newBackgroundData->xOffset = std::stoi(tokens[index++]);
+			newBackgroundData->yOffset = std::stoi(tokens[index++]);
 			bgData[backgroundName] = newBackgroundData;
 		}
 		else
 		{
-			//layerName = tokens[index++];
-
-			offsetX = std::stoi(tokens[index++]);
-			offsetY = std::stoi(tokens[index++]);
-			filepath = tokens[index++];
-			drawOrder = std::stoi(tokens[index++]);
-			parallax = std::stof(tokens[index++]);
-
 			BackgroundLayerData* newLayerData = neww BackgroundLayerData();
-			newLayerData->offsetX = offsetX;
-			newLayerData->offsetY = offsetY;
-			newLayerData->filepath = filepath;
-			newLayerData->drawOrder = drawOrder;
-			newLayerData->parallax = parallax;
+			newLayerData->offsetX = std::stoi(tokens[index++]);
+			newLayerData->offsetY = std::stoi(tokens[index++]);
+			newLayerData->filepath = tokens[index++];
+			newLayerData->drawOrder = std::stoi(tokens[index++]);
+			newLayerData->parallax = std::stof(tokens[index++]);
+
+			if (tokens.size() == 7)
+			{
+				newLayerData->scaleX = std::stof(tokens[index++]);
+				newLayerData->scaleY = std::stof(tokens[index++]);
+			}
+			else if (tokens.size() == 11)
+			{
+				newLayerData->scaleX = std::stof(tokens[index++]);
+				newLayerData->scaleY = std::stof(tokens[index++]);
+				newLayerData->color.r = std::stoi(tokens[index++]);
+				newLayerData->color.g = std::stoi(tokens[index++]);
+				newLayerData->color.b = std::stoi(tokens[index++]);
+				newLayerData->color.a = std::stoi(tokens[index++]);
+			}
 
 			bgData[backgroundName]->layers.push_back(newLayerData);
 		}
@@ -111,36 +119,40 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 	}
 }
 
+void Background::SpawnBackground(const std::string& n, Game& game)
+{
+	//DeleteLayers(game);
+	ResetBackground();
+
+	BackgroundData* data = bgData[n];
+
+	// Create the backgrounds from file data
+	unsigned int NUM_BGS = data->numBGs;
+	unsigned int BG_WIDTH = data->width * Camera::MULTIPLIER;
+	unsigned int X_OFFSET = data->xOffset;
+	unsigned int Y_OFFSET = data->yOffset;
+
+	for (unsigned int i = 0; i < NUM_BGS; i++)
+	{
+		Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
+		CreateBackground(n, bgPos, game.spriteManager, game.renderer);
+	}
+
+	game.SortEntities(layers);
+}
+
 //TODO: Should this stuff go inside the Background class constructor?
 void Background::CreateBackground(const std::string& n, Vector2 pos, 
 	const SpriteManager& spriteManager, const Renderer& renderer)
 {
 	name = n;
-
-	// SPECIAL CASE (TODO: Deal with special cases)
-	if (name == "forest")
-	{
-		pos.y -= 200;
-		// This is the blue sky (taking a white square and coloring it blue and increasing its size)
-		Entity* blueBG = AddLayer(pos + Vector2(0, -1440), spriteManager, 
-			renderer, "assets/gui/white.png", -99, 0.0f);
-		blueBG->GetSprite()->color = { 0, 0, 83, 255 };
-		blueBG->SetScale(Vector2(19.875f, 11.2f * 4));
-
-		// This is the back ground (taking a white square and coloring it black and increasing its size)
-		Entity* blackBG = AddLayer(pos + Vector2(0, 1440), spriteManager,
-			renderer, "assets/gui/white.png", -99, 0.0f);
-		blackBG->GetSprite()->color = { 0, 0, 0, 255 };
-		blackBG->SetScale(Vector2(19.875f, 11.2f * 4));
-	}
-
 	BackgroundData* data = bgData[name];
 
 	for (int i = 0; i < data->layers.size(); i++)
 	{
 		BackgroundLayerData* ld = data->layers[i];
-		AddLayer(Vector2(pos.x + ld->offsetX, pos.y + ld->offsetY), spriteManager, renderer,
-			ld->filepath, ld->drawOrder, ld->parallax);
+		AddLayer(pos, *ld, spriteManager, renderer);
+
 	}
 }
 
@@ -153,28 +165,23 @@ void Background::Render(const Renderer& renderer)
 	}
 }
 
-Entity* Background::AddLayer(const Vector2& offset, const SpriteManager& spriteManager,
-	const Renderer& renderer, const std::string& filepath, int drawOrder, float parallax)
+Entity* Background::AddLayer(const Vector2& pos, const BackgroundLayerData& data, 
+	const SpriteManager& spriteManager, const Renderer& renderer)
 {	
-	Entity* bg = neww BackgroundLayer(offset, parallax);
-	bg->drawOrder = drawOrder;
-	bg->GetSprite()->SetTexture(spriteManager.GetImage(filepath));
+	Entity* bg = neww BackgroundLayer(Vector2(pos.x + data.offsetX, pos.y + data.offsetY), data.parallax);
+	bg->drawOrder = data.drawOrder;
+	bg->GetSprite()->SetTexture(spriteManager.GetImage(data.filepath));
 	bg->GetSprite()->SetShader(renderer.shaders[ShaderName::Default]);
+	bg->SetColor(data.color);
+	bg->GetSprite()->color = data.color;
+	bg->SetScale(Vector2(data.scaleX, data.scaleY));
 	layers.emplace_back(bg);
 	return bg;
 }
 
-void Background::DeleteLayers(Game& game)
-{
-	for (unsigned int i = 0; i < layers.size(); i++)
-	{
-		game.ShouldDeleteEntity(layers[i]);
-	}
-}
-
+// Use this for clearing the list of layers without leaks
 void Background::ResetBackground()
 {
-	// TODO: HEAP CORRUPTION DETECTED???
 	for (unsigned int i = 0; i < layers.size(); i++)
 		delete_it(layers[i]);
 	

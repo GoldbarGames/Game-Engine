@@ -2440,7 +2440,7 @@ int CutsceneCommands::ErrorLog(CutsceneParameters parameters)
 {
 	if (parameters.size() > 1)
 	{
-		manager->game->logger.Log(parameters[1].c_str());
+		manager->game->logger.Log(parameters[1]);
 	}
 	
 	return 0;

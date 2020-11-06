@@ -11,7 +11,7 @@ public:
 	bool shouldPrintMessage = true;
 	Logger(const char* filename);
 	~Logger();
-	void Log(const char* message);
+	void Log(const std::string& message);
 
 	void SetOutputFile(const char* filename);
 };
