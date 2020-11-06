@@ -21,6 +21,7 @@
 #include "Camera.h"
 #include "Texture.h"
 #include "Logger.h"
+#include "FileManager.h"
 
 #include "Sprite.h"
 #include "Entity.h"
@@ -191,11 +192,15 @@ Mesh* Game::CreateCubeMesh()
 	return mesh;
 }
 
-Game::Game(const std::string& n, const std::string& title, const std::string& icon, const EntityFactory& e, GUI& g) : logger("logs/output.log")
+Game::Game(const std::string& n, const std::string& title, const std::string& icon, 
+	const EntityFactory& e, const FileManager& f, GUI& g) : logger("logs/output.log")
 {
 	currentGame = n;
 	startOfGame = std::chrono::steady_clock::now();
 	entityFactory = &e;
+
+	fileManager = &f;
+	fileManager->Init(*this);
 
 	windowTitle = title;
 	windowIconFilepath = icon;
@@ -1390,11 +1395,11 @@ bool Game::HandleEvent(SDL_Event& event)
 					LoadLevel(nextLevel);
 				break;
 			case SDLK_8: // save game
-				SaveFile(currentSaveFileName);
+				fileManager->SaveFile(currentSaveFileName);
 				break;
 			case SDLK_9: // load game
 				if (!editMode)
-					LoadFile(currentSaveFileName);
+					fileManager->LoadFile(currentSaveFileName);
 				break;
 			case SDLK_1: // toggle Debug mode
 				debugMode = !debugMode;
@@ -1468,34 +1473,6 @@ bool Game::HandleEvent(SDL_Event& event)
 	}
 
 	return quit;
-}
-
-// TODO: Make this more robust for different types of games
-void Game::SaveFile(const std::string& filename)
-{
-	cutsceneManager.commands.SetStringVariable({ "", "201", currentLevel });
-	cutsceneManager.commands.SetNumberVariable({ "", "202", std::to_string(player->position.x) });
-	cutsceneManager.commands.SetNumberVariable({ "", "203", std::to_string(player->position.y) });
-	//cutsceneManager.commands.SetNumberVariable({ "", "204", std::to_string(player->health->GetMaxHP()) });
-	//cutsceneManager.commands.SetNumberVariable({ "", "205", std::to_string(player->health->GetCurrentHP()) });
-	cutsceneManager.SaveGame(filename.c_str());
-}
-
-// TODO: Make this more robust for different types of games
-void Game::LoadFile(const std::string& filename)
-{
-	try
-	{
-		cutsceneManager.LoadGame(filename.c_str());
-		nextLevel = cutsceneManager.commands.stringVariables[201];
-		openedMenus.clear();
-		LoadLevel(nextLevel);// , 1, 1);
-		loadingFromSaveFile = true;
-	}
-	catch (std::exception ex)
-	{
-		std::cout << "ERROR LOADING FILE: " << ex.what() << std::endl;
-	}
 }
 
 void Game::SaveScreenshot(const std::string& filepath)

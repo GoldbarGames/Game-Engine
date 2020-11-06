@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "Renderer.h"
 #include "Editor.h"
+#include "FileManager.h"
 
 MenuScreen::MenuScreen(const std::string& n, Game& game)
 {
@@ -373,22 +374,22 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	else if (selectedButton->name == "Load Game")
 	{		
 		game.currentSaveFileName = "wdk1.sav";
-		game.LoadFile(game.currentSaveFileName);
+		game.fileManager->LoadFile(game.currentSaveFileName);
 	}
 	else if (selectedButton->name == "File 1")
 	{
 		game.currentSaveFileName = "wdk1.sav";
-		game.LoadFile(game.currentSaveFileName);
+		game.fileManager->LoadFile(game.currentSaveFileName);
 	}
 	else if (selectedButton->name == "File 2")
 	{
 		game.currentSaveFileName = "wdk2.sav";
-		game.LoadFile(game.currentSaveFileName);
+		game.fileManager->LoadFile(game.currentSaveFileName);
 	}
 	else if (selectedButton->name == "File 3")
 	{
 		game.currentSaveFileName = "wdk3.sav";
-		game.LoadFile(game.currentSaveFileName);
+		game.fileManager->LoadFile(game.currentSaveFileName);
 	}
 	else if (selectedButton->name == "New Game")
 	{

@@ -18,6 +18,7 @@
 #include "../ENGINE/Property.h"
 #include "Missile.h"
 #include "MyGUI.h"
+#include "../ENGINE/FileManager.h"
 
 Player::Player(const Vector2& pos) : MyEntity(pos)
 {
@@ -305,7 +306,7 @@ void Player::UpdateNormally(Game& game)
 			}
 			else if (currentCheckpoint != nullptr)
 			{
-				game.SaveFile(game.currentSaveFileName);
+				game.fileManager->SaveFile(game.currentSaveFileName);
 			}
 			else if (currentDoor != nullptr && doorTimer.HasElapsed())
 			{

@@ -15,6 +15,8 @@
 #include "Renderer.h"
 #include "Logger.h"
 
+class FileManager;
+
 enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
 
 class Game
@@ -56,6 +58,7 @@ public:
 
 	// Keep this a pointer so we can use polymorphism
 	const EntityFactory* entityFactory = nullptr;
+	const FileManager* fileManager = nullptr;
 
 	SDL_Rect mouseRect;
 	Uint32 mouseState;
@@ -216,7 +219,8 @@ public:
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
 
-	Game(const std::string& n, const std::string& title, const std::string& icon, const EntityFactory& e, GUI& g);
+	Game(const std::string& n, const std::string& title, const std::string& icon, 
+		const EntityFactory& e, const FileManager& f, GUI& g);
 	~Game();
 
 	void InitSDL();
@@ -249,9 +253,6 @@ public:
 	void EscapeMenu();
 
 	void ResetLevel();
-
-	void SaveFile(const std::string& filename);
-	void LoadFile(const std::string& filename);
 
 	void SaveSettings();
 	void LoadSettings();
