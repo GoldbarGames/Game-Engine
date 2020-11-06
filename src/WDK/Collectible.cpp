@@ -8,7 +8,7 @@
 #include "Missile.h"
 
 
-Collectible::Collectible(Vector2 pos) : Entity(pos)
+Collectible::Collectible(Vector2 pos) : MyEntity(pos)
 {
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 90;

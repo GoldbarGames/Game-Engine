@@ -1,8 +1,8 @@
 #ifndef CHECKPOINT_H
 #define CHECKPOINT_H
 #pragma once
-#include "../ENGINE/Entity.h"
-class Checkpoint : public Entity
+#include "MyEntity.h"
+class Checkpoint : public MyEntity
 {
 public:
 	Checkpoint(Vector2 pos);
@@ -15,9 +15,9 @@ public:
 
 	bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
 
-	void OnTriggerStay(Entity& other, Game& game);
-	void OnTriggerEnter(Entity& other, Game& game);
-	void OnTriggerExit(Entity& other, Game& game);
+	void OnTriggerStay(MyEntity& other, Game& game);
+	void OnTriggerEnter(MyEntity& other, Game& game);
+	void OnTriggerExit(MyEntity& other, Game& game);
 
 	void Save(std::unordered_map<std::string, std::string>& map);
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);

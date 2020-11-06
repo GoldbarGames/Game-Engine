@@ -887,11 +887,13 @@ void Game::TransitionLevel()
 					player->position.y = cutsceneManager.commands.numberVariables[203];
 					player->startPosition = player->position;
 
+					/*
 					if (player->health != nullptr)
 					{
 						player->health->SetMaxHP(cutsceneManager.commands.numberVariables[204]);
 						player->health->SetCurrentHP(cutsceneManager.commands.numberVariables[205]);
 					}
+					*/
 				}
 			}			
 		}
@@ -1474,8 +1476,8 @@ void Game::SaveFile(const std::string& filename)
 	cutsceneManager.commands.SetStringVariable({ "", "201", currentLevel });
 	cutsceneManager.commands.SetNumberVariable({ "", "202", std::to_string(player->position.x) });
 	cutsceneManager.commands.SetNumberVariable({ "", "203", std::to_string(player->position.y) });
-	cutsceneManager.commands.SetNumberVariable({ "", "204", std::to_string(player->health->GetMaxHP()) });
-	cutsceneManager.commands.SetNumberVariable({ "", "205", std::to_string(player->health->GetCurrentHP()) });
+	//cutsceneManager.commands.SetNumberVariable({ "", "204", std::to_string(player->health->GetMaxHP()) });
+	//cutsceneManager.commands.SetNumberVariable({ "", "205", std::to_string(player->health->GetCurrentHP()) });
 	cutsceneManager.SaveGame(filename.c_str());
 }
 

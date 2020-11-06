@@ -6,18 +6,18 @@
 #include "../ENGINE/Vector2.h"
 #include <SDL.h>
 
-class Entity;
+class MyEntity;
 class Game;
 
 class PhysicsComponent
 {
 protected:
-	Entity* our = nullptr;
+	MyEntity* our = nullptr;
 	
 	Vector2 acceleration = Vector2(0, 0);	
 public:
-	std::vector<Entity*> thisFrameCollisions;
-	std::vector<Entity*> prevFrameCollisions;
+	std::vector<MyEntity*> thisFrameCollisions;
+	std::vector<MyEntity*> prevFrameCollisions;
 
 	Vector2 velocity = Vector2(0, 0);
 	Vector2 previousVelocity = Vector2(0, 0);
@@ -42,8 +42,8 @@ public:
 	float jumpSpeed = -1.0f;
 	float windResistance = 1.0f;
 
-	Entity* prevParent = nullptr;
-	Entity* parent = nullptr;
+	MyEntity* prevParent = nullptr;
+	MyEntity* parent = nullptr;
 
 	bool hadPressedJump = false;
 	bool pressingJumpButton = false;
@@ -60,7 +60,7 @@ public:
 	SDL_Rect newBoundsVertical;
 	SDL_Rect floorBounds;
 
-	PhysicsComponent(Entity* entity);
+	PhysicsComponent(MyEntity* entity);
 	~PhysicsComponent();
 
 	void PreviousFrameCollisions(Game& game);
@@ -69,24 +69,24 @@ public:
 	float CalcTerminalVelocity();
 
 	bool CheckCollisions(Game& game);
-	bool CheckCollisionTrigger(Entity* collidedEntity, Game& game);
+	bool CheckCollisionTrigger(MyEntity* collidedEntity, Game& game);
 
 	void Update(Game& game);
 
 	void Push(const Vector2& pushVelocity);
 
 	float CalcCollisionVelocity(PhysicsComponent* their, bool x);
-	bool IsEntityPushingOther(const Entity& their);
+	bool IsEntityPushingOther(const MyEntity& their);
 
-	Entity* CheckPrevParent();
+	MyEntity* CheckPrevParent();
 
-	bool CheckCollisionHorizontal(Entity* their, Game& game);
+	bool CheckCollisionHorizontal(MyEntity* their, Game& game);
 
 	bool CheckCollisionCeiling(Game& game);
 
-	bool CheckVerticalJumpThru(Entity* their, Game& game);
+	bool CheckVerticalJumpThru(MyEntity* their, Game& game);
 
-	bool MoveVerticallyWithParent(Entity* their, Game& game);
+	bool MoveVerticallyWithParent(MyEntity* their, Game& game);
 
 	void Jump(Game& game);
 

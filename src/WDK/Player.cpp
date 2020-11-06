@@ -19,7 +19,7 @@
 #include "Missile.h"
 #include "MyGUI.h"
 
-Player::Player(const Vector2& pos) : Entity(pos)
+Player::Player(const Vector2& pos) : MyEntity(pos)
 {
 	etype = "player";
 	
@@ -162,8 +162,8 @@ void Player::Update(Game& game)
 			{
 				game.collisionChecks++;
 
-				Entity* entity = game.entities[i];
-				if (entity == this)
+				MyEntity* entity = dynamic_cast<MyEntity*>(game.entities[i]);
+				if (entity == nullptr || entity == this)
 					continue;
 
 				SDL_Rect theirBounds = *(entity->GetBounds());
@@ -174,7 +174,7 @@ void Player::Update(Game& game)
 				{
 					if (entity->trigger)
 					{
-						Entity* us = this;
+						MyEntity* us = this;
 						entity->OnTriggerStay(*us, game);
 					}
 				}

@@ -1,9 +1,9 @@
 #ifndef DECORATION_H
 #define DECORATION_H
 #pragma once
-#include "../ENGINE/Entity.h"
+#include "MyEntity.h"
 
-class Decoration : public Entity
+class Decoration : public MyEntity
 {
 public:
 	std::string cutsceneLabel = "";
@@ -12,9 +12,9 @@ public:
 
 	void Init(const Game& g, const std::string& n);
 	bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
-	void OnTriggerStay(Entity& other, Game& game);
-	void OnTriggerEnter(Entity& other, Game& game);
-	void OnTriggerExit(Entity& other, Game& game);
+	void OnTriggerStay(MyEntity& other, Game& game);
+	void OnTriggerEnter(MyEntity& other, Game& game);
+	void OnTriggerExit(MyEntity& other, Game& game);
 	void ChangeCollider(float x, float y, float w, float h);
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);

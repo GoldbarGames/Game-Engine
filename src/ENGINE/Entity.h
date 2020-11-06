@@ -16,12 +16,10 @@
 #include <glm/gtc/type_ptr.hpp>
 
 class Game;
-class PhysicsComponent;
 class Property;
 class Renderer;
 class QuadTree;
 class Switch;
-class HealthComponent;
 
 #ifndef STRUCT_FONT_INFO
 #define STRUCT_FONT_INFO
@@ -41,9 +39,6 @@ public:
 	Vector2 scale = Vector2(1, 1);
 	
 	Entity* attachedSwitch = nullptr;
-	PhysicsComponent* physics = nullptr;
-	HealthComponent* health = nullptr;
-
 	QuadTree* quadrant = nullptr;
 	
 

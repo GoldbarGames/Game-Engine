@@ -4,7 +4,7 @@
 #include "../ENGINE/Sprite.h"
 #include "Player.h"
 
-Missile::Missile(const Vector2& pos) : Entity(pos)
+Missile::Missile(const Vector2& pos) : MyEntity(pos)
 {
 	CreateCollider(0, -3, 10, 10);
 

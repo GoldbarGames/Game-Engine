@@ -1,10 +1,10 @@
 #ifndef MISSILE_H
 #define MISSILE_H
 
-#include "../ENGINE/Entity.h"
+#include "MyEntity.h"
 #include "../ENGINE/Timer.h"
 
-class Missile : public Entity
+class Missile : public MyEntity
 {
 	Timer timeToLive;
 	Timer actionTimer;
@@ -13,7 +13,7 @@ public:
 	// TODO: Figure out a better way than this
 	Missile** selfPointer = nullptr;
 
-	Entity* pickedUpEntity = nullptr;
+	MyEntity* pickedUpEntity = nullptr;
 	bool destroyAfterTime = true;
 	void Init(const Game& g, const std::string& n);
 	Missile(const Vector2& pos);

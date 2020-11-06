@@ -3,12 +3,12 @@
 #include "../ENGINE/globals.h"
 #include "../ENGINE/Physics.h"
 #include "../ENGINE/SoundManager.h"
-#include "../ENGINE/Entity.h"
+#include "../WDK/MyEntity.h"
 #include "../ENGINE/Game.h"
 #include "../ENGINE/QuadTree.h"
 #include <algorithm>
 
-PhysicsComponent::PhysicsComponent(Entity* entity)
+PhysicsComponent::PhysicsComponent(MyEntity* entity)
 {
 	our = entity;
 }
@@ -53,18 +53,18 @@ float PhysicsComponent::CalcCollisionVelocity(PhysicsComponent* their, bool x)
 	
 }
 
-bool PhysicsComponent::IsEntityPushingOther(const Entity& their)
+bool PhysicsComponent::IsEntityPushingOther(const MyEntity& their)
 {
 	float diffPosX = their.GetPosition().x - our->GetPosition().x;
 	return (their.physics->velocity.x > 0 && diffPosX > 0) 
 		|| (their.physics->velocity.x < 0 && diffPosX < 0);
 }
 
-Entity* PhysicsComponent::CheckPrevParent()
+MyEntity* PhysicsComponent::CheckPrevParent()
 {
 	our->GetAnimator()->SetBool("hasParent", false);
 
-	Entity* prevParent = parent;
+	MyEntity* prevParent = parent;
 	parent = nullptr;
 
 	if (prevParent != nullptr && prevParent->physics != nullptr)
@@ -96,7 +96,7 @@ Entity* PhysicsComponent::CheckPrevParent()
 	return prevParent;
 }
 
-bool PhysicsComponent::CheckCollisionHorizontal(Entity* their, Game& game)
+bool PhysicsComponent::CheckCollisionHorizontal(MyEntity* their, Game& game)
 {
 	// If a big object collides against a small object,
 	// the big should keep moving, and the small should move along with it.
@@ -121,7 +121,7 @@ bool PhysicsComponent::CheckCollisionHorizontal(Entity* their, Game& game)
 	return false;
 }
 
-bool PhysicsComponent::CheckVerticalJumpThru(Entity* their, Game& game)
+bool PhysicsComponent::CheckVerticalJumpThru(MyEntity* their, Game& game)
 {
 	// TODO: If we don't have NPCs using this, put it in the player script
 	if (our->etype == "player" && their->jumpThru)
@@ -143,7 +143,7 @@ bool PhysicsComponent::CheckVerticalJumpThru(Entity* their, Game& game)
 	return false;
 }
 
-bool PhysicsComponent::MoveVerticallyWithParent(Entity* their, Game& game)
+bool PhysicsComponent::MoveVerticallyWithParent(MyEntity* their, Game& game)
 {
 	// Move vertically with the parent if there was one (keep this outside of the if)
 	// WARNING: Do not place a vertically moving platform next to a ceiling
@@ -256,6 +256,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 		return false;
 
 	Entity* entity = nullptr;
+	MyEntity* myEntity = nullptr;
 	std::vector<Entity*> entities;
 
 	// We want to retrieve all entities testing against all these different bounds,
@@ -278,6 +279,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 	for (unsigned int i = 0; i < entities.size(); i++)
 	{
 		game.collisionChecks++;
+		myEntity = dynamic_cast<MyEntity*>(entities[i]);
 		entity = entities[i];
 		if (entity == our)
 			continue;
@@ -288,7 +290,7 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 
 		if (shouldCheckCollisions && (entity->impassable || entity->jumpThru))
 		{	
-			if (entity->physics != nullptr && entity->physics->isPickedUp)
+			if (myEntity != nullptr && myEntity->physics != nullptr && myEntity->physics->isPickedUp)
 				continue;
 
 			if (entity->jumpThru)
@@ -309,8 +311,8 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 			{		
 				if (our->etype == "player")
 					int test = 0;
-
-				horizontalCollision = CheckCollisionHorizontal(entity, game);
+				
+				horizontalCollision = myEntity ? CheckCollisionHorizontal(myEntity, game) : true;
 				hadCollision = hadCollision || horizontalCollision;		
 				hColBounds = theirBounds;
 			}
@@ -359,19 +361,20 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 
 					hadCollision = true;
 					verticalCollision = true;
-					CheckCollisionTrigger(entity, game);
+					if (myEntity)
+						CheckCollisionTrigger(myEntity, game);
 
 					//our->GetAnimator()->SetBool("isGrounded", true);
 					isGrounded = true;
 
-					if (CheckVerticalJumpThru(entity, game))
+					if (myEntity && CheckVerticalJumpThru(myEntity, game))
 					{
 						if (isGrounded != wasGrounded)
 							our->GetAnimator()->SetBool("isGrounded", isGrounded);
 						return hadCollision;
 					}
 
-					bool jumped = MoveVerticallyWithParent(entity, game);
+					bool jumped = myEntity ? MoveVerticallyWithParent(myEntity, game) : false;
 
 					// if colliding with ground, set velocity.y to zero (we need this if statement!)				
 					if (velocity.y >= 0)
@@ -380,10 +383,10 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 						isGrounded = true;
 
 						// Sets the parent object that the player is standing on, if there is one, if we have not jumped
-						if (entity->physics != nullptr && !jumped)
+						if (myEntity && myEntity->physics != nullptr && !jumped)
 						{
 							//std::cout << "set parent!" << std::endl;
-							parent = entity;
+							parent = myEntity;
 							our->GetAnimator()->SetBool("hasParent", true);
 							
 							if (parent != nullptr && parent->physics != nullptr)
@@ -459,18 +462,15 @@ bool PhysicsComponent::CheckCollisions(Game& game)
 
 			
 		}
-		else if (entity->trigger)
+		else if (myEntity && myEntity->trigger)
 		{
-			if (our->etype == "missile")
-				int test = 0;
-
 			if (HasIntersection(newBoundsHorizontal, theirBounds))
 			{
-				CheckCollisionTrigger(entity, game);
+				CheckCollisionTrigger(myEntity, game);
 			}
 			else if (HasIntersection(newBoundsVertical, theirBounds))
 			{
-				CheckCollisionTrigger(entity, game);
+				CheckCollisionTrigger(myEntity, game);
 			}
 		}
 	}
@@ -626,7 +626,7 @@ void PhysicsComponent::PreviousFrameCollisions(Game& game)
 }
 
 //TODO: Move this function/logic to the Collider class?
-bool PhysicsComponent::CheckCollisionTrigger(Entity* collidedEntity, Game& game)
+bool PhysicsComponent::CheckCollisionTrigger(MyEntity* collidedEntity, Game& game)
 {
 	// Each frame, when we are in this function, we check to see if the collided entity is in a list.
 	// If it is not, then we do OnTriggerEnter and add it to the list

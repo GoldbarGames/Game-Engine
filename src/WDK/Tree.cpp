@@ -7,7 +7,7 @@
 #include "../ENGINE/PhysicsComponent.h"
 
 
-Tree::Tree(Vector2 pos) : Entity(pos)
+Tree::Tree(Vector2 pos) : MyEntity(pos)
 {
 	etype = "tree";
 
@@ -54,7 +54,7 @@ void Tree::Update(Game& game)
 		{
 			if (game.entities[i]->id == hiddenEntityID)
 			{
-				hiddenEntity = game.entities[i];
+				hiddenEntity = static_cast<MyEntity*>(game.entities[i]);
 				hiddenEntity->position = position;
 				found = true;
 				break;
@@ -101,17 +101,17 @@ void Tree::SetProperty(const std::string& key, const std::string& newValue)
 	}
 }
 
-void Tree::OnTriggerStay(Entity& other, Game& game)
+void Tree::OnTriggerStay(MyEntity& other, Game& game)
 {
 
 }
 
-void Tree::OnTriggerEnter(Entity& other, Game& game)
+void Tree::OnTriggerEnter(MyEntity& other, Game& game)
 {
 
 }
 
-void Tree::OnTriggerExit(Entity& other, Game& game)
+void Tree::OnTriggerExit(MyEntity& other, Game& game)
 {
 
 }

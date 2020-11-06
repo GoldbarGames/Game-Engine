@@ -12,7 +12,7 @@
 #include "../ENGINE/Renderer.h"
 #include "MyGUI.h"
 
-Enemy::Enemy(Vector2 pos) : Entity(pos)
+Enemy::Enemy(Vector2 pos) : MyEntity(pos)
 {
 	layer = DrawingLayer::COLLISION;
 	drawOrder = 90;
@@ -437,7 +437,7 @@ void Enemy::RenderDebug(const Renderer& renderer)
 	}
 }
 
-void Enemy::OnTriggerStay(Entity& other, Game& game)
+void Enemy::OnTriggerStay(MyEntity& other, Game& game)
 {
 	if (other.etype == "debug_missile")
 	{
@@ -449,7 +449,7 @@ void Enemy::OnTriggerStay(Entity& other, Game& game)
 	}
 }
 
-void Enemy::OnTriggerEnter(Entity& other, Game& game)
+void Enemy::OnTriggerEnter(MyEntity& other, Game& game)
 {
 	if (other.etype == "player" && !physics->isPickedUp)
 	{
@@ -496,7 +496,7 @@ void Enemy::OnTriggerEnter(Entity& other, Game& game)
 	}
 }
 
-void Enemy::OnTriggerExit(Entity& other, Game& game)
+void Enemy::OnTriggerExit(MyEntity& other, Game& game)
 {
 
 }

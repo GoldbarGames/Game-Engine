@@ -5,9 +5,8 @@
 #include "NPC.h"
 #include "../ENGINE/Property.h"
 #include "Player.h"
-#include "../ENGINE/Entity.h"
 
-Decoration::Decoration(const Vector2& pos) : Entity(pos)
+Decoration::Decoration(const Vector2& pos) : MyEntity(pos)
 {
 	etype = "decoration";
 	CreateCollider(0, 0, 0, 0);
@@ -49,12 +48,12 @@ bool Decoration::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool use
 	return true; //TODO: Deal with this later. NPCs could have different sizes!
 }
 
-void Decoration::OnTriggerStay(Entity& other, Game& game)
+void Decoration::OnTriggerStay(MyEntity& other, Game& game)
 {
 
 }
 
-void Decoration::OnTriggerEnter(Entity& other, Game& game)
+void Decoration::OnTriggerEnter(MyEntity& other, Game& game)
 {
 	if (other.etype == "player")
 	{
@@ -63,7 +62,7 @@ void Decoration::OnTriggerEnter(Entity& other, Game& game)
 	}
 }
 
-void Decoration::OnTriggerExit(Entity& other, Game& game)
+void Decoration::OnTriggerExit(MyEntity& other, Game& game)
 {
 	if (other.etype == "player")
 	{

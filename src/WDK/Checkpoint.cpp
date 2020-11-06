@@ -1,11 +1,10 @@
 #include "Checkpoint.h"
 #include "../ENGINE/Game.h"
-#include "../ENGINE/Entity.h"
 #include "Player.h"
 #include "../ENGINE/Property.h"
 #include "../ENGINE/globals.h"
 
-Checkpoint::Checkpoint(Vector2 pos) : Entity(pos)
+Checkpoint::Checkpoint(Vector2 pos) : MyEntity(pos)
 {
 	layer = DrawingLayer::OBJECT;
 	drawOrder = 90;
@@ -24,12 +23,12 @@ void Checkpoint::Update(Game& game)
 	Entity::Update(game);
 }
 
-void Checkpoint::OnTriggerStay(Entity& other, Game& game)
+void Checkpoint::OnTriggerStay(MyEntity& other, Game& game)
 {
 
 }
 
-void Checkpoint::OnTriggerEnter(Entity& other, Game& game)
+void Checkpoint::OnTriggerEnter(MyEntity& other, Game& game)
 {
 	if (other.etype == "player")
 	{
@@ -38,7 +37,7 @@ void Checkpoint::OnTriggerEnter(Entity& other, Game& game)
 	}
 }
 
-void Checkpoint::OnTriggerExit(Entity& other, Game& game)
+void Checkpoint::OnTriggerExit(MyEntity& other, Game& game)
 {
 	if (other.etype == "player")
 	{

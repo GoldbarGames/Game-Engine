@@ -6,7 +6,7 @@
 #include "../ENGINE/Editor.h"
 #include "MyEditorHelper.h"
 
-Door::Door(Vector2 pos) : Entity(pos)
+Door::Door(Vector2 pos) : MyEntity(pos)
 {
 	layer = DrawingLayer::OBJECT;
 	drawOrder = 90;
@@ -49,12 +49,12 @@ void Door::Update(Game& game)
 	Entity::Update(game);
 }
 
-void Door::OnTriggerStay(Entity& other, Game& game)
+void Door::OnTriggerStay(MyEntity& other, Game& game)
 {
 
 }
 
-void Door::OnTriggerEnter(Entity& other, Game& game)
+void Door::OnTriggerEnter(MyEntity& other, Game& game)
 {
 	if (other.etype == "player")
 	{
@@ -63,7 +63,7 @@ void Door::OnTriggerEnter(Entity& other, Game& game)
 	}
 }
 
-void Door::OnTriggerExit(Entity& other, Game& game)
+void Door::OnTriggerExit(MyEntity& other, Game& game)
 {
 	if (other.etype == "player")
 	{

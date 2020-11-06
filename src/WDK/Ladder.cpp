@@ -8,7 +8,7 @@
 #include "../ENGINE/Sprite.h"
 #include "MyEditorHelper.h"
 
-Ladder::Ladder(const Vector2& pos) : Entity(pos)
+Ladder::Ladder(const Vector2& pos) : MyEntity(pos)
 {
 	etype = "ladder";
 	layer = DrawingLayer::COLLISION;
@@ -23,12 +23,12 @@ Ladder::~Ladder()
 	
 }
 
-void Ladder::OnTriggerStay(Entity& other, Game& game)
+void Ladder::OnTriggerStay(MyEntity& other, Game& game)
 {
 
 }
 
-void Ladder::OnTriggerEnter(Entity& other, Game& game)
+void Ladder::OnTriggerEnter(MyEntity& other, Game& game)
 {
 	if (other.etype == "player")
 	{
@@ -37,7 +37,7 @@ void Ladder::OnTriggerEnter(Entity& other, Game& game)
 	}
 }
 
-void Ladder::OnTriggerExit(Entity& other, Game& game)
+void Ladder::OnTriggerExit(MyEntity& other, Game& game)
 {
 	if (other.etype == "player")
 	{

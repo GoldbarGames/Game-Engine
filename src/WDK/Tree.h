@@ -3,13 +3,13 @@
 #pragma once
 
 #include "../ENGINE/filesystem_types.h"
-#include "../ENGINE/Entity.h"
+#include "MyEntity.h"
 
-class Tree : public Entity
+class Tree : public MyEntity
 {
 public:
 	int hiddenEntityID = -1;
-	Entity* hiddenEntity = nullptr;
+	MyEntity* hiddenEntity = nullptr;
 	Sprite* bottomSprite = nullptr;
 
 	Tree(Vector2 pos);
@@ -23,9 +23,9 @@ public:
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
 
-	void OnTriggerStay(Entity& other, Game& game);
-	void OnTriggerEnter(Entity& other, Game& game);
-	void OnTriggerExit(Entity& other, Game& game);
+	void OnTriggerStay(MyEntity& other, Game& game);
+	void OnTriggerEnter(MyEntity& other, Game& game);
+	void OnTriggerExit(MyEntity& other, Game& game);
 
 	void Save(std::unordered_map<std::string, std::string>& map);
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);

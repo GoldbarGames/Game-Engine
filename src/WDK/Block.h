@@ -3,9 +3,9 @@
 #pragma once
 
 #include "../ENGINE/leak_check.h"
-#include "../ENGINE/Entity.h"
+#include "MyEntity.h"
 
-class Block : public Entity
+class Block : public MyEntity
 {
 public:
 	Block(const Vector2& pos);

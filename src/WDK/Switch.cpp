@@ -1,7 +1,7 @@
 #include "Switch.h"
 #include "../ENGINE/Game.h"
 
-Switch::Switch(Vector2 pos) : Entity(pos)
+Switch::Switch(Vector2 pos) : MyEntity(pos)
 {
 	layer = DrawingLayer::OBJECT;
 	drawOrder = 92;
@@ -10,7 +10,7 @@ Switch::Switch(Vector2 pos) : Entity(pos)
 	CreateCollider(0, 0, 24, 24);
 }
 
-void Switch::OnTriggerStay(Entity& other, Game& game)
+void Switch::OnTriggerStay(MyEntity& other, Game& game)
 {
 	if (animator != nullptr)
 	{
@@ -18,7 +18,7 @@ void Switch::OnTriggerStay(Entity& other, Game& game)
 	}
 }
 
-void Switch::OnTriggerEnter(Entity& other, Game& game)
+void Switch::OnTriggerEnter(MyEntity& other, Game& game)
 {
 	if (animator != nullptr)
 	{
@@ -32,7 +32,7 @@ void Switch::OnTriggerEnter(Entity& other, Game& game)
 	}
 }
 
-void Switch::OnTriggerExit(Entity& other, Game& game)
+void Switch::OnTriggerExit(MyEntity& other, Game& game)
 {
 	if (animator != nullptr)
 	{		

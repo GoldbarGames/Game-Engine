@@ -1,6 +1,4 @@
 #include "Entity.h"
-#include "PhysicsComponent.h"
-#include "HealthComponent.h"
 
 #include <iostream>
 #include "Renderer.h"
@@ -136,10 +134,6 @@ Entity::~Entity()
 		delete_it(collider);
 	if (bounds != nullptr)
 		delete_it(bounds);
-	if (physics != nullptr)
-		delete_it(physics);
-	if (health != nullptr)
-		delete_it(health);
 }
 
 void Entity::Init(const Game& g, const std::string& n)
@@ -194,8 +188,6 @@ void Entity::Update(Game& game)
 		animator->Update(*this);
 	
 	CalculateCollider();
-	if (physics != nullptr)
-		physics->Update(game);
 }
 
 Animator* Entity::GetAnimator()
@@ -287,10 +279,12 @@ void Entity::RenderDebug(const Renderer& renderer)
 				renderer.RenderDebugRect(rect, scale, debugColor);
 			}
 
+			/*
 			if (collider != nullptr && physics != nullptr)
 			{
 				renderer.RenderDebugRect(*collider->bounds, scale);
 			}
+			*/
 		}
 	}
 }

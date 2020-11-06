@@ -2,9 +2,9 @@
 #define DOOR_H
 #pragma once
 
-#include "../ENGINE/Entity.h"
+#include "MyEntity.h"
 
-class Door : public Entity
+class Door : public MyEntity
 {
 	Door* attachedDoor = nullptr;
 public:	
@@ -22,9 +22,9 @@ public:
 	bool CanSpawnHere(Vector2 spawnPosition, Game& game, bool useCamera = true);
 	Vector2 GetDestination();
 
-	void OnTriggerStay(Entity& other, Game& game);
-	void OnTriggerEnter(Entity& other, Game& game);
-	void OnTriggerExit(Entity& other, Game& game);
+	void OnTriggerStay(MyEntity& other, Game& game);
+	void OnTriggerEnter(MyEntity& other, Game& game);
+	void OnTriggerExit(MyEntity& other, Game& game);
 
 	void Save(std::unordered_map<std::string, std::string>& map);
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);

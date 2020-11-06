@@ -4,7 +4,7 @@
 #include "../ENGINE/SoundManager.h"
 #include "../ENGINE/Sprite.h"
 
-Shroom::Shroom(const Vector2& pos) : Entity(pos)
+Shroom::Shroom(const Vector2& pos) : MyEntity(pos)
 {
 	etype = "shroom";
 	CreateCollider(0, -15, 24, 32);
@@ -54,7 +54,7 @@ void Shroom::Update(Game& game)
 }
 
 
-void Shroom::OnTriggerEnter(Entity& other, Game& game)
+void Shroom::OnTriggerEnter(MyEntity& other, Game& game)
 {
 	if (other.physics != nullptr && other.physics->canBePushed)
 	{

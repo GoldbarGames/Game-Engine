@@ -2,9 +2,9 @@
 #define COLLECTIBLE_H
 #pragma once
 
-#include "../ENGINE/Entity.h"
+#include "MyEntity.h"
 
-class Collectible : public Entity
+class Collectible : public MyEntity
 {
 public:
 	Collectible(Vector2 pos);

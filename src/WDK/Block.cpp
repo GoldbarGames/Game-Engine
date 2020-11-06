@@ -6,7 +6,7 @@
 #include "../ENGINE/HealthComponent.h"
 
 
-Block::Block(const Vector2& pos) : Entity(pos)
+Block::Block(const Vector2& pos) : MyEntity(pos)
 {
 	etype = "block";
 	

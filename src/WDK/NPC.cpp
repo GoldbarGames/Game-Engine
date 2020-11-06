@@ -7,7 +7,7 @@
 #include "Player.h"
 #include "../ENGINE/Entity.h"
 
-NPC::NPC(const Vector2& pos) : Entity(pos)
+NPC::NPC(const Vector2& pos) : MyEntity(pos)
 {
 	etype = "npc";
 	CreateCollider(0, 0, 0, 0);
@@ -64,12 +64,12 @@ bool NPC::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
 	return true; //TODO: Deal with this later. NPCs could have different sizes!
 }
 
-void NPC::OnTriggerStay(Entity& other, Game& game)
+void NPC::OnTriggerStay(MyEntity& other, Game& game)
 {
 
 }
 
-void NPC::OnTriggerEnter(Entity& other, Game& game)
+void NPC::OnTriggerEnter(MyEntity& other, Game& game)
 {
 	if (other.etype == "player")
 	{
@@ -78,7 +78,7 @@ void NPC::OnTriggerEnter(Entity& other, Game& game)
 	}
 }
 
-void NPC::OnTriggerExit(Entity& other, Game& game)
+void NPC::OnTriggerExit(MyEntity& other, Game& game)
 {
 	if (other.etype == "player")
 	{

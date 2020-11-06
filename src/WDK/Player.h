@@ -5,6 +5,7 @@
 #include "../ENGINE/Entity.h"
 #include "../ENGINE/Vector2.h"
 #include "../ENGINE/Timer.h"
+#include "MyEntity.h"
 #include "Spell.h"
 
 class Door;
@@ -15,7 +16,8 @@ class Checkpoint;
 class Decoration;
 class MyGUI;
 
-class Player : public Entity
+
+class Player : public MyEntity
 {
 private:	
 	

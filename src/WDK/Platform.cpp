@@ -10,7 +10,7 @@
 #include "../ENGINE/Tile.h"
 #include "../ENGINE/Game.h"
 
-Platform::Platform(const Vector2& pos) : Entity(pos)
+Platform::Platform(const Vector2& pos) : MyEntity(pos)
 {
 	etype = "platform";
 	CreateCollider(0, 72, 72, 24);

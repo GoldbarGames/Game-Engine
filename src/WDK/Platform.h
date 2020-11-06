@@ -3,10 +3,11 @@
 #pragma once
 
 #include "../ENGINE/Path.h"
+#include "MyEntity.h"
 
 class Tile;
 
-class Platform : public Entity
+class Platform : public MyEntity
 {
 public:
 	std::string platformType = "Idle";

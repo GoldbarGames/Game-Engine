@@ -326,22 +326,27 @@ bool Spell::CastPush(Game& game)
 		if (HasIntersection(newRectOurs, newRectTheirs))
 		{
 			//TODO: Is there a better way to do this than to check the type?
-			Entity* entity = game.entities[i];
-			if (entity->physics != nullptr)
+			MyEntity* entity = dynamic_cast<MyEntity*>(game.entities[i]);
+
+			if (entity)
 			{
-				// 5. Then make that object move until it hits a wall
-				if (entity->physics->canBePushed)
+				if (entity->physics != nullptr)
 				{
-					entity->physics->Push(pushVelocity);
+					// 5. Then make that object move until it hits a wall
+					if (entity->physics->canBePushed)
+					{
+						entity->physics->Push(pushVelocity);
+						affectedEntities.push_back(entity);
+					}
+				}
+				else if (entity->etype == "tree")
+				{
+					// TODO: Maybe do this differently?
 					affectedEntities.push_back(entity);
-				}				
+					entity->GetAnimator()->SetBool("isPushed", true);
+				}
 			}
-			else if (entity->etype == "tree")
-			{
-				// TODO: Maybe do this differently?
-				affectedEntities.push_back(entity);
-				entity->GetAnimator()->SetBool("isPushed", true);
-			}
+			
 		}
 	}
 

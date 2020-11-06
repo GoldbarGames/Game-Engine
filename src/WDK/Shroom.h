@@ -2,9 +2,9 @@
 #define SHROOM_H
 #pragma once
 
-#include "../ENGINE/Entity.h"
+#include "MyEntity.h"
 
-class Shroom : public Entity
+class Shroom : public MyEntity
 {
 public:
 	Shroom(const Vector2& pos);
@@ -13,7 +13,7 @@ public:
 	void Init(const Game& g, const std::string& n);
 	void Update(Game& game);
 
-	void OnTriggerEnter(Entity& other, Game& game);
+	void OnTriggerEnter(MyEntity& other, Game& game);
 
 	void Save(std::unordered_map<std::string, std::string>& map);
 
