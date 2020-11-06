@@ -3,10 +3,10 @@
 #pragma once
 
 #include <string>
-
+#include "leak_check.h"
 typedef struct _TTF_Font TTF_Font;
 
-class FontInfo
+class DECLSPEC FontInfo
 {
 private:
 	int size = 1;

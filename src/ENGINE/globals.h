@@ -7,7 +7,7 @@
 #include <SDL.h>
 #include <glm/vec3.hpp>
 #include "Vector2.h"
-
+#include "leak_check.h"
 const int TILE_SIZE = 24;
 const int SCREEN_FPS = 60;
 const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
@@ -32,22 +32,22 @@ struct Color {
 	}
 };
 
-std::string CurrentDate();
-std::string CurrentTime();
-std::string GetDrawingLayerName(DrawingLayer layer);
-std::string ParseWord(const std::string& text, char limit, int& index);
-std::vector<std::string> SplitString(const std::string& str, char delim);
-Color ParseColorHexadecimal(const std::string& text);
-int HexToDecimal(const char hex);
+extern DECLSPEC std::string CurrentDate();
+extern DECLSPEC std::string CurrentTime();
+extern DECLSPEC std::string GetDrawingLayerName(DrawingLayer layer);
+extern DECLSPEC std::string ParseWord(const std::string& text, char limit, int& index);
+extern DECLSPEC std::vector<std::string> SplitString(const std::string& str, char delim);
+extern DECLSPEC Color ParseColorHexadecimal(const std::string& text);
+extern DECLSPEC int HexToDecimal(const char hex);
 
-bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, const float minStep);
-bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
+extern DECLSPEC bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, const float minStep);
+extern DECLSPEC bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
 	const uint32_t currentTime, uint32_t startTime, uint32_t endTime);
 
-bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxStep, const float minStep);
-bool LerpVector3(glm::vec3& current, const glm::vec3& start, const glm::vec3& target,
+extern DECLSPEC bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxStep, const float minStep);
+extern DECLSPEC bool LerpVector3(glm::vec3& current, const glm::vec3& start, const glm::vec3& target,
 	const uint32_t currentTime, uint32_t startTime, uint32_t endTime);
-bool LerpCoord(float& current, const float& start, const float& target, const float& t);
+extern DECLSPEC bool LerpCoord(float& current, const float& start, const float& target, const float& t);
 
 template<typename T>
 void delete_it(T& v)
@@ -76,7 +76,7 @@ inline std::string& Trim(std::string& s, const char* t = " \t\n\r\f\v")
 	return LTrim(RTrim(s, t), t);
 }
 
-bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2);
-SDL_Rect ConvertCoordsFromCenterToTopLeft(const SDL_Rect& originalRect);
+extern DECLSPEC bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2);
+extern DECLSPEC SDL_Rect ConvertCoordsFromCenterToTopLeft(const SDL_Rect& originalRect);
 
 #endif

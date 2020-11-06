@@ -26,7 +26,7 @@ class Switch;
 class FontInfo;
 #endif
 
-class Entity
+class DECLSPEC Entity
 {
 protected:	
 	Animator* animator = nullptr;

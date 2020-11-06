@@ -7,8 +7,9 @@
 #include "Text.h"
 #include <unordered_map>
 #include "FontInfo.h"
+#include "leak_check.h"
 
-class Textbox
+class DECLSPEC Textbox
 {
 private:
 	//Vector2 position = Vector2(0, 0);

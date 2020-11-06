@@ -12,6 +12,7 @@
 
 #include "Texture.h"
 #include <SDL_ttf.h>
+#include "leak_check.h"
 
 struct AnimState;
 
@@ -62,7 +63,7 @@ public:
 
 class Renderer;
 
-class SpriteManager
+class DECLSPEC SpriteManager
 {
 private:
 	mutable std::unordered_map<std::string, Texture*> images;

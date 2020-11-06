@@ -1,10 +1,10 @@
 #pragma once
 #ifndef CAMERABOUNDS_H
 #define CAMERABOUNDS_H
-
+#include "leak_check.h"
 #include "Entity.h"
 
-class CameraBounds : public Entity
+class DECLSPEC CameraBounds : public Entity
 {
 public:
 	CameraBounds(Vector2 pos);

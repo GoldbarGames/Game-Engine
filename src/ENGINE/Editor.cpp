@@ -16,10 +16,6 @@
 #include "Logger.h"
 #include "CutsceneManager.h"
 #include "Background.h"
-
-#include "HealthComponent.h"
-#include "PhysicsComponent.h"
-
 #include "EditorHelper.h"
 
 Editor::Editor(Game& g)

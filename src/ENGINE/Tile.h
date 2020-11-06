@@ -11,6 +11,7 @@
 
 #include "Vector2.h"
 #include "Entity.h"
+#include "leak_check.h"
 
 class Texture;
 class Renderer;
@@ -18,7 +19,7 @@ class Renderer;
 // This is the tile's subtype
 enum class TileType { None, Grass, Wood, Metal, Ice, Water, Spike, Lava};
 
-class Tile : public Entity
+class DECLSPEC Tile : public Entity
 {
 public:
 	int tilesheetIndex = 0;

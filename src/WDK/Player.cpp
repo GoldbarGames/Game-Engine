@@ -1,11 +1,11 @@
 #include "Player.h"
 #include "../ENGINE/Game.h"
 #include <string>
-#include "../ENGINE/PhysicsComponent.h"
+#include "PhysicsComponent.h"
 #include "../ENGINE/Animator.h"
 #include "../ENGINE/AnimatorInfo.h"
 #include "../ENGINE/Physics.h"
-#include "../ENGINE/HealthComponent.h"
+#include "HealthComponent.h"
 #include "../ENGINE/Text.h"
 #include "../ENGINE/Sprite.h"
 #include "../ENGINE/Renderer.h"

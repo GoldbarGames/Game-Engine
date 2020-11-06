@@ -5,7 +5,7 @@
 #include <string>
 #include "Vector2.h"
 #include "Sprite.h"
-
+#include "leak_check.h"
 struct Glyph
 {
 	Sprite sprite;

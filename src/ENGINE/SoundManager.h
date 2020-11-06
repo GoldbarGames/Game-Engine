@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-
+#include "leak_check.h"
 class Game;
 
 struct Sound {
@@ -51,7 +51,7 @@ struct SoundChannel {
 	}
 };
 
-class SoundManager
+class DECLSPEC SoundManager
 {
 private:
 	Uint32 volumeBGM = 20;

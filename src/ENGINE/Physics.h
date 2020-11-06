@@ -2,7 +2,8 @@
 #define PHYSICS_H
 #pragma once
 
-class Physics
+#include "leak_check.h"
+class DECLSPEC Physics
 {
 public:
 	static float GRAVITY;

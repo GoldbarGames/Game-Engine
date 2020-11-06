@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string>
 #include <SDL.h>
+#include "leak_check.h"
 
 // TODO: Can we replace this code with something better?
 // NOTE: The below code is from https://halfgeek.org/wiki/Vertically_invert_a_surface_in_SDL

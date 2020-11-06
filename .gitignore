@@ -16,6 +16,8 @@
 /data/
 /Debug/
 /Release/
+/Debug_DLL/
+/Release_DLL/
 Textures/
 screenshots/
 se/

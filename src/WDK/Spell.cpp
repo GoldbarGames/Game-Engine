@@ -1,6 +1,6 @@
 #include "Spell.h"
 #include "../ENGINE/Game.h"
-#include "../ENGINE/PhysicsComponent.h"
+#include "PhysicsComponent.h"
 #include "Tree.h"
 #include "Missile.h"
 #include "../ENGINE/SpriteManager.h"

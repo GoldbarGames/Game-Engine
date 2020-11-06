@@ -1,13 +1,13 @@
 #pragma once
 #include <string>
 #include <unordered_map>
-
+#include "leak_check.h"
 class Entity;
 class Vector2;
 
 typedef Entity* (__stdcall* CreateEntity)(const Vector2& pos);
 
-class EntityFactory
+class DECLSPEC EntityFactory
 {
 private:    
     mutable std::unordered_map<std::string, CreateEntity> entities;

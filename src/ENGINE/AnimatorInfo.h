@@ -1,7 +1,7 @@
 #ifndef ANIMATORINFO_H
 #define ANIMATORINFO_H
 #pragma once
-
+#include "leak_check.h"
 #include <unordered_map>
 #include "Sprite.h"
 
@@ -46,7 +46,7 @@ struct AnimCondition
 	~AnimCondition();
 };
 
-class AnimStateMachine
+class DECLSPEC AnimStateMachine
 {
 public:
 	// state we are going to, conditions to get there

@@ -10,7 +10,7 @@
 #include <vector>
 #include <unordered_map>
 #include <deque>
-
+#include "leak_check.h"
 #include "EditorButton.h"
 #include "Property.h"
 #include "Texture.h"
@@ -27,7 +27,7 @@ class Text;
 class Dialog;
 class Platform;
 
-class Editor
+class DECLSPEC Editor
 {
 private:
 	Vector2 tilesheetPosition = Vector2(0, 0);

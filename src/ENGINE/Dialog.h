@@ -3,8 +3,8 @@
 #pragma once
 
 #include "Text.h"
-
-class Dialog
+#include "leak_check.h"
+class DECLSPEC Dialog
 {
 public:
 	bool visible = false;

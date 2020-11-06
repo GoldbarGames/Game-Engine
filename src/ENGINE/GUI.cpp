@@ -1,5 +1,4 @@
 #include "GUI.h"
-#include "HealthComponent.h"
 #include "Game.h"
 
 void GUI::Init(Game* g)

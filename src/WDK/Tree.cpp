@@ -4,7 +4,7 @@
 #include "../ENGINE/Property.h"
 #include "../ENGINE/Game.h"
 #include "../ENGINE/Vector2.h"
-#include "../ENGINE/PhysicsComponent.h"
+#include "PhysicsComponent.h"
 
 
 Tree::Tree(Vector2 pos) : MyEntity(pos)

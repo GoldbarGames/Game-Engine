@@ -1,6 +1,6 @@
 #include "MyEntity.h"
-#include "../ENGINE/PhysicsComponent.h"
-#include "../ENGINE/HealthComponent.h"
+#include "PhysicsComponent.h"
+#include "HealthComponent.h"
 
 MyEntity::MyEntity(const Vector2& pos) : Entity(pos)
 {

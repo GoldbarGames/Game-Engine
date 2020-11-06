@@ -1,3 +1,12 @@
+#ifndef MAKE_DLL_H
+#define MAKE_DLL_H
+#ifdef MAKEDLL
+#  define DECLSPEC __declspec(dllexport)
+#else
+#  define DECLSPEC __declspec(dllimport)
+#endif
+#endif
+
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
 

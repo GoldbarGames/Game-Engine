@@ -1,7 +1,7 @@
 #ifndef BACKGROUND_H
 #define BACKGROUND_H
 #pragma once
-
+#include "leak_check.h"
 #include <vector>
 #include "Vector2.h"
 #include <unordered_map>
@@ -35,7 +35,7 @@ struct BackgroundData
 	std::vector<BackgroundLayerData*> layers;
 };
 
-class Background
+class DECLSPEC Background
 {
 public:
 	Vector2 position;

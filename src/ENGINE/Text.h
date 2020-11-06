@@ -18,6 +18,7 @@
 #include "Vector2.h"
 
 #include "Glyph.h"
+#include "leak_check.h"
 
 using std::string;
 
@@ -33,7 +34,7 @@ struct FontInfo;
 enum class AlignmentX { LEFT, CENTER, RIGHT };
 enum class AlignmentY { TOP, CENTER, BOTTOM };
 
-class Text : public Entity
+class DECLSPEC Text : public Entity
 {
 private:
 	TTF_Font* font = nullptr;

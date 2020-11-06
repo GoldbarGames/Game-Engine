@@ -10,13 +10,13 @@
 #include <unordered_map>
 
 #include <GL/glew.h>
-
+#include "leak_check.h"
 class Renderer;
 
 enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, frequency };
 enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, SolidColor, Grid, Grayscale, Sharpen, Blur, Edge, Test };
 
-class ShaderProgram
+class DECLSPEC ShaderProgram
 {
 public:
 	ShaderProgram(const ShaderName n, const char* vertexFilePath, const char* fragmentFilePath);

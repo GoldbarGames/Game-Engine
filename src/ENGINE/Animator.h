@@ -2,6 +2,7 @@
 #define ANIMATOR_H
 #pragma once
 
+#include "leak_check.h"
 #include <map>
 #include <unordered_map>
 #include <SDL.h>
@@ -14,7 +15,7 @@ class Sprite;
 class Vector2;
 class SpriteManager;
 
-class Animator
+class DECLSPEC Animator
 {
 private:
 	//std::unordered_map<std::string, Sprite*> mapStateToSprite;

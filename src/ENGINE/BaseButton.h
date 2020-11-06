@@ -1,7 +1,7 @@
 #ifndef BASEBUTTON_H
 #define BASEBUTTON_H
 #pragma once
-
+#include "leak_check.h"
 #include <SDL.h>
 #include <string>
 #include "globals.h"
@@ -13,7 +13,7 @@
 class Renderer;
 class Game;
 
-class BaseButton
+class DECLSPEC BaseButton
 {
 public:
 	Vector2 scale = Vector2(1, 1);

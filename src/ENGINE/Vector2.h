@@ -3,8 +3,9 @@
 
 #include <iostream>
 //using Vector2 = glm::vec2;
+#include "leak_check.h"
 
-class Vector2
+class DECLSPEC Vector2
 {
 public:
 	float x = 0.0f;

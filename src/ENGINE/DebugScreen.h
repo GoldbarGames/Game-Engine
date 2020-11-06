@@ -4,7 +4,7 @@
 
 #include <unordered_map>
 #include "Vector2.h"
-
+#include "leak_check.h"
 class Text;
 class Game;
 class Renderer;
@@ -17,7 +17,7 @@ enum class DebugText {
 	cameraPosition, cameraAngle, cameraYaw, cameraPitch, cameraRoll
 };
 
-class DebugScreen
+class DECLSPEC DebugScreen
 {
 public:
 	int mouseX = 0;

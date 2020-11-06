@@ -1,7 +1,7 @@
 #ifndef COLLIDER_H
 #define COLLIDER_H
 #pragma once
-
+#include "leak_check.h"
 #include "globals.h"
 #include "Vector2.h"
 #include <glm/vec3.hpp>
@@ -9,7 +9,7 @@
 
 //TODO: This is only for a rectangle collider, 
 // maybe add more shapes later
-class Collider
+class DECLSPEC Collider
 {
 public:
 	Vector2 offset = Vector2(0,0);

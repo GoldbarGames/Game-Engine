@@ -6,10 +6,10 @@
 #include <string>
 #include "Sprite.h"
 #include "BaseButton.h"
-
+#include "leak_check.h"
 class Game;
 
-class MenuButton : public BaseButton
+class DECLSPEC MenuButton : public BaseButton
 {
 private:
 	int thickness = 2;

@@ -5,12 +5,12 @@
 #include <vector>
 #include <unordered_map>
 #include "Text.h"
-
+#include "leak_check.h"
 class Renderer;
 class HealthComponent;
 class Game;
 
-class GUI
+class DECLSPEC GUI
 {
 public:
 	Game* game;

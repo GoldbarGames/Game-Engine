@@ -2,8 +2,8 @@
 #include <sstream>
 #include "Player.h"
 #include "../ENGINE/Game.h"
-#include "../ENGINE/PhysicsComponent.h"
-#include "../ENGINE/HealthComponent.h"
+#include "PhysicsComponent.h"
+#include "HealthComponent.h"
 #include "../ENGINE/Text.h"
 #include "Missile.h"
 

@@ -12,13 +12,14 @@
 #include "Vector2.h"
 #include "Timer.h"
 #include "GUI.h"
+#include "leak_check.h"
 
 class Sprite;
 class Game;
 class HealthComponent;
 class Renderable;
 
-class Renderer
+class DECLSPEC Renderer
 {
 private:
 	static ShaderProgram* textShader;

@@ -4,8 +4,8 @@
 
 #include "PathNode.h"
 #include "Entity.h"
-
-class Path : public Entity
+#include "leak_check.h"
+class DECLSPEC Path : public Entity
 {
 	// TODO: Move nodes around, insert into the middle, and insert onto the end of an existing path
 

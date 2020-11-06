@@ -5,8 +5,8 @@
 #include "../ENGINE/Collider.h"
 #include "../ENGINE/Timer.h"
 #include "../ENGINE/Vector2.h"
-#include "../ENGINE/PhysicsComponent.h"
-#include "../ENGINE/HealthComponent.h"
+#include "PhysicsComponent.h"
+#include "HealthComponent.h"
 #include <algorithm>
 #include "../ENGINE/Sprite.h"
 #include "../ENGINE/Renderer.h"

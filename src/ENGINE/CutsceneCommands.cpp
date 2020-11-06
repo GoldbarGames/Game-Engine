@@ -13,7 +13,6 @@
 #include "SoundManager.h"
 #include "RandomManager.h"
 #include "Renderer.h"
-#include "PhysicsComponent.h"
 
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 

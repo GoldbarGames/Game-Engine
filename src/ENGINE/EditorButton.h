@@ -8,14 +8,14 @@
 #include "Vector2.h"
 #include "globals.h"
 #include "Texture.h"
-
+#include "leak_check.h"
 #include "Text.h"
 
 class Game;
 class Text;
 class Renderer;
 
-class EditorButton
+class DECLSPEC EditorButton
 {
 public:
 	SDL_Rect buttonTextureRect;

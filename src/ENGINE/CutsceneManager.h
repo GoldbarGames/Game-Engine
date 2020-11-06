@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include <queue>
-
+#include "leak_check.h"
 #include "Timer.h"
 #include "CutsceneCommands.h"
 #include <map>
@@ -114,7 +114,7 @@ struct TextTag
 };
 
 
-class CutsceneManager
+class DECLSPEC CutsceneManager
 {
 	std::string language = "english";
 	std::string data = "";

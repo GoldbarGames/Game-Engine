@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include "Animator.h"
 #include "globals.h"
-
+#include "leak_check.h"
 class CutsceneManager;
 
 struct UserDefinedFunction
@@ -18,7 +18,7 @@ struct UserDefinedFunction
 
 
 typedef const std::vector<std::string>& CutsceneParameters;
-class CutsceneCommands
+class DECLSPEC CutsceneCommands
 {
 public:
 	std::unordered_map<std::string, std::string> stralias;

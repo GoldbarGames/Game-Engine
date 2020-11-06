@@ -34,7 +34,6 @@
 #include "MenuScreen.h"
 #include "Renderer.h"
 
-#include "HealthComponent.h" // TODO: Remove this
 #include "SettingsButton.h" // TODO: Allow for customization
 
 #include "DebugScreen.h"

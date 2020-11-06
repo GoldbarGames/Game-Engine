@@ -3,7 +3,7 @@
 #include "../ENGINE/CutsceneManager.h"
 #include "../ENGINE/CutsceneCommands.h"
 #include "MyEntity.h"
-#include "../ENGINE/HealthComponent.h"
+#include "HealthComponent.h"
 
 void MyFileManager::SaveFile(const std::string& filename) const
 {

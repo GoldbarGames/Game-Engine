@@ -3,8 +3,8 @@
 #pragma once
 
 #include <fstream>
-
-class Logger
+#include "leak_check.h"
+class DECLSPEC Logger
 {
 public:
 	std::ofstream file;

@@ -3,10 +3,10 @@
 #pragma once
 
 #include <GL/glew.h>
-
+#include "leak_check.h"
 enum class MeshType { Quad, Triangle, Line, Cube };
 
-class Mesh
+class DECLSPEC Mesh
 {
 public:
 	Mesh();

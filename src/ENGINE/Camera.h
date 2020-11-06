@@ -8,11 +8,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 //#include <GLFW/glfw3.h>
-
+#include "leak_check.h"
 class Entity;
 class Game;
 
-class Camera
+class DECLSPEC Camera
 {
 public:
 	Camera();

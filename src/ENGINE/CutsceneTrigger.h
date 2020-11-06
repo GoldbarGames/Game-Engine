@@ -3,8 +3,8 @@
 #pragma once
 
 #include "Entity.h"
-
-class CutsceneTrigger : public Entity
+#include "leak_check.h"
+class DECLSPEC CutsceneTrigger : public Entity
 {
 public:
 	SDL_Rect triggerRect;

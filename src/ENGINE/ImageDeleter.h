@@ -4,7 +4,7 @@
 
 #include "Texture.h"
 #include "globals.h"
-
+#include "leak_check.h"
 struct ImageDeleter
 {
 	void operator()(Texture* image)

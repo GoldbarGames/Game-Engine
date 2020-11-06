@@ -4,13 +4,14 @@
 
 #include <vector>
 #include <string>
+#include "leak_check.h"
 
 class Text;
 class FontInfo;
 
 enum class PropertyType { String, Integer, Float, ReadOnly };
 
-class Property
+class DECLSPEC Property
 {
 public:
 	static FontInfo* fontInfo;

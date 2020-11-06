@@ -1,7 +1,7 @@
 #include "Platform.h"
 #include "../ENGINE/Renderer.h"
 #include "../ENGINE/Game.h"
-#include "../ENGINE/PhysicsComponent.h"
+#include "PhysicsComponent.h"
 #include "Switch.h"
 #include "../ENGINE/globals.h"
 #include "../ENGINE/Property.h"

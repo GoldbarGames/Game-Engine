@@ -5,7 +5,8 @@
 #include "Entity.h"
 #include "Vector2.h"
 #include <SDL.h>
-class PathNode : public Entity
+#include "leak_check.h"
+class DECLSPEC PathNode : public Entity
 {
 
 public:

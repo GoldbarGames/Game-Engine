@@ -1,10 +1,10 @@
 #ifndef BACKGROUNDLAYER_H
 #define BACKGROUNDLAYER_H
 #pragma once
-
+#include "leak_check.h"
 #include "Entity.h"
 
-class BackgroundLayer : public Entity
+class DECLSPEC BackgroundLayer : public Entity
 {
 public:
 	BackgroundLayer(const Vector2& pos, float p);

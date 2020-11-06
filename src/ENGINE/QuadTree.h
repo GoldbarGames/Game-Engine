@@ -5,11 +5,11 @@
 #include "Vector2.h"
 #include "Entity.h"
 #include <SDL.h>
-
+#include "leak_check.h"
 
 class Renderer;
 
-class QuadTree
+class DECLSPEC QuadTree
 {
     // More than one entity can be in the same position
     // and therefore also within the same subtree

@@ -2,10 +2,10 @@
 #define FILEMANAGER_H
 
 #include <string>
-
+#include "leak_check.h"
 class Game;
 
-class FileManager
+class DECLSPEC FileManager
 {
 public:
 	mutable Game* game = nullptr;

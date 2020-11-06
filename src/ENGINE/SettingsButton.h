@@ -6,10 +6,11 @@
 #include "Text.h"
 #include "Vector2.h"
 #include "BaseButton.h"
+#include "leak_check.h"
 
 class Game;
 
-class SettingsButton : public BaseButton
+class DECLSPEC SettingsButton : public BaseButton
 {
 public:
 	Vector2 position = Vector2(0,0);

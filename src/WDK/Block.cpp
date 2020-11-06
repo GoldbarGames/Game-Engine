@@ -2,8 +2,8 @@
 #include "../ENGINE/Renderer.h"
 #include "../ENGINE/Game.h"
 #include "../ENGINE/Property.h"
-#include "../ENGINE/PhysicsComponent.h"
-#include "../ENGINE/HealthComponent.h"
+#include "PhysicsComponent.h"
+#include "HealthComponent.h"
 
 
 Block::Block(const Vector2& pos) : MyEntity(pos)

@@ -7,7 +7,9 @@ class Editor;
 class Renderer;
 class Vector2;
 
-class EditorHelper
+#include "leak_check.h"
+
+class DECLSPEC EditorHelper
 {
 public:
 	Editor* editor = nullptr;

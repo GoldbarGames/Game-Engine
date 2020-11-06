@@ -1,8 +1,10 @@
 #ifndef RANDOMMANAGER_H
 #define RANDOMMANAGER_H
-
 #pragma once
-class RandomManager
+
+#include "leak_check.h"
+
+class DECLSPEC RandomManager
 {
 private:
 	int randomSeed = 0;

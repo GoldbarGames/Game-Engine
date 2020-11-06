@@ -5,11 +5,11 @@
 #include <vector>
 #include "MenuButton.h"
 #include "SpriteManager.h"
-
+#include "leak_check.h"
 
 class Entity;
 
-class MenuScreen
+class DECLSPEC MenuScreen
 {	
 public:	
 	std::string name = "";

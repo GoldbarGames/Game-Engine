@@ -4,8 +4,9 @@
 
 #include <GL/glew.h>
 #include <SDL_image.h>
+#include "leak_check.h"
 
-class Texture
+class DECLSPEC Texture
 {
 public:
 	Texture(const char* path);

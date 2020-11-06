@@ -1,7 +1,7 @@
 #ifndef GAME_H
 #define GAME_H
 #pragma once
-
+#include "leak_check.h"
 #include "filesystem_types.h"
 #include "GUI.h"
 #include <chrono>
@@ -19,7 +19,7 @@ class FileManager;
 
 enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
 
-class Game
+class DECLSPEC Game
 {
 private:
 	SDL_Surface* screenSurface = nullptr;

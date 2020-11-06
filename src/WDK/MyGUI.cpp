@@ -1,6 +1,6 @@
 #include "MyGUI.h"
 #include "Spell.h"
-#include "../ENGINE/HealthComponent.h"
+#include "HealthComponent.h"
 #include "../ENGINE/Game.h"
 
 void MyGUI::Init(Game* g)
