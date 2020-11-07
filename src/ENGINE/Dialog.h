@@ -4,7 +4,7 @@
 
 #include "Text.h"
 #include "leak_check.h"
-class DECLSPEC Dialog
+class KINJO_API Dialog
 {
 public:
 	bool visible = false;

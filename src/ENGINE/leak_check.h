@@ -1,10 +1,14 @@
 #ifndef MAKE_DLL_H
-#define MAKE_DLL_H
-#ifdef MAKEDLL
-#  define DECLSPEC __declspec(dllexport)
-#else
-#  define DECLSPEC __declspec(dllimport)
-#endif
+ #define MAKE_DLL_H
+ #ifdef MAKEDLL
+ #  define KINJO_API __declspec(dllexport)
+ #else
+  #ifdef TESTGAME
+  #  define KINJO_API 
+  #else
+  #  define KINJO_API __declspec(dllimport)
+  #endif
+ #endif
 #endif
 
 #ifdef _DEBUG

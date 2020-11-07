@@ -9,7 +9,7 @@
 
 class Entity;
 
-class DECLSPEC MenuScreen
+class KINJO_API MenuScreen
 {	
 public:	
 	std::string name = "";
@@ -20,9 +20,12 @@ public:
 	int selectedButtonIndex = 0;
 	MenuScreen(const std::string& n, Game& game);
 	~MenuScreen();
+	
 	void Render(const Renderer& renderer);
 	bool Update(Game& game);
-	bool PressSelectedButton(Game& game);
+	
+	virtual bool PressSelectedButton(Game& game);
+	
 	BaseButton* GetButtonByName(const std::string& buttonName);
 	void AssignButtons(bool useLeftRight);
 	bool FileExists(const std::string& filepath);

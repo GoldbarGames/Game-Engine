@@ -22,6 +22,7 @@
 #include "Texture.h"
 #include "Logger.h"
 #include "FileManager.h"
+#include "MenuManager.h"
 
 #include "Sprite.h"
 #include "Entity.h"
@@ -192,7 +193,7 @@ Mesh* Game::CreateCubeMesh()
 }
 
 Game::Game(const std::string& n, const std::string& title, const std::string& icon, 
-	const EntityFactory& e, const FileManager& f, GUI& g) : logger("logs/output.log")
+	const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m) : logger("logs/output.log")
 {
 	currentGame = n;
 	startOfGame = std::chrono::steady_clock::now();
@@ -200,6 +201,8 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	fileManager = &f;
 	fileManager->Init(*this);
+
+	menuManager = &m;
 
 	windowTitle = title;
 	windowIconFilepath = icon;
@@ -273,15 +276,8 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	gui = &g;
 	gui->Init(this);
 
-	// Initialize all the menus
-	// TODO: Read these in and construct them from a file
-	allMenus["Title"] = neww MenuScreen("Title", *this);
-	allMenus["File Select"] = neww MenuScreen("File Select", *this);
-	allMenus["Pause"] = neww MenuScreen("Pause", *this);
-	allMenus["Settings"] = neww MenuScreen("Settings", *this);
-	allMenus["Spellbook"] = neww MenuScreen("Spellbook", *this);
-	allMenus["EditorSettings"] = neww MenuScreen("EditorSettings", *this);
-	allMenus["Credits"] = neww MenuScreen("Credits", *this);
+	// Initialize all the menus (do this AFTER fonts and resolution)
+	menuManager->Init(*this);
 
 	LoadEditorSettings();
 
@@ -808,7 +804,12 @@ void Game::LoadTitleScreen()
 	renderer.camera.ResetCamera();
 	openedMenus.clear();
 	editor->InitLevelFromFile("title");
-	openedMenus.emplace_back(allMenus["Title"]);
+
+	if (allMenus.count("Title") != 0)
+		openedMenus.emplace_back(allMenus["Title"]);
+	else
+		std::cout << "ERROR: No title menu found!" << std::endl;
+
 	if (soundManager.bgmFilepath != soundManager.bgmNames[nextBGM])
 		soundManager.PlayBGM(soundManager.bgmNames[nextBGM]);
 }
@@ -1107,24 +1108,26 @@ void Game::LoadEditorSettings()
 		std::istream_iterator<std::string> beg(buf), end;
 		std::vector<std::string> tokens(beg, end);
 
-		if (tokens[0] == "replacing")
+		const std::string editorSettings = "EditorSettings";
+
+		if (tokens[0] == "replacing" && allMenus.count(editorSettings) != 0)
 		{
 			editor->replaceSettingIndex = std::stoi(tokens[1]);
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["EditorSettings"]->
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus[editorSettings]->
 				GetButtonByName("Replacing"));
 			button->selectedOption = editor->replaceSettingIndex;
 		}
-		else if (tokens[0] == "deleting")
+		else if (tokens[0] == "deleting" && allMenus.count(editorSettings) != 0)
 		{
 			editor->deleteSettingIndex = std::stoi(tokens[1]);
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["EditorSettings"]->
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus[editorSettings]->
 				GetButtonByName("Deleting"));
 			button->selectedOption = editor->deleteSettingIndex;
 		}
-		else if (tokens[0] == "colors")
+		else if (tokens[0] == "colors" && allMenus.count(editorSettings) != 0)
 		{
 			editor->colorSettingIndex = std::stoi(tokens[1]);
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["EditorSettings"]->
+			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus[editorSettings]->
 				GetButtonByName("Button Color"));
 			button->selectedOption = editor->colorSettingIndex;
 		}

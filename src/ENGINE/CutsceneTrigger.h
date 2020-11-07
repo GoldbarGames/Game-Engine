@@ -4,7 +4,7 @@
 
 #include "Entity.h"
 #include "leak_check.h"
-class DECLSPEC CutsceneTrigger : public Entity
+class KINJO_API CutsceneTrigger : public Entity
 {
 public:
 	SDL_Rect triggerRect;

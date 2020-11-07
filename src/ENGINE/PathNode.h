@@ -6,7 +6,7 @@
 #include "Vector2.h"
 #include <SDL.h>
 #include "leak_check.h"
-class DECLSPEC PathNode : public Entity
+class KINJO_API PathNode : public Entity
 {
 
 public:

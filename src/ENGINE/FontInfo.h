@@ -6,7 +6,7 @@
 #include "leak_check.h"
 typedef struct _TTF_Font TTF_Font;
 
-class DECLSPEC FontInfo
+class KINJO_API FontInfo
 {
 private:
 	int size = 1;

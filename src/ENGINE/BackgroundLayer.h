@@ -4,7 +4,7 @@
 #include "leak_check.h"
 #include "Entity.h"
 
-class DECLSPEC BackgroundLayer : public Entity
+class KINJO_API BackgroundLayer : public Entity
 {
 public:
 	BackgroundLayer(const Vector2& pos, float p);

@@ -6,7 +6,7 @@
 #include <SDL_image.h>
 #include "leak_check.h"
 
-class DECLSPEC Texture
+class KINJO_API Texture
 {
 public:
 	Texture(const char* path);

@@ -17,7 +17,7 @@ enum class DebugText {
 	cameraPosition, cameraAngle, cameraYaw, cameraPitch, cameraRoll
 };
 
-class DECLSPEC DebugScreen
+class KINJO_API DebugScreen
 {
 public:
 	int mouseX = 0;

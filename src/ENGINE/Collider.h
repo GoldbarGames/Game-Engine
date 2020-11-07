@@ -9,7 +9,7 @@
 
 //TODO: This is only for a rectangle collider, 
 // maybe add more shapes later
-class DECLSPEC Collider
+class KINJO_API Collider
 {
 public:
 	Vector2 offset = Vector2(0,0);

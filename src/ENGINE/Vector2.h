@@ -5,7 +5,7 @@
 //using Vector2 = glm::vec2;
 #include "leak_check.h"
 
-class DECLSPEC Vector2
+class KINJO_API Vector2
 {
 public:
 	float x = 0.0f;

@@ -10,7 +10,7 @@ class Renderer;
 class HealthComponent;
 class Game;
 
-class DECLSPEC GUI
+class KINJO_API GUI
 {
 public:
 	Game* game;

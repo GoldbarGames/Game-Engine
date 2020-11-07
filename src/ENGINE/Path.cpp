@@ -4,7 +4,6 @@
 #include "Property.h"
 #include "Editor.h"
 #include "Sprite.h"
-#include "../WDK/MyEditorHelper.h"
 
 Path::Path(const Vector2& pos) : Entity(pos)
 {
@@ -168,11 +167,5 @@ void Path::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 	for (int i = 0; i < nodeCount; i++)
 	{
 		nodeIDs[i] = std::stoi(map["nodeID_" + std::to_string(i)]);
-	}
-
-	if (game.editor->helper != nullptr)
-	{
-		MyEditorHelper* helper = static_cast<MyEditorHelper*>(game.editor->helper);
-		helper->loadListPaths.emplace_back(this);
 	}
 }

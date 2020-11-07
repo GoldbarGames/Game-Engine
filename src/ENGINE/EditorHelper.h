@@ -9,7 +9,7 @@ class Vector2;
 
 #include "leak_check.h"
 
-class DECLSPEC EditorHelper
+class KINJO_API EditorHelper
 {
 public:
 	Editor* editor = nullptr;

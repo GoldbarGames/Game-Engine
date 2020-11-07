@@ -16,7 +16,7 @@ class Renderer;
 enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, frequency };
 enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, SolidColor, Grid, Grayscale, Sharpen, Blur, Edge, Test };
 
-class DECLSPEC ShaderProgram
+class KINJO_API ShaderProgram
 {
 public:
 	ShaderProgram(const ShaderName n, const char* vertexFilePath, const char* fragmentFilePath);

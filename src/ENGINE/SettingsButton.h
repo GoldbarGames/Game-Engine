@@ -10,7 +10,7 @@
 
 class Game;
 
-class DECLSPEC SettingsButton : public BaseButton
+class KINJO_API SettingsButton : public BaseButton
 {
 public:
 	Vector2 position = Vector2(0,0);

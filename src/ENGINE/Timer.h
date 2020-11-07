@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "leak_check.h"
 
-class DECLSPEC Timer
+class KINJO_API Timer
 {
 private:	
 	uint32_t pausedTicks = 0; // the number of ticks when it is paused

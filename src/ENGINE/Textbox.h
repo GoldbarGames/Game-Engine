@@ -9,7 +9,7 @@
 #include "FontInfo.h"
 #include "leak_check.h"
 
-class DECLSPEC Textbox
+class KINJO_API Textbox
 {
 private:
 	//Vector2 position = Vector2(0, 0);

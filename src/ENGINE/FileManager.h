@@ -5,7 +5,7 @@
 #include "leak_check.h"
 class Game;
 
-class DECLSPEC FileManager
+class KINJO_API FileManager
 {
 public:
 	mutable Game* game = nullptr;

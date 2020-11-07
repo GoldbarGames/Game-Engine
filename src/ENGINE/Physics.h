@@ -3,7 +3,7 @@
 #pragma once
 
 #include "leak_check.h"
-class DECLSPEC Physics
+class KINJO_API Physics
 {
 public:
 	static float GRAVITY;

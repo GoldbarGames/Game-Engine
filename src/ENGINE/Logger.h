@@ -4,7 +4,7 @@
 
 #include <fstream>
 #include "leak_check.h"
-class DECLSPEC Logger
+class KINJO_API Logger
 {
 public:
 	std::ofstream file;

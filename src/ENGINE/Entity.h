@@ -26,7 +26,7 @@ class Switch;
 class FontInfo;
 #endif
 
-class DECLSPEC Entity
+class KINJO_API Entity
 {
 protected:	
 	Animator* animator = nullptr;

@@ -114,7 +114,7 @@ struct TextTag
 };
 
 
-class DECLSPEC CutsceneManager
+class KINJO_API CutsceneManager
 {
 	std::string language = "english";
 	std::string data = "";

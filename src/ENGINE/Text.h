@@ -34,7 +34,7 @@ struct FontInfo;
 enum class AlignmentX { LEFT, CENTER, RIGHT };
 enum class AlignmentY { TOP, CENTER, BOTTOM };
 
-class DECLSPEC Text : public Entity
+class KINJO_API Text : public Entity
 {
 private:
 	TTF_Font* font = nullptr;

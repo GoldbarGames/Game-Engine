@@ -27,7 +27,7 @@ class Text;
 class Dialog;
 class Platform;
 
-class DECLSPEC Editor
+class KINJO_API Editor
 {
 private:
 	Vector2 tilesheetPosition = Vector2(0, 0);

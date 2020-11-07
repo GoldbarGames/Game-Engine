@@ -15,7 +15,7 @@ class Sprite;
 class Vector2;
 class SpriteManager;
 
-class DECLSPEC Animator
+class KINJO_API Animator
 {
 private:
 	//std::unordered_map<std::string, Sprite*> mapStateToSprite;

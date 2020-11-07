@@ -16,10 +16,11 @@
 #include "Logger.h"
 
 class FileManager;
+class MenuManager;
 
 enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
 
-class DECLSPEC Game
+class KINJO_API Game
 {
 private:
 	SDL_Surface* screenSurface = nullptr;
@@ -59,6 +60,7 @@ public:
 	// Keep this a pointer so we can use polymorphism
 	const EntityFactory* entityFactory = nullptr;
 	const FileManager* fileManager = nullptr;
+	const MenuManager* menuManager = nullptr;
 
 	SDL_Rect mouseRect;
 	Uint32 mouseState;
@@ -220,7 +222,7 @@ public:
 	void ShouldDeleteEntity(Entity* entity);
 
 	Game(const std::string& n, const std::string& title, const std::string& icon, 
-		const EntityFactory& e, const FileManager& f, GUI& g);
+		const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m);
 	~Game();
 
 	void InitSDL();

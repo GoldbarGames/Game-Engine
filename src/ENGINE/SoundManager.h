@@ -51,7 +51,7 @@ struct SoundChannel {
 	}
 };
 
-class DECLSPEC SoundManager
+class KINJO_API SoundManager
 {
 private:
 	Uint32 volumeBGM = 20;

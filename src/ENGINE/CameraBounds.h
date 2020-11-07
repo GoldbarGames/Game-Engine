@@ -4,7 +4,7 @@
 #include "leak_check.h"
 #include "Entity.h"
 
-class DECLSPEC CameraBounds : public Entity
+class KINJO_API CameraBounds : public Entity
 {
 public:
 	CameraBounds(Vector2 pos);

@@ -19,7 +19,7 @@ class Game;
 class HealthComponent;
 class Renderable;
 
-class DECLSPEC Renderer
+class KINJO_API Renderer
 {
 private:
 	static ShaderProgram* textShader;

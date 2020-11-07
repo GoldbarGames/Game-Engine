@@ -25,7 +25,7 @@
 class Renderer;
 
 
-class DECLSPEC Sprite
+class KINJO_API Sprite
 {
 private:
 

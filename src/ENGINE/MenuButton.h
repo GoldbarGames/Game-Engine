@@ -9,7 +9,7 @@
 #include "leak_check.h"
 class Game;
 
-class DECLSPEC MenuButton : public BaseButton
+class KINJO_API MenuButton : public BaseButton
 {
 private:
 	int thickness = 2;

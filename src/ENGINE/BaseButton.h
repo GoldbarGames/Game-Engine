@@ -13,7 +13,7 @@
 class Renderer;
 class Game;
 
-class DECLSPEC BaseButton
+class KINJO_API BaseButton
 {
 public:
 	Vector2 scale = Vector2(1, 1);

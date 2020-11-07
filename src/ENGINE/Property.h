@@ -11,7 +11,7 @@ class FontInfo;
 
 enum class PropertyType { String, Integer, Float, ReadOnly };
 
-class DECLSPEC Property
+class KINJO_API Property
 {
 public:
 	static FontInfo* fontInfo;

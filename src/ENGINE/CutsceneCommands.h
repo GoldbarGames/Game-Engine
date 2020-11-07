@@ -18,7 +18,7 @@ struct UserDefinedFunction
 
 
 typedef const std::vector<std::string>& CutsceneParameters;
-class DECLSPEC CutsceneCommands
+class KINJO_API CutsceneCommands
 {
 public:
 	std::unordered_map<std::string, std::string> stralias;

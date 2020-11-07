@@ -19,7 +19,7 @@ class Renderer;
 // This is the tile's subtype
 enum class TileType { None, Grass, Wood, Metal, Ice, Water, Spike, Lava};
 
-class DECLSPEC Tile : public Entity
+class KINJO_API Tile : public Entity
 {
 public:
 	int tilesheetIndex = 0;

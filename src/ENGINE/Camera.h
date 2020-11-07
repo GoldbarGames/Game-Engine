@@ -12,7 +12,7 @@
 class Entity;
 class Game;
 
-class DECLSPEC Camera
+class KINJO_API Camera
 {
 public:
 	Camera();

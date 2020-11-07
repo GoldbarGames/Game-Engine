@@ -9,7 +9,7 @@
 
 class Renderer;
 
-class DECLSPEC QuadTree
+class KINJO_API QuadTree
 {
     // More than one entity can be in the same position
     // and therefore also within the same subtree

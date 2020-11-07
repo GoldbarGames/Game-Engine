@@ -6,7 +6,7 @@
 #include "leak_check.h"
 enum class MeshType { Quad, Triangle, Line, Cube };
 
-class DECLSPEC Mesh
+class KINJO_API Mesh
 {
 public:
 	Mesh();

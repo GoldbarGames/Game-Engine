@@ -15,7 +15,7 @@ class Game;
 class Text;
 class Renderer;
 
-class DECLSPEC EditorButton
+class KINJO_API EditorButton
 {
 public:
 	SDL_Rect buttonTextureRect;

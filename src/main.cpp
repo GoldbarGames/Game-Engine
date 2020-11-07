@@ -3,10 +3,11 @@
 #include "ENGINE/leak_check.h"
 #include "ENGINE/Game.h"
 #include "ENGINE/Editor.h"
-#include "WDK/MyFileManager.h"
-#include "WDK/MyEntityFactory.h"
-#include "WDK/MyGUI.h"
-#include "WDK/MyEditorHelper.h"
+#include "ENGINE/FileManager.h"
+#include "ENGINE/EntityFactory.h"
+#include "ENGINE/GUI.h"
+#include "ENGINE/EditorHelper.h"
+#include "ENGINE/MenuManager.h"
 
 int main(int argc, char *args[])
 {
@@ -22,12 +23,13 @@ int main(int argc, char *args[])
 
 	{
 		// For your own custom entity types
-		EntityFactory* e = MyEntityFactory::Get();
-		GUI* gui = neww MyGUI();
-		EditorHelper* helper = neww MyEditorHelper();
-		FileManager* f = neww MyFileManager();
+		EntityFactory* e = EntityFactory::Get();
+		GUI* gui = neww GUI();
+		EditorHelper* helper = neww EditorHelper();
+		FileManager* f = neww FileManager();
+		MenuManager* m = neww MenuManager();
 
-		Game game("WDK", "Witch Doctor Kaneko", "icon.png", *e, *f, *gui);
+		Game game("WDK", "Witch Doctor Kaneko", "icon.png", *e, *f, *gui, *m);
 		game.editor->helper = helper;
 		game.editor->helper->editor = game.editor;
 		game.MainLoop();
@@ -40,6 +42,9 @@ int main(int argc, char *args[])
 
 		if (f != nullptr)
 			delete_it(f);
+
+		if (m != nullptr)
+			delete_it(m);
 	}
 
 	// Call these outside the scope of the game

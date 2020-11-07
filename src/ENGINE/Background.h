@@ -35,7 +35,7 @@ struct BackgroundData
 	std::vector<BackgroundLayerData*> layers;
 };
 
-class DECLSPEC Background
+class KINJO_API Background
 {
 public:
 	Vector2 position;

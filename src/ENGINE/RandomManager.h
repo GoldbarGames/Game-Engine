@@ -4,7 +4,7 @@
 
 #include "leak_check.h"
 
-class DECLSPEC RandomManager
+class KINJO_API RandomManager
 {
 private:
 	int randomSeed = 0;

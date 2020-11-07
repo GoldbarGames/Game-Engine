@@ -32,22 +32,22 @@ struct Color {
 	}
 };
 
-extern DECLSPEC std::string CurrentDate();
-extern DECLSPEC std::string CurrentTime();
-extern DECLSPEC std::string GetDrawingLayerName(DrawingLayer layer);
-extern DECLSPEC std::string ParseWord(const std::string& text, char limit, int& index);
-extern DECLSPEC std::vector<std::string> SplitString(const std::string& str, char delim);
-extern DECLSPEC Color ParseColorHexadecimal(const std::string& text);
-extern DECLSPEC int HexToDecimal(const char hex);
+extern KINJO_API std::string CurrentDate();
+extern KINJO_API std::string CurrentTime();
+extern KINJO_API std::string GetDrawingLayerName(DrawingLayer layer);
+extern KINJO_API std::string ParseWord(const std::string& text, char limit, int& index);
+extern KINJO_API std::vector<std::string> SplitString(const std::string& str, char delim);
+extern KINJO_API Color ParseColorHexadecimal(const std::string& text);
+extern KINJO_API int HexToDecimal(const char hex);
 
-extern DECLSPEC bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, const float minStep);
-extern DECLSPEC bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
+extern KINJO_API bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, const float minStep);
+extern KINJO_API bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
 	const uint32_t currentTime, uint32_t startTime, uint32_t endTime);
 
-extern DECLSPEC bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxStep, const float minStep);
-extern DECLSPEC bool LerpVector3(glm::vec3& current, const glm::vec3& start, const glm::vec3& target,
+extern KINJO_API bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxStep, const float minStep);
+extern KINJO_API bool LerpVector3(glm::vec3& current, const glm::vec3& start, const glm::vec3& target,
 	const uint32_t currentTime, uint32_t startTime, uint32_t endTime);
-extern DECLSPEC bool LerpCoord(float& current, const float& start, const float& target, const float& t);
+extern KINJO_API bool LerpCoord(float& current, const float& start, const float& target, const float& t);
 
 template<typename T>
 void delete_it(T& v)
@@ -76,7 +76,7 @@ inline std::string& Trim(std::string& s, const char* t = " \t\n\r\f\v")
 	return LTrim(RTrim(s, t), t);
 }
 
-extern DECLSPEC bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2);
-extern DECLSPEC SDL_Rect ConvertCoordsFromCenterToTopLeft(const SDL_Rect& originalRect);
+extern KINJO_API bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2);
+extern KINJO_API SDL_Rect ConvertCoordsFromCenterToTopLeft(const SDL_Rect& originalRect);
 
 #endif

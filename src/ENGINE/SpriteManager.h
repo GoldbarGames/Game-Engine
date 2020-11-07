@@ -63,7 +63,7 @@ public:
 
 class Renderer;
 
-class DECLSPEC SpriteManager
+class KINJO_API SpriteManager
 {
 private:
 	mutable std::unordered_map<std::string, Texture*> images;

@@ -46,7 +46,7 @@ struct AnimCondition
 	~AnimCondition();
 };
 
-class DECLSPEC AnimStateMachine
+class KINJO_API AnimStateMachine
 {
 public:
 	// state we are going to, conditions to get there

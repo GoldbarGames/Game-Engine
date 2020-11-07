@@ -4,7 +4,7 @@
 #include "leak_check.h"
 class Game;
 
-class DECLSPEC Component
+class KINJO_API Component
 {
 public:
 	virtual void Update(Game& game) = 0;

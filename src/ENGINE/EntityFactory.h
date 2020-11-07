@@ -7,7 +7,7 @@ class Vector2;
 
 typedef Entity* (__stdcall* CreateEntity)(const Vector2& pos);
 
-class DECLSPEC EntityFactory
+class KINJO_API EntityFactory
 {
 private:    
     mutable std::unordered_map<std::string, CreateEntity> entities;
