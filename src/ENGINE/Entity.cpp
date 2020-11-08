@@ -115,7 +115,7 @@ Entity::Entity(const Vector2& pos)
 	startPosition = position;
 
 	id = GenerateValidID();
-	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
+	CreateCollider(0, 0, Globals::TILE_SIZE, Globals::TILE_SIZE);
 }
 
 Entity::Entity(const Vector2& pos, Sprite* sprite) : Entity(pos)

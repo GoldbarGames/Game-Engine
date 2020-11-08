@@ -90,7 +90,7 @@ void CutsceneManager::ReadCutsceneFile()
 {
 	std::ifstream fin;
 	std::string line = "";
-	std::string directory = "data/cutscenes/" + game->currentGame + "/" + language + "/";
+	std::string directory = "data/cutscenes/" + language + "/";
 	std::string filepath = directory + game->currentGame + ".txt";
 	std::string defineFilePath = directory + game->currentGame + ".define";
 
@@ -105,6 +105,7 @@ void CutsceneManager::ReadCutsceneFile()
 	}
 
 	// First try to read a separate define file
+	std::cout << "Attempting to open " + defineFilePath << std::endl;
 	fin.open(defineFilePath);
 	if (fin.is_open())
 	{
@@ -119,9 +120,14 @@ void CutsceneManager::ReadCutsceneFile()
 		fin.close();
 		ParseCutsceneFile();
 	}
+	else
+	{
+		std::cout << "ERROR: Failed to open " + defineFilePath << std::endl;
+	}
 
 	// TODO: Allow reading in multiple files at once
 	// (spreading the script across files)
+	std::cout << "Attempting to open " + filepath << std::endl;
 	fin.open(filepath);
 	if (fin.is_open())
 	{
@@ -134,6 +140,10 @@ void CutsceneManager::ReadCutsceneFile()
 				data += line + " ;";
 		}
 		fin.close();
+	}
+	else
+	{
+		std::cout << "ERROR: Failed to open " + filepath << std::endl;
 	}
 }
 

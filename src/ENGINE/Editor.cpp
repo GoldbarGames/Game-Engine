@@ -452,8 +452,8 @@ void Editor::StartEdit()
 	// this centers the yellow rectangle on the top left tile in the tilesheet
 	// (we need to subtract the width/height to get to the top left corner,
 	// and then add the tile size to center it within the actual tile)
-	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + TILE_SIZE;
-	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + TILE_SIZE;
+	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + Globals::TILE_SIZE;
+	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + Globals::TILE_SIZE;
 
 	objectPropertiesRect.x = (game->screenWidth * 2) - objectPropertiesRect.w;
 
@@ -577,21 +577,21 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		int yOffset = (mouseY - topLeftY);
 
 		// Calculate the position in the tilesheet texture to use for drawing the tile
-		float x2 = (xOffset / (float)(TILE_SIZE));
-		float y2 = (yOffset / (float)(TILE_SIZE));
+		float x2 = (xOffset / (float)(Globals::TILE_SIZE));
+		float y2 = (yOffset / (float)(Globals::TILE_SIZE));
 
 		spriteSheetTileFrame.x = (int)(roundf(x2)/ Camera::MULTIPLIER) + 1;
 		spriteSheetTileFrame.y = (int)(roundf(y2)/ Camera::MULTIPLIER) + 1;
 
-		int moveRight = ( (spriteSheetTileFrame.x - 1) * TILE_SIZE * Camera::MULTIPLIER);
-		int moveDown = ( (spriteSheetTileFrame.y - 1) * TILE_SIZE * Camera::MULTIPLIER);
+		int moveRight = ( (spriteSheetTileFrame.x - 1) * Globals::TILE_SIZE * Camera::MULTIPLIER);
+		int moveDown = ( (spriteSheetTileFrame.y - 1) * Globals::TILE_SIZE * Camera::MULTIPLIER);
 
 		//std::cout << "(" << x2 << "," << y2 << ")" << std::endl;
 		//std::cout << "(" << spriteSheetTileFrame.x << "," << spriteSheetTileFrame.y << ")" << std::endl;
 
 		// Set the location of the yellow rectangle indicating which tile will be drawn
-		selectedTilePosition.x = topLeftX + TILE_SIZE + moveRight;
-		selectedTilePosition.y = topLeftY + TILE_SIZE + moveDown;
+		selectedTilePosition.x = topLeftX + Globals::TILE_SIZE + moveRight;
+		selectedTilePosition.y = topLeftY + Globals::TILE_SIZE + moveDown;
 
 		//TODO: Make this section a function we can call to refresh the current tile preview
 		Entity*& prev = previewMap[objectMode];
@@ -798,8 +798,8 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 				StartEdit();
 				objectMode = "tile";
 
-				selectedTilePosition.x = (int)((tile->tileCoordinates.x - 1) * TILE_SIZE);
-				selectedTilePosition.y = (int)((tile->tileCoordinates.y - 1) * TILE_SIZE);
+				selectedTilePosition.x = (int)((tile->tileCoordinates.x - 1) * Globals::TILE_SIZE);
+				selectedTilePosition.y = (int)((tile->tileCoordinates.y - 1) * Globals::TILE_SIZE);
 
 				spriteSheetTileFrame.x = (int)tile->tileCoordinates.x;
 				spriteSheetTileFrame.y = (int)tile->tileCoordinates.y;
@@ -1046,8 +1046,8 @@ void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector
 		SDL_Rect mouseRect;
 		mouseRect.x = worldPosition.x;
 		mouseRect.y = worldPosition.y;
-		mouseRect.w = TILE_SIZE;
-		mouseRect.h = TILE_SIZE;
+		mouseRect.w = Globals::TILE_SIZE;
+		mouseRect.h = Globals::TILE_SIZE;
 
 		// NOTE: You will need to exit out of edit mode and then go back in
 		// to change tiles that are being placed via the editor
@@ -1508,8 +1508,8 @@ void Editor::ToggleTileset()
 	//TODO: Maybe make this its own function?
 	tilesheetPosition.x = (game->screenWidth * 2) - tilesheetSprites[tilesheetIndex]->frameWidth;
 	tilesheetPosition.y = tilesheetSprites[tilesheetIndex]->frameHeight;
-	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + TILE_SIZE;
-	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + TILE_SIZE;
+	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + Globals::TILE_SIZE;
+	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + Globals::TILE_SIZE;
 	
 	game->SaveEditorSettings();
 	StartEdit();	

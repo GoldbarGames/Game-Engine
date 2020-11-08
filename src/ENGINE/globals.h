@@ -8,9 +8,20 @@
 #include <glm/vec3.hpp>
 #include "Vector2.h"
 #include "leak_check.h"
-const int TILE_SIZE = 24;
+
 const int SCREEN_FPS = 60;
 const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
+
+class KINJO_API Globals {
+public:
+	static int TILE_SIZE;
+	Globals() { TILE_SIZE = 24; };
+	static Globals* Get()
+	{
+		static Globals instance;
+		return &instance;
+	}
+};
 
 enum class DrawingLayer { BACK = 0, MIDDLE = 10, OBJECT = 20, 
 	COLLISION = 30, COLLISION2 = 35, FRONT = 40, INVISIBLE = 99 };

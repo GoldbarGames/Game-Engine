@@ -3,6 +3,8 @@
 #include <time.h>
 #include "Vector2.h"
 
+int Globals::TILE_SIZE = 24;
+
 // TODO: Does lerp need to use dt?
 
 bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, const float minStep)

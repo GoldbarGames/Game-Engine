@@ -170,11 +170,11 @@ Sprite::Sprite(const Vector2& frame, Texture* image, ShaderProgram* s)
 
 	CreateMesh();
 
-	frameWidth = TILE_SIZE;
-	frameHeight = TILE_SIZE;
+	frameWidth = Globals::TILE_SIZE;
+	frameHeight = Globals::TILE_SIZE;
 
-	framesPerRow = texture->GetWidth() / frameWidth;
-	numberRows = texture->GetHeight() / frameHeight;
+	framesPerRow = std::max(1, texture->GetWidth() / frameWidth);
+	numberRows = std::max(1, texture->GetHeight() / frameHeight);
 
 	numberFramesInTexture = framesPerRow * numberRows;
 	startFrame = 0;

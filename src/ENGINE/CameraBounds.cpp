@@ -7,7 +7,7 @@ CameraBounds::CameraBounds(Vector2 pos) : Entity(pos)
 {
 	etype = "cameraBounds";
 	shouldSave = true;
-	CreateCollider(0, 0, TILE_SIZE, TILE_SIZE);
+	CreateCollider(0, 0, Globals::TILE_SIZE, Globals::TILE_SIZE);
 }
 
 CameraBounds::~CameraBounds()
@@ -20,7 +20,7 @@ void CameraBounds::Render(const Renderer& renderer)
 	if (renderer.game->editMode || renderer.game->debugMode)
 	{
 		renderer.debugSprite->color = { 0, 255, 255, 255 };
-		Vector2 adjustedScale = Vector2(collider->scale.x / TILE_SIZE, collider->scale.y / TILE_SIZE);
+		Vector2 adjustedScale = Vector2(collider->scale.x / Globals::TILE_SIZE, collider->scale.y / Globals::TILE_SIZE);
 		renderer.debugSprite->Render(position, renderer, adjustedScale);
 	}
 }

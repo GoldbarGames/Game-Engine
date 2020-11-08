@@ -1779,10 +1779,10 @@ void Game::RenderScene()
 
 		// TODO: Don't hardcode these numbers
 		SDL_Rect cameraBounds;
-		cameraBounds.x = renderer.camera.position.x - (6 * TILE_SIZE);
-		cameraBounds.y = renderer.camera.position.y - (6 * TILE_SIZE);
-		cameraBounds.w = (32 * TILE_SIZE) * Camera::MULTIPLIER;
-		cameraBounds.h = (20 * TILE_SIZE) * Camera::MULTIPLIER;
+		cameraBounds.x = renderer.camera.position.x - (6 * Globals::TILE_SIZE);
+		cameraBounds.y = renderer.camera.position.y - (6 * Globals::TILE_SIZE);
+		cameraBounds.w = (32 * Globals::TILE_SIZE) * Camera::MULTIPLIER;
+		cameraBounds.h = (20 * Globals::TILE_SIZE) * Camera::MULTIPLIER;
 
 		for (unsigned int i = 0; i < entities.size(); i++)
 		{
