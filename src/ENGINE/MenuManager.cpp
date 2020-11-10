@@ -22,3 +22,8 @@ void MenuManager::Init(Game& game) const
 		game.allMenus[menuNames[i]] = neww MenuScreen(menuNames[i], game);
 	}
 }
+
+int MenuManager::GetFontSize() const
+{
+	return 24;
+}

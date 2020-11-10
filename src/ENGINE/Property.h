@@ -7,14 +7,12 @@
 #include "leak_check.h"
 
 class Text;
-class FontInfo;
 
 enum class PropertyType { String, Integer, Float, ReadOnly };
 
 class KINJO_API Property
 {
 public:
-	static FontInfo* fontInfo;
 	Text* text = nullptr;
 	std::vector<std::string> options;
 	std::string key = "";

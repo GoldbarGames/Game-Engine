@@ -18,9 +18,13 @@
 #include "Background.h"
 #include "EditorHelper.h"
 
+FontInfo* Editor::fontInfo;
+
 Editor::Editor(Game& g)
 {
 	game = &g;
+
+	GRID_SIZE = Globals::TILE_SIZE;
 
 	tilesheetFilenames = game->ReadStringsFromFile("data/lists/tilesheet.list");
 	for (int i = 0; i < tilesheetFilenames.size(); i++)
@@ -30,15 +34,23 @@ Editor::Editor(Game& g)
 
 	GetLevelList();
 
-	currentLevelText = neww Text(game->theFont, "");
+	if (fontInfo == nullptr)
+	{
+		fontInfo = neww FontInfo("fonts/SpaceMono/SpaceMono-Regular.ttf", 24);
+		fontInfo->SetBoldFont("fonts/SpaceMono/SpaceMono-Bold.ttf");
+		fontInfo->SetItalicsFont("fonts/SpaceMono/SpaceMono-Italic.ttf");
+		fontInfo->SetBoldItalicsFont("fonts/SpaceMono/SpaceMono-BoldItalic.ttf");
+	}
+
+	currentLevelText = neww Text(fontInfo, "");
 	currentLevelText->SetPosition(100, 50);
 	currentLevelText->GetSprite()->keepPositionRelativeToCamera = true;
 	currentLevelText->GetSprite()->keepScaleRelativeToCamera = true;
 
 	playOpeningDemoCutscene = false;
 	dialog = neww Dialog(Vector2(g.screenWidth, g.screenHeight), &g.spriteManager);
-	dialog->text = neww Text(game->theFont, "");
-	dialog->input = neww Text(game->theFont, "");
+	dialog->text = neww Text(fontInfo, "");
+	dialog->input = neww Text(fontInfo, "");
 
 	dialog->text->SetPosition(dialog->position.x, dialog->position.y + 20);
 	dialog->input->SetPosition(dialog->position.x, dialog->position.y + 70);
@@ -1346,6 +1358,13 @@ void Editor::ClickedButton()
 
 		clickedButton->isClicked = false;
 	}
+	else if (clickedButton->name == "newEntity")
+	{
+		// 0. Open dialog to get name of entity
+		CreateDialog("Type in the name of the new Entity Type:");
+		game->StartTextInput("new_entity_type");
+		clickedButton->isClicked = false;	
+	}
 	else if (clickedButton->name == "path")
 	{
 		//if (currentPath != nullptr)
@@ -1466,10 +1485,10 @@ void Editor::ToggleObjectMode(std::string mode)
 
 void Editor::ToggleGridSize()
 {
-	if (GRID_SIZE == 24)
-		GRID_SIZE = 12;
+	if (GRID_SIZE == Globals::TILE_SIZE)
+		GRID_SIZE = Globals::TILE_SIZE / 2;
 	else
-		GRID_SIZE = 24;
+		GRID_SIZE = Globals::TILE_SIZE;
 }
 
 void Editor::ToggleInspectionMode()
@@ -1760,6 +1779,8 @@ std::string Editor::SaveLevelAsString()
 		}
 	}
 
+	level << "0 camera-zoom 0 0 " << game->renderer.camera.orthoZoom << std::endl;
+
 	return level.str();
 }
 
@@ -1857,6 +1878,8 @@ void Editor::CreateLevelFromString(std::string level)
 {
 	try
 	{
+		game->renderer.camera.startingZoom = 1.0f;
+
 		if (game->background == nullptr)
 			game->background = neww Background("", Vector2(0, 0));
 
@@ -2046,6 +2069,13 @@ void Editor::CreateLevelFromString(std::string level)
 				{
 					index = 4;
 					game->nextBGM = tokens[index++];
+				}
+				else if (etype == "camera-zoom")
+				{
+					// TODO: This won't get saved if we make changes to the level from the editor,
+					// so we need a way to set the camera's properties within a level
+					index = 4;
+					game->renderer.camera.startingZoom = std::stof(tokens[index++]);
 				}
 				else if (etype == "camera-target")
 				{

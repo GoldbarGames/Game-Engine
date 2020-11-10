@@ -44,7 +44,7 @@ QuadTree::~QuadTree()
 
 void QuadTree::RenderEntities(const Renderer& renderer, const std::vector<Entity*>& e)
 {
-    return;
+   return;
 
     if (debugSprite == nullptr)
         debugSprite = neww Sprite(renderer.shaders[ShaderName::SolidColor]);
@@ -103,7 +103,7 @@ void QuadTree::RenderEntities(const Renderer& renderer, const std::vector<Entity
 
 void QuadTree::Render(const Renderer& renderer)
 {
-    return;
+   return;
 
     if (renderer.game->debugMode)
     {

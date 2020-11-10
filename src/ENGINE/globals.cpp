@@ -138,6 +138,28 @@ bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2)
 	return b1 && b2 && b3 && b4;
 }
 
+bool HasVerticalIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2)
+{
+	bool b1 = rect1.x < (rect2.x + rect2.w);
+	bool b2 = (rect1.x + rect1.w) > rect2.x;
+
+	bool b3 = rect1.y < (rect2.y + rect2.h);
+	bool b4 = (rect1.y + rect1.h) > rect2.y;
+
+	return b1 && b2 && b3 && b4;
+}
+
+bool HasHorizontalIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2)
+{
+	bool b1 = rect1.x < (rect2.x + rect2.w);
+	bool b2 = (rect1.x + rect1.w) > rect2.x;
+
+	bool b3 = rect1.y < (rect2.y + rect2.h);
+	bool b4 = (rect1.y + rect1.h) > rect2.y;
+
+	return b1 && b2 && b3 && b4;
+}
+
 //TODO: Replace this conversion function with simply using 
 SDL_Rect ConvertCoordsFromCenterToTopLeft(const SDL_Rect& originalRect)
 {
@@ -290,4 +312,14 @@ std::string ParseWord(const std::string& text, char limit, int& index)
 
 	index++; // move past the space/newline
 	return word;
+}
+
+void ReplaceAll(std::string& s, const std::string& toReplace, const std::string& replaceWith)
+{
+	size_t pos = 0;
+	while ((pos = s.find(toReplace, pos)) != std::string::npos)
+	{
+		s.replace(pos, toReplace.length(), replaceWith);
+		pos += replaceWith.length();
+	}
 }

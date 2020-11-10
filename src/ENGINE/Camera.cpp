@@ -6,17 +6,18 @@
 
 float Camera::MULTIPLIER = 2.0f;
 
-Camera::Camera(glm::vec3 startPosition, glm::vec3 startUp, 
+Camera::Camera(glm::vec3 startPos, glm::vec3 startUp, 
 	float startYaw, float startPitch,
 	float startMovementSpeed, float startTurnSpeed,
 	float startZoom, float width, float height, bool useOrtho)
 {
 	useOrthoCamera = useOrtho;
 	
-	position = startPosition;
-
+	position = startPos;
 	if (useOrthoCamera)
 		position.z = 0;
+
+	startPosition = position;
 
 	worldUp = startUp;
 	yaw = startYaw;
@@ -55,7 +56,7 @@ Camera::~Camera()
 
 void Camera::ResetCamera()
 {
-	position = glm::vec3(0, 0, 0);
+	position = startPosition;
 	angle = 0.0f;
 	ResetProjection();
 }

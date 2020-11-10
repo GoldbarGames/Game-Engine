@@ -87,7 +87,12 @@ inline std::string& Trim(std::string& s, const char* t = " \t\n\r\f\v")
 	return LTrim(RTrim(s, t), t);
 }
 
-extern KINJO_API bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2);
 extern KINJO_API SDL_Rect ConvertCoordsFromCenterToTopLeft(const SDL_Rect& originalRect);
+
+extern KINJO_API bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2);
+extern KINJO_API bool HasVerticalIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2);
+extern KINJO_API bool HasHorizontalIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2);
+
+extern KINJO_API void ReplaceAll(std::string& s, const std::string& toReplace, const std::string& replaceWith);
 
 #endif

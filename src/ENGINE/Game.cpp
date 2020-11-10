@@ -45,6 +45,7 @@
 #include "CutsceneManager.h"
 #include "SoundManager.h"
 #include "RandomManager.h"
+#include <filesystem>
 
 static unsigned int allocationCount = 0;
 
@@ -221,7 +222,7 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	// Initialize the font before all text
 
 	// TODO: Load all fonts from a file
-	CreateFont("SpaceMono", 24);
+	CreateFont("SpaceMono", m.GetFontSize());
 	theFont = fonts["SpaceMono"];
 	headerFont = fonts["SpaceMono"];
 
@@ -242,32 +243,11 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	//renderer.overlaySprite->keepScaleRelativeToCamera = true;
 
 	// Initialize the sprite map (do this BEFORE the editor)
+	ReadEntityLists();
 
-	// IMPORTANT INSTRUCTIONS:
-	// entityTypes.list is a list of all the different types of entities in the game.
-	// Each entity type has its own list file, which contains the list of different subtypes.
-	// The subtypes are toggled through when placing objects via the editor.
-	// Thus you can modify these things outside of the engine to customize different games.
-
-	std::vector<std::string> listNames = ReadStringsFromFile("data/lists/entityTypes.list");
-
-	for (int i = 0; i < listNames.size(); i++)
-	{
-		entityTypes[listNames[i]] = ReadStringsFromFile("data/lists/" + listNames[i] + ".list");
-	}
-
-	for (auto const& [key, val] : entityTypes)
-	{
-		for (int i = 0; i < val.size(); i++)
-		{
-			spriteMap[key].push_back("assets/sprites/" + key + "/" + val[i] + ".png");
-		}
-	}
-
-	debugScreen = neww DebugScreen(*this);
-	
 	editor = neww Editor(*this);
-	
+	debugScreen = neww DebugScreen(*this);
+
 	entities.clear();
 
 	SetScreenResolution(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
@@ -356,6 +336,33 @@ Game::~Game()
 Sprite* Game::CreateSprite(const std::string& filepath, const ShaderName shaderName)
 {
 	return neww Sprite(spriteManager.GetImage(filepath), renderer.shaders[shaderName]);
+}
+
+// IMPORTANT INSTRUCTIONS:
+// entityTypes.list is a list of all the different types of entities in the game.
+// Each entity type has its own list file, which contains the list of different subtypes.
+// The subtypes are toggled through when placing objects via the editor.
+// Thus you can modify these things outside of the engine to customize different games.
+void Game::ReadEntityLists()
+{
+	std::vector<std::string> listNames = ReadStringsFromFile("data/lists/entityTypes.list");
+
+	entityTypes.clear();
+	for (int i = 0; i < listNames.size(); i++)
+	{
+		entityTypes[listNames[i]] = ReadStringsFromFile("data/lists/" + listNames[i] + ".list");
+	}
+
+	entityTypes["cameraBounds"] = { "cameraBounds" };
+
+	spriteMap.clear();
+	for (auto const& [key, val] : entityTypes)
+	{
+		for (int i = 0; i < val.size(); i++)
+		{
+			spriteMap[key].push_back("assets/sprites/" + key + "/" + val[i] + ".png");
+		}
+	}
 }
 
 void Game::CreateFont(const std::string& fontName, int size)
@@ -558,7 +565,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 
 		std::string filepath = entityName + "/";
 
-		args["0"] = std::to_string(subtype);
+		args["0"] = entityName; // std::to_string(subtype);
 		args["1"] = "";
 		
 		if (entityTypes.count(entityName) > 0 && entityTypes[entityName].size() > subtype)
@@ -796,6 +803,137 @@ void Game::StopTextInput()
 		{
 			logger.Log("ERROR: Failed to load BG with name " + inputText);
 		}
+	}
+	else if (inputReason == "new_entity_type")
+	{
+		if (inputText == "")
+			return;
+
+		std::string newEntityName = Trim(inputText);
+
+		// 1. Add this entity to the entityTypes.list
+		std::ifstream fin;
+		std::ofstream fout;
+		std::string data = "";
+
+		fin.open("data/lists/entityTypes.list");
+		// TODO: Create file if does not exist
+		for (std::string line; std::getline(fin, line); )
+		{
+			data += line + "\n";
+		}
+
+		fin.close();
+
+		// Don't add if already in file
+		if (data.find(newEntityName) != std::string::npos)
+		{
+			return;
+		}
+
+		fout.open("data/lists/entityTypes.list");
+		fout << data << newEntityName;
+		fout.close();
+
+		// 2. Create a new .list file
+		fout.open("data/lists/" + newEntityName + ".list");
+		fout << newEntityName + "\n";
+		fout.close();
+
+		// 3. Create folder in animations dir, two new files
+		std::string directory = std::filesystem::current_path().string() + "\\data\\animators\\";
+		std::filesystem::create_directories(directory + newEntityName + "\\");
+
+		fout.open("data/animators/" + newEntityName + "/" + newEntityName + ".animations");
+		fout << "idle 100 0 0 " << Globals::TILE_SIZE << " " << Globals::TILE_SIZE
+			<< " assets/sprites/{0}/{1}.png 0 0\n";
+		fout.close();
+
+		fout.open("data/animators/" + newEntityName + "/" + newEntityName + ".animator");
+		fout << "*idle*\n";
+		fout.close();
+
+		// 4. Create new class
+
+		data = "";
+		fin.open("data/editor/NewEntityType-h.template");
+		for (std::string line; std::getline(fin, line); )
+		{
+			data += line + "\n";
+		}
+		fin.close();
+		ReplaceAll(data, "NewEntityType", newEntityName);
+		fout.open(newEntityName + ".h");
+		fout << data;
+		fout.close();
+
+		data = "";
+		fin.open("data/editor/NewEntityType-cpp.template");
+		for (std::string line; std::getline(fin, line); )
+		{
+			data += line + "\n";
+		}
+		fin.close();
+		ReplaceAll(data, "NewEntityType", newEntityName);
+		fout.open(newEntityName + ".cpp");
+		fout << data;
+		fout.close();
+
+		// 5. Modify EntityFactory
+		data = "";
+		fin.open("data/editor/MyEntityFactory-cpp.template");
+		for (std::string line; std::getline(fin, line); )
+		{
+			data += line + "\n";
+		}
+		fin.close();
+
+		std::string includes = "";
+		std::string functions = "";
+		ReadEntityLists();
+
+		std::filesystem::path path = std::filesystem::current_path();
+		std::vector<std::string> classNames;
+		for (const auto& entry : std::filesystem::directory_iterator(path))
+		{
+			if (entry.path().extension().string() == ".h")
+			{
+				std::string s = entry.path().filename().string();
+				classNames.push_back(s.substr(0, s.size() - 2));
+			}
+		}
+
+		for (auto const& [key, val] : entityTypes)
+		{
+			// TODO: Don't hardcode this
+			if (key == "cameraBounds" || key == "path" || key == "pathnode")
+				continue;
+
+			std::string fixedKey = key;
+			std::string loweredKey = key;
+			transform(loweredKey.begin(), loweredKey.end(), loweredKey.begin(), ::tolower);
+
+			for (int i = 0; i < classNames.size(); i++)
+			{
+				std::string loweredName = classNames[i];
+				transform(loweredName.begin(), loweredName.end(), loweredName.begin(), ::tolower);
+				if (loweredName == loweredKey)
+				{
+					fixedKey = classNames[i];
+					break;
+				}
+			}
+
+			includes += "#include \"" + fixedKey + ".h\"\n";
+			functions += "\tRegister(\"" + key + "\", &" + fixedKey + "::Create);\n";
+		}
+
+		ReplaceAll(data, "$includes$", includes);
+		ReplaceAll(data, "$functions$", functions);
+		
+		fout.open("MyEntityFactory.cpp");
+		fout << data;
+		fout.close();
 	}
 }
 

@@ -1,6 +1,7 @@
 #include "EditorButton.h"
 #include "Game.h"
 #include "Renderer.h"
+#include "Editor.h"
 
 EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, Game& game, Vector2 size, Color color)
 {
@@ -23,7 +24,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	buttonWindowRect.x = 0;
 	buttonWindowRect.y = 0;
 
-	text = neww Text(game.theFont, txt, true, true);
+	text = neww Text(game.editor->fontInfo, txt, true, true);
 
 	if (image == nullptr) // if no image, set the size to 50,50
 	{

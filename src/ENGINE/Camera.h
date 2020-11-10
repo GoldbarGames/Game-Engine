@@ -16,7 +16,7 @@ class KINJO_API Camera
 {
 public:
 	Camera();
-	Camera(glm::vec3 startPosition, glm::vec3 startUp, float startYaw, float startPitch,
+	Camera(glm::vec3 startPos, glm::vec3 startUp, float startYaw, float startPitch,
 		float startMovementSpeed, float startTurnSpeed, float startZoom,
 		float width, float height, bool useOrtho);
 	~Camera();
@@ -58,7 +58,7 @@ public:
 	void FollowTarget(const Game& game, bool instantFollow=false);
 	void Update();
 
-
+	float startingZoom = 4.0f;
 private:
 	
 	glm::vec3 front = glm::vec3(0, 0, 0);
@@ -66,7 +66,6 @@ private:
 	glm::vec3 right = glm::vec3(0, 0, 0);
 	glm::vec3 worldUp = glm::vec3(0, 0, 0);
 
-	float startingZoom = 4.0f;
 	float movementSpeed = 0;
 	float turnSpeed = 0;
 };

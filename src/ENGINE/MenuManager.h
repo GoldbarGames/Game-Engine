@@ -16,6 +16,7 @@ public:
 	MenuManager();
 	~MenuManager();
 	virtual void Init(Game& game) const;
+	virtual int GetFontSize() const; // TODO: Remove this when we read fonts in from a file?
 };
 
 #endif

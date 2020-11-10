@@ -124,21 +124,24 @@ void Background::SpawnBackground(const std::string& n, Game& game)
 	//DeleteLayers(game);
 	ResetBackground();
 
-	BackgroundData* data = bgData[n];
-
-	// Create the backgrounds from file data
-	unsigned int NUM_BGS = data->numBGs;
-	unsigned int BG_WIDTH = data->width * Camera::MULTIPLIER;
-	unsigned int X_OFFSET = data->xOffset;
-	unsigned int Y_OFFSET = data->yOffset;
-
-	for (unsigned int i = 0; i < NUM_BGS; i++)
+	if (n != "None")
 	{
-		Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
-		CreateBackground(n, bgPos, game.spriteManager, game.renderer);
-	}
+		BackgroundData* data = bgData[n];
 
-	game.SortEntities(layers);
+		// Create the backgrounds from file data
+		unsigned int NUM_BGS = data->numBGs;
+		unsigned int BG_WIDTH = data->width * Camera::MULTIPLIER;
+		unsigned int X_OFFSET = data->xOffset;
+		unsigned int Y_OFFSET = data->yOffset;
+
+		for (unsigned int i = 0; i < NUM_BGS; i++)
+		{
+			Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
+			CreateBackground(n, bgPos, game.spriteManager, game.renderer);
+		}
+
+		game.SortEntities(layers);
+	}
 }
 
 //TODO: Should this stuff go inside the Background class constructor?
@@ -190,6 +193,11 @@ void Background::ResetBackground()
 
 void Background::Save(std::unordered_map<std::string, std::string>& map)
 {
+	if (name == "")
+	{
+		name = "None";
+	}
+
 	map["id"] = "0";
 	map["type"] = "bg";
 	map["positionX"] = std::to_string((int)position.x);

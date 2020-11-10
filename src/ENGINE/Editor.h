@@ -65,6 +65,7 @@ private:
 	Sprite* rectSprite = nullptr;
 	Sprite* outlineSprite = nullptr;
 public:
+	static FontInfo* fontInfo;
 	int cameraTargetID = -1;
 	bool switchTargetBackToPlayer = false;
 

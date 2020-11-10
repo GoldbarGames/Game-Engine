@@ -90,6 +90,8 @@ public:
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
 
+	void ReadEntityLists();
+
 	// Player / Level Info
 	int startingEther = 40;
 	int currentEther = 40;
