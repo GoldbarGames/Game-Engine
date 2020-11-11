@@ -15,6 +15,8 @@
 #include "Renderer.h"
 #include "Logger.h"
 
+#include "gifanim.h"
+
 class FileManager;
 class MenuManager;
 
@@ -182,6 +184,10 @@ public:
 
 	bool getKeyboardInput = false;
 	bool shouldQuit = false;
+	bool savingGIF = false;
+	GifWriter gifWriter;
+	GifAnim gifAnim;
+	std::vector<uint8_t> gifData;
 
 	std::string inputText = "";
 	std::string inputReason = "";
@@ -263,6 +269,10 @@ public:
 
 	void SaveEditorSettings();
 	void LoadEditorSettings();
+
+	void StartGIF(const std::string& filepath = "");
+	void SaveGIF();
+	void EndGIF();
 
 	void SaveScreenshot(const std::string& filepath="");
 

@@ -1534,13 +1534,6 @@ bool Game::HandleEvent(SDL_Event& event)
 				if (!editMode)
 					LoadLevel(nextLevel);
 				break;
-			case SDLK_8: // save game
-				fileManager->SaveFile(currentSaveFileName);
-				break;
-			case SDLK_9: // load game
-				if (!editMode)
-					fileManager->LoadFile(currentSaveFileName);
-				break;
 			case SDLK_1: // toggle Debug mode
 				debugMode = !debugMode;
 				break;
@@ -1563,16 +1556,34 @@ bool Game::HandleEvent(SDL_Event& event)
 				}
 				break;
 			case SDLK_4: // Undo Button
-				editor->UndoAction();
+				//editor->UndoAction();
+				if (savingGIF)
+				{
+					EndGIF();
+					savingGIF = false;
+				}
+				else
+				{
+					StartGIF();
+					savingGIF = true;					
+				}				
 				break;
 			case SDLK_5: // Redo Button
-				editor->RedoAction();
+				//editor->RedoAction();
+				//EndGIF();
 				break;
 			case SDLK_6: // Screenshot Button
 				SaveScreenshot();
 				break;
 			case SDLK_7:
 				//_CrtDumpMemoryLeaks();
+				break;
+			case SDLK_8: // save game
+				fileManager->SaveFile(currentSaveFileName);
+				break;
+			case SDLK_9: // load game
+				if (!editMode)
+					fileManager->LoadFile(currentSaveFileName);
 				break;
 #endif
 			default:
@@ -1613,6 +1624,64 @@ bool Game::HandleEvent(SDL_Event& event)
 	}
 
 	return quit;
+}
+
+void Game::StartGIF(const std::string& filepath)
+{
+	//std::vector<uint8_t> black(width * height * 4, 0);
+	//std::vector<uint8_t> white(width * height * 4, 255);
+
+	gifData.clear();
+	std::string fileName = "test.gif";
+	int delay = 0;
+
+	if (filepath == "")
+	{
+		std::string timestamp = CurrentDate() + "-" + CurrentTime();
+		for (int i = 0; i < timestamp.size(); i++)
+		{
+			if (timestamp[i] == ':')
+				timestamp[i] = '-';
+		}
+
+		fileName = timestamp + ".gif";
+	}
+	
+	gifAnim.GifBegin(&gifWriter, fileName.c_str(), screenWidth, screenHeight, delay);
+	//GifWriteFrame(&gifWriter, black.data(), width, height, delay);
+	//GifWriteFrame(&gifWriter, white.data(), width, height, delay);
+}
+
+void Game::EndGIF()
+{
+	//gifAnim.GifWriteFrame(&gifWriter, gifData.data(), screenWidth, screenHeight, 100);
+	gifAnim.GifEnd(&gifWriter);
+	gifData.clear();
+}
+
+void Game::SaveGIF()
+{
+	const int DELAY = 0;
+	static int gifDelay = DELAY;
+
+	gifDelay--;
+	if (gifDelay < 0)
+	{
+		gifDelay = DELAY;
+
+		const unsigned int bytesPerPixel = 4;
+		int pixelsSize = screenWidth * screenHeight * bytesPerPixel;
+		uint8_t* pixels = neww uint8_t[pixelsSize]; // 4 bytes for RGBA
+		glReadPixels(0, 0, screenWidth, screenHeight, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+		// TODO: This part is EXTREMELY slow! What can we do here?
+		// TODO: Also, the output file is laggy and does not loop.
+		//gifData.emplace_back(pixels);
+		//std::copy(pixels, pixels + pixelsSize, std::back_inserter(gifData));
+		gifAnim.GifWriteFrame(&gifWriter, pixels, screenWidth, screenHeight, gifDelay);
+
+		delete[] pixels;
+	}
 }
 
 void Game::SaveScreenshot(const std::string& filepath)
@@ -1893,6 +1962,11 @@ void Game::Render()
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);
+
+	if (savingGIF)
+	{
+		SaveGIF();
+	}
 }
 
 
