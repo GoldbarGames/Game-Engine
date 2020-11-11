@@ -442,6 +442,8 @@ void Editor::StartEdit()
 {
 	game->LoadEditorSettings();
 
+	helper->OnEditorStart();
+
 	//game->renderer.camera.ResetProjection();
 	currentLevelText->SetText(game->currentLevel);
 
@@ -525,6 +527,8 @@ void Editor::StopEdit()
 	game->SaveEditorSettings();
 	selectedEntity = nullptr;
 	propertyIndex = -1;
+
+	helper->OnEditorEnd();
 }
 
 void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition)

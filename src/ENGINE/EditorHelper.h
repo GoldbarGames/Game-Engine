@@ -14,6 +14,8 @@ class KINJO_API EditorHelper
 public:
 	Editor* editor = nullptr;
 	virtual void Render(const Renderer& renderer);
+	virtual void OnEditorStart();
+	virtual void OnEditorEnd();
 	virtual void CreateLevelEnd();
 	virtual void CreateLevelStart();
 	virtual void PlaceObject(Vector2& snappedPosition);

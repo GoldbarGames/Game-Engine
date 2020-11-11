@@ -11,6 +11,16 @@ EditorHelper::~EditorHelper()
 
 }
 
+void EditorHelper::OnEditorStart()
+{
+
+}
+
+void EditorHelper::OnEditorEnd()
+{
+
+}
+
 void EditorHelper::CreateLevelEnd()
 {
 	
