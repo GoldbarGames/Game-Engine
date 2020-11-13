@@ -321,7 +321,7 @@ void Entity::SetSprite(Sprite& sprite)
 // This should check to see whether or not there already exists an object
 // where we are trying to place this object, and possibly (depending on this object)
 // whether or not there is any ground below (classes can override this if needed)
-bool Entity::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
+bool Entity::CanSpawnHere(const Vector2& spawnPosition, const Game& game, bool useCamera)
 {
 	bool shouldSpawn = true;
 

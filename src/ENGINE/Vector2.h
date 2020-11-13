@@ -27,6 +27,7 @@ public:
 	bool operator!=(const Vector2 & rhs);
 	
 	Vector2 RoundToInt();
+	std::string ToString();
 };
 
 inline Vector2 RoundToInt(Vector2 vector)

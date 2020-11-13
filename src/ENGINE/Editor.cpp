@@ -146,6 +146,9 @@ Editor::~Editor()
 
 	if (rectSprite != nullptr)
 		delete_it(rectSprite);
+
+	if (fontInfo != nullptr)
+		delete_it(fontInfo);
 }
 
 // Updates the level file based on changes in how entities are saved/loaded

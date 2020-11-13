@@ -67,13 +67,13 @@ class KINJO_API SpriteManager
 {
 private:
 	mutable std::unordered_map<std::string, Texture*> images;
-	std::unordered_map<std::string, std::vector<AnimState*>> animationStates;
+	mutable std::unordered_map<std::string, std::vector<AnimState*>> animationStates;
 	std::unordered_map<GlyphSurfaceData, Texture*, GlyphHashFunction> glyphTextures;
 	std::unordered_map<std::string, Texture*> textImages;
 public:
 	Renderer* renderer = nullptr;
-	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath);
-	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath, std::unordered_map<std::string, std::string>& args);
+	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath) const;
+	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath, std::unordered_map<std::string, std::string>& args) const;
 	Texture* GetImage(const std::string& imagePath) const;
 	// TODO: Get rid of Color here, just make it white and then apply color using shaders
 	Texture* GetTexture(TTF_Font* f, char c, SDL_Color col);

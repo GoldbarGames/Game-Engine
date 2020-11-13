@@ -24,7 +24,10 @@ public:
 	void Render(const Renderer& renderer);
 	bool Update(Game& game);
 	
+	virtual void CreateMenu(const std::string& n, Game& game);
 	virtual bool PressSelectedButton(Game& game);
+
+	void ResetMenu();
 	
 	BaseButton* GetButtonByName(const std::string& buttonName);
 	void AssignButtons(bool useLeftRight);

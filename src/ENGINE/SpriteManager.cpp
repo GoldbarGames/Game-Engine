@@ -179,7 +179,7 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, const std::string& txt, int wrap
 }
 
 
-std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFilePath)
+std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFilePath) const
 {
 	std::unordered_map<std::string, std::string> args;
 	return ReadAnimData(dataFilePath, args);
@@ -189,7 +189,7 @@ std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFileP
 // Then whenever an object is created, we give the object its own copy of the states.
 // That way, those states can be manipulated (and eventually deleted) by the local object.
 std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFilePath, 
-	std::unordered_map<std::string, std::string>& args)
+	std::unordered_map<std::string, std::string>& args) const
 {
 	std::vector<AnimState*> animStates;
 

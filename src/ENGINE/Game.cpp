@@ -553,7 +553,7 @@ Vector2 Game::SnapToGrid(Vector2 position)
 	return Vector2(x, y);
 }
 
-Entity* Game::CreateEntity(const std::string& entityName, const Vector2& position, int subtype)
+Entity* Game::CreateEntity(const std::string& entityName, const Vector2& position, int subtype) const
 {
 	Entity* newEntity = entityFactory->Create(entityName, position);
 
@@ -635,7 +635,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 
 // TODO: We want to sort the entities every time we spawn one
 // as long as the game is running, but not when we are first loading the level
-Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex)
+Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex) const
 {
 	Entity* entity = CreateEntity(entityName, position, spriteIndex); //entityFactory->Create(entityName, position);
 

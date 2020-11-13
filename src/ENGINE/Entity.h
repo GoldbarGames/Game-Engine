@@ -104,7 +104,7 @@ public:
 	virtual void Pause(Uint32 ticks);
 	virtual void Unpause(Uint32 ticks);
 
-	virtual bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
+	virtual bool CanSpawnHere(const Vector2& spawnPosition, const Game& game, bool useCamera = true);
 
 	// TODO: Refactor these functions into components
 

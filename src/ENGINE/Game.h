@@ -49,7 +49,7 @@ public:
 
 	std::string currentGame = "";
 
-	std::unordered_map<std::string, std::vector<std::string>> entityTypes;
+	mutable std::unordered_map<std::string, std::vector<std::string>> entityTypes;
 
 	std::string windowIconFilepath = "";
 	std::string windowTitle = "";
@@ -146,8 +146,8 @@ public:
 	void CheckDeleteEntities();
 
 	void SetScreenResolution(const unsigned int width, const unsigned int height);
-	Entity* CreateEntity(const std::string& entityName, const Vector2& position, int spriteIndex);
-	Entity* SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex);
+	Entity* CreateEntity(const std::string& entityName, const Vector2& position, int spriteIndex) const;
+	Entity* SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex) const;
 
 	void CreateFont(const std::string& fontName, int size);
 

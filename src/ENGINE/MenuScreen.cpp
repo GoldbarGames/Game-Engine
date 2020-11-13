@@ -11,6 +11,11 @@ MenuScreen::MenuScreen(const std::string& n, Game& game)
 	name = n;	
 }
 
+void MenuScreen::CreateMenu(const std::string& n, Game& game)
+{
+
+}
+
 bool MenuScreen::FileExists(const std::string& filepath)
 {
 	std::fstream fin;
@@ -46,25 +51,33 @@ void MenuScreen::AssignButtons(bool useLeftRight)
 }
 
 
-MenuScreen::~MenuScreen()
+void MenuScreen::ResetMenu()
 {
 	for (int i = 0; i < buttons.size(); i++)
 	{
 		if (buttons[i] != nullptr)
 			delete_it(buttons[i]);
 	}
+	buttons.clear();
 
 	for (int i = 0; i < texts.size(); i++)
 	{
 		if (texts[i] != nullptr)
 			delete_it(texts[i]);
 	}
+	texts.clear();
 
 	for (int i = 0; i < images.size(); i++)
 	{
 		if (images[i] != nullptr)
 			delete_it(images[i]);
 	}
+	images.clear();
+}
+
+MenuScreen::~MenuScreen()
+{
+	ResetMenu();
 }
 
 void MenuScreen::Render(const Renderer& renderer)

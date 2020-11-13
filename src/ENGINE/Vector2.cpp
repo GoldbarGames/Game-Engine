@@ -1,5 +1,6 @@
 #include "Vector2.h"
 #include <glm/vec2.hpp>
+#include <string>
 
 Vector2::Vector2(float x2, float y2)
 {
@@ -104,6 +105,11 @@ Vector2 Vector2::RoundToInt()
 	int rx = (int)x;
 	int ry = (int)y;
 	return Vector2(rx, ry);
+}
+
+std::string Vector2::ToString()
+{
+	return "(" + std::to_string(x) + "," + std::to_string(y) + ")";
 }
 
 //TODO: Distance function? Other calculations?
