@@ -934,6 +934,10 @@ void Game::StopTextInput()
 		fout.open("MyEntityFactory.cpp");
 		fout << data;
 		fout.close();
+
+		// TODO: 6. Modify Loading file
+
+
 	}
 }
 

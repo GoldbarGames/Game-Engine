@@ -4,7 +4,7 @@
 
 RandomManager::RandomManager()
 {
-
+	rng = std::default_random_engine();
 }
 
 RandomManager::~RandomManager()
@@ -16,6 +16,7 @@ void RandomManager::Seed()
 {
 	randomSeed = (int)time(0);
 	srand(randomSeed);
+	rng = std::default_random_engine{ (unsigned int)randomSeed };
 }
 
 void RandomManager::Seed(int seed)

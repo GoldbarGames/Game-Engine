@@ -382,6 +382,7 @@ void CutsceneManager::ParseCutsceneFile()
 		//TODO: This is broken on the very first label?
 		//newLabel->name = ParseWord(data, '*', index);
 		newLabel.name = ParseWord(data, '*', index);
+		newLabel.name = Trim(newLabel.name);
 		//std::cout << "Label name: " + newLabel->name << std::endl;
 
 		std::vector<std::string> commands;
@@ -660,9 +661,15 @@ void CutsceneManager::JumpForward()
 
 SceneLabel* CutsceneManager::JumpToLabel(const char* newLabelName)
 {
+	std::string newLabel = newLabelName;
+	newLabel = Trim(newLabel);
+
+	if (newLabel[0] == '*')
+		newLabel = newLabel.substr(1, newLabel.size() - 1);
+
 	for (unsigned int i = 0; i < labels.size(); i++)
 	{
-		if (labels[i].name == newLabelName)
+		if (labels[i].name == newLabel)
 		{
 			labelIndex = i;
 
@@ -674,6 +681,9 @@ SceneLabel* CutsceneManager::JumpToLabel(const char* newLabelName)
 			return &labels[i];
 		}
 	}
+
+	game->logger.Log("ERROR: Could not find cutscene label \"" + std::string(newLabel) + "\"");
+
 	return nullptr;
 }
 
@@ -688,7 +698,6 @@ void CutsceneManager::PlayCutscene(const char* labelName)
 		// if failed to load label, exit cutscenes
 		if (currentLabel == nullptr)
 		{
-			game->logger.Log("ERROR: Could not find cutscene label " + std::string(labelName));
 			watchingCutscene = false;
 		}			
 
@@ -1882,8 +1891,6 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				{
 					if (labelIndex < labels.size())
 						currentLabel = &labels[labelIndex];
-					else
-						std::cout << "ERROR: Could not find label " << labelName << std::endl;
 				}
 				break;
 			case SaveSections::SEEN_LINES:

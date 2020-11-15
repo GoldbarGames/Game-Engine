@@ -84,6 +84,7 @@ public:
 	Animator* GetAnimator();
 
 	virtual const SDL_Rect* GetBounds();
+	SDL_Rect GetTopLeftBounds();
 	Vector2 GetPosition() const;
 	Vector2 GetCenter() const;
 	

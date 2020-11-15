@@ -9,6 +9,7 @@
 #include "Editor.h"
 #include "Animator.h"
 #include "AnimatorInfo.h"
+#include "globals.h"
 
 uint32_t Entity::nextValidID = 0;
 std::unordered_map<unsigned int, bool> Entity::takenIDs;
@@ -225,6 +226,27 @@ const SDL_Rect* Entity::GetBounds()
 	{
 		return collider->bounds;
 	}		
+}
+
+SDL_Rect Entity::GetTopLeftBounds()
+{
+	if (collider == nullptr)
+	{
+		if (bounds == nullptr)
+		{
+			bounds = neww SDL_Rect();
+		}
+		bounds->x = position.x;
+		bounds->y = position.y;
+		bounds->w = currentSprite.frameWidth;
+		bounds->h = currentSprite.frameHeight;
+
+		return ConvertCoordsFromCenterToTopLeft(*bounds);
+	}
+	else
+	{
+		return ConvertCoordsFromCenterToTopLeft(*collider->bounds);
+	}
 }
 
 Vector2 Entity::GetPosition() const

@@ -108,6 +108,8 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 
 				// after parsing all conditions, assign them to the state(s)
 
+				// TODO: If there are two ways to get to the next state from within a state,
+				// the later way overwrites the first way (rather than both being options)
 				for (int i = 0; i < stateNames.size(); i++)
 				{
 					if (stateMachines.count(stateNames[i]) != 1)
@@ -119,9 +121,23 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 				}
 			}
 		}
+
+		fin.close();
 	}
 
-	fin.close();
+	if (stateMachines.count("ANY") != 0)
+	{
+		for (auto& [key, machine] : stateMachines)
+		{
+			if (key != "ANY")
+			{				
+				for (auto& [nextState, anyCondition] : stateMachines["ANY"].conditions)
+				{
+					machine.conditions[nextState].insert(machine.conditions[nextState].end(), anyCondition.begin(), anyCondition.end());
+				}
+			}
+		}
+	}
 }
 
 AnimatorInfo::~AnimatorInfo()
