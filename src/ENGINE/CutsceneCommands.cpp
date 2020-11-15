@@ -316,7 +316,7 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 					bool foundLabel = false;
 					for (int i = 0; i < manager->labels.size(); i++)
 					{
-						if (manager->labels[i].name == parameters[0])
+						if (manager->GetLabelName(manager->labels[i]) == parameters[0])
 						{
 							foundLabel = true;
 							break;
@@ -365,7 +365,7 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 		}
 	}
 
-	if (manager->currentLabel != nullptr && manager->currentLabel->name != "define" && cTimer.GetTicks() >= 0)
+	if (manager->currentLabel != nullptr && manager->GetLabelName(manager->currentLabel) != "define" && cTimer.GetTicks() >= 0)
 	{
 		//std::cout << "Command: " << command << std::endl;
 		//std::cout << cTimer.GetTicks() << std::endl;
@@ -1766,7 +1766,8 @@ int CutsceneCommands::NameCommand(CutsceneParameters parameters)
 	SceneLine* line = manager->GetCurrentLine();
 	if (line != nullptr)
 	{
-		line->speaker = ParseStringValue(parameters[1]);
+		// TODO: Fix this
+		//line->speaker = ParseStringValue(parameters[1]);
 	}
 
 	return 0;
@@ -2483,7 +2484,7 @@ int CutsceneCommands::GetResourceFilename(CutsceneParameters parameters)
 	}
 	else if (parameters[2] == "label")
 	{
-		stringVariables[varNum] = manager->currentLabel->name;
+		stringVariables[varNum] = manager->GetLabelName(manager->currentLabel);
 	}
 	else if (parameters[2] == "text")
 	{

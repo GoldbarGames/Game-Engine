@@ -259,10 +259,10 @@ void CutsceneManager::CheckKeys()
 				if (backlogIndex >= backlog.size())
 				{
 					readingBacklog = false;
-					textbox->speaker->SetText(currentLabel->lines[lineIndex].speaker, currentColor);
+					textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart+lineIndex]), currentColor);
 					textbox->text->SetText(currentText, currentColor);
 
-					textbox->SetCursorPosition(letterIndex < currentLabel->lines[lineIndex].text.length());
+					textbox->SetCursorPosition(letterIndex < lines[currentLabel->lineStart+lineIndex].GetTextLength());
 				}
 				else
 				{
@@ -367,11 +367,29 @@ void CutsceneManager::ParseCutsceneFile()
 	//	delete labels[i];
 	labels.clear();
 
+	labels.reserve(300);
+	lines.reserve(5000);
+	cmdStart.reserve(20000);
+	cmdEnd.reserve(20000);
+
 	int index = 0;
-	int cmdLetterIndex = 0;
-	int cmdLetterLength = 0;
+	int commandPart1 = 0;
+	int commandPart2 = 0;
+
+	int commandSize = 0;
+	int label1 = 0, label2 = 0, text1 = 0, text2 = 0, speaker1 = 0, speaker2 = 0, command1 = 0, command2 = 0;
+	std::vector<int> commandsStart;
+	std::vector<int> commandsEnd;
 
 	data.erase(std::remove(data.begin(), data.end(), '\t'), data.end());
+
+	Timer timer;
+	timer.Start(10);
+
+	std::cout << "TIMER START " << timer.GetTicks() << std::endl;
+
+	// Instead of copying the strings to the data objects,
+	// we save integers and use them to index the data string
 
 	do
 	{
@@ -380,14 +398,29 @@ void CutsceneManager::ParseCutsceneFile()
 		// Get label name
 		index++; // begin with a *
 		//TODO: This is broken on the very first label?
-		//newLabel->name = ParseWord(data, '*', index);
-		newLabel.name = ParseWord(data, '*', index);
-		newLabel.name = Trim(newLabel.name);
-		//std::cout << "Label name: " + newLabel->name << std::endl;
+		//newLabel.name = ParseWord(data, '*', index);
+		//newLabel.name = Trim(newLabel.name);
 
-		std::vector<std::string> commands;
+		label1 = index;
+		while (data[index] != '*' && index < data.length())
+		{
+			index++;
+		}
+		
+		if (index >= data.length())
+			break;
 
-		// Until end of file or neww label...
+		label2 = index;
+
+		newLabel.nameStart = label1;
+		newLabel.nameEnd = label2;
+		index++;
+		//std::cout << "Label name: " + GetLabelName(newLabel) << std::endl;
+
+		commandsStart.clear();
+		commandsEnd.clear();
+
+		// Until end of file or new label...
 		while (index < data.length() && data[index] != '*')
 		{
 			// If a `, we have a text line (otherwise, command)
@@ -395,136 +428,161 @@ void CutsceneManager::ParseCutsceneFile()
 			{
 				index++;
 
-				std::string newText = "";
-				std::string newName = "";
+				text1 = index;
 
 				// deal with names, if any
 				if (data[index] == ':')
 				{
 					index++; // skip :
+					speaker1 = index;
 					while (data[index] != ':')
 					{
-						newName += data[index];
 						index++;
 					}
+					speaker2 = index;
 					index++; // skip :
 					index++; // skip space
 				}
 
 				// deal with the text
 				while (data[index] != '`')
-				{
-					newText += data[index];
+				{					
 					index++;
 				}
 
-				//std::cout << newText << std::endl;
+				text2 = index;
+
+				// std::cout << "TEXT: " << data.substr(text1, text2 - text1) << std::endl;
 
 				// add all commands for this line
-				SceneLine tempLine(newText, newName);
-				for (unsigned int i = 0; i < commands.size(); i++)
-				{
-					//std::cout << tempCommands[i] << std::endl;
-					tempLine.commands.emplace_back(commands[i]);
-					//std::cout << commands[i] << std::endl;
-				}
+				SceneLine newLine(text1, text2, speaker1, speaker2);
+
+				newLine.commandsStart = cmdStart.size();
+				newLine.commandsSize = commandsStart.size();
+
+				cmdStart.insert(cmdStart.end(), commandsStart.begin(), commandsStart.end());
+				cmdEnd.insert(cmdEnd.end(), commandsEnd.begin(), commandsEnd.end());
 
 				// add the line
-				newLabel.lines.emplace_back(tempLine);
-				commands.clear();
+				if (newLabel.lineStart < 0)
+					newLabel.lineStart = lines.size();
+				newLabel.lineSize++;
+				lines.emplace_back(newLine);
+
+				commandsStart.clear();
+				commandsEnd.clear();
 				index++;
 			}
 			else // we have a command
 			{
-				std::string commandLine = "";
+				command1 = index;
 
 				// read until we hit the end of the line
 				bool endOfLine = (data[index] == ';');
+				bool foundColon = (data[index] == ':');
 				while (!endOfLine)
 				{
 					if (index >= data.length())
 					{
-						std::cout << "Error on line: " + commandLine;
+						std::cout << "Error on line: " + data.substr(command1, index - command1);
 						break;
 					}
 					else
 					{
-						commandLine += data[index];
 						index++;
 					}
 					endOfLine = (data[index] == ';');
+					foundColon = (data[index] == ':');
 				}
+
+				command2 = index - 1;
 
 				index++;
 
-				if (commandLine.find(':') != std::string::npos)
+				commandSize = command2 - command1;
+
+				// Splits up the string if multiple commands are on one line
+				if (foundColon)
 				{
-					// don't split this up if we are evaluating an if-statement; split it later
-					if (commandLine.size() > 2 && commandLine[0] == 'i' && commandLine[1] == 'f')
+					// but don't split this up if we are evaluating an if-statement; split it later
+					if (commandSize > 2 && data[command1] == 'i' && data[command1+1] == 'f')
 					{
-						if (commandLine != "" && commandLine != " ")
+						if (commandSize > 0)
 						{
-							commands.emplace_back(commandLine);
+							commandsStart.emplace_back(command1);
+							commandsEnd.emplace_back(command2);
 							//std::cout << commandLine << std::endl;
 						}
 					}
 					else
 					{
-						cmdLetterIndex = 0;
-						cmdLetterLength = 0;
-						while (cmdLetterIndex < commandLine.size())
+						commandPart1 = command1;
+						commandPart2 = command1;
+
+						while (commandPart2 < command2)
 						{
-							cmdLetterIndex++;
-							cmdLetterLength++;
-							if (commandLine[cmdLetterIndex] == ':' || cmdLetterIndex >= commandLine.size())
+							commandPart2++;
+
+							if (data[commandPart2] == ':' || commandPart2 >= command2)
 							{
-								if (commandLine != "" && commandLine != " ")
+								if (commandSize > 0)
 								{
-									std::string str = commandLine.substr((cmdLetterIndex - cmdLetterLength), cmdLetterLength);
-									commands.emplace_back(str);
+									
+									commandsStart.emplace_back(commandPart1);
+									commandsEnd.emplace_back(commandPart2);
 									//std::cout << str << std::endl;
-									cmdLetterIndex++;
+									commandPart2++;
 								}
-								cmdLetterLength = 0;
+								commandPart1 = commandPart2;
 							}
 						}
 					}					
 				}
 				else
 				{
-					if (commandLine != "" && commandLine != " ")
+					if (commandSize > 0)
 					{
-						commands.emplace_back(commandLine);
-						//std::cout << commandLine << std::endl;
+						commandsStart.emplace_back(command1);
+						commandsEnd.emplace_back(command2);
+						//std::cout << "COMMAND: " << data.substr(command1, command2 - command1) << std::endl;
 					}
 				}				
 						
 			}
 		}
 
-		// If we have commands but no line before a neww label,
+		// If we have commands but no line before a new label,
 		// add an empty text to that line
-		if (commands.size() > 0)
+		if (commandsEnd.size() > 0)
 		{
-			SceneLine tempLine = SceneLine(" ", " ");
-			for (unsigned int i = 0; i < commands.size(); i++)
-			{
-				//std::cout << tempCommands[i] << std::endl;
-				tempLine.commands.emplace_back(commands[i]);
-			}
+			// add all commands for this line
+			SceneLine newLine(0, 0, 0, 0);
+
+			newLine.commandsStart = cmdStart.size();
+			newLine.commandsSize = commandsStart.size();
+
+			cmdStart.insert(cmdStart.end(), commandsStart.begin(), commandsStart.end());
+			cmdEnd.insert(cmdEnd.end(), commandsEnd.begin(), commandsEnd.end());
 
 			// add the line
-			newLabel.lines.emplace_back(tempLine);
-			commands.clear();
+			if (newLabel.lineStart < 0)
+				newLabel.lineStart = lines.size();
+			newLabel.lineSize++;
+			lines.emplace_back(newLine);			
+
+			commandsStart.clear();
+			commandsEnd.clear();
 		}
 
-		// when we encounter a neww label, add this one to the list
-		if (newLabel.lines.size() > 0)
+		// when we encounter a new label, add this one to the list
+		if (newLabel.lineSize > 0)
 		{
 			labels.emplace_back(newLabel);
 		}			
 
 	} while (index < data.length());
+
+	std::cout << "TIMER END " << timer.GetTicks() << std::endl;
 
 	ExecuteDefineBlock("define");
 }
@@ -539,9 +597,9 @@ void CutsceneManager::ExecuteDefineBlock(const char* configName)
 
 	if (configLabel != nullptr)
 	{
-		while (cmdIndex < configLabel->lines[0].commands.size())
+		while (cmdIndex < lines[configLabel->lineStart].commandsSize)
 		{
-			commands.ExecuteCommand(configLabel->lines[0].commands[cmdIndex]);
+			commands.ExecuteCommand(GetCommand(lines[configLabel->lineStart], cmdIndex));
 			cmdIndex++;
 		}
 	}
@@ -549,6 +607,28 @@ void CutsceneManager::ExecuteDefineBlock(const char* configName)
 	{
 		game->logger.Log("No configuration label found!");
 	}
+}
+
+const std::string CutsceneManager::GetLabelName(const SceneLabel& label) const
+{
+	return data.substr(label.nameStart, label.nameEnd - label.nameStart);
+}
+
+const std::string CutsceneManager::GetCommand(const SceneLine& line, int index) const
+{
+	int c1 = cmdStart[line.commandsStart + index];
+	int c2 = cmdEnd[line.commandsStart + index];
+	return data.substr(c1, c2 - c1);
+}
+
+const std::string CutsceneManager::GetLineText(const SceneLine& line) const
+{
+	return data.substr(line.textStart, line.textEnd - line.textStart);
+}
+
+const std::string CutsceneManager::GetLineSpeaker(const SceneLine& line) const
+{
+	return data.substr(line.speakerStart, line.speakerEnd - line.speakerStart);
 }
 
 void CutsceneManager::Render(const Renderer& renderer)
@@ -567,7 +647,7 @@ void CutsceneManager::Render(const Renderer& renderer)
 		renderer.overlaySprite->Render(Vector2(0, 0), renderer, renderer.overlayScale);
 
 		// Render the textbox above everything
-		if (currentLabel->name != "title")
+		if (GetLabelName(currentLabel) != "title")
 			textbox->Render(renderer, game->screenWidth, game->screenHeight);
 
 		if (!isCarryingOutCommands && !isReadingNextLine)
@@ -592,14 +672,18 @@ void CutsceneManager::JumpBack()
 	
 	while (!found)
 	{
+		// 
+		//&& cmd < cmdStart[lines[labels[label]].commandsStart + index];
+		 // + labels[labelIndex].lineStart
+
 		std::cout << "Label " << label << ", Line " << line << ", Cmd " << cmd << std::endl;
+
 		if (label < labels.size() 
-			&& line < labels[label].lines.size()
-			&& cmd < labels[label].lines[line].commands.size()
-			&& labels[label].lines[line].commands[cmd][0] == '~')
+			&& line < labels[labelIndex].lineSize
+			&& GetCommand(lines[labels[labelIndex].lineStart + line], cmd)[0] == '~')
 		{
 			found = true;
-			currentLabel = JumpToLabel(labels[label].name.c_str());
+			currentLabel = JumpToLabel(GetLabelName(labels[label]));
 			labelIndex = label;
 			lineIndex = line;
 			commandIndex = cmd;
@@ -615,9 +699,10 @@ void CutsceneManager::JumpBack()
 					label--;
 					if (label < 0)
 						return;
-					line = labels[label].lines.size() - 1;
+					line = labels[label].lineSize - 1;
 				}
-				cmd = labels[label].lines[line].commands.size() - 1;
+				
+				cmd = lines[labels[label].lineStart].commandsSize - 1;
 			}
 		}
 	}
@@ -634,21 +719,21 @@ void CutsceneManager::JumpForward()
 			j = lineIndex;
 		}
 
-		for (j; j < labels[i].lines.size(); j++)
+		for (j; j < labels[i].lineSize; j++)
 		{
 			unsigned int k = 0;
 			if (j == lineIndex)
 			{
 				k = commandIndex;
 			}
-
-			for (k; k < labels[i].lines[j].commands.size(); k++)
+			
+			for (k; k < lines[labels[i].lineStart + j].commandsSize; k++)
 			{
-				std::string cmd = labels[i].lines[j].commands[k];
+				std::string cmd = GetCommand(lines[labels[i].lineStart + j], k);
 
 				if (cmd[0] == '~')
 				{
-					currentLabel = JumpToLabel(labels[i].name.c_str());
+					currentLabel = JumpToLabel(GetLabelName(labels[i]));
 					labelIndex = i;
 					lineIndex = j;
 					commandIndex = k;
@@ -659,7 +744,7 @@ void CutsceneManager::JumpForward()
 	}
 }
 
-SceneLabel* CutsceneManager::JumpToLabel(const char* newLabelName)
+SceneLabel* CutsceneManager::JumpToLabel(const std::string& newLabelName)
 {
 	std::string newLabel = newLabelName;
 	newLabel = Trim(newLabel);
@@ -669,7 +754,7 @@ SceneLabel* CutsceneManager::JumpToLabel(const char* newLabelName)
 
 	for (unsigned int i = 0; i < labels.size(); i++)
 	{
-		if (labels[i].name == newLabel)
+		if (GetLabelName(labels[i]) == newLabel)
 		{
 			labelIndex = i;
 
@@ -720,9 +805,9 @@ void CutsceneManager::PushCurrentSceneDataToStack()
 {
 	SceneData* newData = neww SceneData();
 	newData->labelIndex = labelIndex;
-	newData->labelName = currentLabel->name;
+	newData->labelName = GetLabelName(currentLabel);
 	newData->lineIndex = lineIndex;
-	newData->lineText = currentLabel->lines[lineIndex].text;
+	newData->lineText = ""; // TODO:  currentLabel->lines[lineIndex].text;
 	newData->commandIndex = commandIndex;
 
 	gosubStack.push_back(newData);
@@ -780,7 +865,7 @@ void CutsceneManager::ReadNextLine()
 	if (currentLabel != nullptr)
 	{
 		//TODO: Save this data somehow
-		if (lineIndex >= 0 && lineIndex < currentLabel->lines.size())
+		if (lineIndex >= 0 && lineIndex < currentLabel->lineSize)
 		{
 			seenLabelsToMostRecentLine[labelIndex] = lineIndex;
 		}			
@@ -802,7 +887,7 @@ void CutsceneManager::ReadNextLine()
 		currentText = "";
 		textbox->text->SetText(currentText);
 
-		if (lineIndex >= currentLabel->lines.size())
+		if (lineIndex >= currentLabel->lineSize)
 		{			
 			if (labelIndex < labels.size() - 1)
 			{
@@ -813,7 +898,7 @@ void CutsceneManager::ReadNextLine()
 				else // go to the next label in sequence
 				{
 					labelIndex++;
-					currentLabel = JumpToLabel(labels[labelIndex].name.c_str());
+					currentLabel = JumpToLabel(GetLabelName(labels[labelIndex]));
 					lineIndex = -1;
 					ReadNextLine();
 				}
@@ -830,7 +915,7 @@ void CutsceneManager::ReadNextLine()
 			FlushCurrentColor();
 
 			// If speaker of this line is same as last, instantly show it
-			textbox->speaker->SetText(currentLabel->lines[lineIndex].speaker, currentColor);
+			textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex]), currentColor);
 
 			if (autosave)
 			{
@@ -844,9 +929,9 @@ void CutsceneManager::FlushCurrentColor()
 {
 	if (currentLabel != nullptr)
 	{
-		if (namesToColors.count(currentLabel->lines[lineIndex].speaker))
+		if (namesToColors.count(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex])))
 		{
-			currentColor = namesToColors[currentLabel->lines[lineIndex].speaker];
+			currentColor = namesToColors[GetLineSpeaker(lines[currentLabel->lineStart + lineIndex])];
 		}
 		else
 		{
@@ -863,11 +948,11 @@ void CutsceneManager::ReadBacklog()
 		if (backlog[backlogIndex]->labelIndex < labels.size())
 		{
 			SceneLabel* label = &labels[backlog[backlogIndex]->labelIndex];
-			if (label != nullptr && backlog[backlogIndex]->lineIndex < label->lines.size())
+			if (label != nullptr && backlog[backlogIndex]->lineIndex < label->lineSize)
 			{
-				SceneLine* line = &(label->lines[backlog[backlogIndex]->lineIndex]);
-				textbox->speaker->SetText(line->speaker, backlogColor);
-				textbox->text->SetText(line->text, backlogColor);
+				SceneLine* line = &(lines[label->lineStart + backlog[backlogIndex]->lineIndex]);
+				textbox->speaker->SetText(GetLineSpeaker(line), backlogColor);
+				textbox->text->SetText(GetLineText(line), backlogColor);
 
 				textbox->SetCursorPosition(true, Vector2(backlog[backlogIndex]->lastX, backlog[backlogIndex]->lastY));
 			}
@@ -892,8 +977,8 @@ SceneLine* CutsceneManager::GetCurrentLine()
 	SceneLabel* label = GetCurrentLabel();
 	if (label != nullptr)
 	{
-		if (lineIndex >= 0 && lineIndex < label->lines.size())
-			return &label->lines[lineIndex];
+		if (lineIndex >= 0 && lineIndex < label->lineSize)
+			return &lines[label->lineStart + lineIndex];		
 		else
 			return nullptr;
 	}
@@ -1082,22 +1167,22 @@ void CutsceneManager::UpdateText()
 
 		if (isCarryingOutCommands)
 		{			
-			if (commandIndex >= 0 && commandIndex < currentLabel->lines[lineIndex].commands.size())
+			if (commandIndex >= 0 && commandIndex < lines[currentLabel->lineStart + lineIndex].commandsSize)
 			{
 				//std::cout << currentLabel->lines[lineIndex].commands[commandIndex] << std::endl;
 				printNumber = 0;
 				do
 				{
-					if (!commands.ExecuteCommand(currentLabel->lines[lineIndex].commands[commandIndex]))
+					if (!commands.ExecuteCommand(GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex)))
 					{
-						unfinishedCommands.push_back(currentLabel->lines[lineIndex].commands[commandIndex]);
+						unfinishedCommands.push_back(GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex));
 					}
 					commandIndex++;
 					// TODO: What happens if current label is nullptr here?
 					if (currentLabel == nullptr)
 						return;
 
-					if (commandIndex >= currentLabel->lines[lineIndex].commands.size())
+					if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
 						break;
 					
 					// run all commands until we hit a print or wait command
@@ -1132,7 +1217,9 @@ void CutsceneManager::UpdateText()
 
 			do
 			{
-				std::string result = ParseText(currentLabel->lines[lineIndex].text, letterIndex, currentColor, textbox->text);
+				int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
+				std::string result = ParseText(data, newIndex, currentColor, textbox->text);
+				letterIndex = newIndex - lines[currentLabel->lineStart + lineIndex].textStart;
 
 				if (result.size() > 1)
 				{
@@ -1148,13 +1235,13 @@ void CutsceneManager::UpdateText()
 
 				if (currentText.length() == 1)
 				{
-					textbox->speaker->SetText(currentLabel->lines[lineIndex].speaker, currentColor);
+					textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex]), currentColor);
 				}
 
 				//nextLetterTimer.Start(lettersPerFrame * delay);
 
 				// Reached the 'click to continue' point
-				if (letterIndex >= currentLabel->lines[lineIndex].text.length())
+				if (letterIndex >= lines[currentLabel->lineStart + lineIndex].GetTextLength())
 				{
 					currentText = textbox->text->txt;
 					isReadingNextLine = false;
@@ -1174,7 +1261,7 @@ void CutsceneManager::UpdateText()
 
 					return;
 				}
-				else if (currentLabel->lines[lineIndex].text[letterIndex] == '@')
+				else if (data[letterIndex] == '@')
 				{
 					currentText = textbox->text->txt;
 					readingSameLine = true;
@@ -1256,9 +1343,9 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 		{
 			if (currentLabel != nullptr)
 			{
-				if (namesToColors.count(currentLabel->lines[lineIndex].speaker))
+				if (namesToColors.count(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex])))
 				{
-					textColor = namesToColors[currentLabel->lines[lineIndex].speaker];
+					textColor = namesToColors[GetLineSpeaker(lines[currentLabel->lineStart + lineIndex])];
 				}
 				else
 				{
@@ -1602,7 +1689,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			fout << "global_start " << globalStart << std::endl;
 			break;
 		case SaveSections::STORY_DATA:
-			fout << currentLabel->name << " ";
+			fout << GetLabelName(currentLabel) << " ";
 			fout << labelIndex << " ";
 			fout << lineIndex << " ";
 			fout << commandIndex << std::endl;

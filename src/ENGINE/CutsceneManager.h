@@ -24,53 +24,69 @@ class Game;
 class SceneLine
 {
 public:
-	std::string text = "";
-	std::string speaker = "";
-	std::vector<std::string> commands;
+	int textStart = 0;
+	int textEnd = 0;
 
-	SceneLine(std::string txt = "", std::string name = "")
+	int speakerStart = -1;
+	int speakerEnd = -1;
+
+	int commandsStart = -1;
+	int commandsSize = 0;
+
+	SceneLine(int ts, int te, int ss, int se)
 	{
-		text = txt;
-		speaker = name;
+		textStart = ts;
+		textEnd = te;
+		speakerStart = ss;
+		speakerEnd = se;
 	}
 
 	SceneLine(SceneLine* line)
 	{
 		if (line != nullptr)
 		{
-			text = line->text;
-			speaker = line->speaker;
-			commands = line->commands;
+			textStart = line->textStart;
+			textEnd = line->textEnd;
+			speakerStart = line->speakerStart;
+			speakerEnd = line->speakerEnd;
+			commandsStart = line->commandsStart;
+			commandsSize = line->commandsSize;
 		}
+	}
+
+	int GetTextLength()
+	{
+		return textEnd - textStart;
 	}
 };
 
 class SceneLabel
 {
 public:
-	std::string name = "";
-	std::vector<SceneLine> lines;
+	int nameStart = 0;
+	int nameEnd = 0;
+	
+	int lineStart = -1;
+	int lineSize = 0;
 
 	~SceneLabel()
 	{
-		for (unsigned int i = 0; i < lines.size(); i++)
-		{
-			//delete lines[i];
-		}
-		lines.clear();
+
 	}
 
 	SceneLabel()
 	{
-		
+
 	}
 
 	SceneLabel(SceneLabel* label)
 	{
 		if (label != nullptr)
 		{
-			name = label->name;
-			lines = label->lines;
+			nameStart = label->nameStart;
+			nameEnd = label->nameEnd;
+			lineStart = label->lineStart;
+			lineSize = label->lineSize;
 		}
 	}
 };
@@ -155,6 +171,9 @@ public:
 	SDL_Scancode autoButton = SDL_Scancode::SDL_SCANCODE_A;
 
 	std::vector<SceneLabel> labels;
+	std::vector<SceneLine> lines;
+	std::vector<int> cmdStart;
+	std::vector<int> cmdEnd;
 
 	SceneLabel* currentLabel = nullptr;
 	std::vector<SceneData*> gosubStack;
@@ -210,7 +229,7 @@ public:
 	void ExecuteDefineBlock(const char* configName);
 	void Update();
 	void Render(const Renderer& renderer);
-	SceneLabel* JumpToLabel(const char* newLabelName);
+	SceneLabel* JumpToLabel(const std::string& newLabelName);
 	void PlayCutscene(const char* labelName);
 	void EndCutscene();
 	void ReadNextLine();
@@ -241,6 +260,11 @@ public:
 	void SetSpeakerText(const std::string& name);
 
 	void ReadCutsceneFile();
+
+	const std::string GetLabelName(const SceneLabel& label) const;
+	const std::string GetCommand(const SceneLine& line, int index) const;
+	const std::string GetLineText(const SceneLine& line) const;
+	const std::string GetLineSpeaker(const SceneLine& line) const;
 
 	SceneLabel* GetCurrentLabel();
 	SceneLine* GetCurrentLine();

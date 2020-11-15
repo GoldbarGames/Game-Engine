@@ -1726,7 +1726,7 @@ void Game::GetMenuInput()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	if (cutsceneManager.watchingCutscene && cutsceneManager.currentLabel->name == "title")
+	if (cutsceneManager.watchingCutscene && cutsceneManager.GetLabelName(cutsceneManager.currentLabel) == "title")
 	{
 		cutsceneManager.Update();
 	}
