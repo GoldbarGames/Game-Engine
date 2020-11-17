@@ -297,7 +297,8 @@ void Text::AddText(char c, Color color)
 	SetPosition(position.x, position.y);
 }
 
-void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
+// TODO: We should just remove this, because it causes memory leaks!
+void Text::SetTextAsOneSprite(const std::string& text, Color color, Uint32 wrapWidth)
 {
 	// don't do anything if it would result in the same thing
 	if (txt == text && textColor == color)
@@ -315,6 +316,12 @@ void Text::SetTextAsOneSprite(string text, Color color, Uint32 wrapWidth)
 	if (txt == "")
 		txt = " ";
 
+	// TODO: Memory leak here!
+	// Since each texture is a unique string of text, we'd want to delete it after each use.
+	// However, we might also run into situations where multiple Texts use the same texture
+	// such as the empty string, which would cause us to delete twice (crash).
+	// The best thing to do is to just not use this function anymore,
+	// or else use some kind of smart pointer management.
 	Texture* textTexture = Animator::spriteManager->GetTexture(font, txt, wrapWidth);
 	if (textTexture != nullptr)
 	{

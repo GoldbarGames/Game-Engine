@@ -38,8 +38,6 @@ class KINJO_API Text : public Entity
 {
 private:
 	TTF_Font* font = nullptr;
-	void SetTextAsOneSprite(string text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth = 0);
-
 public:
 	std::string id = ""; // this will always be english
 	std::string txt = "ERROR"; // this might get translated
@@ -77,6 +75,8 @@ public:
 	~Text();
 
 	void SetText(const std::string& text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth=0);
+	void SetTextAsOneSprite(const std::string& text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth = 0);
+
 	void AddText(char c, Color color = { 255, 255, 255, 255 });
 	void AddImage(Sprite* newSprite);
 

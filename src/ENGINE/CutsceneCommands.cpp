@@ -1350,9 +1350,7 @@ int CutsceneCommands::ClearSprite(CutsceneParameters parameters)
 		unsigned int imageNumber = ParseNumberValue(parameters[1]);
 
 		if (manager->images[imageNumber] != nullptr)
-			delete manager->images[imageNumber];
-
-		manager->images[imageNumber] = nullptr;
+			delete_it(manager->images[imageNumber]);
 
 		if (parameters.size() > 2)
 		{
@@ -1762,13 +1760,6 @@ int CutsceneCommands::NameCommand(CutsceneParameters parameters)
 {
 	manager->overwriteName = false;
 	manager->SetSpeakerText(ParseStringValue(parameters[1]));
-
-	SceneLine* line = manager->GetCurrentLine();
-	if (line != nullptr)
-	{
-		// TODO: Fix this
-		//line->speaker = ParseStringValue(parameters[1]);
-	}
 
 	return 0;
 }

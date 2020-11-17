@@ -9,6 +9,7 @@ void GUI::Init(Game* g)
 	for (int i = 0; i < textNames.size(); i++)
 	{
 		texts[textNames[i]] = neww Text(game->theFont);
+		texts[textNames[i]]->isRichText = true;
 		texts[textNames[i]]->SetText("");
 		texts[textNames[i]]->GetSprite()->keepPositionRelativeToCamera = true;
 		texts[textNames[i]]->GetSprite()->keepScaleRelativeToCamera = true;;
@@ -46,7 +47,7 @@ void GUI::ResetText()
 {
 	// FPS text
 	texts[textNames[0]]->SetText("FPS:");
-	texts[textNames[0]]->SetPosition((game->screenWidth * 2) - (texts[textNames[0]]->GetTextWidth() * 2), texts[textNames[0]]->GetTextHeight());
+	texts[textNames[0]]->SetPosition((game->screenWidth * 2) - (texts[textNames[0]]->GetTextWidth() * 4), texts[textNames[0]]->GetTextHeight());
 
 	// Timer text
 	texts[textNames[1]]->SetText("");
