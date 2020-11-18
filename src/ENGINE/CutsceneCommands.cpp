@@ -44,6 +44,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"defsub", &CutsceneCommands::DefineUserFunction},
 	{"div", &CutsceneCommands::DivideNumberVariables},
 	{"end", &CutsceneCommands::EndGame },
+	{"effect", &CutsceneCommands::EffectCommand },
 	{"errorlog", &CutsceneCommands::ErrorLog },
 	{"fade", &CutsceneCommands::Fade },
 	{"fileexist", &CutsceneCommands::FileExist},
@@ -1334,7 +1335,7 @@ int CutsceneCommands::GetNumAlias(const std::string& key)
 
 int CutsceneCommands::LoadBackground(CutsceneParameters parameters)
 {
-	LoadSprite({ "", parameters[0], parameters[1] });
+	LoadSprite({ "", parameters[0], parameters[1], parameters[2] });
 
 	return 0;
 }
@@ -1377,6 +1378,8 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 
 		if (parameters.size() > 5)
 			PrintCommand({ "print", parameters[5] });
+		else if(parameters.size() == 3)
+			PrintCommand({ "print", parameters[2] });
 		else
 			PrintCommand({ "print", "1" });
 	}
@@ -1451,10 +1454,8 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 			spriteY + manager->game->renderer.guiCamera.position.y);
 
 		manager->images[imageNumber]->SetPosition(pos);
-		if (parameters.size() > 3)
-			PrintCommand({ "print", parameters[3] });
-		else
-			PrintCommand({ "print", "1" });
+		
+		PrintCommand({ "print", parameters[3] });
 	}
 
 	manager->images[imageNumber]->drawOrder = imageNumber;
@@ -2818,7 +2819,24 @@ int CutsceneCommands::PrintCommand(CutsceneParameters parameters)
 	else
 	{
 		manager->printNumber = ParseNumberValue(parameters[1]);
+		if (manager->printNumber > 0)
+			std::cout << parameters[1] << " -> " << manager->printNumber << std::endl;
 	}
+
+	return 0;
+}
+
+// Define effects for the Print Command
+int CutsceneCommands::EffectCommand(CutsceneParameters parameters)
+{
+	int num = ParseNumberValue(parameters[1]);
+
+	PrintEffect effect;
+
+	effect.delay = ParseNumberValue(parameters[2]);
+	effect.mask = ParseStringValue(parameters[3]);
+
+	manager->printEffects[num] = effect;
 
 	return 0;
 }

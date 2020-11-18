@@ -13,6 +13,7 @@
 #include "Timer.h"
 #include "CutsceneCommands.h"
 #include <map>
+#include <unordered_map>
 
 enum class SaveSections { CONFIG_OPTIONS, STORY_DATA, SEEN_LINES, GOSUB_STACK, 
 	ALIAS_STRINGS, ALIAS_NUMBERS, LOCAL_STRINGS, LOCAL_NUMBERS, LOCAL_OBJECTS, 
@@ -129,6 +130,12 @@ struct TextTag
 	//TextTag(std::string n) : name(n) { }
 };
 
+struct PrintEffect
+{
+	int delay = 1;
+	std::string mask = "";
+};
+
 
 class KINJO_API CutsceneManager
 {
@@ -180,6 +187,8 @@ public:
 
 	// Checkpoint for debugging purposes
 	SceneData checkpoint;
+
+	std::unordered_map<int, PrintEffect> printEffects;
 
 	const int choiceSpriteStartNumber = 10000;
 	int buttonIndex = 0;

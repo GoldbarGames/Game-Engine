@@ -1891,6 +1891,7 @@ void Game::Render()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
 	//glEnable(GL_DEPTH_TEST);
 
+	//std::cout << "RENDER CURRENT SCENE" << std::endl;
 	RenderScene();
 
 	// second pass
@@ -1902,32 +1903,32 @@ void Game::Render()
 		updateScreenTexture = false;
 	}
 
+	//std::cout << "Update? " << updateScreenTexture << " " << std::to_string(prevScreenSprite->color.a) << std::endl;
+
 	if (updateScreenTexture)
 	{
 		renderSecondFrameBuffer = true;
-		float difference = cutsceneManager.printTimer.endTime - cutsceneManager.printTimer.startTicks;
 
-		float t = 1.0f;
-		if (difference != 0)
-		{
-			t = (cutsceneManager.printTimer.GetTicks() / difference); // percentage of passed time
-		}
+		if (prevScreenSprite->color.a < 10)
+			int test = 0;
 
-		if (t > 1.0f)
-			t = 1.0f;
+		float timeLeft = cutsceneManager.printTimer.endTime - cutsceneManager.printTimer.startTicks;
+		float t = (timeLeft > 0) ? std::min(1.0f, (cutsceneManager.printTimer.GetTicks() / timeLeft)) : 1.0f; // percentage of passed time
 
 		float alpha = prevScreenSprite->color.a;
 		LerpCoord(alpha, 255, 0, t);
 		prevScreenSprite->color.a = alpha;
 
-		if (prevScreenSprite->color.a <= 0)
+		//std::cout << std::to_string(prevScreenSprite->color.a) << std::endl;
+
+		if (prevScreenSprite->color.a <= 10) // this can't be exactly 0 in case the timer expires first
 		{
-			//std::cout << "RENDER SECOND SCENE" << std::endl;
+			//std::cout << "RENDER PREV SCENE" << std::endl;
+			renderSecondFrameBuffer = false;
 			updateScreenTexture = false;
 			glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer);
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
-			//glEnable(GL_DEPTH_TEST);
+			//glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			RenderScene();
 			prevScreenSprite->color.a = 255;
 		}

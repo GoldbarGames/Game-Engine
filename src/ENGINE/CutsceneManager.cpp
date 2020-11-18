@@ -1192,17 +1192,14 @@ void CutsceneManager::UpdateText()
 
 				if (printNumber > 0 && !(input[skipButton] || input[skipButton2]))
 				{
-					switch (printNumber)
+					if (printEffects.count(printNumber) != 0)
 					{
-					case 42:
-						printTimer.Start(1000);
-						break;
-					case 22:
-						printTimer.Start(200);
-						break;
-					default:
-						printTimer.Start(200);
-						break;
+						printTimer.Start(printEffects[printNumber].delay);
+					}
+					else
+					{
+						printTimer.Start(1);
+						game->logger.Log("ERROR: No print effect found for " + std::to_string(printNumber));
 					}
 				}
 			}

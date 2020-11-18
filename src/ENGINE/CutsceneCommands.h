@@ -168,6 +168,7 @@ public:
 	int InputCommand(CutsceneParameters parameters);
 
 	int PrintCommand(CutsceneParameters parameters);
+	int EffectCommand(CutsceneParameters parameters);
 
 	unsigned int key = 0;
 	unsigned int number1 = 0;
