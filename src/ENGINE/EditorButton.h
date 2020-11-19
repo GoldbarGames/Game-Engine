@@ -25,6 +25,7 @@ public:
 	Text* text= nullptr;
 
 	Vector2 position = Vector2(0,0);
+	Vector2 imageScale = Vector2(1, 1);
 	std::string name = "";
 
 	bool isClicked = false;

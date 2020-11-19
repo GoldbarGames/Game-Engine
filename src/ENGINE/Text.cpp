@@ -525,6 +525,7 @@ void Text::SetPosition(const float x, const float y)
 			{
 				lineNumber++;
 				currentPosition.x = position.x;
+				currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 				currentPosition.y += glyphs[i]->sprite.frameHeight * glyphs[i]->scale.y * Camera::MULTIPLIER;
 			}
 		}

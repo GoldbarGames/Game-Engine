@@ -9,11 +9,14 @@
 DebugScreen::DebugScreen(Game& g)
 {
 	game = &g;
-	sprite = game->CreateSprite("assets/editor/1pixel.png");
+	onePixelSprite = game->CreateSprite("assets/editor/1pixel.png");
 	camera = &game->renderer.camera;
 
-	insertVariableButton = new EditorButton("Insert", "Btn", Vector2(2000, 100), *game);
-	removeVariableButton = new EditorButton("Remove", "Btn", Vector2(2200, 100), *game);
+	insertVariableButton = new EditorButton("Watch", "Btn", Vector2(2000, 100), *game);
+	removeVariableButton = new EditorButton("Unwatch", "Btn", Vector2(2200, 100), *game);
+
+	insertVariableButton->imageScale = Vector2(2, 1);
+	removeVariableButton->imageScale = Vector2(2, 1);
 
 	CreateDebugText(DebugText::cursorPositionInScreen, 400, 50);
 	CreateDebugText(DebugText::cursorPositionInWorld, 400, 100);
@@ -27,34 +30,58 @@ DebugScreen::DebugScreen(Game& g)
 	CreateDebugText(DebugText::cameraYaw, 2000, 550);
 	CreateDebugText(DebugText::cameraPitch, 2000, 650);
 	CreateDebugText(DebugText::cameraRoll, 2000, 750);
+
+	std::vector<std::string> variables = game->ReadStringsFromFile("data/debug.vars");
+	for (int i = 0; i < variables.size(); i++)
+	{
+		InsertVariable(variables[i]);
+	}
 }
 
 DebugScreen::~DebugScreen()
 {
+	// Save our debug list
+#if _DEBUG
+
+	std::ofstream fout;
+
+	fout.open("data/debug.vars");
+	if (fout.is_open())
+	{
+		for (int i = 0; i < cutsceneVariableNames.size(); i++)
+		{
+			fout << cutsceneVariableNames[i].c_str() << std::endl;
+		}
+	}
+	fout.close();
+
+#endif
+
+
 	for (auto& [key, val] : debugText)
 	{
 		if (val != nullptr)
 			delete_it(val);
 	}
 
-	if (sprite != nullptr)
-		delete_it(sprite);
+	if (onePixelSprite != nullptr)
+		delete_it(onePixelSprite);
 
 	for (int i = 0; i < variableTextLeft.size(); i++)
 	{
-		if (sprite != nullptr)
+		if (variableTextLeft[i] != nullptr)
 			delete_it(variableTextLeft[i]);
 	}
 
 	for (int i = 0; i < variableTextCenter.size(); i++)
 	{
-		if (sprite != nullptr)
+		if (variableTextCenter[i] != nullptr)
 			delete_it(variableTextCenter[i]);
 	}
 
 	for (int i = 0; i < variableTextRight.size(); i++)
 	{
-		if (sprite != nullptr)
+		if (variableTextRight[i] != nullptr)
 			delete_it(variableTextRight[i]);
 	}
 
@@ -175,21 +202,24 @@ void DebugScreen::InsertVariable(const std::string& variableName)
 		int size = cutsceneVariableNames.size() - 1;
 
 		Text* newTextLeft = new Text(game->theFont);
-		newTextLeft->SetPosition(200, startY + (distance * size));
+		newTextLeft->SetPosition(100, startY + (distance * size));
 		newTextLeft->isRichText = true;
 		newTextLeft->GetSprite()->keepScaleRelativeToCamera = true;
+		newTextLeft->GetSprite()->keepPositionRelativeToCamera = true;
 		variableTextLeft.push_back(newTextLeft);
 
 		Text* newTextCenter = new Text(game->theFont);
-		newTextCenter->SetPosition(600, startY + (distance * size));
+		newTextCenter->SetPosition(400, startY + (distance * size));
 		newTextCenter->isRichText = true;
 		newTextCenter->GetSprite()->keepScaleRelativeToCamera = true;
+		newTextCenter->GetSprite()->keepPositionRelativeToCamera = true;
 		variableTextCenter.push_back(newTextCenter);
 
 		Text* newTextRight = new Text(game->theFont);
-		newTextRight->SetPosition(1000, startY + (distance * size));
+		newTextRight->SetPosition(700, startY + (distance * size));
 		newTextRight->isRichText = true;
 		newTextRight->GetSprite()->keepScaleRelativeToCamera = true;
+		newTextRight->GetSprite()->keepPositionRelativeToCamera = true;
 		variableTextRight.push_back(newTextRight);
 	}
 }
@@ -218,9 +248,9 @@ void DebugScreen::RemoveVariable(const std::string& variableName)
 
 		for (int i = 0; i < cutsceneVariableNames.size(); i++)
 		{
-			variableTextLeft[i]->SetPosition(200, startY + (distance * i));
-			variableTextCenter[i]->SetPosition(600, startY + (distance * i));
-			variableTextRight[i]->SetPosition(1000, startY + (distance * i));
+			variableTextLeft[i]->SetPosition(100, startY + (distance * i));
+			variableTextCenter[i]->SetPosition(400, startY + (distance * i));
+			variableTextRight[i]->SetPosition(700, startY + (distance * i));
 		}
 
 	}
@@ -235,6 +265,14 @@ void DebugScreen::Render(const Renderer& renderer)
 		// (the user can add/remove variables that they are interested in seeing
 		if (renderer.game->cutsceneManager.watchingCutscene)
 		{
+			if (onePixelSprite != nullptr)
+			{
+				onePixelSprite->keepPositionRelativeToCamera = true;
+				onePixelSprite->keepScaleRelativeToCamera = true;
+				onePixelSprite->color = { 0, 0, 0, 64 };
+				onePixelSprite->Render(Vector2(800, 800), renderer, Vector2(800, 800));
+			}
+
 			CutsceneCommands& cmds = renderer.game->cutsceneManager.commands;
 			for (int i = 0; i < cutsceneVariableNames.size(); i++)
 			{
@@ -249,29 +287,15 @@ void DebugScreen::Render(const Renderer& renderer)
 					variableTextLeft[i]->SetColor({ 255, 255, 255, 255 });
 				}
 
-				variableTextLeft[i]->GetSprite()->keepScaleRelativeToCamera = true;
+				
 				variableTextLeft[i]->Render(renderer);
 
-				// 2. Middle cell is the string value
+				// 2. Right cell is the string value
 				int numIndex = cmds.GetNumAlias(cutsceneVariableNames[i]);
 				
-				if (variableTextCenter[i]->txt != cmds.GetStringVariable(numIndex))
+				if (variableTextRight[i]->txt != cmds.GetStringVariable(numIndex))
 				{
-					variableTextCenter[i]->SetText(cmds.GetStringVariable(numIndex));
-					variableTextCenter[i]->SetColor({ 0, 255, 255, 255 });
-				}
-				else
-				{
-					variableTextCenter[i]->SetColor({ 255, 255, 255, 255 });
-				}
-
-				variableTextCenter[i]->GetSprite()->keepScaleRelativeToCamera = true;
-				variableTextCenter[i]->Render(renderer);
-
-				// 3. Right cell is the number value
-				if (variableTextRight[i]->txt != std::to_string(cmds.numberVariables[numIndex]))
-				{
-					variableTextRight[i]->SetText(std::to_string(cmds.numberVariables[numIndex]));
+					variableTextRight[i]->SetText(cmds.GetStringVariable(numIndex));
 					variableTextRight[i]->SetColor({ 0, 255, 255, 255 });
 				}
 				else
@@ -279,9 +303,20 @@ void DebugScreen::Render(const Renderer& renderer)
 					variableTextRight[i]->SetColor({ 255, 255, 255, 255 });
 				}
 
-
-				variableTextRight[i]->GetSprite()->keepScaleRelativeToCamera = true;
 				variableTextRight[i]->Render(renderer);
+
+				// 3. Center cell is the number value
+				if (variableTextCenter[i]->txt != std::to_string(cmds.numberVariables[numIndex]))
+				{
+					variableTextCenter[i]->SetText(std::to_string(cmds.numberVariables[numIndex]));
+					variableTextCenter[i]->SetColor({ 0, 255, 255, 255 });
+				}
+				else
+				{
+					variableTextCenter[i]->SetColor({ 255, 255, 255, 255 });
+				}
+
+				variableTextCenter[i]->Render(renderer);
 			}
 		}
 
@@ -304,9 +339,11 @@ void DebugScreen::Render(const Renderer& renderer)
 		debugText[DebugText::cursorPositionInScreen]->Render(renderer);
 		debugText[DebugText::cursorPositionInWorld]->Render(renderer);
 
-		if (sprite != nullptr)
+		if (onePixelSprite != nullptr)
 		{
-			sprite->Render(worldPosition, renderer, scale);
+			onePixelSprite->keepPositionRelativeToCamera = false;
+			onePixelSprite->keepScaleRelativeToCamera = false;
+			onePixelSprite->Render(worldPosition, renderer, scale);
 		}
 
 		if (camera != nullptr && !camera->useOrthoCamera)
