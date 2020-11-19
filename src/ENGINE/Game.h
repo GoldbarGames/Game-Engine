@@ -43,6 +43,8 @@ private:
 	Sprite* screenSprite = nullptr;
 	Sprite* prevScreenSprite = nullptr;
 
+	bool waitingForDebugDialog = false;
+
 	Mesh* CreateQuadMesh();
 	Mesh* CreateCubeMesh();
 public:

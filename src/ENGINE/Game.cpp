@@ -773,6 +773,26 @@ void Game::StopTextInput()
 		editor->propertyIndex = -1;
 		editor->DoAction();
 	}
+	else if (inputReason == "start_watch")
+	{
+		waitingForDebugDialog = false;
+		cutsceneManager.inputTimer.Start(cutsceneManager.inputTimeToWait * 2);
+
+		if (inputText != "")
+		{
+			debugScreen->InsertVariable(inputText);
+		}
+	}
+	else if (inputReason == "end_watch")
+	{
+		waitingForDebugDialog = false;
+		cutsceneManager.inputTimer.Start(cutsceneManager.inputTimeToWait * 2);
+
+		if (inputText != "")
+		{
+			debugScreen->RemoveVariable(inputText);
+		}
+	}
 	else if (inputReason == "new_level")
 	{
 		if (inputText != "")
@@ -1789,8 +1809,14 @@ void Game::Update()
 
 	if (debugMode)
 	{
-		debugScreen->Update();
+		// If we click on a button on the debug screen,
+		// don't execute any game or cutscene code
+		if (debugScreen->Update())
+			waitingForDebugDialog = true;
 	}
+
+	if (waitingForDebugDialog)
+		return;
 
 	if (cutsceneManager.watchingCutscene)
 	{

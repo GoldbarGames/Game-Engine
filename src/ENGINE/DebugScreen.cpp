@@ -4,12 +4,16 @@
 #include "Sprite.h"
 #include "Game.h"
 #include "Editor.h"
+#include "Dialog.h"
 
 DebugScreen::DebugScreen(Game& g)
 {
 	game = &g;
 	sprite = game->CreateSprite("assets/editor/1pixel.png");
 	camera = &game->renderer.camera;
+
+	insertVariableButton = new EditorButton("Insert", "Btn", Vector2(2000, 100), *game);
+	removeVariableButton = new EditorButton("Remove", "Btn", Vector2(2200, 100), *game);
 
 	CreateDebugText(DebugText::cursorPositionInScreen, 400, 50);
 	CreateDebugText(DebugText::cursorPositionInWorld, 400, 100);
@@ -35,6 +39,31 @@ DebugScreen::~DebugScreen()
 
 	if (sprite != nullptr)
 		delete_it(sprite);
+
+	for (int i = 0; i < variableTextLeft.size(); i++)
+	{
+		if (sprite != nullptr)
+			delete_it(variableTextLeft[i]);
+	}
+
+	for (int i = 0; i < variableTextCenter.size(); i++)
+	{
+		if (sprite != nullptr)
+			delete_it(variableTextCenter[i]);
+	}
+
+	for (int i = 0; i < variableTextRight.size(); i++)
+	{
+		if (sprite != nullptr)
+			delete_it(variableTextRight[i]);
+	}
+
+	if (insertVariableButton != nullptr)
+		delete_it(insertVariableButton);
+
+	if (removeVariableButton != nullptr)
+		delete_it(removeVariableButton);
+
 }
 
 void DebugScreen::CreateDebugText(const DebugText textName, const int x, const int y)
@@ -45,7 +74,7 @@ void DebugScreen::CreateDebugText(const DebugText textName, const int x, const i
 	debugText[textName]->GetSprite()->keepPositionRelativeToCamera = true;
 }
 
-void DebugScreen::Update()
+bool DebugScreen::Update()
 {
 	const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
@@ -71,12 +100,191 @@ void DebugScreen::Update()
 			break;
 		}
 	}
+
+	// Check for Left Click
+	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+	{
+		// We multiply X and Y by 2 because the guiProjection is multiplied by 2
+		// TODO: Maybe remove the multiplier
+		mouseX *= Camera::MULTIPLIER;
+		mouseY *= Camera::MULTIPLIER;
+
+		// Only on click, not hold
+		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+		{
+			previousMouseState = mouseState;
+
+			// Check which button was clicked
+			if (insertVariableButton->IsPointInsideButton(mouseX, mouseY))
+			{
+				game->editor->CreateDialog("Type the name of the variable to start watching:");
+				game->StartTextInput("start_watch");
+				//clickedButton->isClicked = false;
+				return true;
+			}
+			else if (removeVariableButton->IsPointInsideButton(mouseX, mouseY))
+			{
+				game->editor->CreateDialog("Type the name of the variable to stop watching:");
+				game->StartTextInput("end_watch");
+				//clickedButton->isClicked = false;
+				return true;
+			}
+
+		}
+	}
+
+	previousMouseState = mouseState;
+
+	return false;
+}
+
+// TODO: Function for adding variables to the table
+// - Also when we add, make sure to set positions for each text
+void DebugScreen::InsertVariable(const std::string& variableName)
+{
+	bool found = false;
+	for (int i = 0; i < cutsceneVariableNames.size(); i++)
+	{
+		if (cutsceneVariableNames[i] == variableName)
+			found = true;
+	}
+
+	// Check to make sure that the variable we are watching
+	// actually exists within the cutscene manager
+	int numalias = game->cutsceneManager.commands.GetNumAlias(variableName);
+	bool exists = (game->cutsceneManager.commands.numalias.find(variableName) 
+		!= game->cutsceneManager.commands.numalias.end());
+
+	if (!exists)
+	{
+		game->logger.Log("ERROR: Cutscene variable " + variableName + " does not exist!");
+	}
+	else if (found)
+	{
+		game->logger.Log("ERROR: Cutscene variable " + variableName + " already being tracked!");
+	}
+	else if (!found && exists)
+	{
+		// TODO: If the variable is not initialized when we add it,
+		// then it won't automatically update over time
+		// (otherwise, it updates itself just fine)
+
+		int startY = 200;
+		int distance = 50;
+		cutsceneVariableNames.push_back(variableName);
+		int size = cutsceneVariableNames.size() - 1;
+
+		Text* newTextLeft = new Text(game->theFont);
+		newTextLeft->SetPosition(200, startY + (distance * size));
+		newTextLeft->isRichText = true;
+		newTextLeft->GetSprite()->keepScaleRelativeToCamera = true;
+		variableTextLeft.push_back(newTextLeft);
+
+		Text* newTextCenter = new Text(game->theFont);
+		newTextCenter->SetPosition(600, startY + (distance * size));
+		newTextCenter->isRichText = true;
+		newTextCenter->GetSprite()->keepScaleRelativeToCamera = true;
+		variableTextCenter.push_back(newTextCenter);
+
+		Text* newTextRight = new Text(game->theFont);
+		newTextRight->SetPosition(1000, startY + (distance * size));
+		newTextRight->isRichText = true;
+		newTextRight->GetSprite()->keepScaleRelativeToCamera = true;
+		variableTextRight.push_back(newTextRight);
+	}
+}
+
+// TODO: Function for removing variables from the table
+void DebugScreen::RemoveVariable(const std::string& variableName)
+{
+	int index = -1;
+	for (int i = 0; i < cutsceneVariableNames.size(); i++)
+	{
+		if (cutsceneVariableNames[i] == variableName)
+			index = i;
+	}
+
+	if (index > -1)
+	{
+		cutsceneVariableNames.erase(cutsceneVariableNames.begin() + index);
+		variableTextLeft.erase(variableTextLeft.begin() + index);
+		variableTextCenter.erase(variableTextCenter.begin() + index);
+		variableTextRight.erase(variableTextRight.begin() + index);
+
+		// Reset the positions of each item in the list after removal
+
+		int startY = 200;
+		int distance = 50;
+
+		for (int i = 0; i < cutsceneVariableNames.size(); i++)
+		{
+			variableTextLeft[i]->SetPosition(200, startY + (distance * i));
+			variableTextCenter[i]->SetPosition(600, startY + (distance * i));
+			variableTextRight[i]->SetPosition(1000, startY + (distance * i));
+		}
+
+	}
 }
 
 void DebugScreen::Render(const Renderer& renderer)
 {
 	if (renderer.game->debugMode)
 	{
+		// If we're watching a cutscene,
+		// draw a table showing a list of variables and their current values
+		// (the user can add/remove variables that they are interested in seeing
+		if (renderer.game->cutsceneManager.watchingCutscene)
+		{
+			CutsceneCommands& cmds = renderer.game->cutsceneManager.commands;
+			for (int i = 0; i < cutsceneVariableNames.size(); i++)
+			{
+				// 1. Left cell is the name of the variable
+				if (variableTextLeft[i]->txt != cutsceneVariableNames[i])
+				{
+					variableTextLeft[i]->SetText(cutsceneVariableNames[i]);
+					variableTextLeft[i]->SetColor({ 0, 255, 255, 255 });
+				}
+				else
+				{
+					variableTextLeft[i]->SetColor({ 255, 255, 255, 255 });
+				}
+
+				variableTextLeft[i]->GetSprite()->keepScaleRelativeToCamera = true;
+				variableTextLeft[i]->Render(renderer);
+
+				// 2. Middle cell is the string value
+				int numIndex = cmds.GetNumAlias(cutsceneVariableNames[i]);
+				
+				if (variableTextCenter[i]->txt != cmds.GetStringVariable(numIndex))
+				{
+					variableTextCenter[i]->SetText(cmds.GetStringVariable(numIndex));
+					variableTextCenter[i]->SetColor({ 0, 255, 255, 255 });
+				}
+				else
+				{
+					variableTextCenter[i]->SetColor({ 255, 255, 255, 255 });
+				}
+
+				variableTextCenter[i]->GetSprite()->keepScaleRelativeToCamera = true;
+				variableTextCenter[i]->Render(renderer);
+
+				// 3. Right cell is the number value
+				if (variableTextRight[i]->txt != std::to_string(cmds.numberVariables[numIndex]))
+				{
+					variableTextRight[i]->SetText(std::to_string(cmds.numberVariables[numIndex]));
+					variableTextRight[i]->SetColor({ 0, 255, 255, 255 });
+				}
+				else
+				{
+					variableTextRight[i]->SetColor({ 255, 255, 255, 255 });
+				}
+
+
+				variableTextRight[i]->GetSprite()->keepScaleRelativeToCamera = true;
+				variableTextRight[i]->Render(renderer);
+			}
+		}
+
 		debugText[DebugText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer.drawCallsPerFrame));
 		debugText[DebugText::drawCalls]->GetSprite()->keepScaleRelativeToCamera = true;
 		debugText[DebugText::drawCalls]->Render(renderer);
@@ -125,6 +333,14 @@ void DebugScreen::Render(const Renderer& renderer)
 			debugText[DebugText::cameraRoll]->SetText("Roll: " + std::to_string(camera->roll));
 			debugText[DebugText::cameraRoll]->GetSprite()->keepScaleRelativeToCamera = true;
 			debugText[DebugText::cameraRoll]->Render(renderer);
+		}
+
+		insertVariableButton->Render(renderer);
+		removeVariableButton->Render(renderer);
+
+		if (game->editor->dialog != nullptr && game->editor->dialog->visible)
+		{
+			game->editor->dialog->Render(renderer);
 		}
 	}
 }

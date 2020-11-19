@@ -1298,7 +1298,7 @@ int CutsceneCommands::ParseNumberValue(const std::string& parameter)
 {
 	if (cacheParseNumbers.count(parameter) != 0)
 	{
-		return cacheParseNumbers[parameter];
+		//return cacheParseNumbers[parameter];
 	}
 
 	// Get the variable number to store the result in

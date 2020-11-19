@@ -5,11 +5,14 @@
 #include <unordered_map>
 #include "Vector2.h"
 #include "leak_check.h"
+#include <SDL.h>
+
 class Text;
 class Game;
 class Renderer;
 class Sprite;
 class Camera;
+class EditorButton;
 
 enum class DebugText {
 	cursorPositionInScreen, cursorPositionInWorld, currentEditModeLayer,
@@ -28,9 +31,23 @@ public:
 	Vector2 worldPosition = Vector2(0, 0);
 	Vector2 scale = Vector2(1, 1);
 	std::unordered_map<DebugText, Text*> debugText;
+
+	std::vector<std::string> cutsceneVariableNames;
+	std::vector<Text*> variableTextLeft;
+	std::vector<Text*> variableTextCenter;
+	std::vector<Text*> variableTextRight;
+
+	EditorButton* insertVariableButton = nullptr;
+	EditorButton* removeVariableButton = nullptr;
+
+	void InsertVariable(const std::string& variableName);
+	void RemoveVariable(const std::string& variableName);
+
+	Uint32 previousMouseState = 0;
+
 	DebugScreen(Game& g);
 	~DebugScreen();
-	void Update();
+	bool Update();
 	void Render(const Renderer& renderer);
 	void CreateDebugText(const DebugText textName, const int x, const int y);
 };
