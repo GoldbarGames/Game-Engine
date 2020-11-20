@@ -77,6 +77,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"random", &CutsceneCommands::RandomNumberVariable },
 	{"reset", &CutsceneCommands::ResetGame },
 	{"resolution", &CutsceneCommands::SetResolution },
+	{"repeat", &CutsceneCommands::RepeatCommand },
 	{"return", &CutsceneCommands::ReturnFromSubroutine },
 	{"rclick", &CutsceneCommands::RightClickSettings },
 	{"savegame",&CutsceneCommands::SaveGame },
@@ -2843,5 +2844,36 @@ int CutsceneCommands::EffectCommand(CutsceneParameters parameters)
 int CutsceneCommands::IsSkipping(CutsceneParameters parameters)
 {
 	MoveVariables({ "mov", parameters[1], std::to_string(manager->isSkipping) });
+	return 0;
+}
+
+int CutsceneCommands::RepeatCommand(CutsceneParameters parameters)
+{
+	if (parameters[1] == "end")
+	{
+		SceneRepeatData& rdata = manager->repeatStack.back();
+
+		if ( (++rdata.count) > rdata.end)
+		{
+			manager->repeatStack.pop_back();
+		}
+		else
+		{
+			manager->labelIndex = rdata.label;
+			manager->lineIndex = rdata.line;
+			manager->commandIndex = rdata.command;
+		}		
+	}
+	else
+	{
+		SceneRepeatData rdata;
+		rdata.label = manager->labelIndex;
+		rdata.line = manager->lineIndex;
+		rdata.command = manager->commandIndex;
+		rdata.count = 1;
+		rdata.end = std::stoi(parameters[1]);
+		manager->repeatStack.push_back(rdata);
+	}	
+
 	return 0;
 }

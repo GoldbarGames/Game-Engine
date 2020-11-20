@@ -170,6 +170,8 @@ public:
 	int PrintCommand(CutsceneParameters parameters);
 	int EffectCommand(CutsceneParameters parameters);
 
+	int RepeatCommand(CutsceneParameters parameters);
+
 	int IsSkipping(CutsceneParameters parameters);
 
 	unsigned int key = 0;
