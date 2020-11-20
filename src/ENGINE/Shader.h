@@ -14,7 +14,7 @@
 class Renderer;
 
 enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, frequency };
-enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, SolidColor, Grid, Grayscale, Sharpen, Blur, Edge, Test };
+enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, SolidColor, Grid, Grayscale, Sharpen, Blur, Edge, Test, Custom };
 
 class KINJO_API ShaderProgram
 {

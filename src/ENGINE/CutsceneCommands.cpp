@@ -86,6 +86,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"set_velocity", &CutsceneCommands::SetVelocity },
 	{"setnumvar", &CutsceneCommands::SetNumberVariable },
 	{"setstrvar", &CutsceneCommands::SetStringVariable },
+	{"shader", &CutsceneCommands::CreateShader },
 	{"spbtn", &CutsceneCommands::SetSpriteButton},
 	{"sprite", &CutsceneCommands::SetSpriteProperty },
 	{"stdout", &CutsceneCommands::Output },
@@ -155,6 +156,12 @@ CutsceneCommands::~CutsceneCommands()
 	{
 		if (userDefinedFunctions[i] != nullptr)
 			delete_it(userDefinedFunctions[i]);
+	}
+
+	for (auto& [key, val] : customShaders)
+	{
+		if (val != nullptr)
+			delete_it(val);
 	}
 }
 
@@ -767,7 +774,7 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 		// Display the choice as a text sprite on the screen
 		std::string choiceNumber = std::to_string(spriteNumber + i);
 
-		//TODO: Set the y pos relative to the screen resolution, don't hard-code these numbers
+		//TODO: Don't hard-code these numbers
 		choiceYPos = 400 + (120 * i);
 
 		//TODO: Don't hardcode 1280
@@ -1394,8 +1401,12 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 		delete manager->images[imageNumber];
 
 	manager->images[imageNumber] = neww Entity(pos);
-	manager->images[imageNumber]->GetSprite()->SetTexture(manager->game->spriteManager.GetImage(filepath));
-	manager->images[imageNumber]->GetSprite()->SetShader(manager->game->renderer.shaders[ShaderName::Default]);
+
+	Entity& newImage = *manager->images[imageNumber];
+
+	newImage.GetSprite()->SetTexture(manager->game->spriteManager.GetImage(filepath));
+	newImage.GetSprite()->SetShader(manager->game->renderer.shaders[ShaderName::Default]);
+	newImage.CreateCollider(0, 0, newImage.GetSprite()->frameWidth, newImage.GetSprite()->frameHeight);
 
 	if (isStandingImage)
 	{
@@ -1434,7 +1445,7 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 			default:
 				break;
 		}
-		manager->images[imageNumber]->SetPosition(pos);
+		newImage.SetPosition(pos);
 
 		if (parameters.size() > 3)
 			PrintCommand({ "print", parameters[3] });
@@ -1450,19 +1461,19 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 
 		int spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
 		spriteY = (manager->game->screenHeight * 2) -
-			(manager->images[imageNumber]->GetSprite()->frameHeight);
+			(newImage.GetSprite()->frameHeight);
 
 		pos = Vector2(spriteX + manager->game->renderer.guiCamera.position.x,
 			spriteY + manager->game->renderer.guiCamera.position.y);
 
-		manager->images[imageNumber]->SetPosition(pos);
+		newImage.SetPosition(pos);
 		
 		PrintCommand({ "print", parameters[3] });
 	}
 
-	manager->images[imageNumber]->drawOrder = imageNumber;
-	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
-	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
+	newImage.drawOrder = imageNumber;
+	newImage.GetSprite()->keepPositionRelativeToCamera = true;
+	newImage.GetSprite()->keepScaleRelativeToCamera = true;
 
 	return 0;
 }
@@ -1658,9 +1669,17 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 	else if (spriteProperty == "shader")
 	{	
 		//TODO: Fix this so that it works with enums
-		//if (manager->game->renderer.GetShaderFromString(parameters[3]) != nullptr)
-		//	sprite->shader = manager->game->renderer.GetShaderFromString(parameters[3]);
-		//TODO: Log and display error if cannot find shader?
+
+		std::string shaderName = ParseStringValue(parameters[3]);
+
+		if (customShaders.count(shaderName) > 0)
+		{
+			entity->GetSprite()->SetShader(customShaders[shaderName]);
+		}
+		else
+		{
+			manager->game->logger.Log("ERROR: Shader " + shaderName + " not defined");
+		}
 	}
 	else if (spriteProperty == "animator")
 	{
@@ -2874,6 +2893,18 @@ int CutsceneCommands::RepeatCommand(CutsceneParameters parameters)
 		rdata.end = std::stoi(parameters[1]);
 		manager->repeatStack.push_back(rdata);
 	}	
+
+	return 0;
+}
+
+// Create a shader for use within the cutscene system
+int CutsceneCommands::CreateShader(CutsceneParameters parameters)
+{
+	std::string shaderName = ParseStringValue(parameters[1]);
+	std::string vertexFile = ParseStringValue(parameters[2]);
+	std::string fragmentFile = ParseStringValue(parameters[3]);
+
+	customShaders[shaderName] = neww ShaderProgram(ShaderName::Custom, vertexFile.c_str(), fragmentFile.c_str());
 
 	return 0;
 }

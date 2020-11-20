@@ -174,6 +174,8 @@ public:
 
 	int IsSkipping(CutsceneParameters parameters);
 
+	int CreateShader(CutsceneParameters parameters);
+
 	unsigned int key = 0;
 	unsigned int number1 = 0;
 	unsigned int number2 = 0;
@@ -192,6 +194,8 @@ public:
 
 	std::string nextCommand = "";
 	std::vector<std::string> subcommands;
+
+	std::unordered_map<std::string, ShaderProgram*> customShaders;
 
 };
 

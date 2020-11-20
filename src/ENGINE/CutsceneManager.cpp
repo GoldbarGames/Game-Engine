@@ -499,7 +499,8 @@ void CutsceneManager::ParseCutsceneFile()
 						index++;
 					}
 					endOfLine = (data[index] == ';' || data[index] == '@');
-					foundColon = (data[index] == ':');
+					if (data[index] == ':')
+						foundColon = true;
 				}
 
 				command2 = index - 1;
@@ -523,24 +524,27 @@ void CutsceneManager::ParseCutsceneFile()
 					}
 					else
 					{
+						//std::string test = data.substr(command1, command2 - command1);
+						
 						commandPart1 = command1;
 						commandPart2 = command1;
 
 						while (commandPart2 < command2)
 						{
 							commandPart2++;
+							
+							char c2 = data[commandPart2];
 
 							if (data[commandPart2] == ':' || commandPart2 >= command2)
 							{
 								if (commandSize > 0)
-								{
-									
+								{									
+									//std::string test2 = data.substr(commandPart1, commandPart2 - commandPart1);
 									commandsStart.emplace_back(commandPart1);
 									commandsEnd.emplace_back(commandPart2);
-									//std::cout << str << std::endl;
-									commandPart2++;
+									commandPart2++; // go past the :
 								}
-								commandPart1 = commandPart2;
+								commandPart1 = commandPart2 + 1; // the + 1 is to remove leading space
 							}
 						}
 					}					
@@ -1069,7 +1073,7 @@ void CutsceneManager::UpdateText()
 		autoTimeIndex = 2;
 	}
 
-	//TODO: Fix this, it no longer works properly with the corrected dt
+	//TODO: Fix this? it no longer works properly with the corrected dt
 	msGlyphTime += (float)game->dt;
 
 	// If waiting for a button press... 
@@ -1078,11 +1082,53 @@ void CutsceneManager::UpdateText()
 	{
 		msGlyphTime -= msDelayBetweenGlyphs;
 
-		//TODO: Get mouse input for picking a choice
-		//TODO: We want to get the mouse/keyboard input here
-
+		
+		// We want to get the mouse/keyboard input here		
 		if (inputTimer.HasElapsed())
 		{
+			//TODO: Get mouse input for picking a choice
+			int mouseX = 0;
+			int mouseY = 0;
+
+			const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+			mouseX *= Camera::MULTIPLIER;
+			mouseY *= Camera::MULTIPLIER;
+
+			SDL_Rect mouseRect;
+			mouseRect.x = mouseX;
+			mouseRect.y = mouseY;
+			mouseRect.w = 1;
+			mouseRect.h = 1;
+
+			int hoveredButton = -1;
+
+			// TODO: Use a shader instead of changing color
+
+			for (int i = 0; i < activeButtons.size(); i++)
+			{
+				int index = activeButtons[i];
+
+				if (HasIntersection(images[index]->GetTopLeftBounds(), mouseRect))
+				{
+					images[index]->SetColor({ 255, 255, 0, 255 });
+					hoveredButton = i;
+				}
+				else
+				{
+					images[index]->SetColor({ 255, 255, 255, 255 });
+				}
+			}
+
+			bool clickedMouse = false;
+			if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+			{
+				if (hoveredButton > -1)
+				{
+					buttonIndex = hoveredButton;
+					clickedMouse = true;
+				}
+			}
+
 			if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
 			{
 				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 255, 255 });
@@ -1101,7 +1147,7 @@ void CutsceneManager::UpdateText()
 				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
 				inputTimer.Start(inputTimeToWait);
 			}
-			else if (input[readButton] || input[readButton2])
+			else if (input[readButton] || input[readButton2] || clickedMouse)
 			{
 				// Return the result in the specified variable and resume reading
 				// TODO: This can be buggy if the btnwait variable is not reset beforehand
@@ -1183,9 +1229,10 @@ void CutsceneManager::UpdateText()
 		}
 
 		if (isCarryingOutCommands)
-		{			
+		{						
 			if (commandIndex >= 0 && commandIndex < lines[currentLabel->lineStart + lineIndex].commandsSize)
 			{
+				textbox->shouldRender = false;
 				//std::cout << currentLabel->lines[lineIndex].commands[commandIndex] << std::endl;
 				printNumber = 0;
 				do
@@ -1227,6 +1274,7 @@ void CutsceneManager::UpdateText()
 		}
 		else if (isReadingNextLine)
 		{
+			textbox->shouldRender = true;
 			bool displayAllText = (msDelayBetweenGlyphs == 0) || clickedMidPage;
 
 			do
@@ -1244,7 +1292,10 @@ void CutsceneManager::UpdateText()
 				}
 				else if (result.size() == 1)
 				{
-					textbox->UpdateText(result[0], currentColor);
+					textbox->shouldRender = false;
+					ReadNextLine();
+					continue;
+					//textbox->UpdateText(result[0], currentColor);
 				}
 
 				//nextLetterTimer.Start(lettersPerFrame * delay);

@@ -1200,7 +1200,7 @@ void Editor::HandleEdit()
 		for (unsigned int i = 0; i < buttons.size(); i++)
 		{
 			buttons[i]->isHovered = false;
-			if (buttons[i]->IsPointInsideButton(mouseX*2, mouseY*2))			
+			if (buttons[i]->IsPointInsideButton(mouseX * Camera::MULTIPLIER, mouseY * Camera::MULTIPLIER))
 				buttons[i]->isHovered = true;		
 		}
 	}
