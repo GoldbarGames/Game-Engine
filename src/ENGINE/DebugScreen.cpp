@@ -282,11 +282,10 @@ void DebugScreen::Render(const Renderer& renderer)
 					variableTextLeft[i]->SetText(cutsceneVariableNames[i]);
 					variableTextLeft[i]->SetColor({ 0, 255, 255, 255 });
 				}
-				else
+				else if (!updatedLine)
 				{
 					variableTextLeft[i]->SetColor({ 255, 255, 255, 255 });
 				}
-
 				
 				variableTextLeft[i]->Render(renderer);
 
@@ -298,7 +297,7 @@ void DebugScreen::Render(const Renderer& renderer)
 					variableTextRight[i]->SetText(cmds.GetStringVariable(numIndex));
 					variableTextRight[i]->SetColor({ 0, 255, 255, 255 });
 				}
-				else
+				else if (!updatedLine)
 				{
 					variableTextRight[i]->SetColor({ 255, 255, 255, 255 });
 				}
@@ -307,17 +306,21 @@ void DebugScreen::Render(const Renderer& renderer)
 
 				// 3. Center cell is the number value
 				if (variableTextCenter[i]->txt != std::to_string(cmds.numberVariables[numIndex]))
-				{
+				{					
 					variableTextCenter[i]->SetText(std::to_string(cmds.numberVariables[numIndex]));
 					variableTextCenter[i]->SetColor({ 0, 255, 255, 255 });
 				}
-				else
+				else if (!updatedLine)
 				{
 					variableTextCenter[i]->SetColor({ 255, 255, 255, 255 });
 				}
 
 				variableTextCenter[i]->Render(renderer);
+
+				
 			}
+
+			updatedLine = true;
 		}
 
 		debugText[DebugText::drawCalls]->SetText("Draw Calls: " + std::to_string(renderer.drawCallsPerFrame));

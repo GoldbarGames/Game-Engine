@@ -103,6 +103,15 @@ public:
 	int commandIndex = 0;
 };
 
+struct SceneRepeatData
+{
+	int label = 0;
+	int line = 0;
+	int command = 0;
+	int count = 0;
+	int end = 0;
+};
+
 struct BacklogData
 {
 	std::string text = "";
@@ -184,6 +193,7 @@ public:
 
 	SceneLabel* currentLabel = nullptr;
 	std::vector<SceneData*> gosubStack;
+	std::vector<SceneRepeatData> repeatStack;
 
 	// Checkpoint for debugging purposes
 	SceneData checkpoint;
@@ -230,6 +240,8 @@ public:
 	Uint32 previousMouseState = 0;
 	bool clickedMidPage = false;
 	
+	bool isSkipping = false;
+
 	const std::string& GetLanguage() { return language;  }
 
 	CutsceneManager();

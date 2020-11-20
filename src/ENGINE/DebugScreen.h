@@ -44,6 +44,7 @@ public:
 	void RemoveVariable(const std::string& variableName);
 
 	Uint32 previousMouseState = 0;
+	bool updatedLine = false;
 
 	DebugScreen(Game& g);
 	~DebugScreen();

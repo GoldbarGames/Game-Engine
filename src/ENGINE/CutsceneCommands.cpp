@@ -58,6 +58,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"inc", &CutsceneCommands::IncrementVariable},
 	{"input", &CutsceneCommands::InputCommand},
 	{"itoa", &CutsceneCommands::IntToString },
+	{"isskip", &CutsceneCommands::IsSkipping },
 	{"jumpb", &CutsceneCommands::JumpBack },
 	{"jumpf", &CutsceneCommands::JumpForward },
 	{"keybind", &CutsceneCommands::BindKeyToLabel },
@@ -2819,8 +2820,6 @@ int CutsceneCommands::PrintCommand(CutsceneParameters parameters)
 	else
 	{
 		manager->printNumber = ParseNumberValue(parameters[1]);
-		if (manager->printNumber > 0)
-			std::cout << parameters[1] << " -> " << manager->printNumber << std::endl;
 	}
 
 	return 0;
@@ -2838,5 +2837,11 @@ int CutsceneCommands::EffectCommand(CutsceneParameters parameters)
 
 	manager->printEffects[num] = effect;
 
+	return 0;
+}
+
+int CutsceneCommands::IsSkipping(CutsceneParameters parameters)
+{
+	MoveVariables({ "mov", parameters[1], std::to_string(manager->isSkipping) });
 	return 0;
 }

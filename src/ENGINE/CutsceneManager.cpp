@@ -6,6 +6,7 @@
 #include "Logger.h"
 #include "SoundManager.h"
 #include "Textbox.h"
+#include "DebugScreen.h"
 
 CutsceneManager::CutsceneManager()
 {
@@ -186,7 +187,7 @@ void CutsceneManager::CheckKeysWhileReading()
 		if (!readingBacklog)
 		{
 			if ( ((input[readButton] || input[readButton2]) && inputTimer.HasElapsed()) 
-				|| input[skipButton] || input[skipButton2]
+				|| isSkipping
 				|| (automaticallyRead && autoReaderTimer.HasElapsed()))
 			{
 				clickedMidPage = true;
@@ -271,7 +272,7 @@ void CutsceneManager::CheckKeys()
 				inputTimer.Start(inputTimeToWait);
 			}
 		}
-		else if (input[readButton] || input[readButton2] || input[skipButton] || input[skipButton2]
+		else if (input[readButton] || input[readButton2] || isSkipping
 			|| (automaticallyRead && autoReaderTimer.HasElapsed()))
 		{
 			ReadNextLine();
@@ -473,12 +474,18 @@ void CutsceneManager::ParseCutsceneFile()
 				commandsEnd.clear();
 				index++;
 			}
+			else if (data[index] == '@')
+			{
+				// Don't do anything special here, but if we didn't check for this, it'd be seen as a command.
+				// Also, the only difference between @ and \ is that \ clears the text, @ does not.
+				index++;
+			}
 			else // we have a command
 			{
 				command1 = index;
 
 				// read until we hit the end of the line
-				bool endOfLine = (data[index] == ';');
+				bool endOfLine = (data[index] == ';' || data[index] == '@');
 				bool foundColon = (data[index] == ':');
 				while (!endOfLine)
 				{
@@ -491,7 +498,7 @@ void CutsceneManager::ParseCutsceneFile()
 					{
 						index++;
 					}
-					endOfLine = (data[index] == ';');
+					endOfLine = (data[index] == ';' || data[index] == '@');
 					foundColon = (data[index] == ':');
 				}
 
@@ -851,6 +858,8 @@ void CutsceneManager::ClearAllSprites()
 
 void CutsceneManager::ReadNextLine()
 {
+	game->debugScreen->updatedLine = false;
+
 	if (waitingForButton)
 		return;
 
@@ -883,10 +892,16 @@ void CutsceneManager::ReadNextLine()
 			backlog.erase(backlog.begin());
 		}
 		
-		lineIndex++;	
-		currentText = "";
-		textbox->text->SetText(currentText);
+		// Only clear the text (and name) if we encounter a slash
+		int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
+		if (data[newIndex + 1] == '\\')
+		{
+			currentText = "";
+			textbox->text->SetText(currentText);
+			textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex + 1]), currentColor);
+		}
 
+		lineIndex++;
 		if (lineIndex >= currentLabel->lineSize)
 		{			
 			if (labelIndex < labels.size() - 1)
@@ -915,7 +930,7 @@ void CutsceneManager::ReadNextLine()
 			FlushCurrentColor();
 
 			// If speaker of this line is same as last, instantly show it
-			textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex]), currentColor);
+			//textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex]), currentColor);
 
 			if (autosave)
 			{
@@ -1029,6 +1044,8 @@ void CutsceneManager::UpdateText()
 		inputTimer.Start(inputTimeToWait);
 	}
 
+	isSkipping = input[skipButton] || input[skipButton2];
+
 	//TODO: Disable all of this if the keyboard controls are disabled
 	// And also allow mouse control alternatives
 
@@ -1124,7 +1141,7 @@ void CutsceneManager::UpdateText()
 	// render the textbox when not waiting
 	textbox->isReading = (msGlyphTime > 0);
 
-	if (input[skipButton] || input[skipButton2])
+	if (isSkipping)
 		msDelayBetweenGlyphs = 0.0f;
 	else
 		msDelayBetweenGlyphs = msInitialDelayBetweenGlyphs;
@@ -1190,7 +1207,7 @@ void CutsceneManager::UpdateText()
 				
 				game->updateScreenTexture = true;
 
-				if (printNumber > 0 && !(input[skipButton] || input[skipButton2]))
+				if (printNumber > 0 && !isSkipping)
 				{
 					if (printEffects.count(printNumber) != 0)
 					{
@@ -1228,11 +1245,6 @@ void CutsceneManager::UpdateText()
 				else if (result.size() == 1)
 				{
 					textbox->UpdateText(result[0], currentColor);
-				}
-
-				if (currentText.length() == 1)
-				{
-					textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex]), currentColor);
 				}
 
 				//nextLetterTimer.Start(lettersPerFrame * delay);
@@ -1282,7 +1294,7 @@ void CutsceneManager::UpdateText()
 		}
 	}
 
-	if (msDelayBetweenGlyphs > 0 && !(input[skipButton] || input[skipButton2]))
+	if (msDelayBetweenGlyphs > 0 && !isSkipping)
 	{
 		while (msGlyphTime > msDelayBetweenGlyphs)
 		{
