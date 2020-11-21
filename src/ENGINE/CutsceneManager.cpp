@@ -1148,55 +1148,9 @@ void CutsceneManager::UpdateText()
 				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
 				inputTimer.Start(inputTimeToWait);
 			}
-			else if (input[readButton] || input[readButton2] || clickedMouse)
+			else if (input[readButton] || input[readButton2] || clickedMouse || autoChoice > 0)
 			{
-				// Return the result in the specified variable and resume reading
-				// TODO: This can be buggy if the btnwait variable is not reset beforehand
-				unsigned int chosenSprite = activeButtons[buttonIndex];
-				commands.numberVariables[buttonResult] = spriteButtons[chosenSprite];
-				waitingForButton = false;
-
-				inputTimer.Start(inputTimeToWait);
-
-				/*
-
-				foundTrueConditionOnBtnWait = false;
-
-				// Evaluate if statements
-				if (choiceIfStatements.size() > 0)
-				{
-					for (int i = 0; i < choiceIfStatements.size(); i++)
-					{
-						commands.ExecuteCommand(choiceIfStatements[i]);
-						if (foundTrueConditionOnBtnWait)
-							break;
-					}
-				}
-
-				if (foundTrueConditionOnBtnWait)
-				{
-					isCarryingOutCommands = true;
-					isReadingNextLine = true;
-					textbox->isReading = true;
-
-					// Remove the sprite buttons from the screen
-					commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber) });   // bg
-					commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber + 1) }); // question
-					for (int i = 0; i < activeButtons.size(); i++)
-					{
-						commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
-					}
-
-					activeButtons.clear();
-				}
-				else
-				{
-					waitingForButton = true;
-				}
-
-				inputTimer.Start(inputTimeToWait);
-
-				*/
+				MakeChoice();
 			}
 		}
 
@@ -1396,6 +1350,55 @@ void CutsceneManager::UpdateText()
 			msGlyphTime -= msDelayBetweenGlyphs;
 		}
 	}
+}
+
+void CutsceneManager::MakeChoice()
+{
+	// Automatically select a choice (if enabled)
+	if (autoChoice > 0)
+	{
+		buttonIndex = autoChoice - 1;
+
+		// Stay within bounds
+		if (buttonIndex < 0)
+			buttonIndex = 0;
+		if (buttonIndex >= activeButtons.size())
+			buttonIndex = activeButtons.size() - 1;
+	}
+
+	// Return the result in the specified variable and resume reading
+	// TODO: This can be buggy if the btnwait variable is not reset beforehand
+	unsigned int chosenSprite = activeButtons[buttonIndex];
+	commands.numberVariables[buttonResult] = spriteButtons[chosenSprite];
+	waitingForButton = false;
+
+	if (atChoice)
+	{
+		atChoice = false;
+		isCarryingOutCommands = true;
+		isReadingNextLine = true;
+		textbox->isReading = true;
+
+		// Remove the sprite buttons from the screen
+		commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber) });   // bg
+		commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber + 1) }); // question
+		for (int i = 0; i < activeButtons.size(); i++)
+		{
+			commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
+		}
+		activeButtons.clear();
+
+		// Evaluate if statements
+		if (choiceIfStatements.size() > 0)
+		{
+			for (int i = 0; i < choiceIfStatements.size(); i++)
+			{
+				commands.ExecuteCommand(choiceIfStatements[i]);
+			}
+		}
+	}
+
+	inputTimer.Start(inputTimeToWait);
 }
 
 std::string CutsceneManager::ParseText(const std::string& originalString, int& letterIndex, Color& textColor, Text* text)

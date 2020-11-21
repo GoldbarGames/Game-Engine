@@ -27,6 +27,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"add", &CutsceneCommands::AddNumberVariables},
 	{"align", &CutsceneCommands::AlignCommand},
 	{"animation", &CutsceneCommands::AnimationCommand},
+	{"autochoice", &CutsceneCommands::AutoChoice },
 	{"automode", &CutsceneCommands::AutoMode},
 	{"autoreturn", &CutsceneCommands::AutoReturn},
 	{"autosave", &CutsceneCommands::AutoSave},
@@ -804,14 +805,22 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 		}
 
 		// Wait for button input, store result in variable
-		WaitForButton({ "",  parameters[2] });
+		WaitForButton({ "choice",  parameters[2] });
 
 		// Construct the if-statement and store it
 		//if %42 == 21 goto label_left ;
 
 		manager->choiceIfStatements.push_back("if %" + parameters[2] + " == " + choiceNumber + " goto " + choiceLabel + " ;");
+	}
 
+	manager->atChoice = true;
+	if (manager->autoChoice == 0)
+	{
 		manager->inputTimer.Start(manager->inputTimeToWait);
+	}
+	else
+	{
+		manager->MakeChoice();
 	}
 
 	return 0;
@@ -839,7 +848,8 @@ int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
 		manager->textbox->text->SetText("");
 
 		// Clear out the list of if-statments for this button press
-		manager->choiceIfStatements.clear();
+		if (parameters[0] != "choice")
+			manager->choiceIfStatements.clear();
 	}
 
 	return 0;
@@ -1590,11 +1600,12 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 			newText->SetPosition(pos.x, pos.y);
 		}
 	}
-	
+
 	manager->images[imageNumber] = newText;
 	manager->images[imageNumber]->drawOrder = imageNumber;
 	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
 	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
+	manager->images[imageNumber]->CreateCollider(0, 0, newText->GetTextWidth(), newText->GetTextHeight());
 
 	// Color the text yellow when we hover the mouse over it or select with keyboard
 	//manager->images[imageNumber]->GetSprite()->color = { 255, 255, 0, 255 } ;
@@ -2731,6 +2742,15 @@ int CutsceneCommands::AutoReturn(CutsceneParameters parameters)
 	{
 		manager->autoreturn = false;
 	}
+
+	return 0;
+}
+
+// Whenever a choice prompt appears, automatically choose choice #x
+// (disabled if x == 0)
+int CutsceneCommands::AutoChoice(CutsceneParameters parameters)
+{
+	manager->autoChoice = std::stoi(parameters[1]);
 
 	return 0;
 }

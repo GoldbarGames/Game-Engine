@@ -164,6 +164,7 @@ public:
 	int AutoMode(CutsceneParameters parameters);
 	int AutoReturn(CutsceneParameters parameters);
 	int AutoSave(CutsceneParameters parameters);
+	int AutoChoice(CutsceneParameters parameters);
 	int AlignCommand(CutsceneParameters parameters);
 	int InputCommand(CutsceneParameters parameters);
 

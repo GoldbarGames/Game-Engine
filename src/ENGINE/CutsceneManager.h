@@ -244,6 +244,8 @@ public:
 	
 	bool isSkipping = false;
 	bool disableSkip = false;
+	bool atChoice = false;
+	int autoChoice = 0;
 
 	const std::string& GetLanguage() { return language;  }
 
@@ -269,6 +271,8 @@ public:
 	void CheckKeysWhileReading();
 	void ReadBacklog();
 	void UpdateText();
+
+	void MakeChoice();
 
 	void SaveGame(const char* filename, const char* path = "saves/");
 	void LoadGame(const char* filename, const char* path = "saves/");
