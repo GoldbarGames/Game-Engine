@@ -172,6 +172,7 @@ public:
 
 	int RepeatCommand(CutsceneParameters parameters);
 
+	int ToggleSkipping(CutsceneParameters parameters);
 	int IsSkipping(CutsceneParameters parameters);
 
 	int CreateShader(CutsceneParameters parameters);

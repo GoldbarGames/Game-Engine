@@ -87,6 +87,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"setnumvar", &CutsceneCommands::SetNumberVariable },
 	{"setstrvar", &CutsceneCommands::SetStringVariable },
 	{"shader", &CutsceneCommands::CreateShader },
+	{"skip", &CutsceneCommands::ToggleSkipping },
 	{"spbtn", &CutsceneCommands::SetSpriteButton},
 	{"sprite", &CutsceneCommands::SetSpriteProperty },
 	{"stdout", &CutsceneCommands::Output },
@@ -457,6 +458,17 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 	int index = 1;
 	bool conditionIsTrue = false;
 
+	// If waiting for a button press, evaluate these statements on button press
+	if (manager->waitingForButton)
+	{
+		std::string statement = "";
+		for (int i = 0; i < parameters.size(); i++)
+		{
+			statement += parameters[i] + " ";
+		}
+		manager->choiceIfStatements.push_back(statement);
+	}
+
 	do
 	{
 		leftHandIsNumber = false;
@@ -609,6 +621,8 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 			// If all conditions are true, execute the following commands
 			if (parameters[index] != "&&")
 			{
+				manager->foundTrueConditionOnBtnWait = true;
+
 				nextCommand = "";
 				for (int i = index; i < parameters.size(); i++)
 					nextCommand += (parameters[i] + " ");
@@ -646,11 +660,10 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 
 					ExecuteCommand(Trim(nextCommand));
 				}
-
 				
 			}
 			else
-			{
+			{				
 				conditionIsTrue = false;
 				index++;
 			}
@@ -824,6 +837,9 @@ int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
 		manager->isReadingNextLine = true;
 		manager->textbox->isReading = false;
 		manager->textbox->text->SetText("");
+
+		// Clear out the list of if-statments for this button press
+		manager->choiceIfStatements.clear();
 	}
 
 	return 0;
@@ -1129,7 +1145,8 @@ int CutsceneCommands::RandomNumberVariable(CutsceneParameters parameters)
 		key = ParseNumberValue(parameters[1]);
 		unsigned int maxNumber = ParseNumberValue(parameters[2]);
 
-		numberVariables[key] = manager->game->randomManager.RandomInt(maxNumber);
+		int value =  manager->game->randomManager.RandomInt(maxNumber);
+		numberVariables[key] = value;
 
 		// If global variable, save change to file
 		if (key >= manager->globalStart)
@@ -2863,6 +2880,20 @@ int CutsceneCommands::EffectCommand(CutsceneParameters parameters)
 int CutsceneCommands::IsSkipping(CutsceneParameters parameters)
 {
 	MoveVariables({ "mov", parameters[1], std::to_string(manager->isSkipping) });
+	return 0;
+}
+
+int CutsceneCommands::ToggleSkipping(CutsceneParameters parameters)
+{
+	if (parameters[1] == "on" || parameters[1] == "ON")
+	{
+		manager->disableSkip = false;
+	}
+	else
+	{
+		manager->disableSkip = true;
+	}
+
 	return 0;
 }
 

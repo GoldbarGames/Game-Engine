@@ -221,6 +221,8 @@ public:
 	std::vector<unsigned int> activeButtons;
 	std::unordered_map<unsigned int, unsigned int> spriteButtons;
 
+	bool foundTrueConditionOnBtnWait = false;
+
 	std::map<std::string, Entity*> animatedImages;
 	std::map<unsigned int, Entity*> images; // needs to be in order for rendering
 	std::map<unsigned int, Entity*>::iterator imageIterator;
@@ -241,6 +243,7 @@ public:
 	bool clickedMidPage = false;
 	
 	bool isSkipping = false;
+	bool disableSkip = false;
 
 	const std::string& GetLanguage() { return language;  }
 

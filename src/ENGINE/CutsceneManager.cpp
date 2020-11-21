@@ -184,7 +184,7 @@ void CutsceneManager::CheckKeysWhileReading()
 
 	if (useKeyboardControls)
 	{
-		if (!readingBacklog)
+		if (!readingBacklog && !waitingForButton)
 		{
 			if ( ((input[readButton] || input[readButton2]) && inputTimer.HasElapsed()) 
 				|| isSkipping
@@ -904,6 +904,10 @@ void CutsceneManager::ReadNextLine()
 			textbox->text->SetText(currentText);
 			textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex + 1]), currentColor);
 		}
+		else
+		{
+			textbox->SetCursorPosition(false);
+		}
 
 		lineIndex++;
 		if (lineIndex >= currentLabel->lineSize)
@@ -916,6 +920,7 @@ void CutsceneManager::ReadNextLine()
 				}
 				else // go to the next label in sequence
 				{
+					std::cout << "NEXT LABEL" << std::endl;
 					labelIndex++;
 					currentLabel = JumpToLabel(GetLabelName(labels[labelIndex]));
 					lineIndex = -1;
@@ -1027,12 +1032,6 @@ void CutsceneManager::Update()
 	{
 		CheckKeys();
 	}
-	else
-	{
-		//TODO: If we press the button before the line has finished displaying,
-		// then instantly show all the text (maybe a different button)
-		CheckKeysWhileReading();
-	}
 }
 
 void CutsceneManager::UpdateText()
@@ -1049,6 +1048,8 @@ void CutsceneManager::UpdateText()
 	}
 
 	isSkipping = input[skipButton] || input[skipButton2];
+	if (disableSkip)
+		isSkipping = false;
 
 	//TODO: Disable all of this if the keyboard controls are disabled
 	// And also allow mouse control alternatives
@@ -1154,19 +1155,12 @@ void CutsceneManager::UpdateText()
 				unsigned int chosenSprite = activeButtons[buttonIndex];
 				commands.numberVariables[buttonResult] = spriteButtons[chosenSprite];
 				waitingForButton = false;
-				isCarryingOutCommands = true;
-				isReadingNextLine = true;
-				textbox->isReading = true;
 
-				// Remove the sprite buttons from the screen
-				commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber) });   // bg
-				commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber + 1) }); // question
-				for (int i = 0; i < activeButtons.size(); i++)
-				{
-					commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
-				}
+				inputTimer.Start(inputTimeToWait);
 
-				activeButtons.clear();
+				/*
+
+				foundTrueConditionOnBtnWait = false;
 
 				// Evaluate if statements
 				if (choiceIfStatements.size() > 0)
@@ -1174,10 +1168,35 @@ void CutsceneManager::UpdateText()
 					for (int i = 0; i < choiceIfStatements.size(); i++)
 					{
 						commands.ExecuteCommand(choiceIfStatements[i]);
+						if (foundTrueConditionOnBtnWait)
+							break;
 					}
 				}
 
+				if (foundTrueConditionOnBtnWait)
+				{
+					isCarryingOutCommands = true;
+					isReadingNextLine = true;
+					textbox->isReading = true;
+
+					// Remove the sprite buttons from the screen
+					commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber) });   // bg
+					commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber + 1) }); // question
+					for (int i = 0; i < activeButtons.size(); i++)
+					{
+						commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
+					}
+
+					activeButtons.clear();
+				}
+				else
+				{
+					waitingForButton = true;
+				}
+
 				inputTimer.Start(inputTimeToWait);
+
+				*/
 			}
 		}
 
@@ -1228,6 +1247,9 @@ void CutsceneManager::UpdateText()
 			letterIndex = 0;
 		}
 
+		if (waitingForButton)
+			return;
+
 		if (isCarryingOutCommands)
 		{						
 			if (commandIndex >= 0 && commandIndex < lines[currentLabel->lineStart + lineIndex].commandsSize)
@@ -1247,6 +1269,9 @@ void CutsceneManager::UpdateText()
 						return;
 
 					if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
+						break;
+
+					if (waitingForButton)
 						break;
 					
 					// run all commands until we hit a print or wait command
@@ -1275,10 +1300,20 @@ void CutsceneManager::UpdateText()
 		else if (isReadingNextLine)
 		{
 			textbox->shouldRender = true;
+
+			CheckKeysWhileReading();
+
 			bool displayAllText = (msDelayBetweenGlyphs == 0) || clickedMidPage;
 
 			do
 			{
+				if (currentLabel == nullptr)
+				{
+					game->logger.Log("ERROR: Current label is NULL!");
+					return;
+				}
+
+
 				int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
 				std::string result = ParseText(data, newIndex, currentColor, textbox->text);
 				letterIndex = newIndex - lines[currentLabel->lineStart + lineIndex].textStart;
@@ -1292,10 +1327,19 @@ void CutsceneManager::UpdateText()
 				}
 				else if (result.size() == 1)
 				{
-					textbox->shouldRender = false;
-					ReadNextLine();
-					continue;
-					//textbox->UpdateText(result[0], currentColor);
+					if (result[0] < 0)
+					{
+						textbox->shouldRender = false;
+						ReadNextLine();
+						continue;
+					}
+					else
+					{
+						//char c = data[newIndex+1];
+						//textbox->SetCursorPosition(data[newIndex+1] != '@');
+
+						textbox->UpdateText(result[0], currentColor);
+					}				
 				}
 
 				//nextLetterTimer.Start(lettersPerFrame * delay);
@@ -1308,7 +1352,8 @@ void CutsceneManager::UpdateText()
 					displayAllText = false;
 					clickedMidPage = false;
 
-					textbox->SetCursorPosition(true);
+					
+					textbox->SetCursorPosition(data[newIndex + 1] != '@');
 					//textbox->clickToContinue->Update(*game);
 					//game->player->cutsceneInputTimer.Start(100);
 
@@ -1317,7 +1362,6 @@ void CutsceneManager::UpdateText()
 						autoTimeToWait = (textbox->text->glyphs.size() * autoTimeToWaitPerGlyph);
 						autoReaderTimer.Start(autoTimeToWait);
 					}
-
 
 					return;
 				}
