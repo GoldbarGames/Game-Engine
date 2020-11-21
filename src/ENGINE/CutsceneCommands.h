@@ -172,6 +172,7 @@ public:
 	int EffectCommand(CutsceneParameters parameters);
 
 	int RepeatCommand(CutsceneParameters parameters);
+	int TravelCommand(CutsceneParameters parameters);
 
 	int ToggleSkipping(CutsceneParameters parameters);
 	int IsSkipping(CutsceneParameters parameters);

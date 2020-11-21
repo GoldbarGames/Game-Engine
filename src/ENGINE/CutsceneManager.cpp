@@ -1026,6 +1026,23 @@ void CutsceneManager::Update()
 			image->Update(*game);
 	}
 
+	if (isTravelling)
+	{
+		static int prevLabelIndex = 0;
+
+		if (labelIndex != prevLabelIndex)
+		{
+			prevLabelIndex = labelIndex;
+			std::cout << "Label: " << GetLabelName(labels[labelIndex]) << std::endl;
+		}
+
+		if (GetLabelName(labels[labelIndex]) == endTravelLabel)
+		{
+			int test = 0;
+			isTravelling = false;
+		}
+	}
+
 	UpdateText();
 
 	if (!isReadingNextLine && inputTimer.HasElapsed())
@@ -1050,8 +1067,12 @@ void CutsceneManager::UpdateText()
 	isSkipping = input[skipButton] || input[skipButton2];
 	if (disableSkip)
 		isSkipping = false;
+	if (isTravelling)
+		isSkipping = true;
 
-	//TODO: Disable all of this if the keyboard controls are disabled
+	//std::cout << "Label: " << command << std::endl;
+
+	// TODO: Disable all of this if the keyboard controls are disabled
 	// And also allow mouse control alternatives
 
 	//TODO: Make this more customizable
@@ -1218,37 +1239,70 @@ void CutsceneManager::UpdateText()
 						unfinishedCommands.push_back(GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex));
 					}
 					commandIndex++;
-					// TODO: What happens if current label is nullptr here?
-					if (currentLabel == nullptr)
-						return;
 
-					if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
-						break;
+					if (!isTravelling)
+					{
+						// TODO: What happens if current label is nullptr here?
+						if (currentLabel == nullptr)
+							return;
 
-					if (waitingForButton)
-						break;
+						if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
+							break;
+
+						if (waitingForButton)
+							break;
+					}
+					else
+					{
+						if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
+						{
+							ReadNextLine();
+						}
+
+						static int prevLabelIndex = 0;
+
+						if (labelIndex != prevLabelIndex)
+						{
+							prevLabelIndex = labelIndex;
+							std::cout << "x Label: " << GetLabelName(labels[labelIndex]) << std::endl;
+						}
+
+						if (GetLabelName(labels[labelIndex]) == endTravelLabel)
+						{
+							isTravelling = false;
+						}
+					}
 					
 					// run all commands until we hit a print or wait command
 				} while (!autoprint && printNumber == 0 && msGlyphTime > 0); 
 				
-				game->updateScreenTexture = true;
-
-				if (printNumber > 0 && !isSkipping)
+				if (!isTravelling)
 				{
-					if (printEffects.count(printNumber) != 0)
+					game->updateScreenTexture = true;
+
+					if (printNumber > 0 && !isSkipping)
 					{
-						printTimer.Start(printEffects[printNumber].delay);
-					}
-					else
-					{
-						printTimer.Start(1);
-						game->logger.Log("ERROR: No print effect found for " + std::to_string(printNumber));
+						if (printEffects.count(printNumber) != 0)
+						{
+							printTimer.Start(printEffects[printNumber].delay);
+						}
+						else
+						{
+							printTimer.Start(1);
+							game->logger.Log("ERROR: No print effect found for " + std::to_string(printNumber));
+						}
 					}
 				}
+				
 			}
 			else
 			{
 				isCarryingOutCommands = false;
+
+				if (isTravelling) // don't read text when travelling
+				{
+					isReadingNextLine = false;
+				}
 			}
 		}
 		else if (isReadingNextLine)
@@ -1266,7 +1320,6 @@ void CutsceneManager::UpdateText()
 					game->logger.Log("ERROR: Current label is NULL!");
 					return;
 				}
-
 
 				int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
 				std::string result = ParseText(data, newIndex, currentColor, textbox->text);
@@ -1306,7 +1359,6 @@ void CutsceneManager::UpdateText()
 					displayAllText = false;
 					clickedMidPage = false;
 
-					
 					textbox->SetCursorPosition(data[newIndex + 1] != '@');
 					//textbox->clickToContinue->Update(*game);
 					//game->player->cutsceneInputTimer.Start(100);

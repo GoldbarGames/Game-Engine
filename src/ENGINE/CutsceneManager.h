@@ -247,6 +247,9 @@ public:
 	bool atChoice = false;
 	int autoChoice = 0;
 
+	bool isTravelling = false;
+	std::string endTravelLabel = "";
+
 	const std::string& GetLanguage() { return language;  }
 
 	CutsceneManager();

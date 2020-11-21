@@ -101,6 +101,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"textcolor", &CutsceneCommands::TextColor },
 	{"textspeed", &CutsceneCommands::TextSpeed },
 	{"timer", &CutsceneCommands::TimerFunction},
+	{"travel", &CutsceneCommands::TravelCommand},
 	{"quake", &CutsceneCommands::Quake },
 	{"wait",& CutsceneCommands::Wait },
 	{"window", &CutsceneCommands::WindowFunction }
@@ -1791,8 +1792,12 @@ int CutsceneCommands::SetVelocity(CutsceneParameters parameters)
 
 int CutsceneCommands::Wait(CutsceneParameters parameters)
 {
-	manager->msGlyphTime -= ParseNumberValue(parameters[1]); // wait for a certain amount of time (milliseconds)
-	manager->textbox->isReading = false; // don't render the textbox while waiting
+	if (!manager->isTravelling)
+	{
+		manager->msGlyphTime -= ParseNumberValue(parameters[1]); // wait for a certain amount of time (milliseconds)
+		manager->textbox->isReading = false; // don't render the textbox while waiting
+	}
+
 	return 0;
 }
 
@@ -2751,6 +2756,25 @@ int CutsceneCommands::AutoReturn(CutsceneParameters parameters)
 int CutsceneCommands::AutoChoice(CutsceneParameters parameters)
 {
 	manager->autoChoice = std::stoi(parameters[1]);
+
+	return 0;
+}
+
+// Travel from one label to another, executing all commands but without printing them
+int CutsceneCommands::TravelCommand(CutsceneParameters parameters)
+{
+	// Interrupt travel prematurely
+	if (parameters[1] == "off" || parameters[1] == "stop" || parameters[1] == "end")
+	{
+		manager->isTravelling = false;
+	}
+	else
+	{
+		manager->isTravelling = true;
+		manager->endTravelLabel = ParseStringValue(parameters[2]);
+		std::string startLabel = ParseStringValue(parameters[1]);
+		GoToLabel({ "", startLabel });
+	}
 
 	return 0;
 }
