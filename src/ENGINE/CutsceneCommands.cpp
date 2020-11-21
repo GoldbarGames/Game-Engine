@@ -170,7 +170,6 @@ CutsceneCommands::~CutsceneCommands()
 
 bool CutsceneCommands::ExecuteCommand(std::string command)
 {
-	//std::cout << "Command: " << command << std::endl;
 	Timer cTimer;
 	cTimer.Start(1);
 
@@ -273,6 +272,22 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 			}
 			
 		}
+
+		// If travelling, ignore some commands
+		if (manager->isTravelling)
+		{
+			static std::vector<std::string> ignoreCommands = manager->game->ReadStringsFromFile("data/commands.ignore");
+
+			for (const auto& cmd : ignoreCommands)
+			{
+				if (cmd == parameters[0])
+				{
+					return true;
+				}
+			}
+		}
+
+		//std::cout << "Command: " << command << std::endl;
 
 		bool commandFound = false;
 		for (const auto& cmd : cmd_lut)
@@ -777,6 +792,7 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 	spriteNumber++;
 
 	manager->choiceIfStatements.clear();
+	//manager->activeButtons.clear();
 	
 	for (int i = 0; i < numberOfChoices; i++)
 	{	
@@ -840,8 +856,8 @@ int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
 
 		// Set the first button as highlighted
 		manager->buttonIndex = 0;
-		manager->images[manager->activeButtons[manager->buttonIndex]]->
-			GetSprite()->color = { 255, 255, 0, 255 };
+		//manager->images[manager->activeButtons[manager->buttonIndex]]->
+		//	GetSprite()->color = { 255, 255, 0, 255 };
 
 		manager->isCarryingOutCommands = true;
 		manager->isReadingNextLine = true;
@@ -1401,6 +1417,9 @@ int CutsceneCommands::ClearSprite(CutsceneParameters parameters)
 
 int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 {
+	//if (manager->isTravelling)
+	//	return 0;
+
 	// std::cout << "Loading sprite: " << parameters[1] << std::endl;
 
 	Vector2 pos = Vector2(0, 0);
@@ -1664,11 +1683,11 @@ int CutsceneCommands::SetSpriteProperty(CutsceneParameters parameters)
 	//TODO: Maybe make a manager->GetImage(imageNumber) function for error handling
 	Entity* entity = manager->images[imageNumber];
 	if (entity == nullptr)
-		return 1; //TODO: Error log
+		return 0; //TODO: Error log
 
 	//Sprite* sprite = manager->images[imageNumber]->GetSprite();
 	if (entity->GetSprite() == nullptr)
-		return 2; //TODO: Error log
+		return 0; //TODO: Error log
 
 	const std::string spriteProperty = ParseStringValue(parameters[2]);
 

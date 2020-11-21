@@ -1234,7 +1234,9 @@ void CutsceneManager::UpdateText()
 				printNumber = 0;
 				do
 				{
-					if (!commands.ExecuteCommand(GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex)))
+					std::string command = GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex);
+
+					if (!commands.ExecuteCommand(command))
 					{
 						unfinishedCommands.push_back(GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex));
 					}
@@ -1254,22 +1256,25 @@ void CutsceneManager::UpdateText()
 					}
 					else
 					{
+						printNumber = 0;
+
 						if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
 						{
 							ReadNextLine();
-						}
 
-						static int prevLabelIndex = 0;
+							static int prevLabelIndex = 0;
 
-						if (labelIndex != prevLabelIndex)
-						{
-							prevLabelIndex = labelIndex;
-							std::cout << "x Label: " << GetLabelName(labels[labelIndex]) << std::endl;
+							if (labelIndex != prevLabelIndex)
+							{
+								prevLabelIndex = labelIndex;
+								std::cout << "x Label: " << GetLabelName(labels[labelIndex]) << std::endl;
+							}
 						}
 
 						if (GetLabelName(labels[labelIndex]) == endTravelLabel)
 						{
 							isTravelling = false;
+							printNumber = 1;
 						}
 					}
 					
