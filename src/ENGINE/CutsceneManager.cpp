@@ -818,8 +818,10 @@ void CutsceneManager::PushCurrentSceneDataToStack()
 	newData->labelIndex = labelIndex;
 	newData->labelName = GetLabelName(currentLabel);
 	newData->lineIndex = lineIndex;
-	newData->lineText = ""; // TODO:  currentLabel->lines[lineIndex].text;
+	newData->lineText = GetLineText(lines[lineIndex]);
 	newData->commandIndex = commandIndex;
+
+	std::cout << "PUSH LABEL " << newData->labelName << std::endl;
 
 	gosubStack.push_back(newData);
 }
@@ -836,7 +838,9 @@ bool CutsceneManager::PopSceneDataFromStack(SceneData& data)
 		lineIndex = data.lineIndex;
 		commandIndex = data.commandIndex;
 		letterIndex = 0;
-		currentText = "";
+		currentText = data.lineText;
+
+		std::cout << "POP LABEL " << data.labelName << std::endl;
 
 		return true;
 	}
@@ -1130,14 +1134,17 @@ void CutsceneManager::UpdateText()
 			{
 				int index = activeButtons[i];
 
-				if (HasIntersection(images[index]->GetTopLeftBounds(), mouseRect))
+				if (images[index] != nullptr)
 				{
-					images[index]->SetColor({ 255, 255, 0, 255 });
-					hoveredButton = i;
-				}
-				else
-				{
-					images[index]->SetColor({ 255, 255, 255, 255 });
+					if (HasIntersection(images[index]->GetTopLeftBounds(), mouseRect))
+					{
+						images[index]->SetColor({ 255, 255, 0, 255 });
+						hoveredButton = i;
+					}
+					else
+					{
+						images[index]->SetColor({ 255, 255, 255, 255 });
+					}
 				}
 			}
 
@@ -1149,6 +1156,11 @@ void CutsceneManager::UpdateText()
 					buttonIndex = hoveredButton;
 					clickedMouse = true;
 				}
+			}
+			else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT))
+			{
+				buttonIndex = -1;
+				clickedMouse = true;
 			}
 
 			if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
@@ -1411,6 +1423,14 @@ void CutsceneManager::UpdateText()
 
 void CutsceneManager::MakeChoice()
 {
+	if (buttonIndex == -1)
+	{
+		commands.numberVariables[buttonResult] = spriteButtons[buttonIndex];
+		waitingForButton = false;
+		inputTimer.Start(inputTimeToWait);
+		return;
+	}
+
 	// Automatically select a choice (if enabled)
 	if (autoChoice > 0)
 	{

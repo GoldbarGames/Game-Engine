@@ -101,6 +101,9 @@ public:
 	int labelIndex = 0;
 	int lineIndex = 0;
 	int commandIndex = 0;
+
+	// TODO: Don't use strings here, but ok for now
+	std::vector<std::string> commands;
 };
 
 struct SceneRepeatData
@@ -218,8 +221,8 @@ public:
 	Color currentColor = { 255, 255, 255, 255 };
 	Game* game = nullptr;
 	std::vector<std::string> choiceIfStatements;
-	std::vector<unsigned int> activeButtons;
-	std::unordered_map<unsigned int, unsigned int> spriteButtons;
+	std::vector<int> activeButtons;
+	std::unordered_map<int, int> spriteButtons;
 
 	bool foundTrueConditionOnBtnWait = false;
 

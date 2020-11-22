@@ -178,6 +178,9 @@ public:
 	int IsSkipping(CutsceneParameters parameters);
 
 	int CreateShader(CutsceneParameters parameters);
+	int ShellCommand(CutsceneParameters parameters);
+
+	int SteamCommand(CutsceneParameters parameters);
 
 	unsigned int key = 0;
 	unsigned int number1 = 0;

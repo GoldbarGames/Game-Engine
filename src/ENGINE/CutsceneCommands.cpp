@@ -22,6 +22,8 @@ struct FuncLUT {
 	FuncList method;
 };
 
+// TODO: Add custom commands from DLLs
+
 std::vector<FuncLUT>cmd_lut = {
 	{"~", &CutsceneCommands::DoNothing},
 	{"add", &CutsceneCommands::AddNumberVariables},
@@ -88,9 +90,11 @@ std::vector<FuncLUT>cmd_lut = {
 	{"setnumvar", &CutsceneCommands::SetNumberVariable },
 	{"setstrvar", &CutsceneCommands::SetStringVariable },
 	{"shader", &CutsceneCommands::CreateShader },
+	{"shell", &CutsceneCommands::ShellCommand },
 	{"skip", &CutsceneCommands::ToggleSkipping },
 	{"spbtn", &CutsceneCommands::SetSpriteButton},
 	{"sprite", &CutsceneCommands::SetSpriteProperty },
+	{"steam", &CutsceneCommands::SteamCommand },
 	{"stdout", &CutsceneCommands::Output },
 	{"stralias", &CutsceneCommands::SetStringAlias },
 	{"sub", &CutsceneCommands::SubtractNumberVariables},
@@ -665,9 +669,24 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 						}
 					}
 
+					// We must break early here if gosub or goto because otherwise it will continue to carry out commands in here
 					for (int i = 0; i < subcommands.size(); i++)
 					{
 						ExecuteCommand(Trim(subcommands[i]));
+
+						// Save commands to be called after gosub
+						if (subcommands[i].find("gosub") != std::string::npos)
+						{
+							for (int k = i + 1; k < subcommands.size(); k++)
+							{
+								manager->gosubStack.back()->commands.emplace_back(Trim(subcommands[k]));
+							}
+							return 0;
+						}
+						
+						// No need to call any commands after goto
+						if (subcommands[i].find("goto") != std::string::npos)
+							return 0;
 					}
 				}
 				else
@@ -762,6 +781,12 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 	}
 
 	manager->FlushCurrentColor();
+
+	// Execute commands on the same line
+	for (int i = 0; i < data.commands.size(); i++)
+	{
+		ExecuteCommand(data.commands[i]);
+	}
 
 	return 0;
 }
@@ -3000,5 +3025,18 @@ int CutsceneCommands::CreateShader(CutsceneParameters parameters)
 
 	customShaders[shaderName] = neww ShaderProgram(ShaderName::Custom, vertexFile.c_str(), fragmentFile.c_str());
 
+	return 0;
+}
+
+// TODO: Including windows.h breaks the engine due to macro conflicts
+// TODO: Also, need a cross-platform solution (not just Windows)
+int CutsceneCommands::ShellCommand(CutsceneParameters parameters)
+{
+	return 0;
+}
+
+// TODO: Implement this
+int CutsceneCommands::SteamCommand(CutsceneParameters parameters)
+{
 	return 0;
 }
