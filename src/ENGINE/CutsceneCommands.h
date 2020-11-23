@@ -42,6 +42,8 @@ public:
 	std::string choiceBGFilePath = "";
 	std::string pathPrefix = "";
 	int randomSeed = 0;
+	bool shouldOutput = false;
+	bool outputCommands = false;
 
 	CutsceneManager* manager = nullptr;
 	CutsceneCommands();

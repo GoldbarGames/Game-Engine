@@ -798,6 +798,7 @@ void CutsceneManager::PlayCutscene(const char* labelName)
 		}			
 
 		lineIndex = -1;
+		commandIndex = -1;
 
 		ReadNextLine();
 	}	
@@ -1042,8 +1043,8 @@ void CutsceneManager::Update()
 
 		if (GetLabelName(labels[labelIndex]) == endTravelLabel)
 		{
-			int test = 0;
 			isTravelling = false;
+			autoChoice = 0;
 		}
 	}
 
@@ -1110,7 +1111,7 @@ void CutsceneManager::UpdateText()
 
 		
 		// We want to get the mouse/keyboard input here		
-		if (inputTimer.HasElapsed())
+		if (inputTimer.HasElapsed() || isTravelling)
 		{
 			//TODO: Get mouse input for picking a choice
 			int mouseX = 0;
@@ -1272,20 +1273,33 @@ void CutsceneManager::UpdateText()
 
 						if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
 						{
-							ReadNextLine();
 
-							static int prevLabelIndex = 0;
-
-							if (labelIndex != prevLabelIndex)
+							// We must call MakeChoice here because it will never be reached otherwise
+							if (waitingForButton)
 							{
-								prevLabelIndex = labelIndex;
-								std::cout << "x Label: " << GetLabelName(labels[labelIndex]) << std::endl;
+								atChoice = true;
+								MakeChoice();
+								commandIndex = 0; // this MUST be here to make sure we don't go backwards
 							}
+							else
+							{
+								ReadNextLine();
+
+								static int prevLabelIndex = 0;
+
+								if (labelIndex != prevLabelIndex)
+								{
+									prevLabelIndex = labelIndex;
+									std::cout << "x Label: " << GetLabelName(labels[labelIndex]) << std::endl;
+								}
+							}
+
 						}
 
 						if (GetLabelName(labels[labelIndex]) == endTravelLabel)
 						{
 							isTravelling = false;
+							autoChoice = 0;
 							printNumber = 1;
 						}
 					}

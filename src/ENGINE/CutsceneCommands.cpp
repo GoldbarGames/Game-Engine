@@ -291,7 +291,10 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 			}
 		}
 
-		//std::cout << "Command: " << command << std::endl;
+		if (outputCommands)
+		{
+			std::cout << "Command: " << command << std::endl;
+		}
 
 		bool commandFound = false;
 		for (const auto& cmd : cmd_lut)
@@ -685,8 +688,8 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 						}
 						
 						// No need to call any commands after goto
-						if (subcommands[i].find("goto") != std::string::npos)
-							return 0;
+						//if (subcommands[i].find("goto") != std::string::npos)
+						//	return 0;
 					}
 				}
 				else
@@ -891,7 +894,10 @@ int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
 
 		// Clear out the list of if-statments for this button press
 		if (parameters[0] != "choice")
+		{
 			manager->choiceIfStatements.clear();
+		}
+			
 	}
 
 	return 0;
@@ -2643,7 +2649,9 @@ int CutsceneCommands::DecrementVariable(CutsceneParameters parameters)
 
 int CutsceneCommands::Output(CutsceneParameters parameters)
 {
-	bool shouldOutput = true;
+#if _DEBUG
+	shouldOutput = true;
+#endif
 
 	if (shouldOutput)
 	{
@@ -2659,6 +2667,15 @@ int CutsceneCommands::Output(CutsceneParameters parameters)
 		{
 			std::cout << "ERROR: Failed to define output type (str/num); cannot log output." << std::endl;
 		}
+	}
+
+	if (parameters[1] == "on")
+	{
+		outputCommands = true;
+	}
+	else if (parameters[1] == "off")
+	{
+		outputCommands = false;
 	}
 
 	return 0;
@@ -2989,18 +3006,25 @@ int CutsceneCommands::RepeatCommand(CutsceneParameters parameters)
 {
 	if (parameters[1] == "end")
 	{
-		SceneRepeatData& rdata = manager->repeatStack.back();
-
-		if ( (++rdata.count) > rdata.end)
+		if (manager->repeatStack.size() > 0)
 		{
-			manager->repeatStack.pop_back();
+			SceneRepeatData& rdata = manager->repeatStack.back();
+
+			if ((++rdata.count) > rdata.end)
+			{
+				manager->repeatStack.pop_back();
+			}
+			else
+			{
+				manager->labelIndex = rdata.label;
+				manager->lineIndex = rdata.line;
+				manager->commandIndex = rdata.command;
+			}
 		}
 		else
 		{
-			manager->labelIndex = rdata.label;
-			manager->lineIndex = rdata.line;
-			manager->commandIndex = rdata.command;
-		}		
+			manager->game->logger.Log("ERROR: Trying to end Repeat outside of scope");
+		}
 	}
 	else
 	{
