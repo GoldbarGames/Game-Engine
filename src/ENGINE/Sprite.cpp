@@ -529,6 +529,7 @@ void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer
 	default:
 		glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(spriteColor));
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer.now);
 		break;
 	}
 

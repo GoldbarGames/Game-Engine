@@ -290,6 +290,11 @@ void Text::AddText(char c, Color color)
 		newGlyph->sprite.filename = c;
 		newGlyph->scale = currentScale;
 
+		if (c == '\n')
+		{
+			newGlyph->sprite.color.a = 0;
+		}
+
 		glyphs.push_back(newGlyph);
 		txt += c;
 	}
@@ -466,16 +471,22 @@ void Text::SetPosition(const float x, const float y)
 		wrapX += width;
 
 		// Handle word wrap when the most recent letter exceeds the wrap width
-		if (wrapWidth > 0 && (wrapX > wrapWidth * 2))
+		if (glyphs[i]->sprite.filename == "\n" || (wrapWidth > 0 && (wrapX > wrapWidth * Camera::MULTIPLIER)))
 		{
 			if (glyphs[i]->sprite.filename != " ")
 			{
 				int endOfLineIndex = i;
-				while (glyphs[endOfLineIndex]->sprite.filename != " ")
+
+				// In order to place the entire word on the next line,
+				// we go backward to find the space before the first letter
+				if (glyphs[i]->sprite.filename != "\n")
 				{
-					endOfLineIndex--;
-					if (endOfLineIndex < 0)
-						break;
+					while (glyphs[endOfLineIndex]->sprite.filename != " ")
+					{
+						endOfLineIndex--;
+						if (endOfLineIndex < 0)
+							break;
+					}
 				}
 
 				// make a record of which glyph index should be the end of this line

@@ -36,6 +36,7 @@ public:
 
 	std::string parseStringValue = "";
 	int parseNumberValue = 0;
+	int lineBreaks = 0;
 
 	const std::string DIGITMASK = "-0123456789";
 
@@ -172,6 +173,7 @@ public:
 
 	int PrintCommand(CutsceneParameters parameters);
 	int EffectCommand(CutsceneParameters parameters);
+	int LineBreakCommand(CutsceneParameters parameters);
 
 	int RepeatCommand(CutsceneParameters parameters);
 	int TravelCommand(CutsceneParameters parameters);

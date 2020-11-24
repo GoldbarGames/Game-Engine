@@ -36,6 +36,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"backlog", &CutsceneCommands::OpenBacklog},
 	{"bg", &CutsceneCommands::LoadBackground },
 	{"bgm", &CutsceneCommands::MusicCommand },
+	{"br", &CutsceneCommands::LineBreakCommand },
 	{"btnwait", &CutsceneCommands::WaitForButton },
 	{"camera", &CutsceneCommands::CameraFunction},
 	{"controls", & CutsceneCommands::ControlBindings},
@@ -200,7 +201,24 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 	std::string token;
 	std::vector<std::string> parameters;
 
-	char delimit = (command.find(',') != std::string::npos) ? ',' : ' ';
+	char delimit = ' ';
+	bool ignoreComma = false;
+	for (int i = 0; i < command.size(); i++)
+	{
+		if (command[i] == ',' && !ignoreComma)
+		{
+			delimit = ',';
+			break;
+		}
+		else if (command[i] == '[')
+		{
+			ignoreComma = true;
+		}
+		else if (command[i] == ']')
+		{
+			ignoreComma = false;
+		}
+	}
 
 	//TODO: Maybe instead of using getline, just check for COMMA or SPACE and accept either one
 	if (delimit == ',')
@@ -351,7 +369,9 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 					bool foundLabel = false;
 					for (int i = 0; i < manager->labels.size(); i++)
 					{
-						if (manager->GetLabelName(manager->labels[i]) == parameters[0])
+						std::string name = manager->GetLabelName(manager->labels[i]);
+						std::cout << name << std::endl;
+						if (name == parameters[0])
 						{
 							foundLabel = true;
 							break;
@@ -890,7 +910,8 @@ int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
 		manager->isCarryingOutCommands = true;
 		manager->isReadingNextLine = true;
 		manager->textbox->isReading = false;
-		manager->textbox->text->SetText("");
+
+		manager->textbox->text->SetText(manager->previousText);
 
 		// Clear out the list of if-statments for this button press
 		if (parameters[0] != "choice")
@@ -2684,6 +2705,13 @@ int CutsceneCommands::Output(CutsceneParameters parameters)
 int CutsceneCommands::FileExist(CutsceneParameters parameters)
 {
 	numberVariables[ParseNumberValue(parameters[1])] = std::filesystem::exists(parameters[2]);
+
+	return 0;
+}
+
+int CutsceneCommands::LineBreakCommand(CutsceneParameters parameters)
+{
+	lineBreaks++;
 
 	return 0;
 }

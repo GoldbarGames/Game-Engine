@@ -155,6 +155,7 @@ class KINJO_API CutsceneManager
 	std::string data = "";
 	std::string currentText = "";
 public:	 
+	std::string previousText = "";
 	bool rclickEnabled = true;
 	bool autoreturn = false;
 	bool autosave = false;

@@ -470,11 +470,13 @@ void CutsceneManager::ParseCutsceneFile()
 				newLabel.lineSize++;
 				lines.emplace_back(newLine);
 
+				//std::cout << "TEXT: " << data.substr(text1, text2 - text1) << std::endl;
+
 				commandsStart.clear();
 				commandsEnd.clear();
 				index++;
 			}
-			else if (data[index] == '@')
+			else if (data[index] == '@' || data[index] == ' ')
 			{
 				// Don't do anything special here, but if we didn't check for this, it'd be seen as a command.
 				// Also, the only difference between @ and \ is that \ clears the text, @ does not.
@@ -485,9 +487,9 @@ void CutsceneManager::ParseCutsceneFile()
 				command1 = index;
 
 				// read until we hit the end of the line
-				bool endOfLine = (data[index] == ';' || data[index] == '@');
 				bool foundColon = (data[index] == ':');
-				while (!endOfLine)
+
+				while (!(data[index] == ';' || data[index] == '`'))
 				{
 					if (index >= data.length())
 					{
@@ -498,12 +500,40 @@ void CutsceneManager::ParseCutsceneFile()
 					{
 						index++;
 					}
-					endOfLine = (data[index] == ';' || data[index] == '@');
+
+					/*
+					char delimit = ' ';
+					bool ignoreColon = false;
+					for (int i = 0; i < command.size(); i++)
+					{
+						if (command[i] == ':' && !ignoreColon)
+						{
+							delimit = ':';
+							break;
+						}
+						else if (command[i] == '[')
+						{
+							ignoreColon = true;
+						}
+						else if (command[i] == ']')
+						{
+							ignoreColon = false;
+						}
+					}*/
+
+					// TODO: Ignore : inside of [ ] or " "
 					if (data[index] == ':')
 						foundColon = true;
 				}
 
 				command2 = index - 1;
+
+				// This is so that we can run commands within a line of text,
+				// the commands must be followed by an @
+				if (data[index-1] == '@')
+				{
+					index--;
+				}
 
 				index++;
 
@@ -543,6 +573,7 @@ void CutsceneManager::ParseCutsceneFile()
 									commandsStart.emplace_back(commandPart1);
 									commandsEnd.emplace_back(commandPart2);
 									commandPart2++; // go past the :
+									//std::cout << "COMMAND: " << data.substr(commandPart1, commandPart2 - commandPart1) << std::endl;
 								}
 								commandPart1 = commandPart2 + 1; // the + 1 is to remove leading space
 							}
@@ -839,7 +870,7 @@ bool CutsceneManager::PopSceneDataFromStack(SceneData& data)
 		lineIndex = data.lineIndex;
 		commandIndex = data.commandIndex;
 		letterIndex = 0;
-		currentText = data.lineText;
+		//currentText = data.lineText;
 
 		std::cout << "POP LABEL " << data.labelName << std::endl;
 
@@ -1290,7 +1321,7 @@ void CutsceneManager::UpdateText()
 								if (labelIndex != prevLabelIndex)
 								{
 									prevLabelIndex = labelIndex;
-									std::cout << "x Label: " << GetLabelName(labels[labelIndex]) << std::endl;
+									std::cout << "Label: " << GetLabelName(labels[labelIndex]) << std::endl;
 								}
 							}
 
@@ -1352,6 +1383,16 @@ void CutsceneManager::UpdateText()
 					return;
 				}
 
+				if (commands.lineBreaks > 0)
+				{
+					for (int i = 0; i < commands.lineBreaks; i++)
+					{
+						textbox->UpdateText('\n', currentColor);
+						textbox->UpdateText('\n', currentColor);
+					}
+					commands.lineBreaks = 0;
+				}
+
 				int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
 				std::string result = ParseText(data, newIndex, currentColor, textbox->text);
 				letterIndex = newIndex - lines[currentLabel->lineStart + lineIndex].textStart;
@@ -1373,9 +1414,6 @@ void CutsceneManager::UpdateText()
 					}
 					else
 					{
-						//char c = data[newIndex+1];
-						//textbox->SetCursorPosition(data[newIndex+1] != '@');
-
 						textbox->UpdateText(result[0], currentColor);
 					}				
 				}
@@ -1385,6 +1423,7 @@ void CutsceneManager::UpdateText()
 				// Reached the 'click to continue' point
 				if (letterIndex >= lines[currentLabel->lineStart + lineIndex].GetTextLength())
 				{
+					previousText = currentText;
 					currentText = textbox->text->txt;
 					isReadingNextLine = false;
 					displayAllText = false;
@@ -1402,24 +1441,6 @@ void CutsceneManager::UpdateText()
 
 					return;
 				}
-				else if (data[letterIndex] == '@')
-				{
-					currentText = textbox->text->txt;
-					readingSameLine = true;
-					isReadingNextLine = false;
-					displayAllText = false;
-					clickedMidPage = false;
-
-					textbox->SetCursorPosition(false);
-					//textbox->clickToContinue->Update(*game);
-
-					if (automaticallyRead)
-					{
-						autoTimeToWait = (textbox->text->glyphs.size() * autoTimeToWaitPerGlyph);
-						autoReaderTimer.Start(autoTimeToWait);
-					}
-				}
-
 
 			} while (displayAllText);
 
