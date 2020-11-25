@@ -163,7 +163,7 @@ void Textbox::UpdateText(const std::string& newText, const Color& color)
 	text->SetText(newText, color, boxWidth);
 	const int boxOffsetX = 120;
 	const int boxOffsetY = 1070;
-	text->SetPosition(boxOffsetX, boxOffsetY);
+	//text->SetPosition(boxOffsetX, boxOffsetY);
 	clickToContinue->SetPosition(Vector2(boxOffsetX, boxOffsetY));
 	//text->SetText(newText, text->textColor, boxWidth);
 

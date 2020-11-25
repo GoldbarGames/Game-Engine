@@ -38,6 +38,7 @@ public:
 	Timer animationTimer;
 	int animatorType = 0;
 	AnimState* currentState = nullptr;
+	bool shouldUpdate = true;
 
 	void SetState(const char* state);
 	void OnEnter(AnimState state);

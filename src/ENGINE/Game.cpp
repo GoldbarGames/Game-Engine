@@ -1438,6 +1438,21 @@ void Game::ResetLevel()
 	editor->InitLevelFromFile(currentLevel);
 }
 
+void Game::SetFullScreen(bool setFull)
+{
+	if (setFull)
+	{
+		//TODO: Should we figure out how to use FULLSCREEN_DESKTOP?
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+	}
+	else
+	{
+		SDL_SetWindowFullscreen(window, 0);
+	}	
+
+	isFullscreen = setFull;
+}
+
 bool Game::HandleEvent(SDL_Event& event)
 {
 	bool quit = false;

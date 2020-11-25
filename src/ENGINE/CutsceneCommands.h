@@ -51,7 +51,7 @@ public:
 	~CutsceneCommands();
 
 	//TODO: Make parameter const
-	bool ExecuteCommand(std::string command);
+	int ExecuteCommand(std::string command);
 	
 	// Load graphics
 	int LoadSprite(CutsceneParameters parameters);

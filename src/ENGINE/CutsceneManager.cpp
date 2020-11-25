@@ -1056,12 +1056,6 @@ void CutsceneManager::Update()
 			image->Update(*game);
 	}
 
-	for (auto const& [key, image] : animatedImages)
-	{
-		if (image != nullptr)
-			image->Update(*game);
-	}
-
 	if (isTravelling)
 	{
 		static int prevLabelIndex = 0;
@@ -1500,13 +1494,21 @@ void CutsceneManager::MakeChoice()
 		}
 		activeButtons.clear();
 
+		int result = -198;
+
 		// Evaluate if statements
 		if (choiceIfStatements.size() > 0)
 		{
 			for (int i = 0; i < choiceIfStatements.size(); i++)
 			{
-				commands.ExecuteCommand(choiceIfStatements[i]);
+				result = std::max(commands.ExecuteCommand(choiceIfStatements[i]), result);
 			}
+		}
+
+		// TODO: This is not actually reached when clicking buttons, defeating the purpose of writing it
+		if (result < 0)
+		{
+			game->logger.Log("ERROR: Button was pressed, but satisfied no conditions!");
 		}
 	}
 

@@ -258,6 +258,8 @@ public:
 
 	std::vector<std::string> ReadStringsFromFile(const std::string& filepath);
 
+	void SetFullScreen(bool setFull);
+
 	void UpdateTextInput();
 	void StartTextInput(const std::string& reason);
 	void StopTextInput();

@@ -147,6 +147,9 @@ void Animator::OnExit(AnimState state)
 
 void Animator::Update(Entity& entity)
 {
+	if (!shouldUpdate)
+		return;
+
 	// If conditions met, set current state to next state
 	// Else, stay in current state
 
@@ -174,6 +177,17 @@ void Animator::Update(Entity& entity)
 					if (mapParamsBool[info->mapKeysBool[condition->variable]] == condition->expectedValue)
 					{
 						// do nothing
+					}
+					else
+					{
+						allConditionsTrue = false;
+					}
+				}
+				else if (condition->check == "timeout")
+				{
+					if (animationTimer.HasElapsed())
+					{
+
 					}
 					else
 					{
@@ -231,6 +245,9 @@ int Animator::GetSpeed()
 void Animator::SetState(const char* state)
 {
 	currentState = animStates[state];
+
+	// Always start the timer equal to the speed of the state
+	animationTimer.Start(currentState->speed);
 
 	// TODO: If we're going into the same state, don't reset the current frame
 	//if (previousState != nullptr && previousState->name == state)

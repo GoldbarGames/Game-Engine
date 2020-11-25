@@ -173,12 +173,12 @@ CutsceneCommands::~CutsceneCommands()
 	}
 }
 
-bool CutsceneCommands::ExecuteCommand(std::string command)
+int CutsceneCommands::ExecuteCommand(std::string command)
 {
 	Timer cTimer;
 	cTimer.Start(1);
 
-	bool finished = true;
+	int finished = 1;
 	// Replace all the bracketed spaces with underscores
 	bool shouldReplace = false;
 	for (int i = 0; i < command.size(); i++)
@@ -288,10 +288,7 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 				}
 			}
 
-			if (replaced)
-			{
-				Trim(parameters[i]);
-			}
+			Trim(parameters[i]);
 			
 		}
 
@@ -334,7 +331,11 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 						}
 						else if (errorCode == -199) //TODO: Use enums
 						{
-							finished = false;
+							finished = 0;
+						}
+						else if (errorCode == -198)
+						{
+							finished = 2;
 						}
 						else
 						{
@@ -370,7 +371,7 @@ bool CutsceneCommands::ExecuteCommand(std::string command)
 					for (int i = 0; i < manager->labels.size(); i++)
 					{
 						std::string name = manager->GetLabelName(manager->labels[i]);
-						std::cout << name << std::endl;
+						//std::cout << name << std::endl;
 						if (name == parameters[0])
 						{
 							foundLabel = true;
@@ -729,7 +730,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		}
 		else // else exit, do nothing
 		{
-			return 0;
+			return -198;
 		}
 
 	} while (!conditionIsTrue);
@@ -912,6 +913,7 @@ int CutsceneCommands::WaitForButton(CutsceneParameters parameters)
 		manager->textbox->isReading = false;
 
 		manager->textbox->text->SetText(manager->previousText);
+		manager->currentText = "";
 
 		// Clear out the list of if-statments for this button press
 		if (parameters[0] != "choice")
@@ -987,21 +989,14 @@ int CutsceneCommands::ResetGame(CutsceneParameters parameters)
 
 int CutsceneCommands::SaveGame(CutsceneParameters parameters)
 {
-	//TODO: Save all of these to a file:
-
-	// Scene data, string/number variables, random seed, object information, user defined functions and aliases, settings, etc.
-	// Possibly could simplify this by storing some things that won't change in a config file (functions, aliases)
-	// For example, on the game's startup we load the config file and read it in
-	// Then, when the player loads a save file, we don't have to deal with the stuff in the config file
-
 	// savegame saves/ file1.sav
 	// savegame file1.sav
 	// savegame
 
 	if (parameters.size() > 2)
-		manager->SaveGame(parameters[2].c_str(), parameters[1].c_str());
+		manager->SaveGame(ParseStringValue(parameters[2]).c_str(), ParseStringValue(parameters[1]).c_str());
 	else if (parameters.size() > 1)
-		manager->SaveGame(parameters[1].c_str());
+		manager->SaveGame(ParseStringValue(parameters[1]).c_str());
 	else
 		manager->SaveGame("file1.sav");
 
@@ -1065,7 +1060,7 @@ int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 
 	// If global variable, save change to file
 	if (key >= manager->globalStart)
-		manager->SaveGlobalVariable(key, stringVariables[key], true);
+		manager->SaveGlobalVariable(key, stringVariables[key], false);
 
 	return 0;
 }
@@ -2419,6 +2414,14 @@ int CutsceneCommands::WindowFunction(CutsceneParameters parameters)
 			manager->game->windowTitle = ParseStringValue(parameters[2]);
 			SDL_SetWindowTitle(manager->game->window, manager->game->windowTitle.c_str());
 		}
+		else if (parameters[1] == "isfull")
+		{
+			MoveVariables({ "mov", parameters[2], std::to_string(manager->game->isFullscreen) });
+		}
+		else if (parameters[1] == "setfull")
+		{
+			manager->game->SetFullScreen(std::stoi(parameters[2]));
+		}
 	}
 
 	return 0;
@@ -2704,7 +2707,8 @@ int CutsceneCommands::Output(CutsceneParameters parameters)
 
 int CutsceneCommands::FileExist(CutsceneParameters parameters)
 {
-	numberVariables[ParseNumberValue(parameters[1])] = std::filesystem::exists(parameters[2]);
+	std::string filename = ParseStringValue(parameters[2]);
+	MoveVariables({ "mov", parameters[1], std::to_string(std::filesystem::exists(filename)) });
 
 	return 0;
 }
@@ -2870,18 +2874,29 @@ int CutsceneCommands::TravelCommand(CutsceneParameters parameters)
 
 int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 {
-	const std::string animationName = parameters[1];
+	static std::unordered_map<std::string, std::string> args;
+	const int entityIndex = ParseNumberValue(parameters[1]);
 
-	if (manager->animatedImages.count(animationName) != 1)
+	if (parameters[1] == "args")
 	{
-		manager->animatedImages[animationName] = neww Entity(Vector2(0, 0));
+		if (parameters[2] == "clear")
+		{
+			args.clear();
+		}
+		else // animation args character but
+		{
+			args[ParseStringValue(parameters[2])] = ParseStringValue(parameters[3]);
+		}
+
+		return 0;
 	}
 
+	// TODO: Parse all these parameters for variables
 	if (parameters[2] == "state")
 	{
 		int index = 3;
 		std::string stateName = parameters[index++];
-		AnimState* state = manager->animatedImages[animationName]->GetAnimator()->GetState(stateName);		
+		AnimState* state = manager->images[entityIndex]->GetAnimator()->GetState(stateName);
 
 		int stateSpeed = std::stoi(parameters[index++]);
 		int spriteStartFrame = std::stoi(parameters[index++]);
@@ -2903,6 +2918,20 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 		state->pivotX = spritePivotX;
 		state->pivotY = spritePivotY;
 	}
+	else if (parameters[2] == "disable")
+	{
+		if (manager->images[entityIndex]->GetAnimator() != nullptr)
+		{
+			manager->images[entityIndex]->GetAnimator()->shouldUpdate = false;
+		}
+	}
+	else if (parameters[2] == "enable")
+	{
+		if (manager->images[entityIndex]->GetAnimator() != nullptr)
+		{
+			manager->images[entityIndex]->GetAnimator()->shouldUpdate = true;
+		}
+	}
 	else if (parameters[2] == "set")
 	{
 		//TODO: This will never work as long as the state machine is active
@@ -2910,26 +2939,25 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 		// it will just flow back into whatever state it was in before (or can get to)
 		if (parameters[3] == "state") 
 		{
-			manager->animatedImages[animationName]->GetAnimator()->SetState(parameters[4].c_str());
-			manager->animatedImages[animationName]->GetAnimator()->Update(*manager->animatedImages[animationName]);
+			manager->images[entityIndex]->GetAnimator()->SetState(parameters[4].c_str());
+			manager->images[entityIndex]->GetAnimator()->Update(*manager->images[entityIndex]);
 		}
 		else if (parameters[3] == "bool")
 		{
-			manager->animatedImages[animationName]->GetAnimator()->SetBool(parameters[4].c_str(), parameters[5] == "true");
-			manager->animatedImages[animationName]->GetAnimator()->Update(*manager->animatedImages[animationName]);
+			manager->images[entityIndex]->GetAnimator()->SetBool(parameters[4].c_str(), parameters[5] == "true");
+			manager->images[entityIndex]->GetAnimator()->Update(*manager->images[entityIndex]);
 		}
-		else if (parameters[3] == "machine")
+		else if (parameters[3] == "data")
 		{
-			std::vector<AnimState*> animStates = manager->game->spriteManager.ReadAnimData(parameters[4]);
+			// TODO: We don't want to constantly make new animators, this will cause memory leaks!
 
-			Animator* anim1 = neww Animator("cursor", animStates, parameters[5]);
-			anim1->SetBool("endOfPage", false);
+			std::vector<AnimState*> animStates = manager->game->spriteManager.ReadAnimData(parameters[5], args);		
+			Animator* anim1 = neww Animator(parameters[4] + "/" + parameters[4], animStates, parameters[6]);
 
-			manager->animatedImages[animationName]->SetAnimator(*anim1);
-			manager->animatedImages[animationName]->GetAnimator()->Update(*manager->animatedImages[animationName]);
-			manager->animatedImages[animationName]->SetScale(Vector2(0.5f, 0.5f));
-			manager->animatedImages[animationName]->GetSprite()->keepPositionRelativeToCamera = true;
-			manager->animatedImages[animationName]->GetSprite()->keepScaleRelativeToCamera = true;
+			manager->images[entityIndex]->SetAnimator(*anim1);
+			manager->images[entityIndex]->GetAnimator()->Update(*manager->images[entityIndex]);
+			manager->images[entityIndex]->GetSprite()->keepPositionRelativeToCamera = true;
+			manager->images[entityIndex]->GetSprite()->keepScaleRelativeToCamera = true;
 		}
 	}
 

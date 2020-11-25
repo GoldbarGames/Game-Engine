@@ -153,8 +153,8 @@ class KINJO_API CutsceneManager
 {
 	std::string language = "english";
 	std::string data = "";
-	std::string currentText = "";
 public:	 
+	std::string currentText = "";
 	std::string previousText = "";
 	bool rclickEnabled = true;
 	bool autoreturn = false;
