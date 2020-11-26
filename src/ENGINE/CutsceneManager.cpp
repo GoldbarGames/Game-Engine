@@ -260,10 +260,8 @@ void CutsceneManager::CheckKeys()
 				if (backlogIndex >= backlog.size())
 				{
 					readingBacklog = false;
-					textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart+lineIndex]), currentColor);
-					textbox->text->SetText(currentText, currentColor);
-
-					textbox->SetCursorPosition(letterIndex < lines[currentLabel->lineStart+lineIndex].GetTextLength());
+					isReadingNextLine = true;
+					textbox->text->SetText(beforeBacklogText);
 				}
 				else
 				{
@@ -919,23 +917,25 @@ void CutsceneManager::ReadNextLine()
 			seenLabelsToMostRecentLine[labelIndex] = lineIndex;
 		}			
 
-		//TODO: Make sure to save the backlog when we save the game
-		if (lineIndex >= 0 && labelIndex >= 0)
-		{
-			Vector2 lastPos = textbox->text->GetLastGlyphPosition();
-			backlog.push_back(new BacklogData(labelIndex, lineIndex, textbox->text->txt.c_str(), lastPos.x, lastPos.y));
-		}
-
-		if (backlog.size() > backlogMaxSize)
-		{
-			delete_it(backlog[0]);
-			backlog.erase(backlog.begin());
-		}
-		
 		// Only clear the text (and name) if we encounter a slash
 		int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
 		if (data[newIndex + 1] == '\\')
 		{
+			//TODO: Make sure to save the backlog when we save the game		
+
+			// Before we clear the textbox, add to the backlog
+			// (We save strings because the text might have commands in between. 
+			// TODO: Can we do better?)
+			backlog.push_back(new BacklogData(currentText, textbox->speaker->txt));
+
+			// If backlog is full, remove the oldest entry
+			if (backlog.size() > backlogMaxSize)
+			{
+				delete_it(backlog[0]);
+				backlog.erase(backlog.begin());
+			}
+
+			// Clear the textbox
 			currentText = "";
 			textbox->text->SetText(currentText);
 			textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex + 1]), currentColor);
@@ -1002,25 +1002,13 @@ void CutsceneManager::FlushCurrentColor()
 
 void CutsceneManager::ReadBacklog()
 {	
-	//Color color = namesToColors[label->lines[lineIndex].speaker];
+	
 	if (backlogIndex < backlog.size())
 	{
-		if (backlog[backlogIndex]->labelIndex < labels.size())
-		{
-			SceneLabel* label = &labels[backlog[backlogIndex]->labelIndex];
-			if (label != nullptr && backlog[backlogIndex]->lineIndex < label->lineSize)
-			{
-				SceneLine* line = &(lines[label->lineStart + backlog[backlogIndex]->lineIndex]);
-				textbox->speaker->SetText(GetLineSpeaker(line), backlogColor);
-				textbox->text->SetText(GetLineText(line), backlogColor);
-
-				textbox->SetCursorPosition(true, Vector2(backlog[backlogIndex]->lastX, backlog[backlogIndex]->lastY));
-			}
-		}	
-		else
-		{
-			textbox->text->SetText(backlog[backlogIndex]->text, backlogColor);
-		}		
+		//Color color = namesToColors[label->lines[lineIndex].speaker];
+		textbox->speaker->SetText(backlog[backlogIndex]->speaker, backlogColor);
+		textbox->text->SetText(backlog[backlogIndex]->text, backlogColor);
+		textbox->SetCursorPosition(true);
 	}
 }
 
@@ -1366,6 +1354,12 @@ void CutsceneManager::UpdateText()
 			textbox->shouldRender = true;
 
 			CheckKeysWhileReading();
+
+			if (readingBacklog)
+			{
+				isReadingNextLine = false;
+				return;
+			}
 
 			bool displayAllText = (msDelayBetweenGlyphs == 0) || clickedMidPage;
 
@@ -1982,7 +1976,9 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 
 				if (entity != nullptr)
 				{
-					if (entity->etype == "text")
+					std::string fname = entity->GetSprite()->filename;
+
+					if (entity->etype == "text" || fname == "text")
 					{
 						//TODO: Store font, size, style, etc. (for each letter)
 						Text* text = static_cast<Text*>(entity);
@@ -2006,21 +2002,19 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 							<< " "
 							<< text->GetTextString()
 							<< " "
-							<< text->textColor.r
+							<< (int)text->textColor.r
 							<< " "
-							<< text->textColor.g
+							<< (int)text->textColor.g
 							<< " "
-							<< text->textColor.b
+							<< (int)text->textColor.b
 							<< " "
-							<< text->textColor.a
+							<< (int)text->textColor.a
 							<< std::endl;
 					}
 					else
 					{
-						std::string fname = entity->GetSprite()->filename;
-
-						if (fname.size() < 1)
-							fname = "None";
+						if (fname.size() < 1 || fname == " ")
+							fname = "image";
 
 						fout << var.first  // key
 							<< " "
@@ -2052,26 +2046,26 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 				{
 					fout << var.first  // key
 						<< " "
-						<< var.second.r
+						<< (int)var.second.r
 						<< " "
-						<< var.second.g
+						<< (int)var.second.g
 						<< " "
-						<< var.second.b
+						<< (int)var.second.b
 						<< " "
-						<< var.second.a
+						<< (int)var.second.a
 						<< std::endl;
 				}
 				else
 				{
 					fout << "_"  // key
 						<< " "
-						<< var.second.r
+						<< (int)var.second.r
 						<< " "
-						<< var.second.g
+						<< (int)var.second.g
 						<< " "
-						<< var.second.b
+						<< (int)var.second.b
 						<< " "
-						<< var.second.a
+						<< (int)var.second.a
 						<< std::endl;
 				}
 			}

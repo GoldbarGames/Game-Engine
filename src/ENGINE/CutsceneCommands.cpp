@@ -1005,12 +1005,10 @@ int CutsceneCommands::SaveGame(CutsceneParameters parameters)
 
 int CutsceneCommands::LoadGame(CutsceneParameters parameters)
 {
-	//TODO: Load everything that was saved from a file
-
 	if (parameters.size() > 2)
-		manager->LoadGame(parameters[2].c_str(), parameters[1].c_str());
+		manager->LoadGame(ParseStringValue(parameters[2]).c_str(), ParseStringValue(parameters[1]).c_str());
 	else if (parameters.size() > 1)
-		manager->LoadGame(parameters[1].c_str());
+		manager->LoadGame(ParseStringValue(parameters[1]).c_str());
 	else
 		manager->LoadGame("file1.sav");
 
@@ -1024,7 +1022,7 @@ int CutsceneCommands::LoadGame(CutsceneParameters parameters)
 // otherwise, if it is a string, get the number associated with the string,
 // or if it is a number, just use the number
 
-//TODO: Should be able to add two strings together
+// Adds two strings together
 int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 {
 	if (parameters[1][0] == '$')
@@ -1586,24 +1584,49 @@ int CutsceneCommands::LoadTextFromSaveFile(CutsceneParameters parameters)
 
 	Vector2 scale = Vector2(std::stoi(parameters[7]), std::stoi(parameters[8]));
 
-	std::string text = parameters[9];
+	std::string text = "";
 
-	int index = 10;
-	if (text[0] == '[')
-	{		
-		while (parameters[index][0] != ']')
+	int paramIndex = 9;
+	int subIndex = 0;
+
+	bool foundStart = false;
+	bool foundEnd = false;
+
+	while (!foundStart)
+	{
+		foundStart = (parameters[paramIndex][subIndex] == '[');
+		subIndex++;
+		if (subIndex > parameters[paramIndex].size())
 		{
-			text += " " + parameters[index];
-			index++;
-		}		
+			paramIndex++;
+			subIndex = 0;
+		}
 	}
-	index++;
+
+	while (!foundEnd)
+	{
+		if (parameters[paramIndex][subIndex] != '\0'
+			&& parameters[paramIndex][subIndex] != ']')
+		{
+			text += parameters[paramIndex][subIndex];
+		}			
+
+		foundEnd = (parameters[paramIndex][subIndex] == ']');
+		subIndex++;
+		if (subIndex > parameters[paramIndex].size())
+		{
+			paramIndex++;
+			subIndex = 0;
+		}
+	}
+
+	paramIndex++;
 
 	Color textColor = {
-		(uint8_t)std::stoi(parameters[index]),
-		(uint8_t)std::stoi(parameters[index + 1]),
-		(uint8_t)std::stoi(parameters[index + 2]),
-		(uint8_t)std::stoi(parameters[index + 3]),
+		(uint8_t)std::stoi(parameters[paramIndex]),
+		(uint8_t)std::stoi(parameters[paramIndex + 1]),
+		(uint8_t)std::stoi(parameters[paramIndex + 2]),
+		(uint8_t)std::stoi(parameters[paramIndex + 3]),
 	};
 
 	if (manager->images[imageNumber] != nullptr)
@@ -1672,6 +1695,7 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	manager->images[imageNumber]->drawOrder = imageNumber;
 	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
 	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
+	manager->images[imageNumber]->GetSprite()->filename = "text";
 	manager->images[imageNumber]->CreateCollider(0, 0, newText->GetTextWidth(), newText->GetTextHeight());
 
 	// Color the text yellow when we hover the mouse over it or select with keyboard
@@ -2086,9 +2110,13 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 		}
 		else if (parameters[1] == "open")
 		{
-			manager->readingBacklog = true;
-			manager->backlogIndex = manager->backlog.size() - 1;
-			manager->ReadBacklog();
+			if (manager->backlog.size() > 0)
+			{
+				manager->readingBacklog = true;
+				manager->backlogIndex = manager->backlog.size() - 1;
+				manager->beforeBacklogText = manager->previousText;
+				manager->ReadBacklog();
+			}
 		}
 		else if (parameters[1] == "enable")
 		{

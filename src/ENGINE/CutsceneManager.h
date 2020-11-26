@@ -118,18 +118,12 @@ struct SceneRepeatData
 struct BacklogData
 {
 	std::string text = "";
-	int labelIndex = 0;
-	int lineIndex = 0;	
-	float lastX = 0;
-	float lastY = 0;
+	std::string speaker = "";
 
-	BacklogData(int l, int i, const char* t, float lx = 0, float ly = 0)
+	BacklogData(const std::string& t, const std::string& s)
 	{
-		labelIndex = l;
-		lineIndex = i;
 		text = t;
-		lastX = lx;
-		lastY = ly;
+		speaker = s;
 	}
 };
 
@@ -156,6 +150,7 @@ class KINJO_API CutsceneManager
 public:	 
 	std::string currentText = "";
 	std::string previousText = "";
+	std::string beforeBacklogText = "";
 	bool rclickEnabled = true;
 	bool autoreturn = false;
 	bool autosave = false;

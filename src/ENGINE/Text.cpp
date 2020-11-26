@@ -217,6 +217,11 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 			newGlyph->sprite.filename = txt[i];
 			newGlyph->scale = currentScale;
 
+			if (txt[i] == '\n')
+			{
+				newGlyph->sprite.color.a = 0;
+			}
+
 			glyphs.push_back(newGlyph);
 
 			// When GetSprite() is called, get the first glyph in the text
