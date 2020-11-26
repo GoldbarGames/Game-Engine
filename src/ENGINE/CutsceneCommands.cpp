@@ -29,6 +29,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"add", &CutsceneCommands::AddNumberVariables},
 	{"align", &CutsceneCommands::AlignCommand},
 	{"animation", &CutsceneCommands::AnimationCommand},
+	{"array", &CutsceneCommands::CreateArrayVariable },
 	{"autochoice", &CutsceneCommands::AutoChoice },
 	{"automode", &CutsceneCommands::AutoMode},
 	{"autoreturn", &CutsceneCommands::AutoReturn},
@@ -514,6 +515,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		manager->choiceIfStatements.push_back(statement);
 	}
 
+
 	do
 	{
 		leftHandIsNumber = false;
@@ -543,6 +545,17 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 			leftHandIsNumber = true;
 			leftValueNum = ParseNumberValue(word);
 			break;
+		case '?':
+			if (GetArray(parameters[1]))
+			{
+				leftHandIsNumber = true;
+				leftValueNum = arrayVariables[arrayIndex][vectorIndex];
+			}
+			else
+			{
+				return -1;
+			}
+			break;
 		default:
 			if (parameters[index].find_first_not_of(DIGITMASK) == std::string::npos)
 			{
@@ -569,6 +582,17 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		case '%': // number variable
 			rightHandIsNumber = true;
 			rightValueNum = ParseNumberValue(word);
+			break;
+		case '?':
+			if (GetArray(parameters[1]))
+			{
+				rightHandIsNumber = true;
+				rightValueNum = arrayVariables[arrayIndex][vectorIndex];
+			}
+			else
+			{
+				return -1;
+			}
 			break;
 		default:
 			if (parameters[index].find_first_not_of(DIGITMASK) == std::string::npos)
@@ -1258,12 +1282,130 @@ int CutsceneCommands::MoveVariables(CutsceneParameters parameters)
 		cacheParseNumbers.erase(parameters[1]); // remove %var (with % sign) from cache
 		SetNumberVariable({ "mov", parameters[1].substr(1, parameters[1].size() - 1), parameters[2] });
 	}
+	else if (parameters[1][0] == '?')
+	{
+		// mov ?j_up[3][1] %var1
+
+		if (GetArray(parameters[1]))
+		{
+			arrayVariables[arrayIndex][vectorIndex] = ParseNumberValue(parameters[2]);
+			// TODO: If global variable, save change to file
+			//if (key >= manager->globalStart)
+			//	manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
+		}
+		else
+		{
+			return -1;
+		}
+	}
 	else
 	{
 		return -1;
 	}
 
 	return 0;
+}
+
+bool CutsceneCommands::GetArray(const std::string& parameter)
+{
+	arrayIndex = 0;
+	vectorIndex = 0;
+
+	bool readingInName = true;
+
+	// interrogate 0 2
+
+	std::vector<std::string> parameters;
+	std::istringstream ss(parameter);
+	std::string token;	
+
+	while (std::getline(ss, token, ' '))
+	{
+		if (token != "")
+		{
+			parameters.push_back(token);
+		}
+	}
+
+	std::string arrayName = parameters[0].substr(1, parameters[0].size() - 1);
+	arrayIndex = GetNumAlias(arrayName);
+	if (parameters.size() > 2)
+	{
+		vectorIndex = (ParseNumberValue(parameters[1]) * arrayNumbersPerSlot[arrayIndex]) + ParseNumberValue(parameters[2]);
+	}
+	else
+	{
+		vectorIndex = ParseNumberValue(parameters[1]);
+	}
+
+
+	/*
+
+	int dimensions = std::count(parameter.begin(), parameter.end(), '[');
+	int currentDimension = 0;
+
+	for (int i = 1; i < parameter.size(); i++)
+	{
+		if (parameter[i] == '[')
+		{
+			readingInName = false;
+		}
+		else if (readingInName)
+		{
+			arrayName += parameter[i];
+		}
+	}
+
+	int arrayIndex = GetNumAlias(arrayName);
+	int numDimensions = arrayNumbersPerSlot[arrayIndex] > 0 ? 2 : 1;
+
+	// If this array has more than one dimension...
+	// TODO: Refactor and optimize this!
+	std::vector<int> coordinates;
+	std::string coord = "";
+	bool readingInNumber = false;
+	int seenDimensions = 0;
+	int i = 0;
+
+	while (seenDimensions < numDimensions)
+	{
+		if (parameter[i] == '[')
+		{
+			readingInNumber = true;
+		}
+		else if (parameter[i] == ']')
+		{
+			coordinates.emplace_back(std::stoi(coord));
+			readingInNumber = false;
+			seenDimensions++;
+		}
+		else if (readingInNumber)
+		{
+			coord += parameter[i];
+		}
+
+		i++;
+
+		if (i >= parameter.size())
+		{
+			manager->game->logger.Log("ERROR: Array " + parameter + " syntax error");
+			return false;
+		}
+	}
+
+	int vectorIndex = 0;
+
+	if (numDimensions == 1)
+	{
+		vectorIndex = coordinates[0];
+	}
+	else
+	{
+		vectorIndex = coordinates[0] * coordinates[1];
+	}
+	*/
+
+	return true;
 }
 
 int CutsceneCommands::SetNumberVariable(CutsceneParameters parameters)
@@ -1427,6 +1569,7 @@ int CutsceneCommands::GetNumAlias(const std::string& key)
 	}
 	else
 	{
+		// TODO: The map contains unsigned ints, but they are returned signed!
 		return numalias[key];
 	}
 }
@@ -2715,6 +2858,17 @@ int CutsceneCommands::Output(CutsceneParameters parameters)
 		{
 			std::cout << parameters[2] << ": " << ParseNumberValue(parameters[2]) << std::endl;
 		}
+		else if (parameters[1] == "arr")
+		{
+			if (GetArray(parameters[2]))
+			{
+				std::cout << parameters[2] << ": " << arrayVariables[arrayIndex][vectorIndex] << std::endl;
+			}
+			else
+			{
+				return -1;
+			}
+		}
 		else
 		{
 			std::cout << "ERROR: Failed to define output type (str/num); cannot log output." << std::endl;
@@ -3119,6 +3273,34 @@ int CutsceneCommands::RepeatCommand(CutsceneParameters parameters)
 		rdata.count = 1;
 		rdata.end = std::stoi(parameters[1]);
 		manager->repeatStack.push_back(rdata);
+	}	
+
+	return 0;
+}
+
+int CutsceneCommands::CreateArrayVariable(CutsceneParameters parameters)
+{
+	// numalias j_up,2500
+	// dim j_up 35 2
+
+	unsigned int index = ParseNumberValue(parameters[1]);
+
+	// Is this a 2D array?
+	if (parameters.size() > 3)
+	{
+		int sizeSlots = ParseNumberValue(parameters[2]);
+		int numbersPerSlot = ParseNumberValue(parameters[3]);
+
+		std::vector<int> numbers = std::vector<int>(sizeSlots * numbersPerSlot, 0);
+		arrayVariables[index] = numbers;
+		arrayNumbersPerSlot[index] = numbersPerSlot;
+	}
+	else // just 1D
+	{
+		int size = ParseNumberValue(parameters[2]);
+		std::vector<int> numbers = std::vector<int>(size, 0);
+		arrayVariables[index] = numbers;
+		arrayNumbersPerSlot[index] = 0;
 	}	
 
 	return 0;

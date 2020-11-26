@@ -23,8 +23,24 @@ class KINJO_API CutsceneCommands
 public:
 	std::unordered_map<std::string, std::string> stralias;
 	std::unordered_map<std::string, unsigned int> numalias;
+
 	std::unordered_map<unsigned int, std::string> stringVariables;
 	std::unordered_map<unsigned int, int> numberVariables;
+	std::unordered_map<unsigned int, std::vector<int>> arrayVariables;
+	std::unordered_map<unsigned int, unsigned int> arrayNumbersPerSlot;
+
+	// Imagine we want to create an array of 10 things, with a key of 123
+	// Slot #123 has 10 things in it: x x x x x x x x x x
+
+	// Imagine instead that slot #123 should have 4 slots that each contain 5 things in them.
+	// Slot #123 has 20 things: a a a a a b b b b b c c c (c) c d d d d d
+
+	// So let's pretend we want to get the value of [2][3] from slot #123
+	// 5 * 2 = 10, + 3 = 13
+	// numbersPerSlot * desiredSlot + desiredThing
+
+	// TODO: N-dimensional arrays > 2 ?
+
 	std::vector<UserDefinedFunction*> userDefinedFunctions;	
 
 	// When you press the button, jump to the corresponding label
@@ -45,6 +61,9 @@ public:
 	int randomSeed = 0;
 	bool shouldOutput = false;
 	bool outputCommands = false;
+
+	int arrayIndex = 0;
+	int vectorIndex = 0;
 
 	CutsceneManager* manager = nullptr;
 	CutsceneCommands();
@@ -86,6 +105,9 @@ public:
 	std::string GetStringVariable(const unsigned int key);
 	std::string GetStringAlias(const std::string& key);
 	int GetNumAlias(const std::string& key);
+
+	int CreateArrayVariable(CutsceneParameters parameters);
+	bool GetArray(const std::string& parameter);
 
 	int ConcatenateStringVariables(CutsceneParameters parameters);
 
