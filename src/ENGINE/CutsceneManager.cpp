@@ -1509,6 +1509,7 @@ void CutsceneManager::MakeChoice()
 	inputTimer.Start(inputTimeToWait);
 }
 
+// TODO: Color tags inside of brackets does not work (such as: text [#ff0000#Example#00ff00#Test])
 std::string CutsceneManager::ParseText(const std::string& originalString, int& letterIndex, Color& textColor, Text* text)
 {
 	std::string result = "";
@@ -1538,6 +1539,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 				variableValue = std::to_string(commands.GetNumberVariable(commands.GetNumAlias(variableName)));
 				break;
 			default:
+				variableValue = word;
 				break;
 			}
 
@@ -1547,6 +1549,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 			{
 				result += variableValue[valueIndex];
 			}
+
 			return result;
 			
 		}
@@ -1581,7 +1584,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 			}while (originalString[finalColorIndex] != '#');
 
 			// Parse the hexadecimal color string
-			textColor = ParseColorHexadecimal(originalString.substr(letterIndex, finalColorIndex).c_str());
+			textColor = ParseColorHexadecimal(originalString.substr(letterIndex, finalColorIndex - letterIndex).c_str());
 			letterIndex = finalColorIndex;
 		}
 	}

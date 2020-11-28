@@ -204,6 +204,10 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 
 	char delimit = ' ';
 	bool ignoreComma = false;
+
+	// TODO: When an if-condition leads to a text command,
+	// because it removed the brackets [ ] it is interpreted
+	// as comma-delimited... what can we do to fix this?
 	for (int i = 0; i < command.size(); i++)
 	{
 		if (command[i] == ',' && !ignoreComma)
@@ -279,13 +283,13 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 				{
 					replaced = true;
 					shouldReplace = true;
-					parameters[i][k] = ' ';
+					//parameters[i][k] = ' ';
 				}
 				else if (parameters[i][k] == ']')
 				{
 					replaced = true;
 					shouldReplace = false;
-					parameters[i][k] = ' ';
+					//parameters[i][k] = ' ';
 				}
 			}
 
@@ -1327,6 +1331,7 @@ bool CutsceneCommands::GetArray(const std::string& parameter)
 		}
 	}
 
+	/*
 	std::string arrayName = parameters[0].substr(1, parameters[0].size() - 1);
 	arrayIndex = GetNumAlias(arrayName);
 	if (parameters.size() > 2)
@@ -1337,10 +1342,9 @@ bool CutsceneCommands::GetArray(const std::string& parameter)
 	{
 		vectorIndex = ParseNumberValue(parameters[1]);
 	}
+	*/
 
-
-	/*
-
+	std::string arrayName = "";
 	int dimensions = std::count(parameter.begin(), parameter.end(), '[');
 	int currentDimension = 0;
 
@@ -1356,7 +1360,7 @@ bool CutsceneCommands::GetArray(const std::string& parameter)
 		}
 	}
 
-	int arrayIndex = GetNumAlias(arrayName);
+	arrayIndex = GetNumAlias(arrayName);
 	int numDimensions = arrayNumbersPerSlot[arrayIndex] > 0 ? 2 : 1;
 
 	// If this array has more than one dimension...
@@ -1369,13 +1373,20 @@ bool CutsceneCommands::GetArray(const std::string& parameter)
 
 	while (seenDimensions < numDimensions)
 	{
+		if (i >= parameter.size())
+		{
+			manager->game->logger.Log("ERROR: Array " + parameter + " syntax error");
+			return false;
+		}
+
 		if (parameter[i] == '[')
 		{
 			readingInNumber = true;
 		}
 		else if (parameter[i] == ']')
 		{
-			coordinates.emplace_back(std::stoi(coord));
+			coordinates.emplace_back(ParseNumberValue(coord));
+			coord = "";
 			readingInNumber = false;
 			seenDimensions++;
 		}
@@ -1385,12 +1396,6 @@ bool CutsceneCommands::GetArray(const std::string& parameter)
 		}
 
 		i++;
-
-		if (i >= parameter.size())
-		{
-			manager->game->logger.Log("ERROR: Array " + parameter + " syntax error");
-			return false;
-		}
 	}
 
 	int vectorIndex = 0;
@@ -1403,7 +1408,6 @@ bool CutsceneCommands::GetArray(const std::string& parameter)
 	{
 		vectorIndex = coordinates[0] * coordinates[1];
 	}
-	*/
 
 	return true;
 }
@@ -1805,9 +1809,18 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	const unsigned int y = ParseNumberValue(parameters[3]);
 	pos = Vector2(x, y);
 
-	std::string text = parameters[4];	
-	for(int i = 5; i < parameters.size(); i++)
-		text += (parameters[i]);
+	std::string text = parameters[4];
+
+	// TODO: So now, the entire text is stored within parameters[4]
+
+	for (int i = 0; i < text.size(); i++)
+	{
+		if (text[i] == '\\' && text[i+1] == 'n')
+		{
+			text[i] = '\n';
+			text[i + 1] = ' ';
+		}			
+	}		
 
 	//TODO: Don't delete/new, just grab from entity pool and reset
 	if (manager->images[imageNumber] != nullptr)
