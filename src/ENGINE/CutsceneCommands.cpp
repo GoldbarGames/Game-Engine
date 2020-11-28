@@ -13,6 +13,7 @@
 #include "SoundManager.h"
 #include "RandomManager.h"
 #include "Renderer.h"
+#include "ParticleSystem.h"
 
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 
@@ -78,6 +79,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"namedef", &CutsceneCommands::NameDefineCommand},
 	{"namebox", &CutsceneCommands::Namebox},
 	{"numalias", &CutsceneCommands::SetNumAlias },
+	{"particle", &CutsceneCommands::ParticleCommand },
 	{"print", &CutsceneCommands::PrintCommand },
 	{"random", &CutsceneCommands::RandomNumberVariable },
 	{"reset", &CutsceneCommands::ResetGame },
@@ -1851,7 +1853,7 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	manager->images[imageNumber]->drawOrder = imageNumber;
 	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
 	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
-	manager->images[imageNumber]->GetSprite()->filename = "text";
+	manager->images[imageNumber]->GetSprite()->texture->SetFilePath("text");
 	manager->images[imageNumber]->CreateCollider(0, 0, newText->GetTextWidth(), newText->GetTextHeight());
 
 	// Color the text yellow when we hover the mouse over it or select with keyboard
@@ -2776,7 +2778,7 @@ int CutsceneCommands::GetResourceFilename(CutsceneParameters parameters)
 	}
 	else if (parameters[2] == "sprite")
 	{
-		stringVariables[varNum] = manager->images[ParseNumberValue(parameters[3])]->GetSprite()->filename;
+		stringVariables[varNum] = manager->images[ParseNumberValue(parameters[3])]->GetSprite()->texture->GetFilePath();
 	}
 	else if (parameters[2] == "script")
 	{
@@ -3327,6 +3329,101 @@ int CutsceneCommands::CreateShader(CutsceneParameters parameters)
 	std::string fragmentFile = ParseStringValue(parameters[3]);
 
 	customShaders[shaderName] = neww ShaderProgram(ShaderName::Custom, vertexFile.c_str(), fragmentFile.c_str());
+
+	return 0;
+}
+
+int CutsceneCommands::ParticleCommand(CutsceneParameters parameters)
+{
+	if (parameters[1] == "system")
+	{
+		if (parameters[2] == "create")
+		{
+			// Create new particle system here
+			unsigned int imageNumber = ParseNumberValue(parameters[3]);
+			const unsigned int x = ParseNumberValue(parameters[4]);
+			const unsigned int y = ParseNumberValue(parameters[5]);
+
+			//TODO: Don't delete/new, just grab from entity pool and reset
+			if (manager->images[imageNumber] != nullptr)
+				delete_it(manager->images[imageNumber]);
+
+			ParticleSystem* newParticleSystem = nullptr;
+			newParticleSystem = neww ParticleSystem(Vector2(x, y));
+
+			manager->images[imageNumber] = newParticleSystem;
+			manager->images[imageNumber]->drawOrder = imageNumber;
+			manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
+			manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
+			//manager->images[imageNumber]->GetSprite()->texture->SetFilePath("particlesystem");
+		}
+		else
+		{
+			// Get index of particle system we want to modify
+			unsigned int systemIndex = ParseNumberValue(parameters[2]);
+
+			ParticleSystem* particleSystem = dynamic_cast<ParticleSystem*>(manager->images[systemIndex]);
+			if (particleSystem != nullptr)
+			{
+				if (parameters[3] == "sprite") // set the sprite that the next particle will use
+				{
+					// TODO: How to remove from or clear the list?
+					particleSystem->nextParticleSpriteFilename.emplace_back(pathPrefix + ParseStringValue(parameters[4]));
+				}
+				else if (parameters[3] == "bounds") // set the bounds that next particle spawned within
+				{
+
+				}
+				else if (parameters[3] == "collider")
+				{
+					if (parameters[4] == "width")
+					{
+						particleSystem->nextParticleColliderWidth = ParseNumberValue(parameters[5]);
+					}
+					else if (parameters[4] == "height")
+					{
+						particleSystem->nextParticleColliderHeight = ParseNumberValue(parameters[5]);
+					}
+				}
+				else if (parameters[3] == "velocity") // set the velocity of next particle
+				{
+					float vx = ParseNumberValue(parameters[4]) * 0.001f;
+					float vy = ParseNumberValue(parameters[5]) * 0.001f;
+					particleSystem->nextParticleVelocity = Vector2(vx, vy);
+				}
+				else if (parameters[3] == "timeToSpawn") // set time between particle spawns
+				{
+					particleSystem->spawnTimer.Start(ParseNumberValue(parameters[4]));
+				}
+				else if (parameters[3] == "maxNumber") // set the max number of particles
+				{
+					particleSystem->Resize(ParseNumberValue(parameters[4]));
+				}
+				else if (parameters[3] == "timeToLive") // set time until a particle destroys itself
+				{
+					particleSystem->nextParticleTimeToLive = ParseNumberValue(parameters[4]);
+				}
+			}
+			
+		}
+		
+	}
+	else
+	{
+		// Get index of particle system containing particles
+		unsigned int systemIndex = ParseNumberValue(parameters[2]);
+
+		// Get index of specific particle to modify
+		unsigned int particleIndex = ParseNumberValue(parameters[3]);
+
+		ParticleSystem* particleSystem = dynamic_cast<ParticleSystem*>(manager->images[systemIndex]);
+		if (particleSystem != nullptr)
+		{
+			Entity& particle = particleSystem->particles[particleIndex];
+
+			// TODO: Modify the individual particle here
+		}
+	}
 
 	return 0;
 }

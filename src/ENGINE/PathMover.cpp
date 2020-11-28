@@ -66,10 +66,7 @@ bool PathMover::MoveAlongPath(Entity& entity, Game& game)
 
 		}
 
-		if (entity.collider != nullptr)
-		{
-			entity.CalculateCollider();
-		}
+		entity.CalculateCollider();
 	}
 
 	return true;

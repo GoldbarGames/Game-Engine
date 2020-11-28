@@ -109,14 +109,13 @@ uint32_t Entity::GenerateValidID()
 
 //TODO: Figure out what to do with the background layers
 // since they will offset the next valid ID every time we save the level
-Entity::Entity(const Vector2& pos)
+Entity::Entity(const Vector2& pos) : collider(0, 0, Globals::TILE_SIZE, Globals::TILE_SIZE)
 {
 	name = "entity";
 	position = pos;
 	startPosition = position;
 
 	id = GenerateValidID();
-	CreateCollider(0, 0, Globals::TILE_SIZE, Globals::TILE_SIZE);
 }
 
 Entity::Entity(const Vector2& pos, Sprite* sprite) : Entity(pos)
@@ -131,8 +130,6 @@ Entity::~Entity()
 		delete_it(animator);
 	}
 		
-	if (collider != nullptr)
-		delete_it(collider);
 	if (bounds != nullptr)
 		delete_it(bounds);
 }
@@ -144,18 +141,17 @@ void Entity::Init(const Game& g, const std::string& n)
 
 void Entity::CreateCollider(float x, float y, float w, float h)
 {
-	if (collider != nullptr)
-		collider->CreateCollider(x, y, w, h);
-	else
-		collider = neww Collider(x, y, w, h);
+	collider.offset.x = x;
+	collider.offset.y = y;
+	collider.scale.x = w;
+	collider.scale.y = h;
 
 	CalculateCollider();
 }
 
 void Entity::CalculateCollider()
 {
-	if (collider != nullptr)
-		collider->CalculateCollider(position, rotation);
+	collider.CalculateCollider(position, rotation);
 }
 
 
@@ -210,43 +206,12 @@ void Entity::SetColor(Color newColor)
 // Be careful when using HasIntersection() because you'll get the wrong results
 const SDL_Rect* Entity::GetBounds()
 {
-	if (collider == nullptr)
-	{
-		if (bounds == nullptr)
-		{
-			bounds = neww SDL_Rect();		
-		}
-		bounds->x = position.x;
-		bounds->y = position.y;
-		bounds->w = currentSprite.frameWidth;
-		bounds->h = currentSprite.frameHeight;
-		return bounds;
-	}
-	else
-	{
-		return collider->bounds;
-	}		
+	return &collider.bounds;
 }
 
 SDL_Rect Entity::GetTopLeftBounds()
 {
-	if (collider == nullptr)
-	{
-		if (bounds == nullptr)
-		{
-			bounds = neww SDL_Rect();
-		}
-		bounds->x = position.x;
-		bounds->y = position.y;
-		bounds->w = currentSprite.frameWidth;
-		bounds->h = currentSprite.frameHeight;
-
-		return ConvertCoordsFromCenterToTopLeft(*bounds);
-	}
-	else
-	{
-		return ConvertCoordsFromCenterToTopLeft(*collider->bounds);
-	}
+	return ConvertCoordsFromCenterToTopLeft(collider.bounds);
 }
 
 Vector2 Entity::GetPosition() const

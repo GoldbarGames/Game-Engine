@@ -55,7 +55,7 @@ public:
 	int drawOrder = 0; // order for drawing
 	DrawingLayer layer = DrawingLayer::FRONT;	
 
-	Collider* collider = nullptr;
+	Collider collider;
 	SDL_Rect* bounds = nullptr;
 
 	//int collisionLayerID = 0;

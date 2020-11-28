@@ -1,7 +1,7 @@
 #include "Texture.h"
 #include <iostream>
 
-Texture::Texture(const char* path)
+Texture::Texture(const std::string& path)
 {
 	textureID = 0;
 	width = 0;

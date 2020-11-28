@@ -42,7 +42,7 @@ unsigned int Sprite::Size()
 	totalSize += sizeof(framesPerRow);
 	totalSize += sizeof(numberRows);
 	totalSize += sizeof(pivot);
-	totalSize += sizeof(filename);
+	//totalSize += sizeof(filename);
 	//totalSize += sizeof(windowRect);
 
 	return totalSize;
@@ -196,7 +196,6 @@ Sprite::Sprite(int numFrames, const SpriteManager& manager, const std::string& f
 	ShaderProgram* s, Vector2 newPivot)
 {
 	model = glm::mat4(1.0f);
-	filename = filepath;
 	texture = manager.GetImage(filepath);
 	shader = s;
 
@@ -218,7 +217,6 @@ Sprite::Sprite(int start, int end, int width, int height, const SpriteManager& m
 	const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop)
 {
 	model = glm::mat4(1.0f);
-	filename = filepath;
 	texture = manager.GetImage(filepath);
 	shader = s;
 
@@ -303,11 +301,18 @@ void Sprite::SetTexture(Texture* t)
 	frameWidth = texture->GetWidth();
 	frameHeight = texture->GetHeight();
 	pivot = Vector2(0, 0);
-	filename = t->GetFilePath();
 
 	//TODO: This only works if there is only one row, but that is okay for now
 	numberFramesInTexture = 1;
 	framesPerRow = 1;
+}
+
+const std::string& Sprite::GetFileName()
+{
+	if (texture == nullptr)
+		return "None";
+
+	return texture->GetFilePath();
 }
 
 glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed)

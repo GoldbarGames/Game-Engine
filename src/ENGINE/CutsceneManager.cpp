@@ -1979,7 +1979,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 
 				if (entity != nullptr)
 				{
-					std::string fname = entity->GetSprite()->filename;
+					std::string fname = entity->GetSprite()->GetFileName();
 
 					if (entity->etype == "text" || fname == "text")
 					{

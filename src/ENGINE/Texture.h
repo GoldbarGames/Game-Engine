@@ -5,11 +5,12 @@
 #include <GL/glew.h>
 #include <SDL_image.h>
 #include "leak_check.h"
+#include <string>
 
 class KINJO_API Texture
 {
 public:
-	Texture(const char* path);
+	Texture(const std::string& path);
 	~Texture();
 
 	void LoadTexture(unsigned int& buffer, int w, int h);
@@ -18,11 +19,13 @@ public:
 	void ClearTexture();
 	int GetWidth() { return width; }
 	int GetHeight() { return height; }
-	const char* GetFilePath() { return filePath; } ;
+	const std::string& GetFilePath() { return filePath; } ;
+	// TODO: Eliminate this
+	void SetFilePath(const std::string& s) { filePath = s; };
 private:
+	std::string filePath = "";
 	GLuint textureID;
 	int width, height;
-	const char* filePath;
 };
 
 #endif

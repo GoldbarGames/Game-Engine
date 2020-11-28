@@ -14,7 +14,7 @@ class KINJO_API Collider
 public:
 	Vector2 offset = Vector2(0,0);
 	Vector2 scale = Vector2(0, 0);
-	SDL_Rect* bounds = nullptr;
+	SDL_Rect bounds;
 
 	Collider(float x, float y, float w, float h);
 	~Collider();

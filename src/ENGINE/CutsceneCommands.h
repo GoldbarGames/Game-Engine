@@ -78,6 +78,7 @@ public:
 	int SetSpriteProperty(CutsceneParameters parameters);
 	int LoadBackground(CutsceneParameters parameters);
 	int AnimationCommand(CutsceneParameters parameters);
+	int ParticleCommand(CutsceneParameters parameters);
 
 	// Text
 	int LoadText(CutsceneParameters parameters);

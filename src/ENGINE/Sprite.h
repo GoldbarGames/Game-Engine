@@ -85,7 +85,7 @@ public:
 	// you will want to add X so that it moves to the right.
 	Vector2 pivot = Vector2(0, 0);
 
-	std::string filename = "";
+	const std::string& GetFileName();
 	
 	SDL_Rect rect; //TODO: Get rid of this?
 	const SDL_Rect* GetRect();

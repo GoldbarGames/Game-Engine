@@ -114,7 +114,6 @@ void Animator::SetSpriteFromState(AnimState* animState, Sprite& sprite)
 	if (animState != nullptr && spriteManager != nullptr)
 	{
 		sprite.texture = spriteManager->GetImage(animState->filename);
-		sprite.filename = animState->filename;
 		sprite.startFrame = animState->startFrame;
 		sprite.endFrame = animState->endFrame;
 		sprite.frameWidth = std::min(animState->frameWidth, sprite.texture->GetWidth());

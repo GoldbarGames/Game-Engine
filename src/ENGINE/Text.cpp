@@ -214,7 +214,7 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 			newGlyph->sprite = Sprite(textTexture, Renderer::GetTextShader());
 			newGlyph->sprite.keepScaleRelativeToCamera = keepScaleRelative;
 			newGlyph->sprite.keepPositionRelativeToCamera = renderRelative;
-			newGlyph->sprite.filename = txt[i];
+			newGlyph->sprite.texture->SetFilePath(std::to_string(txt[i]));
 			newGlyph->scale = currentScale;
 
 			if (txt[i] == '\n')
@@ -292,7 +292,7 @@ void Text::AddText(char c, Color color)
 		newGlyph->sprite.SetShader(Renderer::GetTextShader());
 		newGlyph->sprite.keepScaleRelativeToCamera = keepScaleRelative;
 		newGlyph->sprite.keepPositionRelativeToCamera = renderRelative;
-		newGlyph->sprite.filename = c;
+		newGlyph->sprite.texture->SetFilePath(std::to_string(c));
 		newGlyph->scale = currentScale;
 
 		if (c == '\n')
@@ -338,7 +338,7 @@ void Text::SetTextAsOneSprite(const std::string& text, Color color, Uint32 wrapW
 		currentSprite.SetTexture(textTexture);
 		currentSprite.SetShader(Renderer::GetTextShader());
 		currentSprite.color = textColor;
-		currentSprite.filename = txt;
+		currentSprite.texture->SetFilePath(txt);
 		//std::cout << currentSprite.texture << " Creating text " << txt << std::endl;
 		currentSprite.keepScaleRelativeToCamera = keepScaleRelative;
 		currentSprite.keepPositionRelativeToCamera = renderRelative;
@@ -476,17 +476,17 @@ void Text::SetPosition(const float x, const float y)
 		wrapX += width;
 
 		// Handle word wrap when the most recent letter exceeds the wrap width
-		if (glyphs[i]->sprite.filename == "\n" || (wrapWidth > 0 && (wrapX > wrapWidth * Camera::MULTIPLIER)))
+		if (glyphs[i]->sprite.GetFileName() == "\n" || (wrapWidth > 0 && (wrapX > wrapWidth * Camera::MULTIPLIER)))
 		{
-			if (glyphs[i]->sprite.filename != " ")
+			if (glyphs[i]->sprite.GetFileName() != " ")
 			{
 				int endOfLineIndex = i;
 
 				// In order to place the entire word on the next line,
 				// we go backward to find the space before the first letter
-				if (glyphs[i]->sprite.filename != "\n")
+				if (glyphs[i]->sprite.GetFileName() != "\n")
 				{
-					while (glyphs[endOfLineIndex]->sprite.filename != " ")
+					while (glyphs[endOfLineIndex]->sprite.GetFileName() != " ")
 					{
 						endOfLineIndex--;
 						if (endOfLineIndex < 0)
