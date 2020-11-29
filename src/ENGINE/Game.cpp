@@ -1342,19 +1342,29 @@ void Game::LoadSettings()
 		// 1. All buttons should just be one class, no inheritance
 		// 2. Match tokens[0] perfectly with the button name (i.e. [Music Volume])
 
+		bool hasSettingsButton = (allMenus["Settings"] != nullptr);
+
 		if (tokens[0] == "music_volume")
 		{
 			soundManager.SetVolumeBGM(std::stoi(tokens[1]));
 
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Music Volume"));
-			button->selectedOption = std::stoi(tokens[1]);
+			if (hasSettingsButton)
+			{
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Music Volume"));
+				button->selectedOption = std::stoi(tokens[1]);
+			}
+
 		}
 		else if (tokens[0] == "sound_volume")
 		{
 			soundManager.SetVolumeSound(std::stoi(tokens[1]));
 
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Sound Volume"));
-			button->selectedOption = std::stoi(tokens[1]);
+			if (hasSettingsButton)
+			{
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Sound Volume"));
+				button->selectedOption = std::stoi(tokens[1]);
+			}
+
 		}
 		else if (tokens[0] == "fullscreen")
 		{
@@ -1363,39 +1373,56 @@ void Game::LoadSettings()
 			if (isFullscreen)
 				SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 			else
-				SDL_SetWindowFullscreen(window, 0);				
+				SDL_SetWindowFullscreen(window, 0);	
 
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Windowed"));
-			button->selectedOption = std::stoi(tokens[1]);
+			if (hasSettingsButton)
+			{
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Windowed"));
+				button->selectedOption = std::stoi(tokens[1]);
+			}
+
+
 		}
 		else if (tokens[0] == "screen_resolution")
 		{
 			indexScreenResolution = std::stoi(tokens[1]);
 
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Screen Resolution"));
-			button->selectedOption = indexScreenResolution;
-			button->ExecuteSelectedOption(*this);
+			if (hasSettingsButton)
+			{
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Screen Resolution"));
+				button->selectedOption = indexScreenResolution;
+				button->ExecuteSelectedOption(*this);
+			}
 		}
 		else if (tokens[0] == "display_fps")
 		{
 			showFPS = std::stoi(tokens[1]);
 
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Display FPS"));
-			button->selectedOption = std::stoi(tokens[1]);
+			if (hasSettingsButton)
+			{
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Display FPS"));
+				button->selectedOption = std::stoi(tokens[1]);
+			}
 		}
 		else if (tokens[0] == "display_timer")
 		{
 			showTimer = std::stoi(tokens[1]);
 
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Display Timer"));
-			button->selectedOption = std::stoi(tokens[1]);
+			if (hasSettingsButton)
+			{
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Display Timer"));
+				button->selectedOption = std::stoi(tokens[1]);
+			}
 		}
 		else if (tokens[0] == "language")
 		{
 			//TODO: Deal with this later
 
-			SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Language"));
-			button->selectedOption = std::stoi(tokens[1]);
+			if (hasSettingsButton)
+			{
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Language"));
+				button->selectedOption = std::stoi(tokens[1]);
+			}
 		}
 
 		fin.getline(line, 256);

@@ -465,11 +465,21 @@ int CutsceneCommands::MusicCommand(CutsceneParameters parameters)
 	}
 	else if (parameters[1] == "fadeout")
 	{
-		manager->game->soundManager.FadeOutBGM(ParseNumberValue(parameters[3]));
+		manager->game->soundManager.FadeOutBGM(ParseNumberValue(parameters[2]));
+	}
+	else if (parameters[1] == "fadeinw")
+	{
+		manager->game->soundManager.FadeInBGM(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]), true);
+		Wait({ "", parameters[2] });
+	}
+	else if (parameters[1] == "fadeoutw")
+	{
+		manager->game->soundManager.FadeOutBGM(ParseNumberValue(parameters[2]));
+		Wait({ "", parameters[2] });
 	}
 	else if (parameters[1] == "volume")
 	{
-		manager->game->soundManager.SetVolumeBGM(ParseNumberValue(parameters[3]));
+		manager->game->soundManager.SetVolumeBGM(ParseNumberValue(parameters[2]));
 	}
 
 	return 0;
@@ -486,6 +496,24 @@ int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
 	{
 		manager->game->soundManager.SetVolumeSound(ParseNumberValue(parameters[2]));
 	}
+	else if (parameters[1] == "stop")
+	{
+		if (parameters.size() == 3)
+		{
+			manager->game->soundManager.sounds[ParseNumberValue(parameters[2])]->Stop();
+		}
+		else
+		{
+			for (auto& [key, channel] : manager->game->soundManager.sounds)
+			{
+				if (channel->loop != 0)
+				{
+					channel->Stop();
+				}
+			}
+		}
+	
+	}
 
 	return 0;
 }
@@ -500,6 +528,16 @@ int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
 	else if (parameters[1] == "volume")
 	{
 		manager->game->soundManager.SetVolumeSound(ParseNumberValue(parameters[2]));
+	}
+	else if (parameters[1] == "stop")
+	{
+		for (auto& [key, channel] : manager->game->soundManager.sounds)
+		{
+			if (channel->loop == 0)
+			{
+				channel->Stop();
+			}
+		}
 	}
 
 	return 0;
@@ -1497,6 +1535,8 @@ int CutsceneCommands::SetStringAlias(CutsceneParameters parameters)
 {
 	//cacheParseStrings.erase(parameters[1]);
 	stralias[parameters[1]] = parameters[2];
+	stralias[parameters[1]].erase(0, stralias[parameters[1]].find_first_not_of('['));
+	stralias[parameters[1]].erase(stralias[parameters[1]].find_last_not_of(']') + 1);
 	return 0;
 }
 
@@ -1631,7 +1671,7 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 		else if(parameters.size() == 3)
 			PrintCommand({ "print", parameters[2] });
 		else
-			PrintCommand({ "print", "1" });
+			PrintCommand({ "print", "0" });
 	}
 
 	std::string filepath = pathPrefix + ParseStringValue(parameters[2]);

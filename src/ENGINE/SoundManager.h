@@ -34,21 +34,8 @@ struct SoundChannel {
 			delete sound;
 	}
 
-	bool Play()
-	{
-		if (sound->chunk != nullptr)
-		{
-			Mix_Volume(num, volume);
-			Mix_PlayChannel(num, sound->chunk, loop);
-		}
-		else
-		{
-			// Log error, could not load file
-			return false;
-		}
-
-		return true;
-	}
+	bool Play();
+	bool Stop();
 };
 
 class KINJO_API SoundManager

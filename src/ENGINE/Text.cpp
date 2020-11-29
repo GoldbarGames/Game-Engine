@@ -475,19 +475,23 @@ void Text::SetPosition(const float x, const float y)
 		// and the indices of the most recently added word
 		wrapX += width;
 
+		// TODO: For some reason, these are being returned as ASCII?
+		std::string fname = glyphs[i]->sprite.GetFileName();
+
 		// Handle word wrap when the most recent letter exceeds the wrap width
-		if (glyphs[i]->sprite.GetFileName() == "\n" || (wrapWidth > 0 && (wrapX > wrapWidth * Camera::MULTIPLIER)))
+		if (fname == "10" || (wrapWidth > 0 && (wrapX > wrapWidth * Camera::MULTIPLIER)))
 		{
-			if (glyphs[i]->sprite.GetFileName() != " ")
+			if (fname != "32")
 			{
 				int endOfLineIndex = i;
 
 				// In order to place the entire word on the next line,
 				// we go backward to find the space before the first letter
-				if (glyphs[i]->sprite.GetFileName() != "\n")
+				if (fname != "10")
 				{
-					while (glyphs[endOfLineIndex]->sprite.GetFileName() != " ")
+					while (glyphs[endOfLineIndex]->sprite.GetFileName() != "32")
 					{
+						std::cout << glyphs[endOfLineIndex]->sprite.GetFileName() << std::endl;
 						endOfLineIndex--;
 						if (endOfLineIndex < 0)
 							break;

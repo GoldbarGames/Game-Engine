@@ -125,7 +125,9 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, char c, SDL_Color col)
 		SDL_Surface* textSurface = TTF_RenderGlyph_Blended(f, data.glyph, data.color);
 
 		Texture* textTexture = nullptr;
-		textTexture = neww Texture(&data.glyph);
+		std::string path = "";
+		path += data.glyph;
+		textTexture = neww Texture(path);
 		textTexture->LoadTexture(textSurface);
 
 		glyphTextures[data] = textTexture;

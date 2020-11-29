@@ -12,6 +12,37 @@
 // it still fails to load, and you must restart the game to hear sound.
 // So we need to detect when the output device changes.
 
+bool SoundChannel::Play()
+{
+	if (sound->chunk != nullptr)
+	{
+		Mix_Volume(num, volume);
+		Mix_PlayChannel(num, sound->chunk, loop);
+	}
+	else
+	{
+		// Log error, could not load file
+		return false;
+	}
+
+	return true;
+}
+
+bool SoundChannel::Stop()
+{
+	if (sound->chunk != nullptr)
+	{
+		Mix_HaltChannel(num);
+	}
+	else
+	{
+		// Log error
+		return false;
+	}
+
+	return true;
+}
+
 SoundManager::SoundManager()
 {
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
