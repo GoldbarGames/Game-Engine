@@ -47,7 +47,9 @@ bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
 	if (t > 1.0f)
 		t = 1.0f;
 
-	//std::cout << (currentTime - startTime) << " / " << difference << " = " << t << std::endl;
+	std::cout << (currentTime - startTime) << " / " << difference << " = " << t << std::endl;
+
+	std::cout << current.x << "," << current.y << std::endl;
 
 	bool xFinished = LerpCoord(current.x, start.x, target.x, t);
 	bool yFinished = LerpCoord(current.y, start.y, target.y, t);

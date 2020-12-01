@@ -81,6 +81,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"numalias", &CutsceneCommands::SetNumAlias },
 	{"particle", &CutsceneCommands::ParticleCommand },
 	{"print", &CutsceneCommands::PrintCommand },
+	{"quake", &CutsceneCommands::Quake },
 	{"random", &CutsceneCommands::RandomNumberVariable },
 	{"reset", &CutsceneCommands::ResetGame },
 	{"resolution", &CutsceneCommands::SetResolution },
@@ -110,7 +111,6 @@ std::vector<FuncLUT>cmd_lut = {
 	{"textspeed", &CutsceneCommands::TextSpeed },
 	{"timer", &CutsceneCommands::TimerFunction},
 	{"travel", &CutsceneCommands::TravelCommand},
-	{"quake", &CutsceneCommands::Quake },
 	{"wait",& CutsceneCommands::Wait },
 	{"window", &CutsceneCommands::WindowFunction }
 };
@@ -3206,27 +3206,36 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 // quake y 4 400
 int CutsceneCommands::Quake(CutsceneParameters parameters)
 {
-	int quakeIntensity = 0; // number of times to shake 
-	int quakeDelay = 0;     // length of time to shake up
+	int quakeDelay = 0;
 
 	// direction to shake
 	if (parameters[1] == "x")
 	{
+		isQuakeHorizontal = true;
 		quakeIntensity = ParseNumberValue(parameters[2]);
 		quakeDelay = ParseNumberValue(parameters[3]);
 	}
 	else if (parameters[1] == "y")
 	{
+		isQuakeVertical = true;
 		quakeIntensity = ParseNumberValue(parameters[2]);
 		quakeDelay = ParseNumberValue(parameters[3]);
 	}
 	else // both
 	{
+		isQuakeHorizontal = true;
+		isQuakeVertical = true;
 		quakeIntensity = ParseNumberValue(parameters[1]);
 		quakeDelay = ParseNumberValue(parameters[2]);
 	}
 
-	// TODO: Actually shake the screen
+	quakeCount = 0;
+	quakeNumberOfLoops = 0;
+	quakeTimer.Start(quakeDelay * 0.25f / quakeIntensity);
+	currentQuakePosition = Vector2(manager->game->renderer.camera.startScreenWidth, 
+		manager->game->renderer.camera.startScreenHeight);
+
+	Wait({ "", std::to_string(quakeDelay) });
 
 	return 0;
 }

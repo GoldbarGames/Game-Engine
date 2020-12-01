@@ -2004,7 +2004,7 @@ void Game::Render()
 
 	// final pass
 	glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//glDisable(GL_DEPTH_TEST);
@@ -2015,11 +2015,159 @@ void Game::Render()
 
 	Vector2 screenPos = Vector2(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
 	Vector2 screenScale = Vector2(renderer.camera.startScreenWidth / screenWidth, renderer.camera.startScreenHeight / -screenHeight);
+
+	// If the timer is not up, then we should shake the screen
+	if (cutsceneManager.commands.isQuakeHorizontal || cutsceneManager.commands.isQuakeVertical)
+	{
+		// let's say we want to shake the screen for 1000 ms
+		// and we want the screen to shake 5 times
+		// then each shake should be 200 ms
+		// (200 ms * 5 = 1000 ms)
+		// then divide that by 4
+		// center -> right,
+		// right -> center,
+		// center -> left,
+		// left -> center
+		// = 50 ms each
+
+		uint32_t currentTime = SDL_GetTicks() / (float)cutsceneManager.commands.quakeIntensity;
+		uint32_t startTime = cutsceneManager.commands.quakeTimer.startTicks / (float)cutsceneManager.commands.quakeIntensity;
+		uint32_t endTime = cutsceneManager.commands.quakeTimer.endTime / (float)cutsceneManager.commands.quakeIntensity;
+
+		const float distPercent = 0.25f;
+
+		static float distX = screenPos.x * distPercent;
+		static float distY = screenPos.y * distPercent;
+
+		static Vector2 screenCenter = screenPos;
+
+		static Vector2 screenLeft = Vector2(screenPos.x - distX, screenPos.y);
+		static Vector2 screenRight = Vector2(screenPos.x + distX, screenPos.y);
+
+		static Vector2 screenUp = Vector2(screenPos.x, screenPos.y - distY);
+		static Vector2 screenDown = Vector2(screenPos.x, screenPos.y + distY);
+
+		static Vector2 quakeStartPos = screenCenter;
+		static Vector2 quakeEndPos = screenCenter;
+
+		static bool randomX = false;
+		static bool randomY = false;
+
+		// Initial Step
+		if (cutsceneManager.commands.quakeCount == 0)
+		{
+			// Randomize the first loop here
+			randomX = randomManager.RandomInt(100) > 50;
+			randomY = randomManager.RandomInt(100) > 50;
+
+			quakeStartPos = screenCenter;
+
+			if (cutsceneManager.commands.isQuakeHorizontal)
+			{
+				quakeEndPos.x = randomX ? screenRight.x : screenLeft.x;
+			}
+			if (cutsceneManager.commands.isQuakeVertical)
+			{
+				quakeEndPos.y = randomY ? screenDown.y : screenUp.y;
+			}
+
+			cutsceneManager.commands.quakeCount++;
+		}
+		else if (cutsceneManager.commands.quakeNumberOfLoops >= cutsceneManager.commands.quakeIntensity)
+		{
+			cutsceneManager.commands.isQuakeHorizontal = false;
+			cutsceneManager.commands.isQuakeVertical = false;
+		}
+		else
+		{
+			// 0. Go from center to right
+			if (LerpVector2(cutsceneManager.commands.currentQuakePosition,
+				quakeStartPos, quakeEndPos, currentTime, startTime, endTime))
+			{
+				cutsceneManager.commands.quakeCount++;
+				cutsceneManager.commands.quakeTimer.Reset();
+
+				switch (cutsceneManager.commands.quakeCount)
+				{
+				case 2:
+					// 1. Go from right/down to center
+					quakeStartPos = screenCenter;
+					quakeEndPos = screenCenter;
+
+					if (cutsceneManager.commands.isQuakeHorizontal)
+					{
+						quakeStartPos.x = randomX ? screenRight.x : screenLeft.x;
+					}
+					if (cutsceneManager.commands.isQuakeVertical)
+					{
+						quakeStartPos.y = randomY ? screenDown.y : screenUp.y;
+					}
+
+					break;
+				case 3:
+					// 2. Go from center to left/up
+					quakeStartPos = screenCenter;
+					quakeEndPos = screenCenter;
+
+					if (cutsceneManager.commands.isQuakeHorizontal)
+					{
+						quakeEndPos.x = randomX ? screenLeft.x : screenRight.x;
+					}
+					if (cutsceneManager.commands.isQuakeVertical)
+					{
+						quakeEndPos.y = randomY ? screenUp.y : screenDown.y;
+					}
+
+					break;
+				case 4:
+					// 3. Go from left/up to center
+					quakeStartPos = screenCenter;
+					if (cutsceneManager.commands.isQuakeHorizontal)
+					{
+						quakeStartPos.x = randomX ? screenLeft.x : screenRight.x;
+					}
+					if (cutsceneManager.commands.isQuakeVertical)
+					{
+						quakeStartPos.y = randomY ? screenUp.y : screenDown.y;					
+					}
+
+					quakeEndPos = screenCenter;
+					break;
+				case 5: // 4. repeat
+
+					// Randomize the next loop here
+					randomX = randomManager.RandomInt(100) > 50;
+					randomY = randomManager.RandomInt(100) > 50;
+
+					quakeStartPos = screenCenter;
+
+					quakeEndPos = screenCenter;
+					if (cutsceneManager.commands.isQuakeHorizontal)
+					{
+						quakeEndPos.x = randomX ? screenRight.x : screenLeft.x;
+					}
+					if (cutsceneManager.commands.isQuakeVertical)
+					{
+						quakeEndPos.y = randomY ? screenDown.y : screenUp.y;
+					}
+
+					cutsceneManager.commands.quakeNumberOfLoops++;
+					cutsceneManager.commands.quakeCount = 1;
+					break;
+				}
+
+			}
+
+			screenPos = cutsceneManager.commands.currentQuakePosition;
+		}
+		
+	}
+
 	screenSprite->Render(screenPos, renderer, screenScale);
 
 	if (renderSecondFrameBuffer)
 	{
-		prevScreenSprite->Render(Vector2(screenWidth, screenHeight), renderer, Vector2(1,-1));
+		prevScreenSprite->Render(screenPos, renderer, Vector2(1,-1));
 	}
 
 	/*

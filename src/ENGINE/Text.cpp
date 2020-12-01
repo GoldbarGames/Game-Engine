@@ -491,7 +491,7 @@ void Text::SetPosition(const float x, const float y)
 				{
 					while (glyphs[endOfLineIndex]->sprite.GetFileName() != "32")
 					{
-						std::cout << glyphs[endOfLineIndex]->sprite.GetFileName() << std::endl;
+						//std::cout << glyphs[endOfLineIndex]->sprite.GetFileName() << std::endl;
 						endOfLineIndex--;
 						if (endOfLineIndex < 0)
 							break;

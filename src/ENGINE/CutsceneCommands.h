@@ -65,6 +65,14 @@ public:
 	int arrayIndex = 0;
 	int vectorIndex = 0;
 
+	Vector2 currentQuakePosition = Vector2(0, 0);
+	Timer quakeTimer;
+	int quakeIntensity = 0;
+	bool isQuakeHorizontal = false;
+	bool isQuakeVertical = false;
+	int quakeCount = 0;
+	int quakeNumberOfLoops = 0;
+
 	CutsceneManager* manager = nullptr;
 	CutsceneCommands();
 	~CutsceneCommands();
