@@ -168,15 +168,12 @@ void CutsceneManager::CheckKeysWhileReading()
 
 	if (useMouseControls)
 	{
-		int mouseX, mouseY = 0;
-		const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
-
 		if (!readingBacklog)
 		{
 			// Note: In order to clear the mouse state, we check the SDL event in the main game loop
 			if (mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_LEFT))
 			{
-				previousMouseState = SDL_BUTTON_LEFT;
+				previousMouseState = mouseState;
 				clickedMidPage = true;
 			}
 		}
@@ -203,9 +200,6 @@ void CutsceneManager::CheckKeys()
 
 	if (useMouseControls)
 	{
-		int mouseX, mouseY = 0;
-		const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
-
 		if (readingBacklog)
 		{
 			SDL_Event event;
@@ -230,12 +224,12 @@ void CutsceneManager::CheckKeys()
 			// Note: In order to clear the mouse state, we check the SDL event in the main game loop
 			if ( mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_LEFT) )
 			{
-				previousMouseState = SDL_BUTTON_LEFT;
+				previousMouseState = mouseState;
 				ReadNextLine();
 			}
 			else if ( (mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_RIGHT)) && rclickEnabled)
 			{
-				previousMouseState = SDL_BUTTON_RIGHT;
+				previousMouseState = mouseState;
 				commandIndex--;
 				commands.GoSubroutine({ "", commands.buttonLabels[(unsigned int)SDL_SCANCODE_ESCAPE] });
 			}
@@ -1076,6 +1070,9 @@ void CutsceneManager::UpdateText()
 
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
+	int mouseX, mouseY = 0;
+	mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+
 	if (input[autoButton] && inputTimer.HasElapsed())
 	{
 		automaticallyRead = !automaticallyRead;
@@ -1122,15 +1119,9 @@ void CutsceneManager::UpdateText()
 	{
 		msGlyphTime -= msDelayBetweenGlyphs;
 
-		
 		// We want to get the mouse/keyboard input here		
 		if (inputTimer.HasElapsed() || isTravelling)
 		{
-			//TODO: Get mouse input for picking a choice
-			int mouseX = 0;
-			int mouseY = 0;
-
-			const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 			mouseX *= Camera::MULTIPLIER;
 			mouseY *= Camera::MULTIPLIER;
 
@@ -1163,16 +1154,22 @@ void CutsceneManager::UpdateText()
 			}
 
 			bool clickedMouse = false;
-			if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+			if (mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_LEFT))
 			{
+				previousMouseState = mouseState;
 				if (hoveredButton > -1)
 				{
 					buttonIndex = hoveredButton;
 					clickedMouse = true;
 				}
+				else if (waitingForClick)
+				{
+					clickedMouse = true;
+				}
 			}
-			else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT))
+			else if (mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_RIGHT))
 			{
+				previousMouseState = mouseState;
 				buttonIndex = -1;
 				clickedMouse = true;
 			}
@@ -1446,9 +1443,16 @@ void CutsceneManager::UpdateText()
 
 void CutsceneManager::MakeChoice()
 {
+	if (waitingForClick)
+	{
+		waitingForClick = false;
+		waitingForButton = false;
+		return;
+	}
+
 	if (buttonIndex == -1)
 	{
-		commands.numberVariables[buttonResult] = spriteButtons[buttonIndex];
+		commands.numberVariables[buttonResult] = -1;
 		waitingForButton = false;
 		inputTimer.Start(inputTimeToWait);
 		return;
@@ -1472,7 +1476,7 @@ void CutsceneManager::MakeChoice()
 	commands.numberVariables[buttonResult] = spriteButtons[chosenSprite];
 	waitingForButton = false;
 
-	if (atChoice)
+	if (atChoice) // TODO: Maybe a way to toggle this via script to auto clear sprites?
 	{
 		atChoice = false;
 		isCarryingOutCommands = true;
@@ -1486,7 +1490,6 @@ void CutsceneManager::MakeChoice()
 		{
 			commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
 		}
-		activeButtons.clear();
 
 		int result = -198;
 
@@ -1505,6 +1508,8 @@ void CutsceneManager::MakeChoice()
 			game->logger.Log("ERROR: Button was pressed, but satisfied no conditions!");
 		}
 	}
+
+	activeButtons.clear();
 
 	inputTimer.Start(inputTimeToWait);
 }

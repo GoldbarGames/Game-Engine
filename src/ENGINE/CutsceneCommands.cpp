@@ -44,6 +44,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"controls", & CutsceneCommands::ControlBindings},
 	{"choice", &CutsceneCommands::DisplayChoice },
 	{"cl", &CutsceneCommands::ClearSprite },
+	{"click", &CutsceneCommands::WaitForClick },
 	{"concat", &CutsceneCommands::ConcatenateStringVariables},
 	{"ctc", &CutsceneCommands::SetClickToContinue},
 	{"dec", &CutsceneCommands::DecrementVariable},
@@ -500,7 +501,10 @@ int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
 	{
 		if (parameters.size() == 3)
 		{
-			manager->game->soundManager.sounds[ParseNumberValue(parameters[2])]->Stop();
+			if (manager->game->soundManager.sounds.count(ParseNumberValue(parameters[2])) != 0)
+			{
+				manager->game->soundManager.sounds[ParseNumberValue(parameters[2])]->Stop();
+			}
 		}
 		else
 		{
@@ -531,11 +535,21 @@ int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
 	}
 	else if (parameters[1] == "stop")
 	{
-		for (auto& [key, channel] : manager->game->soundManager.sounds)
+		if (parameters.size() == 3)
 		{
-			if (channel->loop == 0)
+			if (manager->game->soundManager.sounds.count(ParseNumberValue(parameters[2])) != 0)
 			{
-				channel->Stop();
+				manager->game->soundManager.sounds[ParseNumberValue(parameters[2])]->Stop();
+			}
+		}
+		else
+		{
+			for (auto& [key, channel] : manager->game->soundManager.sounds)
+			{
+				if (channel->loop == 0)
+				{
+					channel->Stop();
+				}
 			}
 		}
 	}
@@ -956,6 +970,14 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 	{
 		manager->MakeChoice();
 	}
+
+	return 0;
+}
+
+int CutsceneCommands::WaitForClick(CutsceneParameters parameters)
+{
+	manager->waitingForClick = true;
+	manager->waitingForButton = true;
 
 	return 0;
 }
@@ -1842,8 +1864,8 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 {
 	Vector2 pos = Vector2(0, 0);
 
-	// text 9 [Hello, world!] 0 0 ;
-	//TODO: Make sure text color works (#)
+	// text 9 [Hello, world!] 0 0
+	// text 9 #ff0000[Hello, world!]#ffffff 0 0
 	//TODO: Make sure variables work (%, $)
 
 	unsigned int imageNumber = ParseNumberValue(parameters[1]);
@@ -1894,7 +1916,7 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
 	manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
 	manager->images[imageNumber]->GetSprite()->texture->SetFilePath("text");
-	manager->images[imageNumber]->CreateCollider(0, 0, newText->GetTextWidth(), newText->GetTextHeight());
+	manager->images[imageNumber]->CreateCollider(newText->GetTextWidth(), 0, newText->GetTextWidth(), newText->GetTextHeight());
 
 	// Color the text yellow when we hover the mouse over it or select with keyboard
 	//manager->images[imageNumber]->GetSprite()->color = { 255, 255, 0, 255 } ;

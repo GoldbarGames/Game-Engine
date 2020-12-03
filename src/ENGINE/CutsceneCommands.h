@@ -140,6 +140,7 @@ public:
 	int ReturnFromSubroutine(CutsceneParameters parameters);
 	int DisplayChoice(CutsceneParameters parameters);
 
+	int WaitForClick(CutsceneParameters parameters);
 	int WaitForButton(CutsceneParameters parameters);
 	int SetSpriteButton(CutsceneParameters parameters);
 

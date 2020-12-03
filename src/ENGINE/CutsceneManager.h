@@ -204,6 +204,7 @@ public:
 	int buttonResult = 0;
 	bool watchingCutscene = false;
 	bool waitingForButton = false;
+	bool waitingForClick = false;
 	bool automaticallyRead = false;
 	bool readingSameLine = false;
 	float autoTimesToWait[3] = { 500, 2000, 8000 };
@@ -238,6 +239,7 @@ public:
 	bool isCarryingOutCommands = false;
 	bool isReadingNextLine = false;
 	Timer nextLetterTimer;
+	Uint32 mouseState = 0;
 	Uint32 previousMouseState = 0;
 	bool clickedMidPage = false;
 	
