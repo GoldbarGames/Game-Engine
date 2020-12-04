@@ -491,11 +491,29 @@ int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
 	if (parameters[1] == "play")
 	{
 		//TODO: Deal with multiple channels
-		manager->game->soundManager.PlaySound(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]), -1);
+		if (parameters.size() > 3)
+		{
+			manager->game->soundManager.PlaySound(pathPrefix + ParseStringValue(parameters[3]), ParseNumberValue(parameters[2]), -1);
+		}
+		else
+		{
+			manager->game->soundManager.PlaySound(pathPrefix + ParseStringValue(parameters[2]), -1, -1);
+		}
 	}
 	else if (parameters[1] == "volume")
 	{
 		manager->game->soundManager.SetVolumeSound(ParseNumberValue(parameters[2]));
+	}
+	else if (parameters[1] == "fadeout")
+	{
+		if (parameters.size() > 3)
+			manager->game->soundManager.FadeOutChannel(ParseNumberValue(parameters[2]), ParseNumberValue(parameters[3]));
+		else
+			manager->game->soundManager.FadeOutChannel(ParseNumberValue(parameters[2]));
+	}
+	else if (parameters[1] == "fadeoutw")
+	{
+		manager->game->soundManager.FadeOutChannel(ParseNumberValue(parameters[3]), ParseNumberValue(parameters[2]));
 	}
 	else if (parameters[1] == "stop")
 	{
@@ -527,7 +545,14 @@ int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
 	if (parameters[1] == "play")
 	{
 		//TODO: Deal with multiple channels
-		manager->game->soundManager.PlaySound(pathPrefix + ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]));
+		if (parameters.size() > 3)
+		{
+			manager->game->soundManager.PlaySound(pathPrefix + ParseStringValue(parameters[3]), ParseNumberValue(parameters[2]));
+		}
+		else
+		{
+			manager->game->soundManager.PlaySound(pathPrefix + ParseStringValue(parameters[2]));
+		}
 	}
 	else if (parameters[1] == "volume")
 	{
@@ -604,7 +629,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 			leftValueNum = ParseNumberValue(word);
 			break;
 		case '?':
-			if (GetArray(parameters[1]))
+			if (GetArray(parameters[index]))
 			{
 				leftHandIsNumber = true;
 				leftValueNum = arrayVariables[arrayIndex][vectorIndex];
@@ -888,6 +913,8 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 
 	manager->FlushCurrentColor();
 
+	std::cout << "RETURN" << std::endl;
+
 	// Execute commands on the same line
 	for (int i = 0; i < data.commands.size(); i++)
 	{
@@ -942,6 +969,9 @@ int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 		//TODO: Don't hardcode 1280
 		LoadText({"", choiceNumber, "1280",
 			std::to_string(choiceYPos), choiceText });
+
+		manager->images[ParseNumberValue(choiceNumber)]->collider.offset.x = 0;
+		manager->images[ParseNumberValue(choiceNumber)]->CalculateCollider();
 
 		AlignCommand({ "align", "x", "center", choiceNumber });
 
@@ -1355,9 +1385,10 @@ int CutsceneCommands::MoveVariables(CutsceneParameters parameters)
 		if (GetArray(parameters[1]))
 		{
 			arrayVariables[arrayIndex][vectorIndex] = ParseNumberValue(parameters[2]);
-			// TODO: If global variable, save change to file
-			//if (key >= manager->globalStart)
-			//	manager->SaveGlobalVariable(key, std::to_string(numberVariables[key]), true);
+
+			// If global variable, save change to file
+			if (arrayIndex >= manager->globalStart)
+				manager->SaveGlobalVariable(arrayIndex, "?", true);
 		}
 		else
 		{
@@ -1372,15 +1403,34 @@ int CutsceneCommands::MoveVariables(CutsceneParameters parameters)
 	return 0;
 }
 
+std::string CutsceneCommands::GetArrayName(const std::string& parameter)
+{
+	std::string arrayName = "";
+	bool readingInName = true;
+	int dimensions = std::count(parameter.begin(), parameter.end(), '[');
+	int currentDimension = 0;
+
+	for (int i = 1; i < parameter.size(); i++)
+	{
+		if (parameter[i] == '[')
+		{
+			readingInName = false;
+		}
+		else if (readingInName)
+		{
+			arrayName += parameter[i];
+		}
+	}
+
+	return arrayName;
+}
+
 bool CutsceneCommands::GetArray(const std::string& parameter)
 {
 	arrayIndex = 0;
 	vectorIndex = 0;
 
-	bool readingInName = true;
-
 	// interrogate 0 2
-
 	std::vector<std::string> parameters;
 	std::istringstream ss(parameter);
 	std::string token;	
@@ -1406,22 +1456,7 @@ bool CutsceneCommands::GetArray(const std::string& parameter)
 	}
 	*/
 
-	std::string arrayName = "";
-	int dimensions = std::count(parameter.begin(), parameter.end(), '[');
-	int currentDimension = 0;
-
-	for (int i = 1; i < parameter.size(); i++)
-	{
-		if (parameter[i] == '[')
-		{
-			readingInName = false;
-		}
-		else if (readingInName)
-		{
-			arrayName += parameter[i];
-		}
-	}
-
+	std::string arrayName = GetArrayName(parameter);
 	arrayIndex = GetNumAlias(arrayName);
 	int numDimensions = arrayNumbersPerSlot[arrayIndex] > 0 ? 2 : 1;
 
@@ -1460,15 +1495,19 @@ bool CutsceneCommands::GetArray(const std::string& parameter)
 		i++;
 	}
 
-	int vectorIndex = 0;
-
 	if (numDimensions == 1)
 	{
 		vectorIndex = coordinates[0];
 	}
 	else
 	{
-		vectorIndex = coordinates[0] * coordinates[1];
+		// [0][0] = (0 * 2) + 0 = 0
+		// [0][1] = (0 * 2) + 1 = 1
+		// [1][0] = (1 * 2) + 0 = 2
+		// [1][1] = (1 * 2) + 1 = 3
+		// [2][0] = (2 * 2) + 0 = 4
+
+		vectorIndex = (coordinates[0] * arrayNumbersPerSlot[arrayIndex]) +  coordinates[1];
 	}
 
 	return true;
@@ -1611,9 +1650,21 @@ int CutsceneCommands::ParseNumberValue(const std::string& parameter)
 
 	// Get the variable number to store the result in
 	if (parameter[0] == '%' || parameter[0] == '$')
+	{
 		parseNumberValue = GetNumberVariable(GetNumAlias(parameter.substr(1, parameter.size() - 1)));
+	}
+	else if (parameter[0] == '?')
+	{
+		if (GetArray(parameter))
+		{
+			parseNumberValue = arrayVariables[arrayIndex][vectorIndex];
+		}
+	}
 	else
+	{
 		parseNumberValue = GetNumAlias(parameter);
+	}
+		
 
 	cacheParseNumbers[parameter] = parseNumberValue;
 
@@ -2660,6 +2711,9 @@ int CutsceneCommands::WindowFunction(CutsceneParameters parameters)
 		else if (parameters[1] == "title")
 		{
 			manager->game->windowTitle = ParseStringValue(parameters[2]);
+			std::replace(manager->game->windowTitle.begin(), manager->game->windowTitle.end(), '[', ' ');
+			std::replace(manager->game->windowTitle.begin(), manager->game->windowTitle.end(), ']', ' ');
+			Trim(manager->game->windowTitle);
 			SDL_SetWindowTitle(manager->game->window, manager->game->windowTitle.c_str());
 		}
 		else if (parameters[1] == "isfull")

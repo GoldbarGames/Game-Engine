@@ -915,24 +915,7 @@ void CutsceneManager::ReadNextLine()
 		int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
 		if (data[newIndex + 1] == '\\')
 		{
-			//TODO: Make sure to save the backlog when we save the game		
-
-			// Before we clear the textbox, add to the backlog
-			// (We save strings because the text might have commands in between. 
-			// TODO: Can we do better?)
-			backlog.push_back(new BacklogData(currentText, textbox->speaker->txt));
-
-			// If backlog is full, remove the oldest entry
-			if (backlog.size() > backlogMaxSize)
-			{
-				delete_it(backlog[0]);
-				backlog.erase(backlog.begin());
-			}
-
-			// Clear the textbox
-			currentText = "";
-			textbox->text->SetText(currentText);
-			textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex + 1]), currentColor);
+			ClearPage();
 		}
 		else
 		{
@@ -950,7 +933,7 @@ void CutsceneManager::ReadNextLine()
 				}
 				else // go to the next label in sequence
 				{
-					std::cout << "NEXT LABEL" << std::endl;
+					std::cout << "NEXT LABEL " << GetLabelName(labels[labelIndex]) <<  std::endl;
 					labelIndex++;
 					currentLabel = JumpToLabel(GetLabelName(labels[labelIndex]));
 					lineIndex = -1;
@@ -1272,7 +1255,24 @@ void CutsceneManager::UpdateText()
 							return;
 
 						if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
+						{
+							// Allow falling through subroutines to other labels up until the next return
+							// TODO: This breaks any button menus, though!
+							/*
+							int length = lines[currentLabel->lineStart + lineIndex].GetTextLength();
+							if (lineIndex == currentLabel->lineSize - 1 && length == 0)
+							{
+								labelIndex++;
+								currentLabel = &labels[labelIndex];
+							}
+							else
+							{
+								break;
+							}
+							*/
 							break;
+						}
+
 
 						if (waitingForButton)
 							break;
@@ -1507,11 +1507,36 @@ void CutsceneManager::MakeChoice()
 		{
 			game->logger.Log("ERROR: Button was pressed, but satisfied no conditions!");
 		}
+
+		ClearPage();
 	}
 
 	activeButtons.clear();
 
 	inputTimer.Start(inputTimeToWait);
+}
+
+void CutsceneManager::ClearPage()
+{
+	//TODO: Make sure to save the backlog when we save the game		
+
+	// Before we clear the textbox, add to the backlog
+	// (We save strings because the text might have commands in between. 
+	// TODO: Can we do better?)
+
+	backlog.push_back(new BacklogData(currentText, textbox->speaker->txt));
+
+	// If backlog is full, remove the oldest entry
+	if (backlog.size() > backlogMaxSize)
+	{
+		delete_it(backlog[0]);
+		backlog.erase(backlog.begin());
+	}
+
+	// Clear the textbox
+	currentText = "";
+	textbox->text->SetText(currentText);
+	textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex + 1]), currentColor);
 }
 
 // TODO: Color tags inside of brackets does not work (such as: text [#ff0000#Example#00ff00#Test])
@@ -1717,6 +1742,8 @@ void CutsceneManager::LoadGlobalVariables()
 	std::ifstream fin;
 	std::vector<std::string> globalDataNumbers;
 	std::vector<std::string> globalDataStrings;
+	std::vector<std::string> globalDataArrays;
+	std::vector<std::string> globalDataArraySlots;
 
 	int globalSection = 0;
 
@@ -1733,6 +1760,16 @@ void CutsceneManager::LoadGlobalVariables()
 			globalSection = 2;
 			continue;
 		}
+		else if (line == "@ GLOBAL_ARRAYS")
+		{
+			globalSection = 3;
+			continue;
+		}
+		else if (line == "@ GLOBAL_ARRAYS_SLOTS")
+		{
+			globalSection = 4;
+			continue;
+		}
 
 		switch (globalSection)
 		{
@@ -1741,6 +1778,12 @@ void CutsceneManager::LoadGlobalVariables()
 			break;
 		case 2:
 			globalDataNumbers.push_back(line + "\n");
+			break;
+		case 3:
+			globalDataArrays.push_back(line + "\n");
+			break;
+		case 4:
+			globalDataArraySlots.push_back(line + "\n");
 			break;
 		default:
 			break;
@@ -1772,6 +1815,37 @@ void CutsceneManager::LoadGlobalVariables()
 		commands.SetNumberVariable({ "", dataKey, dataValue, "no_alias" });
 	}
 
+	for (int i = 0; i < globalDataArrays.size(); i++)
+	{
+		index = 0;
+		dataKey = ParseWord(globalDataArrays[i], ' ', index);
+		dataValue = ParseWord(globalDataArrays[i], '\n', index);
+
+		std::stringstream ss(dataValue);
+		std::istream_iterator<std::string> begin(ss);
+		std::istream_iterator<std::string> end;
+
+		std::vector<std::string> splitValues(begin, end);
+
+		unsigned int arrIndex = std::stoi(dataKey);
+		commands.arrayVariables[arrIndex].clear();
+		commands.arrayVariables[arrIndex].reserve(splitValues.size());
+
+		for (int k = 0; k < splitValues.size(); k++)
+		{
+			commands.arrayVariables[arrIndex].emplace_back(std::stoi(splitValues[k]));
+		}
+	}
+
+	for (int i = 0; i < globalDataArraySlots.size(); i++)
+	{
+		index = 0;
+		dataKey = ParseWord(globalDataArraySlots[i], ' ', index);
+		dataValue = ParseWord(globalDataArraySlots[i], '\n', index);
+
+		commands.arrayNumbersPerSlot[std::stoi(dataKey)] = std::stoi(dataValue);
+	}
+
 }
 
 void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& value, bool isNumber)
@@ -1780,6 +1854,8 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& va
 	std::ifstream fin;
 	std::vector<std::string> globalDataNumbers;
 	std::vector<std::string> globalDataStrings;
+	std::vector<std::string> globalDataArrays;
+	std::vector<std::string> globalDataArraySlots;
 
 	int globalSection = 0;
 
@@ -1795,7 +1871,17 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& va
 		{
 			globalSection = 2;
 			continue;
-		}			
+		}	
+		else if (line == "@ GLOBAL_ARRAYS")
+		{
+			globalSection = 3;
+			continue;
+		}
+		else if (line == "@ GLOBAL_ARRAYS_SLOTS")
+		{
+			globalSection = 4;
+			continue;
+		}
 
 		switch (globalSection)
 		{
@@ -1805,16 +1891,37 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& va
 		case 2:
 			globalDataNumbers.push_back(line + "\n");
 			break;
+		case 3:
+			globalDataArrays.push_back(line + "\n");
+			break;
+		case 4:
+			globalDataArraySlots.push_back(line + "\n");
+			break;
 		default:
 			break;
 		}
-		
 	}
+
 	fin.close();
 
 	if (isNumber)
 	{
-		ModifyGlobalVariableVector(globalDataNumbers, key, value);
+		// Deal with arrays here
+		if (value == "?")
+		{
+			std::string newValue = "";
+			for (int i = 0; i < commands.arrayVariables[key].size(); i++)
+			{
+				newValue += std::to_string(commands.arrayVariables[key][i]) + " ";
+			}
+			//std::cout << newValue << std::endl;
+			ModifyGlobalVariableVector(globalDataArrays, key, newValue);
+			ModifyGlobalVariableVector(globalDataArraySlots, key, std::to_string(commands.arrayNumbersPerSlot[key]));
+		}
+		else
+		{
+			ModifyGlobalVariableVector(globalDataNumbers, key, value);
+		}
 	}
 	else
 	{
@@ -1835,6 +1942,18 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& va
 	for (int i = 0; i < globalDataNumbers.size(); i++)
 	{
 		fout << globalDataNumbers[i];
+	}
+
+	fout << "@ GLOBAL_ARRAYS" << std::endl;
+	for (int i = 0; i < globalDataArrays.size(); i++)
+	{
+		fout << globalDataArrays[i];
+	}
+
+	fout << "@ GLOBAL_ARRAYS_SLOTS" << std::endl;
+	for (int i = 0; i < globalDataArraySlots.size(); i++)
+	{
+		fout << globalDataArraySlots[i];
 	}
 
 	fout.close();
@@ -2081,10 +2200,10 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 		case SaveSections::OTHER_STUFF:
 
 			// Save the window title
-			fout << "window title " << game->windowTitle << std::endl;
+			fout << "window title " << '<' << game->windowTitle << '>' << std::endl;
 
 			// Save the window icon
-			fout << "window icon " << game->windowIconFilepath << std::endl;
+			fout << "window icon " << '<' << game->windowIconFilepath << '>' << std::endl;
 
 			// Save the random seed
 			fout << "random seed " << commands.randomSeed << std::endl;
@@ -2094,15 +2213,15 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			fout << "controls keyboard " << useKeyboardControls << std::endl;
 
 			// Save the currently playing BGM
-			fout << "bgm " << game->soundManager.bgmFilepath << std::endl;
+			fout << "bgm " << '<' << game->soundManager.bgmFilepath << '>' << std::endl;
 
 			// Save other looped sounds
 			for (auto const& [num, channel] : game->soundManager.sounds)
 			{
 				if (channel->loop == -1)
-					fout << "me " << channel->num << " " << channel->sound->filepath << std::endl;
+					fout << "me " << channel->num << " " << '<' << channel->sound->filepath << '>' << std::endl;
 				else
-					fout << "se " << channel->num << " " << channel->sound->filepath << " " << channel->loop << std::endl;
+					fout << "se " << channel->num << " " << '<' << channel->sound->filepath << '>' << " " << channel->loop << std::endl;
 			}
 
 			break;
@@ -2162,12 +2281,59 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 
 	while (index < dataLines.size())
 	{
+		// Replace all the bracketed spaces with underscores
+		bool shouldReplace = false;
+		for (int i = 0; i < dataLines[index].size(); i++)
+		{
+			if (shouldReplace && dataLines[index][i] == ' ')
+			{
+				dataLines[index][i] = '`';
+			}
+			else if (dataLines[index][i] == '<')
+			{
+				shouldReplace = true;
+			}
+			else if (dataLines[index][i] == '>')
+			{
+				shouldReplace = false;
+			}
+		}
+
 		std::stringstream ss(dataLines[index]);
 		std::istream_iterator<std::string> begin(ss);
 		std::istream_iterator<std::string> end;
 
 		std::vector<std::string> lineParams(begin, end);
 		//std::copy(lineParams.begin(), lineParams.end(), std::ostream_iterator<std::string>(std::cout, " "));
+
+		// Replace all the bracketed underscores with spaces again
+		shouldReplace = false;
+		for (int i = 0; i < lineParams.size(); i++)
+		{
+			bool replaced = false;
+			shouldReplace = false;
+			for (int k = 0; k < lineParams[i].size(); k++)
+			{
+				if (shouldReplace && lineParams[i][k] == '`')
+				{
+					lineParams[i][k] = ' ';
+				}
+				else if (lineParams[i][k] == '<')
+				{
+					replaced = true;
+					shouldReplace = true;
+					lineParams[i][k] = ' ';
+				}
+				else if (lineParams[i][k] == '>')
+				{
+					replaced = true;
+					shouldReplace = false;
+					lineParams[i][k] = ' ';
+				}
+			}
+
+			Trim(lineParams[i]);
+		}
 
 		if (dataLines[index][0] == '@')
 		{

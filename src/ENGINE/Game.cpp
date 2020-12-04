@@ -1984,8 +1984,11 @@ void Game::Render()
 		float t = (timeLeft > 0) ? std::min(1.0f, (cutsceneManager.printTimer.GetTicks() / timeLeft)) : 1.0f; // percentage of passed time
 
 		float alpha = prevScreenSprite->color.a;
-		LerpCoord(alpha, 255, 0, t);
+		LerpCoord(alpha, 255, 0, t); 
 		prevScreenSprite->color.a = alpha;
+
+		// TODO: For alpha mask, use a shader to get the max of (alpha, pixel of black/white texture)
+		// so that the black parts render before the white parts
 
 		//std::cout << std::to_string(prevScreenSprite->color.a) << std::endl;
 

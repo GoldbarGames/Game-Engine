@@ -120,6 +120,26 @@ void SoundManager::StopBGM()
 	Mix_HaltMusic();
 }
 
+void SoundManager::FadeInChannel(const std::string& filepath, Uint32 duration, int channel, bool loop)
+{
+
+}
+
+void SoundManager::FadeOutChannel(uint32_t duration, int channel)
+{
+	if (channel < 0)
+	{
+		for (auto& [key, channel] : sounds)
+		{
+			Mix_FadeOutChannel(channel->num, duration);
+		}
+	}
+	else
+	{
+		Mix_FadeOutChannel(channel, duration);
+	}	
+}
+
 void SoundManager::FadeInBGM(const std::string& bgm, Uint32 duration, bool loop)
 {
 	if (LoadBGM(bgm))

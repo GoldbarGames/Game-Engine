@@ -292,6 +292,7 @@ public:
 	void SetSpeakerText(const std::string& name);
 
 	void ReadCutsceneFile();
+	void ClearPage();
 
 	const std::string GetLabelName(const SceneLabel& label) const;
 	const std::string GetCommand(const SceneLine& line, int index) const;

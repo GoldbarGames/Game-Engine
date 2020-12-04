@@ -117,6 +117,7 @@ public:
 
 	int CreateArrayVariable(CutsceneParameters parameters);
 	bool GetArray(const std::string& parameter);
+	std::string GetArrayName(const std::string& parameter);
 
 	int ConcatenateStringVariables(CutsceneParameters parameters);
 

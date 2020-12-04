@@ -60,8 +60,13 @@ public:
 	bool LoadBGM(const std::string& bgm);
 	void PlayBGM(const std::string& bgm, bool loop = true);
 	void StopBGM();
+	
 	void FadeInBGM(const std::string& bgm, Uint32 duration, bool loop = true);
 	void FadeOutBGM(Uint32 duration);
+
+	void FadeInChannel(const std::string& filepath, Uint32 duration, int channel = -1, bool loop = true);
+	void FadeOutChannel(uint32_t duration, int channel = -1);
+
 	void SetVolumeBGM(int index);
 	void PlaySound(const std::string& filepath, int channel = -1, int loop = 0);
 	void ClearChannel(int channel);
