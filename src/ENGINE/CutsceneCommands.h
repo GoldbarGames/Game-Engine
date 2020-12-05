@@ -237,6 +237,7 @@ public:
 
 	std::string nextCommand = "";
 	std::vector<std::string> subcommands;
+	std::string shaderFilter = "";
 
 	std::unordered_map<std::string, ShaderProgram*> customShaders;
 

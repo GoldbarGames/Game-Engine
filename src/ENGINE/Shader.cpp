@@ -16,6 +16,14 @@ ShaderProgram::~ShaderProgram()
     ClearShader();
 }
 
+const std::string& ShaderProgram::GetNameString()
+{
+    if (nameString == "")
+        return Globals::NONE_STRING;
+
+    return nameString;
+}
+
 void ShaderProgram::CreateFromString(const char* vertexCode, const char* fragmentCode)
 {
     CompileShader(vertexCode, fragmentCode);

@@ -4,6 +4,7 @@
 #include "Vector2.h"
 
 int Globals::TILE_SIZE = 24;
+std::string Globals::NONE_STRING = "None";
 
 // TODO: Does lerp need to use dt?
 

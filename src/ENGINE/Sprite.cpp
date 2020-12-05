@@ -310,7 +310,7 @@ void Sprite::SetTexture(Texture* t)
 const std::string& Sprite::GetFileName()
 {
 	if (texture == nullptr)
-		return "None";
+		return Globals::NONE_STRING;
 
 	return texture->GetFilePath();
 }

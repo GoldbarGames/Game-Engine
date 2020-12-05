@@ -36,10 +36,13 @@ public:
 	GLuint GetUniformVariable(ShaderVariable variable);
 
 	const ShaderName& GetName() { return name; }
+	const std::string& GetNameString();
+	void SetNameString(const std::string& s) { nameString = s; };
 
 private:
 	GLuint programID;
 	ShaderName name;
+	std::string nameString = "";
 	std::unordered_map<ShaderVariable, GLuint> uniformVariables;
 
 	void CompileShader(const char* vertexCode, const char* fragmentCode);

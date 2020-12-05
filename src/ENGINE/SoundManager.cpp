@@ -82,22 +82,24 @@ bool SoundManager::IsPlayingBGM()
 
 bool SoundManager::LoadBGM(const std::string& bgm)
 {
-	if (currentBGM != nullptr)
-		Mix_FreeMusic(currentBGM);
+	Mix_Music* newBGM = Mix_LoadMUS(bgm.c_str());
 
-	//bgm = "bgm/" + bgm + ".ogg";
-	currentBGM = Mix_LoadMUS(bgm.c_str());
-
-	if (currentBGM == nullptr)
+	if (newBGM == nullptr)
 	{
 		if (game != nullptr)
 		{
-			game->logger.Log("ERROR: Failed to load BGM:" + bgm);
+			game->logger.Log("ERROR: Failed to load BGM: " + bgm);
 		}
 
 		bgmFilepath = "";
 		return false;
 	}
+
+	if (currentBGM != nullptr)
+		Mix_FreeMusic(currentBGM);
+
+	//bgm = "bgm/" + bgm + ".ogg";
+	currentBGM = newBGM;
 
 	bgmFilepath = bgm;
 	return true;

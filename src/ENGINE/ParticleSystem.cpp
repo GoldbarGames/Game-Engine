@@ -98,6 +98,7 @@ void ParticleSystem::Resize(int newSize)
 		while (particles.size() < newSize)
 		{			
 			Entity newParticle(position);
+			newParticle.etype = "particle";
 			ParticleInfo newParticleInfo;
 
 			particles.emplace_back(newParticle);

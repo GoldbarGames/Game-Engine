@@ -7,6 +7,7 @@
 #include "SoundManager.h"
 #include "Textbox.h"
 #include "DebugScreen.h"
+#include "ParticleSystem.h"
 
 CutsceneManager::CutsceneManager()
 {
@@ -2138,6 +2139,51 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 							<< (int)text->textColor.a
 							<< std::endl;
 					}
+					else if (entity->etype == "particlesystem")
+					{
+						ParticleSystem* ps = dynamic_cast<ParticleSystem*>(entity);
+
+						fname = "particlesystem";
+
+						fout << var.first  // key
+							<< " "
+							<< fname
+							<< " "
+							<< ps->position.x
+							<< " "
+							<< ps->position.y
+							<< " "
+							<< ps->rotation.x
+							<< " "
+							<< ps->rotation.y
+							<< " "
+							<< ps->rotation.z
+							<< " "
+							<< ps->scale.x
+							<< " "
+							<< ps->scale.y
+							<< " "
+							<< ps->nextParticleVelocity.x
+							<< " "
+							<< ps->nextParticleVelocity.y
+							<< " "
+							<< ps->nextParticleTimeToLive
+							<< " "
+							<< ps->nextParticleColliderWidth
+							<< " "
+							<< ps->nextParticleColliderHeight
+							<< " "
+							<< (ps->spawnTimer.endTime - ps->spawnTimer.startTicks)
+							<< " "
+							<< ps->nextParticleSpriteFilename.size();
+
+						for (int i = 0; i < ps->nextParticleSpriteFilename.size(); i++)
+						{
+							fout << " " << ps->nextParticleSpriteFilename[i];
+						}
+
+						fout << std::endl;
+					}
 					else
 					{
 						if (fname.size() < 1 || fname == " ")
@@ -2160,6 +2206,8 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 							<< entity->scale.x
 							<< " "
 							<< entity->scale.y
+							<< " "
+							<< entity->GetSprite()->shader->GetNameString()
 							<< std::endl;
 					}
 				}
@@ -2236,6 +2284,16 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 
 void CutsceneManager::LoadGame(const char* filename, const char* path)
 {
+	// Clear everything off the screen before we load the game
+	for (const auto& [key, val] : images)
+	{
+		commands.ClearSprite({ "clear", std::to_string(key), "0" });
+	}
+
+	// Stop all sounds
+	game->soundManager.StopBGM();
+	game->soundManager.FadeOutChannel(0);
+
 	std::ifstream fin;
 	//std::string data = "";
 	std::vector<std::string> dataLines;
@@ -2399,6 +2457,43 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				{
 					commands.LoadTextFromSaveFile(lineParams);
 				}
+				else if (lineParams[1] == "particlesystem")
+				{
+					// particle system create %var2 %var1 0
+
+					// Spawn the particle system
+					commands.ParticleCommand({"particle", "system", "create", lineParams[0], lineParams[2], lineParams[3] });
+
+					// Modify its values
+					ParticleSystem* ps = dynamic_cast<ParticleSystem*>(images[std::stoi(lineParams[0])]);
+
+					ps->rotation = glm::vec3(
+						std::stoi(lineParams[4]),
+						std::stoi(lineParams[5]),
+						std::stoi(lineParams[6]));
+
+					ps->scale = Vector2(
+						std::stoi(lineParams[7]),
+						std::stoi(lineParams[8]));
+
+					ps->nextParticleVelocity.x = std::stof(lineParams[9]);
+					ps->nextParticleVelocity.y = std::stof(lineParams[10]);
+
+					ps->nextParticleTimeToLive = std::stof(lineParams[11]);
+
+					ps->nextParticleColliderWidth = std::stof(lineParams[12]);
+					ps->nextParticleColliderHeight = std::stof(lineParams[13]);
+
+					ps->spawnTimer.Start(std::stoi(lineParams[14]));
+
+					int numberOfSprites = std::stoi(lineParams[15]);
+					ps->nextParticleSpriteFilename.reserve(numberOfSprites);
+					for (int i = 0; i < numberOfSprites; i++)
+					{
+						ps->nextParticleSpriteFilename.emplace_back(lineParams[16 + i]);
+					}
+
+				}
 				else // load sprite object
 				{
 					lineParams.insert(lineParams.begin(), "");
@@ -2413,6 +2508,18 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 					entity->scale = Vector2(
 						std::stoi(lineParams[8]), 
 						std::stoi(lineParams[9]));
+
+					if (lineParams.size() > 10)
+					{
+						if (lineParams[10] == Globals::NONE_STRING)
+						{
+							entity->GetSprite()->SetShader(game->renderer.shaders[ShaderName::Default]);
+						}
+						else
+						{
+							entity->GetSprite()->SetShader(commands.customShaders[lineParams[10]]);
+						}
+					}
 
 					entity->SetSprite(*entity->GetSprite());
 				}

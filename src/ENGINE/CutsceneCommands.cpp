@@ -1113,12 +1113,21 @@ int CutsceneCommands::SaveGame(CutsceneParameters parameters)
 	// savegame file1.sav
 	// savegame
 
-	if (parameters.size() > 2)
-		manager->SaveGame(ParseStringValue(parameters[2]).c_str(), ParseStringValue(parameters[1]).c_str());
-	else if (parameters.size() > 1)
-		manager->SaveGame(ParseStringValue(parameters[1]).c_str());
-	else
-		manager->SaveGame("file1.sav");
+	try
+	{
+		if (parameters.size() > 2)
+			manager->SaveGame(ParseStringValue(parameters[2]).c_str(), ParseStringValue(parameters[1]).c_str());
+		else if (parameters.size() > 1)
+			manager->SaveGame(ParseStringValue(parameters[1]).c_str());
+		else
+			manager->SaveGame("file1.sav");
+	}
+	catch (const std::exception& ex)
+	{
+		manager->game->logger.Log("ERROR: Saving game: ");
+		manager->game->logger.Log(ex.what());
+		return -1;
+	}
 
 	return 0;
 }
@@ -1759,7 +1768,19 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 	Entity& newImage = *manager->images[imageNumber];
 
 	newImage.GetSprite()->SetTexture(manager->game->spriteManager.GetImage(filepath));
-	newImage.GetSprite()->SetShader(manager->game->renderer.shaders[ShaderName::Default]);
+
+	// TODO: Instead of always using the default shader, we should be able to customize this
+	// so that we can load sprites under filters (such as grayscale, sepia, or other shaders)
+	
+	if (shaderFilter == "")
+	{
+		newImage.GetSprite()->SetShader(manager->game->renderer.shaders[ShaderName::Default]);
+	}
+	else
+	{
+		newImage.GetSprite()->SetShader(customShaders[shaderFilter]);
+	}
+
 	newImage.CreateCollider(0, 0, newImage.GetSprite()->frameWidth, newImage.GetSprite()->frameHeight);
 
 	if (isStandingImage)
@@ -3454,6 +3475,7 @@ int CutsceneCommands::CreateShader(CutsceneParameters parameters)
 	std::string fragmentFile = ParseStringValue(parameters[3]);
 
 	customShaders[shaderName] = neww ShaderProgram(ShaderName::Custom, vertexFile.c_str(), fragmentFile.c_str());
+	customShaders[shaderName]->SetNameString(shaderName);
 
 	return 0;
 }

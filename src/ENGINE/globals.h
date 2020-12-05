@@ -15,6 +15,7 @@ const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 class KINJO_API Globals {
 public:
 	static int TILE_SIZE;
+	static std::string NONE_STRING;
 	Globals() { TILE_SIZE = 24; };
 	static Globals* Get()
 	{
