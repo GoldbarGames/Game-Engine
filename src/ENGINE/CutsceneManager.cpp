@@ -38,14 +38,15 @@ void CutsceneManager::Init(Game& g)
 
 	namesToColors[""] = currentColor;
 
-	LoadGlobalVariables();
-
 	tags["b"] = neww TextTag();
 	tags["i"] = neww TextTag();
 	tags["bi"] = neww TextTag();
 	tags["s"] = neww TextTag();
 
 	ReadCutsceneFile();
+
+	// This must ALWAYS come after reading the .define file
+	LoadGlobalVariables();
 }
 
 CutsceneManager::~CutsceneManager()
@@ -256,7 +257,10 @@ void CutsceneManager::CheckKeys()
 				{
 					readingBacklog = false;
 					isReadingNextLine = true;
+					textbox->speaker->SetText(beforeBacklogSpeaker, currentColor);					
 					textbox->text->SetText(beforeBacklogText);
+					int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
+					textbox->SetCursorPosition(data[newIndex + 1] != '@');
 				}
 				else
 				{
@@ -275,9 +279,15 @@ void CutsceneManager::CheckKeys()
 		{
 			if (backlogEnabled)
 			{
-				readingBacklog = true;
-				backlogIndex = backlog.size() - 1;
-				ReadBacklog();
+				if (backlog.size() > 0)
+				{
+					readingBacklog = true;
+					backlogIndex = backlog.size() - 1;
+					previousText = currentText;
+					beforeBacklogText = previousText;
+					beforeBacklogSpeaker = textbox->speaker->txt;
+					ReadBacklog();
+				}
 				inputTimer.Start(inputTimeToWait);
 			}
 		}
@@ -963,13 +973,19 @@ void CutsceneManager::ReadNextLine()
 	}	
 }
 
-void CutsceneManager::FlushCurrentColor()
+void CutsceneManager::FlushCurrentColor(const std::string& speakerName)
 {
+	std::string sn = speakerName;
+	if (speakerName == "")
+	{
+		sn = GetLineSpeaker(lines[currentLabel->lineStart + lineIndex]);
+	}
+
 	if (currentLabel != nullptr)
 	{
-		if (namesToColors.count(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex])))
+		if (namesToColors.count(sn))
 		{
-			currentColor = namesToColors[GetLineSpeaker(lines[currentLabel->lineStart + lineIndex])];
+			currentColor = namesToColors[sn];
 		}
 		else
 		{
@@ -1176,9 +1192,33 @@ void CutsceneManager::UpdateText()
 				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
 				inputTimer.Start(inputTimeToWait);
 			}
-			else if (input[readButton] || input[readButton2] || clickedMouse || autoChoice > 0)
+			else if (input[readButton] || input[readButton2] || clickedMouse)
 			{
 				MakeChoice();
+			}
+			else if (autoChoice > 0) // Don't automatically select a menu option, but do automatically make choices
+			{
+				if (!atChoice)
+				{
+					if (input[readButton] || input[readButton2] || clickedMouse)
+					{
+						MakeChoice();
+					}
+				}
+				else // TODO: Make sure this still works for super fast travel
+				{
+					// Automatically select a choice (if enabled)
+					buttonIndex = autoChoice - 1;
+
+					// Stay within bounds
+					if (buttonIndex < 0)
+						buttonIndex = 0;
+					if (buttonIndex >= activeButtons.size())
+						buttonIndex = activeButtons.size() - 1;
+
+					MakeChoice();
+				}
+				
 			}
 		}
 
@@ -1374,12 +1414,18 @@ void CutsceneManager::UpdateText()
 					for (int i = 0; i < commands.lineBreaks; i++)
 					{
 						textbox->UpdateText('\n', currentColor);
-						textbox->UpdateText('\n', currentColor);
 					}
 					commands.lineBreaks = 0;
 				}
 
 				int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
+
+				if (newIndex >= lines[currentLabel->lineStart + lineIndex].textEnd)
+				{
+					isReadingNextLine = false;
+					return;
+				}
+
 				std::string result = ParseText(data, newIndex, currentColor, textbox->text);
 				letterIndex = newIndex - lines[currentLabel->lineStart + lineIndex].textStart;
 
@@ -1459,18 +1505,6 @@ void CutsceneManager::MakeChoice()
 		return;
 	}
 
-	// Automatically select a choice (if enabled)
-	if (autoChoice > 0)
-	{
-		buttonIndex = autoChoice - 1;
-
-		// Stay within bounds
-		if (buttonIndex < 0)
-			buttonIndex = 0;
-		if (buttonIndex >= activeButtons.size())
-			buttonIndex = activeButtons.size() - 1;
-	}
-
 	// Return the result in the specified variable and resume reading
 	// TODO: This can be buggy if the btnwait variable is not reset beforehand
 	unsigned int chosenSprite = activeButtons[buttonIndex];
@@ -1536,6 +1570,7 @@ void CutsceneManager::ClearPage()
 
 	// Clear the textbox
 	currentText = "";
+	textbox->fullTextString = "";
 	textbox->text->SetText(currentText);
 	textbox->speaker->SetText(GetLineSpeaker(lines[currentLabel->lineStart + lineIndex + 1]), currentColor);
 }
@@ -2336,6 +2371,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 	std::string currentSection = "";
 	std::string labelName = "";
 	SceneData* gosubData = nullptr;
+	std::string currentStringAlias = "";
 
 	while (index < dataLines.size())
 	{
@@ -2441,7 +2477,10 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 
 				break;
 			case SaveSections::ALIAS_STRINGS:
-				commands.stralias[lineParams[0]] = lineParams[1];
+				// This is done so that we can use filepaths with spaces in them
+				currentStringAlias = dataLines[index].substr(lineParams[0].size() + 1, dataLines[index].size() - lineParams[0].size());
+											
+				commands.stralias[lineParams[0]] = currentStringAlias;
 				break;
 			case SaveSections::ALIAS_NUMBERS:
 				commands.numalias[lineParams[0]] = std::stoi(lineParams[1]);
@@ -2548,7 +2587,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				}
 				else if (lineParams[0] == "me" && lineParams.size() > 2)
 				{
-					game->soundManager.PlaySound(lineParams[2], std::stoi(lineParams[1]));
+					game->soundManager.PlaySound(lineParams[2], std::stoi(lineParams[1]), -1);
 				}
 				else if (lineParams[0] == "se" && lineParams.size() > 3)
 				{
@@ -2584,4 +2623,9 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 	}
 
 	commands.pathPrefix = pathPrefix;
+
+	// This is necessary to advance the text after loading.
+	// Because we can't fall through labels, it presents an empty textbox.
+	// So we read the next line to resume playing.
+	ReadNextLine();
 }

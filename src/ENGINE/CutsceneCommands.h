@@ -183,7 +183,7 @@ public:
 
 	int FontCommand(CutsceneParameters parameters);
 
-	int GetResourceFilename(CutsceneParameters parameters);
+	int GetData(CutsceneParameters parameters);
 	int NameCommand(CutsceneParameters parameters);
 	int NameDefineCommand(CutsceneParameters parameters);
 
@@ -215,6 +215,7 @@ public:
 	int IsSkipping(CutsceneParameters parameters);
 
 	int CreateShader(CutsceneParameters parameters);
+	int SetShaderFilter(CutsceneParameters parameters);
 	int ShellCommand(CutsceneParameters parameters);
 
 	int SteamCommand(CutsceneParameters parameters);
@@ -238,6 +239,8 @@ public:
 	std::string nextCommand = "";
 	std::vector<std::string> subcommands;
 	std::string shaderFilter = "";
+	int filterMin = -1;
+	int filterMax = 999999;
 
 	std::unordered_map<std::string, ShaderProgram*> customShaders;
 

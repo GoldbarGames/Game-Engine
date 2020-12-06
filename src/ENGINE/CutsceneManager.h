@@ -151,6 +151,7 @@ public:
 	std::string currentText = "";
 	std::string previousText = "";
 	std::string beforeBacklogText = "";
+	std::string beforeBacklogSpeaker = "";
 	bool rclickEnabled = true;
 	bool autoreturn = false;
 	bool autosave = false;
@@ -281,7 +282,7 @@ public:
 	void SaveGame(const char* filename, const char* path = "saves/");
 	void LoadGame(const char* filename, const char* path = "saves/");
 
-	void FlushCurrentColor();
+	void FlushCurrentColor(const std::string& speakerName="");
 
 	void LoadGlobalVariables();
 

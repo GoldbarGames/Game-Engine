@@ -15,6 +15,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 
 	//TODO: Should we have a way to define the starting box position?
 	boxObject = neww Entity(Vector2(1280, 720));
+
 	//TODO: Have a way to specify the image for the box
 	boxObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/textbox1.png"));
 	boxObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
@@ -23,6 +24,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 
 	//TODO: Should we have a way to define the starting box position?
 	nameObject = neww Entity(Vector2(1280, 720));
+
 	//TODO: Have a way to specify the image for the box
 	nameObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/namebox1.png"));
 	nameObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
@@ -121,30 +123,18 @@ void Textbox::ChangeNameFont(const std::string& fontName)
 
 void Textbox::ChangeNameSprite(const std::string& filepath)
 {
-	if (nameObject->GetSprite() != nullptr)
-		delete nameObject->GetSprite();
-
-	//TODO: Allow for animations by dissecting the filepath name
-	Sprite* newSprite = neww Sprite(0, 0, 1, *spriteManager, filepath,
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
-	nameObject->SetSprite(*newSprite);
-
-	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
-	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
+	if (filepath.size() > 0 && nameObject->GetSprite() != nullptr)
+	{
+		nameObject->GetSprite()->SetTexture(spriteManager->GetImage(filepath));
+	}
 }
 
 void Textbox::ChangeBoxSprite(const std::string& filepath)
 {
-	if (boxObject->GetSprite() != nullptr)
-		delete boxObject->GetSprite();
-
-	//TODO: Allow for animations by dissecting the filepath name
-	Sprite* newSprite = neww Sprite(0, 0, 1, *spriteManager, filepath,
-		renderer->shaders[ShaderName::GUI], Vector2(0, 0));
-	boxObject->SetSprite(*newSprite);
-
-	boxObject->GetSprite()->keepScaleRelativeToCamera = true;
-	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
+	if (filepath.size() > 0 && boxObject->GetSprite() != nullptr)
+	{
+		boxObject->GetSprite()->SetTexture(spriteManager->GetImage(filepath));
+	}
 }
 
 void Textbox::UpdateText(const char c, const Color& color)
@@ -155,6 +145,7 @@ void Textbox::UpdateText(const char c, const Color& color)
 	const int boxOffsetY = 1070;
 	text->SetPosition(boxOffsetX, boxOffsetY);
 	clickToContinue->SetPosition(Vector2(boxOffsetX, boxOffsetY));
+	fullTextString += c;
 }
 
 void Textbox::UpdateText(const std::string& newText, const Color& color)
@@ -165,6 +156,7 @@ void Textbox::UpdateText(const std::string& newText, const Color& color)
 	const int boxOffsetY = 1070;
 	//text->SetPosition(boxOffsetX, boxOffsetY);
 	clickToContinue->SetPosition(Vector2(boxOffsetX, boxOffsetY));
+	fullTextString = newText;
 	//text->SetText(newText, text->textColor, boxWidth);
 
 	//TODO: If we want to modify the textbox's text shader, do so here

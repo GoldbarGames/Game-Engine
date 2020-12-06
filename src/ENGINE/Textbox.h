@@ -30,6 +30,7 @@ public:
 
 	const Uint32 boxWidth = 1140;
 
+	std::string fullTextString = "";
 	SpriteManager* spriteManager = nullptr;
 	Renderer* renderer = nullptr;
 

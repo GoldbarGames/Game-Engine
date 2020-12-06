@@ -54,10 +54,11 @@ std::vector<FuncLUT>cmd_lut = {
 	{"effect", &CutsceneCommands::EffectCommand },
 	{"errorlog", &CutsceneCommands::ErrorLog },
 	{"fade", &CutsceneCommands::Fade },
+	{"filter", &CutsceneCommands::SetShaderFilter },
 	{"fileexist", &CutsceneCommands::FileExist},
 	{"flip", &CutsceneCommands::FlipSprite },
 	{"font", &CutsceneCommands::FontCommand},
-	{"getname", &CutsceneCommands::GetResourceFilename},
+	{"get", &CutsceneCommands::GetData},
 	{"global", &CutsceneCommands::SetGlobalNumber},
 	{"gosub", &CutsceneCommands::GoSubroutine },
 	{"goto", &CutsceneCommands::GoToLabel },
@@ -466,7 +467,10 @@ int CutsceneCommands::MusicCommand(CutsceneParameters parameters)
 	}
 	else if (parameters[1] == "fadeout")
 	{
-		manager->game->soundManager.FadeOutBGM(ParseNumberValue(parameters[2]));
+		if (manager->isSkipping)
+			manager->game->soundManager.StopBGM();
+		else
+			manager->game->soundManager.FadeOutBGM(ParseNumberValue(parameters[2]));
 	}
 	else if (parameters[1] == "fadeinw")
 	{
@@ -475,8 +479,15 @@ int CutsceneCommands::MusicCommand(CutsceneParameters parameters)
 	}
 	else if (parameters[1] == "fadeoutw")
 	{
-		manager->game->soundManager.FadeOutBGM(ParseNumberValue(parameters[2]));
-		Wait({ "", parameters[2] });
+		if (manager->isSkipping)
+		{
+			manager->game->soundManager.StopBGM();
+		}
+		else
+		{
+			manager->game->soundManager.FadeOutBGM(ParseNumberValue(parameters[2]));
+			Wait({ "", parameters[2] });
+		}
 	}
 	else if (parameters[1] == "volume")
 	{
@@ -506,14 +517,33 @@ int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
 	}
 	else if (parameters[1] == "fadeout")
 	{
-		if (parameters.size() > 3)
-			manager->game->soundManager.FadeOutChannel(ParseNumberValue(parameters[2]), ParseNumberValue(parameters[3]));
+		if (manager->isSkipping)
+		{
+			manager->game->soundManager.StopBGM();
+		}
 		else
-			manager->game->soundManager.FadeOutChannel(ParseNumberValue(parameters[2]));
+		{
+			if (parameters.size() > 3)
+				manager->game->soundManager.FadeOutChannel(ParseNumberValue(parameters[2]), ParseNumberValue(parameters[3]));
+			else
+				manager->game->soundManager.FadeOutChannel(ParseNumberValue(parameters[2]));
+		}		
 	}
 	else if (parameters[1] == "fadeoutw")
 	{
-		manager->game->soundManager.FadeOutChannel(ParseNumberValue(parameters[3]), ParseNumberValue(parameters[2]));
+		if (manager->isSkipping)
+		{
+			manager->game->soundManager.StopBGM();
+		}
+		else
+		{
+			if (parameters.size() > 3)
+				manager->game->soundManager.FadeOutChannel(ParseNumberValue(parameters[2]), ParseNumberValue(parameters[3]));
+			else
+				manager->game->soundManager.FadeOutChannel(ParseNumberValue(parameters[2]));
+
+			Wait({ "", parameters[2] });
+		}
 	}
 	else if (parameters[1] == "stop")
 	{
@@ -656,6 +686,7 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 
 		index += 2; // skip the operator
 
+		word = parameters[index];
 		switch (parameters[index][0])
 		{
 		case '$': // string variable
@@ -1134,12 +1165,21 @@ int CutsceneCommands::SaveGame(CutsceneParameters parameters)
 
 int CutsceneCommands::LoadGame(CutsceneParameters parameters)
 {
-	if (parameters.size() > 2)
-		manager->LoadGame(ParseStringValue(parameters[2]).c_str(), ParseStringValue(parameters[1]).c_str());
-	else if (parameters.size() > 1)
-		manager->LoadGame(ParseStringValue(parameters[1]).c_str());
-	else
-		manager->LoadGame("file1.sav");
+	try
+	{
+		if (parameters.size() > 2)
+			manager->LoadGame(ParseStringValue(parameters[2]).c_str(), ParseStringValue(parameters[1]).c_str());
+		else if (parameters.size() > 1)
+			manager->LoadGame(ParseStringValue(parameters[1]).c_str());
+		else
+			manager->LoadGame("file1.sav");
+	}
+	catch (const std::exception& ex)
+	{
+		manager->game->logger.Log("ERROR: Loading game: ");
+		manager->game->logger.Log(ex.what());
+		return -1;
+	}
 
 	return 0;
 }
@@ -1776,7 +1816,7 @@ int CutsceneCommands::LoadSprite(CutsceneParameters parameters)
 	{
 		newImage.GetSprite()->SetShader(manager->game->renderer.shaders[ShaderName::Default]);
 	}
-	else
+	else if (imageNumber >= filterMin && imageNumber <= filterMax)
 	{
 		newImage.GetSprite()->SetShader(customShaders[shaderFilter]);
 	}
@@ -2252,7 +2292,7 @@ int CutsceneCommands::Namebox(CutsceneParameters parameters)
 	}
 	else if (parameters[1] == "sprite")
 	{
-		manager->textbox->ChangeNameSprite(ParseStringValue(parameters[2]));
+		manager->textbox->ChangeNameSprite(pathPrefix + ParseStringValue(parameters[2]));
 	}
 
 	return 0;
@@ -2310,7 +2350,7 @@ int CutsceneCommands::Textbox(CutsceneParameters parameters)
 	}
 	else if (parameters[1] == "sprite")
 	{
-		manager->textbox->ChangeBoxSprite(ParseStringValue(parameters[2]));
+		manager->textbox->ChangeBoxSprite(pathPrefix + ParseStringValue(parameters[2]));
 	}
 
 	return 0;
@@ -2407,6 +2447,7 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 				manager->readingBacklog = true;
 				manager->backlogIndex = manager->backlog.size() - 1;
 				manager->beforeBacklogText = manager->previousText;
+				manager->beforeBacklogSpeaker = manager->textbox->speaker->txt;
 				manager->ReadBacklog();
 			}
 		}
@@ -2900,38 +2941,64 @@ int CutsceneCommands::FontCommand(CutsceneParameters parameters)
 	return 0;
 }
 
-int CutsceneCommands::GetResourceFilename(CutsceneParameters parameters)
+int CutsceneCommands::GetData(CutsceneParameters parameters)
 {
 	// getfilename $myvar bgm
-	unsigned int varNum = ParseNumberValue(parameters[1]);
 
-	if (parameters[2] == "bgm")
+	const std::string& whatToGet = parameters[1];
+
+	if (whatToGet == "name")
 	{
-		stringVariables[varNum] = manager->game->soundManager.bgmFilepath;
+		unsigned int varNum = ParseNumberValue(parameters[2]);
+
+		if (parameters[3] == "bgm")
+		{
+			stringVariables[varNum] = manager->game->soundManager.bgmFilepath;
+		}
+		else if (parameters[3] == "sound")
+		{
+			stringVariables[varNum] = manager->game->soundManager.sounds[ParseNumberValue(parameters[4])]->sound->filepath;
+		}
+		else if (parameters[3] == "sprite")
+		{
+			stringVariables[varNum] = manager->images[ParseNumberValue(parameters[4])]->GetSprite()->texture->GetFilePath();
+		}
+		else if (parameters[3] == "script")
+		{
+			stringVariables[varNum] = manager->currentScript;
+		}
+		else if (parameters[3] == "level")
+		{
+			stringVariables[varNum] = manager->game->currentLevel;
+		}
+		else if (parameters[3] == "label")
+		{
+			stringVariables[varNum] = manager->GetLabelName(manager->currentLabel);
+		}
+		else if (parameters[3] == "text")
+		{
+			stringVariables[varNum] = manager->textbox->text->txt;
+		}
 	}
-	else if (parameters[2] == "sound")
+	else if (whatToGet == "datetime")
 	{
-		stringVariables[varNum] = manager->game->soundManager.sounds[ParseNumberValue(parameters[3])]->sound->filepath;
+		// getdatetime $var1
+
+		time_t now = time(0);
+		std::string dt = ctime(&now);
+		dt = dt.substr(0, dt.size() - 1);
+
+		MoveVariables({ "mov", parameters[2], dt });
 	}
-	else if (parameters[2] == "sprite")
+	else if (whatToGet == "text")
 	{
-		stringVariables[varNum] = manager->images[ParseNumberValue(parameters[3])]->GetSprite()->texture->GetFilePath();
-	}
-	else if (parameters[2] == "script")
-	{
-		stringVariables[varNum] = manager->currentScript;
-	}
-	else if (parameters[2] == "level")
-	{
-		stringVariables[varNum] = manager->game->currentLevel;
-	}
-	else if (parameters[2] == "label")
-	{
-		stringVariables[varNum] = manager->GetLabelName(manager->currentLabel);
-	}
-	else if (parameters[2] == "text")
-	{
-		stringVariables[varNum] = manager->textbox->text->txt;
+		std::string theText = manager->textbox->fullTextString;
+
+		// TODO: Should we remove \n or not?
+		// Not removing it would be bad when calling SaveGame() (global.sav)
+		std::replace(theText.begin(), theText.end(), '\n', ' ');
+		
+		MoveVariables({ "mov", parameters[2], theText });
 	}
 
 	return 0;
@@ -3000,21 +3067,32 @@ int CutsceneCommands::Output(CutsceneParameters parameters)
 	shouldOutput = true;
 #endif
 
+	bool shouldLog = true;
+
 	if (shouldOutput)
 	{
 		if (parameters[1] == "str")
 		{
-			std::cout << parameters[2] << ": " << ParseStringValue(parameters[2]) << std::endl;
+			if (shouldLog)
+				manager->game->logger.Log(parameters[2] + ": " + ParseStringValue(parameters[2]));
+			else
+				std::cout << parameters[2] << ": " << ParseStringValue(parameters[2]) << std::endl;
 		}
 		else if (parameters[1] == "num")
 		{
-			std::cout << parameters[2] << ": " << ParseNumberValue(parameters[2]) << std::endl;
+			if (shouldLog)
+				manager->game->logger.Log(parameters[2] + ": " + std::to_string(ParseNumberValue(parameters[2])));
+			else
+				std::cout << parameters[2] << ": " << ParseNumberValue(parameters[2]) << std::endl;
 		}
 		else if (parameters[1] == "arr")
 		{
 			if (GetArray(parameters[2]))
 			{
-				std::cout << parameters[2] << ": " << arrayVariables[arrayIndex][vectorIndex] << std::endl;
+				if (shouldLog)
+					manager->game->logger.Log(parameters[2] + ": " + std::to_string(arrayVariables[arrayIndex][vectorIndex]));
+				else
+					std::cout << parameters[2] << ": " << arrayVariables[arrayIndex][vectorIndex] << std::endl;
 			}
 			else
 			{
@@ -3023,7 +3101,10 @@ int CutsceneCommands::Output(CutsceneParameters parameters)
 		}
 		else
 		{
-			std::cout << "ERROR: Failed to define output type (str/num); cannot log output." << std::endl;
+			if (shouldLog)
+				manager->game->logger.Log("ERROR: Failed to define output type (str/num); cannot log output.");
+			else
+				std::cout << "ERROR: Failed to define output type (str/num); cannot log output." << std::endl;
 		}
 	}
 
@@ -3049,7 +3130,14 @@ int CutsceneCommands::FileExist(CutsceneParameters parameters)
 
 int CutsceneCommands::LineBreakCommand(CutsceneParameters parameters)
 {
-	lineBreaks++;
+	if (parameters.size() < 2)
+	{
+		lineBreaks += 2;
+	}
+	else
+	{
+		lineBreaks += ParseNumberValue(parameters[1]);
+	}	
 
 	return 0;
 }
@@ -3210,6 +3298,9 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 {
 	static std::unordered_map<std::string, std::string> args;
 	const int entityIndex = ParseNumberValue(parameters[1]);
+
+	if (manager->images[entityIndex] == nullptr)
+		return 0;
 
 	if (parameters[1] == "args")
 	{
@@ -3476,6 +3567,28 @@ int CutsceneCommands::CreateShader(CutsceneParameters parameters)
 
 	customShaders[shaderName] = neww ShaderProgram(ShaderName::Custom, vertexFile.c_str(), fragmentFile.c_str());
 	customShaders[shaderName]->SetNameString(shaderName);
+
+	return 0;
+}
+
+int CutsceneCommands::SetShaderFilter(CutsceneParameters parameters)
+{
+	if (parameters[1] == "off")
+	{
+		shaderFilter = "";
+	}
+	else if (parameters[1] == "min")
+	{
+		filterMin = ParseNumberValue(parameters[2]);
+	}
+	else if (parameters[1] == "max")
+	{
+		filterMax = ParseNumberValue(parameters[2]);
+	}
+	else
+	{
+		shaderFilter = ParseStringValue(parameters[1]);
+	}
 
 	return 0;
 }
