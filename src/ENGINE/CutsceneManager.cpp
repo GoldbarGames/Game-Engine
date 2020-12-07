@@ -195,33 +195,56 @@ void CutsceneManager::CheckKeysWhileReading()
 	}
 }
 
+void CutsceneManager::OpenBacklog()
+{
+	if (!readingBacklog)
+	{
+		readingBacklog = true;
+		backlogIndex = backlog.size() - 1;
+		beforeBacklogText = previousText;
+		beforeBacklogSpeaker = textbox->speaker->txt;
+		ReadBacklog();
+	}
+	else if (inputTimer.HasElapsed())
+	{
+		backlogIndex--;
+		if (backlogIndex < 0)
+			backlogIndex = 0;
+		ReadBacklog();
+		inputTimer.Start(inputTimeToWait);
+	}
+}
+
+void CutsceneManager::CloseBacklog()
+{
+	if (readingBacklog && inputTimer.HasElapsed())
+	{
+		backlogIndex++;
+		if (backlogIndex >= backlog.size())
+		{
+			readingBacklog = false;
+			isReadingNextLine = true;
+			textbox->speaker->SetText(beforeBacklogSpeaker, currentColor);
+			textbox->text->SetText(beforeBacklogText);
+			int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
+			textbox->SetCursorPosition(data[newIndex + 1] != '@');
+		}
+		else
+		{
+			ReadBacklog();
+		}
+		inputTimer.Start(inputTimeToWait);
+	}	
+}
+
 // Check input after textbox line has been fully read
 void CutsceneManager::CheckKeys()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	if (useMouseControls)
+	if (useMouseControls && inputTimer.HasElapsed())
 	{
-		if (readingBacklog)
-		{
-			SDL_Event event;
-			while (SDL_PollEvent(&event))
-			{
-				if (event.type == SDL_MOUSEWHEEL)
-				{
-					if (event.wheel.y > 0)
-					{
-						game->renderer.camera.Zoom(-0.1f, game->screenWidth, game->screenHeight);
-					}
-					else if (event.wheel.y < 0)
-					{
-						game->renderer.camera.Zoom(0.1f, game->screenWidth, game->screenHeight);
-					}
-				}
-			}
-			
-		}
-		else
+		if (!readingBacklog)
 		{
 			// Note: In order to clear the mouse state, we check the SDL event in the main game loop
 			if ( mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_LEFT) )
@@ -856,7 +879,11 @@ void CutsceneManager::PushCurrentSceneDataToStack()
 	newData->lineText = GetLineText(lines[lineIndex]);
 	newData->commandIndex = commandIndex;
 
-	std::cout << "PUSH LABEL " << newData->labelName << std::endl;
+	if (!isTravelling)
+	{
+		std::cout << "PUSH LABEL " << newData->labelName << std::endl;
+	}
+
 
 	gosubStack.push_back(newData);
 }
@@ -875,7 +902,10 @@ bool CutsceneManager::PopSceneDataFromStack(SceneData& data)
 		letterIndex = 0;
 		//currentText = data.lineText;
 
-		std::cout << "POP LABEL " << data.labelName << std::endl;
+		if (!isTravelling)
+		{
+			std::cout << "POP LABEL " << data.labelName << std::endl;
+		}
 
 		return true;
 	}
@@ -2324,6 +2354,9 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 	{
 		commands.ClearSprite({ "clear", std::to_string(key), "0" });
 	}
+
+	// Clear backlog text
+	backlog.clear();
 
 	// Stop all sounds
 	game->soundManager.StopBGM();

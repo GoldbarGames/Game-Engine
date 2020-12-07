@@ -53,7 +53,7 @@ public:
 	int bgmVolumeIndex = 0;
 	int soundVolumeIndex = 0;
 	Mix_Music* currentBGM = nullptr;
-	std::string bgmFilepath = "";
+	std::string bgmFilepath = "None";
 	SoundManager();
 	~SoundManager();
 	void Init(Game* g);

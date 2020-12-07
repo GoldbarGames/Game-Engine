@@ -91,7 +91,7 @@ bool SoundManager::LoadBGM(const std::string& bgm)
 			game->logger.Log("ERROR: Failed to load BGM: " + bgm);
 		}
 
-		bgmFilepath = "";
+		bgmFilepath = "None";
 		return false;
 	}
 
@@ -120,6 +120,7 @@ void SoundManager::PlayBGM(const std::string& bgm, bool loop)
 void SoundManager::StopBGM()
 {
 	Mix_HaltMusic();
+	bgmFilepath = "None";
 }
 
 void SoundManager::FadeInChannel(const std::string& filepath, Uint32 duration, int channel, bool loop)
@@ -156,6 +157,7 @@ void SoundManager::FadeInBGM(const std::string& bgm, Uint32 duration, bool loop)
 void SoundManager::FadeOutBGM(Uint32 duration)
 {
 	Mix_FadeOutMusic(duration);
+	bgmFilepath = "None";
 }
 
 void SoundManager::SetVolumeBGM(int index)

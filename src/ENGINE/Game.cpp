@@ -1497,7 +1497,15 @@ bool Game::HandleEvent(SDL_Event& event)
 			}
 			else
 			{
-				renderer.camera.Zoom(-0.1f, screenWidth, screenHeight);
+				if (cutsceneManager.watchingCutscene)
+				{
+					cutsceneManager.OpenBacklog();
+				}
+				else
+				{
+					renderer.camera.Zoom(-0.1f, screenWidth, screenHeight);
+				}
+
 			}
 		}
 		else if (event.wheel.y < 0)
@@ -1508,7 +1516,15 @@ bool Game::HandleEvent(SDL_Event& event)
 			}
 			else
 			{
-				renderer.camera.Zoom(0.1f, screenWidth, screenHeight);
+				if (cutsceneManager.watchingCutscene)
+				{
+					cutsceneManager.CloseBacklog();
+				}
+				else
+				{
+					renderer.camera.Zoom(0.1f, screenWidth, screenHeight);
+				}
+
 			}
 		}
 	}
@@ -1772,7 +1788,7 @@ void Game::SaveScreenshot(const std::string& filepath)
 				timestamp[i] = '-';
 		}
 
-		SDL_SaveBMP(screenshot, ("screenshots/screenshot-" + timestamp + ".bmp").c_str());
+		IMG_SavePNG(screenshot, ("screenshots/screenshot-" + timestamp + ".png").c_str());
 	}
 	else
 	{

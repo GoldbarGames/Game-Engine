@@ -519,7 +519,7 @@ int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
 	{
 		if (manager->isSkipping)
 		{
-			manager->game->soundManager.StopBGM();
+			manager->game->soundManager.FadeOutChannel(1);
 		}
 		else
 		{
@@ -533,7 +533,7 @@ int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
 	{
 		if (manager->isSkipping)
 		{
-			manager->game->soundManager.StopBGM();
+			manager->game->soundManager.FadeOutChannel(1);
 		}
 		else
 		{
@@ -944,7 +944,10 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 
 	manager->FlushCurrentColor();
 
-	std::cout << "RETURN" << std::endl;
+	if (!manager->isTravelling)
+	{
+		std::cout << "RETURN" << std::endl;
+	}
 
 	// Execute commands on the same line
 	for (int i = 0; i < data.commands.size(); i++)
@@ -3032,6 +3035,7 @@ int CutsceneCommands::IncrementVariable(CutsceneParameters parameters)
 	if (parameters[1][0] == '%')
 	{
 		// Get rid of the % sign to get the actual index
+		// TODO: This only works for constants, not variables
 		int val = numberVariables[std::stoi(parameters[1].substr(1, parameters[1].size() - 1))]++;
 		cacheParseNumbers[parameters[1]] = val;
 	}
@@ -3297,10 +3301,6 @@ int CutsceneCommands::TravelCommand(CutsceneParameters parameters)
 int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 {
 	static std::unordered_map<std::string, std::string> args;
-	const int entityIndex = ParseNumberValue(parameters[1]);
-
-	if (manager->images[entityIndex] == nullptr)
-		return 0;
 
 	if (parameters[1] == "args")
 	{
@@ -3315,6 +3315,11 @@ int CutsceneCommands::AnimationCommand(CutsceneParameters parameters)
 
 		return 0;
 	}
+
+	const int entityIndex = ParseNumberValue(parameters[1]);
+
+	if (manager->images[entityIndex] == nullptr)
+		return 0;
 
 	// TODO: Parse all these parameters for variables
 	if (parameters[2] == "state")
@@ -3523,7 +3528,7 @@ int CutsceneCommands::RepeatCommand(CutsceneParameters parameters)
 		rdata.line = manager->lineIndex;
 		rdata.command = manager->commandIndex;
 		rdata.count = 1;
-		rdata.end = std::stoi(parameters[1]);
+		rdata.end = ParseNumberValue(parameters[1]);
 		manager->repeatStack.push_back(rdata);
 	}	
 

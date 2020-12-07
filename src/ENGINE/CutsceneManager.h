@@ -300,6 +300,9 @@ public:
 	const std::string GetLineText(const SceneLine& line) const;
 	const std::string GetLineSpeaker(const SceneLine& line) const;
 
+	void OpenBacklog();
+	void CloseBacklog();
+
 	SceneLabel* GetCurrentLabel();
 	SceneLine* GetCurrentLine();
 };
