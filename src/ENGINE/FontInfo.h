@@ -45,7 +45,7 @@ public:
 
 	TTF_Font* GetBoldItalicsFont();
 
-
+	const std::string& GetRegularFontPath() const { return pathRegular; };
 };
 
 #endif

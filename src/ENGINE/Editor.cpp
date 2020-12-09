@@ -36,10 +36,7 @@ Editor::Editor(Game& g)
 
 	if (fontInfo == nullptr)
 	{
-		fontInfo = neww FontInfo("fonts/SpaceMono/SpaceMono-Regular.ttf", 24);
-		fontInfo->SetBoldFont("fonts/SpaceMono/SpaceMono-Bold.ttf");
-		fontInfo->SetItalicsFont("fonts/SpaceMono/SpaceMono-Italic.ttf");
-		fontInfo->SetBoldItalicsFont("fonts/SpaceMono/SpaceMono-BoldItalic.ttf");
+		fontInfo = game->theFont;
 	}
 
 	currentLevelText = neww Text(fontInfo, "");
@@ -146,9 +143,6 @@ Editor::~Editor()
 
 	if (rectSprite != nullptr)
 		delete_it(rectSprite);
-
-	if (fontInfo != nullptr)
-		delete_it(fontInfo);
 }
 
 // Updates the level file based on changes in how entities are saved/loaded

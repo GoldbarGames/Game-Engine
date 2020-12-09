@@ -542,16 +542,20 @@ int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
 	{
 		if (parameters.size() == 3)
 		{
-			if (manager->game->soundManager.sounds.count(ParseNumberValue(parameters[2])) != 0)
+			const int ch = ParseNumberValue(parameters[2]);
+			if (manager->game->soundManager.sounds.count(ch) != 0)
 			{
-				manager->game->soundManager.sounds[ParseNumberValue(parameters[2])]->Stop();
+				if (manager->game->soundManager.sounds[ch] != nullptr)
+				{
+					manager->game->soundManager.sounds[ch]->Stop();
+				}
 			}
 		}
 		else
 		{
 			for (auto& [key, channel] : manager->game->soundManager.sounds)
 			{
-				if (channel->loop != 0)
+				if (channel != nullptr && channel->loop != 0)
 				{
 					channel->Stop();
 				}
@@ -596,16 +600,20 @@ int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
 	{
 		if (parameters.size() == 3)
 		{
-			if (manager->game->soundManager.sounds.count(ParseNumberValue(parameters[2])) != 0)
+			const int ch = ParseNumberValue(parameters[2]);
+			if (manager->game->soundManager.sounds.count(ch) != 0)
 			{
-				manager->game->soundManager.sounds[ParseNumberValue(parameters[2])]->Stop();
+				if (manager->game->soundManager.sounds[ch] != nullptr)
+				{
+					manager->game->soundManager.sounds[ch]->Stop();
+				}
 			}
 		}
 		else
 		{
 			for (auto& [key, channel] : manager->game->soundManager.sounds)
 			{
-				if (channel->loop == 0)
+				if (channel != nullptr && channel->loop == 0)
 				{
 					channel->Stop();
 				}
@@ -1968,6 +1976,13 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 {
 	Vector2 pos = Vector2(0, 0);
 
+	if (parameters[1] == "font")
+	{		
+		manager->game->CreateFont(ParseStringValue(parameters[2]), ParseNumberValue(parameters[3]));
+		textFontKey = ParseStringValue(parameters[2]) + std::to_string(ParseNumberValue(parameters[3]));
+		return 0;
+	}
+
 	// text 9 [Hello, world!] 0 0
 	// text 9 #ff0000[Hello, world!]#ffffff 0 0
 	//TODO: Make sure variables work (%, $)
@@ -2000,8 +2015,14 @@ int CutsceneCommands::LoadText(CutsceneParameters parameters)
 	int letterIndex = 0;
 	std::string finalText = "";
 
-	// TODO: Can customize this font via script
-	newText = neww Text(manager->textbox->currentFontInfo, "", textColor);
+	FontInfo* fontInfo= manager->textbox->currentFontInfo;
+
+	if (textFontKey != "")
+	{
+		fontInfo = manager->game->fonts[textFontKey];
+	}
+
+	newText = neww Text(fontInfo, "", textColor);
 	newText->SetPosition(pos.x, pos.y);
 	newText->isRichText = true;
 
@@ -2257,19 +2278,7 @@ int CutsceneCommands::Namebox(CutsceneParameters parameters)
 		}
 		else if (parameters[2] == "font")
 		{
-			//TODO: Add a separate command for loading neww fonts?
-			if (parameters[3] == "type")
-			{
-				manager->textbox->ChangeNameFont(ParseStringValue(parameters[4]));
-			}
-			else if (parameters[3] == "size")
-			{
-
-			}
-			else if (parameters[3] == "style")
-			{
-				// probably just do this using text tags < >
-			}
+			manager->textbox->ChangeNameFont(ParseStringValue(parameters[3]), ParseNumberValue(parameters[4]));
 		}
 	}
 	else if (parameters[1] == "color")
@@ -2313,21 +2322,8 @@ int CutsceneCommands::Textbox(CutsceneParameters parameters)
 			manager->textbox->text->SetText(ParseStringValue(parameters[2]));
 		}
 		else if (parameters[2] == "font")
-		{
-			//TODO: Add a separate command for loading neww fonts?
-			if (parameters[3] == "type")
-			{
-				manager->textbox->ChangeBoxFont(ParseStringValue(parameters[4]));
-			}
-			else if (parameters[3] == "size")
-			{
-				manager->textbox->currentFontInfo->ChangeFontSize(ParseNumberValue(parameters[4]));
-				//manager->textbox->textFont = manager->textbox->currentFontInfo->GetRegularFont();
-			}
-			else if (parameters[3] == "style")
-			{
-				// probably just do this using text tags < >
-			}
+		{			
+			manager->textbox->ChangeBoxFont(ParseStringValue(parameters[3]), ParseNumberValue(parameters[4]));
 		}
 	}
 	else if (parameters[1] == "color")
@@ -2343,6 +2339,10 @@ int CutsceneCommands::Textbox(CutsceneParameters parameters)
 	else if (parameters[1] == "sprite")
 	{
 		manager->textbox->ChangeBoxSprite(pathPrefix + ParseStringValue(parameters[2]));
+	}
+	else if (parameters[1] == "wrapWidth")
+	{
+		manager->textbox->boxWidth = ParseNumberValue(parameters[2]);
 	}
 
 	return 0;
@@ -2936,7 +2936,7 @@ int CutsceneCommands::ErrorLog(CutsceneParameters parameters)
 int CutsceneCommands::FontCommand(CutsceneParameters parameters)
 {
 	// Load fonts from files
-	manager->game->CreateFont(parameters[1], 24);
+	manager->game->CreateFont(parameters[1], ParseNumberValue(parameters[2]));
 
 	return 0;
 }

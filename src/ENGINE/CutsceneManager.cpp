@@ -2457,10 +2457,13 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			// Save other looped sounds
 			for (auto const& [num, channel] : game->soundManager.sounds)
 			{
-				if (channel->loop == -1)
-					fout << "me " << channel->num << " " << '<' << channel->sound->filepath << '>' << std::endl;
-				else
-					fout << "se " << channel->num << " " << '<' << channel->sound->filepath << '>' << " " << channel->loop << std::endl;
+				if (channel != nullptr)
+				{
+					if (channel->loop == -1)
+						fout << "me " << channel->num << " " << '<' << channel->sound->filepath << '>' << std::endl;
+					else
+						fout << "se " << channel->num << " " << '<' << channel->sound->filepath << '>' << " " << channel->loop << std::endl;
+				}
 			}
 
 			break;
@@ -2611,7 +2614,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				labelName = lineParams[0];
 				//std::string lineText = saveData[1];
 				labelIndex = std::stoi(lineParams[1]);
-				lineIndex = std::stoi(lineParams[2]) - 1;
+				lineIndex = std::stoi(lineParams[2]);
 				commandIndex = std::stoi(lineParams[3]);
 				isCarryingOutCommands = false;
 

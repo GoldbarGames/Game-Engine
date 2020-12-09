@@ -28,16 +28,16 @@ public:
 	bool shouldRender = true;
 	bool isReading = false;
 
-	const Uint32 boxWidth = 1140;
+	Uint32 boxWidth = 1100;
 
 	std::string fullTextString = "";
 	SpriteManager* spriteManager = nullptr;
 	Renderer* renderer = nullptr;
 
-	void ChangeNameFont(const std::string& fontName);
+	void ChangeNameFont(const std::string& fontName, const int size);
 	void ChangeNameSprite(const std::string& filepath);
 
-	void ChangeBoxFont(const std::string& fontName);
+	void ChangeBoxFont(const std::string& fontName, const int size);
 	void ChangeBoxSprite(const std::string& filepath);
 
 	void UpdateText(const char c, const Color& color);

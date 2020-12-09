@@ -222,9 +222,8 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	// Initialize the font before all text
 
 	// TODO: Load all fonts from a file
-	CreateFont("SpaceMono", m.GetFontSize());
-	theFont = fonts["SpaceMono"];
-	headerFont = fonts["SpaceMono"];
+	theFont = CreateFont("SazanamiGothic", m.GetFontSize());
+	headerFont = CreateFont("SazanamiGothic", m.GetFontSize() * 2);
 
 	soundManager.ReadMusicData("data/bgm.dat");
 
@@ -326,8 +325,7 @@ Game::~Game()
 
 	for (auto& [key, val] : fonts)
 	{
-		if (val != nullptr)
-			delete_it(val);
+		delete fonts[key];
 	}
 
 	EndSDL();
@@ -365,15 +363,18 @@ void Game::ReadEntityLists()
 	}
 }
 
-void Game::CreateFont(const std::string& fontName, int size)
+FontInfo* Game::CreateFont(const std::string& fontName, int size)
 {
-	if (fonts.count(fontName) == 0)
+	std::string key = fontName + std::to_string(size);
+	if (fonts.count(key) == 0)
 	{
-		fonts[fontName] = neww FontInfo("fonts/" + fontName + "/" + fontName + "-Regular.ttf", size);
-		fonts[fontName]->SetBoldFont("fonts/" + fontName + "/" + fontName + "-Bold.ttf");
-		fonts[fontName]->SetItalicsFont("fonts/" + fontName + "/" + fontName + "-Italic.ttf");
-		fonts[fontName]->SetBoldItalicsFont("fonts/" + fontName + "/" + fontName + "-BoldItalic.ttf");
+		fonts[key] = neww FontInfo("fonts/" + fontName + "/" + fontName + "-Regular.ttf", size);
+		fonts[key]->SetBoldFont("fonts/" + fontName + "/" + fontName + "-Bold.ttf");
+		fonts[key]->SetItalicsFont("fonts/" + fontName + "/" + fontName + "-Italic.ttf");
+		fonts[key]->SetBoldItalicsFont("fonts/" + fontName + "/" + fontName + "-BoldItalic.ttf");
 	}
+
+	return fonts[key];
 }
 
 void Game::CalcDt()

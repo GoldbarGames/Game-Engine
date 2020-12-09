@@ -206,7 +206,7 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 
 	for (int i = 0; i < txt.size(); i++)
 	{
-		Texture* textTexture = GetTexture(font, txt[i], textColorSDL);
+		Texture* textTexture = GetTexture(font, txt[i], currentFontInfo->GetFontSize(), textColorSDL);
 
 		if (textTexture != nullptr)
 		{
@@ -235,9 +235,9 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 	SetPosition(position.x, position.y);
 }
 
-Texture* Text::GetTexture(TTF_Font* f, char c, SDL_Color col)
+Texture* Text::GetTexture(TTF_Font* f, char c, int size, SDL_Color col)
 {	
-	return Animator::spriteManager->GetTexture(f, c, col);
+	return Animator::spriteManager->GetTexture(f, c, size, col);
 }
 
 void Text::AddImage(Sprite* newSprite)
@@ -283,7 +283,7 @@ void Text::AddText(char c, Color color)
 	bool renderRelative = true;
 
 	SDL_Color textColorSDL = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
-	Texture* textTexture = GetTexture(font, c, textColorSDL);
+	Texture* textTexture = GetTexture(font, c, currentFontInfo->GetFontSize(), textColorSDL);
 
 	if (textTexture != nullptr)
 	{
@@ -359,11 +359,11 @@ void Text::Render(const Renderer& renderer)
 			if (glyphs[i]->animator != nullptr)
 			{
 				glyphs[i]->sprite.Render(glyphs[i]->position,
-					glyphs[i]->animator->GetSpeed(), renderer, scale, rotation);
+					glyphs[i]->animator->GetSpeed(), renderer, glyphs[i]->scale, rotation);
 			}
 			else
 			{
-				glyphs[i]->sprite.Render(glyphs[i]->position, 0, renderer, scale, rotation);
+				glyphs[i]->sprite.Render(glyphs[i]->position, 0, renderer, glyphs[i]->scale, rotation);
 			}
 		}
 	}
@@ -380,7 +380,7 @@ void Text::Render(const Renderer& renderer, Vector2 offset)
 	{
 		for (int i = 0; i < glyphs.size(); i++)
 		{
-			glyphs[i]->sprite.Render(glyphs[i]->position + offset, renderer, scale);
+			glyphs[i]->sprite.Render(glyphs[i]->position + offset, renderer, glyphs[i]->scale);
 		}
 	}
 	else

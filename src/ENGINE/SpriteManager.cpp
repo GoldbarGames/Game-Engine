@@ -113,12 +113,13 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 	return images[imagePath];
 }
 
-Texture* SpriteManager::GetTexture(TTF_Font* f, char c, SDL_Color col)
+Texture* SpriteManager::GetTexture(TTF_Font* f, char c, int size, SDL_Color col)
 {
 	GlyphSurfaceData data;
 	data.fontName = TTF_FontFaceStyleName(f);
 	data.glyph = c; //TODO: What happens if this is /0?
 	data.color = col;
+	data.size = size;
 
 	if (glyphTextures.count(data) == 0)
 	{

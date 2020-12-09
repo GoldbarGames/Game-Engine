@@ -134,7 +134,10 @@ void SoundManager::FadeOutChannel(uint32_t duration, int channel)
 	{
 		for (auto& [key, channel] : sounds)
 		{
-			Mix_FadeOutChannel(channel->num, duration);
+			if (channel != nullptr)
+			{
+				Mix_FadeOutChannel(channel->num, duration);
+			}
 		}
 	}
 	else

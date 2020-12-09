@@ -61,7 +61,7 @@ public:
 
 	std::string GetTextString();
 
-	Texture* GetTexture(TTF_Font* f, char c, SDL_Color col);
+	Texture* GetTexture(TTF_Font* f, char c, int size, SDL_Color col);
 
 	void SetScale(Vector2 newScale);
 	Vector2 currentScale = Vector2(1, 1);

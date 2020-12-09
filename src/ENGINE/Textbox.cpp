@@ -10,8 +10,8 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 
 	//TODO: Replace these with the real fonts
 	//TODO: How to deal with font sizes? Maybe map from string to map<int, TTF*>
-
-	currentFontInfo = renderer->game->fonts["SpaceMono"];
+	boxWidth = 1130;
+	currentFontInfo = renderer->game->CreateFont("SazanamiGothic", 24);
 
 	//TODO: Should we have a way to define the starting box position?
 	boxObject = neww Entity(Vector2(1280, 720));
@@ -36,6 +36,8 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 
 	text->SetPosition(1080, 1040);
 	speaker->SetPosition(235, 985);
+
+	text->SetScale(Vector2(0.25f, 0.25f));
 
 	text->isRichText = true;
 	speaker->isRichText = false;
@@ -97,27 +99,28 @@ void Textbox::SetCursorPosition(bool endOfPage, Vector2 newCursorPos)
 	clickToContinue->SetPosition(newCursorPos);
 }
 
-void Textbox::ChangeBoxFont(const std::string& fontName)
+void Textbox::ChangeBoxFont(const std::string& fontName, const int size)
 {
 	//TODO: What about the backlog font?
-	//TODO: How to change the font size?
-	//TODO: Make another map that takes the filepath as the key and has the short name as the value
-	if (renderer->game->fonts.count(fontName) == 1)
+	//TODO: More advanced features?
+
+	currentFontInfo = renderer->game->CreateFont(fontName, size);
+	if (currentFontInfo != nullptr)
 	{
-		currentFontInfo = renderer->game->fonts[fontName];
 		text->SetFont(currentFontInfo->GetRegularFont());
-	}		
+		text->currentFontInfo = currentFontInfo;
+	}
 }
 
-void Textbox::ChangeNameFont(const std::string& fontName)
+void Textbox::ChangeNameFont(const std::string& fontName, const int size)
 {
 	//TODO: What about the backlog font?
 	//TODO: How to change the font size?
 	//TODO: Make another map that takes the filepath as the key and has the short name as the value
 	if (renderer->game->fonts.count(fontName) == 1)
 	{
-		currentFontInfo = renderer->game->fonts[fontName];
 		speaker->SetFont(currentFontInfo->GetRegularFont());
+		speaker->currentFontInfo = renderer->game->CreateFont(fontName, size);
 	}		
 }
 

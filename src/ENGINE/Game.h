@@ -151,7 +151,7 @@ public:
 	Entity* CreateEntity(const std::string& entityName, const Vector2& position, int spriteIndex) const;
 	Entity* SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex) const;
 
-	void CreateFont(const std::string& fontName, int size);
+	FontInfo* CreateFont(const std::string& fontName, int size);
 
 	Timer timer;
 	Timer fpsLimit;

@@ -56,6 +56,7 @@ public:
 
 	const std::string DIGITMASK = "-0123456789";
 
+	std::string textFontKey = "";
 	std::string choiceBGFilePath = "";
 	std::string pathPrefix = "";
 	int randomSeed = 0;

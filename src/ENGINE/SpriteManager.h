@@ -20,6 +20,7 @@ struct GlyphSurfaceData
 {
 	std::string fontName = "";
 	char glyph = 'x';
+	int size = 1;
 	SDL_Color color = { 255, 255, 255, 255 };
 
 	bool operator==(const GlyphSurfaceData& other) const
@@ -28,6 +29,9 @@ struct GlyphSurfaceData
 			return false;
 
 		if (glyph != other.glyph)
+			return false;
+
+		if (size != other.size)
 			return false;
 
 		if (color.r != other.color.r)
@@ -76,7 +80,7 @@ public:
 	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath, std::unordered_map<std::string, std::string>& args) const;
 	Texture* GetImage(const std::string& imagePath) const;
 	// TODO: Get rid of Color here, just make it white and then apply color using shaders
-	Texture* GetTexture(TTF_Font* f, char c, SDL_Color col);
+	Texture* GetTexture(TTF_Font* f, char c, int size, SDL_Color col);
 	Texture* GetTexture(TTF_Font* f, const std::string& txt, int wrapWidth=0);
 	void Init(Renderer* r);
 	SpriteManager();
