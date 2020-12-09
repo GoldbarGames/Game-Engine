@@ -17,15 +17,10 @@
 
 typedef int (CutsceneCommands::*FuncList)(CutsceneParameters parameters);
 
-//Look Up Table
-struct FuncLUT {
-	char command[32];
-	FuncList method;
-};
-
 // TODO: Add custom commands from DLLs
 
-std::vector<FuncLUT>cmd_lut = {
+//Look Up Table
+std::unordered_map<std::string, FuncList>cmd_lut = {
 	{"~", &CutsceneCommands::DoNothing},
 	{"add", &CutsceneCommands::AddNumberVariables},
 	{"align", &CutsceneCommands::AlignCommand},
@@ -85,6 +80,7 @@ std::vector<FuncLUT>cmd_lut = {
 	{"print", &CutsceneCommands::PrintCommand },
 	{"quake", &CutsceneCommands::Quake },
 	{"random", &CutsceneCommands::RandomNumberVariable },
+	{"rect", &CutsceneCommands::DrawRectCommand },
 	{"reset", &CutsceneCommands::ResetGame },
 	{"resolution", &CutsceneCommands::SetResolution },
 	{"repeat", &CutsceneCommands::RepeatCommand },
@@ -165,10 +161,10 @@ CutsceneCommands::CutsceneCommands()
 
 CutsceneCommands::~CutsceneCommands()
 {
-	for (int i = 0; i < userDefinedFunctions.size(); i++)
+	for (auto& [key, func] : userDefinedFunctions)
 	{
-		if (userDefinedFunctions[i] != nullptr)
-			delete_it(userDefinedFunctions[i]);
+		if (func != nullptr)
+			delete_it(func);
 	}
 
 	for (auto& [key, val] : customShaders)
@@ -321,104 +317,93 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 		}
 
 		bool commandFound = false;
-		for (const auto& cmd : cmd_lut)
+
+		if (cmd_lut.count(parameters[0]) != 0)
 		{
-			if (cmd.command == parameters[0])
+			commandFound = true;
+
+			try
 			{
-				commandFound = true;
+				int errorCode = (this->*cmd_lut[parameters[0]])(parameters);
 
-				try
+				if (errorCode != 0)
 				{
-					int errorCode = (this->*cmd.method)(parameters);
-
-					if (errorCode != 0)
+					if (errorCode == -99)
 					{
-						if (errorCode == -99)
-						{
-							manager->EndCutscene();
-							return true;
-						}
-						else if (errorCode == -199) //TODO: Use enums
-						{
-							finished = 0;
-						}
-						else if (errorCode == -198)
-						{
-							finished = 2;
-						}
-						else
-						{
-							std::cout << "ERROR " << errorCode << ": ";
-							for (int i = 0; i < parameters.size(); i++)
-								std::cout << parameters[i] << " ";
-							std::cout << std::endl;
-						}
+						manager->EndCutscene();
+						return true;
+					}
+					else if (errorCode == -199) //TODO: Use enums
+					{
+						finished = 0;
+					}
+					else if (errorCode == -198)
+					{
+						finished = 2;
+					}
+					else
+					{
+						std::cout << "ERROR " << errorCode << ": ";
+						for (int i = 0; i < parameters.size(); i++)
+							std::cout << parameters[i] << " ";
+						std::cout << std::endl;
 					}
 				}
-				catch (const std::exception &e)
-				{
-					std::cout << "EXCEPTION: " << e.what() << std::endl;
-					std::cout << "COMMAND: " << command << std::endl;
-					manager->game->logger.Log(e.what());
-				}
-
-				break;
-			}				
+			}
+			catch (const std::exception& e)
+			{
+				std::cout << "EXCEPTION: " << e.what() << std::endl;
+				std::cout << "COMMAND: " << command << std::endl;
+				manager->game->logger.Log(e.what());
+			}
 		}
 
 		if (!commandFound)
 		{
-			// We want to check user-defined functions in here
-			for (int k = 0; k < userDefinedFunctions.size(); k++)
+			if (userDefinedFunctions.count(parameters[0]) != 0)
 			{
-				// If function name exists, jump to the label with that name
-				if (userDefinedFunctions[k]->functionName == parameters[0])
-				{
-					commandFound = true;
+				commandFound = true;
 
-					bool foundLabel = false;
-					for (int i = 0; i < manager->labels.size(); i++)
+				bool foundLabel = false;
+				for (int i = 0; i < manager->labels.size(); i++)
+				{
+					std::string name = manager->GetLabelName(manager->labels[i]);
+					//std::cout << name << std::endl;
+					if (name == parameters[0])
 					{
-						std::string name = manager->GetLabelName(manager->labels[i]);
-						//std::cout << name << std::endl;
-						if (name == parameters[0])
+						foundLabel = true;
+						break;
+					}
+				}
+
+				if (foundLabel)
+				{
+					//			myfunction 123 [test] 456  <-- parameters
+					// defsub	myfunction %0  $45	  %33  <-- definition
+
+					// Grab parameters and place their values in the corresponding variables
+					for (int i = 0; i < userDefinedFunctions[parameters[0]]->parameters.size(); i++)
+					{
+						int index = GetNumAlias(userDefinedFunctions[parameters[0]]->parameters[i].substr(1,
+							userDefinedFunctions[parameters[0]]->parameters[i].size() - 1));
+
+						// Set values for each variable as defined in the function definition
+						switch (userDefinedFunctions[parameters[0]]->parameters[i][0])
 						{
-							foundLabel = true;
+						case '$':
+							stringVariables[index] = ParseStringValue(parameters[i + 1]);
+							break;
+						case '%':
+							numberVariables[index] = ParseNumberValue(parameters[i + 1]);
+							break;
+						default:
+							// Do nothing, maybe error message?
+							std::cout << "Invalid parameter definition for " << parameters[0] << " function";
 							break;
 						}
 					}
 
-					if (foundLabel)
-					{
-						//			myfunction 123 [test] 456  <-- parameters
-						// defsub	myfunction %0  $45	  %33  <-- definition
-
-						// Grab parameters and place their values in the corresponding variables
-						for (int i = 0; i < userDefinedFunctions[k]->parameters.size(); i++)
-						{
-							int index = GetNumAlias(userDefinedFunctions[k]->parameters[i].substr(1,
-								userDefinedFunctions[k]->parameters[i].size() - 1));
-
-							// Set values for each variable as defined in the function definition
-							switch (userDefinedFunctions[k]->parameters[i][0])
-							{
-							case '$':
-								stringVariables[index] = ParseStringValue(parameters[i + 1]);
-								break;
-							case '%':
-								numberVariables[index] = ParseNumberValue(parameters[i + 1]);
-								break;
-							default:
-								// Do nothing, maybe error message?
-								std::cout << "Invalid parameter definition for " << parameters[0] << " function";
-								break;
-							}
-						}
-
-						GoSubroutine({ parameters[0], parameters[0] });
-					}
-
-					break;
+					GoSubroutine({ parameters[0], parameters[0] });
 				}
 
 			}
@@ -493,6 +478,10 @@ int CutsceneCommands::MusicCommand(CutsceneParameters parameters)
 	{
 		manager->game->soundManager.SetVolumeBGM(ParseNumberValue(parameters[2]));
 	}
+	else if (parameters[1] == "volumei")
+	{
+		manager->game->soundManager.SetVolumeBGMIndex(ParseNumberValue(parameters[2]));
+	}
 
 	return 0;
 }
@@ -514,6 +503,10 @@ int CutsceneCommands::MusicEffectCommand(CutsceneParameters parameters)
 	else if (parameters[1] == "volume")
 	{
 		manager->game->soundManager.SetVolumeSound(ParseNumberValue(parameters[2]));
+	}
+	else if (parameters[1] == "volumei")
+	{
+		manager->game->soundManager.SetVolumeSoundIndex(ParseNumberValue(parameters[2]));
 	}
 	else if (parameters[1] == "fadeout")
 	{
@@ -584,9 +577,20 @@ int CutsceneCommands::SoundCommand(CutsceneParameters parameters)
 			manager->game->soundManager.PlaySound(pathPrefix + ParseStringValue(parameters[2]));
 		}
 	}
+	else if (parameters[1] == "loop")
+	{
+		// TODO: We can probably just eliminate this command altogether
+		// because a Music Effect is just a sound effect that loops,
+		// and we want to have control over the properties of individual channels anyway
+		MusicEffectCommand({ "me", "play", parameters[2], parameters[3] });
+	}
 	else if (parameters[1] == "volume")
 	{
-		manager->game->soundManager.SetVolumeSound(ParseNumberValue(parameters[2]));
+		manager->game->soundManager.SetVolumeSoundOnChannel(ParseNumberValue(parameters[3]), ParseNumberValue(parameters[2]));
+	}
+	else if (parameters[1] == "volumei")
+	{
+		manager->game->soundManager.SetVolumeSoundIndex(ParseNumberValue(parameters[2]));
 	}
 	else if (parameters[1] == "stop")
 	{
@@ -879,23 +883,8 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 
 int CutsceneCommands::DefineUserFunction(CutsceneParameters parameters)
 {
-	bool functionAlreadyExists = false;
-	for (int i = 0; i < userDefinedFunctions.size(); i++)
-	{
-		if (userDefinedFunctions[i]->functionName == parameters[1])
-		{
-			functionAlreadyExists = true;
-			break;
-		}
-	}
-
-	//auto it = std::find(userDefinedFunctions.begin(), 
-	//	userDefinedFunctions.end(), parameters[1]);
-	//auto it = std::find_if(begin(userDefinedFunctions), end(userDefinedFunctions),
-	//	[&](auto func) { return func.name == parameters[1]; });
-
 	// If function name does not exist, add it to the list
-	if (!functionAlreadyExists)
+	if (userDefinedFunctions.count(parameters[1]) == 0)
 	{
 		UserDefinedFunction* newFunction = neww UserDefinedFunction;
 		newFunction->functionName = parameters[1];
@@ -903,7 +892,7 @@ int CutsceneCommands::DefineUserFunction(CutsceneParameters parameters)
 		for (int i = 2; i < parameters.size(); i++)
 			newFunction->parameters.push_back(parameters[i]);
 
-		userDefinedFunctions.push_back(newFunction);
+		userDefinedFunctions[parameters[1]] = newFunction;
 	}
 
 	return 0;
@@ -2447,11 +2436,7 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 		{
 			if (manager->backlog.size() > 0)
 			{
-				manager->readingBacklog = true;
-				manager->backlogIndex = manager->backlog.size() - 1;
-				manager->beforeBacklogText = manager->previousText;
-				manager->beforeBacklogSpeaker = manager->textbox->speaker->txt;
-				manager->ReadBacklog();
+				manager->OpenBacklog();
 			}
 		}
 		else if (parameters[1] == "enable")
@@ -2461,6 +2446,18 @@ int CutsceneCommands::OpenBacklog(CutsceneParameters parameters)
 		else if (parameters[1] == "disable")
 		{
 			manager->backlogEnabled = false;
+		}
+		else if (parameters[1] == "btnUp")
+		{
+			manager->backlogBtnUp = ParseStringValue(parameters[2]);
+			manager->backlogBtnUpX = ParseNumberValue(parameters[3]);
+			manager->backlogBtnUpY = ParseNumberValue(parameters[4]);
+		}
+		else if (parameters[1] == "btnDown")
+		{
+			manager->backlogBtnDown = ParseStringValue(parameters[2]);
+			manager->backlogBtnDownX = ParseNumberValue(parameters[3]);
+			manager->backlogBtnDownY = ParseNumberValue(parameters[4]);
 		}
 		else if (parameters[1] == "color") //TODO: Should this be the same for both name and text?
 		{
@@ -3073,7 +3070,16 @@ int CutsceneCommands::Output(CutsceneParameters parameters)
 
 	bool shouldLog = true;
 
-	if (shouldOutput)
+	if (parameters[1] == "on")
+	{
+		outputCommands = true;
+	}
+	else if (parameters[1] == "off")
+	{
+		outputCommands = false;
+
+	}
+	else if (shouldOutput)
 	{
 		if (parameters[1] == "str")
 		{
@@ -3112,15 +3118,6 @@ int CutsceneCommands::Output(CutsceneParameters parameters)
 		}
 	}
 
-	if (parameters[1] == "on")
-	{
-		outputCommands = true;
-	}
-	else if (parameters[1] == "off")
-	{
-		outputCommands = false;
-	}
-
 	return 0;
 }
 
@@ -3146,6 +3143,8 @@ int CutsceneCommands::LineBreakCommand(CutsceneParameters parameters)
 	return 0;
 }
 
+// This number is the time in milliseconds to wait,
+// so a larger number actually makes the speed slower
 int CutsceneCommands::TextSpeed(CutsceneParameters parameters)
 {
 	manager->msInitialDelayBetweenGlyphs = ParseNumberValue(parameters[1]);
@@ -3693,6 +3692,31 @@ int CutsceneCommands::ParticleCommand(CutsceneParameters parameters)
 	return 0;
 }
 
+int CutsceneCommands::DrawRectCommand(CutsceneParameters parameters)
+{
+	// image_number x, y, width, height, _current_Value max_value, color
+
+	LoadSprite({ "ld", parameters[1], "", parameters[2], parameters[3], "1" });
+
+	Entity* entity = manager->images[ParseNumberValue(parameters[1])];
+
+	// currentValue / maxValue
+	float ratio = ParseNumberValue(parameters[6]) / (float)ParseNumberValue(parameters[7]);
+
+	Vector2 newScale = Vector2(ParseNumberValue(parameters[4]) * ratio, 
+		(float)ParseNumberValue(parameters[5]));
+
+	// TODO: Don't hardcode this
+	newScale.x /= (32.0f * Camera::MULTIPLIER);
+	newScale.y /= (32.0f * Camera::MULTIPLIER);
+
+	entity->SetScale(newScale);
+
+	// TODO: Read in the color here
+
+	return 0;
+}
+
 // TODO: Including windows.h breaks the engine due to macro conflicts
 // TODO: Also, need a cross-platform solution (not just Windows)
 int CutsceneCommands::ShellCommand(CutsceneParameters parameters)
@@ -3703,5 +3727,62 @@ int CutsceneCommands::ShellCommand(CutsceneParameters parameters)
 // TODO: Implement this
 int CutsceneCommands::SteamCommand(CutsceneParameters parameters)
 {
+
+#ifdef STEAM_ENABLED
+
+	const std::string& buf = parameters[2];
+
+	if (parameters[1] == "setachieve")
+	{
+		if (SteamUserStats()) 
+		{
+			bool sa = SteamUserStats()->SetAchievement(buf);
+			assert(sa == true);
+			if (!sa) 
+			{
+				manager.game.logger.Log("Error setting achievement \n");
+			}
+			else 
+			{
+				// Trigger the little "Achievement Get" dialog
+				SteamUserStats()->StoreStats();
+			}
+		}
+		else 
+		{
+			manager.game.logger.Log("Not setting achievement, no Steam \n");
+		}
+	}
+	else if (parameters[1] == "resetachieves") // Resets all Steam Stats, including achievements
+	{
+		if (SteamUserStats()) 
+		{
+			SteamUserStats()->ResetAllStats(true);
+		}
+	}
+	else if (parameters[1] == "resetstats") // Resets all Steam Stats, excluding achievements
+	{
+		if (SteamUserStats()) 
+		{
+			SteamUserStats()->ResetAllStats(false);
+		}
+	}
+	else if (parameters[1] == "overlay")
+	{
+		bool so = SteamUtils()->IsOverlayEnabled();
+		assert(so == true);
+
+		if (SteamFriends()) 
+		{
+			SteamFriends()->ActivateGameOverlay(buf);
+		}
+		else 
+		{
+			manager->game->logger.Log("Not setting overlay, no Steam \n");
+		}
+	}
+
+#endif
+
 	return 0;
 }

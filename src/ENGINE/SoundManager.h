@@ -67,10 +67,13 @@ public:
 	void FadeInChannel(const std::string& filepath, Uint32 duration, int channel = -1, bool loop = true);
 	void FadeOutChannel(uint32_t duration, int channel = -1);
 
-	void SetVolumeBGM(int index);
+	void SetVolumeBGM(int newVolume);
+	void SetVolumeBGMIndex(int index);
 	void PlaySound(const std::string& filepath, int channel = -1, int loop = 0);
 	void ClearChannel(int channel);
 	void SetVolumeSound(int index);
+	void SetVolumeSoundIndex(int index);
+	void SetVolumeSoundOnChannel(int newVolume, int channel);
 	void ReadMusicData(const std::string& dataFilePath);
 	bool IsPlayingSound(int channel);
 	bool IsPlayingBGM();

@@ -41,7 +41,7 @@ public:
 
 	// TODO: N-dimensional arrays > 2 ?
 
-	std::vector<UserDefinedFunction*> userDefinedFunctions;	
+	std::unordered_map<std::string, UserDefinedFunction*> userDefinedFunctions;	
 
 	// When you press the button, jump to the corresponding label
 	std::unordered_map<unsigned int, std::string> buttonLabels;
@@ -219,6 +219,7 @@ public:
 	int ShellCommand(CutsceneParameters parameters);
 
 	int SteamCommand(CutsceneParameters parameters);
+	int DrawRectCommand(CutsceneParameters parameters);
 
 	unsigned int key = 0;
 	unsigned int number1 = 0;

@@ -252,6 +252,13 @@ public:
 	bool isTravelling = false;
 	std::string endTravelLabel = "";
 
+	std::string backlogBtnUp = "";
+	std::string backlogBtnDown = "";
+	int backlogBtnUpX = 0;
+	int backlogBtnUpY = 0;
+	int backlogBtnDownX = 0;
+	int backlogBtnDownY = 0;
+
 	const std::string& GetLanguage() { return language;  }
 
 	CutsceneManager();

@@ -46,7 +46,7 @@ bool SoundChannel::Stop()
 SoundManager::SoundManager()
 {
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
-	volArray = { 0, 30, 60, 90, MIX_MAX_VOLUME };
+	volArray = { 0, 32, 64, 96, MIX_MAX_VOLUME };
 }
 
 SoundManager::~SoundManager()
@@ -160,12 +160,30 @@ void SoundManager::FadeOutBGM(Uint32 duration)
 	bgmFilepath = "None";
 }
 
-void SoundManager::SetVolumeBGM(int index)
+void SoundManager::SetVolumeBGMIndex(int index)
 {
-	bgmVolumeIndex = index;	
+	bgmVolumeIndex = index;
 	volumeBGM = volArray[index];
 	Mix_VolumeMusic(volumeBGM);
 }
+
+void SoundManager::SetVolumeBGM(int newVolume)
+{
+	volumeBGM = newVolume;
+	Mix_VolumeMusic(volumeBGM);
+}
+
+// Two different types of sounds:
+// music effects (loop)
+// sound effects (don't loop)
+
+// However, in the engine, it makes no distinciton between the two
+// So we just have a list of sound channels
+// and in these channels, can either be ME or SE
+// (to tell the difference, check whether it loops or not)
+
+
+
 
 Uint32 SoundManager::GetVolumeBGM()
 {
@@ -178,16 +196,16 @@ void SoundManager::PlaySound(const std::string& filepath, int channel, int loop)
 	if (channel < 0)
 		return;
 
-	if (sounds[channel] != nullptr)
+	// TODO: Generate X number of channels ahead of time,
+	// and then modify individual properties when needed
+	if (sounds[channel] == nullptr)
 	{
-		delete sounds[channel];
+		Sound* sound = neww Sound(filepath.c_str());
+		SoundChannel* soundChannel = neww SoundChannel(channel, sound, volumeSound, loop);
+		sounds[channel] = soundChannel;
 	}
 
 	//sound = "se/" + sound + ".wav";
-	Sound* sound = neww Sound(filepath.c_str());
-	SoundChannel* soundChannel = neww SoundChannel(channel, sound, volumeSound, loop);
-
-	sounds[channel] = soundChannel;
 	if (!sounds[channel]->Play())
 	{
 		if (game != nullptr)
@@ -205,10 +223,28 @@ void SoundManager::ClearChannel(int channel)
 	}
 }
 
-void SoundManager::SetVolumeSound(int index)
+void SoundManager::SetVolumeSoundIndex(int index)
 {
 	soundVolumeIndex = index;
 	volumeSound = volArray[index];
+}
+
+void SoundManager::SetVolumeSound(int newVolume)
+{
+	volumeSound = newVolume;
+}
+
+void SoundManager::SetVolumeSoundOnChannel(int newVolume, int channel)
+{
+	volumeSound = newVolume;
+
+	if (sounds[channel] != nullptr)
+	{
+		sounds[channel]->volume = newVolume;
+
+		// TODO: A lot of this seems redundant. Can this be refactored better?
+		Mix_Volume(sounds[channel]->num, sounds[channel]->volume);
+	}
 }
 
 Uint32 SoundManager::GetVolumeSound()

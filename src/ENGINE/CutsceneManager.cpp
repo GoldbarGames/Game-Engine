@@ -179,6 +179,10 @@ void CutsceneManager::CheckKeysWhileReading()
 				clickedMidPage = true;
 			}
 		}
+		else
+		{
+
+		}
 	}
 
 	if (useKeyboardControls)
@@ -201,9 +205,22 @@ void CutsceneManager::OpenBacklog()
 	{
 		readingBacklog = true;
 		backlogIndex = backlog.size() - 1;
+		previousText = currentText;
 		beforeBacklogText = previousText;
 		beforeBacklogSpeaker = textbox->speaker->txt;
 		ReadBacklog();
+
+		if (backlogIndex > 0)
+		{
+			commands.LoadSprite({ "ld", "998", backlogBtnUp, std::to_string(backlogBtnUpX), std::to_string(backlogBtnUpY) });
+		}
+		else
+		{
+			commands.ClearSprite({ "cl", "998", "1" });
+		}
+
+		commands.LoadSprite({ "ld", "999", backlogBtnDown, std::to_string(backlogBtnDownX), std::to_string(backlogBtnDownY) });
+
 	}
 	else if (inputTimer.HasElapsed())
 	{
@@ -212,6 +229,17 @@ void CutsceneManager::OpenBacklog()
 			backlogIndex = 0;
 		ReadBacklog();
 		inputTimer.Start(inputTimeToWait);
+
+		if (backlogIndex > 0)
+		{
+			commands.LoadSprite({ "ld", "998", backlogBtnUp, std::to_string(backlogBtnUpX), std::to_string(backlogBtnUpY) });
+		}
+		else
+		{
+			commands.ClearSprite({ "cl", "998", "1" });
+		}
+
+		commands.LoadSprite({ "ld", "999", backlogBtnDown, std::to_string(backlogBtnDownX), std::to_string(backlogBtnDownY) });
 	}
 }
 
@@ -228,10 +256,16 @@ void CutsceneManager::CloseBacklog()
 			textbox->text->SetText(beforeBacklogText);
 			int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
 			textbox->SetCursorPosition(data[newIndex + 1] != '@');
+
+			commands.ClearSprite({ "cl", "998", "1" });
+			commands.ClearSprite({ "cl", "999", "1" });
 		}
 		else
 		{
 			ReadBacklog();
+
+			commands.LoadSprite({ "ld", "998", backlogBtnUp, std::to_string(backlogBtnUpX), std::to_string(backlogBtnUpY) });
+			commands.LoadSprite({ "ld", "999", backlogBtnDown, std::to_string(backlogBtnDownX), std::to_string(backlogBtnDownY) });
 		}
 		inputTimer.Start(inputTimeToWait);
 	}	
@@ -241,6 +275,9 @@ void CutsceneManager::CloseBacklog()
 void CutsceneManager::CheckKeys()
 {
 	const Uint8* input = SDL_GetKeyboardState(NULL);
+
+	int mouseX, mouseY = 0;
+	mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
 	if (useMouseControls && inputTimer.HasElapsed())
 	{
@@ -259,7 +296,82 @@ void CutsceneManager::CheckKeys()
 				commands.GoSubroutine({ "", commands.buttonLabels[(unsigned int)SDL_SCANCODE_ESCAPE] });
 			}
 		}
+		else // if we are reading the backlog, check to see if we clicked on its arrow buttons
+		{
+			mouseX *= Camera::MULTIPLIER;
+			mouseY *= Camera::MULTIPLIER;
+
+			SDL_Rect mouseRect;
+			mouseRect.x = mouseX;
+			mouseRect.y = mouseY;
+			mouseRect.w = 1;
+			mouseRect.h = 1;
+
+			int hoveredButton = -1;
+			bool clickedMouse = false;
+
+			
+			if (images[998] != nullptr)
+			{
+				// Up Arrow
+				if (HasIntersection(images[998]->GetTopLeftBounds(), mouseRect))
+				{
+					images[998]->SetColor({ 128, 128, 128, 128 });
+					hoveredButton = 998;
+				}
+				else
+				{
+					images[998]->SetColor({ 255, 255, 255, 255 });
+				}
+			}
+
+			if (images[999] != nullptr)
+			{
+				// Down Arrow
+				if (HasIntersection(images[999]->GetTopLeftBounds(), mouseRect))
+				{
+					images[999]->SetColor({ 128, 128, 128, 128 });
+					hoveredButton = 999;
+				}
+				else
+				{
+					images[999]->SetColor({ 255, 255, 255, 255 });
+				}
+			}
+
+
+
+
+			// TODO: Use a shader instead of changing color
+
+			// TODO: Don't hardcode these numbers
+
+			if (mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_LEFT))
+			{
+				previousMouseState = mouseState;
+				clickedMouse = true;				
+			}
+			else if (mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_RIGHT))
+			{
+				previousMouseState = mouseState;
+
+				// TODO: Maybe do something on right click?
+			}
+
+			if (hoveredButton > -1 && clickedMouse)
+			{
+				if (hoveredButton == 998) // Scroll up
+				{
+					OpenBacklog();
+				}
+				else if (hoveredButton == 999) // Scroll down
+				{
+					CloseBacklog();
+				}
+			}
+		}
 	}
+
 
 	if (useKeyboardControls && inputTimer.HasElapsed())
 	{
@@ -267,29 +379,11 @@ void CutsceneManager::CheckKeys()
 		{
 			if (input[SDL_SCANCODE_UP])
 			{
-				backlogIndex--;
-				if (backlogIndex < 0)
-					backlogIndex = 0;
-				ReadBacklog();
-				inputTimer.Start(inputTimeToWait);
+				OpenBacklog();
 			}
 			else if (input[SDL_SCANCODE_DOWN])
 			{
-				backlogIndex++;
-				if (backlogIndex >= backlog.size())
-				{
-					readingBacklog = false;
-					isReadingNextLine = true;
-					textbox->speaker->SetText(beforeBacklogSpeaker, currentColor);					
-					textbox->text->SetText(beforeBacklogText);
-					int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
-					textbox->SetCursorPosition(data[newIndex + 1] != '@');
-				}
-				else
-				{
-					ReadBacklog();
-				}
-				inputTimer.Start(inputTimeToWait);
+				CloseBacklog();
 			}
 		}
 		else if (input[readButton] || input[readButton2] || isSkipping
@@ -304,12 +398,7 @@ void CutsceneManager::CheckKeys()
 			{
 				if (backlog.size() > 0)
 				{
-					readingBacklog = true;
-					backlogIndex = backlog.size() - 1;
-					previousText = currentText;
-					beforeBacklogText = previousText;
-					beforeBacklogSpeaker = textbox->speaker->txt;
-					ReadBacklog();
+					OpenBacklog();
 				}
 				inputTimer.Start(inputTimeToWait);
 			}
@@ -703,25 +792,52 @@ void CutsceneManager::Render(const Renderer& renderer)
 {
 	if (watchingCutscene)
 	{
+		bool renderedTextbox = false;
+		unsigned int textboxImageNumber = 995; // TODO: Can change this from script
+
 		// Render every sprite in the cutscene
 		for (imageIterator = images.begin(); imageIterator != images.end(); imageIterator++)
 		{
+			// TODO: Maybe do this a better way?
+			if (imageIterator->first > textboxImageNumber && !renderedTextbox)
+			{
+				renderedTextbox = true;
+
+				// Render the overlay above all sprites
+				renderer.FadeOverlay(game->screenWidth, game->screenHeight);
+				renderer.overlaySprite->Render(Vector2(0, 0), renderer, renderer.overlayScale);
+
+				// Render the textbox above everything
+				if (GetLabelName(currentLabel) != "title")
+					textbox->Render(renderer, game->screenWidth, game->screenHeight);
+
+				if (!isCarryingOutCommands && !isReadingNextLine)
+				{
+					textbox->clickToContinue->Render(renderer);
+				}
+			}
+
 			if (imageIterator->second != nullptr)
 				imageIterator->second->Render(renderer);
 		}
 
-		// Render the overlay above all sprites
-		renderer.FadeOverlay(game->screenWidth, game->screenHeight);
-		renderer.overlaySprite->Render(Vector2(0, 0), renderer, renderer.overlayScale);
 
-		// Render the textbox above everything
-		if (GetLabelName(currentLabel) != "title")
-			textbox->Render(renderer, game->screenWidth, game->screenHeight);
-
-		if (!isCarryingOutCommands && !isReadingNextLine)
+		if (!renderedTextbox)
 		{
-			textbox->clickToContinue->Render(renderer);
+			// Render the overlay above all sprites
+			renderer.FadeOverlay(game->screenWidth, game->screenHeight);
+			renderer.overlaySprite->Render(Vector2(0, 0), renderer, renderer.overlayScale);
+
+			// Render the textbox above everything
+			if (GetLabelName(currentLabel) != "title")
+				textbox->Render(renderer, game->screenWidth, game->screenHeight);
+
+			if (!isCarryingOutCommands && !isReadingNextLine)
+			{
+				textbox->clickToContinue->Render(renderer);
+			}
 		}
+		
 	}
 	else // only draw the overlay, not text or box
 	{
@@ -1145,9 +1261,9 @@ void CutsceneManager::UpdateText()
 
 	// If waiting for a button press... 
 	// (the delay is so that the player doesn't press a button too quickly)
-	if (waitingForButton && msGlyphTime > msDelayBetweenGlyphs)
+	if (waitingForButton)// && msGlyphTime > msDelayBetweenGlyphs)
 	{
-		msGlyphTime -= msDelayBetweenGlyphs;
+		//msGlyphTime -= msDelayBetweenGlyphs;
 
 		// We want to get the mouse/keyboard input here		
 		if (inputTimer.HasElapsed() || isTravelling)
@@ -1254,268 +1370,278 @@ void CutsceneManager::UpdateText()
 
 		return;
 	}
-
-	// render the textbox when not waiting
-	textbox->isReading = (msGlyphTime > 0);
-
-	if (isSkipping)
-		msDelayBetweenGlyphs = 0.0f;
 	else
-		msDelayBetweenGlyphs = msInitialDelayBetweenGlyphs;
-
-	//TODO: Continue to execute functions that have not finished yet (moveto, lerp) (multi-threading?)
-
-	int unfinishedIndex = 0;
-	while (unfinishedIndex < unfinishedCommands.size())
 	{
-		bool finished = commands.ExecuteCommand(unfinishedCommands[unfinishedIndex]);
+		// render the textbox when not waiting
+		textbox->isReading = (msGlyphTime > 0);
 
-		if (finished)
-		{
-			unfinishedCommands.erase(unfinishedCommands.begin() + unfinishedIndex);
-		}
+		if (isSkipping)
+			msDelayBetweenGlyphs = 0.0f;
 		else
+			msDelayBetweenGlyphs = msInitialDelayBetweenGlyphs;
+
+		//TODO: Continue to execute functions that have not finished yet (moveto, lerp) (multi-threading?)
+
+		int unfinishedIndex = 0;
+		while (unfinishedIndex < unfinishedCommands.size())
 		{
-			unfinishedIndex++;
-		}
-	}
+			bool finished = commands.ExecuteCommand(unfinishedCommands[unfinishedIndex]);
 
-	if (msGlyphTime > msDelayBetweenGlyphs)
-	{
-		if (currentLabel == nullptr)
-		{
-			std::cout << "ERROR - current label is null!" << std::endl;
-			return;
-		}
-
-		if (commandIndex < 0)
-		{
-			commandIndex = 0;
-		}
-
-		if (lineIndex < 0)
-		{
-			lineIndex = 0;
-			letterIndex = 0;
-		}
-
-		if (waitingForButton)
-			return;
-
-		if (isCarryingOutCommands)
-		{						
-			if (commandIndex >= 0 && commandIndex < lines[currentLabel->lineStart + lineIndex].commandsSize)
+			if (finished)
 			{
-				textbox->shouldRender = false;
-				//std::cout << currentLabel->lines[lineIndex].commands[commandIndex] << std::endl;
-				printNumber = 0;
-				do
-				{
-					std::string command = GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex);
-
-					if (!commands.ExecuteCommand(command))
-					{
-						unfinishedCommands.push_back(GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex));
-					}
-					commandIndex++;
-
-					if (!isTravelling)
-					{
-						// TODO: What happens if current label is nullptr here?
-						if (currentLabel == nullptr)
-							return;
-
-						if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
-						{
-							// Allow falling through subroutines to other labels up until the next return
-							// TODO: This breaks any button menus, though!
-							/*
-							int length = lines[currentLabel->lineStart + lineIndex].GetTextLength();
-							if (lineIndex == currentLabel->lineSize - 1 && length == 0)
-							{
-								labelIndex++;
-								currentLabel = &labels[labelIndex];
-							}
-							else
-							{
-								break;
-							}
-							*/
-							break;
-						}
-
-
-						if (waitingForButton)
-							break;
-					}
-					else
-					{
-						printNumber = 0;
-
-						if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
-						{
-
-							// We must call MakeChoice here because it will never be reached otherwise
-							if (waitingForButton)
-							{
-								atChoice = true;
-								MakeChoice();
-								commandIndex = 0; // this MUST be here to make sure we don't go backwards
-							}
-							else
-							{
-								ReadNextLine();
-
-								static int prevLabelIndex = 0;
-
-								if (labelIndex != prevLabelIndex)
-								{
-									prevLabelIndex = labelIndex;
-									std::cout << "Label: " << GetLabelName(labels[labelIndex]) << std::endl;
-								}
-							}
-
-						}
-
-						if (GetLabelName(labels[labelIndex]) == endTravelLabel)
-						{
-							isTravelling = false;
-							autoChoice = 0;
-							printNumber = 1;
-						}
-					}
-					
-					// run all commands until we hit a print or wait command
-				} while (!autoprint && printNumber == 0 && msGlyphTime > 0); 
-				
-				if (!isTravelling)
-				{
-					game->updateScreenTexture = true;
-
-					if (printNumber > 0 && !isSkipping)
-					{
-						if (printEffects.count(printNumber) != 0)
-						{
-							printTimer.Start(printEffects[printNumber].delay);
-						}
-						else
-						{
-							printTimer.Start(1);
-							game->logger.Log("ERROR: No print effect found for " + std::to_string(printNumber));
-						}
-					}
-				}
-				
+				unfinishedCommands.erase(unfinishedCommands.begin() + unfinishedIndex);
 			}
 			else
 			{
-				isCarryingOutCommands = false;
-
-				if (isTravelling) // don't read text when travelling
-				{
-					isReadingNextLine = false;
-				}
+				unfinishedIndex++;
 			}
 		}
-		else if (isReadingNextLine)
+
+		if (msGlyphTime > msDelayBetweenGlyphs)
 		{
-			textbox->shouldRender = true;
-
-			CheckKeysWhileReading();
-
-			if (readingBacklog)
+			if (currentLabel == nullptr)
 			{
-				isReadingNextLine = false;
+				std::cout << "ERROR - current label is null!" << std::endl;
 				return;
 			}
 
-			bool displayAllText = (msDelayBetweenGlyphs == 0) || clickedMidPage;
-
-			do
+			if (commandIndex < 0)
 			{
-				if (currentLabel == nullptr)
-				{
-					game->logger.Log("ERROR: Current label is NULL!");
-					return;
-				}
+				commandIndex = 0;
+			}
 
-				if (commands.lineBreaks > 0)
-				{
-					for (int i = 0; i < commands.lineBreaks; i++)
-					{
-						textbox->UpdateText('\n', currentColor);
-					}
-					commands.lineBreaks = 0;
-				}
+			if (lineIndex < 0)
+			{
+				lineIndex = 0;
+				letterIndex = 0;
+			}
 
-				int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
+			if (waitingForButton)
+				return;
 
-				if (newIndex >= lines[currentLabel->lineStart + lineIndex].textEnd)
+			if (isCarryingOutCommands)
+			{
+				if (commandIndex >= 0 && commandIndex < lines[currentLabel->lineStart + lineIndex].commandsSize)
 				{
-					isReadingNextLine = false;
-					return;
-				}
-
-				std::string result = ParseText(data, newIndex, currentColor, textbox->text);
-				letterIndex = newIndex - lines[currentLabel->lineStart + lineIndex].textStart;
-
-				if (result.size() > 1)
-				{
-					for (int i = 0; i < result.size(); i++)
-					{
-						textbox->UpdateText(result[i], currentColor);
-					}
-				}
-				else if (result.size() == 1)
-				{
-					if (result[0] < 0)
+					if (lines[currentLabel->lineStart + lineIndex].commandsSize > 1)
 					{
 						textbox->shouldRender = false;
-						ReadNextLine();
-						continue;
 					}
-					else
+
+					//std::cout << currentLabel->lines[lineIndex].commands[commandIndex] << std::endl;
+					printNumber = 0;
+					do
 					{
-						textbox->UpdateText(result[0], currentColor);
-					}				
+						std::string command = GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex);
+
+						if (!commands.ExecuteCommand(command))
+						{
+							unfinishedCommands.push_back(GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex));
+						}
+						commandIndex++;
+
+						if (!isTravelling)
+						{
+							// TODO: What happens if current label is nullptr here?
+							if (currentLabel == nullptr)
+								return;
+
+							if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
+							{
+								// Allow falling through subroutines to other labels up until the next return
+								// TODO: This breaks any button menus, though!
+								/*
+								int length = lines[currentLabel->lineStart + lineIndex].GetTextLength();
+								if (lineIndex == currentLabel->lineSize - 1 && length == 0)
+								{
+									labelIndex++;
+									currentLabel = &labels[labelIndex];
+								}
+								else
+								{
+									break;
+								}
+								*/
+								break;
+							}
+
+
+							if (waitingForButton)
+								break;
+						}
+						else
+						{
+							printNumber = 0;
+
+							if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
+							{
+
+								// We must call MakeChoice here because it will never be reached otherwise
+								if (waitingForButton)
+								{
+									atChoice = true;
+									MakeChoice();
+									commandIndex = 0; // this MUST be here to make sure we don't go backwards
+								}
+								else
+								{
+									ReadNextLine();
+
+									static int prevLabelIndex = 0;
+
+									if (labelIndex != prevLabelIndex)
+									{
+										prevLabelIndex = labelIndex;
+										std::cout << "Label: " << GetLabelName(labels[labelIndex]) << std::endl;
+									}
+								}
+
+							}
+
+							if (GetLabelName(labels[labelIndex]) == endTravelLabel)
+							{
+								isTravelling = false;
+								autoChoice = 0;
+								printNumber = 1;
+							}
+						}
+
+						// run all commands until we hit a print or wait command
+					} while (!autoprint && printNumber == 0 && msGlyphTime > 0);
+
+					if (!isTravelling)
+					{
+						game->updateScreenTexture = true;
+
+						if (printNumber > 0 && !isSkipping)
+						{
+							if (printEffects.count(printNumber) != 0)
+							{
+								printTimer.Start(printEffects[printNumber].delay);
+							}
+							else
+							{
+								printTimer.Start(1);
+								game->logger.Log("ERROR: No print effect found for " + std::to_string(printNumber));
+							}
+						}
+					}
+
 				}
-
-				//nextLetterTimer.Start(lettersPerFrame * delay);
-
-				// Reached the 'click to continue' point
-				if (letterIndex >= lines[currentLabel->lineStart + lineIndex].GetTextLength())
+				else
 				{
-					previousText = currentText;
-					currentText = textbox->text->txt;
-					isReadingNextLine = false;
-					displayAllText = false;
-					clickedMidPage = false;
+					isCarryingOutCommands = false;
 
-					textbox->SetCursorPosition(data[newIndex + 1] != '@');
-					//textbox->clickToContinue->Update(*game);
-					//game->player->cutsceneInputTimer.Start(100);
-
-					if (automaticallyRead)
+					if (isTravelling) // don't read text when travelling
 					{
-						autoTimeToWait = (textbox->text->glyphs.size() * autoTimeToWaitPerGlyph);
-						autoReaderTimer.Start(autoTimeToWait);
+						isReadingNextLine = false;
 					}
+				}
+			}
+			else if (isReadingNextLine)
+			{
+				textbox->shouldRender = true;
 
+				CheckKeysWhileReading();
+
+				if (readingBacklog)
+				{
+					isReadingNextLine = false;
 					return;
 				}
 
-			} while (displayAllText);
+				bool displayAllText = (msDelayBetweenGlyphs == 0) || clickedMidPage;
 
+				do
+				{
+					if (currentLabel == nullptr)
+					{
+						game->logger.Log("ERROR: Current label is NULL!");
+						return;
+					}
+
+					if (commands.lineBreaks > 0)
+					{
+						for (int i = 0; i < commands.lineBreaks; i++)
+						{
+							textbox->UpdateText('\n', currentColor);
+						}
+						commands.lineBreaks = 0;
+					}
+
+					int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
+
+					if (newIndex >= lines[currentLabel->lineStart + lineIndex].textEnd)
+					{
+						isReadingNextLine = false;
+						return;
+					}
+
+					std::string result = ParseText(data, newIndex, currentColor, textbox->text);
+					letterIndex = newIndex - lines[currentLabel->lineStart + lineIndex].textStart;
+
+					if (result.size() > 1)
+					{
+						for (int i = 0; i < result.size(); i++)
+						{
+							textbox->UpdateText(result[i], currentColor);
+						}
+					}
+					else if (result.size() == 1)
+					{
+						if (result[0] < 0)
+						{
+							textbox->shouldRender = false;
+							ReadNextLine();
+							continue;
+						}
+						else
+						{
+							textbox->UpdateText(result[0], currentColor);
+						}
+					}
+
+					//nextLetterTimer.Start(lettersPerFrame * delay);
+
+					// Reached the 'click to continue' point
+					if (letterIndex >= lines[currentLabel->lineStart + lineIndex].GetTextLength())
+					{
+						previousText = currentText;
+						currentText = textbox->text->txt;
+						isReadingNextLine = false;
+						displayAllText = false;
+						clickedMidPage = false;
+
+						textbox->SetCursorPosition(data[newIndex + 1] != '@');
+						//textbox->clickToContinue->Update(*game);
+						//game->player->cutsceneInputTimer.Start(100);
+
+						if (automaticallyRead)
+						{
+							autoTimeToWait = (textbox->text->glyphs.size() * autoTimeToWaitPerGlyph);
+							autoReaderTimer.Start(autoTimeToWait);
+						}
+
+						return;
+					}
+
+				} while (displayAllText);
+
+			}
 		}
-	}
 
-	if (msDelayBetweenGlyphs > 0 && !isSkipping)
-	{
-		while (msGlyphTime > msDelayBetweenGlyphs)
+
+		// Wait a number of milliseconds before showing the next glyph
+		if (!waitingForButton && msDelayBetweenGlyphs > 0 && !isSkipping)
 		{
-			msGlyphTime -= msDelayBetweenGlyphs;
+			while (msGlyphTime > msDelayBetweenGlyphs)
+			{
+				msGlyphTime -= msDelayBetweenGlyphs;
+			}
 		}
 	}
+
+	
 }
 
 void CutsceneManager::MakeChoice()
