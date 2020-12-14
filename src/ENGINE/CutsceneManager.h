@@ -12,6 +12,7 @@
 #include "leak_check.h"
 #include "Timer.h"
 #include "CutsceneCommands.h"
+#include "CutsceneHelper.h"
 #include <map>
 #include <unordered_map>
 
@@ -195,7 +196,10 @@ public:
 	int printNumber = 0;
 	bool overwriteName = true;
 	std::string currentScript = "";
+	
 	CutsceneCommands commands;
+	CutsceneCommands* newCommands = nullptr;
+
 	Timer printTimer;
 	bool useMouseControls = true;
 	bool useKeyboardControls = true;

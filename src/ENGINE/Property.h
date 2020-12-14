@@ -1,5 +1,5 @@
 #ifndef PROPERTY_H
-#define PROPERY_H
+#define PROPERTY_H
 #pragma once
 
 #include <vector>

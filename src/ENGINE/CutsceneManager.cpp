@@ -8,6 +8,7 @@
 #include "Textbox.h"
 #include "DebugScreen.h"
 #include "ParticleSystem.h"
+#include "CutsceneFunctions.h"
 
 CutsceneManager::CutsceneManager()
 {
@@ -212,14 +213,14 @@ void CutsceneManager::OpenBacklog()
 
 		if (backlogIndex > 0)
 		{
-			commands.LoadSprite({ "ld", "998", backlogBtnUp, std::to_string(backlogBtnUpX), std::to_string(backlogBtnUpY) });
+			CutsceneFunctions::LoadSprite({ "ld", "998", backlogBtnUp, std::to_string(backlogBtnUpX), std::to_string(backlogBtnUpY) }, commands);
 		}
 		else
 		{
-			commands.ClearSprite({ "cl", "998", "1" });
+			CutsceneFunctions::ClearSprite({ "cl", "998", "1" }, commands);
 		}
 
-		commands.LoadSprite({ "ld", "999", backlogBtnDown, std::to_string(backlogBtnDownX), std::to_string(backlogBtnDownY) });
+		CutsceneFunctions::LoadSprite({ "ld", "999", backlogBtnDown, std::to_string(backlogBtnDownX), std::to_string(backlogBtnDownY) }, commands);
 
 	}
 	else if (inputTimer.HasElapsed())
@@ -232,14 +233,14 @@ void CutsceneManager::OpenBacklog()
 
 		if (backlogIndex > 0)
 		{
-			commands.LoadSprite({ "ld", "998", backlogBtnUp, std::to_string(backlogBtnUpX), std::to_string(backlogBtnUpY) });
+			CutsceneFunctions::LoadSprite({ "ld", "998", backlogBtnUp, std::to_string(backlogBtnUpX), std::to_string(backlogBtnUpY) }, commands);
 		}
 		else
 		{
-			commands.ClearSprite({ "cl", "998", "1" });
+			CutsceneFunctions::ClearSprite({ "cl", "998", "1" }, commands);
 		}
 
-		commands.LoadSprite({ "ld", "999", backlogBtnDown, std::to_string(backlogBtnDownX), std::to_string(backlogBtnDownY) });
+		CutsceneFunctions::LoadSprite({ "ld", "999", backlogBtnDown, std::to_string(backlogBtnDownX), std::to_string(backlogBtnDownY) }, commands);
 	}
 }
 
@@ -257,15 +258,15 @@ void CutsceneManager::CloseBacklog()
 			int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
 			textbox->SetCursorPosition(data[newIndex + 1] != '@');
 
-			commands.ClearSprite({ "cl", "998", "1" });
-			commands.ClearSprite({ "cl", "999", "1" });
+			CutsceneFunctions::ClearSprite({ "cl", "998", "1" }, commands);
+			CutsceneFunctions::ClearSprite({ "cl", "999", "1" }, commands);
 		}
 		else
 		{
 			ReadBacklog();
 
-			commands.LoadSprite({ "ld", "998", backlogBtnUp, std::to_string(backlogBtnUpX), std::to_string(backlogBtnUpY) });
-			commands.LoadSprite({ "ld", "999", backlogBtnDown, std::to_string(backlogBtnDownX), std::to_string(backlogBtnDownY) });
+			CutsceneFunctions::LoadSprite({ "ld", "998", backlogBtnUp, std::to_string(backlogBtnUpX), std::to_string(backlogBtnUpY) }, commands);
+			CutsceneFunctions::LoadSprite({ "ld", "999", backlogBtnDown, std::to_string(backlogBtnDownX), std::to_string(backlogBtnDownY) }, commands);
 		}
 		inputTimer.Start(inputTimeToWait);
 	}	
@@ -293,7 +294,7 @@ void CutsceneManager::CheckKeys()
 			{
 				previousMouseState = mouseState;
 				commandIndex--;
-				commands.GoSubroutine({ "", commands.buttonLabels[(unsigned int)SDL_SCANCODE_ESCAPE] });
+				CutsceneFunctions::GoSubroutine({ "", commands.buttonLabels[(unsigned int)SDL_SCANCODE_ESCAPE] }, commands);
 			}
 		}
 		else // if we are reading the backlog, check to see if we clicked on its arrow buttons
@@ -466,7 +467,7 @@ void CutsceneManager::CheckKeys()
 				if (input[button.first] && commands.buttonLabelsActive[button.first])
 				{
 					commandIndex--;
-					commands.GoSubroutine({ button.second, button.second });
+					CutsceneFunctions::GoSubroutine({ button.second, button.second }, commands);
 					inputTimer.Start(inputTimeToWait);
 					break;
 				}
@@ -1713,11 +1714,11 @@ void CutsceneManager::MakeChoice()
 		textbox->isReading = true;
 
 		// Remove the sprite buttons from the screen
-		commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber) });   // bg
-		commands.ClearSprite({ "", std::to_string(choiceSpriteStartNumber + 1) }); // question
+		CutsceneFunctions::ClearSprite({ "", std::to_string(choiceSpriteStartNumber) }, commands);   // bg
+		CutsceneFunctions::ClearSprite({ "", std::to_string(choiceSpriteStartNumber + 1) }, commands); // question
 		for (int i = 0; i < activeButtons.size(); i++)
 		{
-			commands.ClearSprite({ "", std::to_string(activeButtons[i]) });
+			CutsceneFunctions::ClearSprite({ "", std::to_string(activeButtons[i]) }, commands);
 		}
 
 		int result = -198;
@@ -1946,7 +1947,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 			}
 			else
 			{
-				commands.ErrorLog({ "", "Error loading animation " + animName });
+				CutsceneFunctions::ErrorLog({ "", "Error loading animation " + animName }, commands);
 			}
 
 			letterIndex = animIndex;
@@ -2050,7 +2051,7 @@ void CutsceneManager::LoadGlobalVariables()
 		index = 0;
 		dataKey = ParseWord(globalDataStrings[i], ' ', index);
 		dataValue = ParseWord(globalDataStrings[i], '\n', index);
-		commands.SetStringVariable({ "", dataKey, dataValue });
+		CutsceneFunctions::SetStringVariable({ "", dataKey, dataValue }, commands);
 	}
 
 	for (int i = 0; i < globalDataNumbers.size(); i++)
@@ -2058,7 +2059,7 @@ void CutsceneManager::LoadGlobalVariables()
 		index = 0;
 		dataKey = ParseWord(globalDataNumbers[i], ' ', index);
 		dataValue = ParseWord(globalDataNumbers[i], '\n', index);
-		commands.SetNumberVariable({ "", dataKey, dataValue, "no_alias" });
+		CutsceneFunctions::SetNumberVariable({ "", dataKey, dataValue, "no_alias" }, commands);
 	}
 
 	for (int i = 0; i < globalDataArrays.size(); i++)
@@ -2541,7 +2542,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 	// Clear everything off the screen before we load the game
 	for (const auto& [key, val] : images)
 	{
-		commands.ClearSprite({ "clear", std::to_string(key), "0" });
+		CutsceneFunctions::ClearSprite({ "clear", std::to_string(key), "0" }, commands);
 	}
 
 	// Clear backlog text
@@ -2728,14 +2729,14 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 			case SaveSections::LOCAL_OBJECTS:
 				if (lineParams[1] == "text") // load text object
 				{
-					commands.LoadTextFromSaveFile(lineParams);
+					CutsceneFunctions::LoadTextFromSaveFile(lineParams, commands);
 				}
 				else if (lineParams[1] == "particlesystem")
 				{
 					// particle system create %var2 %var1 0
 
 					// Spawn the particle system
-					commands.ParticleCommand({"particle", "system", "create", lineParams[0], lineParams[2], lineParams[3] });
+					CutsceneFunctions::ParticleCommand({"particle", "system", "create", lineParams[0], lineParams[2], lineParams[3] }, commands);
 
 					// Modify its values
 					ParticleSystem* ps = dynamic_cast<ParticleSystem*>(images[std::stoi(lineParams[0])]);
@@ -2770,7 +2771,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				else // load sprite object
 				{
 					lineParams.insert(lineParams.begin(), "");
-					commands.LoadSprite(lineParams);
+					CutsceneFunctions::LoadSprite(lineParams, commands);
 					Entity* entity = images[std::stoi(lineParams[1])];
 
 					entity->rotation = glm::vec3(
@@ -2829,11 +2830,11 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				}
 				else if (lineParams[0] == "window")
 				{
-					commands.WindowFunction(lineParams);
+					CutsceneFunctions::WindowFunction(lineParams, commands);
 				}
 				else if (lineParams[0] == "random")
 				{
-					commands.RandomNumberVariable(lineParams);
+					CutsceneFunctions::RandomNumberVariable(lineParams, commands);
 				}
 				else if (lineParams[0] == "controls")
 				{
