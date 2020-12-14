@@ -142,6 +142,42 @@ struct PrintEffect
 	std::string mask = "";
 };
 
+// Each one of these is a unique choice within the game
+struct SceneChoice
+{	
+	std::string label = "";
+	std::string prompt = ""; 
+	std::vector<std::string> responses; 
+	std::vector<std::string> labels;
+	std::string resultVariable = "";
+
+	std::vector<std::string> GetCommandString()
+	{
+		std::vector<std::string> cmd;
+
+		const int size = responses.size();
+		cmd.reserve(4 + (size * 2));
+		cmd.emplace_back("choice");
+		cmd.emplace_back(std::to_string(size));
+		cmd.emplace_back(resultVariable);
+		cmd.emplace_back(prompt);
+		for (int i = 0; i < size; i++)
+		{
+			cmd.emplace_back("[" + responses[i] + "]");
+			cmd.emplace_back(labels[i]);
+		}
+		
+		return cmd;
+	}
+};
+
+// Represents what response the player picked for which choice
+struct SelectedChoiceData
+{
+	int choiceNumber = -1;
+	int responseNumber = -1;
+};
+
 
 class KINJO_API CutsceneManager
 {
@@ -200,6 +236,15 @@ public:
 
 	std::unordered_map<int, PrintEffect> printEffects;
 
+	// A list of all unique choices that is populated on game startup.
+	std::unordered_map<int, SceneChoice> allChoices;
+
+	// Represents the choices seen by the player for a single playthrough in order.
+	// This should be cleared and re-loaded between save files.
+	std::vector<SelectedChoiceData> selectedChoices;
+
+	int currentChoice = -1;
+
 	const int choiceSpriteStartNumber = 10000;
 	int buttonIndex = 0;
 	int buttonResult = 0;
@@ -233,6 +278,7 @@ public:
 	std::unordered_map<std::string, Color> namesToColors;
 	std::unordered_map<std::string, TextTag*> tags;
 	std::unordered_map<unsigned int, Timer*> timers;
+	std::unordered_map<unsigned int, std::vector<std::string>> timerCommands;
 
 	float msGlyphTime = 0;
 	float msInitialDelayBetweenGlyphs = 10.0f;

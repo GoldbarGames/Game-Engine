@@ -153,6 +153,7 @@ public:
 
 	int SetResolution(CutsceneParameters parameters);
 	int DefineUserFunction(CutsceneParameters parameters);
+	int DefineChoice(CutsceneParameters parameters);
 
 	int DoNothing(CutsceneParameters parameters);
 

@@ -281,7 +281,7 @@ void CutsceneManager::CheckKeys()
 
 	if (useMouseControls && inputTimer.HasElapsed())
 	{
-		if (!readingBacklog)
+		if (!readingBacklog && !atChoice)
 		{
 			// Note: In order to clear the mouse state, we check the SDL event in the main game loop
 			if ( mouseState & (~previousMouseState) & SDL_BUTTON(SDL_BUTTON_LEFT) )
@@ -483,6 +483,8 @@ void CutsceneManager::ParseCutsceneFile()
 	//	delete labels[i];
 	labels.clear();
 
+	// TODO: Read these numbers in before anything else
+	// (can pre-process the file to get exact counts)
 	labels.reserve(300);
 	lines.reserve(5000);
 	cmdStart.reserve(20000);
@@ -1141,11 +1143,9 @@ void CutsceneManager::FlushCurrentColor(const std::string& speakerName)
 }
 
 void CutsceneManager::ReadBacklog()
-{	
-	
+{		
 	if (backlogIndex < backlog.size())
 	{
-		//Color color = namesToColors[label->lines[lineIndex].speaker];
 		textbox->speaker->SetText(backlog[backlogIndex]->speaker, backlogColor);
 		textbox->text->SetText(backlog[backlogIndex]->text, backlogColor);
 		textbox->SetCursorPosition(true);
@@ -1198,6 +1198,19 @@ void CutsceneManager::Update()
 		{
 			isTravelling = false;
 			autoChoice = 0;
+		}
+	}
+
+	for (auto& [key, val] : timerCommands)
+	{
+		if (val.size() > 0 && timers[key]->HasElapsed())
+		{
+			for (auto& cmd : val)
+			{
+				commands.ExecuteCommand(cmd);
+			}
+
+			val.clear();
 		}
 	}
 
@@ -1383,6 +1396,9 @@ void CutsceneManager::UpdateText()
 		//TODO: Continue to execute functions that have not finished yet (moveto, lerp) (multi-threading?)
 
 		int unfinishedIndex = 0;
+		// TODO: This is including functions that should not be included
+
+		/*
 		while (unfinishedIndex < unfinishedCommands.size())
 		{
 			bool finished = commands.ExecuteCommand(unfinishedCommands[unfinishedIndex]);
@@ -1396,6 +1412,7 @@ void CutsceneManager::UpdateText()
 				unfinishedIndex++;
 			}
 		}
+		*/
 
 		if (msGlyphTime > msDelayBetweenGlyphs)
 		{
@@ -1655,9 +1672,30 @@ void CutsceneManager::MakeChoice()
 
 	if (buttonIndex == -1)
 	{
-		commands.numberVariables[buttonResult] = -1;
-		waitingForButton = false;
-		inputTimer.Start(inputTimeToWait);
+		if (!atChoice) // TODO: Handle right-click at choices
+		{
+			// Only proceed if any of the following commands deal with -1
+			int tempCommandIndex = commandIndex;
+			std::string command = "";
+
+			do
+			{
+				command = GetCommand(lines[currentLabel->lineStart + lineIndex], tempCommandIndex);
+
+				if (command.find("= -1 ") != std::string::npos && command.find("if %") != std::string::npos)
+				{
+					commands.numberVariables[buttonResult] = -1;
+					waitingForButton = false;
+					inputTimer.Start(inputTimeToWait);
+					return;
+				}
+
+				tempCommandIndex++;
+
+			} while (tempCommandIndex < lines[currentLabel->lineStart + lineIndex].commandsSize);
+
+		}
+
 		return;
 	}
 
@@ -1683,14 +1721,30 @@ void CutsceneManager::MakeChoice()
 		}
 
 		int result = -198;
+		int responseNumber = 0;
 
 		// Evaluate if statements
 		if (choiceIfStatements.size() > 0)
 		{
 			for (int i = 0; i < choiceIfStatements.size(); i++)
 			{
-				result = std::max(commands.ExecuteCommand(choiceIfStatements[i]), result);
+				int r = commands.ExecuteCommand(choiceIfStatements[i]);
+				result = std::max(r, result);
+				if (result > 0)
+				{
+					responseNumber = i;
+				}				
 			}
+		}
+
+		// Store the choice prompt and selected response
+		if (currentChoice > -1)
+		{
+			SelectedChoiceData selectedChoice;
+			selectedChoice.choiceNumber = currentChoice;
+			selectedChoice.responseNumber = responseNumber;
+			selectedChoices.emplace_back(selectedChoice);
+			commands.stringVariables[buttonResult] = Trim(allChoices[currentChoice].responses[responseNumber]);
 		}
 
 		// TODO: This is not actually reached when clicking buttons, defeating the purpose of writing it
@@ -2226,7 +2280,13 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			fout << GetLabelName(currentLabel) << " ";
 			fout << labelIndex << " ";
 			fout << lineIndex << " ";
-			fout << commandIndex << std::endl;
+			fout << commandIndex << " ";
+
+			if (textbox->speaker->txt != "")
+			{
+				fout << textbox->speaker->txt << std::endl;
+			}
+
 			break;
 		case SaveSections::SEEN_LINES:
 
@@ -2487,9 +2547,12 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 	// Clear backlog text
 	backlog.clear();
 
+	// Clear selected choices
+	selectedChoices.clear();
+
 	// Stop all sounds
 	game->soundManager.StopBGM();
-	game->soundManager.FadeOutChannel(0);
+	game->soundManager.FadeOutChannel(-1);
 
 	std::ifstream fin;
 	//std::string data = "";
@@ -2617,6 +2680,15 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				lineIndex = std::stoi(lineParams[2]);
 				commandIndex = std::stoi(lineParams[3]);
 				isCarryingOutCommands = false;
+
+				if (lineParams.size() > 4)
+				{
+					SetSpeakerText(lineParams[4]);
+				}
+				else
+				{
+					SetSpeakerText("");
+				}
 
 				currentLabel = JumpToLabel(labelName.c_str());
 				if (currentLabel == nullptr)

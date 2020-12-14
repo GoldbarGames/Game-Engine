@@ -1,4 +1,4 @@
-#include "tile.h"
+#include "Tile.h"
 #include "globals.h"
 #include "Game.h"
 #include "Texture.h"

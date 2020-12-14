@@ -44,6 +44,7 @@ std::unordered_map<std::string, FuncList>cmd_lut = {
 	{"ctc", &CutsceneCommands::SetClickToContinue},
 	{"dec", &CutsceneCommands::DecrementVariable},
 	{"defsub", &CutsceneCommands::DefineUserFunction},
+	{"defchoice", &CutsceneCommands::DefineChoice},
 	{"div", &CutsceneCommands::DivideNumberVariables},
 	{"end", &CutsceneCommands::EndGame },
 	{"effect", &CutsceneCommands::EffectCommand },
@@ -339,7 +340,7 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 					}
 					else if (errorCode == -198)
 					{
-						finished = 2;
+						finished = 0;
 					}
 					else
 					{
@@ -665,6 +666,9 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		case '$': // string variable
 			leftHandIsNumber = false;
 			leftValueStr = ParseStringValue(word);
+			std::replace(leftValueStr.begin(), leftValueStr.end(), '[', ' ');
+			std::replace(leftValueStr.begin(), leftValueStr.end(), ']', ' ');
+			Trim(leftValueStr);
 			break;
 		case '%': // number variable
 			leftHandIsNumber = true;
@@ -690,6 +694,9 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 			else
 			{
 				leftValueStr = ParseStringValue(parameters[index]);
+				std::replace(leftValueStr.begin(), leftValueStr.end(), '[', ' ');
+				std::replace(leftValueStr.begin(), leftValueStr.end(), ']', ' ');
+				Trim(leftValueStr);
 				leftHandIsNumber = false;
 			}
 
@@ -704,6 +711,9 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 		case '$': // string variable
 			rightHandIsNumber = false;
 			rightValueStr = ParseStringValue(word);
+			std::replace(rightValueStr.begin(), rightValueStr.end(), '[', ' ');
+			std::replace(rightValueStr.begin(), rightValueStr.end(), ']', ' ');
+			Trim(rightValueStr);
 			break;
 		case '%': // number variable
 			rightHandIsNumber = true;
@@ -729,6 +739,9 @@ int CutsceneCommands::IfCondition(CutsceneParameters parameters)
 			else
 			{
 				rightValueStr = ParseStringValue(parameters[index]);
+				std::replace(rightValueStr.begin(), rightValueStr.end(), '[', ' ');
+				std::replace(rightValueStr.begin(), rightValueStr.end(), ']', ' ');
+				Trim(rightValueStr);
 				rightHandIsNumber = false;
 			}
 
@@ -955,84 +968,168 @@ int CutsceneCommands::ReturnFromSubroutine(CutsceneParameters parameters)
 	return 0;
 }
 
+// How choices work:
+// defchoice 1 [choice command]
+// ^ do this in the definition file
+// Then in the game script:
+// choice show 1
+// will call the corresponding choice command
+// This is done so that the game knows the set of all choices and where they all go
+// so that you can create an in-game graph of which choices the player hasn't explored yet
+// (Or, you can ignore this and just use the normal choice command)
+int CutsceneCommands::DefineChoice(CutsceneParameters parameters)
+{
+	int index = ParseNumberValue(parameters[1]);
+
+	SceneChoice sceneChoice;
+	int size = ParseNumberValue(parameters[2]);
+	sceneChoice.resultVariable = parameters[3];
+	sceneChoice.prompt = parameters[4];
+	
+	for (int i = 0; i < size * 2; i += 2)
+	{
+		std::string response = parameters[i + 5];
+		std::string label = parameters[i + 6];
+		std::replace(response.begin(), response.end(), '[', ' ');
+		std::replace(response.begin(), response.end(), ']', ' ');
+		std::replace(label.begin(), label.end(), '[', ' ');
+		std::replace(label.begin(), label.end(), ']', ' ');
+		sceneChoice.responses.emplace_back(response);
+		sceneChoice.labels.emplace_back(label);
+	}
+
+	sceneChoice.label = manager->GetLabelName(manager->GetCurrentLabel()); 
+
+	manager->allChoices[index] = sceneChoice;
+
+	return 0;
+}
+
 //TODO: Change properties of the choices
 // (font type, size, color, position, alignment, etc.)
 int CutsceneCommands::DisplayChoice(CutsceneParameters parameters)
 {
+	manager->currentChoice = -1;
+
 	if (parameters[1] == "bg")
 	{
 		choiceBGFilePath = ParseStringValue(parameters[2]);
 		return 0;
 	}
-
-	unsigned int numberOfChoices = ParseNumberValue(parameters[1]);
-
-	int index = 3; // skip 2
-	int spriteNumber = manager->choiceSpriteStartNumber;
-	std::string choiceQuestion = ParseStringValue(parameters[index]);
-
-	LoadSprite({ "ld", std::to_string(spriteNumber), choiceBGFilePath, 
-		std::to_string(manager->game->screenWidth), std::to_string(manager->game->screenHeight) });
-
-	spriteNumber++;
-	int choiceYPos = 280;
-	LoadText({"", std::to_string(spriteNumber), std::to_string(manager->game->screenWidth), std::to_string(choiceYPos), choiceQuestion });
-	AlignCommand({ "align", "x", "center", std::to_string(spriteNumber) });
-	spriteNumber++;
-
-	manager->choiceIfStatements.clear();
-	//manager->activeButtons.clear();
-	
-	for (int i = 0; i < numberOfChoices; i++)
-	{	
-		// Get the text and label for the choice
-		index++;
-		std::string choiceText = ParseStringValue(parameters[index]);
-		index++;
-		std::string choiceLabel = ParseStringValue(parameters[index]);
-
-		// Display the choice as a text sprite on the screen
-		std::string choiceNumber = std::to_string(spriteNumber + i);
-
-		//TODO: Don't hard-code these numbers
-		choiceYPos = 400 + (120 * i);
-
-		//TODO: Don't hardcode 1280
-		LoadText({"", choiceNumber, "1280",
-			std::to_string(choiceYPos), choiceText });
-
-		manager->images[ParseNumberValue(choiceNumber)]->collider.offset.x = 0;
-		manager->images[ParseNumberValue(choiceNumber)]->CalculateCollider();
-
-		AlignCommand({ "align", "x", "center", choiceNumber });
-
-		// Make the text sprite act as a button
-		SetSpriteButton({ "", choiceNumber , choiceNumber });
-		if (i == 0)
+	else if (parameters[1] == "clear")
+	{
+		manager->selectedChoices.clear();
+		return 0;
+	}
+	else if (parameters[1] == "get")
+	{
+		// TODO: Get other types of choice info
+		if (parameters[2] == "seen")
 		{
-			manager->images[std::stoi(choiceNumber)]->SetColor({ 255, 255, 0, 255 });
+			if (parameters[3] == "size")
+			{
+				MoveVariables({"mov", parameters[4], std::to_string(manager->selectedChoices.size()) });
+			}
+			else if (parameters[3] == "prompt")
+			{
+				int selectedNum = ParseNumberValue(parameters[5]);
+				int choiceNumber = manager->selectedChoices[selectedNum].choiceNumber;
+				MoveVariables({ "mov", parameters[4], manager->allChoices[choiceNumber].prompt });
+			}
+			else if (parameters[3] == "response")
+			{
+				int selectedNum = ParseNumberValue(parameters[5]);
+				int choiceNumber = manager->selectedChoices[selectedNum].choiceNumber;
+				int responseNumber = manager->selectedChoices[selectedNum].responseNumber;
+				MoveVariables({ "mov", parameters[4],  manager->allChoices[choiceNumber].responses[responseNumber] });
+			}
 		}
 
-		// Wait for button input, store result in variable
-		WaitForButton({ "choice",  parameters[2] });
-
-		// Construct the if-statement and store it
-		//if %42 == 21 goto label_left ;
-
-		manager->choiceIfStatements.push_back("if %" + parameters[2] + " == " + choiceNumber + " goto " + choiceLabel + " ;");
+		return 0;
 	}
-
-	manager->atChoice = true;
-	if (manager->autoChoice == 0)
-	{
-		manager->inputTimer.Start(manager->inputTimeToWait);
+	else if (parameters[1] == "show")
+	{		
+		int result = DisplayChoice(manager->allChoices[ParseNumberValue(parameters[2])].GetCommandString());
+		manager->currentChoice = ParseNumberValue(parameters[2]);
+		return result;
 	}
 	else
 	{
-		manager->MakeChoice();
+
+		unsigned int numberOfChoices = ParseNumberValue(parameters[1]);
+
+		int index = 3; // skip 2
+
+		// TODO: Should be able to customize this number via script
+		int spriteNumber = manager->choiceSpriteStartNumber;
+
+		std::string choiceQuestion = ParseStringValue(parameters[index]);
+
+		LoadSprite({ "ld", std::to_string(spriteNumber), choiceBGFilePath,
+			std::to_string(manager->game->screenWidth), std::to_string(manager->game->screenHeight) });
+
+		spriteNumber++;
+		int choiceYPos = 280;
+		LoadText({ "", std::to_string(spriteNumber), std::to_string(manager->game->screenWidth), std::to_string(choiceYPos), choiceQuestion });
+		AlignCommand({ "align", "x", "center", std::to_string(spriteNumber) });
+		spriteNumber++;
+
+		manager->choiceIfStatements.clear();
+		//manager->activeButtons.clear();
+
+		for (int i = 0; i < numberOfChoices; i++)
+		{
+			// Get the text and label for the choice
+			index++;
+			std::string choiceText = ParseStringValue(parameters[index]);
+			index++;
+			std::string choiceLabel = ParseStringValue(parameters[index]);
+
+			// Display the choice as a text sprite on the screen
+			std::string choiceNumber = std::to_string(spriteNumber + i);
+			std::string responseNumber = std::to_string(i);
+
+			//TODO: Don't hard-code these numbers
+			choiceYPos = 400 + (120 * i);
+
+			//TODO: Don't hardcode 1280
+			LoadText({ "", choiceNumber, "1280",
+				std::to_string(choiceYPos), choiceText });
+
+			manager->images[ParseNumberValue(choiceNumber)]->collider.offset.x = 0;
+			manager->images[ParseNumberValue(choiceNumber)]->CalculateCollider();
+
+			AlignCommand({ "align", "x", "center", choiceNumber });
+
+			// Make the text sprite act as a button
+			SetSpriteButton({ "", choiceNumber , responseNumber });
+			if (i == 0)
+			{
+				manager->images[std::stoi(choiceNumber)]->SetColor({ 255, 255, 0, 255 });
+			}
+
+			// Wait for button input, store result in variable
+			WaitForButton({ "choice",  parameters[2] });
+
+			// Construct the if-statement and store it
+			//if %42 == 21 goto label_left ;
+
+			manager->choiceIfStatements.push_back("if %" + parameters[2] + " == " + responseNumber + " goto " + choiceLabel + " ;");
+		}
+
+		manager->atChoice = true;
+		if (manager->autoChoice == 0)
+		{
+			manager->inputTimer.Start(manager->inputTimeToWait);
+		}
+		else
+		{
+			manager->MakeChoice();
+		}
+
+		return 0;
 	}
 
-	return 0;
 }
 
 int CutsceneCommands::WaitForClick(CutsceneParameters parameters)
@@ -1200,7 +1297,7 @@ int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 		key = GetNumAlias(parameters[1]);
 
 	/*
-	if (cacheParseStrings.contains(parameters[1]))
+	if (cacheParseStrings.count(parameters[1]) != 0)
 	{
 		word1 = cacheParseStrings[parameters[1]];
 	}
@@ -1209,7 +1306,7 @@ int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 		
 	}
 
-	if (cacheParseStrings.contains(parameters[2]))
+	if (cacheParseStrings.count(parameters[2]) != 0)
 	{
 		word2 = cacheParseStrings[parameters[2]];
 	}
@@ -1234,7 +1331,7 @@ int CutsceneCommands::ConcatenateStringVariables(CutsceneParameters parameters)
 
 void CutsceneCommands::CacheNumberVariables(CutsceneParameters parameters)
 {
-	if (cacheParseNumbers.contains(parameters[1]))
+	if (cacheParseNumbers.count(parameters[1]) != 0)
 	{
 		number1 = cacheParseNumbers[parameters[1]];
 	}
@@ -1243,7 +1340,7 @@ void CutsceneCommands::CacheNumberVariables(CutsceneParameters parameters)
 		number1 = ParseNumberValue(parameters[1]);
 	}
 
-	if (cacheParseNumbers.contains(parameters[2]))
+	if (cacheParseNumbers.count(parameters[2]) != 0)
 	{
 		number2 = cacheParseNumbers[parameters[2]];
 	}
@@ -2344,6 +2441,10 @@ int CutsceneCommands::Textbox(CutsceneParameters parameters)
 	{
 		manager->textbox->boxWidth = ParseNumberValue(parameters[2]);
 	}
+	else if (parameters[1] == "clear")
+	{
+		manager->ClearPage();
+	}
 
 	return 0;
 }
@@ -2563,6 +2664,17 @@ int CutsceneCommands::TimerFunction(CutsceneParameters parameters)
 			delete manager->timers[timerNumber];
 			manager->timers.erase(timerNumber);
 		}
+	}
+	else if (parameters[1] == "addcommand")
+	{
+		std::string cmd = "";
+
+		for (int i = 3; i < parameters.size(); i++)
+		{
+			cmd += parameters[i] + " ";
+		}
+
+		manager->timerCommands[timerNumber].push_back(cmd);
 	}
 
 	return 0;

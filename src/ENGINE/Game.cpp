@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <iterator>
 #include <cmath>
 #include <vector>
 #include <unordered_map>
@@ -1500,7 +1501,10 @@ bool Game::HandleEvent(SDL_Event& event)
 			{
 				if (cutsceneManager.watchingCutscene)
 				{
-					cutsceneManager.OpenBacklog();
+					if (!cutsceneManager.waitingForButton)
+					{
+						cutsceneManager.OpenBacklog();
+					}
 				}
 				else
 				{

@@ -310,14 +310,17 @@ void Text::AddText(char c, Color color)
 // TODO: We should just remove this, because it causes memory leaks!
 void Text::SetTextAsOneSprite(const std::string& text, Color color, Uint32 wrapWidth)
 {
+	// TODO: Why is it necessary to flip the colors here? 
+	Color flippedColor = { color.b, color.g, color.r, color.a };
+
 	// don't do anything if it would result in the same thing
-	if (txt == text && textColor == color)
+	if (txt == text && textColor == flippedColor)
 		return;
 
 	bool renderRelative = currentSprite.keepPositionRelativeToCamera;
 	bool keepScaleRelative = currentSprite.keepScaleRelativeToCamera;
 
-	textColor = color;
+	textColor = flippedColor;
 	txt = text; // translate the text here
 	id = text;
 
@@ -332,6 +335,7 @@ void Text::SetTextAsOneSprite(const std::string& text, Color color, Uint32 wrapW
 	// such as the empty string, which would cause us to delete twice (crash).
 	// The best thing to do is to just not use this function anymore,
 	// or else use some kind of smart pointer management.
+
 	Texture* textTexture = Animator::spriteManager->GetTexture(font, txt, wrapWidth);
 	if (textTexture != nullptr)
 	{
@@ -451,7 +455,7 @@ void Text::SetPosition(const float x, const float y)
 
 	Vector2 currentPosition = Vector2(x, y);
 
-	float wrapX = currentPosition.x;
+	float wrapX = x;
 	float glyphHeight = 0;
 	int index = 0;
 
@@ -484,6 +488,7 @@ void Text::SetPosition(const float x, const float y)
 			if (fname != "32")
 			{
 				int endOfLineIndex = i;
+				int newX = x;
 
 				// In order to place the entire word on the next line,
 				// we go backward to find the space before the first letter
@@ -493,6 +498,10 @@ void Text::SetPosition(const float x, const float y)
 					{
 						//std::cout << glyphs[endOfLineIndex]->sprite.GetFileName() << std::endl;
 						endOfLineIndex--;
+
+						// This sets the new line's start x based on the width of the word on the new line
+						newX += glyphs[endOfLineIndex]->sprite.frameWidth * glyphs[endOfLineIndex]->scale.x * Camera::MULTIPLIER;
+						
 						if (endOfLineIndex < 0)
 							break;
 					}
@@ -501,8 +510,8 @@ void Text::SetPosition(const float x, const float y)
 				// make a record of which glyph index should be the end of this line
 				lineNumToIndex[numberOfLines] = endOfLineIndex;
 				//std::cout << "Line " << numberOfLines << ": " << endOfLineIndex << std::endl;
-				
-				wrapX = position.x;
+							
+				wrapX = newX;
 				numberOfLines++;
 			}
 
@@ -545,7 +554,17 @@ void Text::SetPosition(const float x, const float y)
 			{
 				lineNumber++;
 				currentPosition.x = position.x;
-				currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
+
+				if (glyphs[i]->sprite.GetFileName() != "10")
+				{
+					currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
+				}
+				else // TODO: Not sure if this will always work properly in the future
+				{
+					// This fixes an indentation issue with line breaks
+					currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x;
+				}
+
 				currentPosition.y += glyphs[i]->sprite.frameHeight * glyphs[i]->scale.y * Camera::MULTIPLIER;
 			}
 		}
