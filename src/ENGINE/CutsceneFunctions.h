@@ -44,6 +44,7 @@ namespace CutsceneFunctions
 	int Fade(CutsceneParameters parameters, CutsceneCommands& c);
 	int SetStringAlias(CutsceneParameters parameters, CutsceneCommands& c);
 	int SetNumAlias(CutsceneParameters parameters, CutsceneCommands& c);
+	int IncludeCommand(CutsceneParameters parameters, CutsceneCommands& c);
 
 	// Variables
 	int SetNumberVariable(CutsceneParameters parameters, CutsceneCommands& c);
@@ -127,6 +128,7 @@ namespace CutsceneFunctions
 	int AutoMode(CutsceneParameters parameters, CutsceneCommands& c);
 	int AutoReturn(CutsceneParameters parameters, CutsceneCommands& c);
 	int AutoSave(CutsceneParameters parameters, CutsceneCommands& c);
+	int AutoSkip(CutsceneParameters parameters, CutsceneCommands& c);
 	int AutoChoice(CutsceneParameters parameters, CutsceneCommands& c);
 	int AlignCommand(CutsceneParameters parameters, CutsceneCommands& c);
 	int InputCommand(CutsceneParameters parameters, CutsceneCommands& c);
@@ -148,6 +150,4 @@ namespace CutsceneFunctions
 	int SteamCommand(CutsceneParameters parameters, CutsceneCommands& c);
 	int DrawRectCommand(CutsceneParameters parameters, CutsceneCommands& c);
 
-	//bool GetArray(const std::string& parameter);
-	//std::string GetArrayName(const std::string& parameter);
 }

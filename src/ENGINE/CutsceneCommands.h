@@ -40,6 +40,8 @@ public:
 	std::unordered_map<unsigned int, std::vector<int>> arrayVariables;
 	std::unordered_map<unsigned int, unsigned int> arrayNumbersPerSlot;
 
+	std::vector<std::string> includeFilepaths;
+
 	// Imagine we want to create an array of 10 things, with a key of 123
 	// Slot #123 has 10 things in it: x x x x x x x x x x
 

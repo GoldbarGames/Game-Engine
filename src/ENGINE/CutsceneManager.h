@@ -193,12 +193,12 @@ public:
 	bool autoreturn = false;
 	bool autosave = false;
 	bool autoprint = false;
+	bool autoskip = false;
 	int printNumber = 0;
 	bool overwriteName = true;
 	std::string currentScript = "";
 	
 	CutsceneCommands commands;
-	CutsceneCommands* newCommands = nullptr;
 
 	Timer printTimer;
 	bool useMouseControls = true;

@@ -1,7 +1,4 @@
-
-
 #include "CutsceneFunctions.h"
-
 
 CutsceneCommands::CutsceneCommands()
 {
@@ -34,6 +31,7 @@ CutsceneCommands::CutsceneCommands()
 	{"automode", &CutsceneFunctions::AutoMode},
 	{"autoreturn", &CutsceneFunctions::AutoReturn},
 	{"autosave", &CutsceneFunctions::AutoSave},
+	{"autoskip", &CutsceneFunctions::AutoSkip},
 	{"backlog", &CutsceneFunctions::OpenBacklog},
 	{"bg", &CutsceneFunctions::LoadBackground },
 	{"bgm", &CutsceneFunctions::MusicCommand },
@@ -64,6 +62,7 @@ CutsceneCommands::CutsceneCommands()
 	{"goto", &CutsceneFunctions::GoToLabel },
 	{"if", &CutsceneFunctions::IfCondition },
 	{"inc", &CutsceneFunctions::IncrementVariable},
+	{"include", &CutsceneFunctions::IncludeCommand},
 	{"input", &CutsceneFunctions::InputCommand},
 	{"itoa", &CutsceneFunctions::IntToString },
 	{"isskip", &CutsceneFunctions::IsSkipping },
@@ -137,11 +136,6 @@ CutsceneCommands::~CutsceneCommands()
 
 int CutsceneCommands::ExecuteCommand(std::string command)
 {
-	if (manager->newCommands != nullptr && manager->newCommands != this)
-	{
-		return manager->newCommands->ExecuteCommand(command);
-	}
-
 	Timer cTimer;
 	cTimer.Start(1);
 

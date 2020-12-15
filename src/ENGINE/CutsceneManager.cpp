@@ -108,47 +108,74 @@ void CutsceneManager::ReadCutsceneFile()
 		commands.pathPrefix = "";
 	}
 
-	// First try to read a separate define file
-	std::cout << "Attempting to open " + defineFilePath << std::endl;
-	fin.open(defineFilePath);
-	if (fin.is_open())
+	try
 	{
-		data = "";
-		for (line; std::getline(fin, line); )
+		// First try to read a separate define file
+		std::cout << "Attempting to open " + defineFilePath << std::endl;
+		fin.open(defineFilePath);
+		if (fin.is_open())
 		{
-			if (line[0] == '*')
-				data += line + "*";
-			else
-				data += line + " ;";
+			data = "";
+			for (line; std::getline(fin, line); )
+			{
+				if (line[0] == '*')
+					data += line + "*";
+				else
+					data += line + " ;";
+			}
+			fin.close();
+			ParseCutsceneFile();
 		}
-		fin.close();
-		ParseCutsceneFile();
-	}
-	else
-	{
-		std::cout << "ERROR: Failed to open " + defineFilePath << std::endl;
-	}
+		else
+		{
+			std::string errorMessage = "ERROR: Failed to open " + defineFilePath;
+			throw std::exception(errorMessage.c_str());
+		}
 
-	// TODO: Allow reading in multiple files at once
-	// (spreading the script across files)
-	std::cout << "Attempting to open " + filepath << std::endl;
-	fin.open(filepath);
-	if (fin.is_open())
-	{
-		data = "";
-		for (line; std::getline(fin, line); )
+		// TODO: Probably want to optimize this at some point
+		std::vector<std::string> filesToRead;
+		filesToRead.emplace_back(filepath);
+
+		for (int i = 0; i < commands.includeFilepaths.size(); i++)
 		{
-			if (line[0] == '*')
-				data += line + "*";
-			else
-				data += line + " ;";
+			filesToRead.emplace_back(commands.includeFilepaths[i]);
 		}
-		fin.close();
+
+		// Add together the contents of all the files into one big string
+		data = "";
+		for (const auto& file : filesToRead)
+		{
+			std::cout << "Attempting to open " + file << std::endl;
+			fin.open(file);
+			if (fin.is_open())
+			{
+				for (line; std::getline(fin, line); )
+				{
+					if (line[0] == '*')
+						data += line + "*";
+					else
+						data += line + " ;";
+				}
+				fin.close();
+			}
+			else
+			{
+				// TODO: We should ultimately throw an error if it fails to read a file
+				// that is critical for the game to work properly, so we need a way
+				// to know which files a game should or should not have.
+
+				std::string errorMessage = "ERROR: Failed to open " + file;
+				throw std::exception(errorMessage.c_str());
+			}
+		}
 	}
-	else
+	catch (std::exception ex)
 	{
-		std::cout << "ERROR: Failed to open " + filepath << std::endl;
+		game->logger.Log(ex.what());
+
+		// TODO: Display error message on screen for players to send to the developer
 	}
+	
 }
 
 void CutsceneManager::SetSpeakerText(const std::string& name)
@@ -965,16 +992,23 @@ void CutsceneManager::PlayCutscene(const char* labelName)
 	{
 		watchingCutscene = true;
 		textbox->isReading = true;
-		currentLabel = JumpToLabel(labelName);
+		SceneLabel* newLabel = JumpToLabel(labelName);
 
-		// if failed to load label, exit cutscenes
-		if (currentLabel == nullptr)
+		// if failed to load label, stay in current label
+		if (newLabel == nullptr)
 		{
-			watchingCutscene = false;
-		}			
-
-		lineIndex = -1;
-		commandIndex = -1;
+			// if current label is null, just end the cutscene
+			if (currentLabel == nullptr)
+			{
+				watchingCutscene = false;
+			}
+		}
+		else
+		{
+			currentLabel = newLabel;
+			lineIndex = -1;
+			commandIndex = -1;
+		}
 
 		ReadNextLine();
 	}	
@@ -1239,7 +1273,7 @@ void CutsceneManager::UpdateText()
 		inputTimer.Start(inputTimeToWait);
 	}
 
-	isSkipping = input[skipButton] || input[skipButton2];
+	isSkipping = input[skipButton] || input[skipButton2] || autoskip;
 	if (disableSkip)
 		isSkipping = false;
 	if (isTravelling)

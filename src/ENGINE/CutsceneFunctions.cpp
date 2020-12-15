@@ -2689,6 +2689,13 @@ namespace CutsceneFunctions
 		return 0;
 	}
 
+	int AutoSkip(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		c.manager->autoskip = (parameters[1] == "on");
+
+		return 0;
+	}
+
 	int AutoSave(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		//TODO: Save this setting and remember it when you load the game
@@ -3178,66 +3185,19 @@ namespace CutsceneFunctions
 		return 0;
 	}
 
-	// TODO: Implement this
 	int SteamCommand(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 
-#ifdef STEAM_ENABLED
+		return 0;
+	}
 
-		const std::string& buf = parameters[2];
-
-		if (parameters[1] == "setachieve")
-		{
-			if (SteamUserStats())
-			{
-				bool sa = SteamUserStats()->SetAchievement(buf);
-				assert(sa == true);
-				if (!sa)
-				{
-					c.manager.game.logger.Log("Error setting achievement \n");
-				}
-				else
-				{
-					// Trigger the little "Achievement Get" dialog
-					SteamUserStats()->StoreStats();
-				}
-			}
-			else
-			{
-				c.manager.game.logger.Log("Not setting achievement, no Steam \n");
-			}
-		}
-		else if (parameters[1] == "resetachieves") // Resets all Steam Stats, including achievements
-		{
-			if (SteamUserStats())
-			{
-				SteamUserStats()->ResetAllStats(true);
-			}
-		}
-		else if (parameters[1] == "resetstats") // Resets all Steam Stats, excluding achievements
-		{
-			if (SteamUserStats())
-			{
-				SteamUserStats()->ResetAllStats(false);
-			}
-		}
-		else if (parameters[1] == "overlay")
-		{
-			bool so = SteamUtils()->IsOverlayEnabled();
-			assert(so == true);
-
-			if (SteamFriends())
-			{
-				SteamFriends()->ActivateGameOverlay(buf);
-			}
-			else
-			{
-				c.manager->game->logger.Log("Not setting overlay, no Steam \n");
-			}
-		}
-
-#endif
+	// This function adds a filepath to a list of text files to include.
+	// When the main cutscene file is parsed, also parse all files in the include list.
+	int IncludeCommand(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		c.includeFilepaths.emplace_back(c.ParseStringValue(parameters[1]));
 
 		return 0;
 	}
+
 }
