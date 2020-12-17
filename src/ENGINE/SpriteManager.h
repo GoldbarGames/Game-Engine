@@ -2,8 +2,8 @@
 #define SPRITEMANAGER_H
 #pragma once
 
-#include "SDL.h"
-#include <SDL_image.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <vector>
 #include <memory>
 #include <unordered_map>
@@ -11,7 +11,7 @@
 #include "Vector2.h"
 
 #include "Texture.h"
-#include <SDL_ttf.h>
+#include <SDL2/SDL_ttf.h>
 #include "leak_check.h"
 
 struct AnimState;

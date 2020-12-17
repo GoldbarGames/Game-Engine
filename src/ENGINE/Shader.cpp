@@ -162,7 +162,7 @@ void ShaderProgram::AddShader(GLuint theProgram, const char* shaderCode, GLenum 
     if (!result)
     {
         glGetShaderInfoLog(theShader, sizeof(eLog), NULL, eLog);
-        printf("Error compiling the  %d shader: '%s'\n", shaderType, eLog);
+        std::cout << "Error compiling the " << GetNameString() << " shader: " << eLog << std::endl;
         return;
     }
 

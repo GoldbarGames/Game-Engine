@@ -8,10 +8,9 @@
 #include "CutsceneTrigger.h"
 #include "Dialog.h"
 #include "CutsceneCommands.h"
-#include <filesystem>
 #include "Renderer.h"
 #include "DebugScreen.h"
-#include "Quadtree.h"
+#include "QuadTree.h"
 #include "Property.h"
 #include "Logger.h"
 #include "CutsceneManager.h"
@@ -167,8 +166,8 @@ void Editor::UpdateLevelFiles()
 	const std::string STR_ENTITY("entity");
 
 	std::string levelsFolder = "data\\levels\\";
-	std::filesystem::path path = std::filesystem::current_path().append(levelsFolder);
-	for (const auto& entry : std::filesystem::directory_iterator(path))
+	fs::path path = fs::current_path().append(levelsFolder);
+	for (const auto& entry : fs::directory_iterator(path))
 	{
 		if (entry.path().extension().string() == ".lvl")
 		{
@@ -1861,9 +1860,16 @@ void Editor::GetLevelList()
 {
 	levelNames.clear();
 
-	std::string levelsFolder = "data\\levels\\";
-	std::filesystem::path path = std::filesystem::current_path().append(levelsFolder);
-	for (const auto& entry : std::filesystem::directory_iterator(path))
+	std::string levelsFolder = "";
+	
+#if _WIN32
+	levelsFolder = "data\\levels\\";
+#else
+	levelsFolder = "data/levels/";
+#endif
+
+	fs::path path = fs::current_path().append(levelsFolder);
+	for (const auto& entry : fs::directory_iterator(path))
 	{
 		if (entry.path().extension().string() == ".lvl")
 		{
@@ -1973,7 +1979,7 @@ void Editor::CreateLevelFromString(std::string level)
 
 		std::vector<std::string>* currentDataMap;
 
-		std::cout << "START" << std::endl;
+		//std::cout << "START LOADING LEVEL" << std::endl;
 
 		// Make sure to clear the list of taken IDs 
 		// at the start of loading a level
@@ -2137,7 +2143,7 @@ void Editor::CreateLevelFromString(std::string level)
 			//ss.getline(lineChar, LINE_SIZE);
 		}
 
-		std::cout << "FINISH" << std::endl;
+		//std::cout << "FINISH LOADING LEVEL" << std::endl;
 
 		// Switch the camera's target
 		if (cameraTargetID >= 0)

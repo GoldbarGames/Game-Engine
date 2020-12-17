@@ -6,10 +6,6 @@
 
 class Game;
 
-#ifdef MAKEDLL
-#  define KINJO_API __declspec(dllexport)
-#endif
-
 class KINJO_API MenuManager
 {
 public:

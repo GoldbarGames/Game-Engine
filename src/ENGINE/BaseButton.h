@@ -2,7 +2,7 @@
 #define BASEBUTTON_H
 #pragma once
 #include "leak_check.h"
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <string>
 #include "globals.h"
 

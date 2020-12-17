@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <string>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include "leak_check.h"
 
 // TODO: Can we replace this code with something better?
@@ -17,9 +17,9 @@
 int invertSDLSurfaceVertically(SDL_Surface* surface)
 {
 	Uint8* t;
-	register Uint8* a, * b;
+	Uint8* a, * b;
 	Uint8* last;
-	register Uint16 pitch;
+	Uint16 pitch;
 
 	if (SDL_LOCKIFMUST(surface) < 0)
 		return -2;

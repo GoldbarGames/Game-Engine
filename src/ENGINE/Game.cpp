@@ -46,7 +46,6 @@
 #include "CutsceneManager.h"
 #include "SoundManager.h"
 #include "RandomManager.h"
-#include <filesystem>
 
 static unsigned int allocationCount = 0;
 
@@ -398,13 +397,13 @@ void Game::InitOpenGL()
 	// Set up OpenGL stuff
 	mainContext = SDL_GL_CreateContext(window);
 
+	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+
 	// Set our OpenGL version.
 	// SDL_GL_CONTEXT_CORE gives us only the newer version, deprecated functions are disabled
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
-	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
 	// Turn on double buffering with a 24bit Z buffer.
 	// You may need to change this to 16 or 32 for your system
@@ -493,33 +492,11 @@ void Game::InitSDL()
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
 	TTF_Init();
 
-	if (SDL_NumJoysticks() < 1)
-	{
-		std::cout << "No controller connected." << std::endl;
-	}
-	else
-	{
-		for (int i = 0; i < SDL_NumJoysticks(); i++)
-		{
-			if (SDL_IsGameController(i))
-			{
-				std::cout << "Controller connected!" << std::endl;				
-				controller = SDL_GameControllerOpen(i);
-				std::cout << SDL_GameControllerMapping(controller) << std::endl;
-				break;
-			}
-		}
-
-		SDL_Joystick* joystick = SDL_JoystickOpen(0);
-		std::cout << "Controller Name: " << SDL_JoystickName(joystick) << std::endl;
-		std::cout << "Num Axes: " << SDL_JoystickNumAxes(joystick) << std::endl;
-		std::cout << "Num Buttons: " << SDL_JoystickNumButtons(joystick) << std::endl;
-		SDL_JoystickClose(joystick);
-	}
-
 	window = SDL_CreateWindow(windowTitle.c_str(),
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 	SDL_SetWindowIcon(window, IMG_Load(windowIconFilepath.c_str()));
+
+	CheckController(true);
 }
 
 void Game::EndSDL()
@@ -533,6 +510,45 @@ void Game::EndSDL()
 	if (controller != nullptr)
 	{
 		SDL_GameControllerClose(controller);
+	}
+}
+
+void Game::CheckController(bool output)
+{
+	if (SDL_NumJoysticks() < 1)
+	{
+		if (output)
+		{
+			std::cout << "No controller connected." << std::endl;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < SDL_NumJoysticks(); i++)
+		{
+			if (SDL_IsGameController(i))
+			{
+				if (output)
+				{
+					std::cout << "Controller connected!" << std::endl;
+				}
+
+				controller = SDL_GameControllerOpen(i);
+				std::cout << SDL_GameControllerMapping(controller) << std::endl;
+				break;
+			}
+		}
+
+		SDL_Joystick* joystick = SDL_JoystickOpen(0);
+
+		if (output)
+		{
+			std::cout << "Controller Name: " << SDL_JoystickName(joystick) << std::endl;
+			std::cout << "Num Axes: " << SDL_JoystickNumAxes(joystick) << std::endl;
+			std::cout << "Num Buttons: " << SDL_JoystickNumButtons(joystick) << std::endl;
+		}
+
+		SDL_JoystickClose(joystick);
 	}
 }
 
@@ -863,8 +879,8 @@ void Game::StopTextInput()
 		fout.close();
 
 		// 3. Create folder in animations dir, two new files
-		std::string directory = std::filesystem::current_path().string() + "\\data\\animators\\";
-		std::filesystem::create_directories(directory + newEntityName + "\\");
+		std::string directory = fs::current_path().string() + "\\data\\animators\\";
+		fs::create_directories(directory + newEntityName + "\\");
 
 		fout.open("data/animators/" + newEntityName + "/" + newEntityName + ".animations");
 		fout << "idle 100 0 0 " << Globals::TILE_SIZE << " " << Globals::TILE_SIZE
@@ -914,9 +930,9 @@ void Game::StopTextInput()
 		std::string functions = "";
 		ReadEntityLists();
 
-		std::filesystem::path path = std::filesystem::current_path();
+		fs::path path = fs::current_path();
 		std::vector<std::string> classNames;
-		for (const auto& entry : std::filesystem::directory_iterator(path))
+		for (const auto& entry : fs::directory_iterator(path))
 		{
 			if (entry.path().extension().string() == ".h")
 			{

@@ -2,7 +2,7 @@
 #define MENUBUTTON_H
 #pragma once
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <string>
 #include "Sprite.h"
 #include "BaseButton.h"

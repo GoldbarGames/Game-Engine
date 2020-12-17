@@ -1,6 +1,5 @@
 #include "Camera.h"
 #include "Entity.h"
-#include <SDL_scancode.h>
 #include "globals.h"
 #include "Game.h"
 
@@ -196,7 +195,7 @@ void Camera::MouseControl(float xChange, float yChange)
 	Update();
 }
 
-void Camera::KeyControl(const Uint8* input, const float& dt, 
+void Camera::KeyControl(const uint8_t* input, const float& dt, 
 	const float& screenWidth, const float& screenHeight)
 {
 	GLfloat velocity = movementSpeed * dt * orthoZoom;

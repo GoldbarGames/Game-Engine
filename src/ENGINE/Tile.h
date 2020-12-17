@@ -5,8 +5,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "SDL.h"
-#include <SDL_image.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <GL/glew.h>
 
 #include "Vector2.h"

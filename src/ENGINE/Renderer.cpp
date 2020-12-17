@@ -33,7 +33,7 @@ void Renderer::CreateShaders()
 {
 	CreateShader(ShaderName::Default, "data/shaders/default.vert", "data/shaders/default.frag");
 	//CreateShader("special", "data/shaders/special.vert", "data/shaders/special.frag");
-	CreateShader(ShaderName::Multiply, "data/shaders/default.vert", "data/shaders/multiply.frag");
+	//CreateShader(ShaderName::Multiply, "data/shaders/default.vert", "data/shaders/multiply.frag");
 	CreateShader(ShaderName::Add, "data/shaders/default.vert", "data/shaders/add.frag");
 	//CreateShader("hue-shift", "data/shaders/hue-shift.vert", "data/shaders/hue-shift.frag");
 	CreateShader(ShaderName::FadeInOut, "data/shaders/default.vert", "data/shaders/fade-in-out.frag");
@@ -41,7 +41,7 @@ void Renderer::CreateShaders()
 	CreateShader(ShaderName::GUI, "data/shaders/gui.vert", "data/shaders/gui.frag");
 	CreateShader(ShaderName::NoAlpha, "data/shaders/default.vert", "data/shaders/noalpha.frag");
 	CreateShader(ShaderName::SolidColor, "data/shaders/default.vert", "data/shaders/solidcolor.frag");
-	CreateShader(ShaderName::Grid, "data/shaders/default.vert", "data/shaders/grid.frag");
+	//CreateShader(ShaderName::Grid, "data/shaders/default.vert", "data/shaders/grid.frag");
 	CreateShader(ShaderName::Grayscale, "data/shaders/default.vert", "data/shaders/grayscale.frag");
 	CreateShader(ShaderName::Sharpen, "data/shaders/default.vert", "data/shaders/sharpen.frag");
 	CreateShader(ShaderName::Blur, "data/shaders/default.vert", "data/shaders/blur.frag");

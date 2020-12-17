@@ -3,8 +3,8 @@
 
 #include "leak_check.h"
 
-#include "SDL.h"
-#include "SDL_ttf.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include "Vector2.h"
 #include "globals.h"
 #include "Animator.h"

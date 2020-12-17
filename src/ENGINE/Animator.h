@@ -5,7 +5,7 @@
 #include "leak_check.h"
 #include <map>
 #include <unordered_map>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 #include "Timer.h"
 #include "AnimatorInfo.h"

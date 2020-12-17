@@ -1,18 +1,3 @@
-#include <iostream>
-#include <iterator>
-#include <sstream>
-#include <stdexcept>
-#include <filesystem>
-#include "CutsceneHelper.h"
-#include "CutsceneManager.h"
-#include "Game.h"
-#include "Timer.h"
-#include "Animator.h"
-#include "Logger.h"
-#include "SoundManager.h"
-#include "RandomManager.h"
-#include "Renderer.h"
-#include "ParticleSystem.h"
 #include "CutsceneCommands.h"
 
 namespace CutsceneFunctions
@@ -45,6 +30,7 @@ namespace CutsceneFunctions
 	int SetStringAlias(CutsceneParameters parameters, CutsceneCommands& c);
 	int SetNumAlias(CutsceneParameters parameters, CutsceneCommands& c);
 	int IncludeCommand(CutsceneParameters parameters, CutsceneCommands& c);
+	int AssetPathCommand(CutsceneParameters parameters, CutsceneCommands& c);
 
 	// Variables
 	int SetNumberVariable(CutsceneParameters parameters, CutsceneCommands& c);

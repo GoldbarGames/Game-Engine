@@ -98,16 +98,6 @@ void CutsceneManager::ReadCutsceneFile()
 	std::string filepath = directory + game->currentGame + ".txt";
 	std::string defineFilePath = directory + game->currentGame + ".define";
 
-	// TODO: Customize this path
-	if (game->currentGame == "DB1")
-	{
-		commands.pathPrefix = "assets\\arc\\";
-	}
-	else
-	{
-		commands.pathPrefix = "";
-	}
-
 	try
 	{
 		// First try to read a separate define file
@@ -129,7 +119,8 @@ void CutsceneManager::ReadCutsceneFile()
 		else
 		{
 			std::string errorMessage = "ERROR: Failed to open " + defineFilePath;
-			throw std::exception(errorMessage.c_str());
+			game->logger.Log(errorMessage);
+			//throw std::exception(errorMessage.c_str());
 		}
 
 		// TODO: Probably want to optimize this at some point
@@ -165,7 +156,8 @@ void CutsceneManager::ReadCutsceneFile()
 				// to know which files a game should or should not have.
 
 				std::string errorMessage = "ERROR: Failed to open " + file;
-				throw std::exception(errorMessage.c_str());
+				game->logger.Log(errorMessage);
+				//throw std::exception(errorMessage.c_str());
 			}
 		}
 	}
@@ -367,9 +359,6 @@ void CutsceneManager::CheckKeys()
 				}
 			}
 
-
-
-
 			// TODO: Use a shader instead of changing color
 
 			// TODO: Don't hardcode these numbers
@@ -453,16 +442,15 @@ void CutsceneManager::CheckKeys()
 		}
 		else if (input[SDL_SCANCODE_I]) // make checkpoint
 		{
-#if _DEBUG
+
 			SaveGame("checkpoint.sav");
 			inputTimer.Start(inputTimeToWait);
 			//checkpoint.labelIndex = labelIndex;
 			//checkpoint.lineIndex = lineIndex;
-#endif
 		}
 		else if (input[SDL_SCANCODE_O]) // load checkpoint
 		{
-#if _DEBUG
+
 			// Reload the script for any changes
 			ReadCutsceneFile();
 			ParseCutsceneFile();
@@ -477,12 +465,10 @@ void CutsceneManager::CheckKeys()
 			//labelIndex = checkpoint.labelIndex;
 			//lineIndex = checkpoint.lineIndex;
 			//commandIndex = 0;			
-#endif
 		}
-		else if (input[SDL_SCANCODE_TAB])
+		else if (input[SDL_SCANCODE_BACKSPACE])
 		{
 			//TODO: This is not perfect, it just breaks out of the cutscene and does not carry out commands
-			// Also, should maybe disable this outside of development mode or make it an option
 			EndCutscene();
 			inputTimer.Start(inputTimeToWait);
 		}
@@ -532,7 +518,7 @@ void CutsceneManager::ParseCutsceneFile()
 	Timer timer;
 	timer.Start(10);
 
-	std::cout << "TIMER START " << timer.GetTicks() << std::endl;
+	//std::cout << "TIMER START " << timer.GetTicks() << std::endl;
 
 	// Instead of copying the strings to the data objects,
 	// we save integers and use them to index the data string
@@ -769,7 +755,7 @@ void CutsceneManager::ParseCutsceneFile()
 
 	} while (index < data.length());
 
-	std::cout << "TIMER END " << timer.GetTicks() << std::endl;
+	//std::cout << "TIMER END " << timer.GetTicks() << std::endl;
 
 	ExecuteDefineBlock("define");
 }
@@ -1032,10 +1018,12 @@ void CutsceneManager::PushCurrentSceneDataToStack()
 	newData->lineText = GetLineText(lines[lineIndex]);
 	newData->commandIndex = commandIndex;
 
+#if _DEBUG
 	if (!isTravelling)
 	{
 		std::cout << "PUSH LABEL " << newData->labelName << std::endl;
 	}
+#endif
 
 
 	gosubStack.push_back(newData);
@@ -1055,10 +1043,14 @@ bool CutsceneManager::PopSceneDataFromStack(SceneData& data)
 		letterIndex = 0;
 		//currentText = data.lineText;
 
+#if _DEBUG
+
 		if (!isTravelling)
 		{
 			std::cout << "POP LABEL " << data.labelName << std::endl;
 		}
+
+#endif
 
 		return true;
 	}
@@ -1267,11 +1259,49 @@ void CutsceneManager::UpdateText()
 	int mouseX, mouseY = 0;
 	mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
-	if (input[autoButton] && inputTimer.HasElapsed())
+	// TODO: Disable all of this if the keyboard controls are disabled
+	// And also allow mouse control alternatives
+	if (inputTimer.HasElapsed())
 	{
-		automaticallyRead = !automaticallyRead;
+		if (input[autoButton])
+		{
+			automaticallyRead = !automaticallyRead;
+			inputTimer.Start(inputTimeToWait);
+		}
+
+		//TODO: Make this more customizable
+		if (input[SDL_SCANCODE_0])
+		{
+			autoTimeIndex++;
+			if (autoTimeIndex > 2)
+				autoTimeIndex = 0;
+			inputTimer.Start(inputTimeToWait);
+		}
+		if (input[SDL_SCANCODE_1])
+		{
+			autoTimeIndex = 0;
+			inputTimer.Start(inputTimeToWait);
+		}
+		if (input[SDL_SCANCODE_2])
+		{
+			autoTimeIndex = 1;
+			inputTimer.Start(inputTimeToWait);
+		}
+		if (input[SDL_SCANCODE_3])
+		{
+			autoTimeIndex = 2;
+			inputTimer.Start(inputTimeToWait);
+		}
+	}
+
+#if _DEBUG
+	if (input[SDL_SCANCODE_TAB] && inputTimer.HasElapsed())
+	{
+		autoskip = !autoskip;
+		std::cout << "1 TOGGLE AUTOSKIP " << autoskip << std::endl;
 		inputTimer.Start(inputTimeToWait);
 	}
+#endif
 
 	isSkipping = input[skipButton] || input[skipButton2] || autoskip;
 	if (disableSkip)
@@ -1280,29 +1310,6 @@ void CutsceneManager::UpdateText()
 		isSkipping = true;
 
 	//std::cout << "Label: " << command << std::endl;
-
-	// TODO: Disable all of this if the keyboard controls are disabled
-	// And also allow mouse control alternatives
-
-	//TODO: Make this more customizable
-	if (input[SDL_SCANCODE_0])
-	{
-		autoTimeIndex++;
-		if (autoTimeIndex > 2)
-			autoTimeIndex = 0;
-	}
-	if (input[SDL_SCANCODE_1])
-	{
-		autoTimeIndex = 0;
-	}
-	if (input[SDL_SCANCODE_2])
-	{
-		autoTimeIndex = 1;
-	}
-	if (input[SDL_SCANCODE_3])
-	{
-		autoTimeIndex = 2;
-	}
 
 	//TODO: Fix this? it no longer works properly with the corrected dt
 	msGlyphTime += (float)game->dt;
@@ -1329,21 +1336,55 @@ void CutsceneManager::UpdateText()
 
 			// TODO: Use a shader instead of changing color
 
-			for (int i = 0; i < activeButtons.size(); i++)
-			{
-				int index = activeButtons[i];
+			game->CheckController(false);
 
-				if (images[index] != nullptr)
+			bool controllerPluggedIn = game->controller != nullptr;
+
+			for (int i = 0; i < SDL_NumJoysticks(); i++)
+			{
+				if (SDL_IsGameController(i))
 				{
-					if (HasIntersection(images[index]->GetTopLeftBounds(), mouseRect))
+					controllerPluggedIn = true;
+					break;
+				}
+			}
+
+			if (!controllerPluggedIn)
+			{
+				for (int i = 0; i < activeButtons.size(); i++)
+				{
+					int index = activeButtons[i];
+
+					if (images[index] != nullptr)
 					{
-						images[index]->SetColor({ 255, 255, 0, 255 });
-						hoveredButton = i;
+						if (HasIntersection(images[index]->GetTopLeftBounds(), mouseRect))
+						{
+							images[index]->SetColor({ 255, 255, 0, 255 });
+							hoveredButton = i;
+						}
+						else
+						{
+							images[index]->SetColor({ 255, 255, 255, 255 });
+						}
 					}
-					else
+				}
+			}
+			else
+			{
+				for (int i = 0; i < activeButtons.size(); i++)
+				{
+					int index = activeButtons[i];
+
+					if (images[index] != nullptr)
 					{
 						images[index]->SetColor({ 255, 255, 255, 255 });
 					}
+
+					if (buttonIndex > -1 && images[activeButtons[buttonIndex]] != nullptr)
+					{
+						images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
+					}
+					
 				}
 			}
 
@@ -1370,20 +1411,38 @@ void CutsceneManager::UpdateText()
 
 			if (input[SDL_SCANCODE_UP] || input[SDL_SCANCODE_W])
 			{
-				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 255, 255 });
+				if (buttonIndex > -1 && images[activeButtons[buttonIndex]] != nullptr)
+				{
+					images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 255, 255 });
+				}
+
 				buttonIndex--;
 				if (buttonIndex < 0)
 					buttonIndex = activeButtons.size() - 1;
-				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
+
+				if (buttonIndex > -1 && images[activeButtons[buttonIndex]] != nullptr)
+				{
+					images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
+				}
+
 				inputTimer.Start(inputTimeToWait);
 			}
 			else if (input[SDL_SCANCODE_DOWN] || input[SDL_SCANCODE_S])
 			{
-				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 255, 255 });
+				if (buttonIndex > -1 && images[activeButtons[buttonIndex]] != nullptr)
+				{
+					images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 255, 255 });
+				}
+
 				buttonIndex++;
 				if (buttonIndex >= activeButtons.size())
 					buttonIndex = 0;
-				images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
+
+				if (buttonIndex > -1 && images[activeButtons[buttonIndex]] != nullptr)
+				{
+					images[activeButtons[buttonIndex]]->SetColor({ 255, 255, 0, 255 });
+				}
+
 				inputTimer.Start(inputTimeToWait);
 			}
 			else if (input[readButton] || input[readButton2] || clickedMouse)
@@ -1484,6 +1543,17 @@ void CutsceneManager::UpdateText()
 					printNumber = 0;
 					do
 					{
+
+#if _DEBUG
+						if (input[SDL_SCANCODE_TAB] && inputTimer.HasElapsed())
+						{
+							autoskip = !autoskip;
+							std::cout << "2 TOGGLE AUTOSKIP " << autoskip << std::endl;
+							inputTimer.Start(inputTimeToWait);
+						}
+#endif
+
+
 						std::string command = GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex);
 
 						if (!commands.ExecuteCommand(command))
@@ -1705,30 +1775,33 @@ void CutsceneManager::MakeChoice()
 		return;
 	}
 
-	if (buttonIndex == -1)
+	if (buttonIndex < 0)
 	{
-		if (!atChoice) // TODO: Handle right-click at choices
+		if (buttonIndex == -1)
 		{
-			// Only proceed if any of the following commands deal with -1
-			int tempCommandIndex = commandIndex;
-			std::string command = "";
-
-			do
+			if (!atChoice) // TODO: Handle right-click at choices
 			{
-				command = GetCommand(lines[currentLabel->lineStart + lineIndex], tempCommandIndex);
+				// Only proceed if any of the following commands deal with -1
+				int tempCommandIndex = commandIndex;
+				std::string command = "";
 
-				if (command.find("= -1 ") != std::string::npos && command.find("if %") != std::string::npos)
+				do
 				{
-					commands.numberVariables[buttonResult] = -1;
-					waitingForButton = false;
-					inputTimer.Start(inputTimeToWait);
-					return;
-				}
+					command = GetCommand(lines[currentLabel->lineStart + lineIndex], tempCommandIndex);
 
-				tempCommandIndex++;
+					if (command.find("= -1 ") != std::string::npos && command.find("if %") != std::string::npos)
+					{
+						commands.numberVariables[buttonResult] = -1;
+						waitingForButton = false;
+						inputTimer.Start(inputTimeToWait);
+						return;
+					}
 
-			} while (tempCommandIndex < lines[currentLabel->lineStart + lineIndex].commandsSize);
+					tempCommandIndex++;
 
+				} while (tempCommandIndex < lines[currentLabel->lineStart + lineIndex].commandsSize);
+
+			}
 		}
 
 		return;
@@ -2291,6 +2364,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 	std::map<SaveSections, std::string> sections = {
 		{ SaveSections::CONFIG_OPTIONS, "@ CONFIG_OPTIONS"},
 		{ SaveSections::STORY_DATA, "@ STORY_DATA"},
+		{ SaveSections::SEEN_CHOICES, "@ SEEN_CHOICES"},
 		{ SaveSections::SEEN_LINES, "@ SEEN_LINES"},
 		{ SaveSections::GOSUB_STACK, "@ GOSUB_STACK"},
 		{ SaveSections::ALIAS_STRINGS, "@ ALIAS_STRINGS"},
@@ -2323,6 +2397,14 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			}
 
 			break;
+		case SaveSections::SEEN_CHOICES:
+
+			for (auto const& choice : selectedChoices)
+			{
+				fout << choice.choiceNumber << " " << choice.responseNumber << std::endl;
+			}
+
+			break;
 		case SaveSections::SEEN_LINES:
 
 			for (auto const& var : seenLabelsToMostRecentLine)
@@ -2337,7 +2419,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			{
 				fout << gosubStack[i]->labelName << " ";
 				fout << gosubStack[i]->labelIndex << " ";
-				fout << gosubStack[i]->lineIndex << " ";
+				fout << (gosubStack[i]->lineIndex + 1) << " ";
 				fout << gosubStack[i]->commandIndex << std::endl;
 			}
 
@@ -2549,6 +2631,9 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			// Save the currently playing BGM
 			fout << "bgm " << '<' << game->soundManager.bgmFilepath << '>' << std::endl;
 
+			// Save the autochoice setting
+			fout << "autochoice " << autoChoice << std::endl;
+
 			// Save other looped sounds
 			for (auto const& [num, channel] : game->soundManager.sounds)
 			{
@@ -2616,6 +2701,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 	std::map<std::string, SaveSections> sections = {
 		{ "@ CONFIG_OPTIONS", SaveSections::CONFIG_OPTIONS},
 		{ "@ STORY_DATA", SaveSections::STORY_DATA},
+		{ "@ SEEN_CHOICES", SaveSections::SEEN_CHOICES},
 		{ "@ SEEN_LINES", SaveSections::SEEN_LINES},
 		{ "@ GOSUB_STACK", SaveSections::GOSUB_STACK},
 		{ "@ ALIAS_STRINGS", SaveSections::ALIAS_STRINGS},
@@ -2632,6 +2718,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 	std::string labelName = "";
 	SceneData* gosubData = nullptr;
 	std::string currentStringAlias = "";
+	SelectedChoiceData choiceData;
 
 	while (index < dataLines.size())
 	{
@@ -2731,6 +2818,11 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 					if (labelIndex < labels.size())
 						currentLabel = &labels[labelIndex];
 				}
+				break;
+			case SaveSections::SEEN_CHOICES:
+				choiceData.choiceNumber = std::stoi(lineParams[0]);
+				choiceData.responseNumber = std::stoi(lineParams[1]);
+				selectedChoices.emplace_back(choiceData);
 				break;
 			case SaveSections::SEEN_LINES:
 				seenLabelsToMostRecentLine[std::stoi(lineParams[0])] = std::stoi(lineParams[1]);
@@ -2869,6 +2961,10 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				else if (lineParams[0] == "random")
 				{
 					CutsceneFunctions::RandomNumberVariable(lineParams, commands);
+				}
+				else if (lineParams[0] == "autochoice")
+				{
+					autoChoice = std::stoi(lineParams[1]);
 				}
 				else if (lineParams[0] == "controls")
 				{

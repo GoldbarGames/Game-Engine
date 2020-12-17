@@ -1,4 +1,18 @@
 #include "CutsceneFunctions.h"
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <stdexcept>
+#include "CutsceneHelper.h"
+#include "CutsceneManager.h"
+#include "Game.h"
+#include "Timer.h"
+#include "Animator.h"
+#include "Logger.h"
+#include "SoundManager.h"
+#include "RandomManager.h"
+#include "Renderer.h"
+#include "ParticleSystem.h"
 
 CutsceneCommands::CutsceneCommands()
 {
@@ -24,6 +38,7 @@ CutsceneCommands::CutsceneCommands()
 	cmd_lut = {
 	{"~", &CutsceneFunctions::DoNothing},
 	{"add", &CutsceneFunctions::AddNumberVariables},
+	{"assetpath", &CutsceneFunctions::AssetPathCommand},
 	{"align", &CutsceneFunctions::AlignCommand},
 	{"animation", &CutsceneFunctions::AnimationCommand},
 	{"array", &CutsceneFunctions::CreateArrayVariable },

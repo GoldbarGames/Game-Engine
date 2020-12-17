@@ -12,6 +12,17 @@
 // it still fails to load, and you must restart the game to hear sound.
 // So we need to detect when the output device changes.
 
+void Sound::LoadFile(const std::string& newFilepath)
+{
+	if (chunk != nullptr)
+	{
+		Mix_FreeChunk(chunk);
+	}
+
+	filepath = newFilepath;
+	chunk = Mix_LoadWAV(filepath.c_str());
+}
+
 bool SoundChannel::Play()
 {
 	if (sound->chunk != nullptr)
@@ -123,7 +134,7 @@ void SoundManager::StopBGM()
 	bgmFilepath = "None";
 }
 
-void SoundManager::FadeInChannel(const std::string& filepath, Uint32 duration, int channel, bool loop)
+void SoundManager::FadeInChannel(const std::string& filepath, uint32_t duration, int channel, bool loop)
 {
 
 }
@@ -146,7 +157,7 @@ void SoundManager::FadeOutChannel(uint32_t duration, int channel)
 	}	
 }
 
-void SoundManager::FadeInBGM(const std::string& bgm, Uint32 duration, bool loop)
+void SoundManager::FadeInBGM(const std::string& bgm, uint32_t duration, bool loop)
 {
 	if (LoadBGM(bgm))
 	{
@@ -157,7 +168,7 @@ void SoundManager::FadeInBGM(const std::string& bgm, Uint32 duration, bool loop)
 	}		
 }
 
-void SoundManager::FadeOutBGM(Uint32 duration)
+void SoundManager::FadeOutBGM(uint32_t duration)
 {
 	Mix_FadeOutMusic(duration);
 	bgmFilepath = "None";
@@ -176,19 +187,7 @@ void SoundManager::SetVolumeBGM(int newVolume)
 	Mix_VolumeMusic(volumeBGM);
 }
 
-// Two different types of sounds:
-// music effects (loop)
-// sound effects (don't loop)
-
-// However, in the engine, it makes no distinciton between the two
-// So we just have a list of sound channels
-// and in these channels, can either be ME or SE
-// (to tell the difference, check whether it loops or not)
-
-
-
-
-Uint32 SoundManager::GetVolumeBGM()
+uint32_t SoundManager::GetVolumeBGM()
 {
 	return volumeBGM;
 }
@@ -206,6 +205,10 @@ void SoundManager::PlaySound(const std::string& filepath, int channel, int loop)
 		Sound* sound = neww Sound(filepath.c_str());
 		SoundChannel* soundChannel = neww SoundChannel(channel, sound, volumeSound, loop);
 		sounds[channel] = soundChannel;
+	}
+	else
+	{
+		sounds[channel]->sound->LoadFile(filepath);
 	}
 
 	//sound = "se/" + sound + ".wav";
@@ -244,15 +247,57 @@ void SoundManager::SetVolumeSoundOnChannel(int newVolume, int channel)
 	if (sounds[channel] != nullptr)
 	{
 		sounds[channel]->volume = newVolume;
+		sounds[channel]->prevVolume = newVolume;
 
 		// TODO: A lot of this seems redundant. Can this be refactored better?
 		Mix_Volume(sounds[channel]->num, sounds[channel]->volume);
 	}
 }
 
-Uint32 SoundManager::GetVolumeSound()
+uint32_t SoundManager::GetVolumeSound()
 {
 	return volumeSound;
+}
+
+// TODO: This will only affect sounds that have already been played,
+// and won't work correctly on new sounds. Need to fix that before enabling!
+void SoundManager::ToggleAudio()
+{
+	disableAudio = !disableAudio;
+
+	if (disableAudio)
+	{
+		prevVolumeBGM = volumeBGM;
+		prevVolumeSound = volumeSound;
+		volumeBGM = 0;
+		volumeSound = 0;
+		SetVolumeBGM(0);
+
+		for (auto& [key, channel] : sounds)
+		{
+			if (channel != nullptr)
+			{
+				channel->volume = 0;
+				channel->prevVolume = channel->volume;				
+				Mix_Volume(channel->num, channel->volume);
+			}
+		}
+	}
+	else
+	{
+		volumeBGM = prevVolumeBGM;
+		volumeSound = volumeSound;
+		SetVolumeBGM(prevVolumeBGM);
+
+		for (auto& [key, channel] : sounds)
+		{
+			if (channel != nullptr)
+			{
+				channel->volume = channel->prevVolume;
+				Mix_Volume(channel->num, channel->volume);
+			}
+		}
+	}
 }
 
 void SoundManager::ReadMusicData(const std::string& dataFilePath)

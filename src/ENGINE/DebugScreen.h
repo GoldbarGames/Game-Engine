@@ -5,7 +5,8 @@
 #include <unordered_map>
 #include "Vector2.h"
 #include "leak_check.h"
-#include <SDL.h>
+#include <SDL2/SDL.h>
+#include <vector>
 
 class Text;
 class Game;

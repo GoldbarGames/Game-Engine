@@ -1,5 +1,5 @@
 #include "FontInfo.h"
-#include <SDL_ttf.h>
+#include <SDL2/SDL_ttf.h>
 #include <stdexcept>
 
 FontInfo::FontInfo(const std::string& f, int s)

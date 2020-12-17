@@ -33,16 +33,17 @@ void Logger::SetOutputFile(const char* filename)
 
 void Logger::Log(const std::string& message)
 {
+#if _DEBUG
 	if (shouldPrintMessage)
 	{
 		std::cout << message << std::endl;
 	}
+#endif
 
 	if (file.is_open())
 	{
 		std::time_t endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-		char* theTime = std::ctime(&endTime);
-		theTime[strcspn(theTime, "\r\n")] = '\0';
+		std::string theTime = std::ctime(&endTime);
 		file << theTime << " | " << message << std::endl;
 	}		
 }

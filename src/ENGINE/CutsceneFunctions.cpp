@@ -1,29 +1,18 @@
 #include "CutsceneFunctions.h"
-
-int CutsceneFunctions::SetNumberVariable(CutsceneParameters parameters, CutsceneCommands& c)
-{
-	c.cacheParseNumbers.erase(parameters[1]);
-
-	c.key = c.ParseNumberValue(parameters[1]);
-	c.parseNumberValue = c.ParseNumberValue(parameters[2]);
-
-	if (parameters.size() > 3 && parameters[3] == "no_alias")
-	{
-		c.parseNumberValue = std::stoi(parameters[2]);
-	}
-
-	if (c.numberVariables[c.key] != c.parseNumberValue)
-	{
-		c.numberVariables[c.key] = c.parseNumberValue;
-
-		// If global variable, save change to file
-		if (c.key >= c.manager->globalStart)
-			c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
-	}
-
-	return 0;
-}
-
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <stdexcept>
+#include "CutsceneHelper.h"
+#include "CutsceneManager.h"
+#include "Game.h"
+#include "Timer.h"
+#include "Animator.h"
+#include "Logger.h"
+#include "SoundManager.h"
+#include "RandomManager.h"
+#include "Renderer.h"
+#include "ParticleSystem.h"
 
 namespace CutsceneFunctions
 {
@@ -31,6 +20,30 @@ namespace CutsceneFunctions
 	int DoNothing(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		// Do nothing in this function!
+		return 0;
+	}
+
+	int SetNumberVariable(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		c.cacheParseNumbers.erase(parameters[1]);
+
+		c.key = c.ParseNumberValue(parameters[1]);
+		c.parseNumberValue = c.ParseNumberValue(parameters[2]);
+
+		if (parameters.size() > 3 && parameters[3] == "no_alias")
+		{
+			c.parseNumberValue = std::stoi(parameters[2]);
+		}
+
+		if (c.numberVariables[c.key] != c.parseNumberValue)
+		{
+			c.numberVariables[c.key] = c.parseNumberValue;
+
+			// If global variable, save change to file
+			if (c.key >= c.manager->globalStart)
+				c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
+		}
+
 		return 0;
 	}
 
@@ -610,11 +623,6 @@ namespace CutsceneFunctions
 		}
 
 		c.manager->FlushCurrentColor();
-
-		if (!c.manager->isTravelling)
-		{
-			std::cout << "RETURN" << std::endl;
-		}
 
 		// Execute commands on the same line
 		for (int i = 0; i < data.commands.size(); i++)
@@ -2578,7 +2586,7 @@ namespace CutsceneFunctions
 	int FileExist(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		std::string filename = c.ParseStringValue(parameters[2]);
-		MoveVariables({ "mov", parameters[1], std::to_string(std::filesystem::exists(filename)) }, c);
+		MoveVariables({ "mov", parameters[1], std::to_string(fs::exists(filename)) }, c);
 
 		return 0;
 	}
@@ -3196,6 +3204,20 @@ namespace CutsceneFunctions
 	int IncludeCommand(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		c.includeFilepaths.emplace_back(c.ParseStringValue(parameters[1]));
+
+		return 0;
+	}
+
+	int AssetPathCommand(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		if (parameters[1] == "default")
+		{
+			c.pathPrefix = "";
+		}
+		else
+		{
+			c.pathPrefix = c.ParseStringValue(parameters[1]);
+		}
 
 		return 0;
 	}

@@ -4,7 +4,7 @@
 
 #include "Vector2.h"
 #include "Entity.h"
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include "leak_check.h"
 
 class Renderer;

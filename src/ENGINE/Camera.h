@@ -2,8 +2,6 @@
 #define CAMERA_H
 #pragma once
 
-#include <SDL_stdinc.h>
-
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -21,7 +19,7 @@ public:
 		float width, float height, bool useOrtho);
 	~Camera();
 
-	void KeyControl(const Uint8* input, const float& dt,
+	void KeyControl(const uint8_t* input, const float& dt,
 		const float& screenWidth, const float& screenHeight);
 
 	void MouseControl(float xChange, float yChange);

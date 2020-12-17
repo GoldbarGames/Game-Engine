@@ -132,6 +132,8 @@ public:
 
 	int MainLoop();
 
+	void CheckController(bool output);
+
 	void Update();
 	void Render();
 	void RenderScene();

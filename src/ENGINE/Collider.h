@@ -5,7 +5,7 @@
 #include "globals.h"
 #include "Vector2.h"
 #include <glm/vec3.hpp>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 //TODO: This is only for a rectangle collider, 
 // maybe add more shapes later

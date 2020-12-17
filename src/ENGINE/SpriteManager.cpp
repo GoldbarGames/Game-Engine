@@ -1,17 +1,22 @@
 #include "leak_check.h"
 #include "Renderer.h"
 #include "SpriteManager.h"
-#include "physfs.h"
 #include "Animator.h"
 #include "Sprite.h"
 #include <sstream>
 #include <iterator>
 
+#if PHYSFS_ENABLED
+#include "physfs.h"
+#endif
+
 SpriteManager::SpriteManager()
 {
 	//Note: To link PHYSFS, use the static library
+#if PHYSFS_ENABLED
 	PHYSFS_init(NULL);
 	PHYSFS_addToSearchPath("assets.wdk", 1);
+#endif
 }
 
 SpriteManager::~SpriteManager()
@@ -43,7 +48,9 @@ SpriteManager::~SpriteManager()
 		}		
 	}
 
+#if PHYSFS_ENABLED
 	PHYSFS_deinit();
+#endif
 }
 
 void SpriteManager::Init(Renderer* r)
@@ -56,16 +63,10 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 {
 	if (images.count(imagePath) == 0)
 	{
-		bool loadFromFile = true;
+		SDL_Surface* surface;
 
-#if _DEBUG
-		loadFromFile = false;
-#endif
+#if PHYSFS_ENABLED
 
-		SDL_Surface * surface;
-
-		if (loadFromFile)
-		{
 			PHYSFS_file* myfile = PHYSFS_openRead(imagePath.c_str());
 
 			if (myfile == nullptr)
@@ -91,16 +92,17 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 			SDL_RWops *rw = SDL_RWFromMem(m_data, m_size);
 
 			surface = IMG_Load_RW(rw, 0);
-		}
-		else
+
+#else
+
+		surface = IMG_Load(imagePath.c_str());
+		if (surface == nullptr)
 		{
-			surface = IMG_Load(imagePath.c_str());
-			if (surface == nullptr)
-			{
-				surface = IMG_Load("assets/gui/white.png");
-				std::cout << "FAILED TO LOAD SPRITE: " << imagePath << std::endl;
-			}
-		}	
+			surface = IMG_Load("assets/gui/white.png");
+			std::cout << "FAILED TO LOAD SPRITE: " << imagePath << std::endl;
+		}
+
+#endif
 
 		Texture* newTexture = neww Texture(imagePath.c_str());
 

@@ -4,7 +4,7 @@
 
 #include <vector>
 #include <string>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <glm/vec3.hpp>
 #include "Vector2.h"
 #include "leak_check.h"

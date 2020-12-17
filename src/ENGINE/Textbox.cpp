@@ -55,6 +55,8 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 
 	speaker->SetText(" ");
 	text->SetText(" ", text->textColor, boxWidth);
+
+	shouldRender = false;
 }
 
 Textbox::~Textbox()

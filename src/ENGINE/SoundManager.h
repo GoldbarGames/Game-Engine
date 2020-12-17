@@ -2,7 +2,7 @@
 #define SOUNDMANAGER_H
 #pragma once
 
-#include <SDL_mixer.h>
+#include <SDL2/SDL_mixer.h>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -20,14 +20,17 @@ struct Sound {
 		if (chunk != nullptr)
 			Mix_FreeChunk(chunk);
 	}
+
+	void LoadFile(const std::string& newFilepath);
 };
 
 struct SoundChannel {
 	const int num;
 	Sound* sound;
 	char volume;
+	char prevVolume;
 	int loop;
-	SoundChannel(int n, Sound* s, char v, int l) : num(n), sound(s), volume(v), loop(l) { }
+	SoundChannel(int n, Sound* s, char v, int l) : num(n), sound(s), volume(v), prevVolume(v), loop(l) { }
 	~SoundChannel()
 	{
 		if (sound != nullptr)
@@ -41,15 +44,18 @@ struct SoundChannel {
 class KINJO_API SoundManager
 {
 private:
-	Uint32 volumeBGM = 20;
-	Uint32 volumeSound = 20;
+	uint32_t volumeBGM = 64;
+	uint32_t volumeSound = 64;
+	uint32_t prevVolumeBGM = 64;
+	uint32_t prevVolumeSound = 64;
 	std::vector<int> volArray;
 	Game* game = nullptr;
 public:
+	bool disableAudio = false;
 	std::unordered_map<int, SoundChannel*> sounds;
 	std::unordered_map<std::string, std::string> bgmNames;
-	Uint32 GetVolumeBGM();
-	Uint32 GetVolumeSound();
+	uint32_t GetVolumeBGM();
+	uint32_t GetVolumeSound();
 	int bgmVolumeIndex = 0;
 	int soundVolumeIndex = 0;
 	Mix_Music* currentBGM = nullptr;
@@ -61,10 +67,10 @@ public:
 	void PlayBGM(const std::string& bgm, bool loop = true);
 	void StopBGM();
 	
-	void FadeInBGM(const std::string& bgm, Uint32 duration, bool loop = true);
-	void FadeOutBGM(Uint32 duration);
+	void FadeInBGM(const std::string& bgm, uint32_t duration, bool loop = true);
+	void FadeOutBGM(uint32_t duration);
 
-	void FadeInChannel(const std::string& filepath, Uint32 duration, int channel = -1, bool loop = true);
+	void FadeInChannel(const std::string& filepath, uint32_t duration, int channel = -1, bool loop = true);
 	void FadeOutChannel(uint32_t duration, int channel = -1);
 
 	void SetVolumeBGM(int newVolume);
@@ -77,6 +83,8 @@ public:
 	void ReadMusicData(const std::string& dataFilePath);
 	bool IsPlayingSound(int channel);
 	bool IsPlayingBGM();
+
+	void ToggleAudio();
 };
 
 #endif

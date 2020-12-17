@@ -8,13 +8,25 @@ std::string Globals::NONE_STRING = "None";
 
 // TODO: Does lerp need to use dt?
 
+// NOTE: On Mac OSX, error: myabs(float) is ambiguous,
+// so I've replaced it with a custom abs() function
+// Hopefully there is a better solution than this
+float myabs(float n)
+{
+#if _WIN32
+	return std::abs(n);
+#else
+	return (n < 0) ? n * -1.0f : n;
+#endif
+}
+
 bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, const float minStep)
 {
 	bool xDirectionPositive = (current.x < target.x);
 	bool yDirectionPositive = (current.y < target.y);
 
-	float xStep = std::max((std::abs(target.x - current.x) / std::abs(target.x)) * minStep, maxStep);
-	float yStep = std::max((std::abs(target.y - current.y) / std::abs(target.y)) * minStep, maxStep);
+	float xStep = std::max((myabs(target.x - current.x) / myabs(target.x)) * minStep, maxStep);
+	float yStep = std::max((myabs(target.y - current.y) / myabs(target.y)) * minStep, maxStep);
 
 	if (xDirectionPositive)
 		current.x = std::min(target.x, current.x + xStep);
@@ -26,8 +38,8 @@ bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, c
 	else
 		current.y = std::max(target.y, current.y - yStep);
 
-	bool xFinished = std::abs(current.x - target.x) < 1;
-	bool yFinished = std::abs(current.y - target.y) < 1;
+	bool xFinished = myabs(current.x - target.x) < 1;
+	bool yFinished = myabs(current.y - target.y) < 1;
 
 	//std::cout << "x: " << current.x << "/" << target.x << std::endl;
 	//std::cout << "y: " << current.y << "/" << target.y << std::endl;
@@ -48,9 +60,8 @@ bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
 	if (t > 1.0f)
 		t = 1.0f;
 
-	std::cout << (currentTime - startTime) << " / " << difference << " = " << t << std::endl;
-
-	std::cout << current.x << "," << current.y << std::endl;
+	//std::cout << (currentTime - startTime) << " / " << difference << " = " << t << std::endl;
+	//std::cout << current.x << "," << current.y << std::endl;
 
 	bool xFinished = LerpCoord(current.x, start.x, target.x, t);
 	bool yFinished = LerpCoord(current.y, start.y, target.y, t);
@@ -67,8 +78,8 @@ bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxSte
 	bool xDirectionPositive = (current.x < target.x);
 	bool yDirectionPositive = (current.y < target.y);
 
-	float xStep = std::max((std::abs(target.x - current.x) / std::abs(target.x)) * maxStep, minStep);
-	float yStep = std::max((std::abs(target.y - current.y) / std::abs(target.y)) * maxStep, minStep);
+	float xStep = std::max((myabs(target.x - current.x) / myabs(target.x)) * maxStep, minStep);
+	float yStep = std::max((myabs(target.y - current.y) / myabs(target.y)) * maxStep, minStep);
 
 	if (xDirectionPositive)
 		current.x = std::min(target.x, current.x + xStep);
@@ -80,8 +91,8 @@ bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxSte
 	else
 		current.y = std::max(target.y, current.y - yStep);
 
-	bool xFinished = std::abs(current.x - target.x) < 1;
-	bool yFinished = std::abs(current.y - target.y) < 1;
+	bool xFinished = myabs(current.x - target.x) < 1;
+	bool yFinished = myabs(current.y - target.y) < 1;
 
 	//std::cout << "x: " << current.x << "/" << target.x << std::endl;
 	//std::cout << "y: " << current.y << "/" << target.y << std::endl;
