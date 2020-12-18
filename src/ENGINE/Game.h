@@ -45,9 +45,11 @@ private:
 
 	bool waitingForDebugDialog = false;
 
+
+public:
+
 	Mesh* CreateQuadMesh();
 	Mesh* CreateCubeMesh();
-public:
 
 	std::string currentGame = "";
 

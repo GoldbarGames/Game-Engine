@@ -3038,8 +3038,14 @@ namespace CutsceneFunctions
 		std::string vertexFile = c.ParseStringValue(parameters[2]);
 		std::string fragmentFile = c.ParseStringValue(parameters[3]);
 
+		Mesh* m = c.manager->game->CreateQuadMesh();
+
+		m->BindMesh();
+
 		c.customShaders[shaderName] = neww ShaderProgram(ShaderName::Custom, vertexFile.c_str(), fragmentFile.c_str());
 		c.customShaders[shaderName]->SetNameString(shaderName);
+
+		m->ClearMesh();
 
 		return 0;
 	}
