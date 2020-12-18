@@ -394,9 +394,6 @@ void Game::CalcDt()
 
 void Game::InitOpenGL()
 {
-	// Set up OpenGL stuff
-	mainContext = SDL_GL_CreateContext(window);
-
 	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
@@ -408,6 +405,11 @@ void Game::InitOpenGL()
 	// Turn on double buffering with a 24bit Z buffer.
 	// You may need to change this to 16 or 32 for your system
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+	// Set up OpenGL context - CALL THIS AFTER SETTING THE ATTRIBUTES!
+	// If you call in the wrong order, won't display correctly on many devices!
+	mainContext = SDL_GL_CreateContext(window);
+	std::cout << "GL_VERSION: " << glGetString(GL_VERSION) << std::endl;
 
 	// 0 = no vsync, 1 = vsync
 	SDL_GL_SetSwapInterval(1);
@@ -442,8 +444,15 @@ void Game::InitOpenGL()
 
 	renderer.camera.Update();
 	renderer.guiCamera.Update();
+	
+	// Creating and binding a mesh before creating the shaders is necessary
+	// for other platforms that use Open GL 4.X like Macs
+	Mesh* m = CreateQuadMesh();
+	m->BindMesh();
 
 	renderer.CreateShaders(); // we must create the shaders at this point
+
+	m->ClearMesh();
 
 	screenSprite = InitFramebuffer(framebuffer, textureColorBuffer, renderBufferObject);
 	prevScreenSprite = InitFramebuffer(prevFramebuffer, prevTextureColorBuffer, prevRenderBufferObject);

@@ -2641,8 +2641,8 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 				{
 					if (channel->loop == -1)
 						fout << "me " << channel->num << " " << '<' << channel->sound->filepath << '>' << std::endl;
-					else
-						fout << "se " << channel->num << " " << '<' << channel->sound->filepath << '>' << " " << channel->loop << std::endl;
+					//else - no need to play sounds on load
+					//	fout << "se " << channel->num << " " << '<' << channel->sound->filepath << '>' << " " << channel->loop << std::endl;
 				}
 			}
 
@@ -2952,7 +2952,8 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				}
 				else if (lineParams[0] == "se" && lineParams.size() > 3)
 				{
-					game->soundManager.PlaySound(lineParams[2], std::stoi(lineParams[1]), std::stoi(lineParams[3]));
+					// no need to play sounds on load
+					//game->soundManager.PlaySound(lineParams[2], std::stoi(lineParams[1]), std::stoi(lineParams[3]));
 				}
 				else if (lineParams[0] == "window")
 				{

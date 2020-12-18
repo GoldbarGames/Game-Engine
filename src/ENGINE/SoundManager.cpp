@@ -43,6 +43,7 @@ bool SoundChannel::Stop()
 {
 	if (sound->chunk != nullptr)
 	{
+		sound->filepath = Globals::NONE_STRING;
 		Mix_HaltChannel(num);
 	}
 	else
@@ -131,7 +132,7 @@ void SoundManager::PlayBGM(const std::string& bgm, bool loop)
 void SoundManager::StopBGM()
 {
 	Mix_HaltMusic();
-	bgmFilepath = "None";
+	bgmFilepath = Globals::NONE_STRING;
 }
 
 void SoundManager::FadeInChannel(const std::string& filepath, uint32_t duration, int channel, bool loop)
@@ -147,12 +148,18 @@ void SoundManager::FadeOutChannel(uint32_t duration, int channel)
 		{
 			if (channel != nullptr)
 			{
+				channel->sound->filepath = Globals::NONE_STRING;
 				Mix_FadeOutChannel(channel->num, duration);
 			}
 		}
 	}
-	else
+	else 
 	{
+		if (sounds[channel] != nullptr)
+		{
+			sounds[channel]->sound->filepath = Globals::NONE_STRING;
+		}
+
 		Mix_FadeOutChannel(channel, duration);
 	}	
 }
@@ -205,6 +212,7 @@ void SoundManager::PlaySound(const std::string& filepath, int channel, int loop)
 		Sound* sound = neww Sound(filepath.c_str());
 		SoundChannel* soundChannel = neww SoundChannel(channel, sound, volumeSound, loop);
 		sounds[channel] = soundChannel;
+		sounds[channel]->sound->LoadFile(filepath);
 	}
 	else
 	{
