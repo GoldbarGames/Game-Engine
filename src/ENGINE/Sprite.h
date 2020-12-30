@@ -86,9 +86,6 @@ public:
 	Vector2 pivot = Vector2(0, 0);
 
 	const std::string& GetFileName();
-	
-	SDL_Rect rect; //TODO: Get rid of this?
-	const SDL_Rect* GetRect();
 
 	void Render(const Vector2& position, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation=glm::vec3(0,0,0));
 	void Render(const Vector2& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation);
@@ -99,7 +96,7 @@ public:
 	Sprite();
 	Sprite(ShaderProgram* s);
 	Sprite(Texture* t, ShaderProgram* s);
-	Sprite(const Vector2& frame, Texture* image, ShaderProgram* shader);
+	Sprite(const Vector2& frame, Texture* image, ShaderProgram* shader, const int tileSize);
 	Sprite(int numFrames, const SpriteManager& manager, const std::string& filepath, ShaderProgram* shader, Vector2 newPivot);
 
 	glm::vec2 CalculateRenderFrame(const Renderer& renderer, float animSpeed);

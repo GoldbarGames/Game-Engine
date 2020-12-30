@@ -66,7 +66,7 @@ public:
 	bool LoadBGM(const std::string& bgm);
 	void PlayBGM(const std::string& bgm, bool loop = true);
 	void StopBGM();
-	
+
 	void FadeInBGM(const std::string& bgm, uint32_t duration, bool loop = true);
 	void FadeOutBGM(uint32_t duration);
 

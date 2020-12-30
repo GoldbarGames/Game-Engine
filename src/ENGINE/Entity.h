@@ -56,7 +56,6 @@ public:
 	DrawingLayer layer = DrawingLayer::FRONT;	
 
 	Collider collider;
-	SDL_Rect* bounds = nullptr;
 
 	//int collisionLayerID = 0;
 	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off

@@ -716,7 +716,7 @@ Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE
 Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet, 
 	const Vector2& position, DrawingLayer drawingLayer) const
 {
-	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer);
+	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION
@@ -728,7 +728,7 @@ Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet,
 Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet, 
 	const Vector2& position, DrawingLayer drawingLayer) const
 {
-	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer);
+	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION 
@@ -1007,9 +1007,6 @@ void Game::LoadTitleScreen()
 // Otherwise, load the level corresponding to the number
 void Game::LoadLevel(const std::string& level, int onExit, int onEnter)
 {
-	//TODO: What happens if the level fails to load, or the file does not exist?
-	// Should it load the same level again, an error screen, or something else?
-
 	transitionExit = onExit;
 	transitionEnter = onEnter;
 	transitionState = 1; // exit state
@@ -1940,13 +1937,7 @@ void Game::Update()
 		}
 	}
 
-	quadTree.Reset();
-	for (int i = 0; i < entities.size(); i++)
-	{
-		if (entities[i]->impassable || entities[i]->trigger 
-			|| entities[i]->jumpThru || entities[i]->etype == "player")
-			quadTree.Insert(entities[i]);
-	}
+	PopulateQuadTree();
 		
 	// Update all entities
 	updateCalls = 0;
@@ -1965,6 +1956,20 @@ void Game::Update()
 			renderer.camera.FollowTarget(*this);
 
 		//renderer.guiCamera.FollowTarget(*this);
+	}
+}
+
+void Game::PopulateQuadTree()
+{
+	quadTree.Reset();
+
+	for (int i = 0; i < entities.size(); i++)
+	{
+		if (entities[i]->impassable || entities[i]->trigger
+			|| entities[i]->jumpThru || entities[i]->etype == "player")
+		{
+			quadTree.Insert(entities[i]);
+		}
 	}
 }
 

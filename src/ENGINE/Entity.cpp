@@ -129,9 +129,6 @@ Entity::~Entity()
 	{
 		delete_it(animator);
 	}
-		
-	if (bounds != nullptr)
-		delete_it(bounds);
 }
 
 void Entity::Init(const Game& g, const std::string& n)

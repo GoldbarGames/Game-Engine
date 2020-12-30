@@ -11,11 +11,7 @@ class Renderer;
 
 class KINJO_API QuadTree
 {
-    // More than one entity can be in the same position
-    // and therefore also within the same subtree
-    std::vector<Entity*> entities;
-
-    // Children of this tree 
+private:
     QuadTree* children[4];
 
     Vector2 midpoint = Vector2(0, 0);
@@ -24,6 +20,10 @@ class KINJO_API QuadTree
     Sprite* debugSprite = nullptr;
 
 public:
+
+    // More than one entity can be in the same position
+    // and therefore also within the same subtree
+    std::vector<Entity*> entities;
 
     // Hold details of the boundary of this node 
     SDL_Rect rect;
@@ -41,7 +41,6 @@ public:
     void Render(const Renderer& renderer);
     void RenderEntities(const Renderer& renderer, const std::vector<Entity*>& e);
 
-    void Update();
     void Reset();
     void Insert(Entity* newEntity);
     QuadTree* SearchTree(Entity* e);

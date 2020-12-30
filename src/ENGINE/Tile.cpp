@@ -8,10 +8,11 @@
 #include "Editor.h"
 #include "Entity.h"
 
-Tile::Tile(const Vector2& pos, const Vector2& frame, Texture* image, const Renderer& renderer) : Entity(pos)
+Tile::Tile(const Vector2& pos, const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize) : Entity(pos)
 {	
 	shouldSave = true;
-	ChangeSprite(frame, image, renderer);
+	ChangeSprite(frame, image, renderer, tileSize);
+	collider.CreateCollider(0, 0, tileSize, tileSize);
 	etype = "tile";
 }
 
@@ -21,10 +22,10 @@ Tile::~Tile()
 }
 
 // TODO: Move this inside the Game class: ChangeTileSprite?
-void Tile::ChangeSprite(const Vector2& frame, Texture* image, const Renderer& renderer)
+void Tile::ChangeSprite(const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize)
 {
 	tileCoordinates = frame;
-	currentSprite = Sprite(frame, image, renderer.shaders[ShaderName::Default]);
+	currentSprite = Sprite(frame, image, renderer.shaders[ShaderName::Default], tileSize);
 }
 
 void Tile::Animate()

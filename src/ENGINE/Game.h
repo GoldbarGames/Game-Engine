@@ -147,6 +147,8 @@ public:
 
 	void GetMenuInput();
 
+	void PopulateQuadTree();
+
 	void CalcDt();
 	bool CheckInputs();
 	void CheckDeleteEntities();

@@ -892,11 +892,23 @@ namespace CutsceneFunctions
 
 	int ResetGame(CutsceneParameters parameters, CutsceneCommands& c)
 	{
-		c.manager->ClearAllSprites();
-		// TODO: Clear BG
+		// Clear all images
+		for (auto& [key, val] : c.manager->images)
+		{
+			if (val != nullptr)
+				delete_it(val);
+		}
+
+		// Clear BGM and all sound channels
 		c.manager->game->soundManager.StopBGM();
-		// TODO: Stop all sound channels
+		for (auto& [key, channel] : c.manager->game->soundManager.sounds)
+		{
+			channel->Stop();
+		}
+
+		// Go back to the start label
 		c.manager->PlayCutscene("start");
+		
 		return 0;
 	}
 
@@ -1544,14 +1556,28 @@ namespace CutsceneFunctions
 	{
 		unsigned int imageNumber = c.ParseNumberValue(parameters[1]);
 
-		//TODO: Maybe make a c.manager->GetImage(imageNumber) function for error handling
-		Entity* entity = c.manager->images[imageNumber];
-		if (entity == nullptr)
-			return 0; //TODO: Error log
+		Entity* entity;
 
-		//Sprite* sprite = c.manager->images[imageNumber]->GetSprite();
+		if (parameters[0] == "ctc") // only when called from ctc function
+		{
+			entity = c.manager->textbox->clickToContinue;
+		}	
+		else
+		{
+			entity = c.manager->images[imageNumber];
+		}	
+
+		if (entity == nullptr)
+		{
+			c.manager->game->logger.Log("ERROR: Tried to set property for null image: " + parameters[1]);
+			return 0;
+		}
+			
 		if (entity->GetSprite() == nullptr)
-			return 0; //TODO: Error log
+		{
+			c.manager->game->logger.Log("ERROR: Tried to set property for null sprite: " + parameters[1]);
+			return 0;
+		}			
 
 		const std::string spriteProperty = c.ParseStringValue(parameters[2]);
 
@@ -1603,19 +1629,12 @@ namespace CutsceneFunctions
 					delete entity->GetAnimator();
 
 				std::vector<AnimState*> animStates = c.manager->game->spriteManager.ReadAnimData(c.ParseStringValue(parameters[4]));
-
-				for (int i = 0; i < animStates.size(); i++)
-				{
-					//animStates[i]->sprite->keepPositionRelativeToCamera = true;
-					//animStates[i]->sprite->keepScaleRelativeToCamera = true;
-				}
-
 				Animator* newAnimator = neww Animator("player", animStates, c.ParseStringValue(parameters[5]));
 				entity->SetAnimator(*newAnimator);
 			}
 			else if (entity->GetAnimator() == nullptr)
 			{
-				std::cout << "Error, sprite " << imageNumber << " does not have animator" << std::endl;
+				c.manager->game->logger.Log("ERROR: Sprite " + std::to_string(imageNumber) + " animator is null");
 			}
 			else if (animAction == "state") // change the animator's state
 			{
@@ -2258,14 +2277,27 @@ namespace CutsceneFunctions
 	{
 		if (parameters.size() > 1)
 		{
-			//TODO: Toggle function?
 			if (parameters[1] == "mouse")
 			{
-				c.manager->useMouseControls = (parameters[2] == "on");
+				if (parameters[2] == "toggle")
+				{
+					c.manager->useMouseControls = !c.manager->useMouseControls;
+				}
+				else
+				{
+					c.manager->useMouseControls = (parameters[2] == "on");
+				}
 			}
 			else if (parameters[1] == "keyboard")
 			{
-				c.manager->useKeyboardControls = (parameters[2] == "on");
+				if (parameters[2] == "toggle")
+				{
+					c.manager->useKeyboardControls = !c.manager->useKeyboardControls;
+				}
+				else
+				{
+					c.manager->useKeyboardControls = (parameters[2] == "on");
+				}
 			}
 		}
 
@@ -2358,9 +2390,11 @@ namespace CutsceneFunctions
 			state->pivotX = spritePivotX;
 			state->pivotY = spritePivotY;
 		}
-		else if (parameters[1] == "animator")
+		else if (parameters[1] == "sprite")
 		{
-			//TODO: Swap out the animator
+			std::vector <std::string> newParams = parameters;
+			newParams.insert(newParams.begin() + 1, "");
+			return SetSpriteProperty(newParams, c);
 		}
 
 		return 0;

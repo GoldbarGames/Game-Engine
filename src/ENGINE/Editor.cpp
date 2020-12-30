@@ -24,6 +24,7 @@ Editor::Editor(Game& g)
 	game = &g;
 
 	GRID_SIZE = Globals::TILE_SIZE;
+	SPAWN_TILE_SIZE = Globals::TILE_SIZE;
 
 	tilesheetFilenames = game->ReadStringsFromFile("data/lists/tilesheet.list");
 	for (int i = 0; i < tilesheetFilenames.size(); i++)
@@ -66,22 +67,6 @@ Editor::Editor(Game& g)
 
 	grid = neww Sprite(game->renderer.shaders[ShaderName::Grid]);
 	//grid->SetScale(Vector2(game->screenWidth, game->screenHeight));
-
-	previewMap["tile"] = game->CreateTile(Vector2(0,0), "assets/editor/rect-outline.png", 
-		Vector2(0,0), DrawingLayer::FRONT);
-
-	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
-
-	// Create a preview object of every entity type
-	previewMapObjectNames = game->ReadStringsFromFile("data/lists/entityTypes.list");
-
-	for (int i = 0; i < previewMapObjectNames.size(); i++)
-	{
-		previewMap[previewMapObjectNames[i]] = game->CreateEntity(previewMapObjectNames[i], 
-			Vector2(0, 0), entitySubtype);
-	}
-
-	objectPreview = previewMap["tile"];
 
 	game->entities.clear();	
 
@@ -440,6 +425,22 @@ void Editor::StartEdit()
 
 	helper->OnEditorStart();
 
+	previewMap["tile"] = game->CreateTile(Vector2(0, 0), "assets/editor/rect-outline.png",
+		Vector2(0, 0), DrawingLayer::FRONT);
+
+	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
+
+	// Create a preview object of every entity type
+	previewMapObjectNames = game->ReadStringsFromFile("data/lists/entityTypes.list");
+
+	for (int i = 0; i < previewMapObjectNames.size(); i++)
+	{
+		previewMap[previewMapObjectNames[i]] = game->CreateEntity(previewMapObjectNames[i],
+			Vector2(0, 0), entitySubtype);
+	}
+
+	objectPreview = previewMap["tile"];
+
 	//game->renderer.camera.ResetProjection();
 	currentLevelText->SetText(game->currentLevel);
 
@@ -462,8 +463,8 @@ void Editor::StartEdit()
 	// this centers the yellow rectangle on the top left tile in the tilesheet
 	// (we need to subtract the width/height to get to the top left corner,
 	// and then add the tile size to center it within the actual tile)
-	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + Globals::TILE_SIZE;
-	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + Globals::TILE_SIZE;
+	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + SPAWN_TILE_SIZE;
+	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + SPAWN_TILE_SIZE;
 
 	objectPropertiesRect.x = (game->screenWidth * 2) - objectPropertiesRect.w;
 
@@ -557,14 +558,14 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		}
 	}
 
-	string clickedLayerButton = "";
+	std::string clickedLayerButton = "";
 	for (unsigned int i = 0; i < layerButtons.size(); i++)
 	{
 		if (layerButtons[i]->IsPointInsideButton(mouseX, mouseY))
 			clickedLayerButton = layerButtons[i]->text->txt;
 	}
 
-	string clickedLayerVisibleButton = "";
+	std::string clickedLayerVisibleButton = "";
 	for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
 	{
 		if (layerVisibleButtons[i]->IsPointInsideButton(mouseX, mouseY))
@@ -589,21 +590,23 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		int yOffset = (mouseY - topLeftY);
 
 		// Calculate the position in the tilesheet texture to use for drawing the tile
-		float x2 = (xOffset / (float)(Globals::TILE_SIZE));
-		float y2 = (yOffset / (float)(Globals::TILE_SIZE));
+		float x2 = (xOffset / (float)(SPAWN_TILE_SIZE));
+		float y2 = (yOffset / (float)(SPAWN_TILE_SIZE));
 
 		spriteSheetTileFrame.x = (int)(roundf(x2)/ Camera::MULTIPLIER) + 1;
 		spriteSheetTileFrame.y = (int)(roundf(y2)/ Camera::MULTIPLIER) + 1;
 
-		int moveRight = ( (spriteSheetTileFrame.x - 1) * Globals::TILE_SIZE * Camera::MULTIPLIER);
-		int moveDown = ( (spriteSheetTileFrame.y - 1) * Globals::TILE_SIZE * Camera::MULTIPLIER);
+		int moveRight = ( (spriteSheetTileFrame.x - 1) * SPAWN_TILE_SIZE * Camera::MULTIPLIER);
+		int moveDown = ( (spriteSheetTileFrame.y - 1) * SPAWN_TILE_SIZE * Camera::MULTIPLIER);
 
 		//std::cout << "(" << x2 << "," << y2 << ")" << std::endl;
 		//std::cout << "(" << spriteSheetTileFrame.x << "," << spriteSheetTileFrame.y << ")" << std::endl;
 
 		// Set the location of the yellow rectangle indicating which tile will be drawn
-		selectedTilePosition.x = topLeftX + Globals::TILE_SIZE + moveRight;
-		selectedTilePosition.y = topLeftY + Globals::TILE_SIZE + moveDown;
+		selectedTilePosition.x = topLeftX + SPAWN_TILE_SIZE + moveRight;
+		selectedTilePosition.y = topLeftY + SPAWN_TILE_SIZE + moveDown;
+
+		//TODO: Allow for changing the size of the tile such that we can have two tiles of different sizes placed in the game
 
 		//TODO: Make this section a function we can call to refresh the current tile preview
 		Entity*& prev = previewMap[objectMode];
@@ -612,6 +615,10 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 
 		prev = game->CreateTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex],
 			Vector2(0, 0), DrawingLayer::FRONT);
+
+		// Set frameWidth and frameHeight explicitly here
+		//prev->GetSprite()->frameWidth = SPAWN_TILE_SIZE;
+		//prev->GetSprite()->frameHeight = SPAWN_TILE_SIZE;
 
 		objectPreview = prev;
 	}
@@ -776,7 +783,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 					{
 						// Set the index of the tile
 						tilesInLevel[i]->ChangeSprite(spriteSheetTileFrame,
-							game->spriteManager.GetImage(tilesheetFilenames[tilesheetIndex]), game->renderer);
+							game->spriteManager.GetImage(tilesheetFilenames[tilesheetIndex]), game->renderer, SPAWN_TILE_SIZE);
 					}
 				}
 
@@ -810,8 +817,8 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 				StartEdit();
 				objectMode = "tile";
 
-				selectedTilePosition.x = (int)((tile->tileCoordinates.x - 1) * Globals::TILE_SIZE);
-				selectedTilePosition.y = (int)((tile->tileCoordinates.y - 1) * Globals::TILE_SIZE);
+				selectedTilePosition.x = (int)((tile->tileCoordinates.x - 1) * SPAWN_TILE_SIZE);
+				selectedTilePosition.y = (int)((tile->tileCoordinates.y - 1) * SPAWN_TILE_SIZE);
 
 				spriteSheetTileFrame.x = (int)tile->tileCoordinates.x;
 				spriteSheetTileFrame.y = (int)tile->tileCoordinates.y;
@@ -1234,6 +1241,14 @@ void Editor::ClickedButton()
 	{
 		ToggleGridSize();
 	}
+	else if (clickedButton->name == "tilesize")
+	{
+		// TODO: Let us enter specific numbers instead of being limited to half the size
+		if (SPAWN_TILE_SIZE == Globals::TILE_SIZE)
+			SPAWN_TILE_SIZE = Globals::TILE_SIZE / 2;
+		else
+			SPAWN_TILE_SIZE = Globals::TILE_SIZE;
+	}
 	else if (clickedButton->name == "inspect")
 	{
 		ToggleInspectionMode();
@@ -1379,6 +1394,9 @@ void Editor::ClickedButton()
 
 void Editor::ToggleSpriteMap(int num)
 {
+	// Because the sprite map is populated from a list,
+	// it does not contain "tile" so this function
+	// is never utilized when scrolling on the tileset object mode
 	if (game->spriteMap.count(objectMode) != 1)
 		return;
 
@@ -1397,22 +1415,8 @@ void Editor::ToggleSpriteMap(int num)
 		delete_it(prev);
 
 	// Update the preview sprites accordingly
-	if (objectMode == "tile")
-	{
-		prev = game->CreateTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex],
-			Vector2(0, 0), DrawingLayer::FRONT);
-
-		prev->GetSprite()->color = { 255, 255, 255, 64 };
-	}
-	else
-	{		
-		prev = game->CreateEntity(objectMode, Vector2(0, 0), entitySubtype);
-		prev->Init(*game, game->entityTypes[objectMode][entitySubtype]);
-	}
-
-	//TODO: How to deal with object modes that return nullptr?
-	//if (prev == nullptr)
-	//	prev = previewMap[objectMode];
+	prev = game->CreateEntity(objectMode, Vector2(0, 0), entitySubtype);
+	prev->Init(*game, game->entityTypes[objectMode][entitySubtype]);
 
 	objectPreview = prev;
 }
@@ -1519,16 +1523,18 @@ void Editor::SetLayer(DrawingLayer layer)
 
 void Editor::ToggleTileset()
 {
-	tilesheetIndex++;
-	if (tilesheetIndex > 1)
-		tilesheetIndex = 0;
+	objectMode = "tile";
+	game->debugScreen->debugText[DebugText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
+	game->debugScreen->debugText[DebugText::currentEditModeLayer]->GetSprite()->keepScaleRelativeToCamera = true;
+
+	tilesheetIndex = (tilesheetIndex + 1 > tilesheetSprites.size() - 1) ? 0 : tilesheetIndex + 1;
 
 	// Calculate and set positions for the selected tilesheet
 	//TODO: Maybe make this its own function?
 	tilesheetPosition.x = (game->screenWidth * 2) - tilesheetSprites[tilesheetIndex]->frameWidth;
 	tilesheetPosition.y = tilesheetSprites[tilesheetIndex]->frameHeight;
-	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + Globals::TILE_SIZE;
-	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + Globals::TILE_SIZE;
+	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + SPAWN_TILE_SIZE;
+	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + SPAWN_TILE_SIZE;
 	
 	game->SaveEditorSettings();
 	StartEdit();	
@@ -1615,10 +1621,13 @@ void Editor::Render(const Renderer& renderer)
 
 			// Draw a yellow rectangle around the currently selected tileset tile
 			game->renderer.debugSprite->color = { 255, 255, 0, 255 };
-			//game->renderer.debugSprite->scale = Vector2(1, 1);
 			game->renderer.debugSprite->keepPositionRelativeToCamera = true;
 			game->renderer.debugSprite->keepScaleRelativeToCamera = true;
-			game->renderer.debugSprite->Render(selectedTilePosition, renderer, Vector2(1, 1));
+			
+			// Draw the yellow rectangle scaled to the tile size
+			Vector2 newScale = Vector2(SPAWN_TILE_SIZE/24.0f, SPAWN_TILE_SIZE/24.0f);
+			game->renderer.debugSprite->Render(selectedTilePosition, renderer, newScale);
+
 			game->renderer.debugSprite->keepPositionRelativeToCamera = false;
 			game->renderer.debugSprite->keepScaleRelativeToCamera = false;
 		}
@@ -2134,7 +2143,7 @@ void Editor::CreateLevelFromString(std::string level)
 			}
 			catch (const std::exception& e)
 			{
-				std::cout << "EXCEPTION: " << e.what() << std::endl;
+				std::cout << "LOAD LEVEL EXCEPTION: " << e.what() << std::endl;
 				std::cout << "LINE: " << lineNumber << std::endl;
 				std::cout << "INDEX: " << index << std::endl;
 				game->logger.Log(e.what());
@@ -2189,7 +2198,10 @@ void Editor::ClearLevelEntities()
 	game->cameraBoundsEntities.clear();
 }
 
-// TODO: Loading levels is kind of slow
+//TODO: Loading levels is kind of slow
+
+//TODO: What happens if the level fails to load, or the file does not exist?
+// Should it load the same level again, an error screen, or something else?
 void Editor::InitLevelFromFile(std::string levelName)
 {
 	for (auto& [key, val] : game->cutsceneManager.images)
@@ -2206,9 +2218,6 @@ void Editor::InitLevelFromFile(std::string levelName)
 	game->debugRectangles.clear();
 	game->levelStartCutscene = "";
 
-	game->quadTree.~QuadTree();
-	game->quadTree = QuadTree(-4000, -4000, 8000, 8000);
-
 	ClearLevelEntities();
 	entitySubtype = 0;
 
@@ -2223,11 +2232,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 	DoAction();
 	game->SortEntities(game->entities);
 
-	for (int i = 0; i < game->entities.size(); i++)
-	{
-		//TODO: Only add entities that have colliders or are impassable
-		game->quadTree.Insert(game->entities[i]);
-	}
+	game->PopulateQuadTree();
 
 	game->gui->ResetText();
 
@@ -2246,6 +2251,6 @@ void Editor::InitLevelFromFile(std::string levelName)
 		}
 	}
 
-	//NOTE: Figure out why removing this glitches out at the start
+	//TODO: Figure out why removing this glitches out at the start
 	game->SetScreenResolution(game->screenWidth, game->screenHeight);
 }

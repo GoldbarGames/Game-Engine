@@ -73,13 +73,6 @@ CutsceneManager::~CutsceneManager()
 			delete_it(val);
 	}
 
-
-	for (auto& [key, val] : animatedImages)
-	{
-		if (val != nullptr)
-			delete_it(val);
-	}
-
 	for (auto& [key, val] : tags)
 	{
 		if (val != nullptr)
@@ -493,6 +486,12 @@ void CutsceneManager::CheckKeys()
 
 void CutsceneManager::ParseCutsceneFile()
 {
+	if (data.size() < 1)
+	{
+		game->logger.Log("No cutscene data to parse.");
+		return;
+	}
+
 	//for (unsigned int i = 0; i < labels.size(); i++)
 	//	delete labels[i];
 	labels.clear();
@@ -2044,18 +2043,12 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 					break;
 			}
 
-			if (animatedImages[animName] != nullptr)
-			{
-				// Add the image to the text here
-				//TODO: Check this for memory leaks!
-				Sprite* sprite = animatedImages[animName]->GetSprite();
-				text->AddImage(sprite);		
-				text->GetLastGlyph()->animator = animatedImages[animName]->GetAnimator();
-			}
-			else
-			{
-				CutsceneFunctions::ErrorLog({ "", "Error loading animation " + animName }, commands);
-			}
+			// Add the image to the text here
+
+			//TODO: Implement animated icons in text
+			//Sprite* sprite = animatedImages[animName]->GetSprite();
+			//text->AddImage(sprite);		
+			//text->GetLastGlyph()->animator = animatedImages[animName]->GetAnimator();
 
 			letterIndex = animIndex;
 			while (originalString[letterIndex] != '>')

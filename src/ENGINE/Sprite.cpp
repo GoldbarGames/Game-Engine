@@ -162,7 +162,7 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 }
 
 // constructor for tiles from tilesheets
-Sprite::Sprite(const Vector2& frame, Texture* image, ShaderProgram* s)
+Sprite::Sprite(const Vector2& frame, Texture* image, ShaderProgram* s, const int tileSize)
 {
 	model = glm::mat4(1.0f);
 	texture = image;
@@ -170,8 +170,8 @@ Sprite::Sprite(const Vector2& frame, Texture* image, ShaderProgram* s)
 
 	CreateMesh();
 
-	frameWidth = Globals::TILE_SIZE;
-	frameHeight = Globals::TILE_SIZE;
+	frameWidth = tileSize;
+	frameHeight = tileSize;
 
 	framesPerRow = std::max(1, texture->GetWidth() / frameWidth);
 	numberRows = std::max(1, texture->GetHeight() / frameHeight);
@@ -561,11 +561,6 @@ void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer
 
 	// Render Mesh
 	mesh->RenderMesh();
-}
-
-const SDL_Rect* Sprite::GetRect()
-{
-	return &rect;
 }
 
 bool Sprite::HasAnimationElapsed()

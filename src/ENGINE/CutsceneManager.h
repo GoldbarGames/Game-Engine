@@ -273,7 +273,6 @@ public:
 
 	bool foundTrueConditionOnBtnWait = false;
 
-	std::map<std::string, Entity*> animatedImages;
 	std::map<unsigned int, Entity*> images; // needs to be in order for rendering
 	std::map<unsigned int, Entity*>::iterator imageIterator;
 

@@ -155,41 +155,6 @@ void QuadTree::Render(const Renderer& renderer)
     }
 }
 
-void QuadTree::Update()
-{
-    std::vector<Entity*> newList;
-    std::vector<Entity*> insertList;
-
-    for (int i = 0; i < entities.size(); i++)
-    {
-        if (entities[i] != nullptr)
-        {
-            if (entities[i]->position.x == entities[i]->lastPosition.x
-                && entities[i]->position.y == entities[i]->lastPosition.y)
-            {
-                newList.push_back(entities[i]);
-            }
-            else
-            {
-                insertList.push_back(entities[i]);
-            }
-        }
-    }
-
-    entities = std::vector<Entity*>(newList);
-
-    for (int i = 0; i < 4; i++)
-    {
-        if (children[i] != nullptr)
-            children[i]->Update();
-    }
-
-    for (int i = 0; i < insertList.size(); i++)
-    {
-        Insert(insertList[i]);
-    }
-}
-
 std::vector<Entity*> QuadTree::GetEntities()
 {
     return entities;
@@ -230,7 +195,6 @@ void QuadTree::Insert(Entity* newEntity)
         }        
     }
 
-    // TODO: This line crashes when there are less than 6 entities in the level. Why???
     entities.emplace_back(newEntity);
     newEntity->quadrant = this;
 
@@ -258,28 +222,22 @@ void QuadTree::Insert(Entity* newEntity)
             children[3]->active = true;
         }
 
-        std::vector<Entity*> newEntities;
-
         int i = 0;
         while (i < entities.size())
         {
             QuadTree* child = GetInsertedChild(newEntity->GetBounds());
             if (child != nullptr)
             {
-                child->Insert(entities[i]);
-                // TODO: Why does this not work??? Iterator out of range???                
-                //std::vector<Entity*>::iterator it = entities.begin() + i;
-                //entities.erase(it);
+                child->Insert(entities[i]);         
+                std::vector<Entity*>::iterator it = entities.begin() + i;
+                entities.erase(it);
             }
             else
             {
-                newEntities.push_back(entities[i]);
-                //i++;
+                i++;
             }
             i++;
         }
-
-        entities = std::vector<Entity*>(newEntities);
     }
 
 }

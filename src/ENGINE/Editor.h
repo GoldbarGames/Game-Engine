@@ -78,6 +78,7 @@ public:
 	unsigned int currentButtonPage = 0;
 	int propertyIndex = -1;
 	int GRID_SIZE = 24;
+	int SPAWN_TILE_SIZE = 24;
 
 	std::unordered_map<std::string, std::vector<std::string>> loadDataMap;
 
