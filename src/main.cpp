@@ -17,9 +17,7 @@ int main(int argc, char *args[])
 	//#endif
 #endif
 
-	// TODO: Custom editor / components for each game
-	// TODO: How to deal with loading the first level?
-	// TODO: Move SDL Init outside of Game?
+	// TODO: Automatically create a first level if none exist
 
 	{
 		// For your own custom entity types
@@ -46,13 +44,6 @@ int main(int argc, char *args[])
 		if (m != nullptr)
 			delete_it(m);
 	}
-
-	// Call these outside the scope of the game
-	// because we can't be sure of the destructor call order
-	// (deleting TTF_Fonts after calling TTF_Quit = crash)
-	TTF_Quit();
-	SDL_Quit();
-	IMG_Quit();
 
 #if _DEBUG
 	_CrtDumpMemoryLeaks();

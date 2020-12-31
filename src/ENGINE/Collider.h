@@ -7,8 +7,7 @@
 #include <glm/vec3.hpp>
 #include <SDL2/SDL.h>
 
-//TODO: This is only for a rectangle collider, 
-// maybe add more shapes later
+//TODO: This is only for a rectangle collider, maybe add more shapes later
 class KINJO_API Collider
 {
 public:

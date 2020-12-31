@@ -154,6 +154,7 @@ void Entity::CalculateCollider()
 
 void Entity::Pause(Uint32 ticks)
 {
+	// TODO: Pause/unpause the animator
 	if (animator != nullptr)
 	{
 		//std::cout << "-- pausing --" << std::endl;

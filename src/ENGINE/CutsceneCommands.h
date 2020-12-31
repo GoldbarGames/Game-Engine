@@ -23,6 +23,8 @@ class CutsceneCommands;
 typedef const std::vector<std::string>& CutsceneParameters;
 typedef int (*CmdFunc)(CutsceneParameters parameters, CutsceneCommands& c);
 
+enum class CommandResult { SUCCESS = 0, ERROR = -1, WARNING = -2, FAILCONDITION = -198, UNFINISHED = -199, NO_LABEL = -99, };
+
 
 class KINJO_API CutsceneCommands
 {
@@ -33,7 +35,7 @@ public:
 	CutsceneHelper* helper = nullptr;
 
 	std::unordered_map<std::string, std::string> stralias;
-	std::unordered_map<std::string, unsigned int> numalias;
+	std::unordered_map<std::string, int> numalias;
 
 	std::unordered_map<unsigned int, std::string> stringVariables;
 	std::unordered_map<unsigned int, int> numberVariables;
@@ -98,8 +100,8 @@ public:
 	int ParseNumberValue(const std::string& parameter);
 	Color ParseColorFromParameters(const std::vector<std::string>& parameters, const int index);
 
-	int GetNumberVariable(const unsigned int key);
-	std::string GetStringVariable(const unsigned int key);
+	int GetNumberVariable(const int key);
+	std::string GetStringVariable(const int key);
 	std::string GetStringAlias(const std::string& key);
 	int GetNumAlias(const std::string& key);
 

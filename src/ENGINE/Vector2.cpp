@@ -121,5 +121,3 @@ std::string Vector2::ToString()
 {
 	return "(" + std::to_string(x) + "," + std::to_string(y) + ")";
 }
-
-//TODO: Distance function? Other calculations?

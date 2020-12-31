@@ -157,11 +157,13 @@ namespace CutsceneFunctions
 		return 0;
 	}
 
+	// TODO: We can probably just eliminate this command altogether
+	// because a Music Effect is just a sound effect that loops,
+	// and we want to have control over the properties of individual channels anyway
 	int MusicEffectCommand(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		if (parameters[1] == "play")
 		{
-			//TODO: Deal with multiple channels
 			if (parameters.size() > 3)
 			{
 				c.manager->game->soundManager.PlaySound(c.pathPrefix + c.ParseStringValue(parameters[3]), c.ParseNumberValue(parameters[2]), -1);
@@ -242,7 +244,6 @@ namespace CutsceneFunctions
 	{
 		if (parameters[1] == "play")
 		{
-			//TODO: Deal with multiple channels
 			if (parameters.size() > 3)
 			{
 				c.manager->game->soundManager.PlaySound(c.pathPrefix + c.ParseStringValue(parameters[3]), c.ParseNumberValue(parameters[2]));
@@ -254,10 +255,14 @@ namespace CutsceneFunctions
 		}
 		else if (parameters[1] == "loop")
 		{
-			// TODO: We can probably just eliminate this command altogether
-			// because a Music Effect is just a sound effect that loops,
-			// and we want to have control over the properties of individual channels anyway
-			MusicEffectCommand({ "me", "play", parameters[2], parameters[3] }, c);
+			if (parameters.size() > 3)
+			{
+				c.manager->game->soundManager.PlaySound(c.pathPrefix + c.ParseStringValue(parameters[3]), c.ParseNumberValue(parameters[2]), -1);
+			}
+			else
+			{
+				c.manager->game->soundManager.PlaySound(c.pathPrefix + c.ParseStringValue(parameters[2]), -1, -1);
+			}
 		}
 		else if (parameters[1] == "volume")
 		{
@@ -352,7 +357,7 @@ namespace CutsceneFunctions
 				}
 				else
 				{
-					return -1;
+					return (int)CommandResult::ERROR;
 				}
 				break;
 			default:
@@ -397,7 +402,7 @@ namespace CutsceneFunctions
 				}
 				else
 				{
-					return -1;
+					return (int)CommandResult::ERROR;
 				}
 				break;
 			default:
@@ -420,7 +425,7 @@ namespace CutsceneFunctions
 
 			// Don't do any comparison if they are not the same type
 			if (c.leftHandIsNumber != c.rightHandIsNumber)
-				return -1;
+				return (int)CommandResult::ERROR;
 
 			index--; // go back to operator
 
@@ -563,7 +568,7 @@ namespace CutsceneFunctions
 			}
 			else // else exit, do nothing
 			{
-				return -198;
+				return (int)CommandResult::FAILCONDITION;
 			}
 
 		} while (!conditionIsTrue);
@@ -607,7 +612,7 @@ namespace CutsceneFunctions
 		if (!c.manager->PopSceneDataFromStack(data))
 		{
 			c.manager->game->logger.Log("ERROR: Nowhere to return to!");
-			return -99;
+			return (int)CommandResult::NO_LABEL;
 		}
 
 		// Check the label name to see if it is a variable
@@ -688,7 +693,8 @@ namespace CutsceneFunctions
 		}
 		else if (parameters[1] == "get")
 		{
-			// TODO: Get other types of choice info
+			// Get other types of choice info here
+
 			if (parameters[2] == "seen")
 			{
 				if (parameters[3] == "size")
@@ -931,7 +937,7 @@ namespace CutsceneFunctions
 		{
 			c.manager->game->logger.Log("ERROR: Saving game: ");
 			c.manager->game->logger.Log(ex.what());
-			return -1;
+			return (int)CommandResult::ERROR;
 		}
 
 		return 0;
@@ -952,7 +958,7 @@ namespace CutsceneFunctions
 		{
 			c.manager->game->logger.Log("ERROR: Loading game: ");
 			c.manager->game->logger.Log(ex.what());
-			return -1;
+			return (int)CommandResult::ERROR;
 		}
 
 		return 0;
@@ -972,6 +978,12 @@ namespace CutsceneFunctions
 			c.key = c.GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
 		else
 			c.key = c.GetNumAlias(parameters[1]);
+
+		if (c.key < 0)
+		{
+			c.manager->game->logger.Log("ERROR: Attempt to use negative number for variable slot index.");
+			return (int)CommandResult::ERROR;
+		}
 
 		/*
 		if (c.cacheParseStrings.count(parameters[1]) != 0)
@@ -1027,8 +1039,6 @@ namespace CutsceneFunctions
 		}
 	}
 
-	//TODO: Check and see if both parameters are strings.
-	// If so, then call the function that adds strings together
 	int AddNumberVariables(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		if (parameters[1][0] == '$')
@@ -1041,6 +1051,12 @@ namespace CutsceneFunctions
 			c.key = c.GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
 		else
 			c.key = c.GetNumAlias(parameters[1]);
+
+		if (c.key < 0)
+		{
+			c.manager->game->logger.Log("ERROR: Attempt to use negative number for variable slot index.");
+			return (int)CommandResult::ERROR;
+		}
 
 		CacheNumberVariables(parameters, c);
 
@@ -1061,6 +1077,12 @@ namespace CutsceneFunctions
 		else
 			c.key = c.GetNumAlias(parameters[1]);
 
+		if (c.key < 0)
+		{
+			c.manager->game->logger.Log("ERROR: Attempt to use negative number for variable slot index.");
+			return (int)CommandResult::ERROR;
+		}
+
 		CacheNumberVariables(parameters, c);
 
 		c.numberVariables[c.key] = c.number1 - c.number2;
@@ -1080,6 +1102,12 @@ namespace CutsceneFunctions
 		else
 			c.key = c.GetNumAlias(parameters[1]);
 
+		if (c.key < 0)
+		{
+			c.manager->game->logger.Log("ERROR: Attempt to use negative number for variable slot index.");
+			return (int)CommandResult::ERROR;
+		}
+
 		CacheNumberVariables(parameters, c);
 
 		c.numberVariables[c.key] = c.number1 * c.number2;
@@ -1098,6 +1126,12 @@ namespace CutsceneFunctions
 			c.key = c.GetNumAlias(parameters[1].substr(1, parameters[1].size() - 1));
 		else
 			c.key = c.GetNumAlias(parameters[1]);
+
+		if (c.key < 0)
+		{
+			c.manager->game->logger.Log("ERROR: Attempt to use negative number for variable slot index.");
+			return (int)CommandResult::ERROR;
+		}
 
 		CacheNumberVariables(parameters, c);
 
@@ -1215,12 +1249,12 @@ namespace CutsceneFunctions
 			}
 			else
 			{
-				return -1;
+				return (int)CommandResult::ERROR;
 			}
 		}
 		else
 		{
-			return -1;
+			return (int)CommandResult::ERROR;
 		}
 
 		return 0;
@@ -1293,9 +1327,7 @@ namespace CutsceneFunctions
 
 		newImage.GetSprite()->SetTexture(c.manager->game->spriteManager.GetImage(filepath));
 
-		// TODO: Instead of always using the default shader, we should be able to customize this
-		// so that we can load sprites under filters (such as grayscale, sepia, or other shaders)
-
+		// Load the sprite under the currently selected filter (shader)
 		if (c.shaderFilter == "")
 		{
 			newImage.GetSprite()->SetShader(c.manager->game->renderer.shaders[ShaderName::Default]);
@@ -1442,7 +1474,7 @@ namespace CutsceneFunctions
 		//TODO: Also save/load in the font type/size/style for this text object
 		Text* newText = neww Text(c.manager->game->theFont, text, textColor);
 
-		newText->isRichText = false;
+		newText->isRichText = true;
 
 		c.manager->images[imageNumber] = newText;
 
@@ -1478,8 +1510,7 @@ namespace CutsceneFunctions
 
 		std::string text = parameters[4];
 
-		// TODO: So now, the entire text is stored within parameters[4]
-
+		// So now, the entire text is stored within parameters[4]
 		for (int i = 0; i < text.size(); i++)
 		{
 			if (text[i] == '\\' && text[i + 1] == 'n')
@@ -1510,21 +1541,29 @@ namespace CutsceneFunctions
 		newText->SetPosition(pos.x, pos.y);
 		newText->isRichText = true;
 
-		while (letterIndex < text.size())
+		if (newText->isRichText)
 		{
-			finalText = c.manager->ParseText(text, letterIndex, textColor, newText);
-			for (int i = 0; i < finalText.size(); i++)
-			{
-				newText->AddText(finalText[i], textColor);
-				newText->SetPosition(pos.x, pos.y);
+			while (letterIndex < text.size())
+			{		
+				finalText = c.manager->ParseText(text, letterIndex, textColor, newText);
+				for (int i = 0; i < finalText.size(); i++)
+				{
+					newText->AddText(finalText[i], textColor);
+					newText->SetPosition(pos.x, pos.y);
+				}
 			}
 		}
+		else
+		{
+			Color color2 = { 255, 255, 0, 255 };
+			finalText = c.manager->ParseText(text, letterIndex, textColor, newText);
+			newText->SetTextAsOneSprite(finalText, color2);
+		}		
 
 		c.manager->images[imageNumber] = newText;
 		c.manager->images[imageNumber]->drawOrder = imageNumber;
 		c.manager->images[imageNumber]->GetSprite()->keepPositionRelativeToCamera = true;
 		c.manager->images[imageNumber]->GetSprite()->keepScaleRelativeToCamera = true;
-		c.manager->images[imageNumber]->GetSprite()->texture->SetFilePath("text");
 		c.manager->images[imageNumber]->CreateCollider(newText->GetTextWidth(), 0, newText->GetTextWidth(), newText->GetTextHeight());
 
 		// Color the text yellow when we hover the mouse over it or select with keyboard
@@ -1539,7 +1578,6 @@ namespace CutsceneFunctions
 	{
 		std::string characterName = parameters[1];
 
-		//TODO: Error checking?
 		Color color = c.ParseColorFromParameters(parameters, 2);
 
 		if (characterName == "default")
@@ -1569,14 +1607,14 @@ namespace CutsceneFunctions
 
 		if (entity == nullptr)
 		{
-			c.manager->game->logger.Log("ERROR: Tried to set property for null image: " + parameters[1]);
-			return 0;
+			c.manager->game->logger.Log("WARNING: Tried to set property for null image: " + parameters[1]);
+			return (int)CommandResult::WARNING;
 		}
 			
 		if (entity->GetSprite() == nullptr)
 		{
-			c.manager->game->logger.Log("ERROR: Tried to set property for null sprite: " + parameters[1]);
-			return 0;
+			c.manager->game->logger.Log("WARNING: Tried to set property for null sprite: " + parameters[1]);
+			return (int)CommandResult::WARNING;
 		}			
 
 		const std::string spriteProperty = c.ParseStringValue(parameters[2]);
@@ -1656,38 +1694,10 @@ namespace CutsceneFunctions
 			}
 			else if (animAction == "float") // change the animator's float var
 			{
-				//TODO: This will not work because the parse function doesn't get floats
-				entity->GetAnimator()->SetInt(parameters[4].c_str(), c.ParseNumberValue(parameters[5]));
+				// We must parse it as a string and then convert to float
+				entity->GetAnimator()->SetFloat(parameters[4].c_str(), std::stof(c.ParseStringValue(parameters[5])));
 			}
 		}
-
-		return 0;
-	}
-
-	//TODO: Maybe put this code somewhere so it can be used
-	// both by the cutscene system and the level editor properties?
-	int SetVelocity(CutsceneParameters parameters, CutsceneCommands& c)
-	{
-		/*
-		PhysicsComponent* physics = nullptr;
-
-		for (unsigned int i = 0; i < c.manager->game->entities.size(); i++)
-		{
-			if (c.manager->game->entities[i]->name == parameters[1])
-			{
-				physics = c.manager->game->entities[i]->physics;
-
-				if (physics != nullptr)
-				{
-					unsigned int x = c.ParseNumberValue(parameters[2]);
-					unsigned int y = c.ParseNumberValue(parameters[3]);
-					Vector2 velocity = Vector2(x * 0.001f, y * 0.001f);
-					physics->SetVelocity(velocity);
-				}
-				break;
-			}
-		}
-		*/
 
 		return 0;
 	}
@@ -1776,6 +1786,10 @@ namespace CutsceneFunctions
 		{
 			c.manager->textbox->shouldRender = false;
 		}
+		else if (parameters[1] == "number")
+		{
+			c.manager->textboxImageNumber = c.ParseNumberValue(parameters[2]);
+		}
 		else if (parameters[1] == "text")
 		{
 			if (parameters[2] == "color")
@@ -1784,9 +1798,10 @@ namespace CutsceneFunctions
 			}
 			else if (parameters[2] == "contents")
 			{
-				//TODO: This probably won't work well because the text will be overwritten
-				// once all the commands are finished executing.
-				c.manager->textbox->text->SetText(c.ParseStringValue(parameters[2]));
+				// TODO: The ctc icon is in the wrong spot here.
+
+				// Note: This only looks correct if you have an empty text line following this command.
+				c.manager->textbox->text->SetText(c.ParseStringValue(parameters[3]));
 			}
 			else if (parameters[2] == "font")
 			{
@@ -2058,7 +2073,6 @@ namespace CutsceneFunctions
 		}
 		else if (parameters[1] == "zoom")
 		{
-			//TODO: Refactor the camera.Zoom function to make orthoZoom private
 			if (parameters[2] == "set")
 			{
 				c.manager->game->renderer.camera.orthoZoom = c.ParseNumberValue(parameters[3]);
@@ -2066,13 +2080,11 @@ namespace CutsceneFunctions
 			}
 			else if (parameters[2] == "add")
 			{
-				c.manager->game->renderer.camera.orthoZoom += c.ParseNumberValue(parameters[3]);
-				c.manager->game->renderer.camera.Zoom(0, c.manager->game->screenWidth, c.manager->game->screenHeight);
+				c.manager->game->renderer.camera.Zoom(c.ParseNumberValue(parameters[3]), c.manager->game->screenWidth, c.manager->game->screenHeight);
 			}
 			else if (parameters[2] == "sub")
 			{
-				c.manager->game->renderer.camera.orthoZoom -= c.ParseNumberValue(parameters[3]);
-				c.manager->game->renderer.camera.Zoom(0, c.manager->game->screenWidth, c.manager->game->screenHeight);
+				c.manager->game->renderer.camera.Zoom(-c.ParseNumberValue(parameters[3]), c.manager->game->screenWidth, c.manager->game->screenHeight);
 			}
 			else if (parameters[2] == "lerp")
 			{
@@ -2124,7 +2136,7 @@ namespace CutsceneFunctions
 				if (intPos != glm::vec3((int)c.ParseNumberValue(parameters[3]),
 					(int)c.ParseNumberValue(parameters[4]), (int)c.ParseNumberValue(parameters[5])))
 				{
-					return -199;
+					return (int)CommandResult::UNFINISHED;
 				}
 				else
 				{
@@ -2602,7 +2614,7 @@ namespace CutsceneFunctions
 				}
 				else
 				{
-					return -1;
+					return (int)CommandResult::ERROR;
 				}
 			}
 			else
@@ -2688,7 +2700,7 @@ namespace CutsceneFunctions
 		}
 
 		if (text == nullptr)
-			return -1;
+			return (int)CommandResult::ERROR;
 
 		if (parameters[1] == "x")
 		{
@@ -3222,6 +3234,22 @@ namespace CutsceneFunctions
 		entity->SetScale(newScale);
 
 		// TODO: Read in the color here
+
+		return 0;
+	}
+
+	// Modify button labels and toggle whether they are active.
+	// When you press a keyboard key during a cutscene, it jumps to that label.
+	int ButtonLabelCommand(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		if (parameters[1] == "set")
+		{
+			c.buttonLabels[c.ParseNumberValue(parameters[2])] = c.ParseStringValue(parameters[3]);
+		}
+		else if (parameters[1] == "active")
+		{
+			c.buttonLabelsActive[c.ParseNumberValue(parameters[2])] = (parameters[3] == "on" || parameters[3] == "true");
+		}
 
 		return 0;
 	}

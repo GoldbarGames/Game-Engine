@@ -22,7 +22,6 @@ namespace CutsceneFunctions
 	int KINJO_API MusicEffectCommand(CutsceneParameters parameters, CutsceneCommands& c);
 
 	// Stuff
-	int KINJO_API SetVelocity(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API Wait(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API Textbox(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API Namebox(CutsceneParameters parameters, CutsceneCommands& c);
@@ -62,6 +61,8 @@ namespace CutsceneFunctions
 	int KINJO_API WaitForClick(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API WaitForButton(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API SetSpriteButton(CutsceneParameters parameters, CutsceneCommands& c);
+
+	int KINJO_API ButtonLabelCommand(CutsceneParameters parameters, CutsceneCommands& c);
 
 	int KINJO_API EndGame(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API ResetGame(CutsceneParameters parameters, CutsceneCommands& c);

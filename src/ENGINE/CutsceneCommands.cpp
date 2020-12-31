@@ -16,7 +16,6 @@
 
 CutsceneCommands::CutsceneCommands()
 {
-	//TODO: Add a command to define this via scripting
 	buttonLabels[(unsigned int)SDL_SCANCODE_ESCAPE] = "pause_menu";
 	buttonLabelsActive[(unsigned int)SDL_SCANCODE_ESCAPE] = true;
 
@@ -52,6 +51,7 @@ CutsceneCommands::CutsceneCommands()
 	{"bgm", &CutsceneFunctions::MusicCommand },
 	{"br", &CutsceneFunctions::LineBreakCommand },
 	{"btnwait", &CutsceneFunctions::WaitForButton },
+	{"btnlabel", &CutsceneFunctions::ButtonLabelCommand},
 	{"camera", &CutsceneFunctions::CameraFunction},
 	{"controls", &CutsceneFunctions::ControlBindings},
 	{"choice", &CutsceneFunctions::DisplayChoice },
@@ -108,7 +108,6 @@ CutsceneCommands::CutsceneCommands()
 	{"savegame",&CutsceneFunctions::SaveGame },
 	{"screenshot",&CutsceneFunctions::ScreenshotCommand },
 	{"se", &CutsceneFunctions::SoundCommand },
-	{"set_velocity", &CutsceneFunctions::SetVelocity },
 	{"setnumvar", &CutsceneFunctions::SetNumberVariable },
 	{"setstrvar", &CutsceneFunctions::SetStringVariable },
 	{"shader", &CutsceneFunctions::CreateShader },
@@ -304,16 +303,16 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 
 				if (errorCode != 0)
 				{
-					if (errorCode == -99)
+					if (errorCode == (int)CommandResult::NO_LABEL)
 					{
 						manager->EndCutscene();
 						return true;
 					}
-					else if (errorCode == -199) //TODO: Use enums
+					else if (errorCode == (int)CommandResult::FAILCONDITION)
 					{
 						finished = 0;
 					}
-					else if (errorCode == -198)
+					else if (errorCode == (int)CommandResult::UNFINISHED)
 					{
 						finished = 0;
 					}
@@ -404,6 +403,8 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 
 std::string CutsceneCommands::ParseStringValue(const std::string& parameter)
 {
+	// TODO: Parse string literals with spaces in them
+
 	if (cacheParseStrings.count(parameter) != 0)
 	{
 		//return cacheParseStrings[parameter];
@@ -453,9 +454,9 @@ int CutsceneCommands::ParseNumberValue(const std::string& parameter)
 
 
 
-int CutsceneCommands::GetNumberVariable(const unsigned int key)
+int CutsceneCommands::GetNumberVariable(const int key)
 {
-	if (numberVariables.find(key) == numberVariables.end())
+	if (key < 0 || numberVariables.find(key) == numberVariables.end())
 	{
 		return key;
 	}
@@ -465,9 +466,9 @@ int CutsceneCommands::GetNumberVariable(const unsigned int key)
 	}
 }
 
-std::string CutsceneCommands::GetStringVariable(const unsigned int key)
+std::string CutsceneCommands::GetStringVariable(const int key)
 {
-	if (stringVariables.find(key) == stringVariables.end())
+	if (key < 0 || stringVariables.find(key) == stringVariables.end())
 	{
 		return "";
 	}
@@ -503,12 +504,11 @@ int CutsceneCommands::GetNumAlias(const std::string& key)
 		{
 			std::cout << "ERROR: Numalias not defined for " << key << std::endl;
 			std::cout << ex.what() << std::endl;
-			return 0; //TODO: Should this be changed to -1?
+			return (int)CommandResult::WARNING;
 		}
 	}
 	else
 	{
-		// TODO: The map contains unsigned ints, but they are returned signed!
 		return numalias[key];
 	}
 }
@@ -521,7 +521,7 @@ int CutsceneCommands::GetNumAlias(const std::string& key)
 Color CutsceneCommands::ParseColorFromParameters(const std::vector<std::string>& parameters, const int index)
 {
 	Color color = { 255, 255, 255, 255 };
-	std::vector<std::string> colorParams{ begin(parameters) + index, end(parameters) };
+	std::vector<std::string> colorParams{ std::begin(parameters) + index, std::end(parameters) };
 
 	if (colorParams[0][0] == '#') // check to see if it is hexadecimal
 	{
@@ -597,10 +597,16 @@ bool CutsceneCommands::GetArray(const std::string& parameter)
 
 	std::string arrayName = GetArrayName(parameter);
 	arrayIndex = GetNumAlias(arrayName);
+
+	if (arrayIndex < 0)
+	{
+		manager->game->logger.Log("ERROR: Array index below zero in array with name: " + arrayName);
+		return false;
+	}
+
 	int numDimensions = arrayNumbersPerSlot[arrayIndex] > 0 ? 2 : 1;
 
 	// If this array has more than one dimension...
-	// TODO: Refactor and optimize this!
 	std::vector<int> coordinates;
 	std::string coord = "";
 	bool readingInNumber = false;

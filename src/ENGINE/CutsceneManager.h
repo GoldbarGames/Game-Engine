@@ -272,6 +272,7 @@ public:
 	std::unordered_map<int, int> spriteButtons;
 
 	bool foundTrueConditionOnBtnWait = false;
+	unsigned int textboxImageNumber = 995;
 
 	std::map<unsigned int, Entity*> images; // needs to be in order for rendering
 	std::map<unsigned int, Entity*>::iterator imageIterator;
@@ -316,6 +317,7 @@ public:
 	void ExecuteDefineBlock(const char* configName);
 	void Update();
 	void Render(const Renderer& renderer);
+	void RenderTextbox(const Renderer& renderer);
 	SceneLabel* JumpToLabel(const std::string& newLabelName);
 	void PlayCutscene(const char* labelName);
 	void EndCutscene();

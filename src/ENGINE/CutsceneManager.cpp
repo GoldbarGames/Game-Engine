@@ -803,54 +803,45 @@ const std::string CutsceneManager::GetLineSpeaker(const SceneLine& line) const
 	return data.substr(line.speakerStart, line.speakerEnd - line.speakerStart);
 }
 
+void CutsceneManager::RenderTextbox(const Renderer& renderer)
+{
+	// Render the overlay above all sprites
+	renderer.FadeOverlay(game->screenWidth, game->screenHeight);
+	renderer.overlaySprite->Render(Vector2(0, 0), renderer, renderer.overlayScale);
+
+	// Render the textbox above everything
+	if (GetLabelName(currentLabel) != "title")
+		textbox->Render(renderer, game->screenWidth, game->screenHeight);
+
+	if (!isCarryingOutCommands && !isReadingNextLine)
+	{
+		textbox->clickToContinue->Render(renderer);
+	}
+}
+
 void CutsceneManager::Render(const Renderer& renderer)
 {
 	if (watchingCutscene)
 	{
 		bool renderedTextbox = false;
-		unsigned int textboxImageNumber = 995; // TODO: Can change this from script
 
-		// Render every sprite in the cutscene
+		// Render every sprite in the cutscene, both below and above the textbox
 		for (imageIterator = images.begin(); imageIterator != images.end(); imageIterator++)
 		{
-			// TODO: Maybe do this a better way?
 			if (imageIterator->first > textboxImageNumber && !renderedTextbox)
 			{
 				renderedTextbox = true;
-
-				// Render the overlay above all sprites
-				renderer.FadeOverlay(game->screenWidth, game->screenHeight);
-				renderer.overlaySprite->Render(Vector2(0, 0), renderer, renderer.overlayScale);
-
-				// Render the textbox above everything
-				if (GetLabelName(currentLabel) != "title")
-					textbox->Render(renderer, game->screenWidth, game->screenHeight);
-
-				if (!isCarryingOutCommands && !isReadingNextLine)
-				{
-					textbox->clickToContinue->Render(renderer);
-				}
+				RenderTextbox(renderer);
 			}
 
 			if (imageIterator->second != nullptr)
 				imageIterator->second->Render(renderer);
 		}
 
-
+		// If we did not yet render the textbox, render it at the end
 		if (!renderedTextbox)
 		{
-			// Render the overlay above all sprites
-			renderer.FadeOverlay(game->screenWidth, game->screenHeight);
-			renderer.overlaySprite->Render(Vector2(0, 0), renderer, renderer.overlayScale);
-
-			// Render the textbox above everything
-			if (GetLabelName(currentLabel) != "title")
-				textbox->Render(renderer, game->screenWidth, game->screenHeight);
-
-			if (!isCarryingOutCommands && !isReadingNextLine)
-			{
-				textbox->clickToContinue->Render(renderer);
-			}
+			RenderTextbox(renderer);
 		}
 		
 	}
@@ -1060,7 +1051,7 @@ bool CutsceneManager::PopSceneDataFromStack(SceneData& data)
 void CutsceneManager::ClearAllSprites()
 {
 	// Clear all normal sprites
-	unsigned int num = commands.GetNumAlias("l");	
+	int num = commands.GetNumAlias("l");
 	if (images[num] != nullptr)
 		delete_it(images[num]);
 
@@ -2465,15 +2456,13 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 
 				if (entity != nullptr)
 				{
-					std::string fname = entity->GetSprite()->GetFileName();
-
-					if (entity->etype == "text" || fname == "text")
+					if (entity->etype == "text")
 					{
 						//TODO: Store font, size, style, etc. (for each letter)
 						Text* text = static_cast<Text*>(entity);
 						fout << var.first  // key
 							<< " "
-							<< "text"
+							<< entity->etype
 							<< " "
 							<< text->position.x
 							<< " "
@@ -2491,24 +2480,22 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 							<< " "
 							<< text->GetTextString()
 							<< " "
-							<< (int)text->textColor.r
+							<< (int)text->GetSprite()->color.r
 							<< " "
-							<< (int)text->textColor.g
+							<< (int)text->GetSprite()->color.g
 							<< " "
-							<< (int)text->textColor.b
+							<< (int)text->GetSprite()->color.b
 							<< " "
-							<< (int)text->textColor.a
+							<< (int)text->GetSprite()->color.a
 							<< std::endl;
 					}
 					else if (entity->etype == "particlesystem")
 					{
 						ParticleSystem* ps = dynamic_cast<ParticleSystem*>(entity);
 
-						fname = "particlesystem";
-
 						fout << var.first  // key
 							<< " "
-							<< fname
+							<< entity->etype
 							<< " "
 							<< ps->position.x
 							<< " "
@@ -2547,6 +2534,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 					}
 					else
 					{
+						std::string fname = entity->GetSprite()->GetFileName();
 						if (fname.size() < 1 || fname == " ")
 							fname = "image";
 

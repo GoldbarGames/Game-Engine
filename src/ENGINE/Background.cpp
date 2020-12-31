@@ -144,7 +144,8 @@ void Background::SpawnBackground(const std::string& n, Game& game)
 	}
 }
 
-//TODO: Should this stuff go inside the Background class constructor?
+// This function creates one background, possibly composed of multiple layers.
+// This function may be called multiple times to place copies of backgrounds next to each other.
 void Background::CreateBackground(const std::string& n, Vector2 pos, 
 	const SpriteManager& spriteManager, const Renderer& renderer)
 {
@@ -155,7 +156,6 @@ void Background::CreateBackground(const std::string& n, Vector2 pos,
 	{
 		BackgroundLayerData* ld = data->layers[i];
 		AddLayer(pos, *ld, spriteManager, renderer);
-
 	}
 }
 

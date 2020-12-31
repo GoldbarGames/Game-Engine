@@ -8,6 +8,7 @@
 #include "leak_check.h"
 struct Glyph
 {
+	char letter = ' ';
 	Sprite sprite;
 	Animator* animator = nullptr; // never delete these
 	Vector2 position = Vector2(0, 0);

@@ -78,10 +78,6 @@ public:
 	bool debugMode = false;
 	bool editMode = false;
 
-	// TODO: Make this more like a bunch of colliders than a solid line
-	// TODO: Also have a way to create these barriers via the editor
-	int deathBarrierY = 500;
-
 	Mesh* cubeMesh;
 	QuadTree quadTree;
 	GUI* gui;
@@ -172,7 +168,7 @@ public:
 	std::string nextLevel = "";
 	std::string nextBGM = "";
 
-	Uint32 lastPressedKeyTicks = 0;
+	uint32_t lastPressedKeyTicks = 0;
 
 	Background* background = nullptr;	
 

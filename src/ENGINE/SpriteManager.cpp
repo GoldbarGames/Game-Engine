@@ -115,12 +115,12 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 	return images[imagePath];
 }
 
-Texture* SpriteManager::GetTexture(TTF_Font* f, char c, int size, SDL_Color col)
+Texture* SpriteManager::GetTexture(TTF_Font* f, char c, int size)
 {
 	GlyphSurfaceData data;
 	data.fontName = TTF_FontFaceStyleName(f);
 	data.glyph = c; //TODO: What happens if this is /0?
-	data.color = col;
+	data.color = { 255, 255, 255, 255 };
 	data.size = size;
 
 	if (glyphTextures.count(data) == 0)
@@ -164,7 +164,15 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, const std::string& txt, int wrap
 			textTexture = neww Texture(txt.c_str());
 			textTexture->LoadTexture(textSurface);
 
-			// TODO: Include the font name in the key
+			// TODO: Include the font name in the key.
+			// In order to do this, we must pass in currentFontInfo
+			// from the Text all the way to this function.
+			// And the currentFontInfo must also store the name of the font
+			// (or we must also have some other way of getting the name)
+			// (or it can store just some kind of unique ID)
+			// (Also, this needs to be different for whether the font is bold, italic, etc.)
+			// (Unless "not rich text" means it only handles the regular style)
+
 			textImages[txt] = textTexture;
 		}
 		else

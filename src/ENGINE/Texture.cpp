@@ -54,6 +54,8 @@ void Texture::LoadTexture(SDL_Surface* surface, bool reset)
 
 	width = surface->w;
 	height = surface->h;
+
+	// NOTE: Can pass in two different Modes here, maybe? To swap between RGBA and BGRA for complicated textures.
 	glTexImage2D(GL_TEXTURE_2D, 0, Mode, surface->w, surface->h, 0, Mode, GL_UNSIGNED_BYTE, surface->pixels);
 
 	glGenerateMipmap(GL_TEXTURE_2D);

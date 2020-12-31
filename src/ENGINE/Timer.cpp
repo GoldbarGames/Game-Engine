@@ -1,4 +1,5 @@
 #include "Timer.h"
+#include "globals.h"
 #include <iostream>
 #include <SDL2/SDL.h>
 
@@ -18,9 +19,7 @@ Timer::~Timer()
 
 bool Timer::HasElapsed() const
 {
-	// is calling this function multiple times per frame really a good idea?
-	Uint32 totalTime = SDL_GetTicks();
-	return SDL_GetTicks() >= endTime;
+	return Globals::CurrentTicks >= endTime;
 }
 
 void Timer::Reset()
@@ -34,7 +33,7 @@ void Timer::Start(uint32_t duration, bool loopAnim)
 	paused = false;
 
 	loopAnimation = loopAnim;
-	startTicks = SDL_GetTicks();
+	startTicks = Globals::CurrentTicks;
 	pausedTicks = 0;
 	lastDuration = duration;
 	endTime = startTicks + duration;
@@ -59,7 +58,7 @@ void Timer::Pause()
 	{
 		paused = true;
 
-		Uint32 sdl_ticks = SDL_GetTicks();
+		uint32_t sdl_ticks = Globals::CurrentTicks;
 		
 		//Calculate the paused ticks
 		pausedTicks = sdl_ticks - startTicks;
@@ -89,8 +88,8 @@ void Timer::Unpause()
 		paused = false;
 
 		//Reset the starting ticks
-		Uint32 sdl_ticks = SDL_GetTicks();
-		Uint32 pauseDuration = sdl_ticks - pausedTicks;
+		uint32_t sdl_ticks = Globals::CurrentTicks;
+		uint32_t pauseDuration = sdl_ticks - pausedTicks;
 		
 		if (sdl_ticks >= 0)
 			pauseDuration = sdl_ticks - pausedTicks;
@@ -118,7 +117,7 @@ void Timer::Unpause()
 	}
 }
 
-Uint32 Timer::GetAnimationTime() const
+uint32_t Timer::GetAnimationTime() const
 {
 	if (endTime > 0 && !loopAnimation && HasElapsed())
 	{
@@ -130,10 +129,10 @@ Uint32 Timer::GetAnimationTime() const
 	}
 }
 
-Uint32 Timer::GetTicks() const
+uint32_t Timer::GetTicks() const
 {
 	//The actual timer time
-	Uint32 time = 0;
+	uint32_t time = 0;
 
 	//If the timer is running
 	if (started)
@@ -147,7 +146,7 @@ Uint32 Timer::GetTicks() const
 		else
 		{
 			//Return the current time minus the start time
-			time = SDL_GetTicks() - startTicks;
+			time = Globals::CurrentTicks - startTicks;
 		}
 	}
 

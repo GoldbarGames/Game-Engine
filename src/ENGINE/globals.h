@@ -16,6 +16,7 @@ class KINJO_API Globals {
 public:
 	static int TILE_SIZE;
 	static std::string NONE_STRING;
+	static uint32_t CurrentTicks;
 	Globals() { TILE_SIZE = 24; };
 	static Globals* Get()
 	{

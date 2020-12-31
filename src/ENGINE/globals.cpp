@@ -5,6 +5,7 @@
 
 int Globals::TILE_SIZE = 24;
 std::string Globals::NONE_STRING = "None";
+uint32_t Globals::CurrentTicks = 0;
 
 // TODO: Does lerp need to use dt?
 

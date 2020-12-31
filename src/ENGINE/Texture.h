@@ -20,8 +20,6 @@ public:
 	int GetWidth() { return width; }
 	int GetHeight() { return height; }
 	const std::string& GetFilePath() { return filePath; } ;
-	// TODO: Eliminate this
-	void SetFilePath(const std::string& s) { filePath = s; };
 private:
 	std::string filePath = "";
 	GLuint textureID;

@@ -80,7 +80,7 @@ public:
 	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath, std::unordered_map<std::string, std::string>& args) const;
 	Texture* GetImage(const std::string& imagePath) const;
 	// TODO: Get rid of Color here, just make it white and then apply color using shaders
-	Texture* GetTexture(TTF_Font* f, char c, int size, SDL_Color col);
+	Texture* GetTexture(TTF_Font* f, char c, int size);
 	Texture* GetTexture(TTF_Font* f, const std::string& txt, int wrapWidth=0);
 	void Init(Renderer* r);
 	SpriteManager();

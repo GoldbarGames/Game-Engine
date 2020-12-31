@@ -274,7 +274,9 @@ Sprite::Sprite()
 
 Sprite::~Sprite()
 {
-
+	// We don't actually want to delete any shaders or textures here
+	// because they are managed by other objects and will potentially
+	// be used again many more times by other sprites.
 }
 
 void Sprite::Render(const Vector2& position, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)

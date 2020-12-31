@@ -54,7 +54,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	clickToContinue->GetSprite()->keepScaleRelativeToCamera = true;
 
 	speaker->SetText(" ");
-	text->SetText(" ", text->textColor, boxWidth);
+	text->SetText(" ", text->GetSprite()->color, boxWidth);
 
 	shouldRender = false;
 }

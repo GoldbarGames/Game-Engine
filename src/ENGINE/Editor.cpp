@@ -528,12 +528,27 @@ void Editor::StopEdit()
 	helper->OnEditorEnd();
 }
 
+void Editor::RefreshTilePreview()
+{
+	Entity*& prev = previewMap[objectMode];
+	if (prev != nullptr)
+		delete_it(prev);
+
+	prev = game->CreateTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex],
+		Vector2(0, 0), DrawingLayer::FRONT);
+
+	objectPreview = prev;
+}
+
 void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition)
 {
 	bool clickedToolboxWindow = mouseX >= tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth
 		&& mouseY <= tilesheetSprites[tilesheetIndex]->frameHeight * Camera::MULTIPLIER;
 
 	bool clickedNewButton = false;
+
+	// We are definitely holding the left mouse button at this point,
+	// but this checks whether we are just now pressing it down.
 	if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 	{
 		// Get name of the button that was clicked, if any
@@ -606,21 +621,9 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		selectedTilePosition.x = topLeftX + SPAWN_TILE_SIZE + moveRight;
 		selectedTilePosition.y = topLeftY + SPAWN_TILE_SIZE + moveDown;
 
-		//TODO: Allow for changing the size of the tile such that we can have two tiles of different sizes placed in the game
+		//TODO: Make sure that when saving the level, each tile remembers its size
 
-		//TODO: Make this section a function we can call to refresh the current tile preview
-		Entity*& prev = previewMap[objectMode];
-		if (prev != nullptr)
-			delete_it(prev);
-
-		prev = game->CreateTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex],
-			Vector2(0, 0), DrawingLayer::FRONT);
-
-		// Set frameWidth and frameHeight explicitly here
-		//prev->GetSprite()->frameWidth = SPAWN_TILE_SIZE;
-		//prev->GetSprite()->frameHeight = SPAWN_TILE_SIZE;
-
-		objectPreview = prev;
+		RefreshTilePreview();
 	}
 	else if (clickedNewButton && clickedButton != nullptr)
 	{
@@ -1311,8 +1314,6 @@ void Editor::ClickedButton()
 	}
 	else if (clickedButton->name == "grab")
 	{
-		// TODO: Should this be a special function
-		// for toggling the grab mode, since it's not an object?
 		ToggleObjectMode("grab");
 	}
 	else if (clickedButton->name == "rotate")
@@ -2089,7 +2090,12 @@ void Editor::CreateLevelFromString(std::string level)
 				else if (etype == "camera-zoom")
 				{
 					// TODO: This won't get saved if we make changes to the level from the editor,
-					// so we need a way to set the camera's properties within a level
+					// so we need a way to set the camera's properties within a level.
+
+					// We can have a button in the editor that brings up the properties
+					// like any other object, then as we click on a property we can edit it.
+					// Then when the level is saved, the camera must also be saved.
+
 					index = 4;
 					game->renderer.camera.startingZoom = std::stof(tokens[index++]);
 				}
@@ -2101,7 +2107,7 @@ void Editor::CreateLevelFromString(std::string level)
 					cameraTargetID = std::stoi(tokens[index++]);
 					switchTargetBackToPlayer = false;
 				}
-				else if (etype == "camera-target-player") // TODO: rename this
+				else if (etype == "camera-target-player")
 				{
 					// TODO: This won't get saved if we make changes to the level from the editor,
 					// so we need a way to set the camera's properties within a level
@@ -2225,7 +2231,7 @@ void Editor::InitLevelFromFile(std::string levelName)
 		game->currentLevel = levelName;
 
 	levelStrings.clear();
-	levelStringIndex = -1;		
+	levelStringIndex = -1;
 
 	CreateLevelFromString(ReadLevelFromFile(levelName));
 

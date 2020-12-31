@@ -161,7 +161,7 @@ void Text::SetFont(TTF_Font* newFont)
 void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 {
 	// don't do anything if it would result in the same thing
-	if (txt == text && textColor == color)
+	if (txt == text && currentSprite.color == color)
 		return;
 
 	if (!isRichText)
@@ -178,10 +178,8 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 	//delete_it(currentSprite->texture);
 	//delete_it(currentSprite);
 
-	//TODO: There is a memory leak here because we never actually delete the glyph's sprite's texture.
-	// But actually, we don't really want to delete it. We want to re-use it for the next time.
-	// So make some kind of manager where we can grab that texture.
-	
+	// We don't actually need to delete the glyph's sprite's texture.
+	// The Sprite Manager handles this when the game is closed.	
 	for (int i = 0; i < glyphs.size(); i++)
 	{
 		if (glyphs[i] != nullptr)
@@ -190,12 +188,8 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 
 	glyphs.clear();
 
-	textColor = color; //TODO: Does this even do anything?
 	txt = text; // translate the text here
 	id = text;
-
-	//SDL_Surface* textSurface = nullptr;
-	SDL_Color textColorSDL = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
 
     // empty string generates a null pointer
 	// so a blank space guarantees that the surface pointer will not be null
@@ -206,7 +200,7 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 
 	for (int i = 0; i < txt.size(); i++)
 	{
-		Texture* textTexture = GetTexture(font, txt[i], currentFontInfo->GetFontSize(), textColorSDL);
+		Texture* textTexture = GetTexture(font, txt[i], currentFontInfo->GetFontSize());
 
 		if (textTexture != nullptr)
 		{
@@ -214,7 +208,8 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 			newGlyph->sprite = Sprite(textTexture, Renderer::GetTextShader());
 			newGlyph->sprite.keepScaleRelativeToCamera = keepScaleRelative;
 			newGlyph->sprite.keepPositionRelativeToCamera = renderRelative;
-			newGlyph->sprite.texture->SetFilePath(std::to_string(txt[i]));
+			newGlyph->sprite.color = { color.b, color.g, color.r, color.a };
+			newGlyph->letter = txt[i];
 			newGlyph->scale = currentScale;
 
 			if (txt[i] == '\n')
@@ -235,9 +230,9 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 	SetPosition(position.x, position.y);
 }
 
-Texture* Text::GetTexture(TTF_Font* f, char c, int size, SDL_Color col)
+Texture* Text::GetTexture(TTF_Font* f, char c, int size)
 {	
-	return Animator::spriteManager->GetTexture(f, c, size, col);
+	return Animator::spriteManager->GetTexture(f, c, size);
 }
 
 void Text::AddImage(Sprite* newSprite)
@@ -282,8 +277,7 @@ void Text::AddText(char c, Color color)
 	bool keepScaleRelative = true;
 	bool renderRelative = true;
 
-	SDL_Color textColorSDL = { (Uint8)color.r, (Uint8)color.g, (Uint8)color.b, (Uint8)color.a };
-	Texture* textTexture = GetTexture(font, c, currentFontInfo->GetFontSize(), textColorSDL);
+	Texture* textTexture = GetTexture(font, c, currentFontInfo->GetFontSize());
 
 	if (textTexture != nullptr)
 	{
@@ -292,7 +286,8 @@ void Text::AddText(char c, Color color)
 		newGlyph->sprite.SetShader(Renderer::GetTextShader());
 		newGlyph->sprite.keepScaleRelativeToCamera = keepScaleRelative;
 		newGlyph->sprite.keepPositionRelativeToCamera = renderRelative;
-		newGlyph->sprite.texture->SetFilePath(std::to_string(c));
+		newGlyph->sprite.color = { color.b, color.g, color.r, color.a };
+		newGlyph->letter = c;
 		newGlyph->scale = currentScale;
 
 		if (c == '\n')
@@ -307,20 +302,22 @@ void Text::AddText(char c, Color color)
 	SetPosition(position.x, position.y);
 }
 
-// TODO: We should just remove this, because it causes memory leaks!
+// TODO: If the text sprite is also a clickable button,
+// then the original color of the text is getting overwritten
+// to the color white instead of whatever color it should be.
+
 void Text::SetTextAsOneSprite(const std::string& text, Color color, Uint32 wrapWidth)
 {
-	// TODO: Why is it necessary to flip the colors here? 
+	// For some reason, it is necessary to flip the color from RGBA to BGRA for drawing text
 	Color flippedColor = { color.b, color.g, color.r, color.a };
 
 	// don't do anything if it would result in the same thing
-	if (txt == text && textColor == flippedColor)
+	if (txt == text && currentSprite.color == flippedColor)
 		return;
 
 	bool renderRelative = currentSprite.keepPositionRelativeToCamera;
 	bool keepScaleRelative = currentSprite.keepScaleRelativeToCamera;
 
-	textColor = flippedColor;
 	txt = text; // translate the text here
 	id = text;
 
@@ -329,20 +326,12 @@ void Text::SetTextAsOneSprite(const std::string& text, Color color, Uint32 wrapW
 	if (txt == "")
 		txt = " ";
 
-	// TODO: Memory leak here!
-	// Since each texture is a unique string of text, we'd want to delete it after each use.
-	// However, we might also run into situations where multiple Texts use the same texture
-	// such as the empty string, which would cause us to delete twice (crash).
-	// The best thing to do is to just not use this function anymore,
-	// or else use some kind of smart pointer management.
-
 	Texture* textTexture = Animator::spriteManager->GetTexture(font, txt, wrapWidth);
 	if (textTexture != nullptr)
 	{
 		currentSprite.SetTexture(textTexture);
 		currentSprite.SetShader(Renderer::GetTextShader());
-		currentSprite.color = textColor;
-		currentSprite.texture->SetFilePath(txt);
+		currentSprite.color = flippedColor;
 		//std::cout << currentSprite.texture << " Creating text " << txt << std::endl;
 		currentSprite.keepScaleRelativeToCamera = keepScaleRelative;
 		currentSprite.keepPositionRelativeToCamera = renderRelative;
@@ -479,22 +468,19 @@ void Text::SetPosition(const float x, const float y)
 		// and the indices of the most recently added word
 		wrapX += width;
 
-		// TODO: For some reason, these are being returned as ASCII?
-		std::string fname = glyphs[i]->sprite.GetFileName();
-
 		// Handle word wrap when the most recent letter exceeds the wrap width
-		if (fname == "10" || (wrapWidth > 0 && (wrapX > wrapWidth * Camera::MULTIPLIER)))
+		if (glyphs[i]->letter == '\n' || (wrapWidth > 0 && (wrapX > wrapWidth * Camera::MULTIPLIER)))
 		{
-			if (fname != "32")
+			if (glyphs[i]->letter != ' ')
 			{
 				int endOfLineIndex = i;
 				int newX = x;
 
 				// In order to place the entire word on the next line,
 				// we go backward to find the space before the first letter
-				if (fname != "10")
+				if (glyphs[i]->letter != '\n')
 				{
-					while (glyphs[endOfLineIndex]->sprite.GetFileName() != "32")
+					while (glyphs[endOfLineIndex]->letter != ' ')
 					{
 						//std::cout << glyphs[endOfLineIndex]->sprite.GetFileName() << std::endl;
 						endOfLineIndex--;
@@ -555,7 +541,7 @@ void Text::SetPosition(const float x, const float y)
 				lineNumber++;
 				currentPosition.x = position.x;
 
-				if (glyphs[i]->sprite.GetFileName() != "10")
+				if (glyphs[i]->letter != '\n')
 				{
 					currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 				}

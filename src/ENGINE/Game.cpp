@@ -36,7 +36,7 @@
 #include "MenuScreen.h"
 #include "Renderer.h"
 
-#include "SettingsButton.h" // TODO: Allow for customization
+#include "SettingsButton.h"
 
 #include "DebugScreen.h"
 #include "EntityFactory.h"
@@ -221,7 +221,7 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	// Initialize the font before all text
 
-	// TODO: Load all fonts from a file
+	// TODO: Load all fonts from a file (fonts.list)
 	theFont = CreateFont("SazanamiGothic", m.GetFontSize());
 	headerFont = CreateFont("SazanamiGothic", m.GetFontSize() * 2);
 
@@ -379,6 +379,8 @@ FontInfo* Game::CreateFont(const std::string& fontName, int size)
 
 void Game::CalcDt()
 {
+	Globals::CurrentTicks = SDL_GetTicks();
+
 	dt = std::chrono::duration<float, milliseconds::period>(clock::now() - start_time).count();
 	start_time = clock::now();
 
@@ -520,6 +522,10 @@ void Game::EndSDL()
 	{
 		SDL_GameControllerClose(controller);
 	}
+
+	TTF_Quit();
+	SDL_Quit();
+	IMG_Quit();
 }
 
 void Game::CheckController(bool output)
@@ -602,6 +608,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 
 		// TODO: Don't hardcode this part, store these in an external file
 		// and check to see if it matches any entity type in that file...
+		// (but make sure to only read in once, store/lookup in a data structure after)
 		if (args["1"] != "" && (entityName == "enemy" || entityName == "npc" || entityName == "collectible"))
 		{
 			filepath += args["1"] + "/" + args["1"];
@@ -1222,7 +1229,7 @@ void Game::EscapeMenu()
 		// Resume time when unpausing
 		if (currentMenu->name == "Pause")
 		{
-			Uint32 ticks = SDL_GetTicks();
+			uint32_t ticks = Globals::CurrentTicks;
 			for (unsigned int i = 0; i < entities.size(); i++)
 				entities[i]->Unpause(ticks);
 		}
@@ -1612,7 +1619,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				if (!editMode && !cutsceneManager.watchingCutscene)
 				{
 					openedMenus.emplace_back(allMenus["Pause"]);
-					Uint32 ticks = SDL_GetTicks();
+					uint32_t ticks = Globals::CurrentTicks;
 					for (unsigned int i = 0; i < entities.size(); i++)
 						entities[i]->Pause(ticks);
 				}
@@ -1829,7 +1836,7 @@ void Game::SaveScreenshot(const std::string& filepath)
 
 void Game::GetMenuInput()
 {
-	const Uint8* input = SDL_GetKeyboardState(NULL);
+	const uint8_t* input = SDL_GetKeyboardState(NULL);
 
 	if (cutsceneManager.watchingCutscene && cutsceneManager.GetLabelName(cutsceneManager.currentLabel) == "title")
 	{
@@ -1843,7 +1850,7 @@ void Game::GetMenuInput()
 			renderer.guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
 		}
 
-		Uint32 ticks = timer.GetTicks();
+		uint32_t ticks = timer.GetTicks();
 		if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
 		{
 			// If we have pressed any key on the menu, add a delay between presses
@@ -2084,7 +2091,7 @@ void Game::Render()
 		// left -> center
 		// = 50 ms each
 
-		uint32_t currentTime = SDL_GetTicks() / (float)cutsceneManager.commands.quakeIntensity;
+		uint32_t currentTime = Globals::CurrentTicks / (float)cutsceneManager.commands.quakeIntensity;
 		uint32_t startTime = cutsceneManager.commands.quakeTimer.startTicks / (float)cutsceneManager.commands.quakeIntensity;
 		uint32_t endTime = cutsceneManager.commands.quakeTimer.endTime / (float)cutsceneManager.commands.quakeIntensity;
 

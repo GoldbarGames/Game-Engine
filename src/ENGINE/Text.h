@@ -41,7 +41,7 @@ private:
 public:
 	std::string id = ""; // this will always be english
 	std::string txt = "ERROR"; // this might get translated
-	Color textColor = { 255, 255, 255, 255 };
+
 	FontInfo* currentFontInfo = nullptr;
 
 	bool isRichText = false;
@@ -61,7 +61,7 @@ public:
 
 	std::string GetTextString();
 
-	Texture* GetTexture(TTF_Font* f, char c, int size, SDL_Color col);
+	Texture* GetTexture(TTF_Font* f, char c, int size);
 
 	void SetScale(Vector2 newScale);
 	Vector2 currentScale = Vector2(1, 1);
