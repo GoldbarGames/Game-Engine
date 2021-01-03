@@ -18,6 +18,7 @@ public:
 	static std::string NONE_STRING;
 	static uint32_t CurrentTicks;
 	Globals() { TILE_SIZE = 24; };
+	static const float TO_RADIANS;
 	static Globals* Get()
 	{
 		static Globals instance;

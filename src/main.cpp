@@ -17,8 +17,6 @@ int main(int argc, char *args[])
 	//#endif
 #endif
 
-	// TODO: Automatically create a first level if none exist
-
 	{
 		// For your own custom entity types
 		EntityFactory* e = EntityFactory::Get();

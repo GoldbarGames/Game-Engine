@@ -21,10 +21,9 @@ Dialog::~Dialog()
 		delete input;
 }
 
-void Dialog::Update()
+void Dialog::Update(const std::string& newText)
 {
-	//TODO: Get the input here, if this dialog takes input
-	// (move relevant stuff from the Game Update to here)
+	input->SetText(newText);
 }
 
 void Dialog::Render(const Renderer& renderer)

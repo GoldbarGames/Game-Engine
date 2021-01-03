@@ -17,7 +17,7 @@ public:
 	Dialog(const Vector2& pos, SpriteManager* manager);
 	~Dialog();
 
-	void Update();
+	void Update(const std::string& newText);
 	void Render(const Renderer& renderer);
 };
 

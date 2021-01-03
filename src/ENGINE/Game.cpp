@@ -260,7 +260,7 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	LoadEditorSettings();
 
-	start_time = clock::now();
+	previousTime = clock::now();
 }
 
 Game::~Game()
@@ -381,10 +381,10 @@ void Game::CalcDt()
 {
 	Globals::CurrentTicks = SDL_GetTicks();
 
-	dt = std::chrono::duration<float, milliseconds::period>(clock::now() - start_time).count();
-	start_time = clock::now();
+	dt = std::chrono::duration<float, milliseconds::period>(clock::now() - previousTime).count();
+	previousTime = clock::now();
 
-	now = std::chrono::duration<float, milliseconds::period>(start_time - startOfGame).count();
+	now = std::chrono::duration<float, milliseconds::period>(previousTime - startOfGame).count();
 	renderer.now = now;
 
 	// When we are debugging and hit a breakpoint in an IDE, the timer continues running.
@@ -411,6 +411,7 @@ void Game::InitOpenGL()
 	// Set up OpenGL context - CALL THIS AFTER SETTING THE ATTRIBUTES!
 	// If you call in the wrong order, won't display correctly on many devices!
 	mainContext = SDL_GL_CreateContext(window);
+	SDL_GL_MakeCurrent(window, mainContext);
 	std::cout << "GL_VERSION: " << glGetString(GL_VERSION) << std::endl;
 
 	// 0 = no vsync, 1 = vsync
@@ -788,7 +789,7 @@ void Game::DeleteEntity(int index)
 
 void Game::StartTextInput(const std::string& reason)
 {
-	getKeyboardInput = true;
+	shouldUpdateDialogInput = true;
 	inputReason = reason;
 	SDL_StartTextInput();
 	inputText = "";
@@ -797,7 +798,7 @@ void Game::StartTextInput(const std::string& reason)
 
 void Game::StopTextInput()
 {
-	getKeyboardInput = false;
+	shouldUpdateDialogInput = false;
 	SDL_StopTextInput();
 	editor->DestroyDialog();
 
@@ -999,6 +1000,23 @@ void Game::LoadTitleScreen()
 {
 	renderer.camera.ResetCamera();
 	openedMenus.clear();
+
+	// Automatically create a first level if none exists
+	std::ifstream fin;
+	fin.open("data/levels/title.lvl");
+
+	if (!fin.is_open())
+	{
+		std::ofstream fout;
+		fout.open("data/levels/title.lvl");
+		fout << "0 bg 0 0 title" << std::endl;
+		fout.close();
+	}
+	else
+	{
+		fin.close();
+	}
+
 	editor->InitLevelFromFile("title");
 
 	if (allMenus.count("Title") != 0)
@@ -1144,11 +1162,6 @@ void Game::TransitionLevel()
 
 bool Game::CheckInputs()
 {
-	// Reset all inputs here
-	pressedDebugButton = false;
-	pressedSpellButton = false;
-	pressedLeftTrigger = false;
-	pressedRightTrigger = false;
 	//clickedMouse = false;
 
 	bool quit = false;
@@ -1205,7 +1218,7 @@ void Game::CheckDeleteEntities()
 
 void Game::HandleEditMode()
 {
-	if (!getKeyboardInput)
+	if (!shouldUpdateDialogInput)
 	{
 		const Uint8* input = SDL_GetKeyboardState(NULL);
 		renderer.camera.KeyControl(input, dt, screenWidth, screenHeight);
@@ -1565,13 +1578,13 @@ bool Game::HandleEvent(SDL_Event& event)
 
 	if (event.type == SDL_KEYDOWN)
 	{
-		if (getKeyboardInput)
+		if (shouldUpdateDialogInput)
 		{
 			//Handle backspace
 			if (event.key.keysym.sym == SDLK_BACKSPACE && inputText.length() > 0)
 			{
 				inputText.pop_back();
-				UpdateTextInput();
+				editor->dialog->Update(inputText);
 			}
 			//Handle copy
 			else if (event.key.keysym.sym == SDLK_c && SDL_GetModState() & KMOD_CTRL)
@@ -1583,7 +1596,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			{
 				//TODO: Handle type checking here
 				inputText += SDL_GetClipboardText();
-				UpdateTextInput();
+				editor->dialog->Update(inputText);
 			}
 			else if (event.key.keysym.sym == SDLK_DOWN)
 			{
@@ -1591,7 +1604,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				if (optionString != "")
 				{
 					inputText = optionString;
-					UpdateTextInput();
+					editor->dialog->Update(inputText);
 				}
 			}
 			else if (event.key.keysym.sym == SDLK_UP)
@@ -1600,13 +1613,12 @@ bool Game::HandleEvent(SDL_Event& event)
 				if (optionString != "")
 				{
 					inputText = optionString;
-					UpdateTextInput();
+					editor->dialog->Update(inputText);
 				}
 			}
 			// Pressed enter, submit the input
 			else if (event.key.keysym.sym == SDLK_RETURN)
 			{
-				UpdateTextInput();
 				StopTextInput();
 			}
 		}
@@ -1623,18 +1635,6 @@ bool Game::HandleEvent(SDL_Event& event)
 					for (unsigned int i = 0; i < entities.size(); i++)
 						entities[i]->Pause(ticks);
 				}
-				break;
-			case SDLK_c:
-				pressedDebugButton = true;
-				break;
-			case SDLK_v:
-				// pressedSpellButton = true;
-				break;
-			case SDLK_q:
-				pressedLeftTrigger = true;
-				break;
-			case SDLK_e:
-				pressedRightTrigger = true;
 				break;
 
 #if _DEBUG
@@ -1709,9 +1709,9 @@ bool Game::HandleEvent(SDL_Event& event)
 		
 	}
 	//Special text input event
-	else if (event.type == SDL_TEXTINPUT)
+	else if (event.type == SDL_TEXTINPUT && shouldUpdateDialogInput)
 	{
-		//Not copy or pasting
+		//Not copy or pasting, just entering characters as usual
 		if (!(SDL_GetModState() & KMOD_CTRL && (event.text.text[0] == 'c' || event.text.text[0] == 'C' || 
 			event.text.text[0] == 'v' || event.text.text[0] == 'V')))
 		{
@@ -1734,7 +1734,7 @@ bool Game::HandleEvent(SDL_Event& event)
 			{
 				//Append character
 				inputText += c;
-				UpdateTextInput();
+				editor->dialog->Update(inputText);
 			}
 		}
 	}
@@ -1857,15 +1857,6 @@ void Game::GetMenuInput()
 			if (openedMenus[openedMenus.size() - 1]->Update(*this))
 				lastPressedKeyTicks = ticks;
 		}
-	}
-}
-
-void Game::UpdateTextInput()
-{
-	editor->dialog->input->SetText(inputText);
-	if (inputReason == "properties")
-	{
-		editor->SetPropertyText(inputText);
 	}
 }
 

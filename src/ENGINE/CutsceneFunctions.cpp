@@ -1530,7 +1530,7 @@ namespace CutsceneFunctions
 		int letterIndex = 0;
 		std::string finalText = "";
 
-		FontInfo* fontInfo = c.manager->textbox->currentFontInfo;
+		FontInfo* fontInfo = c.manager->textbox->fontInfoText;
 
 		if (c.textFontKey != "")
 		{

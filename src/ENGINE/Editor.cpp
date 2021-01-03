@@ -514,7 +514,6 @@ void Editor::StartEdit()
 	}
 
 	ClickedLayerButton("BACK");
-	//currentEditModeLayer->SetText("Active Mode: " + objectMode); // GetDrawingLayerName(drawingLayer));
 }
 
 void Editor::StopEdit()
@@ -894,7 +893,7 @@ void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& c
 		textRect.w = properties[i]->text->GetTextWidth();
 		textRect.h = properties[i]->text->GetTextHeight();
 		textRect.x = properties[i]->text->position.x - (textRect.w);
-		textRect.y = properties[i]->text->position.y - (textRect.h);
+		textRect.y = properties[i]->text->position.y - (2 * textRect.h);
 		textRect.w *= 2;
 
 		if (HasIntersection(screenPoint, textRect))
@@ -1327,6 +1326,7 @@ void Editor::ClickedButton()
 			currentButtonPage--;
 			CreateEditorButtons();
 			clickedButton->isClicked = false;
+			objectMode = "none";
 		}
 	}
 	else if (clickedButton->name == "nextpage")
@@ -1336,6 +1336,7 @@ void Editor::ClickedButton()
 			currentButtonPage++;
 			CreateEditorButtons();
 			clickedButton->isClicked = false;
+			objectMode = "none";
 		}
 	}
 	else if (clickedButton->name == "prevlevel")
@@ -1381,16 +1382,7 @@ void Editor::ClickedButton()
 		game->StartTextInput("new_entity_type");
 		clickedButton->isClicked = false;	
 	}
-	else if (clickedButton->name == "path")
-	{
-		//if (currentPath != nullptr)
-		//{
-		//	currentPath = nullptr;
-		//}
 
-		// TODO: Fix this
-		ToggleObjectMode("path");
-	}
 }
 
 void Editor::ToggleSpriteMap(int num)
@@ -1485,7 +1477,6 @@ void Editor::ToggleObjectMode(std::string mode)
 	}
 
 	game->debugScreen->debugText[DebugText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
-	game->debugScreen->debugText[DebugText::currentEditModeLayer]->GetSprite()->keepScaleRelativeToCamera = true;
 }
 
 void Editor::ToggleGridSize()
@@ -1498,9 +1489,6 @@ void Editor::ToggleGridSize()
 
 void Editor::ToggleInspectionMode()
 {
-	//TODO: Is this a good idea?
-	SetLayer(DrawingLayer::BACK);
-
 	if (objectMode != "inspect")
 		objectMode = "inspect";
 	else
@@ -1514,7 +1502,6 @@ void Editor::ToggleInspectionMode()
 	}
 
 	game->debugScreen->debugText[DebugText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
-	//inspectionMode = !inspectionMode;
 }
 
 void Editor::SetLayer(DrawingLayer layer)
@@ -1524,30 +1511,38 @@ void Editor::SetLayer(DrawingLayer layer)
 
 void Editor::ToggleTileset()
 {
-	objectMode = "tile";
-	game->debugScreen->debugText[DebugText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
-	game->debugScreen->debugText[DebugText::currentEditModeLayer]->GetSprite()->keepScaleRelativeToCamera = true;
+	if (objectMode == "none")
+	{
+		objectMode = "tile";
+		return;
+	}
+	else
+	{
+		objectMode = "tile";
+		game->debugScreen->debugText[DebugText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
 
-	tilesheetIndex = (tilesheetIndex + 1 > tilesheetSprites.size() - 1) ? 0 : tilesheetIndex + 1;
+		tilesheetIndex = (tilesheetIndex + 1 > tilesheetSprites.size() - 1) ? 0 : tilesheetIndex + 1;
 
-	// Calculate and set positions for the selected tilesheet
-	//TODO: Maybe make this its own function?
-	tilesheetPosition.x = (game->screenWidth * 2) - tilesheetSprites[tilesheetIndex]->frameWidth;
-	tilesheetPosition.y = tilesheetSprites[tilesheetIndex]->frameHeight;
-	selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + SPAWN_TILE_SIZE;
-	selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + SPAWN_TILE_SIZE;
-	
-	game->SaveEditorSettings();
-	StartEdit();	
+		// Calculate and set positions for the selected tilesheet
+		// No need to make this its own function because the only time we care about
+		// changing the position is when we also change the current tileset
+		tilesheetPosition.x = (game->screenWidth * 2) - tilesheetSprites[tilesheetIndex]->frameWidth;
+		tilesheetPosition.y = tilesheetSprites[tilesheetIndex]->frameHeight;
+		selectedTilePosition.x = tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth + SPAWN_TILE_SIZE;
+		selectedTilePosition.y = tilesheetPosition.y - tilesheetSprites[tilesheetIndex]->frameHeight + SPAWN_TILE_SIZE;
+
+		game->SaveEditorSettings();
+
+		previewMap["tile"] = game->CreateTile(Vector2(0, 0), "assets/editor/rect-outline.png",
+			Vector2(0, 0), DrawingLayer::FRONT);
+		previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
+		objectPreview = previewMap["tile"];
+	}
 }
 
 void Editor::RenderDebug(const Renderer& renderer)
 {
-	//TODO: Only set each text if the number has changed from last time
 
-
-
-	
 }
 
 void Editor::Render(const Renderer& renderer)
@@ -1637,24 +1632,17 @@ void Editor::Render(const Renderer& renderer)
 	// Draw all buttons
 	for (unsigned int i = 0; i < buttons.size(); i++)
 	{
-		// TODO: Maybe offset the buttons
-		// For now, always draw the previous/next page buttons
-		// If we don't, then clicking in the empty space will 
-		// accidentally instantiate something in the level
-
-		/*
-		if (buttons[i]->name == "PrevPage")
+		if (buttons[i]->name == "prevpage")
 		{
 			if (currentButtonPage == 0)
 				continue;
 		}
 
-		if (buttons[i]->name == "NextPage")
+		if (buttons[i]->name == "nextpage")
 		{
 			if (currentButtonPage > (int)(currentButtonPage/BUTTONS_PER_PAGE))
 				continue;
 		}
-		*/
 
 		buttons[i]->Render(renderer);
 	}
@@ -1737,25 +1725,23 @@ std::string Editor::SaveLevelAsString()
 			}
 		}
 
-		// TODO: Don't hardcode this
+		// We must handle "path" as a special case
 		if (game->entities[i]->etype == "path")
 		{
 			int nodeCount = std::stoi(map["nodeCount"]);
-			std::string key = "";
 			for (int i = 0; i < nodeCount; i++)
 			{
-				key = "nodeID_" + std::to_string(i);
-				level << map[key] << " ";
+				level << map["nodeID_" + std::to_string(i)] << " ";
 			}
 		}
 
 		level << "\n";
 	}
 
-	// TODO: Maybe don't separate the bg from the other types?
 	map.clear();
 	game->background->Save(map);
-	std::vector<std::string> list = { "id", "type", "positionX", "positionY", "subtype" }; // loadDataMap["bg"];
+	std::vector<std::string> list = { "id", "type", "positionX", "positionY", "subtype" };
+
 	for (int k = 0; k < list.size(); k++)
 	{
 		// If the entity saved any of the variables in the list,
@@ -1769,26 +1755,27 @@ std::string Editor::SaveLevelAsString()
 			level << "0 ";
 		}
 	}
+
 	level << "\n";
 
-	// TODO: Refactor this better
 	if (game->levelStartCutscene != "")
 	{
 		level << "1 cutscene-start 0 0 " << game->levelStartCutscene << std::endl;
 	}
 
+	// TODO: Save the camera properties from within the class here
+	// (You can just output the bool as a 0 or 1 to save a line)
 	if (cameraTargetID > -1)
 	{
 		if (switchTargetBackToPlayer)
 		{
-			level << "0 camera-target-player 0 0 " << cameraTargetID << std::endl;
+			level << "0 camera-target-player 0 0 " << cameraTargetID << " " << std::endl;
 		}
 		else
 		{
 			level << "0 camera-target 0 0 " << cameraTargetID << std::endl;
 		}
 	}
-
 	level << "0 camera-zoom 0 0 " << game->renderer.camera.orthoZoom << std::endl;
 
 	return level.str();
@@ -2204,8 +2191,6 @@ void Editor::ClearLevelEntities()
 	game->cameraBoundsEntities.clear();
 }
 
-//TODO: Loading levels is kind of slow
-
 //TODO: What happens if the level fails to load, or the file does not exist?
 // Should it load the same level again, an error screen, or something else?
 void Editor::InitLevelFromFile(std::string levelName)
@@ -2220,8 +2205,6 @@ void Editor::InitLevelFromFile(std::string levelName)
 	game->cutsceneManager.watchingCutscene = false;
 
 	game->cutsceneManager.images.clear();
-
-	game->debugRectangles.clear();
 	game->levelStartCutscene = "";
 
 	ClearLevelEntities();

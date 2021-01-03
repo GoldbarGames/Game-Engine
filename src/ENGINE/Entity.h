@@ -57,8 +57,10 @@ public:
 
 	Collider collider;
 
+	//TODO: Make multiple collision layers rather than just on/off
+
 	//int collisionLayerID = 0;
-	bool impassable = false; //TODO: Make multiple collision layers rather than just on/off
+	bool impassable = false; 
 	bool trigger = false;	
 	bool jumpThru = false;
 	bool drawDebugRect = true;

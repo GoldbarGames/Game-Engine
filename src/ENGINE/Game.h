@@ -26,25 +26,14 @@ class KINJO_API Game
 {
 private:
 	SDL_Surface* screenSurface = nullptr;
-	
 	SDL_GLContext mainContext = nullptr;
 
-	Uint64 timeNow = SDL_GetPerformanceCounter();
-	Uint64 timePrev = 0;
-
-	float currentAngle = 0.0f;
-	const float toRadians = 3.14159265f / 180.0f;
-
-	float now = 0;
-	
-	std::unordered_map<std::string, Animator*> animators;
-	std::unordered_map<std::string, Mesh*> meshes;
+	float now = 0; // duration from game start to current frame
 
 	Sprite* screenSprite = nullptr;
 	Sprite* prevScreenSprite = nullptr;
 
 	bool waitingForDebugDialog = false;
-
 
 public:
 
@@ -54,6 +43,7 @@ public:
 	std::string currentGame = "";
 
 	mutable std::unordered_map<std::string, std::vector<std::string>> entityTypes;
+	std::unordered_map<std::string, std::vector<std::string>> spriteMap;
 
 	std::string windowIconFilepath = "";
 	std::string windowTitle = "";
@@ -69,8 +59,8 @@ public:
 	const MenuManager* menuManager = nullptr;
 
 	SDL_Rect mouseRect;
-	Uint32 mouseState;
-	Uint32 previousMouseState;
+	uint32_t mouseState;
+	uint32_t previousMouseState;
 
 	int screenWidth = 1280;
 	int screenHeight = 720;
@@ -78,27 +68,19 @@ public:
 	bool debugMode = false;
 	bool editMode = false;
 
+	GUI* gui;
 	Mesh* cubeMesh;
 	QuadTree quadTree;
-	GUI* gui;
 
 	unsigned int collisionChecks = 0;
 	unsigned int updateCalls = 0;
 
 	std::vector<Entity*> quadrantEntities;
-	
-	std::unordered_map<std::string, std::vector<std::string>> spriteMap;
 
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
 
 	void ReadEntityLists();
-
-	// Player / Level Info
-	int startingEther = 40;
-	int currentEther = 40;
-	int bugsDefeated = 0;
-	int bugsRemaining = 0;
 
 	// play this cutscene on level start
 	std::string levelStartCutscene = "";
@@ -108,11 +90,9 @@ public:
 	using milliseconds = std::chrono::milliseconds;
 
 	clock::time_point startOfGame;
-	clock::time_point start_time;
+	clock::time_point previousTime;
 
 	std::unordered_map<std::string, MenuScreen*> allMenus;
-	std::vector<SDL_Rect*> debugRectangles;
-
 
 	unsigned int framebuffer;
 	unsigned int renderBufferObject;
@@ -162,9 +142,6 @@ public:
 	GameState state;
 	//GameState previousState;
 
-	int nextDoorID = -1;
-	bool useNextPlayerStartPosition = false;
-	Vector2 nextPlayerStartPosition = Vector2(0, 0);
 	std::string nextLevel = "";
 	std::string nextBGM = "";
 
@@ -186,7 +163,7 @@ public:
 	std::vector<Entity*> entitiesToRender;
 	std::vector<MenuScreen*> openedMenus;
 
-	bool getKeyboardInput = false;
+	bool shouldUpdateDialogInput = false;
 	bool shouldQuit = false;
 	bool savingGIF = false;
 	GifWriter gifWriter;
@@ -219,15 +196,11 @@ public:
 	bool showTimer = false;
 	int indexScreenResolution = 0;
 	
-	//TODO: Make an input class maybe
-	bool pressedDebugButton = false;
-	bool pressedSpellButton = false;
-	bool pressedLeftTrigger = false;
-	bool pressedRightTrigger = false;
+	//TODO: Make an input class?
 
 	mutable std::vector<Entity*> entities;
-	std::vector<Entity*> bgEntities;
 
+	// Keep these in their own vector for efficiency
 	std::vector<Entity*> cameraBoundsEntities;
 
 	void ShouldDeleteEntity(int index);
@@ -262,7 +235,6 @@ public:
 
 	void SetFullScreen(bool setFull);
 
-	void UpdateTextInput();
 	void StartTextInput(const std::string& reason);
 	void StopTextInput();
 

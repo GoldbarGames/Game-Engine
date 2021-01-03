@@ -8,10 +8,9 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	spriteManager = &m;
 	renderer = &r;
 
-	//TODO: Replace these with the real fonts
-	//TODO: How to deal with font sizes? Maybe map from string to map<int, TTF*>
-	boxWidth = 1130;
-	currentFontInfo = renderer->game->CreateFont("SazanamiGothic", 24);
+	//TODO: Allow for this font to be defined via a file at startup
+	fontInfoText = renderer->game->CreateFont("SazanamiGothic", 24);
+	fontInfoSpeaker = renderer->game->CreateFont("SazanamiGothic", 24);
 
 	//TODO: Should we have a way to define the starting box position?
 	boxObject = neww Entity(Vector2(1280, 720));
@@ -31,13 +30,14 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
 	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
 
-	text = neww Text(currentFontInfo, "...", true, true);
-	speaker = neww Text(currentFontInfo, "...", true, true);
+	text = neww Text(fontInfoText, "...", true, true);
+	speaker = neww Text(fontInfoSpeaker, "...", true, true);
 
+	//TODO: Customize these things from a file as well
 	text->SetPosition(1080, 1040);
 	speaker->SetPosition(235, 985);
-
 	text->SetScale(Vector2(0.25f, 0.25f));
+	boxWidth = 1130;
 
 	text->isRichText = true;
 	speaker->isRichText = false;
@@ -79,7 +79,7 @@ Textbox::~Textbox()
 
 void Textbox::SetFontSize(int newSize)
 {
-	float newValue = newSize / (float)currentFontInfo->GetFontSize();
+	float newValue = newSize / (float)fontInfoText->GetFontSize();
 	text->currentScale = Vector2(newValue, newValue);
 }
 
@@ -101,29 +101,26 @@ void Textbox::SetCursorPosition(bool endOfPage, Vector2 newCursorPos)
 	clickToContinue->SetPosition(newCursorPos);
 }
 
+//TODO: What about a way to change the backlog font?
+
 void Textbox::ChangeBoxFont(const std::string& fontName, const int size)
 {
-	//TODO: What about the backlog font?
-	//TODO: More advanced features?
-
-	currentFontInfo = renderer->game->CreateFont(fontName, size);
-	if (currentFontInfo != nullptr)
+	fontInfoText = renderer->game->CreateFont(fontName, size);
+	if (fontInfoText != nullptr)
 	{
-		text->SetFont(currentFontInfo->GetRegularFont());
-		text->currentFontInfo = currentFontInfo;
+		text->SetFont(fontInfoText->GetRegularFont());
+		text->currentFontInfo = fontInfoText;
 	}
 }
 
 void Textbox::ChangeNameFont(const std::string& fontName, const int size)
 {
-	//TODO: What about the backlog font?
-	//TODO: How to change the font size?
-	//TODO: Make another map that takes the filepath as the key and has the short name as the value
-	if (renderer->game->fonts.count(fontName) == 1)
+	fontInfoSpeaker = renderer->game->CreateFont(fontName, size);
+	if (fontInfoSpeaker != nullptr)
 	{
-		speaker->SetFont(currentFontInfo->GetRegularFont());
-		speaker->currentFontInfo = renderer->game->CreateFont(fontName, size);
-	}		
+		speaker->SetFont(fontInfoSpeaker->GetRegularFont());
+		speaker->currentFontInfo = fontInfoSpeaker;
+	}	
 }
 
 void Textbox::ChangeNameSprite(const std::string& filepath)

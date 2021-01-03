@@ -20,15 +20,15 @@ public:
 	Entity* nameObject = nullptr;
 	Entity* clickToContinue = nullptr;
 
-	//TODO: Different font info for name?
-	FontInfo* currentFontInfo = nullptr;
+	FontInfo* fontInfoText = nullptr;
+	FontInfo* fontInfoSpeaker = nullptr;
 	Text* text = nullptr;
 	Text* speaker = nullptr;
 
 	bool shouldRender = true;
 	bool isReading = false;
 
-	Uint32 boxWidth = 1100;
+	uint32_t boxWidth = 1100;
 
 	std::string fullTextString = "";
 	SpriteManager* spriteManager = nullptr;

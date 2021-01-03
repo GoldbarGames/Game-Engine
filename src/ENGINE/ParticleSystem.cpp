@@ -61,7 +61,6 @@ void ParticleSystem::Update(Game& game)
 		{
 			particles[i].Update(game);
 
-			// TODO: Should we include physics in the engine?
 			// Because the physics component is not included in the core engine,
 			// we can just update the physics here based on velocity
 
