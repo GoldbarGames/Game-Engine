@@ -32,9 +32,9 @@ protected:
 	Animator* animator = nullptr;
 	Sprite currentSprite;
 public:
-	Vector2 position = Vector2(0, 0);
-	Vector2 startPosition = Vector2(0, 0);
-	Vector2 lastPosition = Vector2(0, 0);
+	glm::vec3 position = glm::vec3(0, 0, 0);
+	glm::vec3 startPosition = glm::vec3(0, 0, 0);
+	glm::vec3 lastPosition = glm::vec3(0, 0, 0);
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	Vector2 scale = Vector2(1, 1);
 	
@@ -74,8 +74,8 @@ public:
 	static uint32_t GenerateValidID();
 
 	virtual ~Entity();
-	Entity(const Vector2& pos);
-	Entity(const Vector2& pos, Sprite* sprite);
+	Entity(const glm::vec3& pos);
+	Entity(const glm::vec3& pos, Sprite* sprite);
 
 	Vector2 GetScale() const;
 
@@ -86,10 +86,10 @@ public:
 
 	virtual const SDL_Rect* GetBounds();
 	SDL_Rect GetTopLeftBounds();
-	Vector2 GetPosition() const;
-	Vector2 GetCenter() const;
+	glm::vec3 GetPosition() const;
+	glm::vec3 GetCenter() const;
 	
-	void SetPosition(const Vector2& newPosition);
+	void SetPosition(const glm::vec3& newPosition);
 	void SetAnimator(Animator& anim);
 	void SetSprite(Sprite& sprite);
 
@@ -103,10 +103,10 @@ public:
 
 	virtual void Init(const Game& g, const std::string& n);
 
-	virtual void Pause(Uint32 ticks);
-	virtual void Unpause(Uint32 ticks);
+	virtual void Pause(uint32_t ticks);
+	virtual void Unpause(uint32_t ticks);
 
-	virtual bool CanSpawnHere(const Vector2& spawnPosition, const Game& game, bool useCamera = true);
+	virtual bool CanSpawnHere(const glm::vec3& spawnPosition, const Game& game, bool useCamera = true);
 
 	// TODO: Refactor these functions into components
 
@@ -127,7 +127,7 @@ public:
 
 	virtual void SetColor(Color newColor);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return neww Entity(pos); };
+	static Entity* __stdcall Create(const glm::vec3& pos) { return neww Entity(pos); };
 };
 
 #endif 

@@ -10,7 +10,7 @@ class KINJO_API PathNode : public Entity
 {
 
 public:
-	PathNode(const Vector2& pos);
+	PathNode(const glm::vec3& pos);
 	~PathNode();
 
 	void Render(const Renderer& renderer);
@@ -21,7 +21,7 @@ public:
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return neww PathNode(pos); };
+	static Entity* __stdcall Create(const glm::vec3& pos) { return neww PathNode(pos); };
 };
 
 #endif

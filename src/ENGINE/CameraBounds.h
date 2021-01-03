@@ -7,7 +7,7 @@
 class KINJO_API CameraBounds : public Entity
 {
 public:
-	CameraBounds(Vector2 pos);
+	CameraBounds(glm::vec3 pos);
 	~CameraBounds();
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
@@ -15,7 +15,7 @@ public:
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 	void Render(const Renderer& renderer);
 
-	static Entity* __stdcall Create(const Vector2& pos) { return neww CameraBounds(pos); };
+	static Entity* __stdcall Create(const glm::vec3& pos) { return neww CameraBounds(pos); };
 };
 
 

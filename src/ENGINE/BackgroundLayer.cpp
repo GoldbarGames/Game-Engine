@@ -1,6 +1,6 @@
 #include "BackgroundLayer.h"
 
-BackgroundLayer::BackgroundLayer(const Vector2& pos, float p) : Entity(pos)
+BackgroundLayer::BackgroundLayer(const glm::vec3& pos, float p) : Entity(pos)
 {
 	parallaxAmount = p;
 	drawDebugRect = false;

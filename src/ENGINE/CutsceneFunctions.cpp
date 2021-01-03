@@ -1296,7 +1296,7 @@ namespace CutsceneFunctions
 
 		// std::cout << "Loading sprite: " << parameters[1] << std::endl;
 
-		Vector2 pos = Vector2(0, 0);
+		glm::vec3 pos = glm::vec3(0, 0, 0);
 
 		bool isStandingImage = parameters[1] == "l" || parameters[1] == "c" || parameters[1] == "r";
 
@@ -1304,7 +1304,7 @@ namespace CutsceneFunctions
 		{
 			const unsigned int x = c.ParseNumberValue(parameters[3]);
 			const unsigned int y = c.ParseNumberValue(parameters[4]);
-			pos = Vector2(x, y);
+			pos = glm::vec3(x, y, 0);
 
 			if (parameters.size() > 5)
 				PrintCommand({ "print", parameters[5] }, c);
@@ -1352,16 +1352,16 @@ namespace CutsceneFunctions
 				spriteY = (c.manager->game->screenHeight * 2) -
 					(c.manager->images[imageNumber]->GetSprite()->frameHeight);
 
-				pos = Vector2(spriteX + c.manager->game->renderer.guiCamera.position.x,
-					spriteY + c.manager->game->renderer.guiCamera.position.y);
+				pos = glm::vec3(spriteX + c.manager->game->renderer.guiCamera.position.x,
+					spriteY + c.manager->game->renderer.guiCamera.position.y, c.manager->game->renderer.guiCamera.position.z);
 				break;
 			case 'c':
 				spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
 				spriteY = (c.manager->game->screenHeight * 2) -
 					(c.manager->images[imageNumber]->GetSprite()->frameHeight);
 
-				pos = Vector2(spriteX + c.manager->game->renderer.guiCamera.position.x,
-					spriteY + c.manager->game->renderer.guiCamera.position.y);
+				pos = glm::vec3(spriteX + c.manager->game->renderer.guiCamera.position.x,
+					spriteY + c.manager->game->renderer.guiCamera.position.y, c.manager->game->renderer.guiCamera.position.z);
 
 				break;
 			case 'r':
@@ -1369,8 +1369,8 @@ namespace CutsceneFunctions
 				spriteY = (c.manager->game->screenHeight * 2) -
 					(c.manager->images[imageNumber]->GetSprite()->frameHeight);
 
-				pos = Vector2(spriteX + c.manager->game->renderer.guiCamera.position.x,
-					spriteY + c.manager->game->renderer.guiCamera.position.y);
+				pos = glm::vec3(spriteX + c.manager->game->renderer.guiCamera.position.x,
+					spriteY + c.manager->game->renderer.guiCamera.position.y, c.manager->game->renderer.guiCamera.position.z);
 
 				break;
 			default:
@@ -1394,8 +1394,8 @@ namespace CutsceneFunctions
 			spriteY = (c.manager->game->screenHeight * 2) -
 				(newImage.GetSprite()->frameHeight);
 
-			pos = Vector2(spriteX + c.manager->game->renderer.guiCamera.position.x,
-				spriteY + c.manager->game->renderer.guiCamera.position.y);
+			pos = glm::vec3(spriteX + c.manager->game->renderer.guiCamera.position.x,
+				spriteY + c.manager->game->renderer.guiCamera.position.y, c.manager->game->renderer.guiCamera.position.z);
 
 			newImage.SetPosition(pos);
 
@@ -1414,7 +1414,7 @@ namespace CutsceneFunctions
 		unsigned int imageNumber = c.ParseNumberValue(parameters[0]);
 		const unsigned int x = c.ParseNumberValue(parameters[2]);
 		const unsigned int y = c.ParseNumberValue(parameters[3]);
-		Vector2 pos = Vector2(x, y);
+		glm::vec3 pos = glm::vec3(x, y, 0);
 
 		glm::vec3 rotation = glm::vec3(
 			std::stoi(parameters[4]),
@@ -1490,7 +1490,7 @@ namespace CutsceneFunctions
 
 	int LoadText(CutsceneParameters parameters, CutsceneCommands& c)
 	{
-		Vector2 pos = Vector2(0, 0);
+		glm::vec3 pos = glm::vec3(0, 0, 0);
 
 		if (parameters[1] == "font")
 		{
@@ -1506,7 +1506,7 @@ namespace CutsceneFunctions
 		unsigned int imageNumber = c.ParseNumberValue(parameters[1]);
 		const unsigned int x = c.ParseNumberValue(parameters[2]);
 		const unsigned int y = c.ParseNumberValue(parameters[3]);
-		pos = Vector2(x, y);
+		pos = glm::vec3(x, y, 0);
 
 		std::string text = parameters[4];
 
@@ -1764,7 +1764,7 @@ namespace CutsceneFunctions
 		}
 		else if (parameters[1] == "position")
 		{
-			Vector2 newPos = Vector2(c.ParseNumberValue(parameters[2]), c.ParseNumberValue(parameters[3]));
+			glm::vec3 newPos = glm::vec3(c.ParseNumberValue(parameters[2]), c.ParseNumberValue(parameters[3]), 0);
 			c.manager->textbox->speaker->SetPosition(newPos.x, newPos.y);
 			c.manager->textbox->nameObject->SetPosition(newPos);
 		}
@@ -1814,7 +1814,7 @@ namespace CutsceneFunctions
 		}
 		else if (parameters[1] == "position")
 		{
-			Vector2 newPos = Vector2(c.ParseNumberValue(parameters[2]), c.ParseNumberValue(parameters[3]));
+			glm::vec3 newPos = glm::vec3(c.ParseNumberValue(parameters[2]), c.ParseNumberValue(parameters[3]), 0);
 			c.manager->textbox->text->SetPosition(newPos.x, newPos.y);
 			c.manager->textbox->boxObject->SetPosition(newPos);
 		}
@@ -2939,8 +2939,8 @@ namespace CutsceneFunctions
 		c.quakeCount = 0;
 		c.quakeNumberOfLoops = 0;
 		c.quakeTimer.Start(quakeDelay * 0.25f / c.quakeIntensity);
-		c.currentQuakePosition = Vector2(c.manager->game->renderer.camera.startScreenWidth,
-			c.manager->game->renderer.camera.startScreenHeight);
+		c.currentQuakePosition = glm::vec3(c.manager->game->renderer.camera.startScreenWidth,
+			c.manager->game->renderer.camera.startScreenHeight, 0);
 
 		Wait({ "", std::to_string(quakeDelay) }, c);
 
@@ -3128,13 +3128,14 @@ namespace CutsceneFunctions
 				unsigned int imageNumber = c.ParseNumberValue(parameters[3]);
 				const unsigned int x = c.ParseNumberValue(parameters[4]);
 				const unsigned int y = c.ParseNumberValue(parameters[5]);
+				const unsigned int z = (parameters.size() > 6) ? c.ParseNumberValue(parameters[6]) : 0;
 
 				//TODO: Don't delete/new, just grab from entity pool and reset
 				if (c.manager->images[imageNumber] != nullptr)
 					delete_it(c.manager->images[imageNumber]);
 
 				ParticleSystem* newParticleSystem = nullptr;
-				newParticleSystem = neww ParticleSystem(Vector2(x, y));
+				newParticleSystem = neww ParticleSystem(glm::vec3(x, y, z));
 
 				c.manager->images[imageNumber] = newParticleSystem;
 				c.manager->images[imageNumber]->drawOrder = imageNumber;
@@ -3174,7 +3175,8 @@ namespace CutsceneFunctions
 					{
 						float vx = c.ParseNumberValue(parameters[4]) * 0.001f;
 						float vy = c.ParseNumberValue(parameters[5]) * 0.001f;
-						particleSystem->nextParticleVelocity = Vector2(vx, vy);
+						float vz = (parameters.size() > 6) ? c.ParseNumberValue(parameters[6]) : 0;
+						particleSystem->nextParticleVelocity = glm::vec3(vx, vy, vz);
 					}
 					else if (parameters[3] == "timeToSpawn") // set time between particle spawns
 					{

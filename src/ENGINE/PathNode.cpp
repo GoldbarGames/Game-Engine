@@ -2,7 +2,7 @@
 #include "Renderer.h"
 #include "Game.h"
 
-PathNode::PathNode(const Vector2& pos) : Entity(pos)
+PathNode::PathNode(const glm::vec3& pos) : Entity(pos)
 {
 	etype = "pathnode";
 	shouldSave = true;

@@ -45,7 +45,7 @@ public:
 	void Render(const Renderer& renderer, const int& screenWidth, const int& screenHeight);
 
 	void SetCursorPosition(bool endOfPage);
-	void SetCursorPosition(bool endOfPage, Vector2 newCursorPos);
+	void SetCursorPosition(bool endOfPage, glm::vec3 newCursorPos);
 
 	void SetFontSize(int newSize);
 

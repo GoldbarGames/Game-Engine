@@ -3,7 +3,7 @@
 #include "Renderer.h"
 #include "Game.h"
 
-CameraBounds::CameraBounds(Vector2 pos) : Entity(pos)
+CameraBounds::CameraBounds(glm::vec3 pos) : Entity(pos)
 {
 	etype = "cameraBounds";
 	shouldSave = true;

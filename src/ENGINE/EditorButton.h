@@ -24,14 +24,14 @@ public:
 	Sprite* image = nullptr;
 	Text* text= nullptr;
 
-	Vector2 position = Vector2(0,0);
+	glm::vec3 position = glm::vec3(0,0,0);
 	Vector2 imageScale = Vector2(1, 1);
 	std::string name = "";
 
 	bool isClicked = false;
 	bool isHovered = false;
 
-	EditorButton(std::string txt, std::string filename, Vector2 pos, 
+	EditorButton(std::string txt, std::string filename, glm::vec3 pos,
 		Game& game, Vector2 size = Vector2(0, 0), Color color = { 255, 255, 255, 255 });
 
 	~EditorButton();

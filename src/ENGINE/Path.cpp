@@ -5,7 +5,7 @@
 #include "Editor.h"
 #include "Sprite.h"
 
-Path::Path(const Vector2& pos) : Entity(pos)
+Path::Path(const glm::vec3& pos) : Entity(pos)
 {
 	etype = "path";
 	CreateCollider(0, 0, 24, 24);
@@ -17,12 +17,12 @@ Path::~Path()
 
 }
 
-void Path::AddPointToPath(const Vector2& point)
+void Path::AddPointToPath(const glm::vec3& point)
 {
 	//nodes.push_back(new PathNode(point));
 }
 
-void Path::RemovePointFromPath(const Vector2& point)
+void Path::RemovePointFromPath(const glm::vec3& point)
 {
 	int index = -1;
 	for (unsigned int i = 0; i < nodes.size(); i++)
@@ -39,7 +39,7 @@ void Path::RemovePointFromPath(const Vector2& point)
 	}		
 }
 
-bool Path::IsPointInPath(const Vector2& point)
+bool Path::IsPointInPath(const glm::vec3& point)
 {
 	for (unsigned int i = 0; i < nodes.size(); i++)
 	{

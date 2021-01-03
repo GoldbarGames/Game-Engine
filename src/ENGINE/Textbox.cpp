@@ -13,7 +13,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	fontInfoSpeaker = renderer->game->CreateFont("SazanamiGothic", 24);
 
 	//TODO: Should we have a way to define the starting box position?
-	boxObject = neww Entity(Vector2(1280, 720));
+	boxObject = neww Entity(glm::vec3(1280, 720, 0));
 
 	//TODO: Have a way to specify the image for the box
 	boxObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/textbox1.png"));
@@ -22,7 +22,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
 
 	//TODO: Should we have a way to define the starting box position?
-	nameObject = neww Entity(Vector2(1280, 720));
+	nameObject = neww Entity(glm::vec3(1280, 720, 0));
 
 	//TODO: Have a way to specify the image for the box
 	nameObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/namebox1.png"));
@@ -42,7 +42,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	text->isRichText = true;
 	speaker->isRichText = false;
 
-	clickToContinue = neww Entity(Vector2(0,0));
+	clickToContinue = neww Entity(glm::vec3(0,0,0));
 
 	std::vector<AnimState*> animStates = spriteManager->ReadAnimData("data/animators/cursor/cursor.animations");
 	Animator* newAnimator = neww Animator("cursor/cursor", animStates, "samepage");
@@ -90,7 +90,7 @@ void Textbox::SetCursorPosition(bool endOfPage)
 
 // This sets the position either to the end of the text line,
 // or to the end of the text line in the current backlog line
-void Textbox::SetCursorPosition(bool endOfPage, Vector2 newCursorPos)
+void Textbox::SetCursorPosition(bool endOfPage, glm::vec3 newCursorPos)
 {
 	clickToContinue->GetAnimator()->SetBool("endOfPage", endOfPage);
 	clickToContinue->GetAnimator()->Update(*clickToContinue);
@@ -146,7 +146,7 @@ void Textbox::UpdateText(const char c, const Color& color)
 	const int boxOffsetX = 120;
 	const int boxOffsetY = 1070;
 	text->SetPosition(boxOffsetX, boxOffsetY);
-	clickToContinue->SetPosition(Vector2(boxOffsetX, boxOffsetY));
+	clickToContinue->SetPosition(glm::vec3(boxOffsetX, boxOffsetY, 0));
 	fullTextString += c;
 }
 
@@ -157,7 +157,7 @@ void Textbox::UpdateText(const std::string& newText, const Color& color)
 	const int boxOffsetX = 120;
 	const int boxOffsetY = 1070;
 	//text->SetPosition(boxOffsetX, boxOffsetY);
-	clickToContinue->SetPosition(Vector2(boxOffsetX, boxOffsetY));
+	clickToContinue->SetPosition(glm::vec3(boxOffsetX, boxOffsetY, 0));
 	fullTextString = newText;
 	//text->SetText(newText, text->textColor, boxWidth);
 

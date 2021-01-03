@@ -42,11 +42,11 @@ public:
 	std::string name = "";
 	std::vector<Entity*> layers;
 	Background(const std::string& n, const Vector2& pos);
-	void CreateBackground(const std::string& n, Vector2 pos, const SpriteManager& spriteManager, const Renderer& renderer);
+	void CreateBackground(const std::string& n, glm::vec3 pos, const SpriteManager& spriteManager, const Renderer& renderer);
 	void ResetBackground();
 	~Background();
 	void Render(const Renderer& renderer);
-	Entity* AddLayer(const Vector2& pos, const BackgroundLayerData& data, 
+	Entity* AddLayer(const glm::vec3& pos, const BackgroundLayerData& data,
 		const SpriteManager& spriteManager, const Renderer& renderer);
 	void Save(std::unordered_map<std::string, std::string>& map);
 	void SpawnBackground(const std::string& n, Game& game);

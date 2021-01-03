@@ -3,7 +3,7 @@
 #include "Renderer.h"
 #include "Editor.h"
 
-EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, Game& game, Vector2 size, Color color)
+EditorButton::EditorButton(std::string txt, std::string filename, glm::vec3 pos, Game& game, Vector2 size, Color color)
 {
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
@@ -15,7 +15,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, Vector2 pos, G
 	image->keepScaleRelativeToCamera = true;
 	image->color = color;
 
-	position = Vector2(pos.x, pos.y);
+	position = glm::vec3(pos.x, pos.y, pos.z);
 	name = filename;
 
 	buttonTextureRect.w *= 1;
@@ -78,7 +78,7 @@ void EditorButton::Render(const Renderer& renderer)
 	//Vector2 cameraPosition = Vector2(renderer->camera.position.x, renderer->camera.position.y);
 	
 	image->Render(position, renderer, imageScale);
-	text->Render(renderer, Vector2(0,0));
+	text->Render(renderer, glm::vec3(0,0,0));
 }
 
 bool EditorButton::IsPointInsideButton(const int& x, const int& y)

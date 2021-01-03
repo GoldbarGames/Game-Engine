@@ -57,7 +57,7 @@ public:
 
 	int GetTextWidth();
 	int GetTextHeight();
-	Vector2 GetLastGlyphPosition();
+	glm::vec3 GetLastGlyphPosition();
 
 	std::string GetTextString();
 
@@ -81,7 +81,7 @@ public:
 	void AddImage(Sprite* newSprite);
 
 	void Render(const Renderer& renderer);
-	void Render(const Renderer& renderer, Vector2 offset);
+	void Render(const Renderer& renderer, glm::vec3 offset);
 	void SetPosition(const float x, const float y);
 	void SetPosition(const int x, const int y);
 	void SetFont(TTF_Font* newFont);

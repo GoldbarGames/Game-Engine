@@ -19,7 +19,7 @@ public:
 	~Collider();
 
 	void CreateCollider(float x, float y, float w, float h);
-	void CalculateCollider(const Vector2& position, const glm::vec3& rotation);
+	void CalculateCollider(const glm::vec3& position, const glm::vec3& rotation);
 };
 
 #endif

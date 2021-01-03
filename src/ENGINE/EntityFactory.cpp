@@ -13,7 +13,7 @@ void EntityFactory::Register(const std::string& entityName, CreateEntity pfnCrea
     entities[entityName] = pfnCreate;
 }
 
-Entity* EntityFactory::Create(const std::string& entityName, const Vector2& position) const
+Entity* EntityFactory::Create(const std::string& entityName, const glm::vec3& position) const
 {   
     if (entities.count(entityName) == 1)
         return entities[entityName](position);

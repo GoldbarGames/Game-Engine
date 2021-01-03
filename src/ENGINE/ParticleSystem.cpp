@@ -1,7 +1,7 @@
 #include "ParticleSystem.h"
 #include "Game.h"
 
-ParticleSystem::ParticleSystem(const Vector2& pos) : Entity(pos)
+ParticleSystem::ParticleSystem(const glm::vec3& pos) : Entity(pos)
 {
 	etype = "particlesystem";
 	spawnTimer.Start(0);

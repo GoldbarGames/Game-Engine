@@ -65,7 +65,7 @@ public:
 
 	bool playedOnce = false;
 
-	Vector2 lastPosition = Vector2(0, 0);
+	glm::vec3 lastPosition = glm::vec3(0, 0, 0);
 	glm::vec3 lastRotation = glm::vec3(0, 0, 0);
 	Vector2 lastScale = Vector2(0, 0);
 
@@ -87,8 +87,8 @@ public:
 
 	const std::string& GetFileName();
 
-	void Render(const Vector2& position, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation=glm::vec3(0,0,0));
-	void Render(const Vector2& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation);
+	void Render(const glm::vec3& position, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation=glm::vec3(0,0,0));
+	void Render(const glm::vec3& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation);
 
 	bool ShouldAnimate(float time);
 	void CreateMesh(MeshType meshType = MeshType::Quad);
@@ -100,7 +100,7 @@ public:
 	Sprite(int numFrames, const SpriteManager& manager, const std::string& filepath, ShaderProgram* shader, Vector2 newPivot);
 
 	glm::vec2 CalculateRenderFrame(const Renderer& renderer, float animSpeed);
-	void CalculateModel(Vector2 position, const glm::vec3& rotation, const Vector2& scale, const Renderer& renderer);
+	void CalculateModel(glm::vec3 position, const glm::vec3& rotation, const Vector2& scale, const Renderer& renderer);
 
 	//TODO: What should we do here?
 	// start = first frame of animation

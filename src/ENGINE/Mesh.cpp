@@ -23,14 +23,19 @@ void Mesh::CreateMesh(GLfloat* vertices, unsigned int* indices,
 
     glGenBuffers(1, &IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    // Check size of element of array * number of elements in array
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * numOfIndices, indices, GL_STATIC_DRAW);
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    // Check size of element of array * number of elements in array
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * numOfVertices, vertices, GL_STATIC_DRAW);
 
+    // Vertices - no offset, every v numbers is a new vertex
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * v, 0);
     glEnableVertexAttribArray(0);
+
+    // UVs - offset, every v numbers is a new vertex
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * v, (void*)(sizeof(vertices[0]) * offset));
     glEnableVertexAttribArray(1);
 

@@ -30,14 +30,14 @@ class Platform;
 class KINJO_API Editor
 {
 private:
-	Vector2 tilesheetPosition = Vector2(0, 0);
+	glm::vec3 tilesheetPosition = glm::vec3(0, 0, 0);
 	
 	std::vector<Sprite*> tilesheetSprites;	
 	std::vector<std::string> tilesheetFilenames;
 
-	Vector2 spriteSheetTileFrame = Vector2(0,0);
-	Vector2 selectedTilePosition = Vector2(0, 0);
-	Vector2 objPreviewPosition = Vector2(0,0);
+	Vector2 spriteSheetTileFrame = Vector2(0, 0);
+	glm::vec3 selectedTilePosition = glm::vec3(0, 0, 0);
+	glm::vec3 objPreviewPosition = glm::vec3(0, 0, 0);
 
 	SDL_Rect objectPropertiesRect;
 
@@ -56,7 +56,7 @@ private:
 
 	// Variables for the Grab Button
 	Entity* grabbedEntity = nullptr;
-	Vector2 oldGrabbedPosition = Vector2(0, 0);
+	glm::vec3 oldGrabbedPosition = glm::vec3(0, 0, 0);
 
 	const unsigned int BUTTONS_PER_PAGE = 16;
 
@@ -119,7 +119,7 @@ public:
 	void RenderDebug(const Renderer& renderer);
 	DrawingLayer drawingLayer = DrawingLayer::BACK;
 
-	std::string ReadLoadingData(const std::string& data, std::unordered_map < std::string, std::vector<std::string>>& map);
+	std::string ReadLoadingData(const std::string& data, std::unordered_map <std::string, std::vector<std::string>>& map);
 
 	void ClickedButton();
 	void ClickedLayerButton(std::string buttonText);
@@ -135,21 +135,20 @@ public:
 
 	void RefreshTilePreview();
 
-	void LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition);
-	void RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition);
-	void MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition);
+	void LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition);
+	void RightClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition);
+	void MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition);
 
-	Entity* GetClickedEntity(const Vector2& clickedWorldPosition, bool includeTiles=false);
+	Entity* GetClickedEntity(const glm::vec3& clickedWorldPosition, bool includeTiles=false);
 
 	void SetLayer(DrawingLayer layer);
-	void DestroyLadder(std::string startingState, Vector2 lastPosition);
 
 	void DestroyDialog();
 	void CreateDialog(const std::string& txt);
 
 	void PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY);
 	void PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY);
-	void InspectObject(const Vector2& clickedWorldPosition, const Vector2& clickedScreenPosition);
+	void InspectObject(const glm::vec3& clickedWorldPosition, const Vector2& clickedScreenPosition);
 	void SetPropertyPositions();
 
 	void SetPropertyText(const std::string& newText);

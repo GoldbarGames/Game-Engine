@@ -11,7 +11,7 @@ struct Glyph
 	char letter = ' ';
 	Sprite sprite;
 	Animator* animator = nullptr; // never delete these
-	Vector2 position = Vector2(0, 0);
+	glm::vec3 position = glm::vec3(0, 0, 0);
 	Vector2 scale = Vector2(1, 1);
 	//bool shouldDeleteSprite = true;
 	//float width = 0; Should we save width and height to avoid calculations?

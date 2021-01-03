@@ -7,7 +7,7 @@
 class KINJO_API BackgroundLayer : public Entity
 {
 public:
-	BackgroundLayer(const Vector2& pos, float p);
+	BackgroundLayer(const glm::vec3& pos, float p);
 	~BackgroundLayer();
 	float parallaxAmount = 0.5f;
 	void Render(const Renderer& renderer);

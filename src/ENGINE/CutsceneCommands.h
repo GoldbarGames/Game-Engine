@@ -81,7 +81,7 @@ public:
 	int arrayIndex = 0;
 	int vectorIndex = 0;
 
-	Vector2 currentQuakePosition = Vector2(0, 0);
+	glm::vec3 currentQuakePosition = glm::vec3(0, 0, 0);
 	Timer quakeTimer;
 	int quakeIntensity = 0;
 	bool isQuakeHorizontal = false;

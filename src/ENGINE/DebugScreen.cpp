@@ -12,8 +12,8 @@ DebugScreen::DebugScreen(Game& g)
 	onePixelSprite = game->CreateSprite("assets/editor/1pixel.png");
 	camera = &game->renderer.camera;
 
-	insertVariableButton = new EditorButton("Watch", "Btn", Vector2(2000, 100), *game);
-	removeVariableButton = new EditorButton("Unwatch", "Btn", Vector2(2200, 100), *game);
+	insertVariableButton = new EditorButton("Watch", "Btn", glm::vec3(2000, 100, 0), *game);
+	removeVariableButton = new EditorButton("Unwatch", "Btn", glm::vec3(2200, 100, 0), *game);
 
 	insertVariableButton->imageScale = Vector2(2, 1);
 	removeVariableButton->imageScale = Vector2(2, 1);
@@ -26,10 +26,10 @@ DebugScreen::DebugScreen(Game& g)
 	CreateDebugText(DebugText::collisionChecks, 400, 1300);
 	CreateDebugText(DebugText::hoveredEntityID, 1200, 50);
 	CreateDebugText(DebugText::cameraPosition, 1400, 100);
-	CreateDebugText(DebugText::cameraAngle, 2000, 450);
-	CreateDebugText(DebugText::cameraYaw, 2000, 550);
-	CreateDebugText(DebugText::cameraPitch, 2000, 650);
-	CreateDebugText(DebugText::cameraRoll, 2000, 750);
+	CreateDebugText(DebugText::cameraAngle, 400, 450);
+	CreateDebugText(DebugText::cameraYaw, 400, 550);
+	CreateDebugText(DebugText::cameraPitch, 400, 650);
+	CreateDebugText(DebugText::cameraRoll, 400, 750);
 
 	std::vector<std::string> variables = game->ReadStringsFromFile("data/debug.vars");
 	for (int i = 0; i < variables.size(); i++)
@@ -106,7 +106,7 @@ bool DebugScreen::Update()
 {
 	const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
-	worldPosition = Vector2(mouseX + game->renderer.camera.position.x, mouseY + game->renderer.camera.position.y);
+	worldPosition = glm::vec3(mouseX + game->renderer.camera.position.x, mouseY + game->renderer.camera.position.y, game->renderer.camera.position.z);
 
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
 	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);
@@ -269,7 +269,7 @@ void DebugScreen::Render(const Renderer& renderer)
 				onePixelSprite->keepPositionRelativeToCamera = true;
 				onePixelSprite->keepScaleRelativeToCamera = true;
 				onePixelSprite->color = { 0, 0, 0, 64 };
-				onePixelSprite->Render(Vector2(800, 800), renderer, Vector2(800, 800));
+				onePixelSprite->Render(glm::vec3(800, 800, 0), renderer, Vector2(800, 800));
 			}
 
 			CutsceneCommands& cmds = renderer.game->cutsceneManager.commands;

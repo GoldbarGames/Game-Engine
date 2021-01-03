@@ -75,13 +75,14 @@ bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
 	return xFinished && yFinished;
 }
 
+// TODO: Actually implement this for a 3D vector (it is currently 2D)
 bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxStep, const float minStep)
 {
 	bool xDirectionPositive = (current.x < target.x);
 	bool yDirectionPositive = (current.y < target.y);
 
-	float xStep = std::max((myabs(target.x - current.x) / myabs(target.x)) * maxStep, minStep);
-	float yStep = std::max((myabs(target.y - current.y) / myabs(target.y)) * maxStep, minStep);
+	float xStep = std::max((myabs(target.x - current.x) / myabs(target.x)) * minStep, maxStep);
+	float yStep = std::max((myabs(target.y - current.y) / myabs(target.y)) * minStep, maxStep);
 
 	if (xDirectionPositive)
 		current.x = std::min(target.x, current.x + xStep);
@@ -117,7 +118,8 @@ bool LerpVector3(glm::vec3& current, const glm::vec3& start, const glm::vec3& ta
 		t = 1.0f;
 
 	//std::cout << (currentTime - startTime) << " / " << difference << " = " << t << std::endl;
-	
+	//std::cout << current.x << "," << current.y << std::endl;
+
 	bool xFinished = LerpCoord(current.x, start.x, target.x, t);
 	bool yFinished = LerpCoord(current.y, start.y, target.y, t);
 

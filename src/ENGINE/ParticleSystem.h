@@ -8,7 +8,7 @@
 struct ParticleInfo
 {
 	bool active = false;
-	Vector2 velocity = Vector2(0, 0);
+	glm::vec3 velocity = glm::vec3(0, 0, 0);
 	Timer lifeTimer;
 };
 
@@ -18,7 +18,7 @@ public:
 	int nextActiveIndex = 0;
 	int nextParticleColliderWidth = 0;
 	int nextParticleColliderHeight = 0;
-	Vector2 nextParticleVelocity = Vector2(0, 0);
+	glm::vec3 nextParticleVelocity = glm::vec3(0, 0, 0);
 	float nextParticleTimeToLive = 1.0f;
 	Timer spawnTimer;
 	int maxNumberofParticles = 1;
@@ -28,7 +28,7 @@ public:
 	void Update(Game& game);
 	void Render(const Renderer& renderer);
 	void Resize(int newSize);
-	ParticleSystem(const Vector2& pos);
+	ParticleSystem(const glm::vec3& pos);
 	~ParticleSystem();
 };
 

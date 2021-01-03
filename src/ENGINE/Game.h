@@ -41,6 +41,7 @@ public:
 	Mesh* CreateCubeMesh();
 
 	std::string currentGame = "";
+	bool freeCameraMode = false;
 
 	mutable std::unordered_map<std::string, std::vector<std::string>> entityTypes;
 	std::unordered_map<std::string, std::vector<std::string>> spriteMap;
@@ -130,8 +131,8 @@ public:
 	void CheckDeleteEntities();
 
 	void SetScreenResolution(const unsigned int width, const unsigned int height);
-	Entity* CreateEntity(const std::string& entityName, const Vector2& position, int spriteIndex) const;
-	Entity* SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex) const;
+	Entity* CreateEntity(const std::string& entityName, const glm::vec3& position, int spriteIndex) const;
+	Entity* SpawnEntity(const std::string& entityName, const glm::vec3& position, const int spriteIndex) const;
 
 	FontInfo* CreateFont(const std::string& fontName, int size);
 
@@ -216,20 +217,20 @@ public:
 	
 	// Spawn functions
 	Tile* CreateTile(const Vector2& frame, const std::string& tilesheet,
-		const Vector2& position, DrawingLayer drawingLayer) const;
+		const glm::vec3& position, DrawingLayer drawingLayer) const;
 	Tile* SpawnTile(const Vector2& frame, const std::string& tilesheet,
-		const Vector2& position, DrawingLayer drawingLayer) const;
+		const glm::vec3& position, DrawingLayer drawingLayer) const;
 
-	Entity* SpawnPlayer(const Vector2& position);
+	Entity* SpawnPlayer(const glm::vec3& position);
 
 	void TransitionLevel();
 
 	void LoadTitleScreen();
 	void LoadLevel(const std::string& level, int onExit=0, int onEnter=0);
 
-	Vector2 CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE);
+	glm::vec3 CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE);
 
-	Vector2 SnapToGrid(Vector2 position);
+	glm::vec3 SnapToGrid(glm::vec3 position);
 
 	std::vector<std::string> ReadStringsFromFile(const std::string& filepath);
 

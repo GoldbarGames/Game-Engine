@@ -21,7 +21,7 @@ void Collider::CreateCollider(float x, float y, float w, float h)
 	//CalculateCollider();
 }
 
-void Collider::CalculateCollider(const Vector2& position, const glm::vec3& rotation)
+void Collider::CalculateCollider(const glm::vec3& position, const glm::vec3& rotation)
 {
 	bool isRotated = (rotation.z == 90 || rotation.z == 270);
 	bounds.w = isRotated ? scale.y : scale.x;

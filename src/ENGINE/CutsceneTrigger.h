@@ -10,7 +10,7 @@ public:
 	SDL_Rect triggerRect;
 	std::string cutsceneLabel = "null";
 
-	CutsceneTrigger(Vector2 pos);
+	CutsceneTrigger(glm::vec3 pos);
 	~CutsceneTrigger();
 
 	void Init(const std::string& n);

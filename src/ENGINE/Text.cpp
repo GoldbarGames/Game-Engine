@@ -4,7 +4,7 @@
 #include "FontInfo.h"
 #include "Animator.h"
 
-Text::Text() : Entity(Vector2(0,0))
+Text::Text() : Entity(glm::vec3(0,0,0))
 {
 	etype = "text";
 }
@@ -90,7 +90,7 @@ int Text::GetTextHeight()
 	return height;
 }
 
-Vector2 Text::GetLastGlyphPosition()
+glm::vec3 Text::GetLastGlyphPosition()
 {
 	if (isRichText && glyphs.size() > 0)
 	{
@@ -118,7 +118,7 @@ std::string Text::GetTextString()
 }
 
 //TODO: Refactor these constructors a little bit
-Text::Text(FontInfo* newFontInfo) : Entity(Vector2(0,0))
+Text::Text(FontInfo* newFontInfo) : Entity(glm::vec3(0, 0, 0))
 {
 	currentFontInfo = newFontInfo;
 	font = currentFontInfo->GetRegularFont();
@@ -127,7 +127,7 @@ Text::Text(FontInfo* newFontInfo) : Entity(Vector2(0,0))
 	SetPosition(0, 0);
 }
 
-Text::Text(FontInfo* newFontInfo, const std::string& txt, bool relPos, bool relScale) : Entity(Vector2(0, 0))
+Text::Text(FontInfo* newFontInfo, const std::string& txt, bool relPos, bool relScale) : Entity(glm::vec3(0, 0, 0))
 {
 	currentFontInfo = newFontInfo;
 	font = currentFontInfo->GetRegularFont();
@@ -140,7 +140,7 @@ Text::Text(FontInfo* newFontInfo, const std::string& txt, bool relPos, bool relS
 	currentSprite.keepScaleRelativeToCamera = relScale;
 }
 
-Text::Text(FontInfo* newFontInfo, const std::string& txt, Color color) : Entity(Vector2(0, 0))
+Text::Text(FontInfo* newFontInfo, const std::string& txt, Color color) : Entity(glm::vec3(0, 0, 0))
 {
 	currentFontInfo = newFontInfo;
 	font = currentFontInfo->GetRegularFont();
@@ -367,7 +367,7 @@ void Text::Render(const Renderer& renderer)
 
 }
 
-void Text::Render(const Renderer& renderer, Vector2 offset)
+void Text::Render(const Renderer& renderer, glm::vec3 offset)
 {
 	if (isRichText)
 	{
@@ -442,7 +442,7 @@ void Text::SetPosition(const float x, const float y)
 		return;
 	}
 
-	Vector2 currentPosition = Vector2(x, y);
+	glm::vec3 currentPosition = glm::vec3(x, y, 0);
 
 	float wrapX = x;
 	float glyphHeight = 0;

@@ -279,7 +279,7 @@ Sprite::~Sprite()
 	// be used again many more times by other sprites.
 }
 
-void Sprite::Render(const Vector2& position, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)
+void Sprite::Render(const glm::vec3& position, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)
 {
 	Render(position, 0, renderer, scale, rotation);
 }
@@ -381,16 +381,16 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 	return texOffset;
 }
 
-void Sprite::CalculateModel(Vector2 position, const glm::vec3& rotation, const Vector2& scale, const Renderer& renderer)
+void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const Vector2& scale, const Renderer& renderer)
 {
 	if (rotation.x >= 89)
 		int test = 0;
 
 	// TODO: Maybe do a clever multiplication trick instead
 	if (scale.x > 0) // flip the pivot x based on direction
-		position += Vector2(Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y);
+		position += glm::vec3(Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y, 0);
 	else
-		position += Vector2(-Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y);
+		position += glm::vec3(-Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y, 0);
 
 	// Only recalculate the model if position, rotation, or scale have changed
 	if (position != lastPosition || rotation != lastRotation || scale != lastScale || keepPositionRelativeToCamera)
@@ -450,7 +450,7 @@ void Sprite::CalculateModel(Vector2 position, const glm::vec3& rotation, const V
 
 // NOTE: This function expects a center-coordinate rectangle to be rendered,
 // so if you pass in a top-left rectangle, you'll see something wrong
-void Sprite::Render(const Vector2& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)
+void Sprite::Render(const glm::vec3& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)
 {
 	renderer.drawCallsPerFrame++;
 

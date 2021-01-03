@@ -45,7 +45,7 @@ Editor::Editor(Game& g)
 	currentLevelText->GetSprite()->keepScaleRelativeToCamera = true;
 
 	playOpeningDemoCutscene = false;
-	dialog = neww Dialog(Vector2(g.screenWidth, g.screenHeight), &g.spriteManager);
+	dialog = neww Dialog(glm::vec3(g.screenWidth, g.screenHeight, 0), &g.spriteManager);
 	dialog->text = neww Text(fontInfo, "");
 	dialog->input = neww Text(fontInfo, "");
 
@@ -379,7 +379,7 @@ void Editor::CreateEditorButtons()
 			break;
 
 		EditorButton* editorButton = neww EditorButton("", buttonNames[i], 
-			Vector2(buttonX*2, (game->screenHeight - buttonHeight)*2), *game);
+			glm::vec3(buttonX*2, (game->screenHeight - buttonHeight)*2, 0), *game);
 		
 		editorButton->image->keepPositionRelativeToCamera = true;
 		editorButton->image->keepScaleRelativeToCamera = true;
@@ -390,14 +390,15 @@ void Editor::CreateEditorButtons()
 	}
 
 	EditorButton* previousButton = neww EditorButton("", "prevpage", 
-		Vector2(buttonStartX*2, (game->screenHeight - buttonHeight)*2), *game);
+		glm::vec3(buttonStartX*2, (game->screenHeight - buttonHeight)*2, 0), *game);
 	
 	previousButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(previousButton);
+
+	float bx = (buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE + 1) * 2);
 	
 	EditorButton* nextButton = neww EditorButton("", "nextpage", 
-		Vector2((buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE + 1)) * 2,
-		(game->screenHeight - buttonHeight)*2), *game);
+		glm::vec3( bx, (game->screenHeight - buttonHeight)*2, 0), *game);
 	
 	nextButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(nextButton);
@@ -405,15 +406,15 @@ void Editor::CreateEditorButtons()
 	// Level navigation
 
 	EditorButton* previousLevelButton = neww EditorButton("", "prevlevel",
-		Vector2(buttonStartX * Camera::MULTIPLIER, 
-			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER), *game);
+		glm::vec3(buttonStartX * Camera::MULTIPLIER,
+			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER, 0), *game);
 
 	previousLevelButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(previousLevelButton);
 
 	EditorButton* nextLevelButton = neww EditorButton("", "nextlevel",
-		Vector2((buttonStartX + (buttonWidth + buttonSpacing)) * Camera::MULTIPLIER,
-			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER), *game);
+		glm::vec3((buttonStartX + (buttonWidth + buttonSpacing)) * Camera::MULTIPLIER,
+			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER, 0), *game);
 
 	nextLevelButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(nextLevelButton);
@@ -426,7 +427,7 @@ void Editor::StartEdit()
 	helper->OnEditorStart();
 
 	previewMap["tile"] = game->CreateTile(Vector2(0, 0), "assets/editor/rect-outline.png",
-		Vector2(0, 0), DrawingLayer::FRONT);
+		glm::vec3(0, 0, 0), DrawingLayer::FRONT);
 
 	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 
@@ -436,7 +437,7 @@ void Editor::StartEdit()
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
 	{
 		previewMap[previewMapObjectNames[i]] = game->CreateEntity(previewMapObjectNames[i],
-			Vector2(0, 0), entitySubtype);
+			glm::vec3(0, 0, 0), entitySubtype);
 	}
 
 	objectPreview = previewMap["tile"];
@@ -497,14 +498,14 @@ void Editor::StartEdit()
 	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
 	{
 		EditorButton* layerButton = neww EditorButton(layerButtonNames[i], "Layer", 
-			Vector2(buttonX, buttonY), *game, Vector2(layerButtonWidth, 50), { 255, 255, 255, 255 });
+			glm::vec3(buttonX, buttonY, 0), *game, Vector2(layerButtonWidth, 50), { 255, 255, 255, 255 });
 
 		layerButton->image->keepScaleRelativeToCamera = true;
 		layerButton->text->GetSprite()->keepScaleRelativeToCamera = true;
 		layerButtons.emplace_back(layerButton);
 		
 		EditorButton* layerVisibleButton = neww EditorButton("", "Visible", 
-			Vector2(buttonX + (layerButtonWidth * 2), buttonY), *game, Vector2(50, 50), { 255, 255, 255, 255 });
+			glm::vec3(buttonX + (layerButtonWidth * 2), buttonY, 0), *game, Vector2(50, 50), { 255, 255, 255, 255 });
 
 		layerVisibleButton->image->keepScaleRelativeToCamera = true;
 		layerVisibleButton->text->GetSprite()->keepScaleRelativeToCamera = true;
@@ -534,12 +535,12 @@ void Editor::RefreshTilePreview()
 		delete_it(prev);
 
 	prev = game->CreateTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex],
-		Vector2(0, 0), DrawingLayer::FRONT);
+		glm::vec3(0, 0, 0), DrawingLayer::FRONT);
 
 	objectPreview = prev;
 }
 
-void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition)
+void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition)
 {
 	bool clickedToolboxWindow = mouseX >= tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth
 		&& mouseY <= tilesheetSprites[tilesheetIndex]->frameHeight * Camera::MULTIPLIER;
@@ -683,7 +684,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	}
 	else if (objectMode == "inspect")
 	{
-		Vector2 inspectPosition = Vector2(mouseX, mouseY);
+		glm::vec3 inspectPosition = glm::vec3(mouseX, mouseY, 0);
 		inspectPosition.x += game->renderer.camera.position.x;
 		inspectPosition.y += game->renderer.camera.position.y;
 		InspectObject(inspectPosition, clickedScreenPosition);
@@ -692,7 +693,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	{
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
-			Vector2 rotatePosition = Vector2(mouseX, mouseY);
+			glm::vec3 rotatePosition = glm::vec3(mouseX, mouseY, 0);
 			rotatePosition.x += game->renderer.camera.position.x;
 			rotatePosition.y += game->renderer.camera.position.y;
 
@@ -710,7 +711,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	{
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
-			Vector2 grabPosition = Vector2(mouseX, mouseY);
+			glm::vec3 grabPosition = glm::vec3(mouseX, mouseY, 0);
 			grabPosition.x += game->renderer.camera.position.x;
 			grabPosition.y += game->renderer.camera.position.y;
 
@@ -727,7 +728,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 			else
 			{
 				// If the entity is allowed to spawn here, then place it there
-				if (grabbedEntity->CanSpawnHere(Vector2(mouseX, mouseY), *game, false))
+				if (grabbedEntity->CanSpawnHere(glm::vec3(mouseX, mouseY, 0), *game, false))
 				{
 					grabbedEntity->startPosition = grabbedEntity->position;
 					grabbedEntity->CalculateCollider();
@@ -752,7 +753,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 		{
 			bool foundTile = false;
 			Vector2 coordsToReplace = Vector2(0, 0);
-			Vector2 roundedPosition = RoundToInt(clickedWorldPosition);
+			glm::vec3 roundedPosition = RoundToInt(clickedWorldPosition);
 
 			std::vector<Tile*> tilesInLevel;
 
@@ -838,7 +839,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, Ve
 	}
 }
 
-Entity* Editor::GetClickedEntity(const Vector2& clickedWorldPosition, bool includeTiles)
+Entity* Editor::GetClickedEntity(const glm::vec3& clickedWorldPosition, bool includeTiles)
 {
 	SDL_Rect point;
 	point.x = clickedWorldPosition.x;
@@ -877,7 +878,7 @@ Entity* Editor::GetClickedEntity(const Vector2& clickedWorldPosition, bool inclu
 	return nullptr;
 }
 
-void Editor::InspectObject(const Vector2& clickedWorldPosition, const Vector2& clickedScreenPosition)
+void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const Vector2& clickedScreenPosition)
 {
 	SDL_Rect screenPoint;
 	screenPoint.x = clickedScreenPosition.x * Camera::MULTIPLIER;
@@ -985,7 +986,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 {
 	bool canPlaceObjectHere = true;
 
-	Vector2 snappedPosition = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
+	glm::vec3 snappedPosition = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
@@ -1010,11 +1011,11 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 {
 	bool canPlaceTileHere = true;
 
-	Vector2 spawnPos = game->CalculateObjectSpawnPosition(clickedPosition, GRID_SIZE);
+	glm::vec3 spawnPos = game->CalculateObjectSpawnPosition(clickedPosition, GRID_SIZE);
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
-		Vector2 entityPosition = RoundToInt(game->entities[i]->GetPosition());
+		glm::vec3 entityPosition = RoundToInt(game->entities[i]->GetPosition());
 
 		if (entityPosition == spawnPos &&
 			game->entities[i]->layer == drawingLayer &&
@@ -1051,7 +1052,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 }
 
 // Toggle special properties of the selected entity
-void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition)
+void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition)
 {
 	if (previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE))
 		return;
@@ -1095,7 +1096,7 @@ void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector
 }
 
 //TODO: Figure out how to structure this so we can add deleting stuff as an Action
-void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2 clickedWorldPosition)
+void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition)
 {
 	// If we have grabbed an entity, return it to its old position and immediately exit
 	if (grabbedEntity != nullptr)
@@ -1105,7 +1106,7 @@ void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, Vector2
 		return;
 	}
 
-	clickedWorldPosition = Vector2(mouseX / Camera::MULTIPLIER, mouseY / Camera::MULTIPLIER);
+	clickedWorldPosition = glm::vec3(mouseX / Camera::MULTIPLIER, mouseY / Camera::MULTIPLIER, clickedWorldPosition.z);
 	clickedWorldPosition.x += game->renderer.camera.position.x;
 	clickedWorldPosition.y += game->renderer.camera.position.y;
 
@@ -1209,7 +1210,7 @@ void Editor::HandleEdit()
 
 	if (grabbedEntity != nullptr)
 	{
-		Vector2 grabPosition = Vector2(mouseX, mouseY);
+		glm::vec3 grabPosition = glm::vec3(mouseX, mouseY, 0);
 		grabPosition.x += game->renderer.camera.position.x;
 		grabPosition.y += game->renderer.camera.position.y;
 
@@ -1408,7 +1409,7 @@ void Editor::ToggleSpriteMap(int num)
 		delete_it(prev);
 
 	// Update the preview sprites accordingly
-	prev = game->CreateEntity(objectMode, Vector2(0, 0), entitySubtype);
+	prev = game->CreateEntity(objectMode, glm::vec3(0, 0, 0), entitySubtype);
 	prev->Init(*game, game->entityTypes[objectMode][entitySubtype]);
 
 	objectPreview = prev;
@@ -1534,7 +1535,7 @@ void Editor::ToggleTileset()
 		game->SaveEditorSettings();
 
 		previewMap["tile"] = game->CreateTile(Vector2(0, 0), "assets/editor/rect-outline.png",
-			Vector2(0, 0), DrawingLayer::FRONT);
+			glm::vec3(0, 0, 0), DrawingLayer::FRONT);
 		previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 		objectPreview = previewMap["tile"];
 	}
@@ -1580,7 +1581,7 @@ void Editor::Render(const Renderer& renderer)
 		// Draw the box that goes underneath all the properties
 		rectSprite->color = { 0, 255, 255, 128 };
 		scale = (Vector2(objectPropertiesRect.w, objectPropertiesRect.h));
-		rectSprite->Render(Vector2(objectPropertiesRect.x, objectPropertiesRect.y), renderer, scale);
+		rectSprite->Render(glm::vec3(objectPropertiesRect.x, objectPropertiesRect.y, 0), renderer, scale);
 
 		for (unsigned int k = 0; k < properties.size(); k++)
 		{
@@ -2044,7 +2045,7 @@ void Editor::CreateLevelFromString(std::string level)
 				{
 					positionX = std::stoi(tokens[indexOfPositionX]);
 					positionY = std::stoi(tokens[indexOfPositionY]);
-					game->player = game->SpawnPlayer(Vector2(positionX, positionY));
+					game->player = game->SpawnPlayer(glm::vec3(positionX, positionY, 0));
 				}
 				else if (etype == "tile")
 				{
@@ -2054,7 +2055,7 @@ void Editor::CreateLevelFromString(std::string level)
 
 					Tile* newTile = game->SpawnTile(Vector2(std::stoi(map[STR_FRAMEX]), std::stoi(map[STR_FRAMEY])),
 						GetTileSheetFileName(tilesheetIndex),
-						Vector2(std::stoi(map[STR_POSITIONX]), std::stoi(map[STR_POSITIONY])), 
+						glm::vec3(std::stoi(map[STR_POSITIONX]), std::stoi(map[STR_POSITIONY]), 0),
 						(DrawingLayer)std::stoi(map[STR_LAYER]));
 
 					newTile->Load(map, *game);
@@ -2120,7 +2121,7 @@ void Editor::CreateLevelFromString(std::string level)
 						subtype = "0";
 
 					Entity* newEntity = game->SpawnEntity(etype,
-						Vector2(positionX,positionY), std::stoi(subtype));
+						glm::vec3(positionX,positionY, 0), std::stoi(subtype));
 
 					if (newEntity != nullptr)
 					{

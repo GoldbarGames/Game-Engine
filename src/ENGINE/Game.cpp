@@ -173,22 +173,77 @@ Mesh* Game::CreateQuadMesh()
 
 Mesh* Game::CreateCubeMesh()
 {
-	unsigned int quadIndices[] = {
-	0, 3, 1,
+	unsigned int cubeIndices[] = {
+	3, 0, 4,
+	6, 3, 7,
 	1, 3, 2,
-	2, 3, 0,
-	0, 1, 2
+	6, 2, 3,
+	3, 4, 7,
+	1, 0, 3,
+	4, 0, 1,
+	5, 2, 6,
+	2, 5, 1,
+	5, 6, 7,
+	5, 7, 4,
+	5, 4, 1
 	};
 
-	GLfloat quadVertices[] = {
-		-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
-		-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
-		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
+	// Our vertices. Three consecutive floats give a 3D vertex; Three consecutive vertices give a triangle.
+	// A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 vertices
+	// 6 faces, 4 vertices per face = 24 indices
+
+	GLfloat cubeVertices[] = {
+		-1.0f,-1.0f,-1.0f, // triangle 1 : begin
+		-1.0f,-1.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f, // triangle 1 : end
+
+		1.0f, 1.0f,-1.0f, // triangle 2 : begin
+		-1.0f,-1.0f,-1.0f,
+		-1.0f, 1.0f,-1.0f, // triangle 2 : end
+
+		1.0f,-1.0f, 1.0f,
+		-1.0f,-1.0f,-1.0f,
+		1.0f,-1.0f,-1.0f,
+
+		1.0f, 1.0f,-1.0f,
+		1.0f,-1.0f,-1.0f,
+		-1.0f,-1.0f,-1.0f,
+
+		-1.0f,-1.0f,-1.0f,
+		-1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f,-1.0f,
+
+		1.0f,-1.0f, 1.0f,
+		-1.0f,-1.0f, 1.0f,
+		-1.0f,-1.0f,-1.0f,
+
+		-1.0f, 1.0f, 1.0f,
+		-1.0f,-1.0f, 1.0f,
+		1.0f,-1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f,
+		1.0f,-1.0f,-1.0f,
+		1.0f, 1.0f,-1.0f,
+
+		1.0f,-1.0f,-1.0f,
+		1.0f, 1.0f, 1.0f,
+		1.0f,-1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f,-1.0f,
+		-1.0f, 1.0f,-1.0f,
+
+		1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f,-1.0f,
+		-1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f,
+		1.0f,-1.0f, 1.0f
 	};
 
 	Mesh* mesh = neww Mesh();
-	mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
+	mesh->CreateMesh(cubeVertices, cubeIndices, 108, 36, 3, 0);
 
 	return mesh;
 }
@@ -573,7 +628,7 @@ bool Game::SetOpenGLAttributes()
 	return true;
 }
 
-Vector2 Game::SnapToGrid(Vector2 position)
+glm::vec3 Game::SnapToGrid(glm::vec3 position)
 {
 	int x = position.x - ((int)(position.x) % (editor->GRID_SIZE));
 	int y = position.y - ((int)(position.y) % (editor->GRID_SIZE));
@@ -584,10 +639,10 @@ Vector2 Game::SnapToGrid(Vector2 position)
 	if (y % 2 != 0)
 		y++;
 
-	return Vector2(x, y);
+	return glm::vec3(x, y, position.z);
 }
 
-Entity* Game::CreateEntity(const std::string& entityName, const Vector2& position, int subtype) const
+Entity* Game::CreateEntity(const std::string& entityName, const glm::vec3& position, int subtype) const
 {
 	Entity* newEntity = entityFactory->Create(entityName, position);
 
@@ -670,7 +725,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const Vector2& positio
 
 // TODO: We want to sort the entities every time we spawn one
 // as long as the game is running, but not when we are first loading the level
-Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position, const int spriteIndex) const
+Entity* Game::SpawnEntity(const std::string& entityName, const glm::vec3& position, const int spriteIndex) const
 {
 	Entity* entity = CreateEntity(entityName, position, spriteIndex); //entityFactory->Create(entityName, position);
 
@@ -694,7 +749,7 @@ Entity* Game::SpawnEntity(const std::string& entityName, const Vector2& position
 
 // This function converts from screen to world coordinates
 // and then immediately aligns the object on the grid
-Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE)
+glm::vec3 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE)
 {
 	mousePos.x += renderer.camera.position.x;
 	mousePos.y += renderer.camera.position.y;
@@ -718,11 +773,11 @@ Vector2 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE
 	newTileX += GRID_SIZE;
 	newTileY += GRID_SIZE;
 
-	return Vector2(newTileX, newTileY);
+	return glm::vec3(newTileX, newTileY, 0);
 }
 
 Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet, 
-	const Vector2& position, DrawingLayer drawingLayer) const
+	const glm::vec3& position, DrawingLayer drawingLayer) const
 {
 	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
 
@@ -734,7 +789,7 @@ Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet,
 }
 
 Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet, 
-	const Vector2& position, DrawingLayer drawingLayer) const
+	const glm::vec3& position, DrawingLayer drawingLayer) const
 {
 	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
 
@@ -749,7 +804,7 @@ Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet,
 }
 
 // NOTE: Spawning more than one player this way breaks things
-Entity* Game::SpawnPlayer(const Vector2& position)
+Entity* Game::SpawnPlayer(const glm::vec3& position)
 {
 	Entity* player = SpawnEntity("player", position, 0);
 		//static_cast<Player*>(SpawnEntity("player", position, 0));
@@ -835,7 +890,7 @@ void Game::StopTextInput()
 			for (unsigned int i = 0; i < entities.size(); i++)
 				delete_it(entities[i]);
 			entities.clear();
-			player = SpawnPlayer(Vector2(0, 0));
+			player = SpawnPlayer(glm::vec3(0, 0, 0));
 
 			editor->SaveLevel(inputText);
 		}			
@@ -1673,6 +1728,9 @@ bool Game::HandleEvent(SDL_Event& event)
 				break;
 			case SDLK_4: // Undo Button
 				//editor->UndoAction();
+
+
+				/*
 				if (savingGIF)
 				{
 					EndGIF();
@@ -1682,9 +1740,17 @@ bool Game::HandleEvent(SDL_Event& event)
 				{
 					StartGIF();
 					savingGIF = true;					
-				}				
+				}		
+				*/
+
+
 				break;
 			case SDLK_5: // Redo Button
+
+				// Free camera mode
+
+				freeCameraMode = !freeCameraMode;
+
 				//editor->RedoAction();
 				//EndGIF();
 				break;
@@ -1844,12 +1910,6 @@ void Game::GetMenuInput()
 	}
 	else
 	{
-		if (debugMode)
-		{
-			renderer.camera.KeyControl(input, dt, screenWidth, screenHeight);
-			renderer.guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
-		}
-
 		uint32_t ticks = timer.GetTicks();
 		if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
 		{
@@ -1871,6 +1931,13 @@ void Game::Update()
 	}
 
 	renderer.Update();
+
+	if (freeCameraMode)
+	{
+		const Uint8* input = SDL_GetKeyboardState(NULL);
+		renderer.camera.KeyControl(input, dt, screenWidth, screenHeight);
+		renderer.guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
+	}
 
 	if (openedMenus.size() > 0)
 	{
@@ -2065,7 +2132,7 @@ void Game::Render()
 
 	screenSprite->SetShader(renderer.shaders[ShaderName::Default]);
 
-	Vector2 screenPos = Vector2(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
+	glm::vec3 screenPos = glm::vec3(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight, 0);
 	Vector2 screenScale = Vector2(renderer.camera.startScreenWidth / screenWidth, renderer.camera.startScreenHeight / -screenHeight);
 
 	// If the timer is not up, then we should shake the screen
@@ -2091,16 +2158,16 @@ void Game::Render()
 		static float distX = screenPos.x * distPercent;
 		static float distY = screenPos.y * distPercent;
 
-		static Vector2 screenCenter = screenPos;
+		static glm::vec3 screenCenter = screenPos;
 
-		static Vector2 screenLeft = Vector2(screenPos.x - distX, screenPos.y);
-		static Vector2 screenRight = Vector2(screenPos.x + distX, screenPos.y);
+		static glm::vec3 screenLeft = glm::vec3(screenPos.x - distX, screenPos.y, 0);
+		static glm::vec3 screenRight = glm::vec3(screenPos.x + distX, screenPos.y, 0);
 
-		static Vector2 screenUp = Vector2(screenPos.x, screenPos.y - distY);
-		static Vector2 screenDown = Vector2(screenPos.x, screenPos.y + distY);
+		static glm::vec3 screenUp = glm::vec3(screenPos.x, screenPos.y - distY, 0);
+		static glm::vec3 screenDown = glm::vec3(screenPos.x, screenPos.y + distY, 0);
 
-		static Vector2 quakeStartPos = screenCenter;
-		static Vector2 quakeEndPos = screenCenter;
+		static glm::vec3 quakeStartPos = screenCenter;
+		static glm::vec3 quakeEndPos = screenCenter;
 
 		static bool randomX = false;
 		static bool randomY = false;
@@ -2133,7 +2200,7 @@ void Game::Render()
 		else
 		{
 			// 0. Go from center to right
-			if (LerpVector2(cutsceneManager.commands.currentQuakePosition,
+			if (LerpVector3(cutsceneManager.commands.currentQuakePosition,
 				quakeStartPos, quakeEndPos, currentTime, startTime, endTime))
 			{
 				cutsceneManager.commands.quakeCount++;

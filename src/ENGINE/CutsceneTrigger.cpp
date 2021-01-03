@@ -2,7 +2,7 @@
 #include "CutsceneManager.h"
 #include "Game.h"
 
-CutsceneTrigger::CutsceneTrigger(Vector2 pos) : Entity(pos)
+CutsceneTrigger::CutsceneTrigger(glm::vec3 pos) : Entity(pos)
 {
 
 }

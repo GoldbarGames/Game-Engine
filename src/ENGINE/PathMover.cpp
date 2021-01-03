@@ -40,9 +40,9 @@ bool PathMover::MoveAlongPath(Entity& entity, Game& game)
 		wasMovingForward = movingForwardOnPath;
 		entity.lastPosition = entity.position;
 
-		LerpVector2(entity.position, currentPath->nodes[pathNodeID]->position, pathSpeed, 2.0f);
+		LerpVector3(entity.position, currentPath->nodes[pathNodeID]->position, pathSpeed, 2.0f);
 
-		if (entity.position.RoundToInt() == currentPath->nodes[pathNodeID]->position.RoundToInt())
+		if (RoundToInt(entity.position) == RoundToInt(currentPath->nodes[pathNodeID]->position))
 		{
 			// loop for now
 			if (movingForwardOnPath)

@@ -76,7 +76,7 @@ void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& target
 	debugSprite->color = color;
 	debugSprite->pivot = targetPivot;
 	debugScale = Vector2(CalculateScale(*debugSprite, targetRect.w, targetRect.h, targetScale));
-	debugSprite->Render(Vector2(targetRect.x, targetRect.y), *this, debugScale);
+	debugSprite->Render(glm::vec3(targetRect.x, targetRect.y, 0), *this, debugScale);
 }
 
 Vector2 Renderer::CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const

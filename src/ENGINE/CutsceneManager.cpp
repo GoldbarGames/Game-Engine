@@ -414,6 +414,10 @@ void CutsceneManager::CheckKeys()
 			}
 		}
 #if _DEBUG
+		else if (game->freeCameraMode)
+		{
+			// do nothing
+		}
 		else if (input[SDL_SCANCODE_S]) // save game
 		{
 			SaveGame("file1.sav");
@@ -807,7 +811,7 @@ void CutsceneManager::RenderTextbox(const Renderer& renderer)
 {
 	// Render the overlay above all sprites
 	renderer.FadeOverlay(game->screenWidth, game->screenHeight);
-	renderer.overlaySprite->Render(Vector2(0, 0), renderer, renderer.overlayScale);
+	renderer.overlaySprite->Render(glm::vec3(0, 0, 0), renderer, renderer.overlayScale);
 
 	// Render the textbox above everything
 	if (GetLabelName(currentLabel) != "title")
@@ -821,7 +825,7 @@ void CutsceneManager::RenderTextbox(const Renderer& renderer)
 
 void CutsceneManager::Render(const Renderer& renderer)
 {
-	if (watchingCutscene)
+	if (watchingCutscene)// && !game->freeCameraMode)
 	{
 		bool renderedTextbox = false;
 
@@ -848,7 +852,7 @@ void CutsceneManager::Render(const Renderer& renderer)
 	else // only draw the overlay, not text or box
 	{
 		renderer.FadeOverlay(game->screenWidth, game->screenHeight);
-		renderer.overlaySprite->Render(Vector2(0, 0), renderer, renderer.overlayScale);
+		renderer.overlaySprite->Render(glm::vec3(0, 0, 0), renderer, renderer.overlayScale);
 	}
 }
 

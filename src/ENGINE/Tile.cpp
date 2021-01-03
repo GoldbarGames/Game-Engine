@@ -8,7 +8,7 @@
 #include "Editor.h"
 #include "Entity.h"
 
-Tile::Tile(const Vector2& pos, const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize) : Entity(pos)
+Tile::Tile(const glm::vec3& pos, const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize) : Entity(pos)
 {	
 	shouldSave = true;
 	ChangeSprite(frame, image, renderer, tileSize);
@@ -38,7 +38,7 @@ void Tile::Destroy()
 
 }
 
-bool Tile::CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera)
+bool Tile::CanSpawnHere(const glm::vec3& spawnPosition, Game& game, bool useCamera)
 {
 	return Entity::CanSpawnHere(spawnPosition, game, useCamera);
 

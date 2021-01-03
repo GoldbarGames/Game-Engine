@@ -136,7 +136,7 @@ void Background::SpawnBackground(const std::string& n, Game& game)
 
 		for (unsigned int i = 0; i < NUM_BGS; i++)
 		{
-			Vector2 bgPos = Vector2((BG_WIDTH * i) + X_OFFSET, Y_OFFSET);
+			glm::vec3 bgPos = glm::vec3((BG_WIDTH * i) + X_OFFSET, Y_OFFSET, 0);
 			CreateBackground(n, bgPos, game.spriteManager, game.renderer);
 		}
 
@@ -146,7 +146,7 @@ void Background::SpawnBackground(const std::string& n, Game& game)
 
 // This function creates one background, possibly composed of multiple layers.
 // This function may be called multiple times to place copies of backgrounds next to each other.
-void Background::CreateBackground(const std::string& n, Vector2 pos, 
+void Background::CreateBackground(const std::string& n, glm::vec3 pos,
 	const SpriteManager& spriteManager, const Renderer& renderer)
 {
 	name = n;
@@ -168,10 +168,10 @@ void Background::Render(const Renderer& renderer)
 	}
 }
 
-Entity* Background::AddLayer(const Vector2& pos, const BackgroundLayerData& data, 
+Entity* Background::AddLayer(const glm::vec3& pos, const BackgroundLayerData& data,
 	const SpriteManager& spriteManager, const Renderer& renderer)
 {	
-	Entity* bg = neww BackgroundLayer(Vector2(pos.x + data.offsetX, pos.y + data.offsetY), data.parallax);
+	Entity* bg = neww BackgroundLayer(glm::vec3(pos.x + data.offsetX, pos.y + data.offsetY, pos.z), data.parallax);
 	bg->drawOrder = data.drawOrder;
 	bg->GetSprite()->SetTexture(spriteManager.GetImage(data.filepath));
 	bg->GetSprite()->SetShader(renderer.shaders[ShaderName::Default]);

@@ -4,6 +4,7 @@
 #include <iostream>
 //using Vector2 = glm::vec2;
 #include "leak_check.h"
+#include <glm/vec3.hpp>
 
 class KINJO_API Vector2
 {
@@ -37,6 +38,15 @@ inline Vector2 RoundToInt(Vector2 vector)
 	Vector2 newVector;
 	newVector.x = static_cast<float>(static_cast<int>(vector.x));
 	newVector.y = static_cast<float>(static_cast<int>(vector.y));
+	return newVector;
+}
+
+inline glm::vec3 RoundToInt(glm::vec3 vector)
+{
+	glm::vec3 newVector;
+	newVector.x = static_cast<float>(static_cast<int>(vector.x));
+	newVector.y = static_cast<float>(static_cast<int>(vector.y));
+	newVector.z = static_cast<float>(static_cast<int>(vector.z));
 	return newVector;
 }
 

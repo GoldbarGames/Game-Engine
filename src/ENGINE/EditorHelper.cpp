@@ -36,7 +36,7 @@ void EditorHelper::Render(const Renderer& renderer)
 
 }
 
-void EditorHelper::PlaceObject(Vector2& snappedPosition)
+void EditorHelper::PlaceObject(glm::vec3& snappedPosition)
 {
 
 }

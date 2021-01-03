@@ -2,10 +2,12 @@
 #include <string>
 #include <unordered_map>
 #include "leak_check.h"
+#include <glm/vec3.hpp>
+
 class Entity;
 class Vector2;
 
-typedef Entity* (__stdcall* CreateEntity)(const Vector2& pos);
+typedef Entity* (__stdcall* CreateEntity)(const glm::vec3& pos);
 
 class KINJO_API EntityFactory
 {
@@ -25,6 +27,6 @@ public:
         return &instance;
     }
 
-    Entity* Create(const std::string& entityName, const Vector2& position) const;
+    Entity* Create(const std::string& entityName, const glm::vec3& position) const;
 };
 

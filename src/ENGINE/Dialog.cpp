@@ -3,7 +3,7 @@
 #include "Renderer.h"
 #include "Shader.h"
 
-Dialog::Dialog(const Vector2& pos, SpriteManager* manager)
+Dialog::Dialog(const glm::vec3& pos, SpriteManager* manager)
 {
 	position = pos;
 	sprite = neww Sprite(manager->renderer->shaders[ShaderName::Default]);

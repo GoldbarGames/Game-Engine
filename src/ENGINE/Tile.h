@@ -29,8 +29,8 @@ public:
 	void Destroy();
 	void ChangeSprite(const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize);
 	void Animate();
-	bool CanSpawnHere(const Vector2& spawnPosition, Game& game, bool useCamera = true);
-	Tile(const Vector2& pos, const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize);
+	bool CanSpawnHere(const glm::vec3& spawnPosition, Game& game, bool useCamera = true);
+	Tile(const glm::vec3& pos, const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize);
 	~Tile();
 
 	void Save(std::unordered_map<std::string, std::string>& map);

@@ -109,7 +109,7 @@ uint32_t Entity::GenerateValidID()
 
 //TODO: Figure out what to do with the background layers
 // since they will offset the next valid ID every time we save the level
-Entity::Entity(const Vector2& pos) : collider(0, 0, Globals::TILE_SIZE, Globals::TILE_SIZE)
+Entity::Entity(const glm::vec3& pos) : collider(0, 0, Globals::TILE_SIZE, Globals::TILE_SIZE)
 {
 	name = "entity";
 	position = pos;
@@ -118,7 +118,7 @@ Entity::Entity(const Vector2& pos) : collider(0, 0, Globals::TILE_SIZE, Globals:
 	id = GenerateValidID();
 }
 
-Entity::Entity(const Vector2& pos, Sprite* sprite) : Entity(pos)
+Entity::Entity(const glm::vec3& pos, Sprite* sprite) : Entity(pos)
 {
 	currentSprite = *sprite;
 }
@@ -152,7 +152,7 @@ void Entity::CalculateCollider()
 }
 
 
-void Entity::Pause(Uint32 ticks)
+void Entity::Pause(uint32_t ticks)
 {
 	// TODO: Pause/unpause the animator
 	if (animator != nullptr)
@@ -163,7 +163,7 @@ void Entity::Pause(Uint32 ticks)
 }
 
 
-void Entity::Unpause(Uint32 ticks)
+void Entity::Unpause(uint32_t ticks)
 {
 	if (animator != nullptr)
 	{
@@ -212,17 +212,17 @@ SDL_Rect Entity::GetTopLeftBounds()
 	return ConvertCoordsFromCenterToTopLeft(collider.bounds);
 }
 
-Vector2 Entity::GetPosition() const
+glm::vec3 Entity::GetPosition() const
 {
 	return position;
 }
 
-Vector2 Entity::GetCenter() const
+glm::vec3 Entity::GetCenter() const
 {
-	return Vector2(currentSprite.frameWidth / 2, currentSprite.frameHeight / 2);
+	return glm::vec3(currentSprite.frameWidth / 2, currentSprite.frameHeight / 2, 0);
 }
 
-void Entity::SetPosition(const Vector2& newPosition)
+void Entity::SetPosition(const glm::vec3& newPosition)
 {
 	position = newPosition;
 }
@@ -287,7 +287,7 @@ void Entity::Render(const Renderer& renderer)
 
 void Entity::RenderParallax(const Renderer& renderer, float p)
 {
-	Vector2 renderPosition = Vector2(position.x + (renderer.camera.position.x * p), position.y);
+	glm::vec3 renderPosition = glm::vec3(position.x + (renderer.camera.position.x * p), position.y, position.z);
 
 	if (renderer.IsVisible(layer))
 	{
@@ -306,7 +306,7 @@ void Entity::SetSprite(Sprite& sprite)
 // This should check to see whether or not there already exists an object
 // where we are trying to place this object, and possibly (depending on this object)
 // whether or not there is any ground below (classes can override this if needed)
-bool Entity::CanSpawnHere(const Vector2& spawnPosition, const Game& game, bool useCamera)
+bool Entity::CanSpawnHere(const glm::vec3& spawnPosition, const Game& game, bool useCamera)
 {
 	bool shouldSpawn = true;
 
