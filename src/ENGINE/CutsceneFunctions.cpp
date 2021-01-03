@@ -1300,11 +1300,14 @@ namespace CutsceneFunctions
 
 		bool isStandingImage = parameters[1] == "l" || parameters[1] == "c" || parameters[1] == "r";
 
+		std::string filepath = c.pathPrefix + c.ParseStringValue(parameters[2]);
+		unsigned int imageNumber = c.ParseNumberValue(parameters[1]);
+
 		if (!isStandingImage && parameters[1] != "bg")
 		{
-			const unsigned int x = c.ParseNumberValue(parameters[3]);
-			const unsigned int y = c.ParseNumberValue(parameters[4]);
-			pos = glm::vec3(x, y, 0);
+			const int x = c.ParseNumberValue(parameters[3]);
+			const int y = c.ParseNumberValue(parameters[4]);
+			pos = glm::vec3(x, y, c.manager->game->renderer.guiCamera.position.z);
 
 			if (parameters.size() > 5)
 				PrintCommand({ "print", parameters[5] }, c);
@@ -1313,9 +1316,6 @@ namespace CutsceneFunctions
 			else
 				PrintCommand({ "print", "0" }, c);
 		}
-
-		std::string filepath = c.pathPrefix + c.ParseStringValue(parameters[2]);
-		unsigned int imageNumber = c.ParseNumberValue(parameters[1]);
 
 		//TODO: Don't delete/new, just grab from entity pool and reset
 		if (c.manager->images[imageNumber] != nullptr)
@@ -1395,7 +1395,7 @@ namespace CutsceneFunctions
 				(newImage.GetSprite()->frameHeight);
 
 			pos = glm::vec3(spriteX + c.manager->game->renderer.guiCamera.position.x,
-				spriteY + c.manager->game->renderer.guiCamera.position.y, c.manager->game->renderer.guiCamera.position.z);
+				spriteY + c.manager->game->renderer.guiCamera.position.y, c.manager->game->renderer.guiCamera.position.z + imageNumber);
 
 			newImage.SetPosition(pos);
 
@@ -3126,9 +3126,9 @@ namespace CutsceneFunctions
 			{
 				// Create new particle system here
 				unsigned int imageNumber = c.ParseNumberValue(parameters[3]);
-				const unsigned int x = c.ParseNumberValue(parameters[4]);
-				const unsigned int y = c.ParseNumberValue(parameters[5]);
-				const unsigned int z = (parameters.size() > 6) ? c.ParseNumberValue(parameters[6]) : 0;
+				const int x = c.ParseNumberValue(parameters[4]);
+				const int y = c.ParseNumberValue(parameters[5]);
+				const int z = (parameters.size() > 6) ? c.ParseNumberValue(parameters[6]) : 0;
 
 				//TODO: Don't delete/new, just grab from entity pool and reset
 				if (c.manager->images[imageNumber] != nullptr)
@@ -3175,8 +3175,15 @@ namespace CutsceneFunctions
 					{
 						float vx = c.ParseNumberValue(parameters[4]) * 0.001f;
 						float vy = c.ParseNumberValue(parameters[5]) * 0.001f;
-						float vz = (parameters.size() > 6) ? c.ParseNumberValue(parameters[6]) : 0;
+						float vz = (parameters.size() > 6) ? c.ParseNumberValue(parameters[6]) * 0.001f : 0;
 						particleSystem->nextParticleVelocity = glm::vec3(vx, vy, vz);
+					}
+					else if (parameters[3] == "scale") // set the scale of next particle
+					{
+						float sx = c.ParseNumberValue(parameters[4]);
+						float sy = c.ParseNumberValue(parameters[5]);
+						float sz = (parameters.size() > 6) ? c.ParseNumberValue(parameters[6]) : 0;
+						particleSystem->nextParticleScale = Vector2(sx, sy);
 					}
 					else if (parameters[3] == "timeToSpawn") // set time between particle spawns
 					{

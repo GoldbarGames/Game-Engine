@@ -199,6 +199,7 @@ public:
 	std::string currentScript = "";
 	
 	CutsceneCommands commands;
+	bool renderCutscene = true;
 
 	Timer printTimer;
 	bool useMouseControls = true;

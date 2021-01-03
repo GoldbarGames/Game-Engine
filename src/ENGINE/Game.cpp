@@ -344,17 +344,20 @@ Game::~Game()
 	// NOTE: Need to delete textures manually for the screen textures
 	// which are created using frame buffers (not the usual way)
 	// TODO: Maybe automate this somehow
-	if (prevScreenSprite != nullptr)
+
+	if (mainFrameBuffer != nullptr)
 	{
-		if (prevScreenSprite->texture != nullptr)
-			delete_it(prevScreenSprite->texture);
-		delete_it(prevScreenSprite);
+		delete_it(mainFrameBuffer);
 	}
-	if (screenSprite != nullptr)
+
+	if (cutsceneFrameBuffer != nullptr)
 	{
-		if (screenSprite->texture != nullptr)
-			delete_it(screenSprite->texture);
-		delete_it(screenSprite);
+		delete_it(cutsceneFrameBuffer);
+	}
+
+	if (prevCutsceneFrameBuffer != nullptr)
+	{
+		delete_it(prevCutsceneFrameBuffer);
 	}
 		
 
@@ -475,12 +478,15 @@ void Game::InitOpenGL()
 	glewExperimental = GL_TRUE;
 	glewInit();
 
-	glDisable(GL_DEPTH_TEST);
-	//glDepthFunc(GL_LESS);
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 
-	// Enable blending for transparent textures
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glAlphaFunc(GL_GREATER, 0.1);
+	glEnable(GL_ALPHA_TEST);
+
 
 	glViewport(0, 0, screenWidth, screenHeight);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -512,46 +518,10 @@ void Game::InitOpenGL()
 
 	m->ClearMesh();
 
-	screenSprite = InitFramebuffer(framebuffer, textureColorBuffer, renderBufferObject);
-	prevScreenSprite = InitFramebuffer(prevFramebuffer, prevTextureColorBuffer, prevRenderBufferObject);
+	mainFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
+	cutsceneFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
+	prevCutsceneFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
 
-	/*
-	prevScreenSprite = neww Sprite(screenSprite->texture, renderer.shaders[ShaderName::Default]);	
-	prevScreenSprite->keepPositionRelativeToCamera = true;
-	prevScreenSprite->keepScaleRelativeToCamera = true;
-	prevScreenSprite->color = { 255, 255, 255, 0 };
-	prevScreenSprite->SetScale(Vector2(1.0f, -1.0f));
-	*/
-
-}
-
-Sprite* Game::InitFramebuffer(unsigned int& fbo, unsigned int& tex, unsigned int& rbo)
-{
-	glGenFramebuffers(1, &fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-	Texture* screenTexture = neww Texture("");
-	screenTexture->LoadTexture(tex, screenWidth, screenHeight);
-
-	Sprite* sprite = neww Sprite(screenTexture, renderer.shaders[ShaderName::Default]);
-	sprite->keepPositionRelativeToCamera = true;
-	sprite->keepScaleRelativeToCamera = true;
-
-	// attach it to currently bound framebuffer object
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
-
-	glGenRenderbuffers(1, &rbo);
-	glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
-	glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	return sprite;
 }
 
 void Game::InitSDL()
@@ -1696,13 +1666,11 @@ bool Game::HandleEvent(SDL_Event& event)
 			// DEVELOPER BUTTONS
 
 			case SDLK_r:
-				//if (player != nullptr)
-				//	player->ResetPosition();
-				if (!editMode)
+				if (!editMode && !freeCameraMode)
 					ResetLevel();
 				break;			
 			case SDLK_t:
-				if (!editMode)
+				if (!editMode && !freeCameraMode)
 					LoadLevel(nextLevel);
 				break;
 			case SDLK_1: // toggle Debug mode
@@ -1742,6 +1710,8 @@ bool Game::HandleEvent(SDL_Event& event)
 					savingGIF = true;					
 				}		
 				*/
+
+				cutsceneManager.renderCutscene = !cutsceneManager.renderCutscene;
 
 
 				break;
@@ -2047,21 +2017,24 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 	renderer.camera.ResetProjection(); // Zoom(0.0f, 1280.0f * Camera::MULTIPLIER, 720.0f * Camera::MULTIPLIER);
 	renderer.guiCamera.Zoom(0.0f, screenWidth * Camera::MULTIPLIER, screenHeight * Camera::MULTIPLIER);
 
-	if (prevScreenSprite != nullptr)
+	if (mainFrameBuffer != nullptr)
 	{
-		if (prevScreenSprite->texture != nullptr)
-			delete_it(prevScreenSprite->texture);
-		delete_it(prevScreenSprite);
-	}
-	if (screenSprite != nullptr)
-	{
-		if (screenSprite->texture != nullptr)
-			delete_it(screenSprite->texture);
-		delete_it(screenSprite);
+		delete_it(mainFrameBuffer);
 	}
 
-	screenSprite = InitFramebuffer(framebuffer, textureColorBuffer, renderBufferObject);
-	prevScreenSprite = InitFramebuffer(prevFramebuffer, prevTextureColorBuffer, prevRenderBufferObject);
+	if (cutsceneFrameBuffer != nullptr)
+	{
+		delete_it(cutsceneFrameBuffer);
+	}
+
+	if (prevCutsceneFrameBuffer != nullptr)
+	{
+		delete_it(prevCutsceneFrameBuffer);
+	}
+
+	mainFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
+	cutsceneFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
+	prevCutsceneFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
 
 	glViewport(0, 0, screenWidth, screenHeight);
 }
@@ -2070,8 +2043,8 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 void Game::Render()
 {
 	// first pass
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glBindFramebuffer(GL_FRAMEBUFFER, cutsceneFrameBuffer->framebufferObject);
+	glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
 	//glEnable(GL_DEPTH_TEST);
 
@@ -2093,31 +2066,28 @@ void Game::Render()
 	{
 		renderSecondFrameBuffer = true;
 
-		if (prevScreenSprite->color.a < 10)
-			int test = 0;
-
 		float timeLeft = cutsceneManager.printTimer.endTime - cutsceneManager.printTimer.startTicks;
 		float t = (timeLeft > 0) ? std::min(1.0f, (cutsceneManager.printTimer.GetTicks() / timeLeft)) : 1.0f; // percentage of passed time
 
-		float alpha = prevScreenSprite->color.a;
+		float alpha = prevCutsceneFrameBuffer->sprite->color.a;
 		LerpCoord(alpha, 255, 0, t); 
-		prevScreenSprite->color.a = alpha;
+		prevCutsceneFrameBuffer->sprite->color.a = alpha;
 
 		// TODO: For alpha mask, use a shader to get the max of (alpha, pixel of black/white texture)
 		// so that the black parts render before the white parts
 
 		//std::cout << std::to_string(prevScreenSprite->color.a) << std::endl;
 
-		if (prevScreenSprite->color.a <= 10) // this can't be exactly 0 in case the timer expires first
+		if (prevCutsceneFrameBuffer->sprite->color.a <= 10) // this can't be exactly 0 in case the timer expires first
 		{
 			//std::cout << "RENDER PREV SCENE" << std::endl;
 			renderSecondFrameBuffer = false;
 			updateScreenTexture = false;
-			glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, prevCutsceneFrameBuffer->framebufferObject);
 			//glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			RenderScene();
-			prevScreenSprite->color.a = 255;
+			prevCutsceneFrameBuffer->sprite->color.a = 255;
 		}
 	}
 
@@ -2130,7 +2100,7 @@ void Game::Render()
 
 	// TODO: Set post-processing shaders here
 
-	screenSprite->SetShader(renderer.shaders[ShaderName::Default]);
+	cutsceneFrameBuffer->sprite->SetShader(renderer.shaders[ShaderName::Default]);
 
 	glm::vec3 screenPos = glm::vec3(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight, 0);
 	Vector2 screenScale = Vector2(renderer.camera.startScreenWidth / screenWidth, renderer.camera.startScreenHeight / -screenHeight);
@@ -2282,11 +2252,11 @@ void Game::Render()
 		
 	}
 
-	screenSprite->Render(screenPos, renderer, screenScale);
+	cutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
 
 	if (renderSecondFrameBuffer)
 	{
-		prevScreenSprite->Render(screenPos, renderer, Vector2(1,-1));
+		prevCutsceneFrameBuffer->sprite->Render(screenPos, renderer, Vector2(1,-1));
 	}
 
 	/*
@@ -2312,6 +2282,8 @@ void Game::Render()
 
 void Game::RenderScene()
 {
+	glEnable(GL_DEPTH_TEST);
+
 	gui->RenderStart();
 
 	// Render editor grid
@@ -2381,7 +2353,9 @@ void Game::RenderScene()
 	}
 
 	// Draw anything in the cutscenes
+	glDisable(GL_DEPTH_TEST);
 	cutsceneManager.Render(renderer); // includes the overlay
+
 
 	// Render editor toolbox
 	if (editMode)
@@ -2401,6 +2375,8 @@ void Game::RenderScene()
 		debugScreen->Render(renderer);
 	}
 #endif
+
+
 }
 
 std::vector<std::string> Game::ReadStringsFromFile(const std::string& filepath)

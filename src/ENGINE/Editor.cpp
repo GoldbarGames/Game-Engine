@@ -1777,7 +1777,32 @@ std::string Editor::SaveLevelAsString()
 			level << "0 camera-target 0 0 " << cameraTargetID << std::endl;
 		}
 	}
+
 	level << "0 camera-zoom 0 0 " << game->renderer.camera.orthoZoom << std::endl;
+
+
+	// Save the camera
+
+	map.clear();
+	game->renderer.camera.Save(map);
+
+	// Search through the list of variables in the loading.dat file
+	list.clear();
+	list = loadDataMap["camera"];
+
+	for (int k = 0; k < list.size(); k++)
+	{
+		if (map.count(list[k]) != 0)
+		{
+			level << map[list[k]] << " ";
+		}
+		else
+		{
+			level << "0 ";
+		}
+	}
+
+	//
 
 	return level.str();
 }
@@ -2019,10 +2044,13 @@ void Editor::CreateLevelFromString(std::string level)
 				// Populate the map of data if it does not exist
 				if (loadDataMap.count(etype) != 0)
 				{
-					currentDataMap = &loadDataMap[STR_ENTITY];
-					for (int i = 0; i < currentDataMap->size(); i++)
+					if (etype != "camera")
 					{
-						map[(*currentDataMap)[i]] = tokens[index++];
+						currentDataMap = &loadDataMap[STR_ENTITY];
+						for (int i = 0; i < currentDataMap->size(); i++)
+						{
+							map[(*currentDataMap)[i]] = tokens[index++];
+						}
 					}
 
 					currentDataMap = &loadDataMap[etype];
@@ -2074,6 +2102,10 @@ void Editor::CreateLevelFromString(std::string level)
 				{
 					index = 4;
 					game->nextBGM = tokens[index++];
+				}
+				else if (etype == "camera")
+				{
+					game->renderer.camera.Load(map, *game);
 				}
 				else if (etype == "camera-zoom")
 				{

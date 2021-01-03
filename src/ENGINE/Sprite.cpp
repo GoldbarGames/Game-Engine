@@ -414,12 +414,19 @@ void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const
 			else
 			{
 				model = glm::translate(model, glm::vec3(position.x + renderer.guiCamera.position.x,
-					position.y + renderer.guiCamera.position.y, renderer.guiCamera.position.z));
+					position.y + renderer.guiCamera.position.y, renderer.guiCamera.position.z + position.z));
 			}
 		}
 		else
 		{
-			model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
+			if (renderer.camera.useOrthoCamera)
+			{
+				model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
+			}
+			else
+			{
+				model = glm::translate(model, glm::vec3(position.x, position.y, position.z));
+			}
 		}
 
 		// Rotation

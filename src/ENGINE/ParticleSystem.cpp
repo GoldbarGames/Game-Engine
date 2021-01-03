@@ -44,6 +44,7 @@ void ParticleSystem::Update(Game& game)
 			colliderHeight = nextParticleColliderHeight;
 
 		particles[nextActiveIndex].CreateCollider(0, 0, colliderWidth, colliderHeight);
+		particles[nextActiveIndex].scale = nextParticleScale;
 
 		infos[nextActiveIndex].velocity = nextParticleVelocity;
 		infos[nextActiveIndex].lifeTimer.Start(nextParticleTimeToLive);
@@ -66,6 +67,7 @@ void ParticleSystem::Update(Game& game)
 
 			particles[i].position.x += infos[i].velocity.x * game.dt;
 			particles[i].position.y += infos[i].velocity.y * game.dt;
+			particles[i].position.z += infos[i].velocity.z * game.dt;
 
 			if (infos[i].lifeTimer.HasElapsed())
 			{

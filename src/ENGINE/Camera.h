@@ -5,6 +5,7 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <unordered_map>
 //#include <GLFW/glfw3.h>
 #include "leak_check.h"
 class Entity;
@@ -12,6 +13,16 @@ class Game;
 
 class KINJO_API Camera
 {
+private:
+
+	glm::vec3 front = glm::vec3(0, 0, 0);
+	glm::vec3 up = glm::vec3(0, 0, 0);
+	glm::vec3 right = glm::vec3(0, 0, 0);
+	glm::vec3 worldUp = glm::vec3(0, 0, 0);
+
+	float movementSpeed = 0;
+	float turnSpeed = 0;
+
 public:
 	Camera();
 	Camera(glm::vec3 startPos, glm::vec3 startUp, float startYaw, float startPitch,
@@ -57,15 +68,9 @@ public:
 	void Update();
 
 	float startingZoom = 4.0f;
-private:
-	
-	glm::vec3 front = glm::vec3(0, 0, 0);
-	glm::vec3 up = glm::vec3(0, 0, 0);
-	glm::vec3 right = glm::vec3(0, 0, 0);
-	glm::vec3 worldUp = glm::vec3(0, 0, 0);
 
-	float movementSpeed = 0;
-	float turnSpeed = 0;
+	void Save(std::unordered_map<std::string, std::string>& map);
+	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 };
 
 #endif

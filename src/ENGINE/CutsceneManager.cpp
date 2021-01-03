@@ -825,7 +825,7 @@ void CutsceneManager::RenderTextbox(const Renderer& renderer)
 
 void CutsceneManager::Render(const Renderer& renderer)
 {
-	if (watchingCutscene)// && !game->freeCameraMode)
+	if (watchingCutscene && renderCutscene)
 	{
 		bool renderedTextbox = false;
 

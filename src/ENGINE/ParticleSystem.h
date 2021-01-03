@@ -19,6 +19,7 @@ public:
 	int nextParticleColliderWidth = 0;
 	int nextParticleColliderHeight = 0;
 	glm::vec3 nextParticleVelocity = glm::vec3(0, 0, 0);
+	Vector2 nextParticleScale = Vector2(1, 1);
 	float nextParticleTimeToLive = 1.0f;
 	Timer spawnTimer;
 	int maxNumberofParticles = 1;

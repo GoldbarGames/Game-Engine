@@ -14,11 +14,14 @@
 #include "SpriteManager.h"
 #include "Renderer.h"
 #include "Logger.h"
+#include "FrameBuffer.h"
 
 #include "gifanim.h"
 
 class FileManager;
 class MenuManager;
+
+class FrameBuffer;
 
 enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
 
@@ -29,10 +32,6 @@ private:
 	SDL_GLContext mainContext = nullptr;
 
 	float now = 0; // duration from game start to current frame
-
-	Sprite* screenSprite = nullptr;
-	Sprite* prevScreenSprite = nullptr;
-
 	bool waitingForDebugDialog = false;
 
 public:
@@ -95,17 +94,11 @@ public:
 
 	std::unordered_map<std::string, MenuScreen*> allMenus;
 
-	unsigned int framebuffer;
-	unsigned int renderBufferObject;
-	unsigned int textureColorBuffer;
-
-	unsigned int prevFramebuffer;
-	unsigned int prevRenderBufferObject;
-	unsigned int prevTextureColorBuffer;
+	FrameBuffer* mainFrameBuffer = nullptr;
+	FrameBuffer* cutsceneFrameBuffer = nullptr;
+	FrameBuffer* prevCutsceneFrameBuffer = nullptr;
 
 	bool updateScreenTexture = false;
-
-	Sprite* InitFramebuffer(unsigned int& fbo, unsigned int& tex, unsigned int& rbo );
 
 	void InitOpenGL();
 

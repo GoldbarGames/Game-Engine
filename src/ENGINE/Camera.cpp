@@ -263,9 +263,6 @@ void Camera::KeyControl(const uint8_t* input, const float& dt,
 			if (pitch > 89.0f)
 				pitch = 89.0f;
 
-			if (pitch < -89.0f)
-				pitch = -89.0f;
-
 			Update();
 		}
 
@@ -277,14 +274,65 @@ void Camera::KeyControl(const uint8_t* input, const float& dt,
 			//yaw += xChange;
 			pitch -= 1.0f;
 
-			if (pitch > 89.0f)
-				pitch = 89.0f;
-
 			if (pitch < -89.0f)
 				pitch = -89.0f;
 
 			Update();
 		}
+
+
+		if (input[SDL_SCANCODE_G])
+		{
+			if (!shouldUpdate)
+				return;
+
+			yaw += 1.0f;
+
+			if (yaw > 89.0f)
+				yaw = 89.0f;
+
+			Update();
+		}
+
+		if (input[SDL_SCANCODE_H])
+		{
+			if (!shouldUpdate)
+				return;
+
+			yaw -= 1.0f;
+
+			if (yaw < -89.0f)
+				yaw = -89.0f;
+
+			Update();
+		}
+
+		if (input[SDL_SCANCODE_R])
+		{
+			if (!shouldUpdate)
+				return;
+
+			roll += 1.0f;
+
+			if (roll > 89.0f)
+				roll = 89.0f;
+
+			Update();
+		}
+
+		if (input[SDL_SCANCODE_T])
+		{
+			if (!shouldUpdate)
+				return;
+
+			roll -= 1.0f;
+
+			if (roll < -89.0f)
+				roll = -89.0f;
+
+			Update();
+		}
+
 	}
 	else // 2D Zoom
 	{
@@ -350,4 +398,42 @@ void Camera::Update()
 
 	right = glm::normalize(glm::cross(front, worldUp));
 	up = glm::normalize(glm::cross(right, front));
+}
+
+
+void Camera::Save(std::unordered_map<std::string, std::string>& map)
+{
+	map["id"] = "0";
+	map["type"] = "camera";
+	map["positionX"] = std::to_string((float)position.x);
+	map["positionY"] = std::to_string((float)position.y);
+	map["positionZ"] = std::to_string((float)position.z);
+	map["pitch"] = std::to_string((float)pitch);
+	map["yaw"] = std::to_string((float)yaw);
+	map["roll"] = std::to_string((int)roll);
+	map["angle"] = std::to_string((float)angle);
+	map["zoom"] = std::to_string((float)startingZoom);
+
+	// TODO: Deal with saving/loading target info
+	if (target != nullptr)
+	{
+		map["targetID"] = std::to_string((int)target->id);
+	}
+
+	//map["switchToPlayer"] = std::to_string((int)switch)
+}
+
+void Camera::Load(std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	position.x = std::stof(map["positionX"]);
+	position.y = std::stof(map["positionY"]);
+	position.z = std::stof(map["positionZ"]);
+
+	yaw = std::stof(map["yaw"]);
+	pitch = std::stof(map["pitch"]);
+	roll = std::stof(map["roll"]);
+	angle = std::stof(map["angle"]);
+	startingZoom = std::stof(map["zoom"]);
+
+	Update();
 }
