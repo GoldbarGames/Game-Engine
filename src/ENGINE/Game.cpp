@@ -2132,14 +2132,13 @@ void Game::Render()
 	
 	if (renderSecondCutsceneBuffer)
 	{
-		
+		prevMainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
 	}
 
 	cutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
 
 	if (renderSecondCutsceneBuffer)
 	{
-		prevMainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
 		prevCutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
 	}
 
