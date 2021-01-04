@@ -7,6 +7,7 @@ namespace CutsceneFunctions
 	int KINJO_API LoadSprite(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API ClearSprite(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API SetSpriteProperty(CutsceneParameters parameters, CutsceneCommands& c);
+	int KINJO_API SetFramebufferProperty(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API LoadBackground(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API AnimationCommand(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API ParticleCommand(CutsceneParameters parameters, CutsceneCommands& c);

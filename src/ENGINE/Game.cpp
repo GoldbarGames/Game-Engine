@@ -248,12 +248,14 @@ Mesh* Game::CreateCubeMesh()
 	return mesh;
 }
 
-Game::Game(const std::string& n, const std::string& title, const std::string& icon, 
+Game::Game(const std::string& n, const std::string& title, const std::string& icon, bool is2D,
 	const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m) : logger("logs/output.log")
 {
 	currentGame = n;
 	startOfGame = std::chrono::steady_clock::now();
 	entityFactory = &e;
+
+	use2DCamera = is2D;
 
 	fileManager = &f;
 	fileManager->Init(*this);
@@ -492,8 +494,6 @@ void Game::InitOpenGL()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	SDL_GL_SwapWindow(window);
-
-	bool use2DCamera = true;
 
 	renderer.camera = Camera(glm::vec3(0.0f, 0.0f, 1000.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
@@ -2042,14 +2042,25 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 
 void Game::Render()
 {
+	// zero pass
+	glBindFramebuffer(GL_FRAMEBUFFER, mainFrameBuffer->framebufferObject);
+	glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+
+	RenderNormally();
+
+
+
+
 	// first pass
 	glBindFramebuffer(GL_FRAMEBUFFER, cutsceneFrameBuffer->framebufferObject);
-	glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
-	//glEnable(GL_DEPTH_TEST);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//std::cout << "RENDER CURRENT SCENE" << std::endl;
 	RenderScene();
+
+
+
 
 	// second pass
 	bool renderSecondFrameBuffer = false;
@@ -2097,6 +2108,9 @@ void Game::Render()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//glDisable(GL_DEPTH_TEST);
+
+
+
 
 	// TODO: Set post-processing shaders here
 
@@ -2252,6 +2266,9 @@ void Game::Render()
 		
 	}
 
+
+	mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+
 	cutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
 
 	if (renderSecondFrameBuffer)
@@ -2279,18 +2296,15 @@ void Game::Render()
 	}
 }
 
-
-void Game::RenderScene()
+void Game::RenderNormally()
 {
-	glEnable(GL_DEPTH_TEST);
+	if (!use2DCamera)
+	{
+		glEnable(GL_DEPTH_TEST);
+	}
+
 
 	gui->RenderStart();
-
-	// Render editor grid
-	if (editMode)
-	{
-		//editor->DrawGrid();
-	}
 
 	// Render all backgrounds and their layers
 	background->Render(renderer);
@@ -2351,9 +2365,13 @@ void Game::RenderScene()
 	{
 		openedMenus[openedMenus.size() - 1]->Render(renderer);
 	}
+}
 
+void Game::RenderScene()
+{
 	// Draw anything in the cutscenes
 	glDisable(GL_DEPTH_TEST);
+
 	cutsceneManager.Render(renderer); // includes the overlay
 
 

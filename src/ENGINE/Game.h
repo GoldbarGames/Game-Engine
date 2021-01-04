@@ -36,6 +36,8 @@ private:
 
 public:
 
+	bool use2DCamera = true;
+
 	Mesh* CreateQuadMesh();
 	Mesh* CreateCubeMesh();
 
@@ -109,6 +111,7 @@ public:
 	void Update();
 	void Render();
 	void RenderScene();
+	void RenderNormally();
 	bool SetOpenGLAttributes();
 
 	bool HandleEvent(SDL_Event& event);
@@ -200,7 +203,7 @@ public:
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
 
-	Game(const std::string& n, const std::string& title, const std::string& icon, 
+	Game(const std::string& n, const std::string& title, const std::string& icon, bool is2D,
 		const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m);
 	~Game();
 

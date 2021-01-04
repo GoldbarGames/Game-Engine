@@ -1590,6 +1590,38 @@ namespace CutsceneFunctions
 		return 0;
 	}
 
+	int SetFramebufferProperty(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		// framebuffer main shader custom
+
+		if (parameters[2] == "shader")
+		{
+			std::string shaderName = c.ParseStringValue(parameters[3]);
+
+			if (c.customShaders.count(shaderName) > 0)
+			{
+				if (parameters[1] == "main")
+				{
+					c.manager->game->mainFrameBuffer->sprite->SetShader(c.customShaders[shaderName]);
+				}
+				else if (parameters[1] == "cutscene1")
+				{
+					c.manager->game->cutsceneFrameBuffer->sprite->SetShader(c.customShaders[shaderName]);
+				}
+				else if (parameters[1] == "cutscene2")
+				{
+					c.manager->game->prevCutsceneFrameBuffer->sprite->SetShader(c.customShaders[shaderName]);
+				}
+			}
+			else
+			{
+				c.manager->game->logger.Log("ERROR: Shader " + shaderName + " not defined");
+			}
+		}
+
+		return 0;
+	}
+
 	int SetSpriteProperty(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		unsigned int imageNumber = c.ParseNumberValue(parameters[1]);

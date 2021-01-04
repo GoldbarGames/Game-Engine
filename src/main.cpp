@@ -25,7 +25,7 @@ int main(int argc, char *args[])
 		FileManager* f = neww FileManager();
 		MenuManager* m = neww MenuManager();
 
-		Game game("WDK", "Witch Doctor Kaneko", "icon.png", *e, *f, *gui, *m);
+		Game game("WDK", "Witch Doctor Kaneko", "icon.png", true, *e, *f, *gui, *m);
 		game.editor->helper = helper;
 		game.editor->helper->editor = game.editor;
 		game.MainLoop();

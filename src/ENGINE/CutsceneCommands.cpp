@@ -71,6 +71,7 @@ CutsceneCommands::CutsceneCommands()
 	{"fileexist", &CutsceneFunctions::FileExist},
 	{"flip", &CutsceneFunctions::FlipSprite },
 	{"font", &CutsceneFunctions::FontCommand},
+	{"framebuffer", &CutsceneFunctions::SetFramebufferProperty},
 	{"get", &CutsceneFunctions::GetData},
 	{"global", &CutsceneFunctions::SetGlobalNumber},
 	{"gosub", &CutsceneFunctions::GoSubroutine },
