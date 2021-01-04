@@ -352,6 +352,11 @@ Game::~Game()
 		delete_it(mainFrameBuffer);
 	}
 
+	if (prevMainFrameBuffer != nullptr)
+	{
+		delete_it(prevMainFrameBuffer);
+	}
+
 	if (cutsceneFrameBuffer != nullptr)
 	{
 		delete_it(cutsceneFrameBuffer);
@@ -519,6 +524,7 @@ void Game::InitOpenGL()
 	m->ClearMesh();
 
 	mainFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
+	prevMainFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
 	cutsceneFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
 	prevCutsceneFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
 
@@ -2063,7 +2069,8 @@ void Game::Render()
 
 
 	// second pass
-	bool renderSecondFrameBuffer = false;
+	bool renderSecondCutsceneBuffer = false;
+	//bool renderSecondMainBuffer = false;
 	
 	// Don't render the scene twice outside of cutscenes
 	if (!cutsceneManager.watchingCutscene)
@@ -2075,27 +2082,36 @@ void Game::Render()
 
 	if (updateScreenTexture)
 	{
-		renderSecondFrameBuffer = true;
+		renderSecondCutsceneBuffer = true;
 
 		float timeLeft = cutsceneManager.printTimer.endTime - cutsceneManager.printTimer.startTicks;
 		float t = (timeLeft > 0) ? std::min(1.0f, (cutsceneManager.printTimer.GetTicks() / timeLeft)) : 1.0f; // percentage of passed time
 
 		float alpha = prevCutsceneFrameBuffer->sprite->color.a;
 		LerpCoord(alpha, 255, 0, t); 
+
 		prevCutsceneFrameBuffer->sprite->color.a = alpha;
+		prevMainFrameBuffer->sprite->color.a = alpha;
 
 		// TODO: For alpha mask, use a shader to get the max of (alpha, pixel of black/white texture)
 		// so that the black parts render before the white parts
 
-		//std::cout << std::to_string(prevScreenSprite->color.a) << std::endl;
+		std::cout << std::to_string(prevMainFrameBuffer->sprite->color.a) << std::endl;
 
 		if (prevCutsceneFrameBuffer->sprite->color.a <= 10) // this can't be exactly 0 in case the timer expires first
 		{
 			//std::cout << "RENDER PREV SCENE" << std::endl;
-			renderSecondFrameBuffer = false;
+			renderSecondCutsceneBuffer = false;
 			updateScreenTexture = false;
+
+			glBindFramebuffer(GL_FRAMEBUFFER, prevMainFrameBuffer->framebufferObject);
+			glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			RenderNormally();
+			prevMainFrameBuffer->sprite->color.a = 255;
+			
 			glBindFramebuffer(GL_FRAMEBUFFER, prevCutsceneFrameBuffer->framebufferObject);
-			//glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			RenderScene();
 			prevCutsceneFrameBuffer->sprite->color.a = 255;
@@ -2107,18 +2123,48 @@ void Game::Render()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//glDisable(GL_DEPTH_TEST);
-
-
-
-
-	// TODO: Set post-processing shaders here
-
-	cutsceneFrameBuffer->sprite->SetShader(renderer.shaders[ShaderName::Default]);
-
 	glm::vec3 screenPos = glm::vec3(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight, 0);
 	Vector2 screenScale = Vector2(renderer.camera.startScreenWidth / screenWidth, renderer.camera.startScreenHeight / -screenHeight);
 
+	RenderQuake(screenPos);
+
+	mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+	
+	if (renderSecondCutsceneBuffer)
+	{
+		
+	}
+
+	cutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+
+	if (renderSecondCutsceneBuffer)
+	{
+		prevMainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+		prevCutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+	}
+
+	/*
+	screenSprite->SetShader(renderer.shaders[ShaderName::Sharpen]);
+	screenSprite->Render(Vector2(screenWidth/2, screenHeight/2), renderer, Vector2(0.5f, -0.5f));
+	screenSprite->SetShader(renderer.shaders[ShaderName::Test]);
+	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight + (screenHeight / 2)), renderer, Vector2(0.5f, -0.5f));
+	screenSprite->SetShader(renderer.shaders[ShaderName::Grayscale]);
+	screenSprite->Render(Vector2(screenWidth/2, screenHeight + (screenHeight/2)), renderer, Vector2(0.5f, -0.5f));
+	screenSprite->SetShader(renderer.shaders[ShaderName::Edge]);
+	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight/2), renderer, Vector2(0.5f, -0.5f));
+	*/
+
+	glUseProgram(0);
+	SDL_GL_SwapWindow(window);
+
+	if (savingGIF)
+	{
+		SaveGIF();
+	}
+}
+
+void Game::RenderQuake(glm::vec3& screenPos)
+{
 	// If the timer is not up, then we should shake the screen
 	if (cutsceneManager.commands.isQuakeHorizontal || cutsceneManager.commands.isQuakeVertical)
 	{
@@ -2231,7 +2277,7 @@ void Game::Render()
 					}
 					if (cutsceneManager.commands.isQuakeVertical)
 					{
-						quakeStartPos.y = randomY ? screenUp.y : screenDown.y;					
+						quakeStartPos.y = randomY ? screenUp.y : screenDown.y;
 					}
 
 					quakeEndPos = screenCenter;
@@ -2263,37 +2309,10 @@ void Game::Render()
 
 			screenPos = cutsceneManager.commands.currentQuakePosition;
 		}
-		
+
 	}
 
 
-	mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
-
-	cutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
-
-	if (renderSecondFrameBuffer)
-	{
-		prevCutsceneFrameBuffer->sprite->Render(screenPos, renderer, Vector2(1,-1));
-	}
-
-	/*
-	screenSprite->SetShader(renderer.shaders[ShaderName::Sharpen]);
-	screenSprite->Render(Vector2(screenWidth/2, screenHeight/2), renderer, Vector2(0.5f, -0.5f));
-	screenSprite->SetShader(renderer.shaders[ShaderName::Test]);
-	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight + (screenHeight / 2)), renderer, Vector2(0.5f, -0.5f));
-	screenSprite->SetShader(renderer.shaders[ShaderName::Grayscale]);
-	screenSprite->Render(Vector2(screenWidth/2, screenHeight + (screenHeight/2)), renderer, Vector2(0.5f, -0.5f));
-	screenSprite->SetShader(renderer.shaders[ShaderName::Edge]);
-	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight/2), renderer, Vector2(0.5f, -0.5f));
-	*/
-
-	glUseProgram(0);
-	SDL_GL_SwapWindow(window);
-
-	if (savingGIF)
-	{
-		SaveGIF();
-	}
 }
 
 void Game::RenderNormally()

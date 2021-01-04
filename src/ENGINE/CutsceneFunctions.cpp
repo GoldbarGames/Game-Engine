@@ -1604,6 +1604,10 @@ namespace CutsceneFunctions
 				{
 					c.manager->game->mainFrameBuffer->sprite->SetShader(c.customShaders[shaderName]);
 				}
+				else if (parameters[1] == "prev")
+				{
+					c.manager->game->prevMainFrameBuffer->sprite->SetShader(c.customShaders[shaderName]);
+				}
 				else if (parameters[1] == "cutscene1")
 				{
 					c.manager->game->cutsceneFrameBuffer->sprite->SetShader(c.customShaders[shaderName]);
@@ -2189,10 +2193,14 @@ namespace CutsceneFunctions
 			{
 				//TODO
 			}
+			else // assume set
+			{
+				c.manager->game->renderer.camera.position = glm::vec3(c.ParseNumberValue(parameters[2]),
+					c.ParseNumberValue(parameters[3]), c.ParseNumberValue(parameters[4]));
+			}
 		}
 		else if (parameters[1] == "rotation")
 		{
-			//TODO: Refactor the camera.Zoom function to make angle private
 			if (parameters[2] == "set")
 			{
 				c.manager->game->renderer.camera.angle = c.ParseNumberValue(parameters[3]);
@@ -2211,6 +2219,11 @@ namespace CutsceneFunctions
 			else if (parameters[2] == "lerp")
 			{
 				//TODO
+			}
+			else // assume set
+			{
+				c.manager->game->renderer.camera.angle = c.ParseNumberValue(parameters[2]);
+				c.manager->game->renderer.camera.Zoom(0, c.manager->game->screenWidth, c.manager->game->screenHeight);
 			}
 		}
 		else if (parameters[1] == "pitch")
@@ -2231,6 +2244,10 @@ namespace CutsceneFunctions
 			{
 				//TODO
 			}
+			else // assume set
+			{
+				c.manager->game->renderer.camera.pitch = c.ParseNumberValue(parameters[2]);
+			}
 		}
 		else if (parameters[1] == "yaw")
 		{
@@ -2249,6 +2266,10 @@ namespace CutsceneFunctions
 			else if (parameters[2] == "lerp")
 			{
 				//TODO
+			}
+			else // assume set
+			{
+				c.manager->game->renderer.camera.yaw = c.ParseNumberValue(parameters[2]);
 			}
 		}
 		else if (parameters[1] == "roll")
@@ -2269,6 +2290,43 @@ namespace CutsceneFunctions
 			{
 				//TODO
 			}
+			else // assume set
+			{
+				c.manager->game->renderer.camera.roll = c.ParseNumberValue(parameters[2]);
+			}
+		}
+		else if (parameters[1] == "angle")
+		{
+			if (parameters[2] == "set")
+			{
+				c.manager->game->renderer.camera.angle = c.ParseNumberValue(parameters[3]);
+			}
+			else if (parameters[2] == "add")
+			{
+				c.manager->game->renderer.camera.angle += c.ParseNumberValue(parameters[3]);
+			}
+			else if (parameters[2] == "sub")
+			{
+				c.manager->game->renderer.camera.angle -= c.ParseNumberValue(parameters[3]);
+			}
+			else if (parameters[2] == "lerp")
+			{
+				//TODO
+			}
+			else // assume set
+			{
+				c.manager->game->renderer.camera.angle = c.ParseNumberValue(parameters[2]) * 0.01f;
+			}
+		}
+		else if (parameters[1] == "update")
+		{
+			c.manager->game->renderer.camera.Update();
+			c.manager->game->renderer.camera.Zoom(0, c.manager->game->screenWidth, c.manager->game->screenHeight);
+
+			if (parameters.size() > 2)
+				PrintCommand({ "print", parameters[2] }, c);
+			else
+				PrintCommand({ "print", "1" }, c);
 		}
 		else if (parameters[1] == "projection")
 		{

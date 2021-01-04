@@ -97,6 +97,7 @@ public:
 	std::unordered_map<std::string, MenuScreen*> allMenus;
 
 	FrameBuffer* mainFrameBuffer = nullptr;
+	FrameBuffer* prevMainFrameBuffer = nullptr;
 	FrameBuffer* cutsceneFrameBuffer = nullptr;
 	FrameBuffer* prevCutsceneFrameBuffer = nullptr;
 
@@ -112,6 +113,7 @@ public:
 	void Render();
 	void RenderScene();
 	void RenderNormally();
+	void RenderQuake(glm::vec3& screenPos);
 	bool SetOpenGLAttributes();
 
 	bool HandleEvent(SDL_Event& event);
