@@ -151,104 +151,6 @@ int Game::MainLoop()
 	return 0;
 }
 
-Mesh* Game::CreateQuadMesh()
-{
-	unsigned int quadIndices[] = {
-		0, 3, 1,
-		1, 3, 2,
-		2, 3, 0,
-		0, 1, 2
-	};
-
-	GLfloat quadVertices[] = {
-		-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
-		-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
-		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
-	};
-
-	Mesh* mesh = neww Mesh();
-	mesh->CreateMesh(quadVertices, quadIndices, 20, 12, 5, 3, 0);
-
-	return mesh;
-}
-
-Mesh* Game::CreateCubeMesh()
-{
-	unsigned int cubeIndices[] = {
-	3, 0, 4,
-	6, 3, 7,
-	1, 3, 2,
-	6, 2, 3,
-	3, 4, 7,
-	1, 0, 3,
-	4, 0, 1,
-	5, 2, 6,
-	2, 5, 1,
-	5, 6, 7,
-	5, 7, 4,
-	5, 4, 1
-	};
-
-	// Our vertices. Three consecutive floats give a 3D vertex; Three consecutive vertices give a triangle.
-	// A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 vertices
-	// 6 faces, 4 vertices per face = 24 indices
-
-	GLfloat cubeVertices[] = {
-		-1.0f,-1.0f,-1.0f, // triangle 1 : begin
-		-1.0f,-1.0f, 1.0f,
-		-1.0f, 1.0f, 1.0f, // triangle 1 : end
-
-		1.0f, 1.0f,-1.0f, // triangle 2 : begin
-		-1.0f,-1.0f,-1.0f,
-		-1.0f, 1.0f,-1.0f, // triangle 2 : end
-
-		1.0f,-1.0f, 1.0f,
-		-1.0f,-1.0f,-1.0f,
-		1.0f,-1.0f,-1.0f,
-
-		1.0f, 1.0f,-1.0f,
-		1.0f,-1.0f,-1.0f,
-		-1.0f,-1.0f,-1.0f,
-
-		-1.0f,-1.0f,-1.0f,
-		-1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f,-1.0f,
-
-		1.0f,-1.0f, 1.0f,
-		-1.0f,-1.0f, 1.0f,
-		-1.0f,-1.0f,-1.0f,
-
-		-1.0f, 1.0f, 1.0f,
-		-1.0f,-1.0f, 1.0f,
-		1.0f,-1.0f, 1.0f,
-
-		1.0f, 1.0f, 1.0f,
-		1.0f,-1.0f,-1.0f,
-		1.0f, 1.0f,-1.0f,
-
-		1.0f,-1.0f,-1.0f,
-		1.0f, 1.0f, 1.0f,
-		1.0f,-1.0f, 1.0f,
-
-		1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f,-1.0f,
-		-1.0f, 1.0f,-1.0f,
-
-		1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f,-1.0f,
-		-1.0f, 1.0f, 1.0f,
-
-		1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f, 1.0f,
-		1.0f,-1.0f, 1.0f
-	};
-
-	Mesh* mesh = neww Mesh();
-	mesh->CreateMesh(cubeVertices, cubeIndices, 108, 36, 3, 0, 0);
-
-	return mesh;
-}
 
 Game::Game(const std::string& n, const std::string& title, const std::string& icon, bool is2D,
 	const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m) : logger("logs/output.log")
@@ -328,10 +230,20 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 		glm::vec3 lColor = glm::vec3(1.0f, 1.0f, 1.0f);
 		glm::vec3 lDir = glm::vec3(2.0f, 2.0f, 2.0f);
 
-		renderer.light = neww Light(lColor, 0.2f, lDir, 1.0f);
+		shinyMaterial = Material(1.0f, 16);
+		dullMaterial = Material(0.3f, 4);
+
+		renderer.light = neww Light(lColor, 0.2f, lDir, 0.3f);
 
 		triangle3D = neww Sprite(renderer.shaders[ShaderName::Default], MeshType::Pyramid);
 		triangle3D->color = { 255, 0, 0, 255 };
+
+		// Shiny Material
+		triangle3D->material = &shinyMaterial;
+
+		// Dull Material
+		//triangle3D->material = &dullMaterial;
+
 		//cutsceneManager.commands.ExecuteCommand("shader pyramid data/shaders/default.vert data/shaders/pyramid.frag");
 		//triangle3D->SetShader(cutsceneManager.commands.customShaders["pyramid"]);
 	}
@@ -2525,4 +2437,103 @@ void Game::SortEntities(std::vector<Entity*>& entityVector)
 			j--;
 		}
 	}
+}
+
+Mesh* Game::CreateQuadMesh()
+{
+	unsigned int quadIndices[] = {
+		0, 3, 1,
+		1, 3, 2,
+		2, 3, 0,
+		0, 1, 2
+	};
+
+	GLfloat quadVertices[] = {
+		-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
+		-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
+		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
+	};
+
+	Mesh* mesh = neww Mesh();
+	mesh->CreateMesh(quadVertices, quadIndices, 20, 12, 5, 3, 0);
+
+	return mesh;
+}
+
+Mesh* Game::CreateCubeMesh()
+{
+	unsigned int cubeIndices[] = {
+	3, 0, 4,
+	6, 3, 7,
+	1, 3, 2,
+	6, 2, 3,
+	3, 4, 7,
+	1, 0, 3,
+	4, 0, 1,
+	5, 2, 6,
+	2, 5, 1,
+	5, 6, 7,
+	5, 7, 4,
+	5, 4, 1
+	};
+
+	// Our vertices. Three consecutive floats give a 3D vertex; Three consecutive vertices give a triangle.
+	// A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 vertices
+	// 6 faces, 4 vertices per face = 24 indices
+
+	GLfloat cubeVertices[] = {
+		-1.0f,-1.0f,-1.0f, // triangle 1 : begin
+		-1.0f,-1.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f, // triangle 1 : end
+
+		1.0f, 1.0f,-1.0f, // triangle 2 : begin
+		-1.0f,-1.0f,-1.0f,
+		-1.0f, 1.0f,-1.0f, // triangle 2 : end
+
+		1.0f,-1.0f, 1.0f,
+		-1.0f,-1.0f,-1.0f,
+		1.0f,-1.0f,-1.0f,
+
+		1.0f, 1.0f,-1.0f,
+		1.0f,-1.0f,-1.0f,
+		-1.0f,-1.0f,-1.0f,
+
+		-1.0f,-1.0f,-1.0f,
+		-1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f,-1.0f,
+
+		1.0f,-1.0f, 1.0f,
+		-1.0f,-1.0f, 1.0f,
+		-1.0f,-1.0f,-1.0f,
+
+		-1.0f, 1.0f, 1.0f,
+		-1.0f,-1.0f, 1.0f,
+		1.0f,-1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f,
+		1.0f,-1.0f,-1.0f,
+		1.0f, 1.0f,-1.0f,
+
+		1.0f,-1.0f,-1.0f,
+		1.0f, 1.0f, 1.0f,
+		1.0f,-1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f,-1.0f,
+		-1.0f, 1.0f,-1.0f,
+
+		1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f,-1.0f,
+		-1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f,
+		1.0f,-1.0f, 1.0f
+	};
+
+	Mesh* mesh = neww Mesh();
+	mesh->CreateMesh(cubeVertices, cubeIndices, 108, 36, 3, 0, 0);
+
+	return mesh;
 }

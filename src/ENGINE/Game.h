@@ -15,6 +15,7 @@
 #include "Renderer.h"
 #include "Logger.h"
 #include "FrameBuffer.h"
+#include "Material.h"
 
 #include "gifanim.h"
 
@@ -51,6 +52,9 @@ public:
 	std::string windowTitle = "";
 
 	std::string currentSaveFileName = "";
+
+	Material shinyMaterial;
+	Material dullMaterial;
 
 	Logger logger;
 	SDL_GameController* controller = nullptr;

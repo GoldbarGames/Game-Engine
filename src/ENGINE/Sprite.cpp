@@ -142,9 +142,9 @@ void Sprite::CreateMesh(MeshType meshType)
 				// x y z u v nx ny nz
 
 				GLfloat pyramidVertices[] = {
-					-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,	0.0f, 0.0f, 0.0f,
+					-1.0f, -1.0f, -0.6f,  1.0f, 0.0f,	0.0f, 0.0f, 0.0f,
 					0.0f, -1.0f, 1.0f,   0.5f, 0.0f,	0.0f, 0.0f, 0.0f,
-					1.0f, -1.0f, 0.0f,   1.0f, 0.0f,	0.0f, 0.0f, 0.0f,
+					1.0f, -1.0f, -0.6f,   1.0f, 0.0f,	0.0f, 0.0f, 0.0f,
 					0.0f, 1.0f, 0.0f,    0.5f, 1.0f,	0.0f, 0.0f, 0.0f
 				};
 
@@ -612,12 +612,22 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 			glm::value_ptr(renderer.camera.projection));
 	}
 
+	glUniform3f(shader->GetUniformVariable(ShaderVariable::eyePosition), renderer.camera.position.x, 
+		renderer.camera.position.y, renderer.camera.position.z);
+
 	// Set uniform variables
 	glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::model), 1, GL_FALSE, glm::value_ptr(model));
 
 	// Use Texture
 	if (texture != nullptr)
 		texture->UseTexture();
+
+	// Use Material
+	if (material != nullptr)
+	{
+		material->UseMaterial(shader->GetUniformVariable(ShaderVariable::specularIntensity),
+			shader->GetUniformVariable(ShaderVariable::specularShine));
+	}
 
 	// Render Mesh
 	mesh->RenderMesh();

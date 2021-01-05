@@ -13,7 +13,8 @@
 #include "leak_check.h"
 class Renderer;
 
-enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, frequency, ambientIntensity, ambientColor, diffuseIntensity, lightDirection };
+enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, frequency, 
+	ambientIntensity, ambientColor, diffuseIntensity, lightDirection, specularIntensity, specularShine, eyePosition };
 enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, SolidColor, Grid, Grayscale, Sharpen, Blur, Edge, Test, Custom };
 
 class KINJO_API ShaderProgram

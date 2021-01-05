@@ -16,6 +16,7 @@
 #include "Texture.h"
 #include "Shader.h"
 #include "Mesh.h"
+#include "Material.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -52,6 +53,7 @@ public:
 
 	ShaderProgram* shader = nullptr;
 	Texture* texture = nullptr;
+	Material* material = nullptr;
 
 	Color color { 255, 255, 255, 255 };
 	static std::string selectedColor;

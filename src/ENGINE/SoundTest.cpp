@@ -144,7 +144,7 @@ void SoundTest::Update(Game& game)
 
 					// in order to make the timer think that more time has elapsed,
 					// we must subtract time from its starting point
-					timer.startTicks - (int)(setTime * 1000);
+					timer.startTicks -= (int)(setTime * 1000);
 
 					Mix_RewindMusic();
 					if (Mix_SetMusicPosition(60.0) == -1)

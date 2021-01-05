@@ -80,6 +80,10 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     uniformVariables[ShaderVariable::ambientIntensity] = glGetUniformLocation(programID, "directionalLight.ambientIntensity");
     uniformVariables[ShaderVariable::diffuseIntensity] = glGetUniformLocation(programID, "directionalLight.diffuseIntensity");
     uniformVariables[ShaderVariable::lightDirection] = glGetUniformLocation(programID, "directionalLight.direction");
+
+    uniformVariables[ShaderVariable::specularIntensity] = glGetUniformLocation(programID, "material.specularIntensity");
+    uniformVariables[ShaderVariable::specularShine] = glGetUniformLocation(programID, "material.shine");
+    uniformVariables[ShaderVariable::eyePosition] = glGetUniformLocation(programID, "eyePosition");
 }
 
 GLuint ShaderProgram::GetUniformVariable(ShaderVariable variable)
