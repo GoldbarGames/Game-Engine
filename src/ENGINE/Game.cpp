@@ -35,6 +35,7 @@
 #include "Timer.h"
 #include "MenuScreen.h"
 #include "Renderer.h"
+#include "Light.h"
 
 #include "SettingsButton.h"
 
@@ -321,6 +322,8 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	if (!use2DCamera)
 	{
+		renderer.light = neww Light(1.0f, 0.0f, 0.0f, 1.0f);
+
 		triangle3D = neww Sprite(renderer.shaders[ShaderName::SolidColor], MeshType::Pyramid);
 		triangle3D->color = { 255, 0, 0, 255 };
 		//cutsceneManager.commands.ExecuteCommand("shader pyramid data/shaders/default.vert data/shaders/pyramid.frag");

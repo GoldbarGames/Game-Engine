@@ -13,6 +13,7 @@
 #include "Timer.h"
 #include "GUI.h"
 #include "leak_check.h"
+#include "Light.h"
 
 class Sprite;
 class Game;
@@ -27,6 +28,8 @@ private:
 public:
 	Camera camera;
 	Camera guiCamera;
+
+	Light* light = nullptr;
 
 	Sprite* debugSprite = nullptr;
 	Sprite* overlaySprite = nullptr;

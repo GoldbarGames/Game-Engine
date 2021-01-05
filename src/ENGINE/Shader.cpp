@@ -75,6 +75,9 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     uniformVariables[ShaderVariable::fadeColor] = glGetUniformLocation(programID, "spriteColor");
     uniformVariables[ShaderVariable::currentTime] = glGetUniformLocation(programID, "time");
     uniformVariables[ShaderVariable::frequency] = glGetUniformLocation(programID, "freq");
+
+    uniformVariables[ShaderVariable::ambientColor] = glGetUniformLocation(programID, "directionalLight.color");
+    uniformVariables[ShaderVariable::ambientIntensity] = glGetUniformLocation(programID, "directionalLight.ambientIntensity");
 }
 
 GLuint ShaderProgram::GetUniformVariable(ShaderVariable variable)

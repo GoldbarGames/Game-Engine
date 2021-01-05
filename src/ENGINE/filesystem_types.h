@@ -33,6 +33,7 @@ class DebugScreen;
 class Editor;
 class Player;
 class Tile;
+class Light;
 
 
 #endif

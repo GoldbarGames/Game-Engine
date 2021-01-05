@@ -503,6 +503,15 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 
 	shader->UseShader();
 
+	if (renderer.light != nullptr)
+	{
+		if (renderer.light != nullptr)
+		{
+			renderer.light->UseLight(shader->GetUniformVariable(ShaderVariable::ambientIntensity), shader->GetUniformVariable(ShaderVariable::ambientColor));
+		}
+	}
+
+
 	if (keepPositionRelativeToCamera)
 	{
 		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
