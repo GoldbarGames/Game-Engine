@@ -37,6 +37,7 @@
 #include "Renderer.h"
 #include "Light.h"
 
+#include "SoundTest.h"
 #include "SettingsButton.h"
 
 #include "DebugScreen.h"
@@ -270,7 +271,6 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	renderer.Init(this);
 	spriteManager.Init(&renderer);
-	soundManager.Init(this);
 
 	InitOpenGL();
 
@@ -305,6 +305,9 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	editor = neww Editor(*this);
 	debugScreen = neww DebugScreen(*this);
 
+	// Initialize this AFTER OpenGL, Fonts, and Editor
+	soundManager.Init(this);
+
 	entities.clear();
 
 	SetScreenResolution(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
@@ -322,7 +325,7 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	if (!use2DCamera)
 	{
-		renderer.light = neww Light(1.0f, 0.0f, 0.0f, 1.0f);
+		renderer.light = neww Light(1.0f, 1.0f, 1.0f, 1.0f);
 
 		triangle3D = neww Sprite(renderer.shaders[ShaderName::SolidColor], MeshType::Pyramid);
 		triangle3D->color = { 255, 0, 0, 255 };
@@ -1710,6 +1713,11 @@ bool Game::HandleEvent(SDL_Event& event)
 				{
 					openedMenus.emplace_back(allMenus["EditorSettings"]);
 				}
+				else
+				{
+					// if not in edit mode, bring up/down the Sound Test
+					soundMode = !soundMode;
+				}
 				break;
 			case SDLK_4: // Undo Button
 				//editor->UndoAction();
@@ -1918,6 +1926,14 @@ void Game::Update()
 	}
 
 	renderer.Update();
+
+	if (soundMode && soundManager.soundTest != nullptr)
+	{
+		soundManager.soundTest->Update(*this);
+		return;
+	}
+
+
 
 	if (freeCameraMode)
 	{
@@ -2439,6 +2455,11 @@ void Game::RenderScene()
 	if (editMode)
 	{
 		editor->Render(renderer);
+	}
+
+	if (soundMode && soundManager.soundTest != nullptr)
+	{
+		soundManager.soundTest->Render(renderer);
 	}
 
 	//if (GetModeDebug())

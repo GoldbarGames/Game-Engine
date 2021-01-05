@@ -6,6 +6,7 @@
 #include <sstream>
 #include "Game.h"
 #include "Logger.h"
+#include "SoundTest.h"
 
 // TODO: When you don't have any audio output on your device,
 // it fails to load sounds/music. If you then plug in an audio output,
@@ -72,24 +73,26 @@ SoundManager::~SoundManager()
 			delete channel;
 	}
 
+	if (soundTest != nullptr)
+		delete_it(soundTest);
+
 	Mix_Quit();
 }
 
 void SoundManager::Init(Game* g)
 {
 	game = g;
+	soundTest = neww SoundTest(*this);
 }
 
 bool SoundManager::IsPlayingSound(int channel)
 {
-	//TODO
-	return false;
+	return Mix_Playing(channel);
 }
 
 bool SoundManager::IsPlayingBGM()
 {
-	//TODO
-	return false;
+	return Mix_PlayingMusic();
 }
 
 bool SoundManager::LoadBGM(const std::string& bgm)
@@ -119,7 +122,11 @@ bool SoundManager::LoadBGM(const std::string& bgm)
 
 void SoundManager::PlayBGM(const std::string& bgm, bool loop)
 {
-	if (LoadBGM(bgm))
+	if (Mix_PausedMusic() && bgm == bgmFilepath)
+	{
+		Mix_ResumeMusic();
+	}
+	else if (LoadBGM(bgm))
 	{
 		// TODO: Define loop points to loop within a song
 		if (loop)
@@ -127,6 +134,16 @@ void SoundManager::PlayBGM(const std::string& bgm, bool loop)
 		else
 			Mix_PlayMusic(currentBGM, 1);
 	}
+}
+
+void SoundManager::PauseBGM()
+{
+	Mix_PauseMusic();
+}
+
+void SoundManager::UnpauseBGM()
+{
+	Mix_ResumeMusic();
 }
 
 void SoundManager::StopBGM()

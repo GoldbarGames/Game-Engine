@@ -59,7 +59,6 @@ EditorButton::~EditorButton()
 void EditorButton::Render(const Renderer& renderer)
 {
 	// Set positiion of the button
-
 	buttonWindowRect.w = 100;
 	buttonWindowRect.h = 100;
 
@@ -75,8 +74,6 @@ void EditorButton::Render(const Renderer& renderer)
 		image->color = { 255, 255, 255, 255 };
 
 	// Render the button's image and text
-	//Vector2 cameraPosition = Vector2(renderer->camera.position.x, renderer->camera.position.y);
-	
 	image->Render(position, renderer, imageScale);
 	text->Render(renderer, glm::vec3(0,0,0));
 }

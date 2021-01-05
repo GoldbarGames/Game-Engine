@@ -2,10 +2,11 @@
 #define LIGHT_H
 #pragma once
 
+#include "leak_check.h"
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
-class Light
+class KINJO_API Light
 {
 public:
 

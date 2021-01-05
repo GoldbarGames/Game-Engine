@@ -379,28 +379,23 @@ void Editor::CreateEditorButtons()
 			break;
 
 		EditorButton* editorButton = neww EditorButton("", buttonNames[i], 
-			glm::vec3(buttonX*2, (game->screenHeight - buttonHeight)*2, 0), *game);
+			glm::vec3(buttonX * Camera::MULTIPLIER, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
 		
-		editorButton->image->keepPositionRelativeToCamera = true;
-		editorButton->image->keepScaleRelativeToCamera = true;
 		buttons.emplace_back(editorButton);
 
-		// TODO: is there a way to not make this hard-coded? is it worth it?
 		buttonX += buttonWidth + buttonSpacing; 
 	}
 
 	EditorButton* previousButton = neww EditorButton("", "prevpage", 
-		glm::vec3(buttonStartX*2, (game->screenHeight - buttonHeight)*2, 0), *game);
+		glm::vec3(buttonStartX * Camera::MULTIPLIER, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
 	
-	previousButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(previousButton);
 
-	float bx = (buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE + 1) * 2);
+	float bx = (buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE + 1) * Camera::MULTIPLIER);
 	
 	EditorButton* nextButton = neww EditorButton("", "nextpage", 
-		glm::vec3( bx, (game->screenHeight - buttonHeight)*2, 0), *game);
+		glm::vec3( bx, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
 	
-	nextButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(nextButton);
 
 	// Level navigation
@@ -409,14 +404,12 @@ void Editor::CreateEditorButtons()
 		glm::vec3(buttonStartX * Camera::MULTIPLIER,
 			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER, 0), *game);
 
-	previousLevelButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(previousLevelButton);
 
 	EditorButton* nextLevelButton = neww EditorButton("", "nextlevel",
 		glm::vec3((buttonStartX + (buttonWidth + buttonSpacing)) * Camera::MULTIPLIER,
 			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER, 0), *game);
 
-	nextLevelButton->image->keepScaleRelativeToCamera = true;
 	buttons.emplace_back(nextLevelButton);
 }
 
@@ -1167,7 +1160,7 @@ void Editor::HandleEdit()
 	int mouseX = 0;
 	int mouseY = 0;
 
-	const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+	const uint32_t mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
 	int clickedX = mouseX - ((int)mouseX % (GRID_SIZE));
 	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE));

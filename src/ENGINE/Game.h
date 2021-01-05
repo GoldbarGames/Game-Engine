@@ -69,6 +69,7 @@ public:
 
 	bool debugMode = false;
 	bool editMode = false;
+	bool soundMode = false;
 
 	GUI* gui;
 	Mesh* cubeMesh;

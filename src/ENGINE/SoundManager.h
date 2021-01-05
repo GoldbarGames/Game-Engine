@@ -7,6 +7,9 @@
 #include <vector>
 #include <unordered_map>
 #include "leak_check.h"
+
+class SoundTest;
+
 class Game;
 
 struct Sound {
@@ -49,8 +52,8 @@ private:
 	uint32_t prevVolumeBGM = 64;
 	uint32_t prevVolumeSound = 64;
 	std::vector<int> volArray;
-	Game* game = nullptr;
 public:
+	Game* game = nullptr;
 	bool disableAudio = false;
 	std::unordered_map<int, SoundChannel*> sounds;
 	std::unordered_map<std::string, std::string> bgmNames;
@@ -62,9 +65,19 @@ public:
 	std::string bgmFilepath = "None";
 	SoundManager();
 	~SoundManager();
+
+	SoundTest* soundTest;
+
 	void Init(Game* g);
+
 	bool LoadBGM(const std::string& bgm);
+	bool IsPlayingBGM();
+	void SetVolumeBGM(int newVolume);
+	void SetVolumeBGMIndex(int index);
+
 	void PlayBGM(const std::string& bgm, bool loop = true);
+	void PauseBGM();
+	void UnpauseBGM();
 	void StopBGM();
 
 	void FadeInBGM(const std::string& bgm, uint32_t duration, bool loop = true);
@@ -73,16 +86,14 @@ public:
 	void FadeInChannel(const std::string& filepath, uint32_t duration, int channel = -1, bool loop = true);
 	void FadeOutChannel(uint32_t duration, int channel = -1);
 
-	void SetVolumeBGM(int newVolume);
-	void SetVolumeBGMIndex(int index);
 	void PlaySound(const std::string& filepath, int channel = -1, int loop = 0);
-	void ClearChannel(int channel);
+	bool IsPlayingSound(int channel);
 	void SetVolumeSound(int index);
 	void SetVolumeSoundIndex(int index);
 	void SetVolumeSoundOnChannel(int newVolume, int channel);
+	void ClearChannel(int channel);
+
 	void ReadMusicData(const std::string& dataFilePath);
-	bool IsPlayingSound(int channel);
-	bool IsPlayingBGM();
 
 	void ToggleAudio();
 };
