@@ -14,7 +14,7 @@ public:
 
 	void CreateMesh(GLfloat* vertices, unsigned int* indices,
 		unsigned int numOfVertices, unsigned int numOfIndices,
-		unsigned int v = 5, unsigned int offset = 3);
+		unsigned int v, unsigned int uvOffset, unsigned int normalOffset);
 
 	void BindMesh();
 	void RenderMesh();

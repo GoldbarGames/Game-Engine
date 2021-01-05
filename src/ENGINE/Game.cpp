@@ -168,7 +168,7 @@ Mesh* Game::CreateQuadMesh()
 	};
 
 	Mesh* mesh = neww Mesh();
-	mesh->CreateMesh(quadVertices, quadIndices, 20, 12);
+	mesh->CreateMesh(quadVertices, quadIndices, 20, 12, 5, 3, 0);
 
 	return mesh;
 }
@@ -245,7 +245,7 @@ Mesh* Game::CreateCubeMesh()
 	};
 
 	Mesh* mesh = neww Mesh();
-	mesh->CreateMesh(cubeVertices, cubeIndices, 108, 36, 3, 0);
+	mesh->CreateMesh(cubeVertices, cubeIndices, 108, 36, 3, 0, 0);
 
 	return mesh;
 }
@@ -325,9 +325,12 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	if (!use2DCamera)
 	{
-		renderer.light = neww Light(1.0f, 1.0f, 1.0f, 1.0f);
+		glm::vec3 lColor = glm::vec3(1.0f, 1.0f, 1.0f);
+		glm::vec3 lDir = glm::vec3(2.0f, 2.0f, 2.0f);
 
-		triangle3D = neww Sprite(renderer.shaders[ShaderName::SolidColor], MeshType::Pyramid);
+		renderer.light = neww Light(lColor, 0.2f, lDir, 1.0f);
+
+		triangle3D = neww Sprite(renderer.shaders[ShaderName::Default], MeshType::Pyramid);
 		triangle3D->color = { 255, 0, 0, 255 };
 		//cutsceneManager.commands.ExecuteCommand("shader pyramid data/shaders/default.vert data/shaders/pyramid.frag");
 		//triangle3D->SetShader(cutsceneManager.commands.customShaders["pyramid"]);
@@ -359,7 +362,6 @@ Game::~Game()
 
 	// NOTE: Need to delete textures manually for the screen textures
 	// which are created using frame buffers (not the usual way)
-	// TODO: Maybe automate this somehow
 
 	if (mainFrameBuffer != nullptr)
 	{

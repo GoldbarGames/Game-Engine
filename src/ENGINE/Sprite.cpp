@@ -65,14 +65,16 @@ void Sprite::CreateMesh(MeshType meshType)
 				};
 
 				GLfloat quadVertices[] = {
-					-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-					1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
-					-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
-					1.0f, 1.0f, 0.0f,    0.0f, 1.0f
+					-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,	0.0f, 0.0f, 0.0f,
+					1.0f, -1.0f, 0.0f,   0.0f, 0.0f,	0.0f, 0.0f, 0.0f,
+					-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,	0.0f, 0.0f, 0.0f,
+					1.0f, 1.0f, 0.0f,    0.0f, 1.0f,	0.0f, 0.0f, 0.0f
 				};
 
+				CalcAverageNormals(quadIndices, 12, quadVertices, 32, 8, 5);
+
 				meshQuad = neww Mesh();
-				meshQuad->CreateMesh(quadVertices, quadIndices, 20, 12);
+				meshQuad->CreateMesh(quadVertices, quadIndices, 32, 12, 8, 3, 5);
 			}
 
 			mesh = meshQuad;
@@ -97,7 +99,7 @@ void Sprite::CreateMesh(MeshType meshType)
 				};
 
 				meshTri = neww Mesh();
-				meshTri->CreateMesh(triVertices, triIndices, 12, 6);
+				meshTri->CreateMesh(triVertices, triIndices, 12, 6, 5, 3, 0);
 			}
 
 			mesh = meshTri;
@@ -121,7 +123,7 @@ void Sprite::CreateMesh(MeshType meshType)
 				};
 
 				meshLine = neww Mesh();
-				meshLine->CreateMesh(lineVertices, lineIndices, 20, 12);
+				meshLine->CreateMesh(lineVertices, lineIndices, 20, 12, 5, 3, 5);
 			}
 
 			mesh = meshLine;
@@ -137,15 +139,19 @@ void Sprite::CreateMesh(MeshType meshType)
 					0, 1, 2
 				};
 
+				// x y z u v nx ny nz
+
 				GLfloat pyramidVertices[] = {
-					-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-					0.0f, -1.0f, 1.0f,   0.0f, 0.0f,
-					1.0f, -1.0f, 0.0f,   1.0f, 1.0f,
-					0.0f, 1.0f, 0.0f,    0.0f, 1.0f
+					-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,	0.0f, 0.0f, 0.0f,
+					0.0f, -1.0f, 1.0f,   0.5f, 0.0f,	0.0f, 0.0f, 0.0f,
+					1.0f, -1.0f, 0.0f,   1.0f, 0.0f,	0.0f, 0.0f, 0.0f,
+					0.0f, 1.0f, 0.0f,    0.5f, 1.0f,	0.0f, 0.0f, 0.0f
 				};
 
+				CalcAverageNormals(pyramidIndices, 12, pyramidVertices, 32, 8, 5);
+
 				meshPyramid = neww Mesh();
-				meshPyramid->CreateMesh(pyramidVertices, pyramidIndices, 20, 12);
+				meshPyramid->CreateMesh(pyramidVertices, pyramidIndices, 32, 12, 8, 3, 5);
 			}
 
 			mesh = meshPyramid;
@@ -507,7 +513,10 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	{
 		if (renderer.light != nullptr)
 		{
-			renderer.light->UseLight(shader->GetUniformVariable(ShaderVariable::ambientIntensity), shader->GetUniformVariable(ShaderVariable::ambientColor));
+			renderer.light->UseLight(shader->GetUniformVariable(ShaderVariable::ambientIntensity), 
+				shader->GetUniformVariable(ShaderVariable::ambientColor), 
+				shader->GetUniformVariable(ShaderVariable::diffuseIntensity),
+				shader->GetUniformVariable(ShaderVariable::lightDirection));
 		}
 	}
 
