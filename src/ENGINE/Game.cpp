@@ -318,6 +318,14 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	LoadEditorSettings();
 
 	previousTime = clock::now();
+
+	if (!use2DCamera)
+	{
+		triangle3D = neww Sprite(renderer.shaders[ShaderName::SolidColor], MeshType::Pyramid);
+		triangle3D->color = { 255, 0, 0, 255 };
+		//cutsceneManager.commands.ExecuteCommand("shader pyramid data/shaders/default.vert data/shaders/pyramid.frag");
+		//triangle3D->SetShader(cutsceneManager.commands.customShaders["pyramid"]);
+	}
 }
 
 Game::~Game()
@@ -1910,7 +1918,31 @@ void Game::Update()
 
 	if (freeCameraMode)
 	{
+		static bool mouseFirstMoved = true;
+		static int lastMouseX = 0;
+		static int lastMouseY = 0;
+
 		const Uint8* input = SDL_GetKeyboardState(NULL);
+
+		int mouseX = 0;
+		int mouseY = 0;
+
+		SDL_GetMouseState(&mouseX, &mouseY);
+
+		if (mouseFirstMoved)
+		{
+			lastMouseX = mouseX;
+			lastMouseY = mouseY;
+			mouseFirstMoved = false;
+		}
+
+		float xChange = (mouseX - lastMouseX);
+		float yChange = (mouseY - lastMouseY);
+
+		lastMouseX = mouseX;
+		lastMouseY = mouseY;
+
+		renderer.camera.MouseControl(xChange, yChange);
 		renderer.camera.KeyControl(input, dt, screenWidth, screenHeight);
 		renderer.guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
 	}
@@ -2371,6 +2403,13 @@ void Game::RenderNormally()
 				entities[i]->RenderDebug(renderer);
 		}
 	}
+
+	if (!use2DCamera && triangle3D != nullptr)
+	{
+		triangle3D->Render(glm::vec3(0, 800, 300), 0, renderer, glm::vec3(200, 200, 200), glm::vec3(0,0,0));
+	}
+
+
 
 	if (currentLevel != "title" && !cutsceneManager.watchingCutscene && !editMode)
 	{

@@ -13,6 +13,7 @@ using std::string;
 Mesh* Sprite::meshQuad = nullptr;
 Mesh* Sprite::meshTri = nullptr;
 Mesh* Sprite::meshLine = nullptr;
+Mesh* Sprite::meshPyramid = nullptr;
 std::string Sprite::selectedColor = "clear";
 
 unsigned int Sprite::Size()
@@ -125,10 +126,35 @@ void Sprite::CreateMesh(MeshType meshType)
 
 			mesh = meshLine;
 		}
+		else if (meshType == MeshType::Pyramid)
+		{
+			if (meshPyramid == nullptr)
+			{
+				unsigned int pyramidIndices[] = {
+					0, 3, 1,
+					1, 3, 2,
+					2, 3, 0,
+					0, 1, 2
+				};
+
+				GLfloat pyramidVertices[] = {
+					-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+					0.0f, -1.0f, 1.0f,   0.0f, 0.0f,
+					1.0f, -1.0f, 0.0f,   1.0f, 1.0f,
+					0.0f, 1.0f, 0.0f,    0.0f, 1.0f
+				};
+
+				meshPyramid = neww Mesh();
+				meshPyramid->CreateMesh(pyramidVertices, pyramidIndices, 20, 12);
+			}
+
+			mesh = meshPyramid;
+
+		}
 	}
 }
 
-Sprite::Sprite(ShaderProgram* s)
+Sprite::Sprite(ShaderProgram* s, MeshType m)
 {
 	model = glm::mat4(1.0f);
 	shader = s;
@@ -139,7 +165,7 @@ Sprite::Sprite(ShaderProgram* s)
 	startFrame = 0;
 	endFrame = numberFramesInTexture;
 
-	CreateMesh(MeshType::Quad);
+	CreateMesh(m);
 	currentFrame = 0;
 }
 
@@ -381,7 +407,7 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 	return texOffset;
 }
 
-void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const Vector2& scale, const Renderer& renderer)
+void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const glm::vec3& scale, const Renderer& renderer)
 {
 	if (rotation.x >= 89)
 		int test = 0;
@@ -451,13 +477,20 @@ void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const
 			height = texture->GetHeight();
 
 		model = glm::scale(model, glm::vec3(-1 * scale.x * width / (GLfloat)(framesPerRow),
-			scale.y * height / (GLfloat)numberRows, 1.0f));
+			scale.y * height / (GLfloat)numberRows, scale.z));
 	}	
+}
+
+
+void Sprite::Render(const glm::vec3& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)
+{
+	// TODO: Refactor this to be more efficient for 2D draw calls
+	Render(position, speed, renderer, glm::vec3(scale.x, scale.y, 1.0f), rotation);
 }
 
 // NOTE: This function expects a center-coordinate rectangle to be rendered,
 // so if you pass in a top-left rectangle, you'll see something wrong
-void Sprite::Render(const glm::vec3& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)
+void Sprite::Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec3& scale, const glm::vec3& rotation)
 {
 	renderer.drawCallsPerFrame++;
 

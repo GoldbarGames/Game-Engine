@@ -4,7 +4,7 @@
 
 #include <GL/glew.h>
 #include "leak_check.h"
-enum class MeshType { Quad, Triangle, Line, Cube };
+enum class MeshType { Quad, Triangle, Line, Cube, Pyramid };
 
 class KINJO_API Mesh
 {

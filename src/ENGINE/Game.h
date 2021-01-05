@@ -101,6 +101,8 @@ public:
 	FrameBuffer* cutsceneFrameBuffer = nullptr;
 	FrameBuffer* prevCutsceneFrameBuffer = nullptr;
 
+	Sprite* triangle3D = nullptr;
+
 	bool updateScreenTexture = false;
 
 	void InitOpenGL();
