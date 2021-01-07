@@ -12,19 +12,14 @@ public:
 
 	glm::vec3 color;
 	float ambientIntensity = 1.0f;
-
-	glm::vec3 direction;
 	float diffuseIntensity = 0.0f;
 
-
 	Light();
-	Light(glm::vec3 col, float ai, glm::vec3 dir, float di);
-	Light(float red, float green, float blue, float aIntensity, 
-		float xdir, float ydir, float zdir, float dIntensity);
+	Light(glm::vec3 col, float ai, float di);
+	Light(float red, float green, float blue, float aIntensity,  float dIntensity);
 	~Light();
 
-	void UseLight(int ambientIntensityLocation, int ambientColorLocation, 
-		int diffuseIntensityLocation, int directionLocation);
+	virtual void UseLight(int ambientIntensityLocation, int ambientColorLocation, int diffuseIntensityLocation);
 
 };
 

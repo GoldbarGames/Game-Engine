@@ -3,6 +3,11 @@
 #include "Renderer.h"
 #include "Shader.h"
 
+Dialog::Dialog(SpriteManager* manager)
+{
+	sprite = neww Sprite(manager->renderer->shaders[ShaderName::Default]);
+}
+
 Dialog::Dialog(const glm::vec3& pos, SpriteManager* manager)
 {
 	position = pos;
@@ -28,9 +33,12 @@ void Dialog::Update(const std::string& newText)
 
 void Dialog::Render(const Renderer& renderer)
 {
-	sprite->Render(position, renderer, scale);
+	if (visible)
+	{
+		sprite->Render(position, renderer, scale);
 
-	text->Render(renderer);
+		text->Render(renderer);
 
-	input->Render(renderer);
+		input->Render(renderer);
+	}
 }

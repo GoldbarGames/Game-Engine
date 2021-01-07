@@ -150,7 +150,11 @@ Text::Text(FontInfo* newFontInfo, const std::string& txt, Color color) : Entity(
 	SetText(txt, color);
 }
 
-
+void Text::SetFontAndInfo(FontInfo* fInfo)
+{
+	currentFontInfo = fInfo;
+	font = currentFontInfo->GetRegularFont();
+}
 
 void Text::SetFont(TTF_Font* newFont)
 {

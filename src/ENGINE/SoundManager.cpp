@@ -128,11 +128,7 @@ void SoundManager::PlayBGM(const std::string& bgm, bool loop)
 	}
 	else if (LoadBGM(bgm))
 	{
-		// TODO: Define loop points to loop within a song
-		if (loop)
-			Mix_PlayMusic(currentBGM, -1);
-		else
-			Mix_PlayMusic(currentBGM, 1);
+		Mix_PlayMusic(currentBGM, loop ? -1 : 0);
 	}
 }
 

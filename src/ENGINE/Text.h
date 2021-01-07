@@ -85,6 +85,7 @@ public:
 	void SetPosition(const float x, const float y);
 	void SetPosition(const int x, const int y);
 	void SetFont(TTF_Font* newFont);
+	void SetFontAndInfo(FontInfo* fInfo);
 	void SetColor(Color newColor);
 };
 

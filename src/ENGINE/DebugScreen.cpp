@@ -144,14 +144,14 @@ bool DebugScreen::Update()
 			if (insertVariableButton->IsPointInsideButton(mouseX, mouseY))
 			{
 				game->editor->CreateDialog("Type the name of the variable to start watching:");
-				game->StartTextInput("start_watch");
+				game->StartTextInput(*game->editor->dialog, "start_watch");
 				//clickedButton->isClicked = false;
 				return true;
 			}
 			else if (removeVariableButton->IsPointInsideButton(mouseX, mouseY))
 			{
 				game->editor->CreateDialog("Type the name of the variable to stop watching:");
-				game->StartTextInput("end_watch");
+				game->StartTextInput(*game->editor->dialog, "end_watch");
 				//clickedButton->isClicked = false;
 				return true;
 			}

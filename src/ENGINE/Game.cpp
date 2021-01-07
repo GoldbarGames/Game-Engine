@@ -36,6 +36,7 @@
 #include "MenuScreen.h"
 #include "Renderer.h"
 #include "Light.h"
+#include "DirectionalLight.h"
 
 #include "SoundTest.h"
 #include "SettingsButton.h"
@@ -233,7 +234,7 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 		shinyMaterial = Material(1.0f, 16);
 		dullMaterial = Material(0.3f, 4);
 
-		renderer.light = neww Light(lColor, 0.2f, lDir, 0.3f);
+		renderer.light = neww DirectionalLight(lColor, 1.0f, 0.3f, lDir);
 
 		triangle3D = neww Sprite(renderer.shaders[ShaderName::Default], MeshType::Pyramid);
 		triangle3D->color = { 255, 0, 0, 255 };
@@ -746,8 +747,9 @@ void Game::DeleteEntity(int index)
 	entities.erase(entities.begin() + index);
 }
 
-void Game::StartTextInput(const std::string& reason)
+void Game::StartTextInput(Dialog& dialog, const std::string& reason)
 {
+	currentDialog = &dialog;
 	shouldUpdateDialogInput = true;
 	inputReason = reason;
 	SDL_StartTextInput();
@@ -755,17 +757,29 @@ void Game::StartTextInput(const std::string& reason)
 	inputType = "String";
 }
 
-void Game::StopTextInput()
+void Game::StopTextInput(Dialog& dialog)
 {
 	shouldUpdateDialogInput = false;
+	dialog.visible = false;
 	SDL_StopTextInput();
-	editor->DestroyDialog();
 
 	if (inputReason == "properties")
 	{		
 		editor->SetPropertyText(inputText);
 		editor->propertyIndex = -1;
 		editor->DoAction();
+	}
+	else if (inputReason == "sound_test_dir")
+	{
+		soundManager.soundTest->AfterDirDialog(inputText);
+	}
+	else if (inputReason == "sound_test_file")
+	{
+		soundManager.soundTest->AfterFileDialog(inputText);
+	}
+	else if (inputReason == "sound_test_jump")
+	{
+		soundManager.soundTest->AfterJumpDialog(inputText);
 	}
 	else if (inputReason == "start_watch")
 	{
@@ -1578,7 +1592,11 @@ bool Game::HandleEvent(SDL_Event& event)
 			// Pressed enter, submit the input
 			else if (event.key.keysym.sym == SDLK_RETURN)
 			{
-				StopTextInput();
+				if (currentDialog != nullptr)
+				{
+					StopTextInput(*currentDialog);
+				}
+				
 			}
 		}
 		else

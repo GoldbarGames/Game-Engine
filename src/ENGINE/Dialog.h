@@ -14,6 +14,7 @@ public:
 	Text* text = nullptr;
 	Text* input = nullptr;
 
+	Dialog(SpriteManager* manager);
 	Dialog(const glm::vec3& pos, SpriteManager* manager);
 	~Dialog();
 

@@ -899,7 +899,7 @@ void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const Vector2&
 				{
 					propertyIndex = i;
 					CreateDialog("Edit property '" + properties[i]->key + "': ");
-					game->StartTextInput("properties");
+					game->StartTextInput(*dialog, "properties");
 
 					//TODO: Why not just use the enum directly?
 					switch (properties[i]->pType)
@@ -1257,7 +1257,7 @@ void Editor::ClickedButton()
 	else if (clickedButton->name == "load")
 	{
 		CreateDialog("Type in the name of the file to load:");
-		game->StartTextInput("load_file_as");
+		game->StartTextInput(*dialog, "load_file_as");
 		clickedButton->isClicked = false;
 	}
 	else if (clickedButton->name == "save")
@@ -1278,7 +1278,7 @@ void Editor::ClickedButton()
 	else if (clickedButton->name == "BG")
 	{
 		CreateDialog("Type in the name of the background to use:");
-		game->StartTextInput("set_background");
+		game->StartTextInput(*dialog, "set_background");
 		clickedButton->isClicked = false;
 	}
 	else if (clickedButton->name == "replace")
@@ -1373,7 +1373,7 @@ void Editor::ClickedButton()
 	{
 		// 0. Open dialog to get name of entity
 		CreateDialog("Type in the name of the new Entity Type:");
-		game->StartTextInput("new_entity_type");
+		game->StartTextInput(*dialog, "new_entity_type");
 		clickedButton->isClicked = false;	
 	}
 
@@ -1664,12 +1664,6 @@ void Editor::Render(const Renderer& renderer)
 	}
 }
 
-void Editor::DestroyDialog()
-{
-	if (dialog != nullptr)
-		dialog->visible = false;
-}
-
 void Editor::CreateDialog(const std::string& txt)
 {
 	if (dialog != nullptr)
@@ -1685,7 +1679,7 @@ void Editor::CreateDialog(const std::string& txt)
 void Editor::NewLevel()
 {
 	CreateDialog("Type in the filename of the neww level:");
-	game->StartTextInput("new_level");
+	game->StartTextInput(*dialog, "new_level");
 }
 
 std::string Editor::SaveLevelAsString()

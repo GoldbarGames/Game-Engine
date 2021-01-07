@@ -17,6 +17,7 @@ Timer::~Timer()
 
 }
 
+
 bool Timer::HasElapsed() const
 {
 	return Globals::CurrentTicks >= endTime;

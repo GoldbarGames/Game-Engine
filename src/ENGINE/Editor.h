@@ -143,7 +143,6 @@ public:
 
 	void SetLayer(DrawingLayer layer);
 
-	void DestroyDialog();
 	void CreateDialog(const std::string& txt);
 
 	void PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY);

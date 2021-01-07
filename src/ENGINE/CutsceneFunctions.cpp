@@ -14,6 +14,12 @@
 #include "Renderer.h"
 #include "ParticleSystem.h"
 
+
+
+//#include <Windows.h>
+
+
+
 namespace CutsceneFunctions
 {
 
@@ -3357,6 +3363,8 @@ namespace CutsceneFunctions
 	// TODO: Also, need a cross-platform solution (not just Windows)
 	int ShellCommand(CutsceneParameters parameters, CutsceneCommands& c)
 	{
+		system("https://goldbargames.com");
+
 		return 0;
 	}
 

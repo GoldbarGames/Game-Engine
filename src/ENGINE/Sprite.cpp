@@ -513,10 +513,10 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	{
 		if (renderer.light != nullptr)
 		{
-			renderer.light->UseLight(shader->GetUniformVariable(ShaderVariable::ambientIntensity), 
-				shader->GetUniformVariable(ShaderVariable::ambientColor), 
-				shader->GetUniformVariable(ShaderVariable::diffuseIntensity),
-				shader->GetUniformVariable(ShaderVariable::lightDirection));
+			renderer.light->UseLight(shader->GetUniformVariable(ShaderVariable::ambientIntensity),
+				shader->GetUniformVariable(ShaderVariable::ambientColor),
+				shader->GetUniformVariable(ShaderVariable::diffuseIntensity));
+				//shader->GetUniformVariable(ShaderVariable::lightDirection));
 		}
 	}
 

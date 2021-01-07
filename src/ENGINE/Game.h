@@ -23,6 +23,7 @@ class FileManager;
 class MenuManager;
 
 class FrameBuffer;
+class Dialog;
 
 enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
 
@@ -241,8 +242,10 @@ public:
 
 	void SetFullScreen(bool setFull);
 
-	void StartTextInput(const std::string& reason);
-	void StopTextInput();
+	Dialog* currentDialog = nullptr;
+
+	void StartTextInput(Dialog& dialog, const std::string& reason);
+	void StopTextInput(Dialog& dialog);
 
 	void EscapeMenu();
 

@@ -14,6 +14,7 @@ private:
 	bool started = false;
 	uint32_t lastDuration = 0; // the last time that the duration was set
 public:
+
 	uint32_t startTicks = 0; // the tick count when the timer is started
 	uint32_t endTime = 0; // the time at which to stop the timer, if any
 	Timer();
