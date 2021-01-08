@@ -143,8 +143,6 @@ void Textbox::UpdateText(const char c, const Color& color)
 {
 	text->wrapWidth = boxWidth;
 	text->AddText(c, color);
-	const int boxOffsetX = 120;
-	const int boxOffsetY = 1070;
 	text->SetPosition(boxOffsetX, boxOffsetY);
 	clickToContinue->SetPosition(glm::vec3(boxOffsetX, boxOffsetY, 0));
 	fullTextString += c;
@@ -154,8 +152,6 @@ void Textbox::UpdateText(const std::string& newText, const Color& color)
 {
 	text->wrapWidth = boxWidth;
 	text->SetText(newText, color, boxWidth);
-	const int boxOffsetX = 120;
-	const int boxOffsetY = 1070;
 	//text->SetPosition(boxOffsetX, boxOffsetY);
 	clickToContinue->SetPosition(glm::vec3(boxOffsetX, boxOffsetY, 0));
 	fullTextString = newText;

@@ -1,6 +1,7 @@
 #include "SoundTest.h"
 #include "SoundManager.h"
 #include "Game.h"
+#include <sstream>
 
 SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager), 
 										timelineRectangle(m.game->renderer.shaders[ShaderName::SolidColor]), 
@@ -19,7 +20,7 @@ SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager),
 	timelineLocation.keepScaleRelativeToCamera = true;
 
 
-	float buttonX = 200 * Camera::MULTIPLIER;
+	float buttonX = 100 * Camera::MULTIPLIER;
 	float buttonY = 300 * Camera::MULTIPLIER; // (manager->game->screenHeight - buttonHeight) * Camera::MULTIPLIER
 
 	const int buttonWidth = 50;
@@ -54,6 +55,11 @@ SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager),
 	setTimeButton = neww EditorButton("=", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	setTimeButton->text->SetPosition(buttonX, buttonY);
 	buttons.emplace_back(setTimeButton);
+	buttonX += buttonWidth + buttonSpacing;
+
+	addLoopButton = neww EditorButton("L+", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	addLoopButton->text->SetPosition(buttonX, buttonY);
+	buttons.emplace_back(addLoopButton);
 	buttonX += buttonWidth + buttonSpacing;
 
 	timerText = Text(m.game->theFont, "No song playing", true, true);
@@ -102,6 +108,15 @@ SoundTest::~SoundTest()
 		if (buttons[i] != nullptr)
 			delete_it(buttons[i]);
 	}
+
+	for (const auto& [key, val] : soundLoops)
+	{
+		for (int i = 0; i < soundLoops.size(); i++)
+		{
+			if (soundLoops[key][i] != nullptr)
+				delete_it(soundLoops[key][i]);
+		}
+	}
 }
 
 void SoundTest::CreateDialog(const std::string& txt)
@@ -114,26 +129,113 @@ void SoundTest::CreateDialog(const std::string& txt)
 		dialog.text->GetTextWidth(), dialog.text->GetTextHeight() * 4, dialog.text->scale));
 }
 
-void SoundTest::UpdateTimerText()
+std::string SoundTest::ConvertTimeToStringFromNumber(uint32_t time)
 {
-	std::string timerStr = "";
+	std::string timeStr = "";
 
-	uint32_t timeElapsed = songTimer;
+	uint32_t seconds = (time / 1000) % 60;
+	uint32_t minutes = (time / 1000) / 60;
 
-	uint32_t seconds = (timeElapsed / 1000) % 60;
-	uint32_t minutes = (timeElapsed / 1000) / 60;
-
-	float ms = timeElapsed / 1000.0f; // 123.456
+	float ms = time / 1000.0f; // 123.456
 	ms -= (int)ms; // 123.456 - 123 = 0.456
 
 	int finalMS = ms * 1000; // 456
 
 	// Minutes, Seconds, fractions of a second
-	timerStr += std::to_string(minutes) + ":"
+	timeStr += std::to_string(minutes) + ":"
 		+ std::to_string(seconds) + ":"
 		+ std::to_string(finalMS);
 
-	timerText.SetText(timerStr);
+	return timeStr;
+}
+
+void SoundTest::UpdateTimerText()
+{
+	timerText.SetText(ConvertTimeToStringFromNumber(songTimer));
+}
+
+
+void SoundTest::AfterLoopDialog1(const std::string& time)
+{
+
+	try
+	{
+		if (time.find('.') != std::string::npos)
+			soundLoops[currentBGM][currentlyModifyingLoop]->startTime = (int)(std::stof(time) * 1000);
+		else
+			soundLoops[currentBGM][currentlyModifyingLoop]->startTime = std::stoi(time);
+
+		std::string loopString = std::to_string(currentlyModifyingLoop + 1) + ": ";
+		loopString += ConvertTimeToStringFromNumber(soundLoops[currentBGM][currentlyModifyingLoop]->startTime) + " - "
+			+ ConvertTimeToStringFromNumber(soundLoops[currentBGM][currentlyModifyingLoop]->endTime);
+		soundLoops[currentBGM][currentlyModifyingLoop]->text->SetText(loopString, soundLoops[currentBGM][currentlyModifyingLoop]->color);
+
+		CreateDialog("Type the end time for the loop:");
+		manager->game->StartTextInput(dialog, "sound_test_loop_time2");
+	}
+	catch (std::exception ex)
+	{
+		manager->game->logger.Log("ERROR: Could not set loop time start in music player: ");
+		manager->game->logger.Log(ex.what());
+	}
+
+}
+
+void SoundTest::AfterLoopDialog2(const std::string& time)
+{
+	try
+	{
+		if (time.find('.') != std::string::npos)
+			soundLoops[currentBGM][currentlyModifyingLoop]->endTime = (int)(std::stof(time) * 1000);
+		else
+			soundLoops[currentBGM][currentlyModifyingLoop]->endTime = std::stoi(time);
+
+		std::string loopString = std::to_string(currentlyModifyingLoop + 1) + ": ";
+		loopString += ConvertTimeToStringFromNumber(soundLoops[currentBGM][currentlyModifyingLoop]->startTime) + " - "
+			+ ConvertTimeToStringFromNumber(soundLoops[currentBGM][currentlyModifyingLoop]->endTime);
+		soundLoops[currentBGM][currentlyModifyingLoop]->text->SetText(loopString, soundLoops[currentBGM][currentlyModifyingLoop]->color);
+
+		CreateDialog("Type the color for the loop:");
+		manager->game->StartTextInput(dialog, "sound_test_loop_color");
+	}
+	catch (std::exception ex)
+	{
+		manager->game->logger.Log("ERROR: Could not set loop time end in music player: ");
+		manager->game->logger.Log(ex.what());
+	}
+}
+
+void SoundTest::AfterLoopDialog3(const std::string& color)
+{
+	try
+	{
+		// Technically there are multiple ways of representing color.
+		// But for now, let's just do it like this: 255 255 255 (no alpha)
+
+		std::istringstream iss(color);
+		std::string s = "";
+
+		getline(iss, s, ' ');
+		int r = std::stoi(s);
+
+		getline(iss, s, ' ');
+		int g = std::stoi(s);
+
+		getline(iss, s, ' ');
+		int b = std::stoi(s);
+
+		Color newColor = { (uint8_t)r, (uint8_t)g, (uint8_t)b, 255 };
+
+		soundLoops[currentBGM][currentlyModifyingLoop]->color = newColor;
+		soundLoops[currentBGM][currentlyModifyingLoop]->text->SetColor(newColor);
+
+		currentlyModifyingLoop = -1;
+	}
+	catch (std::exception ex)
+	{
+		manager->game->logger.Log("ERROR: Could not set loop color in music player: ");
+		manager->game->logger.Log(ex.what());
+	}
 }
 
 void SoundTest::AfterJumpDialog(const std::string& time)
@@ -211,9 +313,26 @@ void SoundTest::Update(Game& game)
 	{
 		songTimer += game.dt;
 		UpdateTimerText();
+
+		if (selectedLoop > -1)
+		{
+			if (songTimer >= soundLoops[currentBGM][selectedLoop]->endTime)
+			{
+				Mix_RewindMusic();
+				if (Mix_SetMusicPosition((double)(soundLoops[currentBGM][selectedLoop]->startTime/1000)) == -1)
+				{
+					manager->game->logger.Log("ERROR: Could not loop time in music player: ");
+				}
+				else
+				{
+					songTimer = soundLoops[currentBGM][selectedLoop]->startTime;
+					UpdateTimerText();
+				}
+			}
+		}
+
+
 	}
-
-
 
 	int mouseX = 0;
 	int mouseY = 0;
@@ -328,18 +447,121 @@ void SoundTest::Update(Game& game)
 				{
 					CreateDialog("Type the timestamp (in seconds) to jump to:");
 					game.StartTextInput(dialog, "sound_test_jump");					
+				}				
+				else if (clickedButton == addLoopButton)
+				{
+					SoundLoop* newLoop = neww SoundLoop();
+
+					newLoop->startTime = game.randomManager.RandomRange(5, 15) * 1000;
+					newLoop->endTime = newLoop->startTime + (game.randomManager.RandomRange(20, 40) * 1000);
+
+					int r = game.randomManager.RandomRange(100, 235);
+					int g = game.randomManager.RandomRange(100, 235);
+					int b = game.randomManager.RandomRange(100, 235);
+
+					newLoop->color = { (uint8_t)r, (uint8_t)g, (uint8_t)b, 255 };
+
+					int buttonX = 1600;
+					int buttonY = 100 + (200 * soundLoops[currentBGM].size());
+
+					std::string loopString = std::to_string(soundLoops[currentBGM].size() + 1) + ": ";
+
+					loopString += ConvertTimeToStringFromNumber(newLoop->startTime) + " - "
+						+ ConvertTimeToStringFromNumber(newLoop->endTime);
+
+					newLoop->text = neww Text(game.theFont, loopString, true, true);
+					newLoop->text->SetColor(newLoop->color);
+					newLoop->text->SetPosition(buttonX, buttonY);
+
+					buttonX += 300;
+					newLoop->modifyButton = neww EditorButton("M", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+					newLoop->modifyButton->text->SetPosition(buttonX, buttonY);
+
+					buttonX += 150;
+					newLoop->removeButton = neww EditorButton("R", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+					newLoop->removeButton->text->SetPosition(buttonX, buttonY);
+
+					buttonX += 150;
+					newLoop->selectButton = neww EditorButton("S", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+					newLoop->selectButton->text->SetPosition(buttonX, buttonY);
+
+					soundLoops[currentBGM].emplace_back(newLoop);
 				}
 			}
+			else // check if we clicked a loop button
+			{
+				for (unsigned int i = 0; i < soundLoops[currentBGM].size(); i++)
+				{
+					// If clicked, modify loop i
+					if (soundLoops[currentBGM][i]->modifyButton->IsPointInsideButton(mouseX, mouseY))
+					{
+						currentlyModifyingLoop = i;
+						CreateDialog("Type the start time for the loop:");
+						game.StartTextInput(dialog, "sound_test_loop_time1");
+						break;
+					}
 
+					// If clicked, select loop i
+					if (soundLoops[currentBGM][i]->selectButton->IsPointInsideButton(mouseX, mouseY))
+					{
+						if (selectedLoop == i)
+							selectedLoop = -1;
+						else
+							selectedLoop = i;
+
+						for (int k = 0; k < soundLoops[currentBGM].size(); k++)
+						{
+							if (k == i)
+								soundLoops[currentBGM][k]->selectButton->color = { 64, 64, 64, 255 };
+							else
+								soundLoops[currentBGM][k]->selectButton->color = { 255, 255, 255, 255 };
+						}
+
+						break;
+					}
+
+					// If clicked, remove loop i
+					if (soundLoops[currentBGM][i]->removeButton->IsPointInsideButton(mouseX, mouseY))
+					{
+						soundLoops[currentBGM].erase(soundLoops[currentBGM].begin() + i);
+
+						// Recalculate the positions (and numbers) of all the remaining loops
+						// NOTE: Be careful here, because this will change the numbers of the loops
+						// and therefore might change what is going on in the game.
+
+						int buttonX = 1600;
+						int buttonY = 100;
+
+						for (int k = 0; k < soundLoops[currentBGM].size(); k++)
+						{
+							buttonX = 1600;
+							std::string loopString = std::to_string(k + 1) + ": ";
+							loopString += ConvertTimeToStringFromNumber(soundLoops[currentBGM][k]->startTime) + " - "
+								+ ConvertTimeToStringFromNumber(soundLoops[currentBGM][k]->endTime);
+							soundLoops[currentBGM][k]->text->SetText(loopString, soundLoops[currentBGM][k]->color);
+							soundLoops[currentBGM][k]->text->SetPosition(buttonX, buttonY);
+
+							buttonX += 300;
+							soundLoops[currentBGM][k]->modifyButton->position = glm::vec3(buttonX, buttonY, 0);
+							soundLoops[currentBGM][k]->modifyButton->text->SetPosition(buttonX, buttonY);
+
+							buttonX += 150;
+							soundLoops[currentBGM][k]->removeButton->position = glm::vec3(buttonX, buttonY, 0);
+							soundLoops[currentBGM][k]->removeButton->text->SetPosition(buttonX, buttonY);
+
+							buttonY += 200;
+						}
+
+						break;
+					}
+				}
+			}
 		}
 	}
 
 	previousMouseState = mouseState;
 
 	// TODO: for next time
-
-	// - Add a timeline that shows where we are in the song
-
 	// total length of the song
 	
 	// - Set points in the song that can be looped over and over
@@ -347,19 +569,9 @@ void SoundTest::Update(Game& game)
 
 }
 
-void SoundTest::Render(const Renderer& renderer)
+float SoundTest::CalcTimelinePosition(float time, float a, float b, float w)
 {
-	timerText.Render(renderer);
-	songText.Render(renderer);
-
-
-	int a = 600;
-	int w = 400;
-	int b = a + (w * Camera::MULTIPLIER);
-
-	static float tlPosition = 0.0f;
-
-	tlPosition = songTimer / 1000.0f; // - Get current time in the song (30)
+	float tlPosition = time / 1000.0f; // - Get current time in the song (30)
 
 	tlPosition /= 85; // - Divide by the total length of the song   (30/60 = 0.5f)
 
@@ -369,15 +581,65 @@ void SoundTest::Render(const Renderer& renderer)
 
 	tlPosition -= w; // To offset due to OpenGL drawing with center origin, we subtract half the width
 
-	timelineRectangle.Render(glm::vec3(a, 400, 0), renderer, Vector2(w, 20));
-	timelineLocation.Render(glm::vec3(tlPosition, 400, 0), renderer, Vector2(20, 20));
+	return tlPosition;
+}
 
+void SoundTest::Render(const Renderer& renderer)
+{
+	timerText.Render(renderer);
+	songText.Render(renderer);
+
+
+	int a = 600;
+	int y = 400;
+	int w = 400;
+	int b = a + (w * Camera::MULTIPLIER);
+
+	float tlPos = CalcTimelinePosition(songTimer, a, b, w);
+
+	timelineRectangle.Render(glm::vec3(a, y, 0), renderer, Vector2(w, 20));
+
+	timelineLocation.color = { 255, 255, 255, 255 };
+	timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, Vector2(20, 20));
 
 	for (int i = 0; i < buttons.size(); i++)
 	{
 		if (buttons[i] != nullptr)
 		{
 			buttons[i]->Render(renderer);
+		}
+	}
+
+	for (int i = 0; i < soundLoops[currentBGM].size(); i++)
+	{
+		bool hideOtherLoops = !isPaused && Mix_PlayingMusic();
+
+		if ((hideOtherLoops && i == selectedLoop) || (!hideOtherLoops))
+		{
+			timelineLocation.color = soundLoops[currentBGM][i]->color;
+
+			tlPos = CalcTimelinePosition(soundLoops[currentBGM][i]->startTime, a, b, w);
+			timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, Vector2(20, 20));
+
+			tlPos = CalcTimelinePosition(soundLoops[currentBGM][i]->endTime, a, b, w);
+			timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, Vector2(20, 20));
+		}	
+
+		soundLoops[currentBGM][i]->text->Render(renderer);
+
+		if (soundLoops[currentBGM][i]->modifyButton != nullptr)
+		{
+			soundLoops[currentBGM][i]->modifyButton->Render(renderer);
+		}
+
+		if (soundLoops[currentBGM][i]->removeButton != nullptr)
+		{
+			soundLoops[currentBGM][i]->removeButton->Render(renderer);
+		}
+
+		if (soundLoops[currentBGM][i]->selectButton != nullptr)
+		{
+			soundLoops[currentBGM][i]->selectButton->Render(renderer);
 		}
 	}
 

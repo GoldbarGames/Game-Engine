@@ -14,8 +14,6 @@
 #include "Renderer.h"
 #include "ParticleSystem.h"
 
-
-
 //#include <Windows.h>
 
 
@@ -1848,6 +1846,13 @@ namespace CutsceneFunctions
 			else if (parameters[2] == "font")
 			{
 				c.manager->textbox->ChangeBoxFont(c.ParseStringValue(parameters[3]), c.ParseNumberValue(parameters[4]));
+			}
+			else if (parameters[2] == "position")
+			{
+				glm::vec3 newPos = glm::vec3(c.ParseNumberValue(parameters[2]), c.ParseNumberValue(parameters[3]), 0);
+
+				c.manager->textbox->boxOffsetX = newPos.x;
+				c.manager->textbox->boxOffsetY = newPos.y;
 			}
 		}
 		else if (parameters[1] == "color")

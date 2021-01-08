@@ -10,6 +10,35 @@
 
 class SoundManager;
 
+
+struct SoundLoop
+{
+	uint32_t startTime = 0;
+	uint32_t endTime = 0;
+	Color color = { 255, 255, 255, 255 };
+
+	Text* text = nullptr;
+
+	EditorButton* modifyButton = nullptr;
+	EditorButton* removeButton = nullptr;
+	EditorButton* selectButton = nullptr;
+
+	~SoundLoop()
+	{
+		if (text != nullptr)
+			delete_it(text);
+
+		if (modifyButton != nullptr)
+			delete_it(modifyButton);
+
+		if (removeButton != nullptr)
+			delete_it(removeButton);
+
+		if (selectButton != nullptr)
+			delete_it(selectButton);
+	}
+};
+
 class KINJO_API SoundTest
 {
 public:
@@ -22,9 +51,12 @@ public:
 	EditorButton* stepForwardButton = nullptr;
 	EditorButton* stepBackButton = nullptr;
 	EditorButton* setTimeButton = nullptr;
+	EditorButton* addLoopButton = nullptr;
 
 	Sprite timelineRectangle;
 	Sprite timelineLocation;
+
+	std::unordered_map<std::string, std::vector<SoundLoop*>> soundLoops;
 
 	Text songText;
 
@@ -34,6 +66,8 @@ public:
 	std::string currentDir = "";
 	std::string currentBGM = "";
 	float songTimer = 0.0f;
+	int currentlyModifyingLoop = -1;
+	int selectedLoop = -1;
 
 	std::vector<EditorButton*> buttons;
 
@@ -48,8 +82,15 @@ public:
 	void AfterFileDialog(const std::string& bgm);
 	void AfterJumpDialog(const std::string& time);
 
+	void AfterLoopDialog1(const std::string& time);
+	void AfterLoopDialog2(const std::string& time);
+	void AfterLoopDialog3(const std::string& color);
+
+	float CalcTimelinePosition(float time, float a, float b, float w);
+
 	void MusicFinished();
 	void UpdateTimerText();
+	std::string ConvertTimeToStringFromNumber(uint32_t time);
 };
 
 #endif

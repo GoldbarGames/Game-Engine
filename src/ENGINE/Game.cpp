@@ -781,6 +781,18 @@ void Game::StopTextInput(Dialog& dialog)
 	{
 		soundManager.soundTest->AfterJumpDialog(inputText);
 	}
+	else if (inputReason == "sound_test_loop_time1")
+	{
+		soundManager.soundTest->AfterLoopDialog1(inputText);
+	}
+	else if (inputReason == "sound_test_loop_time2")
+	{
+		soundManager.soundTest->AfterLoopDialog2(inputText);
+	}
+	else if (inputReason == "sound_test_loop_color")
+	{
+		soundManager.soundTest->AfterLoopDialog3(inputText);
+	}
 	else if (inputReason == "start_watch")
 	{
 		waitingForDebugDialog = false;

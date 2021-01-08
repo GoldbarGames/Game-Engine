@@ -27,7 +27,7 @@ void RandomManager::Seed(int seed)
 
 int RandomManager::RandomRange(int min, int max)
 {
-	return (rand() % max) + min;
+	return (rand() % (max-min)) + min;
 }
 
 int RandomManager::RandomInt(int max)

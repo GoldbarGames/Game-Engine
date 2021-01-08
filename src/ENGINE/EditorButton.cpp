@@ -67,11 +67,11 @@ void EditorButton::Render(const Renderer& renderer)
 
 	// Darken/lighten the button based on status
 	if (isClicked)
-		image->color = { 128, 128, 128, 255 };
+		image->color = { (uint8_t)(color.r * 0.5f), (uint8_t)(color.g * 0.5f), (uint8_t)(color.b * 0.5f), 255 };
 	else if (isHovered)
-		image->color = { 184, 184, 184, 255 };
+		image->color = { (uint8_t)(color.r * 0.75f), (uint8_t)(color.g * 0.75f), (uint8_t)(color.b * 0.75f), 255 };
 	else
-		image->color = { 255, 255, 255, 255 };
+		image->color = color;
 
 	// Render the button's image and text
 	image->Render(position, renderer, imageScale);

@@ -28,6 +28,8 @@ public:
 	Vector2 imageScale = Vector2(1, 1);
 	std::string name = "";
 
+	Color color = { 255, 255, 255, 255 };
+
 	bool isClicked = false;
 	bool isHovered = false;
 

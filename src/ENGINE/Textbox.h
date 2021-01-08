@@ -30,6 +30,10 @@ public:
 
 	uint32_t boxWidth = 1100;
 
+	// Where the text should be drawn
+	int boxOffsetX = 120;
+	int boxOffsetY = 1070;
+
 	std::string fullTextString = "";
 	SpriteManager* spriteManager = nullptr;
 	Renderer* renderer = nullptr;
