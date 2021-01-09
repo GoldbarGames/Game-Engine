@@ -35,6 +35,15 @@ SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager),
 	loadBGMButton = neww EditorButton("BGM", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	loadBGMButton->text->SetPosition(buttonX, buttonY);
 	buttons.emplace_back(loadBGMButton);
+
+	bgmUpButton = neww EditorButton("^", "Btn", glm::vec3(buttonX, buttonY + 150, 0), *manager->game);
+	bgmUpButton->text->SetPosition(buttonX, buttonY + 150);
+	buttons.emplace_back(bgmUpButton);
+
+	bgmDownButton = neww EditorButton("v", "Btn", glm::vec3(buttonX, buttonY + 300, 0), *manager->game);
+	bgmDownButton->text->SetPosition(buttonX, buttonY + 300);
+	buttons.emplace_back(bgmDownButton);
+
 	buttonX += buttonWidth + buttonSpacing;
 
 	playButton = neww EditorButton("|>", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
@@ -111,12 +120,48 @@ SoundTest::~SoundTest()
 
 	for (const auto& [key, val] : soundLoops)
 	{
-		for (int i = 0; i < soundLoops.size(); i++)
+		for (int i = 0; i < soundLoops[key].size(); i++)
 		{
 			if (soundLoops[key][i] != nullptr)
 				delete_it(soundLoops[key][i]);
 		}
 	}
+}
+
+void SoundTest::ScrollCurrentBGM(bool up)
+{
+
+	std::vector<std::string> bgmList;
+
+	fs::path path = fs::current_path().append(currentDir);
+	for (const auto& entry : fs::directory_iterator(path))
+	{
+		bgmList.emplace_back(entry.path().filename().string());
+	}
+
+	int b = -1;
+	for (int i = 0; i < bgmList.size(); i++)
+	{
+		if (bgmList[i] == currentBGM)
+			b = i;
+	}
+
+	if (b > -1)
+	{
+		int newBGMIndex = up ? b - 1 : b + 1;
+
+		if (newBGMIndex < 0)
+			newBGMIndex = bgmList.size() - 1;
+
+		if (newBGMIndex >= bgmList.size())
+			newBGMIndex = 0;
+
+		currentBGM = bgmList[newBGMIndex];
+
+		AfterFileDialog(currentBGM);
+	}
+
+
 }
 
 void SoundTest::CreateDialog(const std::string& txt)
@@ -318,16 +363,7 @@ void SoundTest::Update(Game& game)
 		{
 			if (songTimer >= soundLoops[currentBGM][selectedLoop]->endTime)
 			{
-				Mix_RewindMusic();
-				if (Mix_SetMusicPosition((double)(soundLoops[currentBGM][selectedLoop]->startTime/1000)) == -1)
-				{
-					manager->game->logger.Log("ERROR: Could not loop time in music player: ");
-				}
-				else
-				{
-					songTimer = soundLoops[currentBGM][selectedLoop]->startTime;
-					UpdateTimerText();
-				}
+				AfterJumpDialog(std::to_string(soundLoops[currentBGM][selectedLoop]->startTime / 1000));
 			}
 		}
 
@@ -374,6 +410,14 @@ void SoundTest::Update(Game& game)
 				{
 					CreateDialog("Type the name of the BGM file to play:");
 					game.StartTextInput(dialog, "sound_test_file");
+				}
+				else if (clickedButton == bgmUpButton)
+				{
+					ScrollCurrentBGM(true);
+				}
+				else if (clickedButton == bgmDownButton)
+				{
+					ScrollCurrentBGM(false);
 				}
 				else if (clickedButton == playButton)
 				{
@@ -482,6 +526,10 @@ void SoundTest::Update(Game& game)
 					newLoop->removeButton->text->SetPosition(buttonX, buttonY);
 
 					buttonX += 150;
+					newLoop->jumpButton = neww EditorButton("J", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+					newLoop->jumpButton->text->SetPosition(buttonX, buttonY);
+
+					buttonX += 150;
 					newLoop->selectButton = neww EditorButton("S", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 					newLoop->selectButton->text->SetPosition(buttonX, buttonY);
 
@@ -498,6 +546,13 @@ void SoundTest::Update(Game& game)
 						currentlyModifyingLoop = i;
 						CreateDialog("Type the start time for the loop:");
 						game.StartTextInput(dialog, "sound_test_loop_time1");
+						break;
+					}
+
+					// If clicked, jump to loop i
+					if (soundLoops[currentBGM][i]->jumpButton->IsPointInsideButton(mouseX, mouseY))
+					{
+						AfterJumpDialog(std::to_string(soundLoops[currentBGM][i]->startTime/1000));
 						break;
 					}
 
@@ -561,11 +616,7 @@ void SoundTest::Update(Game& game)
 
 	previousMouseState = mouseState;
 
-	// TODO: for next time
-	// total length of the song
-	
-	// - Set points in the song that can be looped over and over
-	// - Add a button to move from point to point
+	// TODO: total length of the song
 
 }
 
@@ -589,19 +640,6 @@ void SoundTest::Render(const Renderer& renderer)
 	timerText.Render(renderer);
 	songText.Render(renderer);
 
-
-	int a = 600;
-	int y = 400;
-	int w = 400;
-	int b = a + (w * Camera::MULTIPLIER);
-
-	float tlPos = CalcTimelinePosition(songTimer, a, b, w);
-
-	timelineRectangle.Render(glm::vec3(a, y, 0), renderer, Vector2(w, 20));
-
-	timelineLocation.color = { 255, 255, 255, 255 };
-	timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, Vector2(20, 20));
-
 	for (int i = 0; i < buttons.size(); i++)
 	{
 		if (buttons[i] != nullptr)
@@ -609,6 +647,16 @@ void SoundTest::Render(const Renderer& renderer)
 			buttons[i]->Render(renderer);
 		}
 	}
+
+
+	int a = 600;
+	int y = 400;
+	int w = 400;
+	int b = a + (w * Camera::MULTIPLIER);
+
+	float tlPos = 0;
+
+	timelineRectangle.Render(glm::vec3(a, y, 0), renderer, Vector2(w, 20));
 
 	for (int i = 0; i < soundLoops[currentBGM].size(); i++)
 	{
@@ -641,7 +689,16 @@ void SoundTest::Render(const Renderer& renderer)
 		{
 			soundLoops[currentBGM][i]->selectButton->Render(renderer);
 		}
+
+		if (soundLoops[currentBGM][i]->jumpButton != nullptr)
+		{
+			soundLoops[currentBGM][i]->jumpButton->Render(renderer);
+		}
 	}
+
+	tlPos = CalcTimelinePosition(songTimer, a, b, w);
+	timelineLocation.color = { 255, 255, 255, 255 };
+	timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, Vector2(20, 20));
 
 	dialog.Render(renderer);
 }

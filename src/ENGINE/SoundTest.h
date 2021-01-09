@@ -22,6 +22,7 @@ struct SoundLoop
 	EditorButton* modifyButton = nullptr;
 	EditorButton* removeButton = nullptr;
 	EditorButton* selectButton = nullptr;
+	EditorButton* jumpButton = nullptr;
 
 	~SoundLoop()
 	{
@@ -36,6 +37,9 @@ struct SoundLoop
 
 		if (selectButton != nullptr)
 			delete_it(selectButton);
+
+		if (jumpButton != nullptr)
+			delete_it(jumpButton);
 	}
 };
 
@@ -52,6 +56,9 @@ public:
 	EditorButton* stepBackButton = nullptr;
 	EditorButton* setTimeButton = nullptr;
 	EditorButton* addLoopButton = nullptr;
+
+	EditorButton* bgmUpButton = nullptr;
+	EditorButton* bgmDownButton = nullptr;
 
 	Sprite timelineRectangle;
 	Sprite timelineLocation;
@@ -85,6 +92,8 @@ public:
 	void AfterLoopDialog1(const std::string& time);
 	void AfterLoopDialog2(const std::string& time);
 	void AfterLoopDialog3(const std::string& color);
+
+	void ScrollCurrentBGM(bool up);
 
 	float CalcTimelinePosition(float time, float a, float b, float w);
 
