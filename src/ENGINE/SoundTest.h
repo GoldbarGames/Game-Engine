@@ -13,6 +13,8 @@ class SoundManager;
 
 struct SoundLoop
 {
+	std::string name = "";
+
 	uint32_t startTime = 0;
 	uint32_t endTime = 0;
 	Color color = { 255, 255, 255, 255 };
@@ -23,6 +25,11 @@ struct SoundLoop
 	EditorButton* removeButton = nullptr;
 	EditorButton* selectButton = nullptr;
 	EditorButton* jumpButton = nullptr;
+
+	SoundLoop(std::string n)
+	{
+		name = n;
+	}
 
 	~SoundLoop()
 	{
@@ -82,7 +89,10 @@ public:
 	~SoundTest();
 
 	void Update(Game& game);
+	void UpdateSoundMode(Game& game);
 	void Render(const Renderer& renderer);
+
+	void SetSelectedLoopFromName(const std::string& bgmName, const std::string& loopName);
 
 	void CreateDialog(const std::string& txt);
 	void AfterDirDialog(const std::string& dir);
@@ -94,6 +104,9 @@ public:
 	void AfterLoopDialog3(const std::string& color);
 
 	void ScrollCurrentBGM(bool up);
+
+	void SaveData();
+	void CreateLoop(const std::string& name, uint32_t st, uint32_t et, Color c);
 
 	float CalcTimelinePosition(float time, float a, float b, float w);
 

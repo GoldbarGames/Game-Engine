@@ -13,6 +13,7 @@
 #include "RandomManager.h"
 #include "Renderer.h"
 #include "ParticleSystem.h"
+#include "SoundTest.h"
 
 //#include <Windows.h>
 
@@ -107,15 +108,47 @@ namespace CutsceneFunctions
 
 	int MusicCommand(CutsceneParameters parameters, CutsceneCommands& c)
 	{
-		//TODO: Deal with custom loop times
-
 		if (parameters[1] == "play")
 		{
 			c.manager->game->soundManager.PlayBGM(c.pathPrefix + c.ParseStringValue(parameters[2]), true);
+			c.manager->game->soundManager.soundTest->selectedLoop = -1;
+			c.manager->game->soundManager.soundTest->songTimer = 0.0f;
+		}
+		else if (parameters[1] == "loop")
+		{
+			if (parameters[2] == "none")
+			{
+				c.manager->game->soundManager.soundTest->selectedLoop = -1;
+			}
+			else
+			{
+				// We need to make sure to check if there is are any /
+			// only keep everything to the right of the final /
+				std::string bgmName = c.ParseStringValue(parameters[2]);
+
+				int startIndex = bgmName.size() - 1;
+
+				for (int i = startIndex; i >= 0; i--)
+				{
+					if (bgmName[i] == '/')
+					{
+						break;
+					}
+					startIndex = i;
+				}
+
+				std::string bgmNameFinal = bgmName.substr(startIndex, bgmName.size() - startIndex);
+
+				std::string loopName = c.ParseStringValue(parameters[3]);
+
+				c.manager->game->soundManager.soundTest->SetSelectedLoopFromName(bgmNameFinal, loopName);
+			}
 		}
 		else if (parameters[1] == "once")
 		{
 			c.manager->game->soundManager.PlayBGM(c.pathPrefix + c.ParseStringValue(parameters[2]), false);
+			c.manager->game->soundManager.soundTest->selectedLoop = -1;
+			c.manager->game->soundManager.soundTest->songTimer = 0.0f;
 		}
 		else if (parameters[1] == "stop")
 		{
@@ -124,6 +157,8 @@ namespace CutsceneFunctions
 		else if (parameters[1] == "fadein")
 		{
 			c.manager->game->soundManager.FadeInBGM(c.pathPrefix + c.ParseStringValue(parameters[2]), c.ParseNumberValue(parameters[3]), true);
+			c.manager->game->soundManager.soundTest->selectedLoop = -1;
+			c.manager->game->soundManager.soundTest->songTimer = 0.0f;
 		}
 		else if (parameters[1] == "fadeout")
 		{
@@ -135,6 +170,8 @@ namespace CutsceneFunctions
 		else if (parameters[1] == "fadeinw")
 		{
 			c.manager->game->soundManager.FadeInBGM(c.pathPrefix + c.ParseStringValue(parameters[2]), c.ParseNumberValue(parameters[3]), true);
+			c.manager->game->soundManager.soundTest->selectedLoop = -1;
+			c.manager->game->soundManager.soundTest->songTimer = 0.0f;
 			Wait({ "", parameters[2] }, c);
 		}
 		else if (parameters[1] == "fadeoutw")

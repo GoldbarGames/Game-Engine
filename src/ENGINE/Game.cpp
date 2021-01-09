@@ -1871,13 +1871,13 @@ void Game::Update()
 
 	renderer.Update();
 
-	if (soundMode && soundManager.soundTest != nullptr)
+	if (soundMode)
 	{
-		soundManager.soundTest->Update(*this);
+		soundManager.soundTest->UpdateSoundMode(*this);
 		return;
 	}
 
-
+	soundManager.soundTest->Update(*this);
 
 	if (freeCameraMode)
 	{
