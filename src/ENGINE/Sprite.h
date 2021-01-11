@@ -58,6 +58,9 @@ public:
 	Color color { 255, 255, 255, 255 };
 	static std::string selectedColor;
 
+	bool isHovered = false;
+	ShaderProgram* hoverShader = nullptr;
+
 	bool keepPositionRelativeToCamera = false;
 	bool keepScaleRelativeToCamera = false;
 

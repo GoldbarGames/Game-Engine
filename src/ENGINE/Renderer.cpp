@@ -47,6 +47,7 @@ void Renderer::CreateShaders()
 	CreateShader(ShaderName::Blur, "data/shaders/default.vert", "data/shaders/blur.frag");
 	CreateShader(ShaderName::Edge, "data/shaders/default.vert", "data/shaders/edge.frag");
 	CreateShader(ShaderName::Test, "data/shaders/default.vert", "data/shaders/test.frag");
+	CreateShader(ShaderName::Diffuse, "data/shaders/default.vert", "data/shaders/diffuse.frag");
 
 	textShader = shaders[ShaderName::GUI];
 }

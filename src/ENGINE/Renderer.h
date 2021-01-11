@@ -13,7 +13,10 @@
 #include "Timer.h"
 #include "GUI.h"
 #include "leak_check.h"
+
 #include "Light.h"
+#include "DirectionalLight.h"
+#include "PointLight.h"
 
 class Sprite;
 class Game;
@@ -30,6 +33,8 @@ public:
 	Camera guiCamera;
 
 	Light* light = nullptr;
+	PointLight* pointLights[MAX_POINT_LIGHTS];
+	mutable unsigned int pointLightCount = 0;
 
 	Sprite* debugSprite = nullptr;
 	Sprite* overlaySprite = nullptr;

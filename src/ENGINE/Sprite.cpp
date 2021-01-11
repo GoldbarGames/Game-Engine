@@ -57,6 +57,29 @@ void Sprite::CreateMesh(MeshType meshType)
 		{
 			if (meshQuad == nullptr)
 			{
+				
+				/*
+				unsigned int quadIndices[] = {
+					0, 2, 1,
+					1, 2, 3
+				};
+
+				GLfloat quadVertices[] = {
+					-1.0f, 0.0f, -1.0f,  0.0f, 0.0f,	0.0f, -1.0f, 0.0f,
+					1.0f, 0.0f, -1.0f,   1.0f, 0.0f,	0.0f, -1.0f, 0.0f,
+					-1.0f, 0.0f, 1.0f,   0.0f, 1.0f,	0.0f, -1.0f, 0.0f,
+					1.0f, 0.0f, 1.0f,    1.0f, 1.0f,	0.0f, -1.0f, 0.0f
+				};
+
+				CalcAverageNormals(quadIndices, 6, quadVertices, 32, 8, 5);
+
+				meshQuad = neww Mesh();
+				meshQuad->CreateMesh(quadVertices, quadIndices, 32, 6, 8, 3, 5);
+
+				*/
+
+
+
 				unsigned int quadIndices[] = {
 					0, 3, 1,
 					1, 3, 2,
@@ -507,17 +530,43 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 		shader = renderer.shaders[ShaderName::Default];
 	}
 
+	if (isHovered)
+	{
+		if (hoverShader == nullptr)
+		{
+			hoverShader = renderer.shaders[ShaderName::FadeInOut];
+		}
+
+		shader = hoverShader;
+	}
+
 	shader->UseShader();
+
 
 	if (renderer.light != nullptr)
 	{
 		if (renderer.light != nullptr)
 		{
-			renderer.light->UseLight(shader->GetUniformVariable(ShaderVariable::ambientIntensity),
-				shader->GetUniformVariable(ShaderVariable::ambientColor),
-				shader->GetUniformVariable(ShaderVariable::diffuseIntensity));
-				//shader->GetUniformVariable(ShaderVariable::lightDirection));
+			renderer.light->UseLight(*shader);
 		}
+
+		// For point lights
+		if (renderer.pointLights != nullptr)
+		{			
+			if (renderer.pointLightCount > MAX_POINT_LIGHTS)
+				renderer.pointLightCount = MAX_POINT_LIGHTS;
+
+			glUniform1i(shader->GetUniformVariable(ShaderVariable::pointLightCount), renderer.pointLightCount);
+
+			for (size_t i = 0; i < renderer.pointLightCount; i++)
+			{
+				renderer.pointLights[i]->UseLight(*shader);
+			}
+		}
+
+
+
+
 	}
 
 

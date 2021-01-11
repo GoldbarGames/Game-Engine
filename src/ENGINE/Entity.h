@@ -41,7 +41,6 @@ public:
 	Entity* attachedSwitch = nullptr;
 	QuadTree* quadrant = nullptr;
 	
-
 	Color color = { 255, 255, 255, 255 };
 
 	static uint32_t nextValidID;
@@ -67,6 +66,7 @@ public:
 	bool shouldDelete = false;
 	bool shouldSave = false;
 	bool clickable = false;
+	bool draggable = false;
 
 
 	unsigned int Size();

@@ -176,6 +176,9 @@ glm::mat4 Camera::CalculateViewMatrix() const
 
 void Camera::MouseControl(float xChange, float yChange)
 {
+	if (useOrthoCamera)
+		return;
+
 	xChange *= turnSpeed;
 	yChange *= turnSpeed;
 

@@ -16,13 +16,22 @@ DirectionalLight::DirectionalLight(glm::vec3 col, float ai, float di, glm::vec3 
 	direction = dir;
 }
 
-void DirectionalLight::UseLight(int ambientIntensityLocation, int ambientColorLocation, int diffuseIntensityLocation, int directionLocation)
+void DirectionalLight::UseLight(const ShaderProgram& shader)
 {
-	glUniform3f(ambientColorLocation, color.x, color.y, color.z);
-	glUniform1f(ambientIntensityLocation, ambientIntensity);
+	/*
+	glUniform3f(shader.GetUniformVariable(ShaderVariable::ambientColor), color.x, color.y, color.z);
+	glUniform1f(shader.GetUniformVariable(ShaderVariable::ambientIntensity), ambientIntensity);
+	glUniform1f(shader.GetUniformVariable(ShaderVariable::diffuseIntensity), diffuseIntensity);
 
-	glUniform3f(directionLocation, direction.x, direction.y, direction.z);
-	glUniform1f(diffuseIntensityLocation, diffuseIntensity);
+	glUniform3f(shader.GetUniformVariable(ShaderVariable::lightDirection), direction.x, direction.y, direction.z);
+
+	*/
+
+	glUniform3f(shader.uniformDirectionalLight.uniformColor, color.x, color.y, color.z);
+	glUniform1f(shader.uniformDirectionalLight.uniformAmbientIntensity, ambientIntensity);
+	glUniform1f(shader.uniformDirectionalLight.uniformDiffuseIntensity, diffuseIntensity);
+
+	glUniform3f(shader.uniformDirectionalLight.uniformDirection, direction.x, direction.y, direction.z);
 }
 
 DirectionalLight::~DirectionalLight()

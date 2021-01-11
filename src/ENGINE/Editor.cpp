@@ -1207,7 +1207,7 @@ void Editor::HandleEdit()
 		grabPosition.x += game->renderer.camera.position.x;
 		grabPosition.y += game->renderer.camera.position.y;
 
-		grabbedEntity->SetPosition(game->SnapToGrid(grabPosition));
+		grabbedEntity->SetPosition(game->SnapToGrid(grabPosition, GRID_SIZE));
 	}
 
 	previousMouseState = mouseState;

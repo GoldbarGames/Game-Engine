@@ -5,6 +5,7 @@
 #include "leak_check.h"
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+#include "Shader.h"
 
 class KINJO_API Light
 {
@@ -19,7 +20,7 @@ public:
 	Light(float red, float green, float blue, float aIntensity,  float dIntensity);
 	~Light();
 
-	virtual void UseLight(int ambientIntensityLocation, int ambientColorLocation, int diffuseIntensityLocation);
+	virtual void UseLight(const ShaderProgram& shader);
 
 };
 

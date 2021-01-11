@@ -11,7 +11,6 @@ Light::Light(float red, float green, float blue, float aIntensity, float dIntens
 {
 	color = glm::vec3(red, green, blue);
 	ambientIntensity = aIntensity;
-
 	diffuseIntensity = dIntensity;
 }
 
@@ -22,12 +21,12 @@ Light::Light(glm::vec3 col, float ai, float di)
 	diffuseIntensity = di;
 }
 
-void Light::UseLight(int ambientIntensityLocation, int ambientColorLocation, int diffuseIntensityLocation)
-{
-	glUniform3f(ambientColorLocation, color.x, color.y, color.z);
-	glUniform1f(ambientIntensityLocation, ambientIntensity);
 
-	glUniform1f(diffuseIntensityLocation, diffuseIntensity);
+void Light::UseLight(const ShaderProgram& shader)
+{
+	glUniform3f(shader.uniformDirectionalLight.uniformColor, color.x, color.y, color.z);
+	glUniform1f(shader.uniformDirectionalLight.uniformAmbientIntensity, ambientIntensity);
+	glUniform1f(shader.uniformDirectionalLight.uniformDiffuseIntensity, diffuseIntensity);
 }
 
 Light::~Light()

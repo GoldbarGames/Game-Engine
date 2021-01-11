@@ -448,17 +448,25 @@ void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 
 void Entity::OnClick(Uint32 mouseState, Game& game)
 {
-
+	//std::cout << "Clicked, pressed on " << etype << "!" << std::endl;
+	if (draggable && game.draggedEntity == nullptr)
+	{
+		game.draggedEntity = this;
+	}
 }
 
 void Entity::OnClickPressed(Uint32 mouseState, Game& game) 
 {
-	std::cout << "Clicked, pressed down on " << etype << "!" << std::endl;
+	//std::cout << "Clicked, pressed down on " << etype << "!" << std::endl;
 }
 
 void Entity::OnClickReleased(Uint32 mouseState, Game& game)
 {
-
+	//std::cout << "Clicked, released on " << etype << "!" << std::endl;
+	if (draggable && game.draggedEntity == this)
+	{
+		game.draggedEntity = nullptr;
+	}
 }
 
 Vector2 Entity::GetScale() const 

@@ -37,6 +37,7 @@
 #include "Renderer.h"
 #include "Light.h"
 #include "DirectionalLight.h"
+#include "PointLight.h"
 
 #include "SoundTest.h"
 #include "SettingsButton.h"
@@ -228,15 +229,25 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	if (!use2DCamera)
 	{
+		glm::vec3 lColor2 = glm::vec3(0.0f, 1.0f, 0.0f);
+
 		glm::vec3 lColor = glm::vec3(1.0f, 1.0f, 1.0f);
 		glm::vec3 lDir = glm::vec3(2.0f, 2.0f, 2.0f);
 
 		shinyMaterial = Material(1.0f, 16);
 		dullMaterial = Material(0.3f, 4);
 
-		renderer.light = neww DirectionalLight(lColor, 1.0f, 0.3f, lDir);
+		renderer.light = neww DirectionalLight(lColor, 0.4f, 0.2f, lDir);
 
-		triangle3D = neww Sprite(renderer.shaders[ShaderName::Default], MeshType::Pyramid);
+		glm::vec3 pos1 = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 attenuation = glm::vec3(0.3f, 0.2f, 0.1f);
+
+		renderer.pointLightCount = 0;
+
+		renderer.pointLights[0] = neww PointLight(lColor2, 0.4f, 0.2f, pos1, attenuation);
+		renderer.pointLightCount++;
+
+		triangle3D = neww Sprite(renderer.shaders[ShaderName::Diffuse], MeshType::Pyramid);
 		triangle3D->color = { 255, 0, 0, 255 };
 
 		// Shiny Material
@@ -247,6 +258,12 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 		//cutsceneManager.commands.ExecuteCommand("shader pyramid data/shaders/default.vert data/shaders/pyramid.frag");
 		//triangle3D->SetShader(cutsceneManager.commands.customShaders["pyramid"]);
+	}
+	else
+	{
+		glm::vec3 lColor = glm::vec3(1.0f, 1.0f, 1.0f);
+		glm::vec3 lDir = glm::vec3(2.0f, 2.0f, 2.0f);
+		renderer.light = neww DirectionalLight(lColor, 1.0f, 1.0f, lDir);
 	}
 }
 
@@ -423,7 +440,6 @@ void Game::InitOpenGL()
 	glAlphaFunc(GL_GREATER, 0.1);
 	glEnable(GL_ALPHA_TEST);
 
-
 	glViewport(0, 0, screenWidth, screenHeight);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -533,10 +549,10 @@ bool Game::SetOpenGLAttributes()
 	return true;
 }
 
-glm::vec3 Game::SnapToGrid(glm::vec3 position)
+glm::vec3 Game::SnapToGrid(glm::vec3 position, int size)
 {
-	int x = position.x - ((int)(position.x) % (editor->GRID_SIZE));
-	int y = position.y - ((int)(position.y) % (editor->GRID_SIZE));
+	int x = position.x - ((int)(position.x) % (size));
+	int y = position.y - ((int)(position.y) % (size));
 
 	if (x % 2 != 0)
 		x++;
@@ -1939,6 +1955,8 @@ void Game::Update()
 	if (waitingForDebugDialog)
 		return;
 
+	PopulateQuadTree();
+
 	if (cutsceneManager.watchingCutscene)
 	{
 		cutsceneManager.Update();
@@ -1949,31 +1967,56 @@ void Game::Update()
 		previousMouseState = mouseState;
 		mouseState = SDL_GetMouseState(&mouseRect.x, &mouseRect.y);
 
-		// If left click
-		if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT) && 
-			!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+		// TODO: This does not work if we change the camera's zoom level
+
+		Vector2 worldPosition = Vector2(mouseRect.x + renderer.camera.position.x, mouseRect.y + renderer.camera.position.y);
+
+		mouseRect.x = worldPosition.x;
+		mouseRect.y = worldPosition.y;
+		mouseRect.w = 1;
+		mouseRect.h = 1;
+
+		std::vector<Entity*> clickableEntities;
+		quadTree.Retrieve(&mouseRect, clickableEntities, &quadTree);
+
+		for (unsigned int i = 0; i < clickableEntities.size(); i++)
 		{
-			Vector2 worldPosition = Vector2(mouseRect.x + renderer.camera.position.x, mouseRect.y + renderer.camera.position.y);
-
-			mouseRect.x = worldPosition.x;
-			mouseRect.y = worldPosition.y;
-
-			//TODO: Only iterate over entities that are clickable
-			for (unsigned int i = 0; i < entities.size(); i++)
+			if (clickableEntities[i]->clickable)
 			{
-				if (entities[i]->clickable)
+				clickableEntities[i]->GetSprite()->isHovered = false;
+
+				if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 				{
-					if (HasIntersection(mouseRect, *entities[i]->GetBounds()))
+					if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
 					{
-						entities[i]->OnClickPressed(mouseState, *this);
+						if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+							clickableEntities[i]->OnClickPressed(mouseState, *this);
+						else
+							clickableEntities[i]->OnClick(mouseState, *this);
 						break;
 					}
-				}				
+				}
+				else if (previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+				{
+					if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
+					{
+						clickableEntities[i]->OnClickReleased(mouseState, *this);
+						break;
+					}
+				}
+				else if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
+				{
+					clickableEntities[i]->GetSprite()->isHovered = true;
+				}
+
 			}
 		}
+
+
+
 	}
 
-	PopulateQuadTree();
+
 		
 	// Update all entities
 	updateCalls = 0;
@@ -2001,7 +2044,7 @@ void Game::PopulateQuadTree()
 
 	for (int i = 0; i < entities.size(); i++)
 	{
-		if (entities[i]->impassable || entities[i]->trigger
+		if (entities[i]->impassable || entities[i]->trigger || entities[i]->clickable
 			|| entities[i]->jumpThru || entities[i]->etype == "player")
 		{
 			quadTree.Insert(entities[i]);

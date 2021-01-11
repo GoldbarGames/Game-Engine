@@ -80,6 +80,8 @@ public:
 	Mesh* cubeMesh;
 	QuadTree quadTree;
 
+	Entity* draggedEntity = nullptr;
+
 	unsigned int collisionChecks = 0;
 	unsigned int updateCalls = 0;
 
@@ -236,7 +238,7 @@ public:
 
 	glm::vec3 CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE);
 
-	glm::vec3 SnapToGrid(glm::vec3 position);
+	glm::vec3 SnapToGrid(glm::vec3 position, int size);
 
 	std::vector<std::string> ReadStringsFromFile(const std::string& filepath);
 
