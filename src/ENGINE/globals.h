@@ -100,6 +100,8 @@ extern KINJO_API bool HasHorizontalIntersection(const SDL_Rect& rect1, const SDL
 
 extern KINJO_API void ReplaceAll(std::string& s, const std::string& toReplace, const std::string& replaceWith);
 
+extern KINJO_API std::vector<std::string> ReadStringsFromFile(const std::string& filepath);
+
 extern KINJO_API void CalcAverageNormals(unsigned int* indices, unsigned int indiceCount, float* vertices,
 	unsigned int verticeCount, unsigned int vLength, unsigned int normalOffset);
 

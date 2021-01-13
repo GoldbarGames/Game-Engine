@@ -223,6 +223,8 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	// Initialize all the menus (do this AFTER fonts and resolution)
 	menuManager->Init(*this);
 
+	inputManager.Init();
+
 	LoadEditorSettings();
 
 	previousTime = clock::now();
@@ -312,7 +314,9 @@ Game::~Game()
 	{
 		delete_it(prevCutsceneFrameBuffer);
 	}
-		
+
+	if (cursorSprite != nullptr)
+		delete_it(cursorSprite);		
 
 	if (debugScreen != nullptr)
 		delete_it(debugScreen);
@@ -1875,8 +1879,62 @@ void Game::GetMenuInput()
 	}
 }
 
+void Game::UpdateClickAndDrag()
+{
+	// Get position of mouse and any clicks
+	previousMouseState = mouseState;
+	mouseState = SDL_GetMouseState(&mouseRect.x, &mouseRect.y);
+
+	// TODO: This does not work if we change the camera's zoom level
+
+	Vector2 worldPosition = Vector2(mouseRect.x + renderer.camera.position.x, mouseRect.y + renderer.camera.position.y);
+
+	mouseRect.x = worldPosition.x;
+	mouseRect.y = worldPosition.y;
+	mouseRect.w = 1;
+	mouseRect.h = 1;
+
+	std::vector<Entity*> clickableEntities;
+	quadTree.Retrieve(&mouseRect, clickableEntities, &quadTree);
+
+	for (unsigned int i = 0; i < clickableEntities.size(); i++)
+	{
+		if (clickableEntities[i]->clickable)
+		{
+			clickableEntities[i]->GetSprite()->isHovered = false;
+
+			if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+			{
+				if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
+				{
+					if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+						clickableEntities[i]->OnClickPressed(mouseState, *this);
+					else
+						clickableEntities[i]->OnClick(mouseState, *this);
+					break;
+				}
+			}
+			else if (previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+			{
+				if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
+				{
+					clickableEntities[i]->OnClickReleased(mouseState, *this);
+					break;
+				}
+			}
+			else if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
+			{
+				clickableEntities[i]->GetSprite()->isHovered = true;
+			}
+
+		}
+	}
+}
+
 void Game::Update()
 {
+	inputManager.StartUpdate();
+
 	shouldQuit = CheckInputs();
 	CheckDeleteEntities();
 
@@ -1926,116 +1984,80 @@ void Game::Update()
 		renderer.guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
 	}
 
+
+	// NOTE: We always need to call EndUpdate()
+	// on the inputManager before the end of this function,
+	// so we use a bool here to only do the things we need.
+	bool updateNormalStuff = true;
+
 	if (openedMenus.size() > 0)
 	{
 		GetMenuInput();
-		return;
+		updateNormalStuff = false;
 	}
 	else if (editMode)
 	{
 		HandleEditMode();
-		return;
+		updateNormalStuff = false;
 	}
 	else if (transitionState > 0)
 	{
 		TransitionLevel();
-		return;
+		updateNormalStuff = false;
 	}
 
-	const Uint8* input = SDL_GetKeyboardState(NULL);
-
-	if (debugMode)
+	if (updateNormalStuff)
 	{
-		// If we click on a button on the debug screen,
-		// don't execute any game or cutscene code
-		if (debugScreen->Update())
-			waitingForDebugDialog = true;
-	}
+		const Uint8* input = SDL_GetKeyboardState(NULL);
 
-	if (waitingForDebugDialog)
-		return;
-
-	PopulateQuadTree();
-
-	if (cutsceneManager.watchingCutscene)
-	{
-		cutsceneManager.Update();
-	}
-	else
-	{
-		// Get position of mouse and any clicks
-		previousMouseState = mouseState;
-		mouseState = SDL_GetMouseState(&mouseRect.x, &mouseRect.y);
-
-		// TODO: This does not work if we change the camera's zoom level
-
-		Vector2 worldPosition = Vector2(mouseRect.x + renderer.camera.position.x, mouseRect.y + renderer.camera.position.y);
-
-		mouseRect.x = worldPosition.x;
-		mouseRect.y = worldPosition.y;
-		mouseRect.w = 1;
-		mouseRect.h = 1;
-
-		std::vector<Entity*> clickableEntities;
-		quadTree.Retrieve(&mouseRect, clickableEntities, &quadTree);
-
-		for (unsigned int i = 0; i < clickableEntities.size(); i++)
+		if (debugMode)
 		{
-			if (clickableEntities[i]->clickable)
-			{
-				clickableEntities[i]->GetSprite()->isHovered = false;
-
-				if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
-				{
-					if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
-					{
-						if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
-							clickableEntities[i]->OnClickPressed(mouseState, *this);
-						else
-							clickableEntities[i]->OnClick(mouseState, *this);
-						break;
-					}
-				}
-				else if (previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
-				{
-					if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
-					{
-						clickableEntities[i]->OnClickReleased(mouseState, *this);
-						break;
-					}
-				}
-				else if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
-				{
-					clickableEntities[i]->GetSprite()->isHovered = true;
-				}
-
-			}
+			// If we click on a button on the debug screen,
+			// don't execute any game or cutscene code
+			if (debugScreen->Update())
+				waitingForDebugDialog = true;
 		}
 
+		if (waitingForDebugDialog)
+		{
+			updateNormalStuff = false;
+		}
 
+		if (updateNormalStuff)
+		{
+			PopulateQuadTree();
 
+			if (cutsceneManager.watchingCutscene)
+			{
+				cutsceneManager.Update();
+			}
+			else
+			{
+				UpdateClickAndDrag();
+			}
+
+			// Update all entities
+			updateCalls = 0;
+			collisionChecks = 0;
+			for (unsigned int i = 0; i < entities.size(); i++)
+			{
+				entities[i]->Update(*this);
+			}
+
+			// Update the camera last
+			// We need to use the original screen resolution here (for some reason)
+			// which in our case is 1280 x 720
+			if (!cutsceneManager.watchingCutscene)
+			{
+				if (renderer.camera.useOrthoCamera)
+					renderer.camera.FollowTarget(*this);
+
+				//renderer.guiCamera.FollowTarget(*this);
+			}
+		}
 	}
 
-
-		
-	// Update all entities
-	updateCalls = 0;
-	collisionChecks = 0;
-	for (unsigned int i = 0; i < entities.size(); i++)
-	{		
-		entities[i]->Update(*this);
-	}
-
-	// Update the camera last
-	// We need to use the original screen resolution here (for some reason)
-	// which in our case is 1280 x 720
-	if (!cutsceneManager.watchingCutscene)
-	{
-		if (renderer.camera.useOrthoCamera)
-			renderer.camera.FollowTarget(*this);
-
-		//renderer.guiCamera.FollowTarget(*this);
-	}
+	inputManager.EndUpdate();
 }
 
 void Game::PopulateQuadTree()
@@ -2190,6 +2212,16 @@ void Game::Render()
 	screenSprite->SetShader(renderer.shaders[ShaderName::Edge]);
 	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight/2), renderer, Vector2(0.5f, -0.5f));
 	*/
+
+
+	// Always render the mouse last
+	if (cursorSprite != nullptr)
+	{
+		int mouseX = 0;
+		int mouseY = 0;
+		SDL_GetMouseState(&mouseX, &mouseY);
+		cursorSprite->Render(glm::vec3(mouseX, mouseY, 0), 0, renderer, glm::vec3(1,1,1), glm::vec3(0,0,0));
+	}
 
 	glUseProgram(0);
 	SDL_GL_SwapWindow(window);
@@ -2463,26 +2495,6 @@ void Game::RenderScene()
 #endif
 
 
-}
-
-std::vector<std::string> Game::ReadStringsFromFile(const std::string& filepath)
-{
-	std::vector<std::string> result;
-
-	std::ifstream fin;
-	char token[256];
-
-	fin.open(filepath);
-	if (fin.is_open())
-	{
-		while (!fin.eof())
-		{
-			fin.getline(token, 256);
-			result.push_back(token);
-		}
-	}
-
-	return result;
 }
 
 // Implementation of insertion sort:

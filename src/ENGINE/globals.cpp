@@ -2,6 +2,7 @@
 #include <iostream>
 #include <time.h>
 #include "Vector2.h"
+#include <fstream>
 #include <glm/geometric.hpp>
 
 int Globals::TILE_SIZE = 24;
@@ -341,6 +342,26 @@ void ReplaceAll(std::string& s, const std::string& toReplace, const std::string&
 		s.replace(pos, toReplace.length(), replaceWith);
 		pos += replaceWith.length();
 	}
+}
+
+std::vector<std::string> ReadStringsFromFile(const std::string& filepath)
+{
+	std::vector<std::string> result;
+
+	std::ifstream fin;
+	char token[256];
+
+	fin.open(filepath);
+	if (fin.is_open())
+	{
+		while (!fin.eof())
+		{
+			fin.getline(token, 256);
+			result.push_back(token);
+		}
+	}
+
+	return result;
 }
 
 

@@ -121,6 +121,9 @@ namespace CutsceneFunctions
 	int KINJO_API AlignCommand(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API InputCommand(CutsceneParameters parameters, CutsceneCommands& c);
 
+	int KINJO_API TextSound(CutsceneParameters parameters, CutsceneCommands& c);
+	int KINJO_API CursorImage(CutsceneParameters parameters, CutsceneCommands& c);
+
 	int KINJO_API PrintCommand(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API EffectCommand(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API LineBreakCommand(CutsceneParameters parameters, CutsceneCommands& c);

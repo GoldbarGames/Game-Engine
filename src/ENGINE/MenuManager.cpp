@@ -16,7 +16,7 @@ MenuManager::~MenuManager()
 
 void MenuManager::Init(Game& game) const
 {
-	std::vector<std::string> menuNames = game.ReadStringsFromFile("data/lists/menuScreens.list");
+	std::vector<std::string> menuNames = ReadStringsFromFile("data/lists/menuScreens.list");
 	for (int i = 0; i < menuNames.size(); i++)
 	{
 		game.allMenus[menuNames[i]] = neww MenuScreen(menuNames[i], game);

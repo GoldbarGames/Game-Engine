@@ -26,7 +26,7 @@ Editor::Editor(Game& g)
 	GRID_SIZE = Globals::TILE_SIZE;
 	SPAWN_TILE_SIZE = Globals::TILE_SIZE;
 
-	tilesheetFilenames = game->ReadStringsFromFile("data/lists/tilesheet.list");
+	tilesheetFilenames = ReadStringsFromFile("data/lists/tilesheet.list");
 	for (int i = 0; i < tilesheetFilenames.size(); i++)
 	{
 		tilesheetFilenames[i] = "assets/tiles/" + tilesheetFilenames[i] + ".png";
@@ -363,7 +363,7 @@ void Editor::CreateEditorButtons()
 
 	int buttonX = buttonStartX + buttonWidth + buttonSpacing;
 
-	std::vector<string> buttonNames = game->ReadStringsFromFile("data/lists/editorbuttons.list"); 
+	std::vector<string> buttonNames = ReadStringsFromFile("data/lists/editorbuttons.list"); 
 
 	buttonNames.insert(buttonNames.begin() + 7, previewMapObjectNames.begin(), previewMapObjectNames.end());
 
@@ -425,7 +425,7 @@ void Editor::StartEdit()
 	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
 
 	// Create a preview object of every entity type
-	previewMapObjectNames = game->ReadStringsFromFile("data/lists/entityTypes.list");
+	previewMapObjectNames = ReadStringsFromFile("data/lists/entityTypes.list");
 
 	for (int i = 0; i < previewMapObjectNames.size(); i++)
 	{

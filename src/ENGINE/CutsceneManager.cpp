@@ -1328,7 +1328,7 @@ void CutsceneManager::UpdateText()
 
 			int hoveredButton = -1;
 
-			// TODO: Use a shader instead of changing color
+			// TODO: Have the option to use a shader instead of changing color
 
 			game->CheckController(false);
 
@@ -1695,6 +1695,11 @@ void CutsceneManager::UpdateText()
 
 					std::string result = ParseText(data, newIndex, currentColor, textbox->text);
 					letterIndex = newIndex - lines[currentLabel->lineStart + lineIndex].textStart;
+
+					if (playSoundsOnText)
+					{
+						game->soundManager.PlaySound(textSounds[GetLineSpeaker(GetCurrentLine())]);
+					}
 
 					if (result.size() > 1)
 					{

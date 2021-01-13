@@ -12,6 +12,7 @@
 #include "RandomManager.h"
 #include "SoundManager.h"
 #include "SpriteManager.h"
+#include "InputManager.h"
 #include "Renderer.h"
 #include "Logger.h"
 #include "FrameBuffer.h"
@@ -120,6 +121,7 @@ public:
 	void CheckController(bool output);
 
 	void Update();
+	void UpdateClickAndDrag();
 	void Render();
 	void RenderScene();
 	void RenderNormally();
@@ -163,6 +165,7 @@ public:
 	SpriteManager spriteManager;
 	SoundManager soundManager;
 	RandomManager randomManager;
+	InputManager inputManager;
 
 	FontInfo* theFont = nullptr;
 	FontInfo* headerFont = nullptr;
@@ -205,8 +208,6 @@ public:
 	bool showTimer = false;
 	int indexScreenResolution = 0;
 	
-	//TODO: Make an input class?
-
 	mutable std::vector<Entity*> entities;
 
 	// Keep these in their own vector for efficiency
@@ -231,6 +232,8 @@ public:
 
 	Entity* SpawnPlayer(const glm::vec3& position);
 
+	Sprite* cursorSprite = nullptr;
+
 	void TransitionLevel();
 
 	void LoadTitleScreen();
@@ -239,8 +242,6 @@ public:
 	glm::vec3 CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE);
 
 	glm::vec3 SnapToGrid(glm::vec3 position, int size);
-
-	std::vector<std::string> ReadStringsFromFile(const std::string& filepath);
 
 	void SetFullScreen(bool setFull);
 

@@ -59,6 +59,7 @@ CutsceneCommands::CutsceneCommands()
 	{"click", &CutsceneFunctions::WaitForClick },
 	{"concat", &CutsceneFunctions::ConcatenateStringVariables},
 	{"ctc", &CutsceneFunctions::SetClickToContinue},
+	{"cursorimage", &CutsceneFunctions::CursorImage},
 	{"dec", &CutsceneFunctions::DecrementVariable},
 	{"defsub", &CutsceneFunctions::DefineUserFunction},
 	{"defchoice", &CutsceneFunctions::DefineChoice},
@@ -126,6 +127,7 @@ CutsceneCommands::CutsceneCommands()
 	{"textbox", &CutsceneFunctions::Textbox },
 	{"textcolor", &CutsceneFunctions::TextColor },
 	{"textspeed", &CutsceneFunctions::TextSpeed },
+	{"textsound", &CutsceneFunctions::TextSound},
 	{"timer", &CutsceneFunctions::TimerFunction},
 	{"travel", &CutsceneFunctions::TravelCommand},
 	{"wait",&CutsceneFunctions::Wait },
@@ -275,7 +277,7 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 		// If travelling, ignore some commands
 		if (manager->isTravelling)
 		{
-			static std::vector<std::string> ignoreCommands = manager->game->ReadStringsFromFile("data/commands.ignore");
+			static std::vector<std::string> ignoreCommands = ReadStringsFromFile("data/commands.ignore");
 
 			for (const auto& cmd : ignoreCommands)
 			{

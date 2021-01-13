@@ -98,7 +98,7 @@ SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager),
 	dialog.text->GetSprite()->keepScaleRelativeToCamera = true;
 	dialog.input->GetSprite()->keepScaleRelativeToCamera = true;
 
-	std::vector<std::string> variables = manager->game->ReadStringsFromFile("data/soundtest.vars");
+	std::vector<std::string> variables = ReadStringsFromFile("data/soundtest.vars");
 	
 	// NOTE: This should go before the currentBGM is set because we end up using it here.
 	if (variables.size() > 2)

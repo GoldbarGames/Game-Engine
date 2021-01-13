@@ -197,6 +197,9 @@ public:
 	int printNumber = 0;
 	bool overwriteName = true;
 	std::string currentScript = "";
+
+	bool playSoundsOnText = false;
+	std::unordered_map<std::string, std::string> textSounds;
 	
 	CutsceneCommands commands;
 	bool renderCutscene = true;

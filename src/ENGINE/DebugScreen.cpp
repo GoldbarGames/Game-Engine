@@ -31,7 +31,7 @@ DebugScreen::DebugScreen(Game& g)
 	CreateDebugText(DebugText::cameraPitch, 400, 650);
 	CreateDebugText(DebugText::cameraRoll, 400, 750);
 
-	std::vector<std::string> variables = game->ReadStringsFromFile("data/debug.vars");
+	std::vector<std::string> variables = ReadStringsFromFile("data/debug.vars");
 	for (int i = 0; i < variables.size(); i++)
 	{
 		InsertVariable(variables[i]);

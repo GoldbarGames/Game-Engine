@@ -2798,6 +2798,49 @@ namespace CutsceneFunctions
 		return 0;
 	}
 
+	// Set the sound that plays when text is displayed given the name of the speaker.
+	// If speaker parameter is skipped, then set for the default text (no speaker)
+	int TextSound(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		if (parameters.size() > 2)
+		{
+			c.manager->textSounds[c.ParseStringValue(parameters[1])] = c.ParseStringValue(parameters[2]);
+		}
+		else
+		{
+			c.manager->textSounds[""] = c.ParseStringValue(parameters[1]);
+		}
+
+		return 0;
+	}
+
+	int CursorImage(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		if (c.ParseStringValue(parameters[1]) == "default")
+		{
+			SDL_ShowCursor(SDL_ENABLE);
+		}
+		else if (c.ParseStringValue(parameters[1]) == "off")
+		{
+			SDL_ShowCursor(SDL_DISABLE);
+
+			if (c.manager->game->cursorSprite != nullptr)
+				delete_it(c.manager->game->cursorSprite);
+		}
+		else
+		{
+			SDL_ShowCursor(SDL_DISABLE);
+
+			if (c.manager->game->cursorSprite != nullptr)
+				delete_it(c.manager->game->cursorSprite);
+
+			// TODO: Actually create the sprite here
+			//c.manager->game->cursorSprite = neww Sprite();
+		}
+
+		return 0;
+	}
+
 	int AutoMode(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		if (parameters.size() > 1)
