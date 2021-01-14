@@ -5,16 +5,18 @@
 #include <SDL2/SDL.h>
 #include <unordered_map>
 #include <string>
+#include <fstream>
 #include "globals.h"
 
 // TODO: For next time:
-// - Actually being able to change these mappings in-game from a menu
-// - Then saving these settings to the file
-// - Hard-code the default values into each game
+
+// - Fix all the bugs from implementing things so far
+// - Refactor / clean up the way the screens are being used (especially the pause menu / escaape)
 // - Add a button to reset the controller mappings to their default values
+// - Going through the actual process of mapping all keys in our games
+
 // - Figure out how to get these to be compatible with physical controllers
 // - Maybe figure out how to record our button inputs and play them back
-// - Going through the actual process of mapping all keys in our games
 // - Maybe refactor the mouse-related stuff to be in this class also
 
 
@@ -39,17 +41,60 @@ public:
 	int mouseY = 0;
 	std::unordered_map<std::string, KeyMapData> keys;
 
+	bool isCheckingForKeyMapping = false;
+	SDL_Scancode pressedKey = SDL_SCANCODE_UNKNOWN;
+
 	void Init()
 	{
 		std::vector<std::string> initialValues = ReadStringsFromFile("data/controller.config");
 
 		for (int i = 0; i < initialValues.size(); i++)
 		{
-			int k = 0;
-			int code = std::stoi(ParseWord(initialValues[i], ' ', k));
-			std::string name = initialValues[i].substr(k, initialValues.size() - k);
-			keys[name].mappedKey = (SDL_Scancode)code;
+			if (initialValues[i] != "")
+			{
+				int k = 0;
+				int code = std::stoi(ParseWord(initialValues[i], ' ', k));
+				std::string name = initialValues[i].substr(k, initialValues[i].size() - k);
+				keys[name].mappedKey = (SDL_Scancode)code;
+			}
 		}
+	}
+
+	void SetDefaultKeys(const std::unordered_map<std::string, SDL_Scancode>& defaultKeys)
+	{
+		// Make sure that if any key mappings are missing from the config file,
+		// that we put them in our list of key mappings anyway
+		for (const auto& [key, val] : defaultKeys)
+		{			
+			if (keys.count(key) == 0)
+			{
+				keys[key].mappedKey = val;
+			}
+			keys[key].defaultKey = val;
+		}
+	}
+
+	void SaveMappingsToFile()
+	{
+		std::ofstream fout;
+
+		fout.open("data/controller.config");
+
+		for (const auto& [key, val] : keys)
+		{
+			fout << (int)val.mappedKey << " " << key << std::endl;
+		}
+
+	}
+
+	std::string GetMappedKeyAsString(const std::string& name)
+	{
+		return GetScancodeAsString(keys[name].mappedKey);
+	}
+
+	std::string GetScancodeAsString(SDL_Scancode code)
+	{
+		return SDL_GetScancodeName(code);
 	}
 
 	void StartUpdate()

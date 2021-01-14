@@ -27,3 +27,8 @@ int MenuManager::GetFontSize() const
 {
 	return 24;
 }
+
+void MenuManager::Update(Game& game) const
+{
+
+}

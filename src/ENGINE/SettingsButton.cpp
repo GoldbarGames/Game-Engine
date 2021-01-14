@@ -4,7 +4,7 @@
 #include "Editor.h"
 #include "Text.h"
 
-SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& game)
+SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& game, bool isKeyMap)
 {
 	name = n;
 	position = pos;
@@ -71,6 +71,15 @@ SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& g
 	{
 		optionNames = { "Gray", "Red", "Green", "Blue" };
 	}
+	else if (isKeyMap)
+	{
+		isKeyMapButton = isKeyMap;
+		optionNames = { game.inputManager.GetMappedKeyAsString(name) };
+	}
+	else // always make sure there is at least one option
+	{
+		optionNames = { "" };
+	}
 
 	// Actually create all of the text items for each option
 	for (int i = 0; i < optionNames.size(); i++)
@@ -114,6 +123,42 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 {
 	pressedAnyKey = true;
 
+	if (isKeyMapButton)
+	{
+		if (game.inputManager.isCheckingForKeyMapping)
+		{
+			// If a button is pressed
+			if (game.inputManager.pressedKey != SDL_SCANCODE_UNKNOWN)
+			{
+				// Set the mapping to the pressed button for this action
+				game.inputManager.keys[name].mappedKey = game.inputManager.pressedKey;
+
+				// Set the options text to the new key mapping
+				options[0]->SetText(game.inputManager.GetMappedKeyAsString(name));
+
+				game.inputManager.pressedKey = SDL_SCANCODE_UNKNOWN;
+
+				game.inputManager.isCheckingForKeyMapping = false;
+
+				game.inputManager.SaveMappingsToFile();
+
+				return this;
+			}
+
+		}
+		else
+		{
+			if (currentKeyStates[SDL_SCANCODE_SPACE] || currentKeyStates[SDL_SCANCODE_RETURN])
+			{
+				options[0]->SetText("Press Any Key");
+				game.inputManager.isCheckingForKeyMapping = true;
+				return this;
+			}
+		}
+
+
+	}
+
 	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
 	{
 		if (buttonPressedUp != nullptr)
@@ -148,6 +193,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 		ExecuteSelectedOption(game);
 		return this;
 	}
+	
 
 	pressedAnyKey = false;
 

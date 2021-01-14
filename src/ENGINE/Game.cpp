@@ -220,10 +220,10 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	gui = &g;
 	gui->Init(this);
 
+	inputManager.Init();
+
 	// Initialize all the menus (do this AFTER fonts and resolution)
 	menuManager->Init(*this);
-
-	inputManager.Init();
 
 	LoadEditorSettings();
 
@@ -1393,13 +1393,16 @@ void Game::LoadSettings()
 
 		bool hasSettingsButton = (allMenus["Settings"] != nullptr);
 
+		// TODO: Refactor this so that we have different menus for different games
+		// but still don't have to rewrite a bunch of code to change basic settings.
+
 		if (tokens[0] == "music_volume")
 		{
 			soundManager.SetVolumeBGM(std::stoi(tokens[1]));
 
 			if (hasSettingsButton)
 			{
-				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Music Volume"));
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["SoundSettings"]->GetButtonByName("Music Volume"));
 				button->selectedOption = std::stoi(tokens[1]);
 			}
 
@@ -1410,7 +1413,7 @@ void Game::LoadSettings()
 
 			if (hasSettingsButton)
 			{
-				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Sound Volume"));
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["SoundSettings"]->GetButtonByName("Sound Volume"));
 				button->selectedOption = std::stoi(tokens[1]);
 			}
 
@@ -1426,7 +1429,7 @@ void Game::LoadSettings()
 
 			if (hasSettingsButton)
 			{
-				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Windowed"));
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["DisplaySettings"]->GetButtonByName("Windowed"));
 				button->selectedOption = std::stoi(tokens[1]);
 			}
 
@@ -1438,7 +1441,7 @@ void Game::LoadSettings()
 
 			if (hasSettingsButton)
 			{
-				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Screen Resolution"));
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["DisplaySettings"]->GetButtonByName("Screen Resolution"));
 				button->selectedOption = indexScreenResolution;
 				button->ExecuteSelectedOption(*this);
 			}
@@ -1449,7 +1452,7 @@ void Game::LoadSettings()
 
 			if (hasSettingsButton)
 			{
-				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Display FPS"));
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["DisplaySettings"]->GetButtonByName("Display FPS"));
 				button->selectedOption = std::stoi(tokens[1]);
 			}
 		}
@@ -1459,7 +1462,7 @@ void Game::LoadSettings()
 
 			if (hasSettingsButton)
 			{
-				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Display Timer"));
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["DisplaySettings"]->GetButtonByName("Display Timer"));
 				button->selectedOption = std::stoi(tokens[1]);
 			}
 		}
@@ -1469,7 +1472,7 @@ void Game::LoadSettings()
 
 			if (hasSettingsButton)
 			{
-				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["Settings"]->GetButtonByName("Language"));
+				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["OtherSettings"]->GetButtonByName("Language"));
 				button->selectedOption = std::stoi(tokens[1]);
 			}
 		}
@@ -1490,8 +1493,14 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 
 	if (event.type == SDL_KEYDOWN)
 	{
-		switch (event.key.keysym.sym)
+		if (inputManager.isCheckingForKeyMapping)
 		{
+			inputManager.pressedKey = event.key.keysym.scancode;
+		}
+		else
+		{
+			switch (event.key.keysym.sym)
+			{
 			case SDLK_ESCAPE:
 				EscapeMenu();
 				break;
@@ -1503,7 +1512,9 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 				break;
 			default:
 				break;
+			}
 		}
+		
 	}
 
 	return quit;
@@ -1633,20 +1644,12 @@ bool Game::HandleEvent(SDL_Event& event)
 		}
 		else
 		{
-			//TODO: Find a way to map these keys to customizable buttons and controllers
-			switch (event.key.keysym.sym)
-			{
-			case SDLK_ESCAPE:
-				if (!editMode && !cutsceneManager.watchingCutscene)
-				{
-					openedMenus.emplace_back(allMenus["Pause"]);
-					uint32_t ticks = Globals::CurrentTicks;
-					for (unsigned int i = 0; i < entities.size(); i++)
-						entities[i]->Pause(ticks);
-				}
-				break;
 
 #if _DEBUG
+			switch (event.key.keysym.sym)
+			{
+
+
 			// DEVELOPER BUTTONS
 
 			case SDLK_r:
@@ -1726,41 +1729,51 @@ bool Game::HandleEvent(SDL_Event& event)
 				if (!editMode)
 					fileManager->LoadFile(currentSaveFileName);
 				break;
-#endif
+
 			default:
 				break;
 			}
+
+#endif
+
 		}
 		
 	}
 	//Special text input event
-	else if (event.type == SDL_TEXTINPUT && shouldUpdateDialogInput)
+	else if (event.type == SDL_TEXTINPUT)
 	{
-		//Not copy or pasting, just entering characters as usual
-		if (!(SDL_GetModState() & KMOD_CTRL && (event.text.text[0] == 'c' || event.text.text[0] == 'C' || 
-			event.text.text[0] == 'v' || event.text.text[0] == 'V')))
+		if (shouldUpdateDialogInput)
 		{
-			char c = *event.text.text;
-			bool valid = true;
+			//Not copy or pasting, just entering characters as usual
+			if (!(SDL_GetModState() & KMOD_CTRL && (event.text.text[0] == 'c' || event.text.text[0] == 'C' ||
+				event.text.text[0] == 'v' || event.text.text[0] == 'V')))
+			{
+				char c = *event.text.text;
+				bool valid = true;
 
-			// Check if the character is valid for the text we are getting
-			if (inputType == "Integer")
-			{
-				valid = std::isdigit(c) || (c == '-' && inputText.size() == 0);
-			}
-			else if (inputType == "Float") // check for negative numbers, decimal point
-			{
-				valid = std::isdigit(c) 
-					|| (c == '-' && inputText.size() == 0) 
-					|| (c == '.' && inputText.size() > 1 && inputText[inputText.size()-1] != '-' && inputText.find('.') == string::npos) ;
-			}
+				// Check if the character is valid for the text we are getting
+				if (inputType == "Integer")
+				{
+					valid = std::isdigit(c) || (c == '-' && inputText.size() == 0);
+				}
+				else if (inputType == "Float") // check for negative numbers, decimal point
+				{
+					valid = std::isdigit(c)
+						|| (c == '-' && inputText.size() == 0)
+						|| (c == '.' && inputText.size() > 1 && inputText[inputText.size() - 1] != '-' && inputText.find('.') == string::npos);
+				}
 
-			if (valid)
-			{
-				//Append character
-				inputText += c;
-				editor->dialog->Update(inputText);
+				if (valid)
+				{
+					//Append character
+					inputText += c;
+					editor->dialog->Update(inputText);
+				}
 			}
+		}
+		else
+		{
+
 		}
 	}
 
@@ -1936,6 +1949,9 @@ void Game::Update()
 	inputManager.StartUpdate();
 
 	shouldQuit = CheckInputs();
+
+	menuManager->Update(*this);
+
 	CheckDeleteEntities();
 
 	if (!updateScreenTexture)

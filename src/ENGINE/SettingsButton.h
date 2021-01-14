@@ -18,7 +18,9 @@ public:
 	std::vector<Text*> options;
 	Text* label = nullptr;
 
-	SettingsButton(const std::string& n, const Vector2& pos, Game& game);
+	bool isKeyMapButton = false;
+
+	SettingsButton(const std::string& n, const Vector2& pos, Game& game, bool isKeyMap = false);
 	~SettingsButton();
 	void Render(const Renderer& renderer);
 	BaseButton* Update(Game& game, const Uint8* currentKeyStates);
