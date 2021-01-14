@@ -123,7 +123,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 {
 	pressedAnyKey = true;
 
-	if (isKeyMapButton)
+	if (isKeyMapButton && game.inputManager.inputTimer.HasElapsed())
 	{
 		if (game.inputManager.isCheckingForKeyMapping)
 		{
@@ -142,6 +142,10 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 
 				game.inputManager.SaveMappingsToFile();
 
+				game.inputManager.inputTimer.Start(500);
+
+				SetOptionColors({ 0, 255, 0, 255 });
+
 				return this;
 			}
 
@@ -152,11 +156,10 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 			{
 				options[0]->SetText("Press Any Key");
 				game.inputManager.isCheckingForKeyMapping = true;
+				SetOptionColors({ 0, 255, 0, 255 });
 				return this;
 			}
 		}
-
-
 	}
 
 	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])

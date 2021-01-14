@@ -12,19 +12,18 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	fontInfoText = renderer->game->CreateFont("SazanamiGothic", 24);
 	fontInfoSpeaker = renderer->game->CreateFont("SazanamiGothic", 24);
 
-	//TODO: Should we have a way to define the starting box position?
+	// These values can all be changed from the cutscene definition file at startup,
+	// although they will give errors here if they cannot find the images
+
 	boxObject = neww Entity(glm::vec3(1280, 720, 0));
 
-	//TODO: Have a way to specify the image for the box
 	boxObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/textbox1.png"));
 	boxObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
 	boxObject->GetSprite()->keepScaleRelativeToCamera = true;
 	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
 
-	//TODO: Should we have a way to define the starting box position?
 	nameObject = neww Entity(glm::vec3(1280, 720, 0));
 
-	//TODO: Have a way to specify the image for the box
 	nameObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/namebox1.png"));
 	nameObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
 	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
@@ -152,20 +151,17 @@ void Textbox::UpdateText(const std::string& newText, const Color& color)
 {
 	text->wrapWidth = boxWidth;
 	text->SetText(newText, color, boxWidth);
-	//text->SetPosition(boxOffsetX, boxOffsetY);
+
 	clickToContinue->SetPosition(glm::vec3(boxOffsetX, boxOffsetY, 0));
 	fullTextString = newText;
-	//text->SetText(newText, text->textColor, boxWidth);
 
-	//TODO: If we want to modify the textbox's text shader, do so here
-	//text->GetSprite()->SetShader(renderer->shaders["fade-in-out"]);
+	// If we want to modify the textbox's text shader, do so here
 }
 
 void Textbox::Render(const Renderer& renderer, const int& screenWidth, const int& screenHeight)
 {
 	if (shouldRender && isReading)
 	{
-		//TODO: Make sure the position is in the center of the screen
 		boxObject->Render(renderer);
 		
 		if (speaker->txt != "" && speaker->txt != " ")

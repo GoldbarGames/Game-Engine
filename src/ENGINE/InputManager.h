@@ -7,6 +7,7 @@
 #include <string>
 #include <fstream>
 #include "globals.h"
+#include "Timer.h"
 
 // TODO: For next time:
 
@@ -14,6 +15,7 @@
 // - Refactor / clean up the way the screens are being used (especially the pause menu / escaape)
 // - Add a button to reset the controller mappings to their default values
 // - Going through the actual process of mapping all keys in our games
+// - Cutscene text should be able to get the mapped button
 
 // - Figure out how to get these to be compatible with physical controllers
 // - Maybe figure out how to record our button inputs and play them back
@@ -39,10 +41,12 @@ public:
 
 	int mouseX = 0;
 	int mouseY = 0;
-	std::unordered_map<std::string, KeyMapData> keys;
+	mutable std::unordered_map<std::string, KeyMapData> keys;
 
 	bool isCheckingForKeyMapping = false;
 	SDL_Scancode pressedKey = SDL_SCANCODE_UNKNOWN;
+
+	Timer inputTimer;
 
 	void Init()
 	{
@@ -60,7 +64,7 @@ public:
 		}
 	}
 
-	void SetDefaultKeys(const std::unordered_map<std::string, SDL_Scancode>& defaultKeys)
+	void SetDefaultKeys(const std::unordered_map<std::string, SDL_Scancode>& defaultKeys) const
 	{
 		// Make sure that if any key mappings are missing from the config file,
 		// that we put them in our list of key mappings anyway
@@ -82,9 +86,10 @@ public:
 
 		for (const auto& [key, val] : keys)
 		{
-			fout << (int)val.mappedKey << " " << key << std::endl;
+			fout << val.mappedKey << " " << key << std::endl;
 		}
 
+		fout.close();
 	}
 
 	std::string GetMappedKeyAsString(const std::string& name)

@@ -3,12 +3,17 @@
 #pragma once
 
 #include "leak_check.h"
+#include <unordered_map>
+#include <string>
+#include <SDL2/SDL.h>
 
 class Game;
 
 class KINJO_API MenuManager
 {
 public:
+	mutable std::unordered_map<std::string, SDL_Scancode> defaultKeys;
+
 	MenuManager();
 	~MenuManager();
 	virtual void Init(Game& game) const;

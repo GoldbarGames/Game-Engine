@@ -596,7 +596,7 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
 
-	float fadePoint, fadeR, fadeG, fadeB, fadeA, freq;
+	float fadePoint, fadeR, fadeG, fadeB, fadeA, freq, maxColor;
 	glm::vec4 fadeColor;
 
 	switch (shader->GetName())
@@ -608,10 +608,12 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 		fadePoint = abs(sin(renderer.now / 1000));
 
 		// TODO: Change the /255.0f to a custom max amount < 1 (255/255)
-		fadeR = color.r > 0 ? (color.r/255.0f) : fadePoint;
-		fadeG = color.g > 0 ? (color.g/255.0f) : fadePoint;
-		fadeB = color.b > 0 ? (color.b/255.0f) : fadePoint;
-		fadeA = color.a > 0 ? (color.a/255.0f) : fadePoint;
+		maxColor = 255.0f;
+
+		fadeR = color.r > 0 ? (color.r/maxColor) : fadePoint;
+		fadeG = color.g > 0 ? (color.g/maxColor) : fadePoint;
+		fadeB = color.b > 0 ? (color.b/maxColor) : fadePoint;
+		fadeA = color.a > 0 ? (color.a/maxColor) : fadePoint;
 
 		fadeColor = glm::vec4(fadeR, fadeG, fadeB, fadeA);
 
