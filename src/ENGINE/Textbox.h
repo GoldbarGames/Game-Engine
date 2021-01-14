@@ -22,11 +22,15 @@ public:
 
 	FontInfo* fontInfoText = nullptr;
 	FontInfo* fontInfoSpeaker = nullptr;
+
 	Text* text = nullptr;
 	Text* speaker = nullptr;
+	std::vector<Text*> shadows;
 
 	bool shouldRender = true;
 	bool isReading = false;
+
+	bool useShadow = false;
 
 	uint32_t boxWidth = 1100;
 

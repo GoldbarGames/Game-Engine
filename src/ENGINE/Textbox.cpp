@@ -143,6 +143,41 @@ void Textbox::UpdateText(const char c, const Color& color)
 	text->wrapWidth = boxWidth;
 	text->AddText(c, color);
 	text->SetPosition(boxOffsetX, boxOffsetY);
+
+	if (useShadow)
+	{
+		// We need one shadow per line due to line breaks and word wrap
+		while (shadows.size() < text->lineNumToIndex.size())
+		{
+			Text* newShadow = neww Text(fontInfoText, "", true, true);
+			newShadow->isRichText = false;
+			newShadow->SetColor({ 0, 0, 0, 255 });
+			shadows.emplace_back(newShadow);
+		}
+
+		int lineNumStart = 0;
+		for (int i = 0; i < shadows.size(); i++)
+		{
+			if (text->lineNumToIndex.count(i) != 0)
+			{
+				std::string lineText = "";
+				int maxIndex = text->lineNumToIndex[i] == 0 ? text->glyphs.size() : text->lineNumToIndex[i];
+				for (int k = lineNumStart; k < maxIndex; k++)
+				{
+					lineText += text->glyphs[k]->letter;
+				}
+
+				lineNumStart = text->lineNumToIndex[i];
+
+				shadows[i]->wrapWidth = boxWidth;
+				shadows[i]->SetTextAsOneSprite(lineText, { 0, 0, 0, 255 }, boxWidth);
+				shadows[i]->SetPosition(boxOffsetX + (shadows[i]->GetSprite()->frameWidth + 19), boxOffsetY + (88 * i));
+			}
+		}
+
+
+	}
+
 	clickToContinue->SetPosition(glm::vec3(boxOffsetX, boxOffsetY, 0));
 	fullTextString += c;
 }
@@ -151,6 +186,25 @@ void Textbox::UpdateText(const std::string& newText, const Color& color)
 {
 	text->wrapWidth = boxWidth;
 	text->SetText(newText, color, boxWidth);
+
+	if (useShadow)
+	{
+
+		// Doesn't seem to be called
+
+		/*
+		if (shadow == nullptr)
+		{
+			shadow = neww Text(fontInfoText, "", true, true);
+			shadow->isRichText = false;
+			shadow->SetPosition(text->GetPosition().x, text->GetPosition().y);
+			shadow->SetColor({ 0, 0, 0, 255 });
+		}
+
+		shadow->wrapWidth = boxWidth;
+		shadow->SetText(newText, color, boxWidth);
+		*/
+	}
 
 	clickToContinue->SetPosition(glm::vec3(boxOffsetX, boxOffsetY, 0));
 	fullTextString = newText;
@@ -171,6 +225,44 @@ void Textbox::Render(const Renderer& renderer, const int& screenWidth, const int
 
 		if (text != nullptr)
 		{
+			if (useShadow && shadows.size() > 0)
+			{
+
+				for (int i = 0; i < text->lineNumToIndex.size(); i++)
+				{
+					Text* shadow = shadows[i];
+					glm::vec3 pos = shadow->GetPosition();
+
+					// TODO: Make this more efficient!
+					for (int i = 2; i < 5; i += 2)
+					{
+						shadow->SetPosition(pos.x - i, pos.y);
+						shadow->Render(renderer);
+						shadow->SetPosition(pos.x, pos.y - i);
+						shadow->Render(renderer);
+						shadow->SetPosition(pos.x + i, pos.y);
+						shadow->Render(renderer);
+						shadow->SetPosition(pos.x, pos.y + i);
+						shadow->Render(renderer);
+
+						int k = i - 1;
+
+						shadow->SetPosition(pos.x - k, pos.y - k);
+						shadow->Render(renderer);
+						shadow->SetPosition(pos.x - k, pos.y + k);
+						shadow->Render(renderer);
+						shadow->SetPosition(pos.x + k, pos.y - k);
+						shadow->Render(renderer);
+						shadow->SetPosition(pos.x + k, pos.y + k);
+						shadow->Render(renderer);
+					}
+
+					shadow->SetPosition(pos.x, pos.y);
+				}
+
+			
+			}
+
 			text->Render(renderer);
 		}
 

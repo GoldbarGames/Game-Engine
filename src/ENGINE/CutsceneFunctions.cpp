@@ -1867,6 +1867,10 @@ namespace CutsceneFunctions
 		{
 			c.manager->textboxImageNumber = c.ParseNumberValue(parameters[2]);
 		}
+		else if (parameters[1] == "shadow")
+		{
+			c.manager->textbox->useShadow = (parameters[2] == "on");
+		}
 		else if (parameters[1] == "text")
 		{
 			if (parameters[2] == "color")
