@@ -17,7 +17,7 @@ class Renderer;
 
 enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, frequency, 
 	ambientIntensity, ambientColor, diffuseIntensity, lightDirection, specularIntensity, specularShine, eyePosition,
-	pointPosition, attenuationConstant, attenuationLinear, attenuationExponent, pointLightCount
+	pointPosition, attenuationConstant, attenuationLinear, attenuationExponent, pointLightCount, spotLightCount
 };
 enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, SolidColor, Grid, 
 	Grayscale, Sharpen, Blur, Edge, Test, Custom, Diffuse };
@@ -66,6 +66,22 @@ public:
 		GLuint uniformExponent;
 	} uniformPointLight[MAX_POINT_LIGHTS];
 
+	struct
+	{
+		GLuint uniformColor;
+		GLuint uniformAmbientIntensity;
+		GLuint uniformDiffuseIntensity;
+
+		GLuint uniformPosition;
+		GLuint uniformConstant;
+		GLuint uniformLinear;
+		GLuint uniformExponent;
+
+		GLuint uniformDirection;
+		GLuint uniformEdge;
+
+	} uniformSpotLight[MAX_SPOT_LIGHTS];
+
 private:
 	GLuint programID;
 	ShaderName name;
@@ -73,6 +89,7 @@ private:
 	mutable std::unordered_map<ShaderVariable, GLuint> uniformVariables;
 
 	int pointLightCount = 0;
+	int spotLightCount = 0;
 
 	void CompileShader(const char* vertexCode, const char* fragmentCode);
 	void AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType);

@@ -242,12 +242,16 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 		renderer.light = neww DirectionalLight(lColor, 0.4f, 0.2f, lDir);
 
 		glm::vec3 pos1 = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 pos2 = glm::vec3(5.0f, 0.0f, 0.0f);
 		glm::vec3 attenuation = glm::vec3(0.3f, 0.2f, 0.1f);
 
 		renderer.pointLightCount = 0;
-
 		renderer.pointLights[0] = neww PointLight(lColor2, 0.4f, 0.2f, pos1, attenuation);
 		renderer.pointLightCount++;
+
+		renderer.spotLightCount = 0;
+		renderer.spotLights[0] = neww SpotLight(lColor2, 0.4f, 0.2f, pos2, attenuation, lDir, 20.0f);
+		renderer.spotLightCount++;
 
 		triangle3D = neww Sprite(renderer.shaders[ShaderName::Diffuse], MeshType::Pyramid);
 		triangle3D->color = { 255, 0, 0, 255 };

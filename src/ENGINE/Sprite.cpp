@@ -564,7 +564,19 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 			}
 		}
 
+		// For spot lights
+		if (renderer.spotLights != nullptr)
+		{
+			if (renderer.pointLightCount > MAX_SPOT_LIGHTS)
+				renderer.pointLightCount = MAX_SPOT_LIGHTS;
 
+			glUniform1i(shader->GetUniformVariable(ShaderVariable::spotLightCount), renderer.spotLightCount);
+
+			for (size_t i = 0; i < renderer.spotLightCount; i++)
+			{
+				renderer.spotLights[i]->UseLight(*shader);
+			}
+		}
 
 
 	}

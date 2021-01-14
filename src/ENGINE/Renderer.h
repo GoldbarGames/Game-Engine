@@ -17,6 +17,7 @@
 #include "Light.h"
 #include "DirectionalLight.h"
 #include "PointLight.h"
+#include "SpotLight.h"
 
 class Sprite;
 class Game;
@@ -33,8 +34,11 @@ public:
 	Camera guiCamera;
 
 	Light* light = nullptr;
+	
 	PointLight* pointLights[MAX_POINT_LIGHTS];
+	SpotLight* spotLights[MAX_SPOT_LIGHTS];
 	mutable unsigned int pointLightCount = 0;
+	mutable unsigned int spotLightCount = 0;
 
 	Sprite* debugSprite = nullptr;
 	Sprite* overlaySprite = nullptr;
