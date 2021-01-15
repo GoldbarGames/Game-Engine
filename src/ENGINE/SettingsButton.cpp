@@ -18,67 +18,47 @@ SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& g
 
 	std::vector<std::string> optionNames;
 
-	// TODO: Read all of these in from a file based on current language
+	std::vector<std::string> settingsNames = ReadStringsFromFile("data/settings.names");
 
-	// Create the options based on the name of the setting
-	if (name == "Music Volume")
+	bool foundOptionInList = false;
+
+	for (int i = 0; i < settingsNames.size(); i++)
 	{
-		optionNames = { "Silent", "Quiet", "Medium", "Loud", "Max Volume" };
+		int index = 0;
+		std::string optName = ParseWord(settingsNames[i], ':', index);
+
+		if (name == optName)
+		{
+			foundOptionInList = true;
+			std::string word = "";
+			while (index < settingsNames[i].size())
+			{
+				if (settingsNames[i][index] == ',')
+				{
+					optionNames.emplace_back(Trim(word));
+					word = "";
+				}
+				else
+				{
+					word += settingsNames[i][index];
+				}
+				index++;
+			}
+			optionNames.emplace_back(Trim(word));
+		}
 	}
-	else if (name == "Fullscreen")
+
+	if (!foundOptionInList)
 	{
-		optionNames = { "Windowed", "Fullscreen" };
-	}
-	else if (name == "Screen Resolution")
-	{
-		//TODO: How to support resolutions with a 4:3 aspect ratio, black bars?
-		optionNames = { "640 x 360", "1280 x 720", "1600 x 900", "1920 x 1080" };
-	}
-	else if (name == "Vsync")
-	{
-		optionNames = { "None", "Synced" };
-		//optionNames = { "None", "Synced", "Adaptive" };
-	}
-	else if (name == "Sound Volume")
-	{
-		optionNames = { "Silent", "Quiet", "Medium", "Loud", "Max Volume" };
-	}
-	else if (name == "Display FPS")
-	{
-		optionNames = { "Off", "On" };
-	}
-	else if (name == "Display Timer")
-	{
-		optionNames = { "Off", "On" };
-	}
-	else if (name == "Language")
-	{
-		optionNames = { "English" }; //, "Japanese"	
-	}
-	else if (name == "UI Size")
-	{
-		optionNames = { "Tiny", "Small", "Medium", "Big", "Large" };
-	}
-	else if (name == "Replacing") // When placing a tile, should it overwrite the old one?
-	{
-		optionNames = { "Don't Overwrite", "Overwrite" };
-	}
-	else if (name == "Deleting") // When deleting, delete only on that layer, or from the front?
-	{
-		optionNames = { "Same Layer & Mode", "Only Same Layer", "Only Same Mode", "Anything" };
-	}
-	else if (name == "Button Color") // What is the default color for buttons?
-	{
-		optionNames = { "Gray", "Red", "Green", "Blue" };
-	}
-	else if (isKeyMap)
-	{
-		isKeyMapButton = isKeyMap;
-		optionNames = { game.inputManager.GetMappedKeyAsString(name) };
-	}
-	else // always make sure there is at least one option
-	{
-		optionNames = { "" };
+		if (isKeyMap)
+		{
+			isKeyMapButton = isKeyMap;
+			optionNames = { game.inputManager.GetMappedKeyAsString(name) };
+		}
+		else // always make sure there is at least one option
+		{
+			optionNames = { "" };
+		}
 	}
 
 	// Actually create all of the text items for each option
@@ -207,8 +187,11 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 {
 	if (name == "Music Volume")
 	{
-		//TODO: There might be a better way to do this?
-		game.soundManager.SetVolumeBGM(selectedOption);
+		game.soundManager.SetVolumeBGMIndex(selectedOption);
+	}
+	else if (name == "Sound Volume")
+	{
+		game.soundManager.SetVolumeSoundIndex(selectedOption);
 	}
 	else if (name == "Fullscreen")
 	{
@@ -216,6 +199,11 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	}
 	else if (name == "Screen Resolution")
 	{		
+		// TODO: Find a way to customize screen resolutions
+		// depending on the player's monitor resolution
+
+		// TODO: How to support resolutions with a 4:3 aspect ratio, black bars?
+
 		game.indexScreenResolution = selectedOption;
 		switch (selectedOption)
 		{
@@ -238,10 +226,6 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	else if (name == "Vsync")
 	{ 
 		SDL_GL_SetSwapInterval(selectedOption);
-	}
-	else if (name == "Sound Volume")
-	{
-		game.soundManager.SetVolumeSound(selectedOption);
 	}
 	else if (name == "Display FPS")
 	{
@@ -274,10 +258,8 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 		game.editor->colorSettingIndex = selectedOption;
 		game.SaveEditorSettings();
 
-		//TODO: Make sure this works properly with other languages
 		//TODO: Maybe use an unordered map to set the color
 		//TODO: Maybe use a color palette rather than coloring each button
-
 	}
 
 	game.SaveSettings();

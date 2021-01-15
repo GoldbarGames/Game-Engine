@@ -1242,39 +1242,16 @@ void Game::EscapeMenu()
 	if (openedMenus.size() > 0)
 	{
 		MenuScreen* currentMenu = openedMenus.back();
-
-		//TODO: Maybe have a Screen base class with virtual OnPop, OnPush functions
-		//TOOD: Maybe instead, we limit the size to 1 and put a GUI in here
-		if (currentMenu->name == "Title")
-			return;
+		if (openedMenus.back()->canEscapeFrom)
+		{
+			openedMenus.pop_back();
+		}
 
 		// Resume time when unpausing
 		if (currentMenu->name == "Pause")
 		{
-			uint32_t ticks = Globals::CurrentTicks;
 			for (unsigned int i = 0; i < entities.size(); i++)
-				entities[i]->Unpause(ticks);
-		}
-
-		// Close the current menu
-		openedMenus.pop_back();
-
-		// Open a menu after closing this one	
-		if (currentMenu->name == "File Select")
-		{
-			openedMenus.emplace_back(allMenus["Title"]);
-		}
-
-		if (currentMenu->name == "Settings")
-		{
-			if (currentLevel == "title")
-				openedMenus.emplace_back(allMenus["Title"]);
-		}
-
-		if (currentMenu->name == "Credits")
-		{
-			if (currentLevel == "title")
-				openedMenus.emplace_back(allMenus["Title"]);
+				entities[i]->Unpause(Globals::CurrentTicks);
 		}
 	}
 }

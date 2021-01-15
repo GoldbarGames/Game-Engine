@@ -58,6 +58,7 @@ bool SoundChannel::Stop()
 
 SoundManager::SoundManager()
 {
+	// TODO: Can we customize these settings from an external file?
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 	volArray = { 0, 32, 64, 96, MIX_MAX_VOLUME };
 }

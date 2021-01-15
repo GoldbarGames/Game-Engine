@@ -47,38 +47,38 @@ public:
 
 	struct
 	{
-		GLuint uniformColor;
-		GLuint uniformAmbientIntensity;
-		GLuint uniformDiffuseIntensity;
+		GLuint uniformColor = 0;
+		GLuint uniformAmbientIntensity = 0;
+		GLuint uniformDiffuseIntensity = 0;
 
-		GLuint uniformDirection;
+		GLuint uniformDirection = 0;
 	} uniformDirectionalLight;
 
 	struct
 	{
-		GLuint uniformColor;
-		GLuint uniformAmbientIntensity;
-		GLuint uniformDiffuseIntensity;
+		GLuint uniformColor = 0;
+		GLuint uniformAmbientIntensity = 0;
+		GLuint uniformDiffuseIntensity = 0;
 
-		GLuint uniformPosition;
-		GLuint uniformConstant;
-		GLuint uniformLinear;
-		GLuint uniformExponent;
+		GLuint uniformPosition = 0;
+		GLuint uniformConstant = 0;
+		GLuint uniformLinear = 0;
+		GLuint uniformExponent = 0;
 	} uniformPointLight[MAX_POINT_LIGHTS];
 
 	struct
 	{
-		GLuint uniformColor;
-		GLuint uniformAmbientIntensity;
-		GLuint uniformDiffuseIntensity;
+		GLuint uniformColor = 0;
+		GLuint uniformAmbientIntensity = 0;
+		GLuint uniformDiffuseIntensity = 0;
 
-		GLuint uniformPosition;
-		GLuint uniformConstant;
-		GLuint uniformLinear;
-		GLuint uniformExponent;
+		GLuint uniformPosition = 0;
+		GLuint uniformConstant = 0;
+		GLuint uniformLinear = 0;
+		GLuint uniformExponent = 0;
 
-		GLuint uniformDirection;
-		GLuint uniformEdge;
+		GLuint uniformDirection = 0;
+		GLuint uniformEdge = 0;
 
 	} uniformSpotLight[MAX_SPOT_LIGHTS];
 

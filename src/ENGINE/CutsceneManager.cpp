@@ -1921,6 +1921,9 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 			case '%': // number
 				variableValue = std::to_string(commands.GetNumberVariable(commands.GetNumAlias(variableName)));
 				break;
+			case '^': // key mapping
+				variableValue = game->inputManager.GetMappedKeyAsString(variableName);
+				break;
 			default:
 				variableValue = word;
 				break;

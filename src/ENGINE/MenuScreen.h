@@ -17,6 +17,11 @@ public:
 	std::vector<BaseButton*> buttons;
 	std::vector<Text*> texts;
 	std::vector<Entity*> images;
+
+	// Can press Escape to pop the menu from the stack?
+	// Usually true, but not for things like Title Screens, etc.
+	bool canEscapeFrom = true;
+
 	int selectedButtonIndex = 0;
 	MenuScreen(const std::string& n, Game& game);
 	~MenuScreen();

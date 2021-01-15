@@ -1871,6 +1871,10 @@ namespace CutsceneFunctions
 		{
 			c.manager->textbox->useShadow = (parameters[2] == "on");
 		}
+		else if (parameters[1] == "voice")
+		{
+			c.manager->textbox->useVoice = (parameters[2] == "on");
+		}
 		else if (parameters[1] == "text")
 		{
 			if (parameters[2] == "color")

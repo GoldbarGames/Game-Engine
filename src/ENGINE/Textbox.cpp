@@ -144,6 +144,13 @@ void Textbox::UpdateText(const char c, const Color& color)
 	text->AddText(c, color);
 	text->SetPosition(boxOffsetX, boxOffsetY);
 
+	if (useVoice && namesToTextSounds.count(speaker->txt) != 0)
+	{
+		// TODO: Populate the vectors with paths to sounds
+		int r = renderer->game->randomManager.RandomInt(namesToTextSounds[speaker->txt].size());
+		renderer->game->soundManager.PlaySound(namesToTextSounds[speaker->txt][r]);
+	}
+
 	if (useShadow)
 	{
 		// We need one shadow per line due to line breaks and word wrap
@@ -180,36 +187,6 @@ void Textbox::UpdateText(const char c, const Color& color)
 
 	clickToContinue->SetPosition(glm::vec3(boxOffsetX, boxOffsetY, 0));
 	fullTextString += c;
-}
-
-void Textbox::UpdateText(const std::string& newText, const Color& color)
-{
-	text->wrapWidth = boxWidth;
-	text->SetText(newText, color, boxWidth);
-
-	if (useShadow)
-	{
-
-		// Doesn't seem to be called
-
-		/*
-		if (shadow == nullptr)
-		{
-			shadow = neww Text(fontInfoText, "", true, true);
-			shadow->isRichText = false;
-			shadow->SetPosition(text->GetPosition().x, text->GetPosition().y);
-			shadow->SetColor({ 0, 0, 0, 255 });
-		}
-
-		shadow->wrapWidth = boxWidth;
-		shadow->SetText(newText, color, boxWidth);
-		*/
-	}
-
-	clickToContinue->SetPosition(glm::vec3(boxOffsetX, boxOffsetY, 0));
-	fullTextString = newText;
-
-	// If we want to modify the textbox's text shader, do so here
 }
 
 void Textbox::Render(const Renderer& renderer, const int& screenWidth, const int& screenHeight)

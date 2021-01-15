@@ -30,7 +30,10 @@ public:
 	bool shouldRender = true;
 	bool isReading = false;
 
+	bool useVoice = false;
 	bool useShadow = false;
+
+	std::unordered_map<std::string, std::vector<std::string>> namesToTextSounds;
 
 	uint32_t boxWidth = 1100;
 
@@ -49,7 +52,6 @@ public:
 	void ChangeBoxSprite(const std::string& filepath);
 
 	void UpdateText(const char c, const Color& color);
-	void UpdateText(const std::string& newText, const Color& color);
 	void Render(const Renderer& renderer, const int& screenWidth, const int& screenHeight);
 
 	void SetCursorPosition(bool endOfPage);

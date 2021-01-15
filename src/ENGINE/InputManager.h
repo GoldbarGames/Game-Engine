@@ -11,16 +11,10 @@
 
 // TODO: For next time:
 
-// - Fix all the bugs from implementing things so far
-// - Refactor / clean up the way the screens are being used (especially the pause menu / escaape)
-// - Add a button to reset the controller mappings to their default values
-// - Going through the actual process of mapping all keys in our games
-// - Cutscene text should be able to get the mapped button
-
-// - Figure out how to get these to be compatible with physical controllers
-// - Maybe figure out how to record our button inputs and play them back
 // - Maybe refactor the mouse-related stuff to be in this class also
-
+// - Maybe figure out how to record our button inputs and play them back
+// - Figure out how to get these to be compatible with physical controllers
+// - Automatically translate text if not in English to the selected language
 
 struct KeyMapData
 {
@@ -32,21 +26,23 @@ struct KeyMapData
 class InputManager
 {
 private:
-	
+	int mouseX = 0;
+	int mouseY = 0;
 public:
 	
 	// TODO: This will be used for automated level testing
 	bool readKeyPressesFromFile = false;
 	std::string inputFile = "";
 
-	int mouseX = 0;
-	int mouseY = 0;
 	mutable std::unordered_map<std::string, KeyMapData> keys;
 
 	bool isCheckingForKeyMapping = false;
 	SDL_Scancode pressedKey = SDL_SCANCODE_UNKNOWN;
 
 	Timer inputTimer;
+
+	const int GetMouseX() const { return mouseX; }
+	const int GetMouseY() const { return mouseY; }
 
 	void Init()
 	{
@@ -75,6 +71,14 @@ public:
 				keys[key].mappedKey = val;
 			}
 			keys[key].defaultKey = val;
+		}
+	}
+
+	void ResetKeysToDefaults()
+	{
+		for (auto& [key, val] : keys)
+		{
+			val.mappedKey = val.defaultKey;
 		}
 	}
 
