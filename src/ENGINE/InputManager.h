@@ -36,6 +36,12 @@ public:
 
 	mutable std::unordered_map<std::string, KeyMapData> keys;
 
+	std::vector<int> recordedInputs;
+	bool isRecordingInput = false;
+	
+	std::vector<int> playbackInputs;
+	int playbackIndex = 0;
+
 	bool isCheckingForKeyMapping = false;
 	SDL_Scancode pressedKey = SDL_SCANCODE_UNKNOWN;
 
@@ -58,6 +64,90 @@ public:
 				keys[name].mappedKey = (SDL_Scancode)code;
 			}
 		}
+	}
+
+	void StopPlayback()
+	{
+		readKeyPressesFromFile = false;
+		playbackInputs.clear();
+		playbackIndex = 0;
+	}
+
+	void PlaybackInput(const std::string& filepath)
+	{
+		readKeyPressesFromFile = true;
+		playbackInputs.clear();
+		playbackIndex = 0;
+
+		std::ifstream fin;
+		std::string s = "";
+		char c;
+
+		fin.open(filepath);
+		if (fin.is_open())
+		{
+			while (!fin.eof())
+			{
+				fin.get(c);
+
+				if (c == '\n')
+					break;
+
+				if (c == ' ' && s.size() > 0)
+				{
+					playbackInputs.emplace_back(std::stoi(s));
+					s = "";
+				}
+				else
+				{
+					s += c;
+				}
+			}
+		}
+
+		fin.close();
+	}
+
+
+	
+	void StartRecording()
+	{
+		isRecordingInput = true;
+		recordedInputs.clear();
+	}
+
+	void StopRecording()
+	{
+		isRecordingInput = false;
+		SaveRecordedInput();
+		recordedInputs.clear();
+	}
+
+	void RecordInput()
+	{
+		const uint8_t* input = SDL_GetKeyboardState(NULL);
+		for (auto& [key, val] : keys)
+		{
+			if (input[keys[key].mappedKey])
+			{
+				recordedInputs.emplace_back(keys[key].defaultKey);
+				break; // Only records the first button-press each frame
+			}
+		}
+	}
+
+	void SaveRecordedInput()
+	{
+		std::ofstream fout;
+
+		fout.open("data/inputs.dat");
+
+		for (const auto& input : recordedInputs)
+		{
+			fout << input << " ";
+		}
+
+		fout.close();
 	}
 
 	void SetDefaultKeys(const std::unordered_map<std::string, SDL_Scancode>& defaultKeys) const
@@ -112,6 +202,18 @@ public:
 
 		// Check every key at the beginning of the Update loop
 		// in order to see if it had been pressed or released last frame.
+		if (isRecordingInput)
+		{
+			RecordInput();
+		}
+		else if (readKeyPressesFromFile)
+		{
+			playbackIndex++;
+			if (playbackIndex >= playbackInputs.size())
+			{
+				StopPlayback();
+			}
+		}
 	}
 
 	void EndUpdate()
@@ -127,7 +229,7 @@ public:
 	{
 		if (readKeyPressesFromFile)
 		{
-			return false;
+			return playbackInputs[playbackIndex] == keys[keyName].mappedKey;
 		}
 		else
 		{
@@ -138,9 +240,9 @@ public:
 
 	bool GetKeyPressed(const std::string& keyName)
 	{
-		if (readKeyPressesFromFile)
+		if (readKeyPressesFromFile && playbackIndex > 0)
 		{
-			return false;
+			return playbackInputs[playbackIndex] == keys[keyName].mappedKey && playbackInputs[playbackIndex-1] != keys[keyName].mappedKey;
 		}
 		else
 		{
@@ -154,7 +256,7 @@ public:
 	{
 		if (readKeyPressesFromFile)
 		{
-			return false;
+			return playbackInputs[playbackIndex] != keys[keyName].mappedKey && playbackInputs[playbackIndex - 1] == keys[keyName].mappedKey;
 		}
 		else
 		{

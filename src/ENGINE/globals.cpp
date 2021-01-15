@@ -361,6 +361,8 @@ std::vector<std::string> ReadStringsFromFile(const std::string& filepath)
 		}
 	}
 
+	fin.close();
+
 	return result;
 }
 

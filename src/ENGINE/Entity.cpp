@@ -317,6 +317,8 @@ bool Entity::CanSpawnHere(const glm::vec3& spawnPosition, const Game& game, bool
 		myBounds.x = (int)spawnPosition.x;
 		myBounds.y = (int)spawnPosition.y;
 
+		return true;
+
 		SDL_Rect tileBelowMyBoundsLeft = myBounds;
 		tileBelowMyBoundsLeft.y += myBounds.h;
 		tileBelowMyBoundsLeft.w = game.editor->GRID_SIZE;

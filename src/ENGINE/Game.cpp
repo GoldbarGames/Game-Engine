@@ -1702,13 +1702,29 @@ bool Game::HandleEvent(SDL_Event& event)
 				break;
 			case SDLK_7:
 				//_CrtDumpMemoryLeaks();
+				
+				if (inputManager.isRecordingInput)
+					inputManager.StopRecording();
+				else
+					inputManager.StartRecording();
+
+				std::cout << "Toggle recording " << inputManager.isRecordingInput << std::endl;
+
 				break;
 			case SDLK_8: // save game
-				fileManager->SaveFile(currentSaveFileName);
+				//fileManager->SaveFile(currentSaveFileName);
+				
+				if (inputManager.readKeyPressesFromFile)
+					inputManager.StopPlayback();
+				else
+					inputManager.PlaybackInput("data/inputs.dat");
+								
+				std::cout << "Toggle playback " << inputManager.readKeyPressesFromFile << std::endl;
+
 				break;
 			case SDLK_9: // load game
-				if (!editMode)
-					fileManager->LoadFile(currentSaveFileName);
+				//if (!editMode)
+				//	fileManager->LoadFile(currentSaveFileName);
 				break;
 
 			default:
