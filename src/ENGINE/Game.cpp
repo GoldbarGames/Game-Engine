@@ -1717,7 +1717,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				if (inputManager.readKeyPressesFromFile)
 					inputManager.StopPlayback();
 				else
-					inputManager.PlaybackInput("data/inputs.dat");
+					inputManager.StartPlayback("data/inputs.dat");
 								
 				std::cout << "Toggle playback " << inputManager.readKeyPressesFromFile << std::endl;
 

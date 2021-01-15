@@ -30,7 +30,6 @@ private:
 	int mouseY = 0;
 public:
 	
-	// TODO: This will be used for automated level testing
 	bool readKeyPressesFromFile = false;
 	std::string inputFile = "";
 
@@ -41,6 +40,12 @@ public:
 	
 	std::vector<int> playbackInputs;
 	int playbackIndex = 0;
+
+	int playbackValue = 0;
+	int prevPlaybackValue = 0;
+
+	int nCount = 0;
+	int pCount = 0;
 
 	bool isCheckingForKeyMapping = false;
 	SDL_Scancode pressedKey = SDL_SCANCODE_UNKNOWN;
@@ -73,11 +78,13 @@ public:
 		playbackIndex = 0;
 	}
 
-	void PlaybackInput(const std::string& filepath)
+	void StartPlayback(const std::string& filepath)
 	{
 		readKeyPressesFromFile = true;
 		playbackInputs.clear();
+		playbackInputs.reserve(10000);
 		playbackIndex = 0;
+		pCount = 0;
 
 		std::ifstream fin;
 		std::string s = "";
@@ -114,6 +121,8 @@ public:
 	{
 		isRecordingInput = true;
 		recordedInputs.clear();
+		recordedInputs.reserve(10000);
+		nCount = 0;
 	}
 
 	void StopRecording()
@@ -125,15 +134,35 @@ public:
 
 	void RecordInput()
 	{
+		static int previousNumber = -1;
+
 		const uint8_t* input = SDL_GetKeyboardState(NULL);
 		for (auto& [key, val] : keys)
 		{
 			if (input[keys[key].mappedKey])
 			{
-				recordedInputs.emplace_back(keys[key].defaultKey);
-				break; // Only records the first button-press each frame
+				if (keys[key].mappedKey != previousNumber)
+				{
+					recordedInputs.emplace_back(keys[key].defaultKey);
+					recordedInputs.emplace_back(nCount);
+					previousNumber = keys[key].mappedKey;
+					nCount = -1;
+				}
+
+				nCount++;
+				
+				return; // Only records the first button-press each frame
 			}
 		}
+
+		if (0 != previousNumber)
+		{
+			recordedInputs.emplace_back(0);
+			recordedInputs.emplace_back(nCount);
+			previousNumber = 0;
+			nCount = -1;
+		}
+		nCount++;
 	}
 
 	void SaveRecordedInput()
@@ -208,11 +237,22 @@ public:
 		}
 		else if (readKeyPressesFromFile)
 		{
-			playbackIndex++;
-			if (playbackIndex >= playbackInputs.size())
+			pCount++;
+			if (pCount > playbackInputs[playbackIndex + 1])
 			{
-				StopPlayback();
+				playbackIndex += 2;
+				pCount = 0;
+
+				if (playbackIndex >= playbackInputs.size())
+				{
+					StopPlayback();
+				}
+				else
+				{
+					playbackValue = playbackInputs[playbackIndex];
+				}
 			}
+
 		}
 	}
 
@@ -229,7 +269,7 @@ public:
 	{
 		if (readKeyPressesFromFile)
 		{
-			return playbackInputs[playbackIndex] == keys[keyName].mappedKey;
+			return playbackValue == keys[keyName].mappedKey;
 		}
 		else
 		{
@@ -242,7 +282,7 @@ public:
 	{
 		if (readKeyPressesFromFile && playbackIndex > 0)
 		{
-			return playbackInputs[playbackIndex] == keys[keyName].mappedKey && playbackInputs[playbackIndex-1] != keys[keyName].mappedKey;
+			return playbackValue == keys[keyName].mappedKey && prevPlaybackValue != keys[keyName].mappedKey;
 		}
 		else
 		{
@@ -256,7 +296,7 @@ public:
 	{
 		if (readKeyPressesFromFile)
 		{
-			return playbackInputs[playbackIndex] != keys[keyName].mappedKey && playbackInputs[playbackIndex - 1] == keys[keyName].mappedKey;
+			return playbackValue != keys[keyName].mappedKey && prevPlaybackValue == keys[keyName].mappedKey;
 		}
 		else
 		{
