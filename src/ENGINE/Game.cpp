@@ -1714,12 +1714,12 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_8: // save game
 				//fileManager->SaveFile(currentSaveFileName);
 				
-				if (inputManager.readKeyPressesFromFile)
+				if (inputManager.isPlayingBackInput)
 					inputManager.StopPlayback();
 				else
 					inputManager.StartPlayback("data/inputs.dat");
 								
-				std::cout << "Toggle playback " << inputManager.readKeyPressesFromFile << std::endl;
+				std::cout << "Toggle playback " << inputManager.isPlayingBackInput << std::endl;
 
 				break;
 			case SDLK_9: // load game

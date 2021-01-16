@@ -30,19 +30,20 @@ private:
 	int mouseY = 0;
 public:
 	
-	bool readKeyPressesFromFile = false;
+	
 	std::string inputFile = "";
 
 	mutable std::unordered_map<std::string, KeyMapData> keys;
 
 	std::vector<int> recordedInputs;
 	bool isRecordingInput = false;
-	
+	bool isPlayingBackInput = false;
+
 	std::vector<int> playbackInputs;
 	int playbackIndex = 0;
 
-	int playbackValue = 0;
-	int prevPlaybackValue = 0;
+	std::unordered_map<int, int> inputsThisFrame;
+	std::unordered_map<int, int> inputsLastFrame;
 
 	int nCount = 0;
 	int pCount = 0;
@@ -73,14 +74,14 @@ public:
 
 	void StopPlayback()
 	{
-		readKeyPressesFromFile = false;
+		isPlayingBackInput = false;
 		playbackInputs.clear();
 		playbackIndex = 0;
 	}
 
 	void StartPlayback(const std::string& filepath)
 	{
-		readKeyPressesFromFile = true;
+		isPlayingBackInput = true;
 		playbackInputs.clear();
 		playbackInputs.reserve(10000);
 		playbackIndex = 0;
@@ -119,6 +120,9 @@ public:
 	
 	void StartRecording()
 	{
+		inputsThisFrame.clear();
+		inputsLastFrame.clear();
+		inputsLastFrame[0] = 1;
 		isRecordingInput = true;
 		recordedInputs.clear();
 		recordedInputs.reserve(10000);
@@ -127,6 +131,8 @@ public:
 
 	void StopRecording()
 	{
+		inputsThisFrame.clear();
+		inputsLastFrame.clear();
 		isRecordingInput = false;
 		SaveRecordedInput();
 		recordedInputs.clear();
@@ -134,35 +140,83 @@ public:
 
 	void RecordInput()
 	{
-		static int previousNumber = -1;
-
 		const uint8_t* input = SDL_GetKeyboardState(NULL);
+
+		// Save the inputs from last frame
+		inputsLastFrame.clear();
+		for (auto& [key, val] : inputsThisFrame)
+		{
+			inputsLastFrame[key] = val;
+		}
+
+		// Get all inputs for the current frame
+		inputsThisFrame.clear();
 		for (auto& [key, val] : keys)
 		{
 			if (input[keys[key].mappedKey])
 			{
-				if (keys[key].mappedKey != previousNumber)
-				{
-					recordedInputs.emplace_back(keys[key].defaultKey);
-					recordedInputs.emplace_back(nCount);
-					previousNumber = keys[key].mappedKey;
-					nCount = -1;
-				}
-
-				nCount++;
-				
-				return; // Only records the first button-press each frame
+				inputsThisFrame[keys[key].mappedKey] = 1;
 			}
 		}
 
-		if (0 != previousNumber)
+		// If we didn't get any key presses this frame,
+		// record this frame as a zero
+		if (inputsThisFrame.size() == 0)
 		{
-			recordedInputs.emplace_back(0);
-			recordedInputs.emplace_back(nCount);
-			previousNumber = 0;
-			nCount = -1;
+			inputsThisFrame[0] = 1;
 		}
-		nCount++;
+
+		// We want to check that the two lists are equal
+
+		bool areListsTheSame = true;
+
+		for (auto& [key, val] : inputsThisFrame)
+		{
+			// Check whether all keys pressed this frame
+			// were also pressed the frame before
+			if (inputsLastFrame.count(key) == 0)
+			{
+				// If we get here, then we pressed a key now
+				// that had not been pressed before.
+				areListsTheSame = false;
+			}
+		}
+
+		for (auto& [lastkey, lastval] : inputsLastFrame)
+		{
+			// Check whether all keys pressed this frame
+			// were also pressed the frame before
+			if (inputsThisFrame.count(lastkey) == 0)
+			{
+				// If we get here, then we had pressed a key before
+				// that we have stopped pressing now.
+				areListsTheSame = false;
+			}
+		}
+		
+		// If there is any difference between the two lists,
+		// then we record the previous list and the number of frames
+		// that it had been true that there was no difference.
+
+		// In other words, if there is no difference between the two lists
+		// then we increment the counter. If there is a difference,
+		// then we record the previous list and reset the counter.
+
+		if (areListsTheSame)
+		{
+			nCount++;
+		}
+		else
+		{
+			for (auto& [key, val] : inputsLastFrame)
+			{
+				recordedInputs.emplace_back(key);
+			}
+
+			recordedInputs.emplace_back(nCount * -1);
+			nCount = 0;
+		}
+
 	}
 
 	void SaveRecordedInput()
@@ -235,23 +289,54 @@ public:
 		{
 			RecordInput();
 		}
-		else if (readKeyPressesFromFile)
+		else if (isPlayingBackInput)
 		{
-			pCount++;
-			if (pCount > playbackInputs[playbackIndex + 1])
+			pCount++; // the number of frames the button has been pressed
+
+			static int pTargetCount = -1;
+			static int endIndex = 0;
+
+			// We don't yet know the target count for this button press
+			if (pTargetCount < 0)
 			{
-				playbackIndex += 2;
+				endIndex = playbackIndex;
+				for (int i = playbackIndex; i < playbackInputs.size(); i++)
+				{
+					if (playbackInputs[i] < 0) // found the count
+					{
+						pTargetCount = -1 * playbackInputs[i];
+						endIndex = i;
+						break;
+					}
+				}
+
+				// Save the inputs that are being held last frame
+				inputsLastFrame.clear();
+				for (auto& [key, val] : inputsThisFrame)
+				{
+					inputsLastFrame[key] = val;
+				}
+				
+				// Save the inputs that are being held this frame
+				inputsThisFrame.clear();
+				for (int k = playbackIndex; k < endIndex; k++)
+				{
+					inputsThisFrame[playbackInputs[k]] = 1;
+				}
+			}
+
+			if (pCount > pTargetCount)
+			{				
 				pCount = 0;
+				pTargetCount = -1;
+				playbackIndex = endIndex + 1; // always the number after the count
 
 				if (playbackIndex >= playbackInputs.size())
 				{
 					StopPlayback();
 				}
-				else
-				{
-					playbackValue = playbackInputs[playbackIndex];
-				}
 			}
+
 
 		}
 	}
@@ -267,9 +352,9 @@ public:
 
 	bool GetKey(const std::string& keyName)
 	{
-		if (readKeyPressesFromFile)
+		if (isPlayingBackInput)
 		{
-			return playbackValue == keys[keyName].mappedKey;
+			return inputsThisFrame.count(keys[keyName].mappedKey) != 0;
 		}
 		else
 		{
@@ -280,9 +365,10 @@ public:
 
 	bool GetKeyPressed(const std::string& keyName)
 	{
-		if (readKeyPressesFromFile && playbackIndex > 0)
+		if (isPlayingBackInput && playbackIndex > 0)
 		{
-			return playbackValue == keys[keyName].mappedKey && prevPlaybackValue != keys[keyName].mappedKey;
+			return inputsThisFrame.count(keys[keyName].mappedKey) != 0 
+				&& inputsLastFrame.count(keys[keyName].mappedKey) == 0;
 		}
 		else
 		{
@@ -294,9 +380,10 @@ public:
 
 	bool GetKeyReleased(const std::string& keyName)
 	{
-		if (readKeyPressesFromFile)
+		if (isPlayingBackInput)
 		{
-			return playbackValue != keys[keyName].mappedKey && prevPlaybackValue == keys[keyName].mappedKey;
+			return inputsThisFrame.count(keys[keyName].mappedKey) == 0
+				&& inputsLastFrame.count(keys[keyName].mappedKey) != 0;
 		}
 		else
 		{
