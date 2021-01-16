@@ -208,7 +208,7 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 
 		if (textTexture != nullptr)
 		{
-			Glyph* newGlyph = neww Glyph;
+			Glyph* newGlyph = new Glyph;
 			newGlyph->sprite = Sprite(textTexture, Renderer::GetTextShader());
 			newGlyph->sprite.keepScaleRelativeToCamera = keepScaleRelative;
 			newGlyph->sprite.keepPositionRelativeToCamera = renderRelative;
@@ -249,7 +249,7 @@ void Text::AddImage(Sprite* newSprite)
 		newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		newSprite->keepPositionRelativeToCamera = renderRelative;
 		
-		Glyph* newGlyph = neww Glyph;
+		Glyph* newGlyph = new Glyph;
 		newGlyph->scale = currentScale;
 		newGlyph->sprite = Sprite(newSprite->texture, newSprite->shader);
 		delete_it(newSprite);
@@ -285,7 +285,7 @@ void Text::AddText(char c, Color color)
 
 	if (textTexture != nullptr)
 	{
-		Glyph* newGlyph = neww Glyph;
+		Glyph* newGlyph = new Glyph;
 		newGlyph->sprite.SetTexture(textTexture);
 		newGlyph->sprite.SetShader(Renderer::GetTextShader());
 		newGlyph->sprite.keepScaleRelativeToCamera = keepScaleRelative;

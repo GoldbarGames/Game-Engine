@@ -27,46 +27,46 @@ SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager),
 	const int buttonHeight = 50;
 	const int buttonSpacing = 100;
 
-	folderDirButton = neww EditorButton("DIR", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	folderDirButton = new EditorButton("DIR", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	folderDirButton->text->SetPosition(buttonX, buttonY);
 	buttons.emplace_back(folderDirButton);
 	buttonX += buttonWidth + buttonSpacing;
 
-	loadBGMButton = neww EditorButton("BGM", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	loadBGMButton = new EditorButton("BGM", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	loadBGMButton->text->SetPosition(buttonX, buttonY);
 	buttons.emplace_back(loadBGMButton);
 
-	bgmUpButton = neww EditorButton("^", "Btn", glm::vec3(buttonX, buttonY + 150, 0), *manager->game);
+	bgmUpButton = new EditorButton("^", "Btn", glm::vec3(buttonX, buttonY + 150, 0), *manager->game);
 	bgmUpButton->text->SetPosition(buttonX, buttonY + 150);
 	buttons.emplace_back(bgmUpButton);
 
-	bgmDownButton = neww EditorButton("v", "Btn", glm::vec3(buttonX, buttonY + 300, 0), *manager->game);
+	bgmDownButton = new EditorButton("v", "Btn", glm::vec3(buttonX, buttonY + 300, 0), *manager->game);
 	bgmDownButton->text->SetPosition(buttonX, buttonY + 300);
 	buttons.emplace_back(bgmDownButton);
 
 	buttonX += buttonWidth + buttonSpacing;
 
-	playButton = neww EditorButton("|>", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	playButton = new EditorButton("|>", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	playButton->text->SetPosition(buttonX, buttonY);
 	buttons.emplace_back(playButton);
 	buttonX += buttonWidth + buttonSpacing;
 
-	stepForwardButton = neww EditorButton("+", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	stepForwardButton = new EditorButton("+", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	stepForwardButton->text->SetPosition(buttonX, buttonY);
 	buttons.emplace_back(stepForwardButton);
 	buttonX += buttonWidth + buttonSpacing;
 
-	stepBackButton = neww EditorButton("-", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	stepBackButton = new EditorButton("-", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	stepBackButton->text->SetPosition(buttonX, buttonY);
 	buttons.emplace_back(stepBackButton);
 	buttonX += buttonWidth + buttonSpacing;
 
-	setTimeButton = neww EditorButton("=", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	setTimeButton = new EditorButton("=", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	setTimeButton->text->SetPosition(buttonX, buttonY);
 	buttons.emplace_back(setTimeButton);
 	buttonX += buttonWidth + buttonSpacing;
 
-	addLoopButton = neww EditorButton("L+", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	addLoopButton = new EditorButton("L+", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	addLoopButton->text->SetPosition(buttonX, buttonY);
 	buttons.emplace_back(addLoopButton);
 	buttonX += buttonWidth + buttonSpacing;
@@ -80,8 +80,8 @@ SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager),
 	// TODO: Refactor this a lot so that we don't need to write all this
 	// every time we reate a Dialog object
 
-	dialog.text = neww Text(m.game->theFont, "");
-	dialog.input = neww Text(m.game->theFont, "");
+	dialog.text = new Text(m.game->theFont, "");
+	dialog.input = new Text(m.game->theFont, "");
 
 	dialog.text->SetPosition(dialog.position.x, dialog.position.y + 20);
 	dialog.input->SetPosition(dialog.position.x, dialog.position.y + 70);
@@ -395,7 +395,7 @@ void SoundTest::AfterFileDialog(const std::string& bgm)
 
 void SoundTest::CreateLoop(const std::string& name, uint32_t st, uint32_t et, Color c)
 {
-	SoundLoop* newLoop = neww SoundLoop(name);
+	SoundLoop* newLoop = new SoundLoop(name);
 
 	newLoop->startTime = st;
 	newLoop->endTime = et;
@@ -409,24 +409,24 @@ void SoundTest::CreateLoop(const std::string& name, uint32_t st, uint32_t et, Co
 	loopString += ConvertTimeToStringFromNumber(newLoop->startTime) + " - "
 		+ ConvertTimeToStringFromNumber(newLoop->endTime);
 
-	newLoop->text = neww Text(manager->game->theFont, loopString, true, true);
+	newLoop->text = new Text(manager->game->theFont, loopString, true, true);
 	newLoop->text->SetColor(newLoop->color);
 	newLoop->text->SetPosition(buttonX, buttonY);
 
 	buttonX += 300;
-	newLoop->modifyButton = neww EditorButton("M", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	newLoop->modifyButton = new EditorButton("M", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	newLoop->modifyButton->text->SetPosition(buttonX, buttonY);
 
 	buttonX += 150;
-	newLoop->removeButton = neww EditorButton("R", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	newLoop->removeButton = new EditorButton("R", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	newLoop->removeButton->text->SetPosition(buttonX, buttonY);
 
 	buttonX += 150;
-	newLoop->jumpButton = neww EditorButton("J", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	newLoop->jumpButton = new EditorButton("J", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	newLoop->jumpButton->text->SetPosition(buttonX, buttonY);
 
 	buttonX += 150;
-	newLoop->selectButton = neww EditorButton("S", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
+	newLoop->selectButton = new EditorButton("S", "Btn", glm::vec3(buttonX, buttonY, 0), *manager->game);
 	newLoop->selectButton->text->SetPosition(buttonX, buttonY);
 
 	soundLoops[currentBGM].emplace_back(newLoop);

@@ -28,7 +28,7 @@ void CutsceneManager::Init(Game& g)
 	if (textbox != nullptr)
 		delete_it(textbox);
 
-	textbox = neww Textbox(g.spriteManager, g.renderer);
+	textbox = new Textbox(g.spriteManager, g.renderer);
 
 	commands.manager = this;
 	inputTimeToWait = 100;
@@ -39,10 +39,10 @@ void CutsceneManager::Init(Game& g)
 
 	namesToColors[""] = currentColor;
 
-	tags["b"] = neww TextTag();
-	tags["i"] = neww TextTag();
-	tags["bi"] = neww TextTag();
-	tags["s"] = neww TextTag();
+	tags["b"] = new TextTag();
+	tags["i"] = new TextTag();
+	tags["bi"] = new TextTag();
+	tags["s"] = new TextTag();
 
 	ReadCutsceneFile();
 
@@ -1005,7 +1005,7 @@ void CutsceneManager::EndCutscene()
 
 void CutsceneManager::PushCurrentSceneDataToStack()
 {
-	SceneData* newData = neww SceneData();
+	SceneData* newData = new SceneData();
 	newData->labelIndex = labelIndex;
 	newData->labelName = GetLabelName(currentLabel);
 	newData->lineIndex = lineIndex;
@@ -2822,7 +2822,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				break;
 			case SaveSections::GOSUB_STACK:
 
-				gosubData = neww SceneData();
+				gosubData = new SceneData();
 				gosubData->labelName = lineParams[0];
 				gosubData->labelIndex = std::stoi(lineParams[1]);
 				gosubData->lineIndex = std::stoi(lineParams[2]) - 1;

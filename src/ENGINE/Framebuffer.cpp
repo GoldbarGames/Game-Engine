@@ -6,10 +6,10 @@ FrameBuffer::FrameBuffer(const Renderer& renderer, int screenWidth, int screenHe
 	glGenFramebuffers(1, &framebufferObject);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebufferObject);
 
-	Texture* screenTexture = neww Texture("");
+	Texture* screenTexture = new Texture("");
 	screenTexture->LoadTexture(textureColorBuffer, screenWidth, screenHeight);
 
-	sprite = neww Sprite(screenTexture, renderer.shaders[ShaderName::Default]);
+	sprite = new Sprite(screenTexture, renderer.shaders[ShaderName::Default]);
 	sprite->keepPositionRelativeToCamera = true;
 	sprite->keepScaleRelativeToCamera = true;
 

@@ -19,7 +19,7 @@ void MenuManager::Init(Game& game) const
 	std::vector<std::string> menuNames = ReadStringsFromFile("data/lists/menuScreens.list");
 	for (int i = 0; i < menuNames.size(); i++)
 	{
-		game.allMenus[menuNames[i]] = neww MenuScreen(menuNames[i], game);
+		game.allMenus[menuNames[i]] = new MenuScreen(menuNames[i], game);
 	}
 }
 

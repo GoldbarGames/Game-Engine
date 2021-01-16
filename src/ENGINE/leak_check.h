@@ -41,14 +41,14 @@ namespace fs = std::filesystem;
 #ifdef _WIN32
 #include <cstdlib>
 #include <crtdbg.h>
-#define neww new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
+#define new new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
 #else
-#define neww new
+#define new new
 #endif
 
 #else
 
-#define neww new
+#define new new
 
 #endif
 

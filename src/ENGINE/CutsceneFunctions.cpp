@@ -623,7 +623,7 @@ namespace CutsceneFunctions
 		// If function name does not exist, add it to the list
 		if (c.userDefinedFunctions.count(parameters[1]) == 0)
 		{
-			UserDefinedFunction* newFunction = neww UserDefinedFunction;
+			UserDefinedFunction* newFunction = new UserDefinedFunction;
 			newFunction->functionName = parameters[1];
 
 			for (int i = 2; i < parameters.size(); i++)
@@ -1362,7 +1362,7 @@ namespace CutsceneFunctions
 		if (c.manager->images[imageNumber] != nullptr)
 			delete c.manager->images[imageNumber];
 
-		c.manager->images[imageNumber] = neww Entity(pos);
+		c.manager->images[imageNumber] = new Entity(pos);
 
 		Entity& newImage = *c.manager->images[imageNumber];
 
@@ -1513,7 +1513,7 @@ namespace CutsceneFunctions
 			delete_it(c.manager->images[imageNumber]);
 
 		//TODO: Also save/load in the font type/size/style for this text object
-		Text* newText = neww Text(c.manager->game->theFont, text, textColor);
+		Text* newText = new Text(c.manager->game->theFont, text, textColor);
 
 		newText->isRichText = true;
 
@@ -1578,7 +1578,7 @@ namespace CutsceneFunctions
 			fontInfo = c.manager->game->fonts[c.textFontKey];
 		}
 
-		newText = neww Text(fontInfo, "", textColor);
+		newText = new Text(fontInfo, "", textColor);
 		newText->SetPosition(pos.x, pos.y);
 		newText->isRichText = true;
 
@@ -1744,7 +1744,7 @@ namespace CutsceneFunctions
 					delete entity->GetAnimator();
 
 				std::vector<AnimState*> animStates = c.manager->game->spriteManager.ReadAnimData(c.ParseStringValue(parameters[4]));
-				Animator* newAnimator = neww Animator("player", animStates, c.ParseStringValue(parameters[5]));
+				Animator* newAnimator = new Animator("player", animStates, c.ParseStringValue(parameters[5]));
 				entity->SetAnimator(*newAnimator);
 			}
 			else if (entity->GetAnimator() == nullptr)
@@ -2100,7 +2100,7 @@ namespace CutsceneFunctions
 		if (parameters[1] == "start")
 		{
 			if (c.manager->timers.count(timerNumber) != 1)
-				c.manager->timers[timerNumber] = neww Timer();
+				c.manager->timers[timerNumber] = new Timer();
 
 			unsigned int timerDuration = c.ParseNumberValue(parameters[3]);
 			c.manager->timers[timerNumber]->Start(timerDuration);
@@ -2665,7 +2665,7 @@ namespace CutsceneFunctions
 		{
 			if (c.manager->tags.count(parameters[2]) != 1)
 			{
-				c.manager->tags[parameters[2]] = neww TextTag();
+				c.manager->tags[parameters[2]] = new TextTag();
 			}
 		}
 
@@ -2843,7 +2843,7 @@ namespace CutsceneFunctions
 				delete_it(c.manager->game->cursorSprite);
 
 			// TODO: Actually create the sprite here
-			//c.manager->game->cursorSprite = neww Sprite();
+			//c.manager->game->cursorSprite = new Sprite();
 		}
 
 		return 0;
@@ -3085,7 +3085,7 @@ namespace CutsceneFunctions
 				// TODO: We don't want to constantly make new animators, this will cause memory leaks!
 
 				std::vector<AnimState*> animStates = c.manager->game->spriteManager.ReadAnimData(parameters[5], args);
-				Animator* anim1 = neww Animator(parameters[4] + "/" + parameters[4], animStates, parameters[6]);
+				Animator* anim1 = new Animator(parameters[4] + "/" + parameters[4], animStates, parameters[6]);
 
 				c.manager->images[entityIndex]->SetAnimator(*anim1);
 				c.manager->images[entityIndex]->GetAnimator()->Update(*c.manager->images[entityIndex]);
@@ -3277,7 +3277,7 @@ namespace CutsceneFunctions
 
 		m->BindMesh();
 
-		c.customShaders[shaderName] = neww ShaderProgram(ShaderName::Custom, vertexFile.c_str(), fragmentFile.c_str());
+		c.customShaders[shaderName] = new ShaderProgram(ShaderName::Custom, vertexFile.c_str(), fragmentFile.c_str());
 		c.customShaders[shaderName]->SetNameString(shaderName);
 
 		m->ClearMesh();
@@ -3324,7 +3324,7 @@ namespace CutsceneFunctions
 					delete_it(c.manager->images[imageNumber]);
 
 				ParticleSystem* newParticleSystem = nullptr;
-				newParticleSystem = neww ParticleSystem(glm::vec3(x, y, z));
+				newParticleSystem = new ParticleSystem(glm::vec3(x, y, z));
 
 				c.manager->images[imageNumber] = newParticleSystem;
 				c.manager->images[imageNumber]->drawOrder = imageNumber;

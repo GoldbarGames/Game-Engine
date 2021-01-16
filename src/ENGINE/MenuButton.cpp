@@ -7,10 +7,10 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 {
 	position = pos;
 
-	image = neww Sprite(1, game.spriteManager, filepath, game.renderer.shaders[ShaderName::GUI], Vector2(0,0));
+	image = new Sprite(1, game.spriteManager, filepath, game.renderer.shaders[ShaderName::GUI], Vector2(0,0));
 	image->color = { 200, 55, 161, 255 };
 
-	text = neww Text(game.theFont);
+	text = new Text(game.theFont);
 
 	text->alignX = AlignmentX::CENTER;
 	text->isRichText = false;

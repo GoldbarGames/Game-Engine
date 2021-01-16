@@ -79,7 +79,7 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 		{
 			index++;
 			backgroundName = tokens[index++];
-			BackgroundData* newBackgroundData = neww BackgroundData();
+			BackgroundData* newBackgroundData = new BackgroundData();
 			newBackgroundData->name = backgroundName;
 			newBackgroundData->width = std::stoi(tokens[index++]);
 			newBackgroundData->height = std::stoi(tokens[index++]);
@@ -90,7 +90,7 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 		}
 		else
 		{
-			BackgroundLayerData* newLayerData = neww BackgroundLayerData();
+			BackgroundLayerData* newLayerData = new BackgroundLayerData();
 			newLayerData->offsetX = std::stoi(tokens[index++]);
 			newLayerData->offsetY = std::stoi(tokens[index++]);
 			newLayerData->filepath = tokens[index++];
@@ -171,7 +171,7 @@ void Background::Render(const Renderer& renderer)
 Entity* Background::AddLayer(const glm::vec3& pos, const BackgroundLayerData& data,
 	const SpriteManager& spriteManager, const Renderer& renderer)
 {	
-	Entity* bg = neww BackgroundLayer(glm::vec3(pos.x + data.offsetX, pos.y + data.offsetY, pos.z), data.parallax);
+	Entity* bg = new BackgroundLayer(glm::vec3(pos.x + data.offsetX, pos.y + data.offsetY, pos.z), data.parallax);
 	bg->drawOrder = data.drawOrder;
 	bg->GetSprite()->SetTexture(spriteManager.GetImage(data.filepath));
 	bg->GetSprite()->SetShader(renderer.shaders[ShaderName::Default]);

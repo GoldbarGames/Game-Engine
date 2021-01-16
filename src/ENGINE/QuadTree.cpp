@@ -47,7 +47,7 @@ void QuadTree::RenderEntities(const Renderer& renderer, const std::vector<Entity
    return;
 
     if (debugSprite == nullptr)
-        debugSprite = neww Sprite(renderer.shaders[ShaderName::SolidColor]);
+        debugSprite = new Sprite(renderer.shaders[ShaderName::SolidColor]);
 
     for (int i = 0; i < e.size(); i++)
     {
@@ -108,7 +108,7 @@ void QuadTree::Render(const Renderer& renderer)
     if (renderer.game->debugMode)
     {
         if (debugSprite == nullptr)
-            debugSprite = neww Sprite(renderer.shaders[ShaderName::SolidColor]);
+            debugSprite = new Sprite(renderer.shaders[ShaderName::SolidColor]);
 
         int colorIndex = depth % 6;
         Uint8 c = (int)renderAlpha;
@@ -209,10 +209,10 @@ void QuadTree::Insert(Entity* newEntity)
             int x = rect.x;
             int y = rect.y;
 
-            children[0] = neww QuadTree(x + subWidth, y, subWidth, subHeight, depth+1);
-            children[1] = neww QuadTree(x, y, subWidth, subHeight, depth + 1);
-            children[2] = neww QuadTree(x, y + subHeight, subWidth, subHeight, depth + 1);
-            children[3] = neww QuadTree(x + subWidth, y + subHeight, subWidth, subHeight, depth + 1);
+            children[0] = new QuadTree(x + subWidth, y, subWidth, subHeight, depth+1);
+            children[1] = new QuadTree(x, y, subWidth, subHeight, depth + 1);
+            children[2] = new QuadTree(x, y + subHeight, subWidth, subHeight, depth + 1);
+            children[3] = new QuadTree(x + subWidth, y + subHeight, subWidth, subHeight, depth + 1);
         }
         else if (!children[0]->active)
         {

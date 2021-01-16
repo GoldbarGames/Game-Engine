@@ -8,7 +8,7 @@ void GUI::Init(Game* g)
 
 	for (int i = 0; i < textNames.size(); i++)
 	{
-		texts[textNames[i]] = neww Text(game->theFont);
+		texts[textNames[i]] = new Text(game->theFont);
 		texts[textNames[i]]->isRichText = true;
 		texts[textNames[i]]->SetText("");
 		texts[textNames[i]]->GetSprite()->keepPositionRelativeToCamera = true;

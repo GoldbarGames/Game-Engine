@@ -15,7 +15,7 @@ public:
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 	void Render(const Renderer& renderer);
 
-	static Entity* __stdcall Create(const glm::vec3& pos) { return neww CameraBounds(pos); };
+	static Entity* __stdcall Create(const glm::vec3& pos) { return new CameraBounds(pos); };
 };
 
 

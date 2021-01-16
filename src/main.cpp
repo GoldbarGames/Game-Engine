@@ -20,10 +20,10 @@ int main(int argc, char *args[])
 	{
 		// For your own custom entity types
 		EntityFactory* e = EntityFactory::Get();
-		GUI* gui = neww GUI();
-		EditorHelper* helper = neww EditorHelper();
-		FileManager* f = neww FileManager();
-		MenuManager* m = neww MenuManager();
+		GUI* gui = new GUI();
+		EditorHelper* helper = new EditorHelper();
+		FileManager* f = new FileManager();
+		MenuManager* m = new MenuManager();
 
 		Game game("WDK", "Witch Doctor Kaneko", "icon.png", true, *e, *f, *gui, *m);
 		game.editor->helper = helper;

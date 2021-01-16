@@ -25,7 +25,7 @@ unsigned int Animator::GetNumberOfStateFromName(const char* name)
 // PRE-CONDITION: The list of states is not empty
 Animator::Animator(const std::string& filePath, std::vector<AnimState*> states, std::string initialState)
 {
-	//MapStateNameToState("", neww AnimState("", 0, nullptr));
+	//MapStateNameToState("", new AnimState("", 0, nullptr));
 
 	if (mapNamesToAnimType.count(filePath) != 1)
 	{
@@ -46,7 +46,7 @@ Animator::Animator(const std::string& filePath, std::vector<AnimState*> states, 
 	if (mapTypeToInfo.count(animatorType) != 1)
 	{
 		// Parse the animator state info here
-		mapTypeToInfo[animatorType] = neww AnimatorInfo(filePath);
+		mapTypeToInfo[animatorType] = new AnimatorInfo(filePath);
 	}
 
 	// Save the vector of states as a map

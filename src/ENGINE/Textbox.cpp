@@ -15,22 +15,22 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	// These values can all be changed from the cutscene definition file at startup,
 	// although they will give errors here if they cannot find the images
 
-	boxObject = neww Entity(glm::vec3(1280, 720, 0));
+	boxObject = new Entity(glm::vec3(1280, 720, 0));
 
 	boxObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/textbox1.png"));
 	boxObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
 	boxObject->GetSprite()->keepScaleRelativeToCamera = true;
 	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
 
-	nameObject = neww Entity(glm::vec3(1280, 720, 0));
+	nameObject = new Entity(glm::vec3(1280, 720, 0));
 
 	nameObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/namebox1.png"));
 	nameObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
 	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
 	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
 
-	text = neww Text(fontInfoText, "...", true, true);
-	speaker = neww Text(fontInfoSpeaker, "...", true, true);
+	text = new Text(fontInfoText, "...", true, true);
+	speaker = new Text(fontInfoSpeaker, "...", true, true);
 
 	//TODO: Customize these things from a file as well
 	text->SetPosition(1080, 1040);
@@ -41,10 +41,10 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	text->isRichText = true;
 	speaker->isRichText = false;
 
-	clickToContinue = neww Entity(glm::vec3(0,0,0));
+	clickToContinue = new Entity(glm::vec3(0,0,0));
 
 	std::vector<AnimState*> animStates = spriteManager->ReadAnimData("data/animators/cursor/cursor.animations");
-	Animator* newAnimator = neww Animator("cursor/cursor", animStates, "samepage");
+	Animator* newAnimator = new Animator("cursor/cursor", animStates, "samepage");
 	newAnimator->SetBool("endOfPage", false);
 	
 	clickToContinue->SetAnimator(*newAnimator);
@@ -156,7 +156,7 @@ void Textbox::UpdateText(const char c, const Color& color)
 		// We need one shadow per line due to line breaks and word wrap
 		while (shadows.size() < text->lineNumToIndex.size())
 		{
-			Text* newShadow = neww Text(fontInfoText, "", true, true);
+			Text* newShadow = new Text(fontInfoText, "", true, true);
 			newShadow->isRichText = false;
 			newShadow->SetColor({ 0, 0, 0, 255 });
 			shadows.emplace_back(newShadow);

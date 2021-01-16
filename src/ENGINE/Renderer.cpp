@@ -175,7 +175,7 @@ void Renderer::CreateShader(const ShaderName shaderName, const char* vertexFileP
 	if (shaders[shaderName] != nullptr)
 		delete_it(shaders[shaderName]);
 
-	shaders[shaderName] = neww ShaderProgram(shaderName, vertexFilePath, fragmentFilePath);
+	shaders[shaderName] = new ShaderProgram(shaderName, vertexFilePath, fragmentFilePath);
 }
 
 bool Renderer::IsVisible(DrawingLayer layer) const

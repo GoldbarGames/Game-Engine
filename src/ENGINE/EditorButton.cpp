@@ -8,7 +8,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, glm::vec3 pos,
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
 
-	image = neww Sprite(1, game.spriteManager, "assets/editor/btn" + filename + ".png", 
+	image = new Sprite(1, game.spriteManager, "assets/editor/btn" + filename + ".png", 
 		game.renderer.shaders[ShaderName::GUI], Vector2(0, 0));
 
 	image->keepPositionRelativeToCamera = true;
@@ -24,7 +24,7 @@ EditorButton::EditorButton(std::string txt, std::string filename, glm::vec3 pos,
 	buttonWindowRect.x = 0;
 	buttonWindowRect.y = 0;
 
-	text = neww Text(game.editor->fontInfo, txt, true, true);
+	text = new Text(game.editor->fontInfo, txt, true, true);
 
 	if (image == nullptr) // if no image, set the size to 50,50
 	{

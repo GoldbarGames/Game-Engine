@@ -83,7 +83,7 @@ SoundManager::~SoundManager()
 void SoundManager::Init(Game* g)
 {
 	game = g;
-	soundTest = neww SoundTest(*this);
+	soundTest = new SoundTest(*this);
 }
 
 bool SoundManager::IsPlayingSound(int channel)
@@ -223,8 +223,8 @@ void SoundManager::PlaySound(const std::string& filepath, int channel, int loop)
 	// and then modify individual properties when needed
 	if (sounds[channel] == nullptr)
 	{
-		Sound* sound = neww Sound(filepath.c_str());
-		SoundChannel* soundChannel = neww SoundChannel(channel, sound, volumeSound, loop);
+		Sound* sound = new Sound(filepath.c_str());
+		SoundChannel* soundChannel = new SoundChannel(channel, sound, volumeSound, loop);
 		sounds[channel] = soundChannel;
 		sounds[channel]->sound->LoadFile(filepath);
 	}

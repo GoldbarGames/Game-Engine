@@ -39,15 +39,15 @@ Editor::Editor(Game& g)
 		fontInfo = game->theFont;
 	}
 
-	currentLevelText = neww Text(fontInfo, "");
+	currentLevelText = new Text(fontInfo, "");
 	currentLevelText->SetPosition(100, 50);
 	currentLevelText->GetSprite()->keepPositionRelativeToCamera = true;
 	currentLevelText->GetSprite()->keepScaleRelativeToCamera = true;
 
 	playOpeningDemoCutscene = false;
-	dialog = neww Dialog(glm::vec3(g.screenWidth, g.screenHeight, 0), &g.spriteManager);
-	dialog->text = neww Text(fontInfo, "");
-	dialog->input = neww Text(fontInfo, "");
+	dialog = new Dialog(glm::vec3(g.screenWidth, g.screenHeight, 0), &g.spriteManager);
+	dialog->text = new Text(fontInfo, "");
+	dialog->input = new Text(fontInfo, "");
 
 	dialog->text->SetPosition(dialog->position.x, dialog->position.y + 20);
 	dialog->input->SetPosition(dialog->position.x, dialog->position.y + 70);
@@ -65,7 +65,7 @@ Editor::Editor(Game& g)
 	dialog->input->GetSprite()->keepScaleRelativeToCamera = true;
 
 
-	grid = neww Sprite(game->renderer.shaders[ShaderName::Grid]);
+	grid = new Sprite(game->renderer.shaders[ShaderName::Grid]);
 	//grid->SetScale(Vector2(game->screenWidth, game->screenHeight));
 
 	game->entities.clear();	
@@ -132,7 +132,7 @@ Editor::~Editor()
 // Updates the level file based on changes in how entities are saved/loaded
 void Editor::UpdateLevelFiles()
 {
-	// Fill in the neww array
+	// Fill in the new array
 	loadDataMap.clear();
 	const std::string LOAD_FILE = "data/loading.dat";
 	std::string newData = ReadLoadingData(LOAD_FILE, loadDataMap);
@@ -162,7 +162,7 @@ void Editor::UpdateLevelFiles()
 			std::unordered_map<std::string, std::vector<Vector2>> reorderMap;
 			std::unordered_map<std::string, int> resizeMap;
 
-			// Store the neww size of the list in order to resize it (add/remove)
+			// Store the new size of the list in order to resize it (add/remove)
 			int oldEntitySize = oldMap[STR_ENTITY].size();
 			int newEntitySize = loadDataMap[STR_ENTITY].size();
 
@@ -172,8 +172,8 @@ void Editor::UpdateLevelFiles()
 				std::vector<std::string>::iterator it = std::find(loadDataMap[STR_ENTITY].begin(),
 					loadDataMap[STR_ENTITY].end(), oldMap[STR_ENTITY][i]);
 
-				// If we can find this element in the neww data, 
-				// keep track of where to place it in the neww array
+				// If we can find this element in the new data, 
+				// keep track of where to place it in the new array
 				if (it != loadDataMap[STR_ENTITY].end())
 				{
 					int newIndex = std::distance(loadDataMap[STR_ENTITY].begin(), it);
@@ -193,14 +193,14 @@ void Editor::UpdateLevelFiles()
 				{
 					if (entityType != STR_ENTITY)
 					{
-						// Store the neww size of the list in order to resize it (add/remove)
+						// Store the new size of the list in order to resize it (add/remove)
 						resizeMap[entityType] = loadDataMap[entityType].size();
 
 						// Check for any elements that have been re-ordered
 						std::vector<std::string>::iterator it = std::find(loadDataMap[entityType].begin(),
 							loadDataMap[entityType].end(), currentList[i]);
 
-						// If we can find this element in the neww data...
+						// If we can find this element in the new data...
 						if (it != loadDataMap[entityType].end())
 						{
 							// keep track of the indices here and swap them in the level file
@@ -236,7 +236,7 @@ void Editor::UpdateLevelFiles()
 
 				// Depending on the type of entity, figure out the rest
 
-				// 1. Create a neww vector of strings equal to the neww size
+				// 1. Create a new vector of strings equal to the new size
 				std::vector<std::string> newTokens;
 
 				oldEntitySize = oldMap[STR_ENTITY].size();
@@ -255,7 +255,7 @@ void Editor::UpdateLevelFiles()
 					newTokens.push_back("0");
 				}
 
-				// 2. For each reorder, take the value in the old index, place it in neww index
+				// 2. For each reorder, take the value in the old index, place it in new index
 				// 3. For anything that is not a reorder, just keep the values where they are
 				int reorderEntitySize = reorderMap[STR_ENTITY].size();
 				for (int i = 0; i < reorderEntitySize; i++)
@@ -286,7 +286,7 @@ void Editor::UpdateLevelFiles()
 				//std::cout << lineChar << std::endl;
 			}
 
-			// Output the neww level to a file
+			// Output the new level to a file
 			fout.open("data/levels/" + levelName + ".lvl");
 			fout << newLevel;
 			fout.close();
@@ -378,7 +378,7 @@ void Editor::CreateEditorButtons()
 		if (i > buttonNames.size() - 1)
 			break;
 
-		EditorButton* editorButton = neww EditorButton("", buttonNames[i], 
+		EditorButton* editorButton = new EditorButton("", buttonNames[i], 
 			glm::vec3(buttonX * Camera::MULTIPLIER, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
 		
 		buttons.emplace_back(editorButton);
@@ -386,27 +386,27 @@ void Editor::CreateEditorButtons()
 		buttonX += buttonWidth + buttonSpacing; 
 	}
 
-	EditorButton* previousButton = neww EditorButton("", "prevpage", 
+	EditorButton* previousButton = new EditorButton("", "prevpage", 
 		glm::vec3(buttonStartX * Camera::MULTIPLIER, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
 	
 	buttons.emplace_back(previousButton);
 
 	float bx = (buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE + 1) * Camera::MULTIPLIER);
 	
-	EditorButton* nextButton = neww EditorButton("", "nextpage", 
+	EditorButton* nextButton = new EditorButton("", "nextpage", 
 		glm::vec3( bx, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
 	
 	buttons.emplace_back(nextButton);
 
 	// Level navigation
 
-	EditorButton* previousLevelButton = neww EditorButton("", "prevlevel",
+	EditorButton* previousLevelButton = new EditorButton("", "prevlevel",
 		glm::vec3(buttonStartX * Camera::MULTIPLIER,
 			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER, 0), *game);
 
 	buttons.emplace_back(previousLevelButton);
 
-	EditorButton* nextLevelButton = neww EditorButton("", "nextlevel",
+	EditorButton* nextLevelButton = new EditorButton("", "nextlevel",
 		glm::vec3((buttonStartX + (buttonWidth + buttonSpacing)) * Camera::MULTIPLIER,
 			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER, 0), *game);
 
@@ -480,7 +480,7 @@ void Editor::StartEdit()
 	const int layerButtonHeight = 50;
 	const int layerButtonSpacing = 80;
 
-	// To add a neww layer:
+	// To add a new layer:
 	// 1. Add the name here
 	// 2. Add the enum
 	// 3. In renderer, add the layersVisible for it to true
@@ -490,14 +490,14 @@ void Editor::StartEdit()
 
 	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
 	{
-		EditorButton* layerButton = neww EditorButton(layerButtonNames[i], "Layer", 
+		EditorButton* layerButton = new EditorButton(layerButtonNames[i], "Layer", 
 			glm::vec3(buttonX, buttonY, 0), *game, Vector2(layerButtonWidth, 50), { 255, 255, 255, 255 });
 
 		layerButton->image->keepScaleRelativeToCamera = true;
 		layerButton->text->GetSprite()->keepScaleRelativeToCamera = true;
 		layerButtons.emplace_back(layerButton);
 		
-		EditorButton* layerVisibleButton = neww EditorButton("", "Visible", 
+		EditorButton* layerVisibleButton = new EditorButton("", "Visible", 
 			glm::vec3(buttonX + (layerButtonWidth * 2), buttonY, 0), *game, Vector2(50, 50), { 255, 255, 255, 255 });
 
 		layerVisibleButton->image->keepScaleRelativeToCamera = true;
@@ -708,7 +708,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 			grabPosition.x += game->renderer.camera.position.x;
 			grabPosition.y += game->renderer.camera.position.y;
 
-			// Either grab a neww entity, or place the currently grabbed one
+			// Either grab a new entity, or place the currently grabbed one
 			if (grabbedEntity == nullptr)
 			{
 				grabbedEntity = GetClickedEntity(grabPosition);
@@ -1555,11 +1555,11 @@ void Editor::Render(const Renderer& renderer)
 	if (objectMode == "inspect" && selectedEntity != nullptr)
 	{
 		if (outlineSprite == nullptr)
-			outlineSprite = neww Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
+			outlineSprite = new Sprite(renderer.debugSprite->texture, renderer.debugSprite->shader);
 
 		if (rectSprite == nullptr)
 		{
-			rectSprite = neww Sprite(renderer.shaders[ShaderName::SolidColor]);
+			rectSprite = new Sprite(renderer.shaders[ShaderName::SolidColor]);
 			rectSprite->keepPositionRelativeToCamera = true;
 			rectSprite->keepScaleRelativeToCamera = true;
 		}
@@ -1678,7 +1678,7 @@ void Editor::CreateDialog(const std::string& txt)
 
 void Editor::NewLevel()
 {
-	CreateDialog("Type in the filename of the neww level:");
+	CreateDialog("Type in the filename of the new level:");
 	game->StartTextInput(*dialog, "new_level");
 }
 
@@ -1898,7 +1898,7 @@ void Editor::CreateLevelFromString(std::string level)
 		game->renderer.camera.startingZoom = 1.0f;
 
 		if (game->background == nullptr)
-			game->background = neww Background("", Vector2(0, 0));
+			game->background = new Background("", Vector2(0, 0));
 
 		// Remove all backgrounds
 		game->background->ResetBackground();

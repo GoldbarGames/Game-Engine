@@ -63,7 +63,7 @@ uint32_t Entity::GenerateValidID()
 
 			if (i == 0)
 			{
-				std::cout << "ERROR generating neww ID - overflow" << std::endl;
+				std::cout << "ERROR generating new ID - overflow" << std::endl;
 				break;
 			}
 
@@ -97,7 +97,7 @@ uint32_t Entity::GenerateValidID()
 
 		if (i == 0)
 		{
-			std::cout << "ERROR generating neww ID - overflow" << std::endl;
+			std::cout << "ERROR generating new ID - overflow" << std::endl;
 			break;
 		}			
 
@@ -399,7 +399,7 @@ void Entity::GetProperties(std::vector<Property*>& properties)
 {
 	Entity::DeleteProperties(properties);
 	// TODO: MEMORY LEAK
-	Property* property = neww Property("ID", id);
+	Property* property = new Property("ID", id);
 	property->pType = PropertyType::ReadOnly;
 	properties.emplace_back(property);
 }

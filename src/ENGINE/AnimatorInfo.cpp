@@ -11,7 +11,7 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 	//TODO: Deal with issues involving extra whitespace (it breaks things)
 	std::vector<std::string> stateNames;
 	//mapStateNamesToNumbers[""] = 0;
-	//stateMachines[""] = neww AnimStateMachine();
+	//stateMachines[""] = new AnimStateMachine();
 
 	bool readingInConditions = false;
 	// Read in the state machine animator file
@@ -50,7 +50,7 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 			while (!line.empty() && line.back() == ' ')
 				line.pop_back();
 
-			if (line.front() == '*') // entering a neww state
+			if (line.front() == '*') // entering a new state
 			{
 				if (readingInConditions)
 				{

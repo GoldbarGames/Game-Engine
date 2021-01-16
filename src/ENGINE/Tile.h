@@ -35,7 +35,7 @@ public:
 
 	void Save(std::unordered_map<std::string, std::string>& map);
 
-	//static Tile* __stdcall Create(const Vector2& pos) { return neww Tile(pos); };
+	//static Tile* __stdcall Create(const Vector2& pos) { return new Tile(pos); };
 };
 
 #endif

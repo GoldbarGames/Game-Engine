@@ -95,7 +95,7 @@ DebugScreen::~DebugScreen()
 
 void DebugScreen::CreateDebugText(const DebugText textName, const int x, const int y)
 {
-	debugText[textName] = neww Text(Editor::fontInfo);
+	debugText[textName] = new Text(Editor::fontInfo);
 	debugText[textName]->SetPosition(x, y);
 	debugText[textName]->SetText("");
 	debugText[textName]->GetSprite()->keepPositionRelativeToCamera = true;

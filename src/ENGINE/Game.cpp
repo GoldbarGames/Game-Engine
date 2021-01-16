@@ -206,8 +206,8 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	// Initialize the sprite map (do this BEFORE the editor)
 	ReadEntityLists();
 
-	editor = neww Editor(*this);
-	debugScreen = neww DebugScreen(*this);
+	editor = new Editor(*this);
+	debugScreen = new DebugScreen(*this);
 
 	// Initialize this AFTER OpenGL, Fonts, and Editor
 	soundManager.Init(this);
@@ -239,21 +239,21 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 		shinyMaterial = Material(1.0f, 16);
 		dullMaterial = Material(0.3f, 4);
 
-		renderer.light = neww DirectionalLight(lColor, 0.4f, 0.2f, lDir);
+		renderer.light = new DirectionalLight(lColor, 0.4f, 0.2f, lDir);
 
 		glm::vec3 pos1 = glm::vec3(0.0f, 0.0f, 0.0f);
 		glm::vec3 pos2 = glm::vec3(5.0f, 0.0f, 0.0f);
 		glm::vec3 attenuation = glm::vec3(0.3f, 0.2f, 0.1f);
 
 		renderer.pointLightCount = 0;
-		renderer.pointLights[0] = neww PointLight(lColor2, 0.4f, 0.2f, pos1, attenuation);
+		renderer.pointLights[0] = new PointLight(lColor2, 0.4f, 0.2f, pos1, attenuation);
 		renderer.pointLightCount++;
 
 		renderer.spotLightCount = 0;
-		renderer.spotLights[0] = neww SpotLight(lColor2, 0.4f, 0.2f, pos2, attenuation, lDir, 20.0f);
+		renderer.spotLights[0] = new SpotLight(lColor2, 0.4f, 0.2f, pos2, attenuation, lDir, 20.0f);
 		renderer.spotLightCount++;
 
-		triangle3D = neww Sprite(renderer.shaders[ShaderName::Diffuse], MeshType::Pyramid);
+		triangle3D = new Sprite(renderer.shaders[ShaderName::Diffuse], MeshType::Pyramid);
 		triangle3D->color = { 255, 0, 0, 255 };
 
 		// Shiny Material
@@ -269,7 +269,7 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	{
 		glm::vec3 lColor = glm::vec3(1.0f, 1.0f, 1.0f);
 		glm::vec3 lDir = glm::vec3(2.0f, 2.0f, 2.0f);
-		renderer.light = neww DirectionalLight(lColor, 1.0f, 1.0f, lDir);
+		renderer.light = new DirectionalLight(lColor, 1.0f, 1.0f, lDir);
 	}
 }
 
@@ -352,7 +352,7 @@ Game::~Game()
 
 Sprite* Game::CreateSprite(const std::string& filepath, const ShaderName shaderName)
 {
-	return neww Sprite(spriteManager.GetImage(filepath), renderer.shaders[shaderName]);
+	return new Sprite(spriteManager.GetImage(filepath), renderer.shaders[shaderName]);
 }
 
 // IMPORTANT INSTRUCTIONS:
@@ -387,7 +387,7 @@ FontInfo* Game::CreateFont(const std::string& fontName, int size)
 	std::string key = fontName + std::to_string(size);
 	if (fonts.count(key) == 0)
 	{
-		fonts[key] = neww FontInfo("fonts/" + fontName + "/" + fontName + "-Regular.ttf", size);
+		fonts[key] = new FontInfo("fonts/" + fontName + "/" + fontName + "-Regular.ttf", size);
 		fonts[key]->SetBoldFont("fonts/" + fontName + "/" + fontName + "-Bold.ttf");
 		fonts[key]->SetItalicsFont("fonts/" + fontName + "/" + fontName + "-Italic.ttf");
 		fonts[key]->SetBoldItalicsFont("fonts/" + fontName + "/" + fontName + "-BoldItalic.ttf");
@@ -476,10 +476,10 @@ void Game::InitOpenGL()
 
 	m->ClearMesh();
 
-	mainFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
-	prevMainFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
-	cutsceneFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
-	prevCutsceneFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
+	mainFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
+	prevMainFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
+	cutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
+	prevCutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 
 }
 
@@ -624,7 +624,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const glm::vec3& posit
 		{
 			Animator* newAnimator = nullptr;
 
-			// TODO: It seems like we need a neww animator for each entity
+			// TODO: It seems like we need a new animator for each entity
 			// because each one will be in different states at different times,
 			// and the entity's sprite is based on its animation state.
 			// However, this also seems wasteful, is there a way to optimize this?
@@ -641,7 +641,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const glm::vec3& posit
 
 			if (newAnimator == nullptr)
 			{
-				newAnimator = neww Animator(filepath, animStates, initialState);
+				newAnimator = new Animator(filepath, animStates, initialState);
 				//animators[filepath] = newAnimator;
 			}
 
@@ -708,7 +708,7 @@ glm::vec3 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SI
 Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet, 
 	const glm::vec3& position, DrawingLayer drawingLayer) const
 {
-	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
+	Tile* tile = new Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION
@@ -720,7 +720,7 @@ Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet,
 Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet, 
 	const glm::vec3& position, DrawingLayer drawingLayer) const
 {
-	Tile* tile = neww Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
+	Tile* tile = new Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION 
@@ -1123,7 +1123,7 @@ void Game::TransitionLevel()
 			}			
 		}
 	}
-	else if (transitionState == 3) // enter the neww level, start condition
+	else if (transitionState == 3) // enter the new level, start condition
 	{
 		//std::cout << "t3" << std::endl;
 
@@ -1822,7 +1822,7 @@ void Game::SaveGIF()
 
 		const unsigned int bytesPerPixel = 4;
 		int pixelsSize = screenWidth * screenHeight * bytesPerPixel;
-		uint8_t* pixels = neww uint8_t[pixelsSize]; // 4 bytes for RGBA
+		uint8_t* pixels = new uint8_t[pixelsSize]; // 4 bytes for RGBA
 		glReadPixels(0, 0, screenWidth, screenHeight, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
 		// TODO: This part is EXTREMELY slow! What can we do here?
@@ -1839,7 +1839,7 @@ void Game::SaveScreenshot(const std::string& filepath)
 {
 	const unsigned int bytesPerPixel = 3;
 
-	unsigned char* pixels = neww unsigned char[screenWidth * screenHeight * bytesPerPixel]; // 4 bytes for RGBA
+	unsigned char* pixels = new unsigned char[screenWidth * screenHeight * bytesPerPixel]; // 4 bytes for RGBA
 	glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels);
 
 	SDL_Surface* screenshot = SDL_CreateRGBSurfaceFrom(pixels, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
@@ -2111,9 +2111,9 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 		delete_it(prevCutsceneFrameBuffer);
 	}
 
-	mainFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
-	cutsceneFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
-	prevCutsceneFrameBuffer = neww FrameBuffer(renderer, screenWidth, screenHeight);
+	mainFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
+	cutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
+	prevCutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 
 	glViewport(0, 0, screenWidth, screenHeight);
 }
@@ -2340,16 +2340,16 @@ void Game::RenderQuake(glm::vec3& screenPos)
 					quakeStartPos = screenCenter;
 					quakeEndPos = screenCenter;
 
-					if (cutsceneManager.commands.isQuakeHorizontal)
-					{
-						quakeEndPos.x = randomX ? screenLeft.x : screenRight.x;
-					}
-					if (cutsceneManager.commands.isQuakeVertical)
-					{
-						quakeEndPos.y = randomY ? screenUp.y : screenDown.y;
-					}
+if (cutsceneManager.commands.isQuakeHorizontal)
+{
+	quakeEndPos.x = randomX ? screenLeft.x : screenRight.x;
+}
+if (cutsceneManager.commands.isQuakeVertical)
+{
+	quakeEndPos.y = randomY ? screenUp.y : screenDown.y;
+}
 
-					break;
+break;
 				case 4:
 					// 3. Go from left/up to center
 					quakeStartPos = screenCenter;
@@ -2430,10 +2430,16 @@ void Game::RenderNormally()
 			if (HasIntersection(cameraBounds, *theirBounds))
 			{
 				entities[i]->Render(renderer);
-				if (debugMode && (entities[i]->etype == "player"
-					|| entities[i]->impassable || entities[i]->trigger || entities[i]->jumpThru))
-					entitiesToRender.push_back(entities[i]);
 			}
+
+			if (debugMode)
+			{
+				if (entities[i]->etype == "player" || entities[i]->impassable 
+					|| entities[i]->trigger || entities[i]->jumpThru)
+				{
+					entitiesToRender.push_back(entities[i]);
+				}					
+			} 
 		}
 
 		if (debugMode)
@@ -2553,7 +2559,7 @@ Mesh* Game::CreateQuadMesh()
 		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
 	};
 
-	Mesh* mesh = neww Mesh();
+	Mesh* mesh = new Mesh();
 	mesh->CreateMesh(quadVertices, quadIndices, 20, 12, 5, 3, 0);
 
 	return mesh;
@@ -2630,7 +2636,7 @@ Mesh* Game::CreateCubeMesh()
 		1.0f,-1.0f, 1.0f
 	};
 
-	Mesh* mesh = neww Mesh();
+	Mesh* mesh = new Mesh();
 	mesh->CreateMesh(cubeVertices, cubeIndices, 108, 36, 3, 0, 0);
 
 	return mesh;

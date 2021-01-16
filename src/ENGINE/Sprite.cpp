@@ -73,7 +73,7 @@ void Sprite::CreateMesh(MeshType meshType)
 
 				CalcAverageNormals(quadIndices, 6, quadVertices, 32, 8, 5);
 
-				meshQuad = neww Mesh();
+				meshQuad = new Mesh();
 				meshQuad->CreateMesh(quadVertices, quadIndices, 32, 6, 8, 3, 5);
 
 				*/
@@ -96,7 +96,7 @@ void Sprite::CreateMesh(MeshType meshType)
 
 				CalcAverageNormals(quadIndices, 12, quadVertices, 32, 8, 5);
 
-				meshQuad = neww Mesh();
+				meshQuad = new Mesh();
 				meshQuad->CreateMesh(quadVertices, quadIndices, 32, 12, 8, 3, 5);
 			}
 
@@ -121,7 +121,7 @@ void Sprite::CreateMesh(MeshType meshType)
 					0.0f, 1.0f, -1.0f
 				};
 
-				meshTri = neww Mesh();
+				meshTri = new Mesh();
 				meshTri->CreateMesh(triVertices, triIndices, 12, 6, 5, 3, 0);
 			}
 
@@ -145,7 +145,7 @@ void Sprite::CreateMesh(MeshType meshType)
 					1.0f, 0.01f, 0.0f,    0.0f, 1.0f
 				};
 
-				meshLine = neww Mesh();
+				meshLine = new Mesh();
 				meshLine->CreateMesh(lineVertices, lineIndices, 20, 12, 5, 3, 5);
 			}
 
@@ -173,7 +173,7 @@ void Sprite::CreateMesh(MeshType meshType)
 
 				CalcAverageNormals(pyramidIndices, 12, pyramidVertices, 32, 8, 5);
 
-				meshPyramid = neww Mesh();
+				meshPyramid = new Mesh();
 				meshPyramid->CreateMesh(pyramidVertices, pyramidIndices, 32, 12, 8, 3, 5);
 			}
 

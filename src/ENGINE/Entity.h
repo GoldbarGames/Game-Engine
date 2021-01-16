@@ -127,7 +127,7 @@ public:
 
 	virtual void SetColor(Color newColor);
 
-	static Entity* __stdcall Create(const glm::vec3& pos) { return neww Entity(pos); };
+	static Entity* __stdcall Create(const glm::vec3& pos) { return new Entity(pos); };
 };
 
 #endif 

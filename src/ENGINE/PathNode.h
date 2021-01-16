@@ -21,7 +21,7 @@ public:
 	void GetProperties(std::vector<Property*>& properties);
 	void SetProperty(const std::string& key, const std::string& newValue);
 
-	static Entity* __stdcall Create(const glm::vec3& pos) { return neww PathNode(pos); };
+	static Entity* __stdcall Create(const glm::vec3& pos) { return new PathNode(pos); };
 };
 
 #endif

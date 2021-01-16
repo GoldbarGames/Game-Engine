@@ -18,7 +18,7 @@ void Collider::CreateCollider(float x, float y, float w, float h)
 	scale.x = w;
 	scale.y = h;
 
-	//CalculateCollider();
+	CalculateCollider(glm::vec3(x, y, 0), glm::vec3(0,0,0));
 }
 
 void Collider::CalculateCollider(const glm::vec3& position, const glm::vec3& rotation)

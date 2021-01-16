@@ -76,7 +76,7 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 			}
 				
 			PHYSFS_sint64  m_size = PHYSFS_fileLength(myfile);
-			uint8_t* m_data = neww uint8_t[m_size];
+			uint8_t* m_data = new uint8_t[m_size];
 
 			int length_read = PHYSFS_read(myfile, m_data, 1, m_size);
 
@@ -104,7 +104,7 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 
 #endif
 
-		Texture* newTexture = neww Texture(imagePath.c_str());
+		Texture* newTexture = new Texture(imagePath.c_str());
 
 		newTexture->LoadTexture(surface);
 		images[imagePath] = newTexture;
@@ -130,7 +130,7 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, char c, int size)
 		Texture* textTexture = nullptr;
 		std::string path = "";
 		path += data.glyph;
-		textTexture = neww Texture(path);
+		textTexture = new Texture(path);
 		textTexture->LoadTexture(textSurface);
 
 		glyphTextures[data] = textTexture;
@@ -161,7 +161,7 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, const std::string& txt, int wrap
 	{
 		if (textImages.count(txt) == 0)
 		{
-			textTexture = neww Texture(txt.c_str());
+			textTexture = new Texture(txt.c_str());
 			textTexture->LoadTexture(textSurface);
 
 			// TODO: Include the font name in the key.
@@ -307,7 +307,7 @@ std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFileP
 			spritePivotX = std::stoi(tokens[index++]);
 			spritePivotY = std::stoi(tokens[index++]);
 
-			animStates.push_back(neww AnimState(stateName, spriteFilePath, stateSpeed, spriteStartFrame, spriteEndFrame, 
+			animStates.push_back(new AnimState(stateName, spriteFilePath, stateSpeed, spriteStartFrame, spriteEndFrame, 
 				spriteFrameWidth, spriteFrameHeight, spritePivotX, spritePivotY));
 
 			ss.getline(lineChar, 256);
