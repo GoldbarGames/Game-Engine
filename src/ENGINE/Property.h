@@ -17,11 +17,21 @@ public:
 	std::vector<std::string> options;
 	std::string key = "";
 	std::string value = "";
+	
+	// Pointers to the data to modify
+	std::string* pString = nullptr;
+	float* pFloat = nullptr;
+	int* pInt = nullptr;
+
 	PropertyType pType;
-	Property(const std::string& k, const std::string& v, const std::vector<std::string>& o = std::vector<std::string>());
-	Property(const std::string& k, const float v, const std::vector<std::string>& o = std::vector<std::string>());
-	Property(const std::string& k, const int v, const std::vector<std::string>& o = std::vector<std::string>());
-	Property(const std::string& k, const uint32_t v, const std::vector<std::string>& o = std::vector<std::string>());
+	Property(const std::string& k, std::string& v, const std::vector<std::string>& o = std::vector<std::string>());
+	Property(const std::string& k, float& v, const std::vector<std::string>& o = std::vector<std::string>());
+	Property(const std::string& k, int& v, const std::vector<std::string>& o = std::vector<std::string>());
+
+	Property(const std::string& k, uint32_t v, const std::vector<std::string>& o = std::vector<std::string>());
+
+	void SetProperty(const std::string& value);
+
 	~Property();
 };
 

@@ -398,7 +398,6 @@ void Entity::OnTriggerExit(Entity& other, Game& game)
 void Entity::GetProperties(std::vector<Property*>& properties)
 {
 	Entity::DeleteProperties(properties);
-	// TODO: MEMORY LEAK
 	Property* property = new Property("ID", id);
 	property->pType = PropertyType::ReadOnly;
 	properties.emplace_back(property);
@@ -412,9 +411,15 @@ void Entity::DeleteProperties(std::vector<Property*>& properties)
 	properties.clear();
 }	
 
-void Entity::SetProperty(const std::string& key, const std::string& newValue)
+void Entity::SetProperty(const std::string& key, const std::string& newValue, std::vector<Property*>& properties)
 {
-
+	for (int i = 0; i < properties.size(); i++)
+	{
+		if (properties[i]->key == key)
+		{
+			properties[i]->SetProperty(newValue);
+		}
+	}
 }
 
 

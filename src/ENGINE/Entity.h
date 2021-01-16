@@ -120,7 +120,7 @@ public:
 
 	virtual void GetProperties(std::vector<Property*>& properties);
 	void DeleteProperties(std::vector<Property*>& properties);
-	virtual void SetProperty(const std::string& key, const std::string& newValue);
+	void SetProperty(const std::string& key, const std::string& newValue, std::vector<Property*>& properties);
 
 	virtual void Save(std::unordered_map<std::string, std::string>& map);
 	virtual void Load(std::unordered_map<std::string, std::string>& map, Game& game);

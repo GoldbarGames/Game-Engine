@@ -874,10 +874,13 @@ Entity* Editor::GetClickedEntity(const glm::vec3& clickedWorldPosition, bool inc
 void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const Vector2& clickedScreenPosition)
 {
 	SDL_Rect screenPoint;
-	screenPoint.x = clickedScreenPosition.x * Camera::MULTIPLIER;
-	screenPoint.y = clickedScreenPosition.y * Camera::MULTIPLIER;
+	screenPoint.x = clickedScreenPosition.x;
+	screenPoint.y = clickedScreenPosition.y;
 	screenPoint.w = 1;
 	screenPoint.h = 1;
+
+	screenPoint = ConvertCoordsFromCenterToTopLeft(screenPoint);
+	screenPoint.x *= 2;
 
 	bool clickedOnProperty = false;
 
@@ -887,8 +890,9 @@ void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const Vector2&
 		textRect.w = properties[i]->text->GetTextWidth();
 		textRect.h = properties[i]->text->GetTextHeight();
 		textRect.x = properties[i]->text->position.x - (textRect.w);
-		textRect.y = properties[i]->text->position.y - (2 * textRect.h);
-		textRect.w *= 2;
+		textRect.y = properties[i]->text->position.y - (textRect.h);
+
+		textRect = ConvertCoordsFromCenterToTopLeft(textRect);
 
 		if (HasIntersection(screenPoint, textRect))
 		{
@@ -955,7 +959,7 @@ std::string Editor::GetCurrentPropertyOptionString(int diff)
 
 void Editor::SetPropertyText(const std::string& newText)
 {	
-	selectedEntity->SetProperty(properties[propertyIndex]->key, newText);
+	selectedEntity->SetProperty(properties[propertyIndex]->key, newText, properties);
 	selectedEntity->GetProperties(properties);
 	SetPropertyPositions();
 }

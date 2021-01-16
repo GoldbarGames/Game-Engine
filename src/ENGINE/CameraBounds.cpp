@@ -29,8 +29,8 @@ void CameraBounds::GetProperties(std::vector<Property*>& properties)
 {
 	Entity::GetProperties(properties);
 
-	properties.emplace_back(new Property("Collider Pos X", (int)collider.offset.x));
-	properties.emplace_back(new Property("Collider Pos Y", (int)collider.offset.y));
+	properties.emplace_back(new Property("Collider Pos X", collider.offset.x));
+	properties.emplace_back(new Property("Collider Pos Y", collider.offset.y));
 	properties.emplace_back(new Property("Collider Width", collider.scale.x));
 	properties.emplace_back(new Property("Collider Height", collider.scale.y));
 }
