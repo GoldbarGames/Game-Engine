@@ -63,6 +63,11 @@ namespace CutsceneFunctions
 			int varNameIndex = 1;
 			c.parseStringValue = ParseWord(c.parseStringValue, ']', varNameIndex);
 		}
+		else if (c.parseStringValue[0] == '\"')
+		{
+			int varNameIndex = 1;
+			c.parseStringValue = ParseWord(c.parseStringValue, '\"', varNameIndex);
+		}
 		else
 		{
 			c.parseStringValue = c.ParseStringValue(c.parseStringValue);
@@ -71,7 +76,7 @@ namespace CutsceneFunctions
 		if (c.stringVariables[c.key] != c.parseStringValue)
 		{
 			c.stringVariables[c.key] = c.parseStringValue;
-			//c.cacheParseStrings["$" + parameters[1]] = c.parseStringValue;
+			c.cacheParseStrings["$" + parameters[1]] = c.parseStringValue;
 
 			// If global variable, save change to file
 			if (c.key >= c.manager->globalStart)
@@ -1258,8 +1263,8 @@ namespace CutsceneFunctions
 		}
 
 		c.parseStringValue = c.ParseStringValue(parameters[2]);
-
 		c.stringVariables[c.key] = c.parseStringValue.substr(std::stoi(parameters[3]), std::stoi(parameters[4]));
+		c.cacheParseStrings[parameters[1]] = c.stringVariables[c.key];
 
 		return 0;
 	}
@@ -2676,6 +2681,7 @@ namespace CutsceneFunctions
 	{
 		int stringVariableIndex = c.ParseNumberValue(parameters[1]);
 		c.stringVariables[stringVariableIndex] = std::to_string(c.ParseNumberValue(parameters[2]));
+		c.cacheParseStrings["$" + parameters[1]] = c.stringVariables[stringVariableIndex];
 		return 0;
 	}
 

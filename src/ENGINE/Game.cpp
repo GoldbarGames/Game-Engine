@@ -1562,7 +1562,14 @@ bool Game::HandleEvent(SDL_Event& event)
 			{
 				if (cutsceneManager.watchingCutscene)
 				{
-					cutsceneManager.CloseBacklog();
+					if (cutsceneManager.readingBacklog)
+					{
+						cutsceneManager.CloseBacklog();
+					}
+					else // advance text
+					{
+
+					}					
 				}
 				else
 				{
@@ -2123,7 +2130,8 @@ void Game::Render()
 {
 	// zero pass
 	glBindFramebuffer(GL_FRAMEBUFFER, mainFrameBuffer->framebufferObject);
-	glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
+	//glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
 	RenderNormally();

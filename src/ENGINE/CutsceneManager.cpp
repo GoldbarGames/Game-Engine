@@ -79,6 +79,12 @@ CutsceneManager::~CutsceneManager()
 			delete_it(val);
 	}
 
+	for (auto& [key, val] : timers)
+	{
+		if (val != nullptr)
+			delete_it(val);
+	}
+
 	if (textbox != nullptr)
 		delete_it(textbox);
 }

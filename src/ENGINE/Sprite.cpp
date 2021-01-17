@@ -542,45 +542,7 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 
 	shader->UseShader();
 
-
-	if (renderer.light != nullptr)
-	{
-		if (renderer.light != nullptr)
-		{
-			renderer.light->UseLight(*shader);
-		}
-
-		// For point lights
-		if (renderer.pointLights != nullptr)
-		{			
-			if (renderer.pointLightCount > MAX_POINT_LIGHTS)
-				renderer.pointLightCount = MAX_POINT_LIGHTS;
-
-			glUniform1i(shader->GetUniformVariable(ShaderVariable::pointLightCount), renderer.pointLightCount);
-
-			for (size_t i = 0; i < renderer.pointLightCount; i++)
-			{
-				renderer.pointLights[i]->UseLight(*shader);
-			}
-		}
-
-		// For spot lights
-		if (renderer.spotLights != nullptr)
-		{
-			if (renderer.pointLightCount > MAX_SPOT_LIGHTS)
-				renderer.pointLightCount = MAX_SPOT_LIGHTS;
-
-			glUniform1i(shader->GetUniformVariable(ShaderVariable::spotLightCount), renderer.spotLightCount);
-
-			for (size_t i = 0; i < renderer.spotLightCount; i++)
-			{
-				renderer.spotLights[i]->UseLight(*shader);
-			}
-		}
-
-
-	}
-
+	renderer.UseLight(*shader);
 
 	if (keepPositionRelativeToCamera)
 	{

@@ -344,16 +344,20 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 				commandFound = true;
 
 				bool foundLabel = false;
+				std::string udFuncName = "";
 				for (int i = 0; i < manager->labels.size(); i++)
 				{
-					std::string name = manager->GetLabelName(manager->labels[i]);
-					//std::cout << name << std::endl;
-					if (name == parameters[0])
+					udFuncName = manager->GetLabelName(manager->labels[i]);
+					//std::cout << udFuncName << std::endl;
+					if (udFuncName == parameters[0])
 					{
 						foundLabel = true;
 						break;
 					}
 				}
+
+				if (udFuncName == "bgbn")
+					int test = 0;
 
 				if (foundLabel)
 				{
@@ -361,28 +365,29 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 					// defsub	myfunction %0  $45	  %33  <-- definition
 
 					// Grab parameters and place their values in the corresponding variables
-					for (int i = 0; i < userDefinedFunctions[parameters[0]]->parameters.size(); i++)
+					for (int i = 0; i < userDefinedFunctions[udFuncName]->parameters.size(); i++)
 					{
-						int index = GetNumAlias(userDefinedFunctions[parameters[0]]->parameters[i].substr(1,
-							userDefinedFunctions[parameters[0]]->parameters[i].size() - 1));
+						const std::string& udParam = userDefinedFunctions[udFuncName]->parameters[i];
+						int index = GetNumAlias(udParam.substr(1, udParam.size() - 1));
 
 						// Set values for each variable as defined in the function definition
-						switch (userDefinedFunctions[parameters[0]]->parameters[i][0])
+						switch (udParam[0])
 						{
 						case '$':
 							stringVariables[index] = ParseStringValue(parameters[i + 1]);
+							cacheParseStrings[udParam] = stringVariables[index];
 							break;
 						case '%':
 							numberVariables[index] = ParseNumberValue(parameters[i + 1]);
 							break;
 						default:
 							// Do nothing, maybe error message?
-							std::cout << "Invalid parameter definition for " << parameters[0] << " function";
+							std::cout << "Invalid parameter definition for " << udFuncName << " function";
 							break;
 						}
 					}
 
-					CutsceneFunctions::GoSubroutine({ parameters[0], parameters[0] }, *this);
+					CutsceneFunctions::GoSubroutine({ udFuncName, udFuncName }, *this);
 				}
 
 			}
@@ -406,11 +411,9 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 
 std::string CutsceneCommands::ParseStringValue(const std::string& parameter)
 {
-	// TODO: Parse string literals with spaces in them
-
 	if (cacheParseStrings.count(parameter) != 0)
 	{
-		//return cacheParseStrings[parameter];
+		return cacheParseStrings[parameter];
 	}
 
 	// Get the variable number to store the result in
@@ -419,6 +422,7 @@ std::string CutsceneCommands::ParseStringValue(const std::string& parameter)
 	else
 		parseStringValue = GetStringAlias(parameter);
 
+	// Remove any quotes (which allow for string literals with spaces)
 	parseStringValue.erase(std::remove(parseStringValue.begin(), parseStringValue.end(), '\"'), parseStringValue.end());
 
 	cacheParseStrings[parameter] = parseStringValue;

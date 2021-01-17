@@ -187,3 +187,39 @@ void Renderer::ToggleVisibility(DrawingLayer layer)
 {
 	layersVisible[layer] = !layersVisible[layer];
 }
+
+void Renderer::UseLight(ShaderProgram& shader) const
+{
+	if (light != nullptr)
+	{
+		light->UseLight(shader);
+	}
+
+	// For point lights
+	if (pointLights != nullptr)
+	{
+		if (pointLightCount > MAX_POINT_LIGHTS)
+			pointLightCount = MAX_POINT_LIGHTS;
+
+		glUniform1i(shader.GetUniformVariable(ShaderVariable::pointLightCount), pointLightCount);
+
+		for (size_t i = 0; i < pointLightCount; i++)
+		{
+			pointLights[i]->UseLight(shader);
+		}
+	}
+
+	// For spot lights
+	if (spotLights != nullptr)
+	{
+		if (pointLightCount > MAX_SPOT_LIGHTS)
+			pointLightCount = MAX_SPOT_LIGHTS;
+
+		glUniform1i(shader.GetUniformVariable(ShaderVariable::spotLightCount), spotLightCount);
+
+		for (size_t i = 0; i < spotLightCount; i++)
+		{
+			spotLights[i]->UseLight(shader);
+		}
+	}
+}

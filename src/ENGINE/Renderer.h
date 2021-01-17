@@ -48,6 +48,7 @@ public:
 	Game* game;
 
 	void Update();
+	void UseLight(ShaderProgram& shader) const;
 
 	Color overlayColor{ 0, 0, 0, 0 };
 	Color targetColor{ 0, 0, 0, 0 };
