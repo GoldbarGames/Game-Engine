@@ -13,6 +13,7 @@ public:
 	Texture(const std::string& path);
 	~Texture();
 
+	bool LoadTexture();
 	void LoadTexture(unsigned int& buffer, int w, int h);
 	void LoadTexture(SDL_Surface* surface, bool reset=false);
 	void UseTexture();

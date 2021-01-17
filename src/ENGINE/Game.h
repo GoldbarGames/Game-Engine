@@ -18,6 +18,8 @@
 #include "FrameBuffer.h"
 #include "Material.h"
 
+#include "Model.h"
+
 #include "gifanim.h"
 
 class FileManager;
@@ -40,6 +42,8 @@ private:
 public:
 
 	bool use2DCamera = true;
+
+	Model modelChopper;
 
 	Mesh* CreateQuadMesh();
 	Mesh* CreateCubeMesh();

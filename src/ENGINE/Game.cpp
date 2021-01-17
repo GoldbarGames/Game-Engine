@@ -264,6 +264,11 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 		//cutsceneManager.commands.ExecuteCommand("shader pyramid data/shaders/default.vert data/shaders/pyramid.frag");
 		//triangle3D->SetShader(cutsceneManager.commands.customShaders["pyramid"]);
+
+#ifdef USE_ASSIMP
+		modelChopper.LoadModel("assets/models/chopper/chopper.obj");
+#endif
+
 	}
 	else
 	{

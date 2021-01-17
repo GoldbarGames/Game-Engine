@@ -14,6 +14,26 @@ Texture::~Texture()
 	ClearTexture();
 }
 
+// This function is used exclusively for loading textures on imported 3D meshes
+bool Texture::LoadTexture()
+{
+	//TODO: Make this work with PhysFS,
+	// possibly refactor it entirely
+
+	SDL_Surface* surface = IMG_Load(filePath.c_str());
+	if (surface == nullptr)
+	{
+		surface = IMG_Load("assets/gui/white.png");
+		std::cout << "FAILED TO LOAD TEXTURE: " << filePath << std::endl;
+		return false;
+	}
+
+	LoadTexture(surface);
+
+	SDL_FreeSurface(surface);
+	return true;
+}
+
 void Texture::LoadTexture(unsigned int& buffer, int w, int h)
 {
 	width = w;
