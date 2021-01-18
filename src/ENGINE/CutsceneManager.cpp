@@ -93,7 +93,7 @@ void CutsceneManager::ReadCutsceneFile()
 {
 	std::ifstream fin;
 	std::string line = "";
-	std::string directory = "data/cutscenes/" + language + "/";
+	std::string directory = "data/cutscenes/" + GetLanguage() + "/";
 	std::string filepath = directory + game->currentGame + ".txt";
 	std::string defineFilePath = directory + game->currentGame + ".define";
 

@@ -1354,7 +1354,7 @@ void Game::SaveSettings()
 	fout << "screen_resolution " << indexScreenResolution << std::endl;
 	fout << "display_fps " << showFPS << std::endl;
 	fout << "display_timer " << showTimer << std::endl;
-	//fout << "language " << soundManager.soundVolumeIndex << std::endl;
+	fout << "language " << cutsceneManager.currentLanguageIndex << std::endl;
 
 	fout.close();
 }
@@ -1454,7 +1454,7 @@ void Game::LoadSettings()
 		}
 		else if (tokens[0] == "language")
 		{
-			//TODO: Deal with this later
+			cutsceneManager.currentLanguageIndex = std::stoi(tokens[1]);
 
 			if (hasSettingsButton)
 			{
@@ -1941,7 +1941,6 @@ void Game::UpdateClickAndDrag()
 				if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
 				{
 					clickableEntities[i]->OnClickReleased(mouseState, *this);
-					break;
 				}
 			}
 			else if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
@@ -2141,9 +2140,6 @@ void Game::Render()
 
 	RenderNormally();
 
-
-
-
 	// first pass
 	glBindFramebuffer(GL_FRAMEBUFFER, cutsceneFrameBuffer->framebufferObject);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -2228,17 +2224,17 @@ void Game::Render()
 		prevCutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
 	}
 
-	/*
-	screenSprite->SetShader(renderer.shaders[ShaderName::Sharpen]);
-	screenSprite->Render(Vector2(screenWidth/2, screenHeight/2), renderer, Vector2(0.5f, -0.5f));
-	screenSprite->SetShader(renderer.shaders[ShaderName::Test]);
-	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight + (screenHeight / 2)), renderer, Vector2(0.5f, -0.5f));
-	screenSprite->SetShader(renderer.shaders[ShaderName::Grayscale]);
-	screenSprite->Render(Vector2(screenWidth/2, screenHeight + (screenHeight/2)), renderer, Vector2(0.5f, -0.5f));
-	screenSprite->SetShader(renderer.shaders[ShaderName::Edge]);
-	screenSprite->Render(Vector2(screenWidth + (screenWidth / 2), screenHeight/2), renderer, Vector2(0.5f, -0.5f));
-	*/
+	// Render the GUI above everything
+	if (!cutsceneManager.watchingCutscene && !editMode)
+	{
+		gui->Render(renderer);
+	}
 
+	// Render all menu screens above the GUI
+	if (openedMenus.size() > 0)
+	{
+		openedMenus[openedMenus.size() - 1]->Render(renderer);
+	}
 
 	// Always render the mouse last
 	if (cursorSprite != nullptr)
@@ -2479,19 +2475,6 @@ void Game::RenderNormally()
 		triangle3D->Render(glm::vec3(0, 800, 300), 0, renderer, glm::vec3(200, 200, 200), glm::vec3(0,0,0));
 	}
 
-
-
-	if (currentLevel != "title" && !cutsceneManager.watchingCutscene && !editMode)
-	{
-		gui->Render(renderer);
-	}
-
-	// LAST THING
-	// Render all menu screens
-	if (openedMenus.size() > 0)
-	{
-		openedMenus[openedMenus.size() - 1]->Render(renderer);
-	}
 }
 
 void Game::RenderScene()

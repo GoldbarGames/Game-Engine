@@ -8,7 +8,7 @@
 
 class Text;
 
-enum class PropertyType { String, Integer, Float, ReadOnly };
+enum class PropertyType { String, Integer, Float, Bool, ReadOnly };
 
 class KINJO_API Property
 {
@@ -22,11 +22,13 @@ public:
 	std::string* pString = nullptr;
 	float* pFloat = nullptr;
 	int* pInt = nullptr;
+	bool* pBool = nullptr;
 
 	PropertyType pType;
 	Property(const std::string& k, std::string& v, const std::vector<std::string>& o = std::vector<std::string>());
 	Property(const std::string& k, float& v, const std::vector<std::string>& o = std::vector<std::string>());
 	Property(const std::string& k, int& v, const std::vector<std::string>& o = std::vector<std::string>());
+	Property(const std::string& k, bool& v, const std::vector<std::string>& o = std::vector<std::string>());
 
 	Property(const std::string& k, uint32_t v, const std::vector<std::string>& o = std::vector<std::string>());
 

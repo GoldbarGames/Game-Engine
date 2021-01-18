@@ -207,7 +207,7 @@ const SDL_Rect* Entity::GetBounds()
 	return &collider.bounds;
 }
 
-SDL_Rect Entity::GetTopLeftBounds()
+SDL_Rect Entity::GetTopLeftBounds() const
 {
 	return ConvertCoordsFromCenterToTopLeft(collider.bounds);
 }
@@ -456,15 +456,15 @@ void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 void Entity::OnClick(Uint32 mouseState, Game& game)
 {
 	//std::cout << "Clicked, pressed on " << etype << "!" << std::endl;
-	if (draggable && game.draggedEntity == nullptr)
-	{
-		game.draggedEntity = this;
-	}
 }
 
 void Entity::OnClickPressed(Uint32 mouseState, Game& game) 
 {
 	//std::cout << "Clicked, pressed down on " << etype << "!" << std::endl;
+	if (draggable && game.draggedEntity == nullptr)
+	{
+		game.draggedEntity = this;
+	}
 }
 
 void Entity::OnClickReleased(Uint32 mouseState, Game& game)

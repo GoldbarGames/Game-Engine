@@ -85,7 +85,7 @@ public:
 	Animator* GetAnimator();
 
 	virtual const SDL_Rect* GetBounds();
-	SDL_Rect GetTopLeftBounds();
+	SDL_Rect GetTopLeftBounds() const;
 	glm::vec3 GetPosition() const;
 	glm::vec3 GetCenter() const;
 	

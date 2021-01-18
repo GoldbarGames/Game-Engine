@@ -680,7 +680,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 		glm::vec3 inspectPosition = glm::vec3(mouseX, mouseY, 0);
 		inspectPosition.x += game->renderer.camera.position.x;
 		inspectPosition.y += game->renderer.camera.position.y;
-		InspectObject(inspectPosition, clickedScreenPosition);
+		InspectObject(inspectPosition, Vector2(mouseX, mouseY));
 	}
 	else if (objectMode == "rotate")
 	{
@@ -874,23 +874,39 @@ Entity* Editor::GetClickedEntity(const glm::vec3& clickedWorldPosition, bool inc
 void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const Vector2& clickedScreenPosition)
 {
 	SDL_Rect screenPoint;
-	screenPoint.x = clickedScreenPosition.x;
-	screenPoint.y = clickedScreenPosition.y;
+	screenPoint.x = clickedScreenPosition.x * Camera::MULTIPLIER;
+	screenPoint.y = clickedScreenPosition.y * Camera::MULTIPLIER;
 	screenPoint.w = 1;
 	screenPoint.h = 1;
 
 	screenPoint = ConvertCoordsFromCenterToTopLeft(screenPoint);
-	screenPoint.x *= 2;
+	
+
+	std::cout << "SP: " << screenPoint.x << "," << screenPoint.y << std::endl;
+
+	if (properties.size() > 1)
+	{
+		SDL_Rect textRect;
+		textRect.w = properties[1]->text->GetTextWidth();
+		textRect.h = properties[1]->text->GetTextHeight();
+		textRect.x = properties[1]->text->position.x - (textRect.w);
+		textRect.y = properties[1]->text->position.y - (textRect.h * 2);
+
+		textRect = ConvertCoordsFromCenterToTopLeft(textRect);
+
+		std::cout << "TX: " << textRect.x << "," << textRect.y << "," 
+			<< (textRect.x + textRect.w) << "," << (textRect.y + textRect.h) << std::endl;
+	}
 
 	bool clickedOnProperty = false;
 
 	for (unsigned int i = 0; i < properties.size(); i++)
 	{
 		SDL_Rect textRect;
+		textRect.x = properties[i]->text->position.x;
+		textRect.y = properties[i]->text->position.y;
 		textRect.w = properties[i]->text->GetTextWidth();
 		textRect.h = properties[i]->text->GetTextHeight();
-		textRect.x = properties[i]->text->position.x - (textRect.w);
-		textRect.y = properties[i]->text->position.y - (textRect.h);
 
 		textRect = ConvertCoordsFromCenterToTopLeft(textRect);
 
@@ -928,11 +944,12 @@ void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const Vector2&
 
 	if (!clickedOnProperty)
 	{
-		selectedEntity = GetClickedEntity(clickedWorldPosition);
+		Entity* newSelectedEntity = GetClickedEntity(clickedWorldPosition);
 
 		// If selected entity was found, then generate text for all properties of it
-		if (selectedEntity != nullptr)
+		if (newSelectedEntity != nullptr)
 		{
+			selectedEntity = newSelectedEntity;
 			selectedEntity->GetProperties(properties);
 			SetPropertyPositions();
 		}
@@ -1170,9 +1187,9 @@ void Editor::HandleEdit()
 	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE));
 
 	// snapped position in screen space (0,0) to (1280,720)
-	Vector2 clickedScreenPosition(clickedX, clickedY); 
+	Vector2 snappedScreenPosition(clickedX, clickedY); 
 
-	objPreviewPosition = game->CalculateObjectSpawnPosition(clickedScreenPosition, GRID_SIZE);
+	objPreviewPosition = game->CalculateObjectSpawnPosition(snappedScreenPosition, GRID_SIZE);
 
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
 	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);
@@ -1185,15 +1202,15 @@ void Editor::HandleEdit()
 	{
 		// We multiply X and Y by 2 because the guiProjection is multiplied by 2
 		// TODO: Maybe remove the multiplier
-		LeftClick(clickedScreenPosition, mouseX*Camera::MULTIPLIER, mouseY* Camera::MULTIPLIER, objPreviewPosition);
+		LeftClick(snappedScreenPosition, mouseX*Camera::MULTIPLIER, mouseY* Camera::MULTIPLIER, objPreviewPosition);
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // deletes tiles in order, nearest first
 	{
-		RightClick(clickedScreenPosition, mouseX * Camera::MULTIPLIER, mouseY * Camera::MULTIPLIER, objPreviewPosition);
+		RightClick(snappedScreenPosition, mouseX * Camera::MULTIPLIER, mouseY * Camera::MULTIPLIER, objPreviewPosition);
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE)) // toggles special properties
 	{
-		MiddleClick(clickedScreenPosition, mouseX * Camera::MULTIPLIER, mouseY * Camera::MULTIPLIER, objPreviewPosition);
+		MiddleClick(snappedScreenPosition, mouseX * Camera::MULTIPLIER, mouseY * Camera::MULTIPLIER, objPreviewPosition);
 	}
 	else // no button was clicked, just check for hovering
 	{

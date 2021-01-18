@@ -238,6 +238,7 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	else if (name == "Language")
 	{
 		//TODO: Deal with this when we implement translations
+		game.cutsceneManager.currentLanguageIndex = selectedOption;
 	}
 	else if (name == "UI Size")
 	{

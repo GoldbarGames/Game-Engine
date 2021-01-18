@@ -181,10 +181,12 @@ struct SelectedChoiceData
 
 
 class KINJO_API CutsceneManager
-{
-	std::string language = "english";
+{	
 	std::string data = "";
 public:	 
+	std::vector<std::string> languages = { "english", "japanese" };
+	int currentLanguageIndex = 0;
+
 	std::string currentText = "";
 	std::string previousText = "";
 	std::string beforeBacklogText = "";
@@ -313,7 +315,7 @@ public:
 	int backlogBtnDownX = 0;
 	int backlogBtnDownY = 0;
 
-	const std::string& GetLanguage() { return language;  }
+	const std::string& GetLanguage() { return languages[currentLanguageIndex];  }
 
 	CutsceneManager();
 	void Init(Game& g);

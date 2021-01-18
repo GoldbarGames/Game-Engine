@@ -27,6 +27,13 @@ Property::Property(const std::string& k, float& v, const std::vector<std::string
 	text = new Text(Editor::fontInfo, key + ": " + value);
 }
 
+Property::Property(const std::string& k, bool& v, const std::vector<std::string>& o)
+	: key(k), value(std::to_string(v)), pType(PropertyType::Bool)
+{
+	pBool = &v;
+	text = new Text(Editor::fontInfo, key + ": " + value);
+}
+
 Property::Property(const std::string& k, uint32_t v, const std::vector<std::string>& o)
 	: key(k), value(std::to_string(v)), pType(PropertyType::ReadOnly)
 {
