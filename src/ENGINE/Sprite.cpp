@@ -2,6 +2,7 @@
 #include "Sprite.h"
 #include "globals.h"
 #include "Renderer.h"
+#include "Game.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -378,10 +379,14 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 
 	numberRows = texture->GetHeight() / frameHeight;
 
+	bool shouldUpdateAnimation = (numberFramesInTexture > 1 && animSpeed > 0
+		&& renderer.now > lastAnimTime + animSpeed
+		&& !renderer.game->isPaused);
+
 	if (numberRows > 1) // this is mainly the code for the tilesheets
 	{
 		// Only go to the next frame when enough time has passed
-		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer.now > lastAnimTime + animSpeed)
+		if (shouldUpdateAnimation)
 		{
 			previousFrame = currentFrame;
 			currentFrame++;
@@ -407,7 +412,7 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 	else
 	{
 		// Only go to the next frame when enough time has passed
-		if (numberFramesInTexture > 1 && animSpeed > 0 && renderer.now > lastAnimTime + animSpeed)
+		if (shouldUpdateAnimation)
 		{
 			previousFrame = currentFrame;
 			currentFrame++;

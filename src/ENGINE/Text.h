@@ -60,6 +60,8 @@ public:
 	glm::vec3 GetLastGlyphPosition();
 
 	std::string GetTextString();
+	static std::string GetTranslatedText(const std::string& text);
+	static int lastLanguageIndex;
 
 	Texture* GetTexture(TTF_Font* f, char c, int size);
 
@@ -74,8 +76,8 @@ public:
 
 	~Text();
 
-	void SetText(const std::string& text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth=0);
-	void SetTextAsOneSprite(const std::string& text, Color color = { 255, 255, 255, 255 }, Uint32 wrapWidth = 0);
+	void SetText(const std::string& text, Color color = { 255, 255, 255, 255 }, uint32_t wrapWidth=0);
+	void SetTextAsOneSprite(const std::string& text, Color color = { 255, 255, 255, 255 }, uint32_t wrapWidth = 0);
 
 	void AddText(char c, Color color = { 255, 255, 255, 255 });
 	void AddImage(Sprite* newSprite);

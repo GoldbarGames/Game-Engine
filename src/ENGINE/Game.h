@@ -137,6 +137,7 @@ public:
 	void HandleEditMode();
 
 	void GetMenuInput();
+	void TogglePause(bool toggle);
 
 	void PopulateQuadTree();
 
@@ -153,6 +154,8 @@ public:
 	Timer timer;
 	Timer fpsLimit;
 	bool limitFPS = false;
+
+	bool isPaused = false;
 	
 	GameState state;
 	//GameState previousState;

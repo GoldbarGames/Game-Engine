@@ -846,9 +846,7 @@ void Game::StopTextInput(Dialog& dialog)
 	{
 		if (inputText != "")
 		{
-			for (unsigned int i = 0; i < entities.size(); i++)
-				delete_it(entities[i]);
-			entities.clear();
+			editor->ClearLevelEntities();
 			player = SpawnPlayer(glm::vec3(0, 0, 0));
 
 			editor->SaveLevel(inputText);
@@ -1242,6 +1240,25 @@ void Game::HandleEditMode()
 	}
 }
 
+void Game::TogglePause(bool toggle)
+{
+	isPaused = toggle;
+
+	if (isPaused)
+	{
+		openedMenus.emplace_back(allMenus["Pause"]);
+		uint32_t ticks = Globals::CurrentTicks;
+		for (unsigned int i = 0; i < entities.size(); i++)
+			entities[i]->Pause(ticks);
+	}
+	else
+	{
+		openedMenus.clear();
+		for (unsigned int i = 0; i < entities.size(); i++)
+			entities[i]->Unpause(Globals::CurrentTicks);
+	}
+}
+
 void Game::EscapeMenu()
 {
 	if (openedMenus.size() > 0)
@@ -1252,12 +1269,10 @@ void Game::EscapeMenu()
 			openedMenus.pop_back();
 		}
 
-		// Resume time when unpausing
 		if (currentMenu->name == "Pause")
 		{
-			for (unsigned int i = 0; i < entities.size(); i++)
-				entities[i]->Unpause(Globals::CurrentTicks);
-		}
+			TogglePause(false);
+		}		
 	}
 }
 
@@ -1354,7 +1369,7 @@ void Game::SaveSettings()
 	fout << "screen_resolution " << indexScreenResolution << std::endl;
 	fout << "display_fps " << showFPS << std::endl;
 	fout << "display_timer " << showTimer << std::endl;
-	fout << "language " << cutsceneManager.currentLanguageIndex << std::endl;
+	fout << "language " << Globals::currentLanguageIndex << std::endl;
 
 	fout.close();
 }
@@ -1454,7 +1469,7 @@ void Game::LoadSettings()
 		}
 		else if (tokens[0] == "language")
 		{
-			cutsceneManager.currentLanguageIndex = std::stoi(tokens[1]);
+			Globals::currentLanguageIndex = std::stoi(tokens[1]);
 
 			if (hasSettingsButton)
 			{

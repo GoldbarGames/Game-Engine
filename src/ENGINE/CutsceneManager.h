@@ -184,8 +184,7 @@ class KINJO_API CutsceneManager
 {	
 	std::string data = "";
 public:	 
-	std::vector<std::string> languages = { "english", "japanese" };
-	int currentLanguageIndex = 0;
+
 
 	std::string currentText = "";
 	std::string previousText = "";
@@ -314,8 +313,6 @@ public:
 	int backlogBtnUpY = 0;
 	int backlogBtnDownX = 0;
 	int backlogBtnDownY = 0;
-
-	const std::string& GetLanguage() { return languages[currentLanguageIndex];  }
 
 	CutsceneManager();
 	void Init(Game& g);

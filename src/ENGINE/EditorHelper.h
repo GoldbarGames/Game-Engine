@@ -21,6 +21,7 @@ public:
 	virtual void CreateLevelStart();
 	virtual void PlaceObject(glm::vec3& snappedPosition);
 	virtual void DeleteObject(bool shouldDeleteThis, Entity* entityToDelete);
+	virtual void ToggleObjectMode(const std::string& mode);
 	EditorHelper();
 	~EditorHelper();
 };

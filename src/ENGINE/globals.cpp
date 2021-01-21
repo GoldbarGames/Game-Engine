@@ -9,6 +9,8 @@ int Globals::TILE_SIZE = 24;
 std::string Globals::NONE_STRING = "None";
 uint32_t Globals::CurrentTicks = 0;
 const float Globals::TO_RADIANS = 3.14159265f / 180.0f;
+std::vector<std::string> Globals::languages = { "english", "japanese" };
+int Globals::currentLanguageIndex = 0;
 
 // TODO: Does lerp need to use dt?
 
@@ -357,13 +359,19 @@ std::vector<std::string> ReadStringsFromFile(const std::string& filepath)
 		while (!fin.eof())
 		{
 			fin.getline(token, 256);
-			result.push_back(token);
+			if (token[0] != '\0')
+				result.push_back(token);
 		}
 	}
 
 	fin.close();
 
 	return result;
+}
+
+const std::string& GetLanguage()
+{ 
+	return Globals::languages[Globals::currentLanguageIndex]; 
 }
 
 

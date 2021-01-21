@@ -22,6 +22,10 @@ public:
 	static uint32_t CurrentTicks;
 	Globals() { TILE_SIZE = 24; };
 	static const float TO_RADIANS;
+
+	static std::vector<std::string> languages;
+	static int currentLanguageIndex;
+
 	static Globals* Get()
 	{
 		static Globals instance;
@@ -65,6 +69,8 @@ extern KINJO_API bool LerpVector3(glm::vec3& current, const glm::vec3& target, c
 extern KINJO_API bool LerpVector3(glm::vec3& current, const glm::vec3& start, const glm::vec3& target,
 	const uint32_t currentTime, uint32_t startTime, uint32_t endTime);
 extern KINJO_API bool LerpCoord(float& current, const float& start, const float& target, const float& t);
+
+extern KINJO_API const std::string& GetLanguage();
 
 template<typename T>
 void delete_it(T& v)

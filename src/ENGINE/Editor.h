@@ -113,8 +113,8 @@ public:
 	void HandleEdit();
 	void NewLevel();
 	std::string SaveLevelAsString();
-	void SaveLevel(std::string levelName = "");
-	void InitLevelFromFile(std::string levelName);
+	void SaveLevel(const std::string& levelName = "");
+	void InitLevelFromFile(const std::string& levelName);
 	void Render(const Renderer& renderer);
 	void RenderDebug(const Renderer& renderer);
 	DrawingLayer drawingLayer = DrawingLayer::BACK;
@@ -122,10 +122,10 @@ public:
 	std::string ReadLoadingData(const std::string& data, std::unordered_map <std::string, std::vector<std::string>>& map);
 
 	void ClickedButton();
-	void ClickedLayerButton(std::string buttonText);
+	void ClickedLayerButton(const std::string& buttonText);
 	void ToggleGridSize();
 	void ToggleTileset();
-	void ToggleObjectMode(std::string mode);
+	void ToggleObjectMode(const std::string& mode);
 	void ToggleSpriteMap(int num);
 	void ToggleInspectionMode();
 

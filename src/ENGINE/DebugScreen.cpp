@@ -9,6 +9,8 @@
 DebugScreen::DebugScreen(Game& g)
 {
 	game = &g;
+
+#ifdef _DEBUG
 	onePixelSprite = game->CreateSprite("assets/editor/1pixel.png");
 	camera = &game->renderer.camera;
 
@@ -36,6 +38,8 @@ DebugScreen::DebugScreen(Game& g)
 	{
 		InsertVariable(variables[i]);
 	}
+#endif
+
 }
 
 DebugScreen::~DebugScreen()
@@ -56,7 +60,6 @@ DebugScreen::~DebugScreen()
 	fout.close();
 
 #endif
-
 
 	for (auto& [key, val] : debugText)
 	{
@@ -104,6 +107,9 @@ void DebugScreen::CreateDebugText(const DebugText textName, const int x, const i
 
 bool DebugScreen::Update()
 {
+#ifndef _DEBUG
+	return false;
+#endif
 	const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
 	worldPosition = glm::vec3(mouseX + game->renderer.camera.position.x, mouseY + game->renderer.camera.position.y, game->renderer.camera.position.z);
@@ -164,8 +170,7 @@ bool DebugScreen::Update()
 	return false;
 }
 
-// TODO: Function for adding variables to the table
-// - Also when we add, make sure to set positions for each text
+// Function for adding variables to the table
 void DebugScreen::InsertVariable(const std::string& variableName)
 {
 	bool found = false;
@@ -223,7 +228,7 @@ void DebugScreen::InsertVariable(const std::string& variableName)
 	}
 }
 
-// TODO: Function for removing variables from the table
+// Function for removing variables from the table
 void DebugScreen::RemoveVariable(const std::string& variableName)
 {
 	int index = -1;
@@ -257,6 +262,10 @@ void DebugScreen::RemoveVariable(const std::string& variableName)
 
 void DebugScreen::Render(const Renderer& renderer)
 {
+#ifndef _DEBUG
+	return;
+#endif
+
 	if (renderer.game->debugMode)
 	{
 		// If we're watching a cutscene,
@@ -319,6 +328,9 @@ void DebugScreen::Render(const Renderer& renderer)
 				
 			}
 
+			insertVariableButton->Render(renderer);
+			removeVariableButton->Render(renderer);
+
 			updatedLine = true;
 		}
 
@@ -364,9 +376,6 @@ void DebugScreen::Render(const Renderer& renderer)
 			debugText[DebugText::cameraRoll]->SetText("Roll: " + std::to_string(camera->roll));
 			debugText[DebugText::cameraRoll]->Render(renderer);
 		}
-
-		insertVariableButton->Render(renderer);
-		removeVariableButton->Render(renderer);
 
 		if (game->editor->dialog != nullptr && game->editor->dialog->visible)
 		{

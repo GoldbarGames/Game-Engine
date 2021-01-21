@@ -1,4 +1,5 @@
 #include "EditorHelper.h"
+#include "Editor.h"
 #include "Entity.h"
 
 EditorHelper::EditorHelper()
@@ -44,4 +45,9 @@ void EditorHelper::PlaceObject(glm::vec3& snappedPosition)
 void EditorHelper::DeleteObject(bool shouldDeleteThis, Entity* entityToDelete)
 {
 
+}
+
+void EditorHelper::ToggleObjectMode(const std::string& mode)
+{
+	editor->SetLayer(DrawingLayer::OBJECT);
 }

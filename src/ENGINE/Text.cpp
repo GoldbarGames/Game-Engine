@@ -4,6 +4,8 @@
 #include "FontInfo.h"
 #include "Animator.h"
 
+int Text::lastLanguageIndex = 0;
+
 Text::Text() : Entity(glm::vec3(0,0,0))
 {
 	etype = "text";
@@ -161,11 +163,23 @@ void Text::SetFont(TTF_Font* newFont)
 	font = newFont;
 }
 
-//TODO: Maybe modify this or make another function to pass in a shader?
-void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
+// TODO: Avoid copying strings here
+// TODO: It is currently using the old texture even when we switch languages
+std::string Text::GetTranslatedText(const std::string& text)
 {
-	// don't do anything if it would result in the same thing
-	if (txt == text && currentSprite.color == color)
+	lastLanguageIndex = Globals::currentLanguageIndex;
+
+	// TODO: Actually use a dictionary here to translate the text
+
+	return "Translated Text";
+}
+
+//TODO: Maybe modify this or make another function to pass in a shader?
+void Text::SetText(const std::string& text, Color color, uint32_t wrapWidth)
+{
+	// don't do anything if it would result in the same thing, unless we switched languages
+	if (Globals::currentLanguageIndex == lastLanguageIndex 
+		&& txt == text && currentSprite.color == color)
 		return;
 
 	if (!isRichText)
@@ -192,8 +206,13 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 
 	glyphs.clear();
 
-	txt = text; // translate the text here
-	id = text;
+	// translate the text here
+	if (GetLanguage() != Globals::languages[0]) // base language
+		txt = GetTranslatedText(text);
+	else
+		txt = text; 
+
+	id = txt;
 
     // empty string generates a null pointer
 	// so a blank space guarantees that the surface pointer will not be null
@@ -234,8 +253,56 @@ void Text::SetText(const std::string& text, Color color, Uint32 wrapWidth)
 	SetPosition(position.x, position.y);
 }
 
+
+// TODO: If the text sprite is also a clickable button,
+// then the original color of the text is getting overwritten
+// to the color white instead of whatever color it should be.
+
+void Text::SetTextAsOneSprite(const std::string& text, Color color, uint32_t wrapWidth)
+{
+	// For some reason, it is necessary to flip the color from RGBA to BGRA for drawing text
+	Color flippedColor = { color.b, color.g, color.r, color.a };
+
+	// don't do anything if it would result in the same thing
+	if (Globals::currentLanguageIndex == lastLanguageIndex
+		&& txt == text && currentSprite.color == flippedColor)
+		return;
+
+	bool renderRelative = currentSprite.keepPositionRelativeToCamera;
+	bool keepScaleRelative = currentSprite.keepScaleRelativeToCamera;
+
+	// translate the text here
+	if (GetLanguage() != Globals::languages[0]) // base language
+		txt = GetTranslatedText(text);
+	else
+		txt = text;
+
+	id = txt;
+
+	// empty string generates a null pointer
+	// so a blank space guarantees that the surface pointer will not be null
+	if (txt == "")
+		txt = " ";
+
+	Texture* textTexture = Animator::spriteManager->GetTexture(font, txt, wrapWidth);
+	if (textTexture != nullptr)
+	{
+		currentSprite.SetTexture(textTexture);
+		currentSprite.SetShader(Renderer::GetTextShader());
+		currentSprite.color = flippedColor;
+		//std::cout << currentSprite.texture << " Creating text " << txt << std::endl;
+		currentSprite.keepScaleRelativeToCamera = keepScaleRelative;
+		currentSprite.keepPositionRelativeToCamera = renderRelative;
+	}
+	else
+	{
+		std::cout << "ERROR loading Text texture" << std::endl;
+	}
+}
+
+
 Texture* Text::GetTexture(TTF_Font* f, char c, int size)
-{	
+{
 	return Animator::spriteManager->GetTexture(f, c, size);
 }
 
@@ -248,7 +315,7 @@ void Text::AddImage(Sprite* newSprite)
 	{
 		newSprite->keepScaleRelativeToCamera = keepScaleRelative;
 		newSprite->keepPositionRelativeToCamera = renderRelative;
-		
+
 		Glyph* newGlyph = new Glyph;
 		newGlyph->scale = currentScale;
 		newGlyph->sprite = Sprite(newSprite->texture, newSprite->shader);
@@ -304,46 +371,6 @@ void Text::AddText(char c, Color color)
 	}
 
 	SetPosition(position.x, position.y);
-}
-
-// TODO: If the text sprite is also a clickable button,
-// then the original color of the text is getting overwritten
-// to the color white instead of whatever color it should be.
-
-void Text::SetTextAsOneSprite(const std::string& text, Color color, Uint32 wrapWidth)
-{
-	// For some reason, it is necessary to flip the color from RGBA to BGRA for drawing text
-	Color flippedColor = { color.b, color.g, color.r, color.a };
-
-	// don't do anything if it would result in the same thing
-	if (txt == text && currentSprite.color == flippedColor)
-		return;
-
-	bool renderRelative = currentSprite.keepPositionRelativeToCamera;
-	bool keepScaleRelative = currentSprite.keepScaleRelativeToCamera;
-
-	txt = text; // translate the text here
-	id = text;
-
-	// empty string generates a null pointer
-	// so a blank space guarantees that the surface pointer will not be null
-	if (txt == "")
-		txt = " ";
-
-	Texture* textTexture = Animator::spriteManager->GetTexture(font, txt, wrapWidth);
-	if (textTexture != nullptr)
-	{
-		currentSprite.SetTexture(textTexture);
-		currentSprite.SetShader(Renderer::GetTextShader());
-		currentSprite.color = flippedColor;
-		//std::cout << currentSprite.texture << " Creating text " << txt << std::endl;
-		currentSprite.keepScaleRelativeToCamera = keepScaleRelative;
-		currentSprite.keepPositionRelativeToCamera = renderRelative;
-	}
-	else
-	{
-		std::cout << "ERROR loading Text texture" << std::endl;
-	}
 }
 
 

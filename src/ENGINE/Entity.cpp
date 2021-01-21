@@ -154,22 +154,13 @@ void Entity::CalculateCollider()
 
 void Entity::Pause(uint32_t ticks)
 {
-	// TODO: Pause/unpause the animator
-	if (animator != nullptr)
-	{
-		//std::cout << "-- pausing --" << std::endl;
-		//animator->animationTimer.Pause();
-	}	
+
 }
 
 
 void Entity::Unpause(uint32_t ticks)
 {
-	if (animator != nullptr)
-	{
-		//std::cout << "-- unpausing --" << std::endl;
-		//animator->animationTimer.Unpause();
-	}
+
 }
 
 void Entity::Update(Game& game)
@@ -398,9 +389,8 @@ void Entity::OnTriggerExit(Entity& other, Game& game)
 void Entity::GetProperties(std::vector<Property*>& properties)
 {
 	Entity::DeleteProperties(properties);
-	Property* property = new Property("ID", id);
-	property->pType = PropertyType::ReadOnly;
-	properties.emplace_back(property);
+	properties.emplace_back(new Property("ID", id));
+	properties.emplace_back(new Property("Layer", (int)layer));
 }
 
 void Entity::DeleteProperties(std::vector<Property*>& properties)

@@ -1430,7 +1430,7 @@ void Editor::ToggleSpriteMap(int num)
 }
 
 
-void Editor::ClickedLayerButton(string buttonText)
+void Editor::ClickedLayerButton(const std::string& buttonText)
 {
 	// Highlight the current layer, return all others to normal
 	for (unsigned int i = 0; i < layerButtons.size(); i++)
@@ -1472,7 +1472,7 @@ void Editor::ClickedLayerButton(string buttonText)
 	SetLayer(layer);
 }
 
-void Editor::ToggleObjectMode(std::string mode)
+void Editor::ToggleObjectMode(const std::string& mode)
 {
 	if (objectMode == mode)
 	{
@@ -1483,10 +1483,7 @@ void Editor::ToggleObjectMode(std::string mode)
 	{
 		entitySubtype = 0;
 
-		if (mode == "npc" || mode == "enemy" || mode == "collectible")
-			SetLayer(DrawingLayer::COLLISION);
-		else
-			SetLayer(DrawingLayer::OBJECT);
+		helper->ToggleObjectMode(mode);
 
 		objectMode = mode;
 	}
@@ -1815,7 +1812,7 @@ std::string Editor::SaveLevelAsString()
 	return level.str();
 }
 
-void Editor::SaveLevel(std::string levelName)
+void Editor::SaveLevel(const std::string& levelName)
 {
 	if (levelName != "")
 		game->currentLevel = levelName;
@@ -2234,7 +2231,7 @@ void Editor::ClearLevelEntities()
 
 //TODO: What happens if the level fails to load, or the file does not exist?
 // Should it load the same level again, an error screen, or something else?
-void Editor::InitLevelFromFile(std::string levelName)
+void Editor::InitLevelFromFile(const std::string& levelName)
 {
 	for (auto& [key, val] : game->cutsceneManager.images)
 	{
