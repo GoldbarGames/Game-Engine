@@ -19,6 +19,7 @@ public:
 
 	virtual void Init(Game* g);
 	virtual void RenderStart();
+	virtual void Update();
 	virtual void Render(const Renderer& renderer);
 	virtual void ResetText();
 

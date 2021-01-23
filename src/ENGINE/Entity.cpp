@@ -439,7 +439,16 @@ void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 		id = GenerateValidID();
 	}		
 
-	rotation.z = std::stoi(map["rotationZ"]);
+	static const std::string rotationZ = "rotationZ";
+
+	if (map.count(rotationZ) != 0)
+	{
+		if (map[rotationZ] == "")
+			rotation.z = 0;
+		else
+			rotation.z = std::stoi(map[rotationZ]);
+	}
+
 }
 
 

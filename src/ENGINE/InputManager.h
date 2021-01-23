@@ -51,6 +51,7 @@ public:
 	SDL_Scancode pressedKey = SDL_SCANCODE_UNKNOWN;
 
 	Timer inputTimer;
+	Timer updateTimer;
 
 	const int GetMouseX() const { return mouseX; }
 	const int GetMouseY() const { return mouseY; }

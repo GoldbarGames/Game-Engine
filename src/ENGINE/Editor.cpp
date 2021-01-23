@@ -881,8 +881,7 @@ void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const Vector2&
 
 	screenPoint = ConvertCoordsFromCenterToTopLeft(screenPoint);
 	
-
-	std::cout << "SP: " << screenPoint.x << "," << screenPoint.y << std::endl;
+	//std::cout << "SP: " << screenPoint.x << "," << screenPoint.y << std::endl;
 
 	if (properties.size() > 1)
 	{
@@ -894,8 +893,8 @@ void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const Vector2&
 
 		textRect = ConvertCoordsFromCenterToTopLeft(textRect);
 
-		std::cout << "TX: " << textRect.x << "," << textRect.y << "," 
-			<< (textRect.x + textRect.w) << "," << (textRect.y + textRect.h) << std::endl;
+		//std::cout << "TX: " << textRect.x << "," << textRect.y << "," 
+		//	<< (textRect.x + textRect.w) << "," << (textRect.y + textRect.h) << std::endl;
 	}
 
 	bool clickedOnProperty = false;
@@ -1834,7 +1833,8 @@ void Editor::UndoAction()
 		levelStringIndex--;
 		// Load the level here
 		ClearLevelEntities();
-		CreateLevelFromString(levelStrings[levelStringIndex]);
+		CreateLevelFromString(levelStrings[levelStringIndex], "undo");
+		CreateLevelFromVector(levelFilesMap["undo"]);
 	}
 }
 
@@ -1845,7 +1845,8 @@ void Editor::RedoAction()
 		levelStringIndex++;
 		// Load the level here
 		ClearLevelEntities();
-		CreateLevelFromString(levelStrings[levelStringIndex]);
+		CreateLevelFromString(levelStrings[levelStringIndex], "redo");
+		CreateLevelFromVector(levelFilesMap["redo"]);
 	}
 }
 
@@ -1888,13 +1889,7 @@ void Editor::GetLevelList()
 {
 	levelNames.clear();
 
-	std::string levelsFolder = "";
-	
-#if _WIN32
-	levelsFolder = "data\\levels\\";
-#else
-	levelsFolder = "data/levels/";
-#endif
+	std::string levelsFolder = "data/levels/";
 
 	fs::path path = fs::current_path().append(levelsFolder);
 	for (const auto& entry : fs::directory_iterator(path))
@@ -1908,11 +1903,51 @@ void Editor::GetLevelList()
 	}
 }
 
-// TODO: This is VERY slow!
-void Editor::CreateLevelFromString(std::string level)
+void Editor::CreateLevelFromString(const std::string& level, const std::string& levelName)
 {
+	int index = 0;
+	std::stringstream ss{ level };
+	std::vector<std::string> lines;
+	std::string line = "";
+
+	lines.reserve(std::count(level.begin(), level.end(), '\n'));
+
+	while (index < level.size())
+	{
+		if (level[index] == '\n')
+		{
+			lines.push_back(line);
+			line = "";
+		}
+		else
+		{
+			line += level[index];
+		}
+		index++;
+	}
+	lines.push_back(line);
+
+	levelFilesMap[levelName] = lines;
+}
+
+// TODO: This is VERY slow!
+void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
+{
+	static const std::string STR_ENTITY("entity");
+	static const std::string STR_ID("id");
+	static const std::string STR_FRAMEX("frameX");
+	static const std::string STR_FRAMEY("frameY");
+	static const std::string STR_TILESHEET("tilesheet");
+	static const std::string STR_POSITIONX("positionX");
+	static const std::string STR_POSITIONY("positionY");
+	static const std::string STR_LAYER("layer");
+	static const std::string STR_PASSABLESTATE("passableState");
+
 	try
 	{
+		Timer testTimer;
+		testTimer.Start(0);
+
 		game->renderer.camera.startingZoom = 1.0f;
 
 		if (game->background == nullptr)
@@ -1931,37 +1966,11 @@ void Editor::CreateLevelFromString(std::string level)
 			helper->CreateLevelStart();
 		}
 
-		std::stringstream ss{ level };
-		
-		int lineNumber = 0;
-		int index = 0;
-
 		cameraTargetID = -1;
 		switchTargetBackToPlayer = false;
 
-		std::vector<std::string> lines;
-		std::string line = "";
-
-		while (index < level.size())
-		{
-			if (level[index] == '\n')
-			{
-				lines.push_back(line);
-				line = "";
-			}
-			else
-			{
-				line += level[index];
-			}
-			index++;
-		}
-		lines.push_back(line);
-
-		index = 0;
-
-		//const int LINE_SIZE = 1024;
-		//char lineChar[LINE_SIZE];
-		//ss.getline(lineChar, LINE_SIZE);
+		int lineNumber = 0;
+		int index = 0;
 
 		std::string etype = "";
 		int positionX = 0;
@@ -1990,33 +1999,34 @@ void Editor::CreateLevelFromString(std::string level)
 			std::find(loadDataMap["entity"].begin(),
 				loadDataMap["entity"].end(), "subtype"));
 
-		//std::istringstream buf(lineChar);
-		//std::istream_iterator<std::string> beg(buf), end;
 		std::string tokens[32];
 		std::string word = "";
-
-		const std::string STR_ENTITY("entity");
-		const std::string STR_ID("id");
-		const std::string STR_FRAMEX("frameX");
-		const std::string STR_FRAMEY("frameY");
-		const std::string STR_TILESHEET("tilesheet");
-		const std::string STR_POSITIONX("positionX");
-		const std::string STR_POSITIONY("positionY");
-		const std::string STR_LAYER("layer");
-		const std::string STR_PASSABLESTATE("passableState");
+		std::string line = "";
 
 		std::vector<std::string>* currentDataMap;
 
-		//std::cout << "START LOADING LEVEL" << std::endl;
+		std::cout << "START LOADING LEVEL" << std::endl;
+		std::cout << "At Load: " << testTimer.GetTicks() << std::endl;
+		testTimer.Start(0);
 
 		// Make sure to clear the list of taken IDs 
 		// at the start of loading a level
 		Entity::takenIDs.clear();
 		Entity::nextValidID = 0;
 
+		game->entities.reserve(lines.size());
+		int t = testTimer.GetTicks();
+
 		lineNumber = 0;
 		while (lineNumber < lines.size())
 		{
+			t = testTimer.GetTicks();
+			if (t > 20)
+			{
+				std::cout << "At while start: " << t << std::endl;
+				testTimer.Start(0);
+			}
+
 			map.clear();
 			index = 0;
 
@@ -2041,6 +2051,13 @@ void Editor::CreateLevelFromString(std::string level)
 				}
 			}
 			tokens[wordNumber] = word;
+
+			t = testTimer.GetTicks();
+			if (t > 20)
+			{
+				std::cout << "At token: " << t << std::endl;
+				testTimer.Start(0);
+			}
 
 			try
 			{
@@ -2163,7 +2180,7 @@ void Editor::CreateLevelFromString(std::string level)
 					if (newEntity != nullptr)
 					{
 						newEntity->Load(map, *game);
-						newEntity->Init(*game, game->entityTypes[etype][std::stoi(tokens[indexOfSubtype])]);
+						newEntity->Init(*game, game->entityTypes[etype][std::stoi(subtype)]);
 
 						if (newEntity->etype == "cameraBounds")
 						{
@@ -2171,6 +2188,14 @@ void Editor::CreateLevelFromString(std::string level)
 						}
 					}
 				}
+
+				t = testTimer.GetTicks();
+				if (t > 20)
+				{
+					std::cout << "At while end: " << t << " " << etype << std::endl;
+					testTimer.Start(0);
+				}
+
 			}
 			catch (const std::exception& e)
 			{
@@ -2183,7 +2208,10 @@ void Editor::CreateLevelFromString(std::string level)
 			//ss.getline(lineChar, LINE_SIZE);
 		}
 
-		//std::cout << "FINISH LOADING LEVEL" << std::endl;
+		std::cout << "After Load: " << testTimer.GetTicks() << std::endl;
+		testTimer.Start(0);
+
+		std::cout << "FINISH LOADING LEVEL" << std::endl;
 
 		// Switch the camera's target
 		if (cameraTargetID >= 0)
@@ -2229,8 +2257,7 @@ void Editor::ClearLevelEntities()
 	game->cameraBoundsEntities.clear();
 }
 
-//TODO: What happens if the level fails to load, or the file does not exist?
-// Should it load the same level again, an error screen, or something else?
+//TODO: Display an error message if the file does not exist
 void Editor::InitLevelFromFile(const std::string& levelName)
 {
 	for (auto& [key, val] : game->cutsceneManager.images)
@@ -2254,7 +2281,18 @@ void Editor::InitLevelFromFile(const std::string& levelName)
 	levelStrings.clear();
 	levelStringIndex = -1;
 
-	CreateLevelFromString(ReadLevelFromFile(levelName));
+	// In Release builds, don't reload the level from file, store it in memory
+
+#if _DEBUG
+	CreateLevelFromString(ReadLevelFromFile(levelName), levelName);
+#else
+	if (levelFilesMap.count(levelName) == 0)
+	{
+		CreateLevelFromString(ReadLevelFromFile(levelName), levelName);
+	}
+#endif
+
+	CreateLevelFromVector(levelFilesMap[levelName]);
 
 	DoAction();
 	game->SortEntities(game->entities);
@@ -2277,7 +2315,4 @@ void Editor::InitLevelFromFile(const std::string& levelName)
 			game->cutsceneManager.PlayCutscene(game->levelStartCutscene.c_str());
 		}
 	}
-
-	//TODO: Figure out why removing this glitches out at the start
-	game->SetScreenResolution(game->screenWidth, game->screenHeight);
 }

@@ -64,6 +64,7 @@ private:
 
 	Sprite* rectSprite = nullptr;
 	Sprite* outlineSprite = nullptr;
+
 public:
 	static FontInfo* fontInfo;
 	int cameraTargetID = -1;
@@ -81,6 +82,7 @@ public:
 	int SPAWN_TILE_SIZE = 24;
 
 	std::unordered_map<std::string, std::vector<std::string>> loadDataMap;
+	std::unordered_map<std::string, std::vector<std::string>> levelFilesMap;
 
 	std::string startEditorLevel = "";
 
@@ -161,7 +163,10 @@ public:
 	void ClearLevelEntities();
 
 	std::string ReadLevelFromFile(std::string levelName);
-	void CreateLevelFromString(std::string level);
+	
+	void CreateLevelFromString(const std::string& level, const std::string& levelName);
+	void CreateLevelFromVector(const std::vector<std::string>& lines);
+
 	const std::string& GetTileSheetFileName(const int index) const;
 };
 

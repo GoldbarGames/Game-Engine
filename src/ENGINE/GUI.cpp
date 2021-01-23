@@ -27,6 +27,11 @@ GUI::~GUI()
 	}
 }
 
+void GUI::Update()
+{
+
+}
+
 void GUI::RenderStart()
 {
 

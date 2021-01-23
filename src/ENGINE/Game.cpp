@@ -403,6 +403,8 @@ FontInfo* Game::CreateFont(const std::string& fontName, int size)
 
 void Game::CalcDt()
 {
+	// NOTE: Because this only gets updated once per loop,
+	// multiple calls to it within a single loop will not match the real time
 	Globals::CurrentTicks = SDL_GetTicks();
 
 	dt = std::chrono::duration<float, milliseconds::period>(clock::now() - previousTime).count();
@@ -1982,6 +1984,7 @@ void Game::Update()
 		updateScreenTexture = !cutsceneManager.watchingCutscene || cutsceneManager.printNumber > 0;
 	}
 
+	gui->Update();
 	renderer.Update();
 
 	if (soundMode)

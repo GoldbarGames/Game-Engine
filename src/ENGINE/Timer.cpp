@@ -34,6 +34,7 @@ void Timer::Start(uint32_t duration, bool loopAnim)
 	paused = false;
 
 	loopAnimation = loopAnim;
+	Globals::CurrentTicks = SDL_GetTicks();
 	startTicks = Globals::CurrentTicks;
 	pausedTicks = 0;
 	lastDuration = duration;
@@ -147,7 +148,7 @@ uint32_t Timer::GetTicks() const
 		else
 		{
 			//Return the current time minus the start time
-			time = Globals::CurrentTicks - startTicks;
+			time = SDL_GetTicks() - startTicks;
 		}
 	}
 
