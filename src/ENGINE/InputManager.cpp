@@ -2,8 +2,8 @@
 
 void InputManager::Init()
 {
-	std::vector<std::string> initialValues = ReadStringsFromFile("data/controller.config");
-
+	// Populate the keyboard keys
+	std::vector<std::string> initialValues = ReadStringsFromFile("data/keyboard.config");
 	for (int i = 0; i < initialValues.size(); i++)
 	{
 		if (initialValues[i] != "")
@@ -14,6 +14,20 @@ void InputManager::Init()
 			keys[name].mappedKey = (SDL_Scancode)code;
 		}
 	}
+
+	// Populate the controller buttons
+	initialValues = ReadStringsFromFile("data/controller.config");
+	for (int i = 0; i < initialValues.size(); i++)
+	{
+		if (initialValues[i] != "")
+		{
+			int k = 0;
+			int code = std::stoi(ParseWord(initialValues[i], ' ', k));
+			std::string name = initialValues[i].substr(k, initialValues[i].size() - k);
+			buttons[name].mappedButton = (SDL_GameControllerButton)code;
+		}
+	}
+
 }
 
 void InputManager::StopPlayback()
@@ -59,8 +73,6 @@ void InputManager::StartPlayback(const std::string& filepath)
 
 	fin.close();
 }
-
-
 
 void InputManager::StartRecording()
 {
@@ -199,18 +211,68 @@ void InputManager::ResetKeysToDefaults()
 	}
 }
 
-void InputManager::SaveMappingsToFile()
+void InputManager::SaveKeyMappingsToFile()
+{
+	std::ofstream fout;
+
+	fout.open("data/keyboard.config");
+
+	if (fout.is_open())
+	{
+		for (const auto& [key, val] : keys)
+		{
+			fout << val.mappedKey << " " << key << std::endl;
+		}
+
+		fout.close();
+	}
+	else
+	{
+		std::cout << "ERROR: Could not save keyboard mappings to file" << std::endl;
+	}
+}
+
+void InputManager::SetDefaultButtons(const std::unordered_map<std::string, uint8_t>& defaultButtons) const
+{
+	// Make sure that if any key mappings are missing from the config file,
+	// that we put them in our list of key mappings anyway
+	for (const auto& [key, val] : defaultButtons)
+	{
+		if (buttons.count(key) == 0)
+		{
+			buttons[key].mappedButton = val;
+		}
+		buttons[key].defaultButton = val;
+	}
+}
+
+void InputManager::ResetButtonsToDefaults()
+{
+	for (auto& [key, val] : buttons)
+	{
+		val.mappedButton = val.defaultButton;
+	}
+}
+
+void InputManager::SaveButtonMappingsToFile()
 {
 	std::ofstream fout;
 
 	fout.open("data/controller.config");
 
-	for (const auto& [key, val] : keys)
+	if (fout.is_open())
 	{
-		fout << val.mappedKey << " " << key << std::endl;
-	}
+		for (const auto& [key, val] : buttons)
+		{
+			fout << val.mappedButton << " " << key << std::endl;
+		}
 
-	fout.close();
+		fout.close();
+	}
+	else
+	{
+		std::cout << "ERROR: Could not save button mappings to file" << std::endl;
+	}
 }
 
 std::string InputManager::GetMappedKeyAsString(const std::string& name)
@@ -221,6 +283,16 @@ std::string InputManager::GetMappedKeyAsString(const std::string& name)
 std::string InputManager::GetScancodeAsString(SDL_Scancode code)
 {
 	return SDL_GetScancodeName(code);
+}
+
+std::string InputManager::GetMappedButtonAsString(const std::string& name)
+{
+	return GetButtonEventAsString(buttons[name].mappedButton);
+}
+
+std::string InputManager::GetButtonEventAsString(uint8_t code)
+{
+	return "";
 }
 
 void InputManager::StartUpdate()
@@ -303,7 +375,10 @@ bool InputManager::GetKey(const std::string& keyName)
 	else
 	{
 		const uint8_t* input = SDL_GetKeyboardState(NULL);
-		return input[keys[keyName].mappedKey];
+		bool checkKey = input[keys[keyName].mappedKey];
+		bool checkController = false;
+
+		return checkKey || checkController;
 	}
 }
 
@@ -318,7 +393,10 @@ bool InputManager::GetKeyPressed(const std::string& keyName)
 	{
 		// If it is held down now but not before, it was pressed
 		const uint8_t* input = SDL_GetKeyboardState(NULL);
-		return input[keys[keyName].mappedKey] && !keys[keyName].previousState;
+		bool checkKeyboard = input[keys[keyName].mappedKey] && !keys[keyName].previousState;
+		bool checkController = buttonsPressed[buttons[keyName].mappedButton];
+
+		return checkKeyboard || checkController;
 	}
 }
 
@@ -333,6 +411,9 @@ bool InputManager::GetKeyReleased(const std::string& keyName)
 	{
 		// If it is not held down now but was before, it was released
 		const uint8_t* input = SDL_GetKeyboardState(NULL);
-		return !input[keys[keyName].mappedKey] && keys[keyName].previousState;
+		bool checkKey = !input[keys[keyName].mappedKey] && keys[keyName].previousState;
+		bool checkController = buttonsReleased[buttons[keyName].mappedButton];
+
+		return checkKey || checkController;
 	}
 }

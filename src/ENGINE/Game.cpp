@@ -1216,6 +1216,17 @@ bool Game::CheckInputs()
 
 	bool quit = false;
 
+	// Reset controller buttons each frame
+	for (auto& [key, val] : inputManager.buttonsPressed)
+	{
+		inputManager.buttonsPressed[key] = false;
+	}
+
+	for (auto& [key, val] : inputManager.buttonsReleased)
+	{
+		inputManager.buttonsReleased[key] = false;
+	}
+
 	// Check for inputs
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
@@ -1226,6 +1237,8 @@ bool Game::CheckInputs()
 		}
 		else if (event.type == SDL_CONTROLLERBUTTONDOWN)
 		{
+			inputManager.buttonsPressed[event.cbutton.button] = true;
+
 			if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A)
 			{
 				std::cout << "PRESSED A" << std::endl;
@@ -1234,6 +1247,10 @@ bool Game::CheckInputs()
 			{
 				std::cout << "PRESSED B" << std::endl;
 			}
+		}
+		else if (event.type == SDL_CONTROLLERBUTTONUP)
+		{
+			inputManager.buttonsReleased[event.cbutton.button] = true;
 		}
 
 		if (openedMenus.size() > 0)

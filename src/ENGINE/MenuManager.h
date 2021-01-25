@@ -13,6 +13,7 @@ class KINJO_API MenuManager
 {
 public:
 	mutable std::unordered_map<std::string, SDL_Scancode> defaultKeys;
+	mutable std::unordered_map<std::string, uint8_t> defaultButtons;
 
 	MenuManager();
 	~MenuManager();

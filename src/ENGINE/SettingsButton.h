@@ -10,6 +10,8 @@
 
 class Game;
 
+enum class SettingsType { NORMAL, KEYMAP, BUTTONMAP };
+
 class KINJO_API SettingsButton : public BaseButton
 {
 public:
@@ -18,9 +20,9 @@ public:
 	std::vector<Text*> options;
 	Text* label = nullptr;
 
-	bool isKeyMapButton = false;
+	SettingsType settingsType;
 
-	SettingsButton(const std::string& n, const Vector2& pos, Game& game, bool isKeyMap = false);
+	SettingsButton(const std::string& n, const Vector2& pos, Game& game, SettingsType st = SettingsType::NORMAL);
 	~SettingsButton();
 	void Render(const Renderer& renderer);
 	BaseButton* Update(Game& game, const Uint8* currentKeyStates);

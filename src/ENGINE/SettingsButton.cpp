@@ -4,10 +4,11 @@
 #include "Editor.h"
 #include "Text.h"
 
-SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& game, bool isKeyMap)
+SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& game, SettingsType st)
 {
 	name = n;
 	position = pos;
+	settingsType = st;
 
 	label = new Text(game.headerFont, name);
 	label->SetPosition(position.x - 400, position.y);
@@ -50,10 +51,13 @@ SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& g
 
 	if (!foundOptionInList)
 	{
-		if (isKeyMap)
+		if (settingsType == SettingsType::KEYMAP)
 		{
-			isKeyMapButton = isKeyMap;
 			optionNames = { game.inputManager.GetMappedKeyAsString(name) };
+		}
+		else if (settingsType == SettingsType::BUTTONMAP)
+		{
+			optionNames = { game.inputManager.GetMappedButtonAsString(name) };
 		}
 		else // always make sure there is at least one option
 		{
@@ -103,7 +107,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 {
 	pressedAnyKey = true;
 
-	if (isKeyMapButton && game.inputManager.inputTimer.HasElapsed())
+	if (settingsType == SettingsType::KEYMAP && game.inputManager.inputTimer.HasElapsed())
 	{
 		if (game.inputManager.isCheckingForKeyMapping)
 		{
@@ -120,7 +124,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 
 				game.inputManager.isCheckingForKeyMapping = false;
 
-				game.inputManager.SaveMappingsToFile();
+				game.inputManager.SaveKeyMappingsToFile();
 
 				game.inputManager.inputTimer.Start(500);
 
@@ -136,6 +140,41 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 			{
 				options[0]->SetText("Press Any Key");
 				game.inputManager.isCheckingForKeyMapping = true;
+				SetOptionColors({ 0, 255, 0, 255 });
+				return this;
+			}
+		}
+	}
+	else if (settingsType == SettingsType::BUTTONMAP && game.inputManager.inputTimer.HasElapsed())
+	{
+		if (game.inputManager.isCheckingForButtonMapping)
+		{
+			// If a button is pressed
+			if (game.inputManager.pressedButton != SDL_CONTROLLER_BUTTON_INVALID)
+			{
+				// Set the mapping to the pressed button for this action
+				game.inputManager.buttons[name].mappedButton = game.inputManager.pressedButton;
+
+				// Set the options text to the new key mapping
+				options[0]->SetText(game.inputManager.GetMappedButtonAsString(name));
+
+				game.inputManager.pressedButton = SDL_CONTROLLER_BUTTON_INVALID;
+				game.inputManager.isCheckingForButtonMapping = false;
+				game.inputManager.SaveButtonMappingsToFile();
+				game.inputManager.inputTimer.Start(500);
+
+				SetOptionColors({ 0, 255, 0, 255 });
+
+				return this;
+			}
+
+		}
+		else
+		{
+			if (currentKeyStates[SDL_SCANCODE_SPACE] || currentKeyStates[SDL_SCANCODE_RETURN])
+			{
+				options[0]->SetText("Press Any Key");
+				game.inputManager.isCheckingForButtonMapping = true;
 				SetOptionColors({ 0, 255, 0, 255 });
 				return this;
 			}
