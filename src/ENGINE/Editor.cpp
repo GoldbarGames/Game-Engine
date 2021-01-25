@@ -1879,15 +1879,23 @@ std::string Editor::ReadLevelFromFile(std::string levelName)
 	std::ifstream fin;
 	fin.open("data/levels/" + levelName + ".lvl");
 
-	std::string level = "";
-	for (std::string line; std::getline(fin, line); )
+	if (fin.is_open())
 	{
-		level += line + "\n";
+		std::string level = "";
+		for (std::string line; std::getline(fin, line); )
+		{
+			level += line + "\n";
+		}
+
+		fin.close();
+		return level;
+	}
+	else
+	{
+		game->logger.Log("ERROR: Failed to read from level file: " + levelName + ".lvl");
 	}
 
-	fin.close();
-
-	return level;
+	return "";
 }
 
 const std::string& Editor::GetTileSheetFileName(const int index) const

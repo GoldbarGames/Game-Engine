@@ -206,6 +206,9 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	// Initialize the sprite map (do this BEFORE the editor)
 	ReadEntityLists();
 
+	// Initialize the translation maps
+	ReadTranslationData();
+
 	editor = new Editor(*this);
 	debugScreen = new DebugScreen(*this);
 
@@ -2155,7 +2158,7 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 	screenHeight = height;
 
 	SDL_SetWindowSize(window, screenWidth, screenHeight);
-	renderer.camera.ResetProjection(); // Zoom(0.0f, 1280.0f * Camera::MULTIPLIER, 720.0f * Camera::MULTIPLIER);
+	renderer.camera.ResetProjection();
 	renderer.guiCamera.Zoom(0.0f, screenWidth * Camera::MULTIPLIER, screenHeight * Camera::MULTIPLIER);
 
 	if (mainFrameBuffer != nullptr)

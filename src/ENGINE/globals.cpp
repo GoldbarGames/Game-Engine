@@ -11,6 +11,7 @@ uint32_t Globals::CurrentTicks = 0;
 const float Globals::TO_RADIANS = 3.14159265f / 180.0f;
 std::vector<std::string> Globals::languages = { "english", "japanese" };
 int Globals::currentLanguageIndex = 0;
+std::unordered_map<std::string, std::unordered_map<int, std::string>> Globals::translateMaps;
 
 // TODO: Does lerp need to use dt?
 
@@ -360,7 +361,7 @@ std::vector<std::string> ReadStringsFromFile(const std::string& filepath)
 		{
 			fin.getline(token, 256);
 			if (token[0] != '\0')
-				result.push_back(token);
+				result.emplace_back(token);
 		}
 	}
 
@@ -419,4 +420,38 @@ void CalcAverageNormals(unsigned int* indices, unsigned int indiceCount, float* 
 		vertices[nOffset + 2] = vec.z;
 	}
 
+}
+
+void ReadTranslationData()
+{
+	std::ifstream fin;
+	
+	std::string baseWord = "";
+	std::string newWord = "";
+	int index = 0;
+
+	for (int i = 0; i < Globals::languages.size(); i++)
+	{
+		fin.open("data/translations/" + Globals::languages[i] + ".txt");
+
+		if (fin.is_open())
+		{
+			Globals::translateMaps[" "][i] = " ";
+			for (std::string line; std::getline(fin, line); )
+			{
+				index = 0;
+				baseWord = ParseWord(line, '`', index);
+				newWord = ParseWord(line, '\n', index);
+
+				Globals::translateMaps[baseWord][i] = newWord;
+			}
+
+			fin.close();
+		}
+		else
+		{
+			std::cout << "ERROR: Failed to open language file " << Globals::languages[i] << ".txt" << std::endl;
+		}
+	}
+	
 }

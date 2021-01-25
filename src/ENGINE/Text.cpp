@@ -161,9 +161,6 @@ void Text::SetFont(TTF_Font* newFont)
 	font = newFont;
 }
 
-// TODO: Avoid copying strings here
-// TODO: This works, but is never actually called upon switching languages
-// because we don't bother to re-set texts that have already been created.
 std::string Text::GetTranslatedText(const std::string& text)
 {
 	lastLanguageIndex = Globals::currentLanguageIndex;
@@ -171,7 +168,23 @@ std::string Text::GetTranslatedText(const std::string& text)
 	if (lastLanguageIndex == 0)
 		return id;
 
-	// TODO: Actually use a dictionary here to translate the text
+	// Use a dictionary here to translate the text
+
+	if (Globals::translateMaps.count(text) != 0)
+	{
+		if (Globals::translateMaps[text].count(Globals::currentLanguageIndex) != 0)
+		{
+			return Globals::translateMaps[text][Globals::currentLanguageIndex];
+		}
+		else
+		{
+			std::cout << "ERROR: Base word `" << text << "` not found in " << GetLanguage() << " translation map!" << std::endl;
+		}
+	}
+	else
+	{
+		std::cout << "ERROR: Base word `" << text << "` not found in any translation map!" << std::endl;
+	}
 
 	return Globals::languages[Globals::currentLanguageIndex];
 }
@@ -212,8 +225,7 @@ void Text::SetText(const std::string& text, Color color, uint32_t wrapWidth)
 	if (Globals::currentLanguageIndex == 0)
 		id = text;
 
-	// translate the text here
-	txt = GetTranslatedText(text);	
+	txt = text;
 
     // empty string generates a null pointer
 	// so a blank space guarantees that the surface pointer will not be null
@@ -276,8 +288,7 @@ void Text::SetTextAsOneSprite(const std::string& text, Color color, uint32_t wra
 	if (Globals::currentLanguageIndex == 0)
 		id = text;
 
-	// translate the text here
-	txt = GetTranslatedText(text);
+	txt = text;
 
 	// empty string generates a null pointer
 	// so a blank space guarantees that the surface pointer will not be null

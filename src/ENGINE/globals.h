@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include <SDL2/SDL.h>
 #include <glm/vec3.hpp>
 #include "Vector2.h"
@@ -25,6 +26,9 @@ public:
 
 	static std::vector<std::string> languages;
 	static int currentLanguageIndex;
+
+	// Map of the base language word to the languages[int] word
+	static std::unordered_map<std::string, std::unordered_map<int, std::string>> translateMaps;
 
 	static Globals* Get()
 	{
@@ -53,6 +57,7 @@ struct Color {
 	}
 };
 
+extern KINJO_API void ReadTranslationData();
 extern KINJO_API std::string CurrentDate();
 extern KINJO_API std::string CurrentTime();
 extern KINJO_API std::string GetDrawingLayerName(DrawingLayer layer);
