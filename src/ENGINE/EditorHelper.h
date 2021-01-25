@@ -9,6 +9,7 @@ class Vector2;
 
 #include "leak_check.h"
 #include <glm/vec3.hpp>
+class Tile;
 
 class KINJO_API EditorHelper
 {
@@ -21,6 +22,7 @@ public:
 	virtual void CreateLevelStart();
 	virtual void PlaceObject(glm::vec3& snappedPosition);
 	virtual void DeleteObject(bool shouldDeleteThis, Entity* entityToDelete);
+	virtual void PlaceTile(const Tile& tile);
 	virtual void ToggleObjectMode(const std::string& mode);
 	EditorHelper();
 	~EditorHelper();

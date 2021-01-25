@@ -238,6 +238,9 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	else if (name == "Language")
 	{
 		Globals::currentLanguageIndex = selectedOption;
+
+		// TODO: Don't read these files in here, do it all at the beginning
+		// and just store them until we switch languages
 		game.cutsceneManager.ReadCutsceneFile();
 		game.cutsceneManager.ParseCutsceneFile();
 	}

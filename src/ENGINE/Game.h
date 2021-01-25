@@ -130,7 +130,6 @@ public:
 	void RenderScene();
 	void RenderNormally();
 	void RenderQuake(glm::vec3& screenPos);
-	bool SetOpenGLAttributes();
 
 	bool HandleEvent(SDL_Event& event);
 	bool HandleMenuEvent(SDL_Event& event);

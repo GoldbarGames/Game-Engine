@@ -60,8 +60,8 @@ public:
 	glm::vec3 GetLastGlyphPosition();
 
 	std::string GetTextString();
-	static std::string GetTranslatedText(const std::string& text);
-	static int lastLanguageIndex;
+	std::string GetTranslatedText(const std::string& text);
+	int lastLanguageIndex;
 
 	Texture* GetTexture(TTF_Font* f, char c, int size);
 

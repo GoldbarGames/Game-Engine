@@ -29,7 +29,7 @@ class Platform;
 
 class KINJO_API Editor
 {
-private:
+public:
 	glm::vec3 tilesheetPosition = glm::vec3(0, 0, 0);
 	
 	std::vector<Sprite*> tilesheetSprites;	
@@ -49,6 +49,10 @@ private:
 
 	std::vector<std::string> previewMapObjectNames;
 
+	const std::string MODE_TILE = "tile";
+	const std::string MODE_REPLACE = "replace";
+	const std::string MODE_COPY = "copy";
+
 	// Variables for the Properties Inspector
 	Entity* selectedEntity = nullptr;
 	std::vector<Property*> properties;	
@@ -65,7 +69,7 @@ private:
 	Sprite* rectSprite = nullptr;
 	Sprite* outlineSprite = nullptr;
 
-public:
+
 	static FontInfo* fontInfo;
 	int cameraTargetID = -1;
 	bool switchTargetBackToPlayer = false;
@@ -147,8 +151,8 @@ public:
 
 	void CreateDialog(const std::string& txt);
 
-	void PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY);
-	void PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY);
+	void PlaceTile(const Vector2& clickedPosition);
+	void PlaceObject(int mouseX, int mouseY);
 	void InspectObject(const glm::vec3& clickedWorldPosition, const Vector2& clickedScreenPosition);
 	void SetPropertyPositions();
 

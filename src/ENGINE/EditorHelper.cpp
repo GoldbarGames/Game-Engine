@@ -2,6 +2,7 @@
 #include "Editor.h"
 #include "Entity.h"
 
+
 EditorHelper::EditorHelper()
 {
 
@@ -43,6 +44,11 @@ void EditorHelper::PlaceObject(glm::vec3& snappedPosition)
 }
 
 void EditorHelper::DeleteObject(bool shouldDeleteThis, Entity* entityToDelete)
+{
+
+}
+
+void EditorHelper::PlaceTile(const Tile& tile)
 {
 
 }

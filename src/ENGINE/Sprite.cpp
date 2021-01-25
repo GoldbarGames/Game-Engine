@@ -236,9 +236,6 @@ Sprite::Sprite(const Vector2& frame, Texture* image, ShaderProgram* s, const int
 	startFrame = 0;
 	endFrame = numberFramesInTexture;
 
-	// this converts from human coords to pixel coords
-	//Vector2 frameVec2 = Vector2((frame.x - 1) * TILE_SIZE, (frame.y - 1) * TILE_SIZE);
-
 	// The lowest number input would be (0,0) so we subtract 1 from each
 	currentFrame = (frame.y * framesPerRow) + (frame.x);
 

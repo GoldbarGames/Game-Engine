@@ -423,25 +423,46 @@ void Game::CalcDt()
 void Game::InitOpenGL()
 {
 	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3))
+	{
+		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_MAJOR_VERSION failed. " + std::string(SDL_GetError()));
+	}
+
+	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2))
+	{
+		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_MINOR_VERSION failed. " + std::string(SDL_GetError()));
+	}
 
 	// Set our OpenGL version.
 	// SDL_GL_CONTEXT_CORE gives us only the newer version, deprecated functions are disabled
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE))
+	{
+		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_MASK failed. " + std::string(SDL_GetError()));
+	}
 
 	// Turn on double buffering with a 24bit Z buffer.
 	// You may need to change this to 16 or 32 for your system
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	if (SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1))
+	{
+		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_DOUBLEBUFFER failed. " + std::string(SDL_GetError()));
+	}
 
 	// Set up OpenGL context - CALL THIS AFTER SETTING THE ATTRIBUTES!
 	// If you call in the wrong order, won't display correctly on many devices!
 	mainContext = SDL_GL_CreateContext(window);
-	SDL_GL_MakeCurrent(window, mainContext);
+
+	if (SDL_GL_MakeCurrent(window, mainContext) != 0)
+	{
+		logger.Log("ERROR: SDL_GL_MakeCurrent failed. " + std::string(SDL_GetError()));
+	}
+
 	std::cout << "GL_VERSION: " << glGetString(GL_VERSION) << std::endl;
 
-	// 0 = no vsync, 1 = vsync
-	SDL_GL_SetSwapInterval(1);
+	// Parameter 0 = no vsync, 1 = vsync
+	if (SDL_GL_SetSwapInterval(1) != 0)
+	{
+		logger.Log("ERROR: SDL_GL_SetSwapInterval failed. " + std::string(SDL_GetError()));
+	}
 
 	glewExperimental = GL_TRUE;
 	glewInit();
@@ -492,12 +513,27 @@ void Game::InitOpenGL()
 
 void Game::InitSDL()
 {
-	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
-	TTF_Init();
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) == -1)
+	{
+		logger.Log("ERROR: SDL failed to initialize:" + std::string(SDL_GetError()));
+	}
+
+	if (TTF_Init() == -1)
+	{
+		logger.Log("ERROR: SDL_TTF failed to initialize:" + std::string(SDL_GetError()));
+	}
 
 	window = SDL_CreateWindow(windowTitle.c_str(),
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
-	SDL_SetWindowIcon(window, IMG_Load(windowIconFilepath.c_str()));
+
+	if (window == nullptr)
+	{
+		logger.Log("ERROR: SDL failed to create window!");
+	}
+	else
+	{
+		SDL_SetWindowIcon(window, IMG_Load(windowIconFilepath.c_str()));
+	}
 
 	CheckController(true);
 }
@@ -557,11 +593,6 @@ void Game::CheckController(bool output)
 
 		SDL_JoystickClose(joystick);
 	}
-}
-
-bool Game::SetOpenGLAttributes()
-{
-	return true;
 }
 
 glm::vec3 Game::SnapToGrid(glm::vec3 position, int size)
@@ -727,6 +758,8 @@ Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet,
 Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet, 
 	const glm::vec3& position, DrawingLayer drawingLayer) const
 {
+	// TODO: Tiles that are on the rightmost column do not appear visible
+
 	Tile* tile = new Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
 
 	tile->layer = drawingLayer;

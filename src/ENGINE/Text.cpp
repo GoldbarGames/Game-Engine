@@ -4,8 +4,6 @@
 #include "FontInfo.h"
 #include "Animator.h"
 
-int Text::lastLanguageIndex = 0;
-
 Text::Text() : Entity(glm::vec3(0,0,0))
 {
 	etype = "text";
@@ -164,14 +162,18 @@ void Text::SetFont(TTF_Font* newFont)
 }
 
 // TODO: Avoid copying strings here
-// TODO: It is currently using the old texture even when we switch languages
+// TODO: This works, but is never actually called upon switching languages
+// because we don't bother to re-set texts that have already been created.
 std::string Text::GetTranslatedText(const std::string& text)
 {
 	lastLanguageIndex = Globals::currentLanguageIndex;
 
+	if (lastLanguageIndex == 0)
+		return id;
+
 	// TODO: Actually use a dictionary here to translate the text
 
-	return "Translated Text";
+	return Globals::languages[Globals::currentLanguageIndex];
 }
 
 //TODO: Maybe modify this or make another function to pass in a shader?
@@ -206,13 +208,12 @@ void Text::SetText(const std::string& text, Color color, uint32_t wrapWidth)
 
 	glyphs.clear();
 
-	// translate the text here
-	if (GetLanguage() != Globals::languages[0]) // base language
-		txt = GetTranslatedText(text);
-	else
-		txt = text; 
+	// This will always be the base language
+	if (Globals::currentLanguageIndex == 0)
+		id = text;
 
-	id = txt;
+	// translate the text here
+	txt = GetTranslatedText(text);	
 
     // empty string generates a null pointer
 	// so a blank space guarantees that the surface pointer will not be null
@@ -271,13 +272,12 @@ void Text::SetTextAsOneSprite(const std::string& text, Color color, uint32_t wra
 	bool renderRelative = currentSprite.keepPositionRelativeToCamera;
 	bool keepScaleRelative = currentSprite.keepScaleRelativeToCamera;
 
-	// translate the text here
-	if (GetLanguage() != Globals::languages[0]) // base language
-		txt = GetTranslatedText(text);
-	else
-		txt = text;
+	// This will always be the base language
+	if (Globals::currentLanguageIndex == 0)
+		id = text;
 
-	id = txt;
+	// translate the text here
+	txt = GetTranslatedText(text);
 
 	// empty string generates a null pointer
 	// so a blank space guarantees that the surface pointer will not be null
@@ -393,6 +393,11 @@ void Text::Render(const Renderer& renderer)
 	}
 	else
 	{
+		if (lastLanguageIndex != Globals::currentLanguageIndex)
+		{
+			SetTextAsOneSprite(GetTranslatedText(txt), color, wrapWidth);
+		}
+
 		currentSprite.Render(position, renderer, scale, rotation);
 	}
 

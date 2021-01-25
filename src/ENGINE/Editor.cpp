@@ -419,10 +419,10 @@ void Editor::StartEdit()
 
 	helper->OnEditorStart();
 
-	previewMap["tile"] = game->CreateTile(Vector2(0, 0), "assets/editor/rect-outline.png",
+	previewMap[MODE_TILE] = game->CreateTile(Vector2(0, 0), "assets/editor/rect-outline.png",
 		glm::vec3(0, 0, 0), DrawingLayer::FRONT);
 
-	previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
+	previewMap[MODE_TILE]->GetSprite()->color = { 255, 255, 255, 64 };
 
 	// Create a preview object of every entity type
 	previewMapObjectNames = ReadStringsFromFile("data/lists/entityTypes.list");
@@ -433,7 +433,7 @@ void Editor::StartEdit()
 			glm::vec3(0, 0, 0), entitySubtype);
 	}
 
-	objectPreview = previewMap["tile"];
+	objectPreview = previewMap[MODE_TILE];
 
 	//game->renderer.camera.ResetProjection();
 	currentLevelText->SetText(game->currentLevel);
@@ -586,7 +586,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 	mouseY /= Camera::MULTIPLIER;
 
 	// Allow the tile sheet to be clicked when in certain modes
-	if ( (objectMode == "tile" || objectMode == "replace" || objectMode == "copy") && clickedToolboxWindow)
+	if ( (objectMode == MODE_TILE || objectMode == MODE_REPLACE || objectMode == MODE_COPY) && clickedToolboxWindow)
 	{
 		mouseX *= Camera::MULTIPLIER;
 		mouseY *= Camera::MULTIPLIER;
@@ -737,12 +737,12 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 		//clickedPosition += game->camera;
 
 		// if we are placing a tile...
-		if (objectMode == "tile")
+		if (objectMode == MODE_TILE)
 		{
-			PlaceTile(clickedScreenPosition, mouseX, mouseY);
+			PlaceTile(clickedScreenPosition);
 			DoAction();
 		}
-		else if (objectMode == "replace")
+		else if (objectMode == MODE_REPLACE)
 		{
 			bool foundTile = false;
 			Vector2 coordsToReplace = Vector2(0, 0);
@@ -752,7 +752,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 
 			for (unsigned int i = 0; i < game->entities.size(); i++)
 			{
-				if (game->entities[i]->etype == "tile")
+				if (game->entities[i]->etype == MODE_TILE)
 				{
 					Tile* tile = static_cast<Tile*>(game->entities[i]);
 					tilesInLevel.push_back(tile);
@@ -797,7 +797,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 			{
 				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedWorldPosition) &&
 					game->entities[i]->layer == drawingLayer &&
-					game->entities[i]->etype == "tile")
+					game->entities[i]->etype == MODE_TILE)
 				{
 					tile = static_cast<Tile*>(game->entities[i]);
 
@@ -811,7 +811,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 				tilesheetIndex = tile->tilesheetIndex;
 
 				StartEdit();
-				objectMode = "tile";
+				objectMode = MODE_TILE;
 
 				selectedTilePosition.x = (int)((tile->tileCoordinates.x - 1) * SPAWN_TILE_SIZE);
 				selectedTilePosition.y = (int)((tile->tileCoordinates.y - 1) * SPAWN_TILE_SIZE);
@@ -825,7 +825,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 		}
 		else // when placing an object
 		{
-			PlaceObject(clickedScreenPosition, mouseX, mouseY);
+			PlaceObject(mouseX, mouseY);
 			DoAction();
 		}
 		
@@ -860,7 +860,7 @@ Entity* Editor::GetClickedEntity(const glm::vec3& clickedWorldPosition, bool inc
 		}
 		else
 		{
-			if (game->entities[i]->etype != "tile" && 
+			if (game->entities[i]->etype != MODE_TILE &&
 				HasIntersection(point, bounds))
 			{
 				return game->entities[i];
@@ -995,7 +995,7 @@ void Editor::SetPropertyPositions()
 	}
 }
 
-void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
+void Editor::PlaceObject(int mouseX, int mouseY)
 {
 	bool canPlaceObjectHere = true;
 
@@ -1020,7 +1020,7 @@ void Editor::PlaceObject(Vector2 clickedPosition, int mouseX, int mouseY)
 	}
 }
 
-void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
+void Editor::PlaceTile(const Vector2& clickedPosition)
 {
 	bool canPlaceTileHere = true;
 
@@ -1032,7 +1032,7 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 
 		if (entityPosition == spawnPos &&
 			game->entities[i]->layer == drawingLayer &&
-			game->entities[i]->etype == "tile")
+			game->entities[i]->etype == MODE_TILE)
 		{
 
 			if (replaceSettingIndex == 0)
@@ -1057,10 +1057,20 @@ void Editor::PlaceTile(Vector2 clickedPosition, int mouseX, int mouseY)
 		//glm::mat4 invertedProjection = glm::inverse(game->renderer.camera.projection);
 		//glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
 
-		game->SpawnTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex], spawnPos, drawingLayer);
-		game->SortEntities(game->entities);
+		Tile* tile = game->SpawnTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex], spawnPos, drawingLayer);
 
-		std::cout << "Spawned at (" << spawnPos.x << "," << spawnPos.y << "!" << std::endl;
+		if (tile != nullptr)
+		{
+			game->SortEntities(game->entities);
+
+			std::cout << "Spawned at (" << spawnPos.x << "," << spawnPos.y << "!" << std::endl;
+
+			if (helper != nullptr)
+			{
+				helper->PlaceTile(*tile);
+			}
+		}
+
 	}
 }
 
@@ -1091,7 +1101,7 @@ void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::v
 			if (HasIntersection(mouseRect, *game->entities[i]->GetBounds()))
 			{
 				// Toggle the jump thru property of tiles
-				if (game->entities[i]->etype == "tile")
+				if (game->entities[i]->etype == MODE_TILE)
 				{
 					game->entities[i]->jumpThru = !game->entities[i]->jumpThru;
 					break;
@@ -1301,28 +1311,28 @@ void Editor::ClickedButton()
 		game->StartTextInput(*dialog, "set_background");
 		clickedButton->isClicked = false;
 	}
-	else if (clickedButton->name == "replace")
+	else if (clickedButton->name == MODE_REPLACE)
 	{
-		if (objectMode == "replace")
+		if (objectMode == MODE_REPLACE)
 		{
 			//SetLayer(DrawingLayer::BACK);
-			objectMode = "tile";
+			objectMode = MODE_TILE;
 		}
 		else
 		{
-			objectMode = "replace";
+			objectMode = MODE_REPLACE;
 		}
 	}
-	else if (clickedButton->name == "copy")
+	else if (clickedButton->name == MODE_COPY)
 	{
-		if (objectMode == "copy")
+		if (objectMode == MODE_COPY)
 		{
 			//SetLayer(DrawingLayer::BACK);
-			objectMode = "tile";
+			objectMode = MODE_TILE;
 		}
 		else
 		{
-			objectMode = "copy";
+			objectMode = MODE_COPY;
 		}
 	}
 	else if (clickedButton->name == "grab")
@@ -1476,7 +1486,7 @@ void Editor::ToggleObjectMode(const std::string& mode)
 	if (objectMode == mode)
 	{
 		SetLayer(DrawingLayer::BACK);
-		objectMode = "tile";
+		objectMode = MODE_TILE;
 	}
 	else
 	{
@@ -1503,7 +1513,7 @@ void Editor::ToggleInspectionMode()
 	if (objectMode != "inspect")
 		objectMode = "inspect";
 	else
-		objectMode = "tile";
+		objectMode = MODE_TILE;
 
 	// If we already have an entity selected, deselect it
 	if (selectedEntity != nullptr)
@@ -1524,12 +1534,12 @@ void Editor::ToggleTileset()
 {
 	if (objectMode == "none")
 	{
-		objectMode = "tile";
+		objectMode = MODE_TILE;
 		return;
 	}
 	else
 	{
-		objectMode = "tile";
+		objectMode = MODE_TILE;
 		game->debugScreen->debugText[DebugText::currentEditModeLayer]->SetText("Active Mode: " + objectMode);
 
 		tilesheetIndex = (tilesheetIndex + 1 > tilesheetSprites.size() - 1) ? 0 : tilesheetIndex + 1;
@@ -1544,10 +1554,10 @@ void Editor::ToggleTileset()
 
 		game->SaveEditorSettings();
 
-		previewMap["tile"] = game->CreateTile(Vector2(0, 0), "assets/editor/rect-outline.png",
+		previewMap[MODE_TILE] = game->CreateTile(Vector2(0, 0), "assets/editor/rect-outline.png",
 			glm::vec3(0, 0, 0), DrawingLayer::FRONT);
-		previewMap["tile"]->GetSprite()->color = { 255, 255, 255, 64 };
-		objectPreview = previewMap["tile"];
+		previewMap[MODE_TILE]->GetSprite()->color = { 255, 255, 255, 64 };
+		objectPreview = previewMap[MODE_TILE];
 	}
 }
 
@@ -1621,7 +1631,7 @@ void Editor::Render(const Renderer& renderer)
 	}
 	else
 	{
-		if (objectMode == "tile" || objectMode == "replace" || objectMode == "copy")
+		if (objectMode == MODE_TILE || objectMode == MODE_REPLACE || objectMode == MODE_COPY)
 		{
 			// Draw the tilesheet (only if we are placing a tile)
 			tilesheetSprites[tilesheetIndex]->Render(tilesheetPosition, game->renderer, Vector2(1,1));
