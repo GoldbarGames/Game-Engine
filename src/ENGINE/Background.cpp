@@ -174,7 +174,7 @@ Entity* Background::AddLayer(const glm::vec3& pos, const BackgroundLayerData& da
 	Entity* bg = new BackgroundLayer(glm::vec3(pos.x + data.offsetX, pos.y + data.offsetY, pos.z), data.parallax);
 	bg->drawOrder = data.drawOrder;
 	bg->GetSprite()->SetTexture(spriteManager.GetImage(data.filepath));
-	bg->GetSprite()->SetShader(renderer.shaders[ShaderName::Default]);
+	bg->GetSprite()->SetShader(renderer.shaders[ShaderName::GUI]);
 	bg->SetColor(data.color);
 	bg->GetSprite()->color = data.color;
 	bg->SetScale(Vector2(data.scaleX, data.scaleY));

@@ -9,7 +9,7 @@ FrameBuffer::FrameBuffer(const Renderer& renderer, int screenWidth, int screenHe
 	Texture* screenTexture = new Texture("");
 	screenTexture->LoadTexture(textureColorBuffer, screenWidth, screenHeight);
 
-	sprite = new Sprite(screenTexture, renderer.shaders[ShaderName::Default]);
+	sprite = new Sprite(screenTexture, renderer.shaders[ShaderName::GUI]);
 	sprite->keepPositionRelativeToCamera = true;
 	sprite->keepScaleRelativeToCamera = true;
 

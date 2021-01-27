@@ -544,7 +544,10 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 
 	shader->UseShader();
 
-	renderer.UseLight(*shader);
+	if (!renderer.camera.useOrthoCamera)
+	{
+		renderer.UseLight(*shader);
+	}
 
 	if (keepPositionRelativeToCamera)
 	{
@@ -571,6 +574,25 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	// Send the info to the shader
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
 	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
+
+	// Calculate 2D lighting
+	float distanceToLightSource = 0;
+	float maxDistanceToLight = 10 * Globals::TILE_SIZE;
+
+	// TODO: Only iterate over light sources near the screen (within render distance)
+	for (const auto& lightSource : renderer.game->lightSourcesInLevel)
+	{
+		distanceToLightSource = glm::distance(position, lightSource->position);
+	}
+
+	if (distanceToLightSource == 0 && renderer.game->player != nullptr)
+	{
+		distanceToLightSource = glm::distance(position, renderer.game->player->position);
+	}
+
+	float lightRatio = 1.0f - std::min(1.0f, (distanceToLightSource / maxDistanceToLight));
+
+	glUniform1f(shader->GetUniformVariable(ShaderVariable::distanceToLight2D), lightRatio);
 
 	float fadePoint, fadeR, fadeG, fadeB, fadeA, freq, maxColor;
 	glm::vec4 fadeColor;

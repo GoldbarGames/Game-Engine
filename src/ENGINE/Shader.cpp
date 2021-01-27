@@ -97,6 +97,8 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     uniformVariables[ShaderVariable::pointLightCount] = glGetUniformLocation(programID, "pointLightCount");
     uniformVariables[ShaderVariable::spotLightCount] = glGetUniformLocation(programID, "spotLightCount");
 
+    uniformVariables[ShaderVariable::distanceToLight2D] = glGetUniformLocation(programID, "lightRatio");
+
     for (size_t i = 0; i < MAX_POINT_LIGHTS; i++)
     {
         char locBuff[100] = { '\0' };

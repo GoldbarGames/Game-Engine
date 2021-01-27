@@ -216,6 +216,8 @@ public:
 	
 	mutable std::vector<Entity*> entities;
 
+	std::vector<Entity*> lightSourcesInLevel;
+
 	// Keep these in their own vector for efficiency
 	std::vector<Entity*> cameraBoundsEntities;
 

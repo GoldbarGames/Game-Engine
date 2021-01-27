@@ -17,7 +17,7 @@ class Renderer;
 
 enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, frequency, 
 	ambientIntensity, ambientColor, diffuseIntensity, lightDirection, specularIntensity, specularShine, eyePosition,
-	pointPosition, attenuationConstant, attenuationLinear, attenuationExponent, pointLightCount, spotLightCount
+	pointPosition, attenuationConstant, attenuationLinear, attenuationExponent, pointLightCount, spotLightCount, distanceToLight2D
 };
 enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, SolidColor, Grid, 
 	Grayscale, Sharpen, Blur, Edge, Test, Custom, Diffuse };
