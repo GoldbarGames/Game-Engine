@@ -1976,9 +1976,7 @@ void Game::UpdateClickAndDrag()
 	previousMouseState = mouseState;
 	mouseState = SDL_GetMouseState(&mouseRect.x, &mouseRect.y);
 
-	// TODO: This does not work if we change the camera's zoom level
-
-	Vector2 worldPosition = Vector2(mouseRect.x + renderer.camera.position.x, mouseRect.y + renderer.camera.position.y);
+	glm::vec3 worldPosition = ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseRect.x, mouseRect.y));
 
 	mouseRect.x = worldPosition.x;
 	mouseRect.y = worldPosition.y;
