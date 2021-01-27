@@ -375,6 +375,7 @@ void Camera::Zoom(float amount, float screenWidth, float screenHeight)
 {
 	orthoZoom += amount;
 
+	// TODO: Is this comment still accurate?
 	// For this to work correctly you need to use the original width/height
 	// which in our case is 1280 x 720
 

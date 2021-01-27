@@ -7,6 +7,7 @@
 #include "leak_check.h"
 #include <SDL2/SDL.h>
 #include <vector>
+#include <glm/vec2.hpp>
 
 class Text;
 class Game;
@@ -43,6 +44,8 @@ public:
 
 	void InsertVariable(const std::string& variableName);
 	void RemoveVariable(const std::string& variableName);
+
+	glm::vec3 ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos);
 
 	Uint32 previousMouseState = 0;
 	bool updatedLine = false;

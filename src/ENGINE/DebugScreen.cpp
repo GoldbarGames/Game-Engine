@@ -11,7 +11,7 @@ DebugScreen::DebugScreen(Game& g)
 	game = &g;
 
 #ifdef _DEBUG
-	onePixelSprite = game->CreateSprite("assets/editor/1pixel.png");
+	onePixelSprite = game->CreateSprite("assets/editor/1pixel.png", ShaderName::GUI);
 	camera = &game->renderer.camera;
 
 	insertVariableButton = new EditorButton("Watch", "Btn", glm::vec3(2000, 100, 0), *game);
@@ -105,6 +105,26 @@ void DebugScreen::CreateDebugText(const DebugText textName, const int x, const i
 	debugText[textName]->GetSprite()->keepScaleRelativeToCamera = true;
 }
 
+glm::vec3 DebugScreen::ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos)
+{
+	float halfScreenWidth = game->screenWidth / 2.0f;
+	float halfScreenHeight = game->screenHeight / 2.0f;
+
+	glm::mat4 projection = game->renderer.camera.projection;
+	glm::mat4 view = game->renderer.camera.CalculateViewMatrix();
+
+	glm::mat4 invMat = glm::inverse(projection * view);
+
+	// Near = -1, Far = 1, but these only work with Perspective cameras.
+	// For an orthographic camera, we need to use 0, or the midpoint between Near and Far
+	glm::vec4 mid = glm::vec4((pos.x - halfScreenWidth) / halfScreenWidth, -1 * (pos.y - halfScreenHeight) / halfScreenHeight, 0, 1.0);
+	
+	glm::vec4 midResult = invMat * mid;
+	midResult /= midResult.w;
+
+	return glm::vec3(midResult);
+}
+
 bool DebugScreen::Update()
 {
 #ifndef _DEBUG
@@ -112,7 +132,7 @@ bool DebugScreen::Update()
 #endif
 	const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
-	worldPosition = glm::vec3(mouseX + game->renderer.camera.position.x, mouseY + game->renderer.camera.position.y, game->renderer.camera.position.z);
+	worldPosition = ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
 
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
 	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);
