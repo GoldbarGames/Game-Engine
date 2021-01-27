@@ -141,19 +141,19 @@ public:
 
 	void RefreshTilePreview();
 
-	void LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition);
-	void RightClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition);
-	void MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition);
+	void LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition);
+	void RightClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition);
+	void MiddleClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition);
 
-	Entity* GetClickedEntity(const glm::vec3& clickedWorldPosition, bool includeTiles=false);
+	Entity* GetEntityAtWorldPosition(const glm::vec3& clickedWorldPosition, bool includeTiles=false);
 
 	void SetLayer(DrawingLayer layer);
 
 	void CreateDialog(const std::string& txt);
 
-	void PlaceTile(const Vector2& clickedPosition);
-	void PlaceObject(int mouseX, int mouseY);
-	void InspectObject(const glm::vec3& clickedWorldPosition, const Vector2& clickedScreenPosition);
+	void PlaceTile(const glm::vec2& clickedPosition);
+	void PlaceObject(const glm::vec2& mousePos);
+	void InspectObject(const glm::vec3& clickedWorldPosition, const glm::vec2& clickedScreenPosition);
 	void SetPropertyPositions();
 
 	void SetPropertyText(const std::string& newText);

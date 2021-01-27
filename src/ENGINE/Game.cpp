@@ -719,15 +719,14 @@ Entity* Game::SpawnEntity(const std::string& entityName, const glm::vec3& positi
 
 // This function converts from screen to world coordinates
 // and then immediately aligns the object on the grid
-glm::vec3 Game::CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE)
+glm::vec3 Game::CalculateObjectSpawnPosition(glm::vec2 mousePos, const int GRID_SIZE)
 {
-	mousePos.x += renderer.camera.position.x;
-	mousePos.y += renderer.camera.position.y;
+	glm::vec3 worldPosition = ConvertFromScreenSpaceToWorldSpace(mousePos);
 
-	int afterModX = ((int)(mousePos.x) % (GRID_SIZE * (int)Camera::MULTIPLIER));
-	int afterModY = ((int)(mousePos.y) % (GRID_SIZE * (int)Camera::MULTIPLIER));
+	int afterModX = ((int)(worldPosition.x) % (GRID_SIZE * (int)Camera::MULTIPLIER));
+	int afterModY = ((int)(worldPosition.y) % (GRID_SIZE * (int)Camera::MULTIPLIER));
 
-	Vector2 snappedPos = Vector2(mousePos.x - afterModX, mousePos.y - afterModY);
+	glm::vec2 snappedPos = glm::vec2(worldPosition.x - afterModX, worldPosition.y - afterModY);
 
 	int newTileX = (int)snappedPos.x;
 	int newTileY = (int)snappedPos.y;
@@ -2153,6 +2152,26 @@ void Game::Update()
 	}
 
 	inputManager.EndUpdate();
+}
+
+glm::vec3 Game::ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos)
+{
+	float halfScreenWidth = screenWidth / 2.0f;
+	float halfScreenHeight = screenHeight / 2.0f;
+
+	glm::mat4 projection = renderer.camera.projection;
+	glm::mat4 view = renderer.camera.CalculateViewMatrix();
+
+	glm::mat4 invMat = glm::inverse(projection * view);
+
+	// Near = -1, Far = 1, but these only work with Perspective cameras.
+	// For an orthographic camera, we need to use 0, or the midpoint between Near and Far
+	glm::vec4 mid = glm::vec4((pos.x - halfScreenWidth) / halfScreenWidth, -1 * (pos.y - halfScreenHeight) / halfScreenHeight, 0, 1.0);
+
+	glm::vec4 midResult = invMat * mid;
+	midResult /= midResult.w;
+
+	return glm::vec3(midResult);
 }
 
 void Game::PopulateQuadTree()

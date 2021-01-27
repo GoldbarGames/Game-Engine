@@ -221,6 +221,8 @@ public:
 	// Keep these in their own vector for efficiency
 	std::vector<Entity*> cameraBoundsEntities;
 
+	glm::vec3 ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos);
+
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
 
@@ -247,7 +249,7 @@ public:
 	void LoadTitleScreen();
 	void LoadLevel(const std::string& level, int onExit=0, int onEnter=0);
 
-	glm::vec3 CalculateObjectSpawnPosition(Vector2 mousePos, const int GRID_SIZE);
+	glm::vec3 CalculateObjectSpawnPosition(glm::vec2 mousePos, const int GRID_SIZE);
 
 	glm::vec3 SnapToGrid(glm::vec3 position, int size);
 

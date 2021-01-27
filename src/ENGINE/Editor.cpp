@@ -533,7 +533,7 @@ void Editor::RefreshTilePreview()
 	objectPreview = prev;
 }
 
-void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition)
+void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition)
 {
 	bool clickedToolboxWindow = mouseX >= tilesheetPosition.x - tilesheetSprites[tilesheetIndex]->frameWidth
 		&& mouseY <= tilesheetSprites[tilesheetIndex]->frameHeight * Camera::MULTIPLIER;
@@ -680,7 +680,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 		glm::vec3 inspectPosition = glm::vec3(mouseX, mouseY, 0);
 		inspectPosition.x += game->renderer.camera.position.x;
 		inspectPosition.y += game->renderer.camera.position.y;
-		InspectObject(inspectPosition, Vector2(mouseX, mouseY));
+		InspectObject(inspectPosition, glm::vec2(mouseX, mouseY));
 	}
 	else if (objectMode == "rotate")
 	{
@@ -690,7 +690,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 			rotatePosition.x += game->renderer.camera.position.x;
 			rotatePosition.y += game->renderer.camera.position.y;
 
-			Entity* rotatedEntity = GetClickedEntity(rotatePosition);
+			Entity* rotatedEntity = GetEntityAtWorldPosition(rotatePosition);
 
 			if (rotatedEntity != nullptr)
 			{
@@ -711,7 +711,7 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 			// Either grab a new entity, or place the currently grabbed one
 			if (grabbedEntity == nullptr)
 			{
-				grabbedEntity = GetClickedEntity(grabPosition);
+				grabbedEntity = GetEntityAtWorldPosition(grabPosition);
 
 				if (grabbedEntity != nullptr)
 				{
@@ -825,14 +825,14 @@ void Editor::LeftClick(Vector2 clickedScreenPosition, int mouseX, int mouseY, gl
 		}
 		else // when placing an object
 		{
-			PlaceObject(mouseX, mouseY);
+			PlaceObject(glm::vec2(mouseX, mouseY));
 			DoAction();
 		}
 		
 	}
 }
 
-Entity* Editor::GetClickedEntity(const glm::vec3& clickedWorldPosition, bool includeTiles)
+Entity* Editor::GetEntityAtWorldPosition(const glm::vec3& clickedWorldPosition, bool includeTiles)
 {
 	SDL_Rect point;
 	point.x = clickedWorldPosition.x;
@@ -840,38 +840,26 @@ Entity* Editor::GetClickedEntity(const glm::vec3& clickedWorldPosition, bool inc
 	point.w = 1;
 	point.h = 1;
 
+	bool isValidType = true;
+
 	// Find the selected entity
 	for (int i = game->entities.size() - 1; i >= 0; i--)
 	{
-		// Without this code, it would be using the center as the top-left corner,
-		// so we need to convert the coordinates to get the correct rectangle
-		SDL_Rect bounds = *(game->entities[i]->GetBounds());
-		bounds.x -= bounds.w;
-		bounds.y -= bounds.h;
-		bounds.w *= 2;
-		bounds.h *= 2;
-
-		if (includeTiles)
+		if (!includeTiles)
 		{
-			if (HasIntersection(point, bounds))
-			{
-				return game->entities[i];
-			}
+			isValidType = (game->entities[i]->etype != MODE_TILE);
 		}
-		else
+
+		if (isValidType && HasIntersection(point, game->entities[i]->GetTopLeftBounds()))
 		{
-			if (game->entities[i]->etype != MODE_TILE &&
-				HasIntersection(point, bounds))
-			{
-				return game->entities[i];
-			}
+			return game->entities[i];
 		}
 	}
 
 	return nullptr;
 }
 
-void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const Vector2& clickedScreenPosition)
+void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const glm::vec2& clickedScreenPosition)
 {
 	SDL_Rect screenPoint;
 	screenPoint.x = clickedScreenPosition.x * Camera::MULTIPLIER;
@@ -943,7 +931,7 @@ void Editor::InspectObject(const glm::vec3& clickedWorldPosition, const Vector2&
 
 	if (!clickedOnProperty)
 	{
-		Entity* newSelectedEntity = GetClickedEntity(clickedWorldPosition);
+		Entity* newSelectedEntity = GetEntityAtWorldPosition(clickedWorldPosition);
 
 		// If selected entity was found, then generate text for all properties of it
 		if (newSelectedEntity != nullptr)
@@ -995,11 +983,11 @@ void Editor::SetPropertyPositions()
 	}
 }
 
-void Editor::PlaceObject(int mouseX, int mouseY)
+void Editor::PlaceObject(const glm::vec2& mousePos)
 {
 	bool canPlaceObjectHere = true;
 
-	glm::vec3 snappedPosition = game->CalculateObjectSpawnPosition(Vector2(mouseX, mouseY), GRID_SIZE);
+	glm::vec3 snappedPosition = game->CalculateObjectSpawnPosition(mousePos, GRID_SIZE);
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
@@ -1020,7 +1008,7 @@ void Editor::PlaceObject(int mouseX, int mouseY)
 	}
 }
 
-void Editor::PlaceTile(const Vector2& clickedPosition)
+void Editor::PlaceTile(const glm::vec2& clickedPosition)
 {
 	bool canPlaceTileHere = true;
 
@@ -1075,7 +1063,7 @@ void Editor::PlaceTile(const Vector2& clickedPosition)
 }
 
 // Toggle special properties of the selected entity
-void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition)
+void Editor::MiddleClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition)
 {
 	if (previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE))
 		return;
@@ -1119,7 +1107,7 @@ void Editor::MiddleClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::v
 }
 
 //TODO: Figure out how to structure this so we can add deleting stuff as an Action
-void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition)
+void Editor::RightClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition)
 {
 	// If we have grabbed an entity, return it to its old position and immediately exit
 	if (grabbedEntity != nullptr)
@@ -1135,7 +1123,7 @@ void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::ve
 
 	if (objectMode == "rotate")
 	{
-		Entity* rotatedEntity = GetClickedEntity(clickedWorldPosition);
+		Entity* rotatedEntity = GetEntityAtWorldPosition(clickedWorldPosition);
 
 		if (rotatedEntity != nullptr)
 		{
@@ -1146,7 +1134,7 @@ void Editor::RightClick(Vector2 clickedPosition, int mouseX, int mouseY, glm::ve
 	}
 	else
 	{
-		Entity* entityToDelete = GetClickedEntity(clickedWorldPosition, true);
+		Entity* entityToDelete = GetEntityAtWorldPosition(clickedWorldPosition, true);
 
 		if (entityToDelete != nullptr)
 		{
@@ -1196,7 +1184,7 @@ void Editor::HandleEdit()
 	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE));
 
 	// snapped position in screen space (0,0) to (1280,720)
-	Vector2 snappedScreenPosition(clickedX, clickedY); 
+	glm::vec2 snappedScreenPosition(clickedX, clickedY);
 
 	objPreviewPosition = game->CalculateObjectSpawnPosition(snappedScreenPosition, GRID_SIZE);
 
