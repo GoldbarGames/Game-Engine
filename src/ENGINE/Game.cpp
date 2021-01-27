@@ -1752,18 +1752,6 @@ bool Game::HandleEvent(SDL_Event& event)
 				//editor->UndoAction();
 
 
-				/*
-				if (savingGIF)
-				{
-					EndGIF();
-					savingGIF = false;
-				}
-				else
-				{
-					StartGIF();
-					savingGIF = true;					
-				}		
-				*/
 
 				cutsceneManager.renderCutscene = !cutsceneManager.renderCutscene;
 
@@ -1806,6 +1794,18 @@ bool Game::HandleEvent(SDL_Event& event)
 			case SDLK_9: // load game
 				//if (!editMode)
 				//	fileManager->LoadFile(currentSaveFileName);
+
+
+
+				if (savingGIF)
+				{
+					EndGIF();
+				}
+				else
+				{
+					StartGIF("screenshots/gif/frames/");
+				}
+
 				break;
 
 			default:
@@ -1860,63 +1860,52 @@ bool Game::HandleEvent(SDL_Event& event)
 
 void Game::StartGIF(const std::string& filepath)
 {
-	//std::vector<uint8_t> black(width * height * 4, 0);
-	//std::vector<uint8_t> white(width * height * 4, 255);
-
-	gifData.clear();
-	std::string fileName = "test.gif";
-	int delay = 0;
-
-	if (filepath == "")
-	{
-		std::string timestamp = CurrentDate() + "-" + CurrentTime();
-		for (int i = 0; i < timestamp.size(); i++)
-		{
-			if (timestamp[i] == ':')
-				timestamp[i] = '-';
-		}
-
-		fileName = timestamp + ".gif";
-	}
-	
-	gifAnim.GifBegin(&gifWriter, fileName.c_str(), screenWidth, screenHeight, delay);
-	//GifWriteFrame(&gifWriter, black.data(), width, height, delay);
-	//GifWriteFrame(&gifWriter, white.data(), width, height, delay);
+	savingGIF = true;
+	gifFrameNumber = 0;
+	gifFolderPath = filepath;
 }
 
 void Game::EndGIF()
 {
-	//gifAnim.GifWriteFrame(&gifWriter, gifData.data(), screenWidth, screenHeight, 100);
-	gifAnim.GifEnd(&gifWriter);
-	gifData.clear();
+	savingGIF = false;
+
+	std::string timestamp = CurrentDate() + "-" + CurrentTime();
+	for (int i = 0; i < timestamp.size(); i++)
+	{
+		if (timestamp[i] == ':')
+			timestamp[i] = '-';
+	}
+
+	std::string command = "data\\editor\\creategif.bat " + timestamp;
+
+	system(command.c_str());
 }
 
 void Game::SaveGIF()
 {
-	const int DELAY = 0;
-	static int gifDelay = DELAY;
+	std::string filename = std::to_string(gifFrameNumber);
 
-	gifDelay--;
-	if (gifDelay < 0)
+	if (gifFrameNumber < 10)
 	{
-		gifDelay = DELAY;
+		filename.insert(filename.begin(), '0');
+		filename.insert(filename.begin(), '0');
+	}
+	else if (gifFrameNumber < 100)
+	{
+		filename.insert(filename.begin(), '0');
+	}
 
-		const unsigned int bytesPerPixel = 4;
-		int pixelsSize = screenWidth * screenHeight * bytesPerPixel;
-		uint8_t* pixels = new uint8_t[pixelsSize]; // 4 bytes for RGBA
-		glReadPixels(0, 0, screenWidth, screenHeight, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	SaveScreenshot(gifFolderPath + filename, ".bmp");
+	gifFrameNumber++;
 
-		// TODO: This part is EXTREMELY slow! What can we do here?
-		// TODO: Also, the output file is laggy and does not loop.
-		//gifData.emplace_back(pixels);
-		//std::copy(pixels, pixels + pixelsSize, std::back_inserter(gifData));
-		gifAnim.GifWriteFrame(&gifWriter, pixels, screenWidth, screenHeight, gifDelay);
-
-		delete[] pixels;
+	// Stop if overflow
+	if (gifFrameNumber < 0)
+	{
+		EndGIF();
 	}
 }
 
-void Game::SaveScreenshot(const std::string& filepath)
+void Game::SaveScreenshot(const std::string& filepath, const std::string& extension)
 {
 	const unsigned int bytesPerPixel = 3;
 
@@ -1938,11 +1927,17 @@ void Game::SaveScreenshot(const std::string& filepath)
 				timestamp[i] = '-';
 		}
 
-		IMG_SavePNG(screenshot, ("screenshots/screenshot-" + timestamp + ".png").c_str());
+		if (extension == ".png")
+			IMG_SavePNG(screenshot, ("screenshots/screenshot-" + timestamp + extension).c_str());
+		else
+			SDL_SaveBMP(screenshot, ("screenshots/screenshot-" + timestamp + extension).c_str());
 	}
 	else
 	{
-		SDL_SaveBMP(screenshot, filepath.c_str());
+		if (extension == ".png")
+			IMG_SavePNG(screenshot, (filepath + extension).c_str());
+		else
+			SDL_SaveBMP(screenshot, (filepath + extension).c_str());
 	}
 	
 	SDL_FreeSurface(screenshot);

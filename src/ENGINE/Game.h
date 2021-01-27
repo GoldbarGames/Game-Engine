@@ -20,8 +20,6 @@
 
 #include "Model.h"
 
-#include "gifanim.h"
-
 class FileManager;
 class MenuManager;
 
@@ -184,9 +182,6 @@ public:
 	bool shouldUpdateDialogInput = false;
 	bool shouldQuit = false;
 	bool savingGIF = false;
-	GifWriter gifWriter;
-	GifAnim gifAnim;
-	std::vector<uint8_t> gifData;
 
 	std::string inputText = "";
 	std::string inputReason = "";
@@ -220,6 +215,9 @@ public:
 
 	// Keep these in their own vector for efficiency
 	std::vector<Entity*> cameraBoundsEntities;
+
+	std::string gifFolderPath = "screenshots/gif/";
+	int gifFrameNumber = 0;
 
 	glm::vec3 ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos);
 
@@ -274,7 +272,7 @@ public:
 	void SaveGIF();
 	void EndGIF();
 
-	void SaveScreenshot(const std::string& filepath="");
+	void SaveScreenshot(const std::string& filepath="", const std::string& extension=".png");
 
 	Sprite* CreateSprite(const std::string& filepath, const ShaderName shaderName = ShaderName::Default);
 };
