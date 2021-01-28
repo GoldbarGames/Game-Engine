@@ -89,6 +89,11 @@ int Game::MainLoop()
 	const std::string guiFPS2 = "FPS: ";
 	const std::string guiTimer = "timer";
 
+	if (autoScreenshots > 0)
+	{
+		screenshotTimer.Start(autoScreenshots);
+	}
+
 	while (!shouldQuit)
 	{
 		renderer.drawCallsPerFrame = 0;
@@ -148,6 +153,15 @@ int Game::MainLoop()
 			drawCallsLastFrame = renderer.drawCallsPerFrame;
 			//std::cout << "Draw calls: " << renderer.drawCallsPerFrame << std::endl;
 		}
+
+#if _DEBUG
+		if (autoScreenshots > 0 && screenshotTimer.HasElapsed())
+		{
+			screenshotTimer.Start(autoScreenshots);
+
+			SaveScreenshot("screenshots/auto/", "", ".png");
+		}
+#endif
 	}
 
 	return 0;
@@ -1783,7 +1797,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				//EndGIF();
 				break;
 			case SDLK_6: // Screenshot Button
-				SaveScreenshot();
+				SaveScreenshot("screenshots/", "", ".png");
 				break;
 			case SDLK_7:
 				//_CrtDumpMemoryLeaks();
@@ -1911,7 +1925,7 @@ void Game::SaveGIF()
 		filename.insert(filename.begin(), '0');
 	}
 
-	SaveScreenshot(gifFolderPath + filename, ".bmp");
+	SaveScreenshot(gifFolderPath + filename, "", ".bmp");
 	gifFrameNumber++;
 
 	// Stop if overflow
@@ -1921,7 +1935,7 @@ void Game::SaveGIF()
 	}
 }
 
-void Game::SaveScreenshot(const std::string& filepath, const std::string& extension)
+void Game::SaveScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension)
 {
 	const unsigned int bytesPerPixel = 3;
 
@@ -1944,9 +1958,23 @@ void Game::SaveScreenshot(const std::string& filepath, const std::string& extens
 		}
 
 		if (extension == ".png")
-			IMG_SavePNG(screenshot, ("screenshots/screenshot-" + timestamp + extension).c_str());
+			IMG_SavePNG(screenshot, ("screenshots/" + timestamp + extension).c_str());
 		else
-			SDL_SaveBMP(screenshot, ("screenshots/screenshot-" + timestamp + extension).c_str());
+			SDL_SaveBMP(screenshot, ("screenshots/" + timestamp + extension).c_str());
+	}
+	else if (filename == "")
+	{
+		std::string timestamp = CurrentDate() + "-" + CurrentTime();
+		for (int i = 0; i < timestamp.size(); i++)
+		{
+			if (timestamp[i] == ':')
+				timestamp[i] = '-';
+		}
+
+		if (extension == ".png")
+			IMG_SavePNG(screenshot, (filepath + timestamp + extension).c_str());
+		else
+			SDL_SaveBMP(screenshot, (filepath + timestamp + extension).c_str());
 	}
 	else
 	{

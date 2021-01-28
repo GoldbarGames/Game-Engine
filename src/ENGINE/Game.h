@@ -197,6 +197,9 @@ public:
 	float timeScale = 1.0f;
 	float dtUnscaled = 0;
 
+	int autoScreenshots = 0;
+	Timer screenshotTimer;
+
 	//std::string collisionLayerNames[8] = { "default", "player", "layer3", "layer4", "layer5", "layer6", "layer7", "layer8" };
 	//uint8_t collisionLayers[8] = { 0, 1, 2, 4, 8, 16, 64, 128 };
 
@@ -275,7 +278,7 @@ public:
 	void SaveGIF();
 	void EndGIF();
 
-	void SaveScreenshot(const std::string& filepath="", const std::string& extension=".png");
+	void SaveScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension);
 
 	Sprite* CreateSprite(const std::string& filepath, const ShaderName shaderName = ShaderName::Default);
 };

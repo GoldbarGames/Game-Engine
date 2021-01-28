@@ -2567,11 +2567,11 @@ namespace CutsceneFunctions
 	{
 		if (parameters.size() > 1)
 		{
-			c.manager->game->SaveScreenshot(parameters[1]);
+			c.manager->game->SaveScreenshot(parameters[1], "", ".png");
 		}
 		else
 		{
-			c.manager->game->SaveScreenshot();
+			c.manager->game->SaveScreenshot("", "", ".png");
 		}
 
 		return 0;
