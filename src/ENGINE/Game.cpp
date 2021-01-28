@@ -413,6 +413,9 @@ void Game::CalcDt()
 	dt = std::chrono::duration<float, milliseconds::period>(clock::now() - previousTime).count();
 	previousTime = clock::now();
 
+	dtUnscaled = dt;
+	dt *= timeScale;
+
 	now = std::chrono::duration<float, milliseconds::period>(previousTime - startOfGame).count();
 	renderer.now = now;
 
@@ -809,6 +812,19 @@ void Game::DeleteEntity(Entity* entity)
 
 void Game::DeleteEntity(int index)
 {
+	// TODO: Is there a more efficient way of handling this?
+	if (entities[index]->isLightSource)
+	{
+		for (int i = 0; i < lightSourcesInLevel.size(); i++)
+		{
+			if (entities[index] == lightSourcesInLevel[i])
+			{
+				lightSourcesInLevel.erase(lightSourcesInLevel.begin() + i);
+				break;
+			}
+		}
+	}
+
 	delete_it(entities[index]);
 	entities.erase(entities.begin() + index);
 }

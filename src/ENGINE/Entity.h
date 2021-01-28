@@ -68,6 +68,7 @@ public:
 	bool clickable = false;
 	bool draggable = false;
 
+	bool isLightSource = false;
 
 	unsigned int Size();
 

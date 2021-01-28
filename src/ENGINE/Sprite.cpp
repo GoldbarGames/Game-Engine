@@ -578,19 +578,20 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	// Calculate 2D lighting
 	float distanceToLightSource = 0;
 	float maxDistanceToLight = 10 * Globals::TILE_SIZE;
+	float lightRatio = 1.0f;
 
 	// TODO: Only iterate over light sources near the screen (within render distance)
 	for (const auto& lightSource : renderer.game->lightSourcesInLevel)
 	{
 		distanceToLightSource = glm::distance(position, lightSource->position);
+		lightRatio += 1.0f - std::min(1.0f, (distanceToLightSource / maxDistanceToLight));
 	}
 
 	if (distanceToLightSource == 0 && renderer.game->player != nullptr)
 	{
-		distanceToLightSource = glm::distance(position, renderer.game->player->position);
+		//distanceToLightSource = glm::distance(position, renderer.game->player->position);
+		//lightRatio = 1.0f - std::min(1.0f, (distanceToLightSource / maxDistanceToLight));
 	}
-
-	float lightRatio = 1.0f - std::min(1.0f, (distanceToLightSource / maxDistanceToLight));
 
 	glUniform1f(shader->GetUniformVariable(ShaderVariable::distanceToLight2D), lightRatio);
 

@@ -194,6 +194,9 @@ public:
 	int transitionEnter = -1;
 	int transitionState = 0;
 
+	float timeScale = 1.0f;
+	float dtUnscaled = 0;
+
 	//std::string collisionLayerNames[8] = { "default", "player", "layer3", "layer4", "layer5", "layer6", "layer7", "layer8" };
 	//uint8_t collisionLayers[8] = { 0, 1, 2, 4, 8, 16, 64, 128 };
 
