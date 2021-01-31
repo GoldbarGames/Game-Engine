@@ -197,11 +197,15 @@ public:
 	float timeScale = 1.0f;
 	float dtUnscaled = 0;
 
+	// Automatically take a screenshot every X seconds
 	int autoScreenshots = 0;
 	Timer screenshotTimer;
 
-	//std::string collisionLayerNames[8] = { "default", "player", "layer3", "layer4", "layer5", "layer6", "layer7", "layer8" };
-	//uint8_t collisionLayers[8] = { 0, 1, 2, 4, 8, 16, 64, 128 };
+	// Automatically record GIFs every X seconds for Y seconds
+	int autoGIFsDelay = 0;
+	Timer autoGifDelayTimer;
+	int autoGIFsDuration = 0;
+	Timer autoGifDurationTimer;
 
 	DebugScreen* debugScreen = nullptr;
 	Editor* editor = nullptr;

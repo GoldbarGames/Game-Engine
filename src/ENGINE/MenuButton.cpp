@@ -2,13 +2,16 @@
 #include "Game.h"
 #include "Renderer.h"
 
+// TODO: Should we instead make the Color parameter a member of the Game,
+// so that we don't need to pass in a color everywhere and can just reference it
+// and only change it when necessary for specific buttons?
 MenuButton::MenuButton(const std::string& txt, const std::string& filepath, 
-	const std::string& function, const glm::vec3& pos, Game& game)
+	const std::string& function, const glm::vec3& pos, Game& game, Color col)
 {
 	position = pos;
 
 	image = new Sprite(1, game.spriteManager, filepath, game.renderer.shaders[ShaderName::GUI], Vector2(0,0));
-	image->color = { 200, 55, 161, 255 };
+	image->color = col;
 
 	text = new Text(game.theFont);
 
@@ -20,7 +23,11 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 	text->SetPosition(pos.x, pos.y - (text->GetTextHeight() / 4));
 	text->SetScale(Vector2(Camera::MULTIPLIER, Camera::MULTIPLIER));	
 
-	scale = (game.renderer.CalculateScale(*image, text->GetTextWidth(), text->GetTextHeight(), text->scale));
+	// If this button has any text, scale the image to fit all the text inside it
+	if (text->txt != "")
+	{
+		scale = (game.renderer.CalculateScale(*image, text->GetTextWidth(), text->GetTextHeight(), text->scale));
+	}
 	
 	name = function;
 

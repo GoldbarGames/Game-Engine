@@ -103,6 +103,10 @@ bool MenuScreen::Update(Game& game)
 	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 	BaseButton* lastButton = selectedButton;
 
+	// Don't crash if there is no button in this menu
+	if (selectedButton == nullptr)
+		return false;
+
 	selectedButton->isSelected = false;
 	selectedButton = selectedButton->Update(game, currentKeyStates);
 	selectedButton->isSelected = true;

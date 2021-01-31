@@ -89,7 +89,11 @@ int Game::MainLoop()
 	const std::string guiFPS2 = "FPS: ";
 	const std::string guiTimer = "timer";
 
-	if (autoScreenshots > 0)
+	if (autoGIFsDelay > 0 && autoGIFsDuration > 0)
+	{
+		autoGifDelayTimer.Start(autoGIFsDelay);
+	}
+	else if (autoScreenshots > 0)
 	{
 		screenshotTimer.Start(autoScreenshots);
 	}
@@ -155,7 +159,19 @@ int Game::MainLoop()
 		}
 
 #if _DEBUG
-		if (autoScreenshots > 0 && screenshotTimer.HasElapsed())
+		if (savingGIF)
+		{
+			if (autoGIFsDuration > 0 && autoGifDurationTimer.HasElapsed())
+			{
+				EndGIF();
+			}
+		}
+		else if (autoGIFsDelay > 0 && autoGifDelayTimer.HasElapsed())
+		{
+			StartGIF("screenshots/gif/frames/");
+			autoGifDurationTimer.Start(autoGIFsDuration);
+		}
+		else if (autoScreenshots > 0 && screenshotTimer.HasElapsed())
 		{
 			screenshotTimer.Start(autoScreenshots);
 
@@ -1911,6 +1927,7 @@ void Game::EndGIF()
 	system(command.c_str());
 }
 
+// TODO: This really lags the game... do we need multi-threading here?
 void Game::SaveGIF()
 {
 	std::string filename = std::to_string(gifFrameNumber);
@@ -1925,7 +1942,7 @@ void Game::SaveGIF()
 		filename.insert(filename.begin(), '0');
 	}
 
-	SaveScreenshot(gifFolderPath + filename, "", ".bmp");
+	SaveScreenshot(gifFolderPath, filename, ".bmp");
 	gifFrameNumber++;
 
 	// Stop if overflow
@@ -1979,9 +1996,9 @@ void Game::SaveScreenshot(const std::string& filepath, const std::string& filena
 	else
 	{
 		if (extension == ".png")
-			IMG_SavePNG(screenshot, (filepath + extension).c_str());
+			IMG_SavePNG(screenshot, (filepath + filename + extension).c_str());
 		else
-			SDL_SaveBMP(screenshot, (filepath + extension).c_str());
+			SDL_SaveBMP(screenshot, (filepath + filename + extension).c_str());
 	}
 	
 	SDL_FreeSurface(screenshot);
