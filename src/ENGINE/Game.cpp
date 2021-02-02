@@ -802,6 +802,8 @@ Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet,
 		|| drawingLayer == DrawingLayer::COLLISION2;
 
 	tile->tilesheetIndex = editor->tilesheetIndex;
+	tile->CalculateCollider();
+
 	entities.emplace_back(tile);
 
 	return tile;
@@ -1837,11 +1839,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				std::cout << "Toggle playback " << inputManager.isPlayingBackInput << std::endl;
 
 				break;
-			case SDLK_9: // load game
-				//if (!editMode)
-				//	fileManager->LoadFile(currentSaveFileName);
-
-
+			case SDLK_9: 
 
 				if (savingGIF)
 				{

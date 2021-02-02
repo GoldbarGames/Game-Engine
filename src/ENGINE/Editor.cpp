@@ -540,9 +540,11 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 
 	bool clickedNewButton = false;
 
+	bool onlyPressedButtonDown = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
+
 	// We are definitely holding the left mouse button at this point,
 	// but this checks whether we are just now pressing it down.
-	if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+	if (onlyPressedButtonDown)
 	{
 		// Get name of the button that was clicked, if any
 		for (unsigned int i = 0; i < buttons.size(); i++)
@@ -623,7 +625,6 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
 			ClickedButton();
-			objectPreview = previewMap[objectMode];
 		}
 	}
 	else if (clickedLayerButton != "")
@@ -734,13 +735,10 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 	}
 	else if (mouseY < 1290/Camera::MULTIPLIER) // we clicked somewhere in the game world, so place a tile/object
 	{
-		//clickedPosition += game->camera;
-
 		// if we are placing a tile...
 		if (objectMode == MODE_TILE)
 		{
 			PlaceTile(clickedScreenPosition);
-			DoAction();
 		}
 		else if (objectMode == MODE_REPLACE)
 		{
@@ -749,7 +747,7 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 			glm::vec3 roundedPosition = RoundToInt(clickedWorldPosition);
 
 			std::vector<Tile*> tilesInLevel;
-
+			
 			for (unsigned int i = 0; i < game->entities.size(); i++)
 			{
 				if (game->entities[i]->etype == MODE_TILE)
@@ -775,6 +773,7 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 				// Replace the tile with the one selected in the sprite sheet
 				for (unsigned int i = 0; i < tilesInLevel.size(); i++)
 				{
+					// If this tile is the one we need to replace, then replace it
 					if (tilesInLevel[i]->tileCoordinates == coordsToReplace)
 					{
 						// Set the index of the tile
@@ -783,7 +782,11 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 					}
 				}
 
-				DoAction();
+				if (onlyPressedButtonDown)
+				{
+					DoAction();
+				}
+
 			}
 		}
 		else if (objectMode == "copy")
@@ -826,7 +829,6 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 		else // when placing an object
 		{
 			PlaceObject(glm::vec2(mouseX, mouseY));
-			DoAction();
 		}
 		
 	}
@@ -1005,6 +1007,9 @@ void Editor::PlaceObject(const glm::vec2& mousePos)
 		{
 			helper->PlaceObject(snappedPosition);
 		}
+
+		// Only save this action if the object was successfully placed in the level
+		DoAction();
 	}
 }
 
@@ -1039,12 +1044,6 @@ void Editor::PlaceTile(const glm::vec2& clickedPosition)
 
 	if (canPlaceTileHere)
 	{
-		//TODO: Can't be this simple. Our zoom level affects the mouse position!
-		// Do we need to use raycasts or something else here?
-
-		//glm::mat4 invertedProjection = glm::inverse(game->renderer.camera.projection);
-		//glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
-
 		Tile* tile = game->SpawnTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex], spawnPos, drawingLayer);
 
 		if (tile != nullptr)
@@ -1059,6 +1058,8 @@ void Editor::PlaceTile(const glm::vec2& clickedPosition)
 			}
 		}
 
+		// Only save this action if the tile was successfully placed in the level
+		DoAction();
 	}
 }
 
@@ -1132,42 +1133,63 @@ void Editor::RightClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::
 				rotatedEntity->rotation.z += 360;
 		}
 	}
-	else
+	else // delete the object
 	{
-		Entity* entityToDelete = GetEntityAtWorldPosition(clickedWorldPosition, true);
+		SDL_Rect point;
+		point.x = clickedWorldPosition.x;
+		point.y = clickedWorldPosition.y;
+		point.w = 1;
+		point.h = 1;
 
-		if (entityToDelete != nullptr)
+		bool isValidType = true;
+
+		// Find the selected entity
+		for (int i = game->entities.size() - 1; i >= 0; i--)
 		{
-			bool sameMode = entityToDelete->etype == objectMode;
-			bool sameLayer = entityToDelete->layer == drawingLayer;
-			bool shouldDeleteThis = false;
+			// If we clicked on it...
+			if (game->entities[i] != nullptr && HasIntersection(point, game->entities[i]->GetTopLeftBounds()))
+			{
+				bool onlyPressedButtonDown = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_RIGHT));
 
-			if (deleteSettingIndex == 0)
-			{
-				// Same layer, same mode
-				shouldDeleteThis = sameLayer && sameMode;
-			}
-			else if (deleteSettingIndex == 1)
-			{
-				// Only same layer
-				shouldDeleteThis = sameLayer;
-			}
-			else if (deleteSettingIndex == 2)
-			{
-				// Only same mode
-				shouldDeleteThis = sameMode;
-			}
-			else if (deleteSettingIndex == 3)
-			{
-				// Can delete if at same position
-				shouldDeleteThis = true;
-			}
+				bool sameMode = game->entities[i]->etype == objectMode;
+				bool sameLayer = game->entities[i]->layer == drawingLayer;
+				bool shouldDeleteThis = false;
 
-			if (helper != nullptr)
-			{
-				helper->DeleteObject(shouldDeleteThis, entityToDelete);
-			}			
+				switch (deleteSettingIndex)
+				{
+				case 0:
+					// Same layer, same mode
+					shouldDeleteThis = sameLayer && sameMode;
+					break;
+				case 1:
+					// Only same layer
+					shouldDeleteThis = sameLayer;
+					break;
+				case 2:
+					// Only same mode
+					shouldDeleteThis = sameMode;
+					break;
+				case 3:
+				default:
+					// Can delete if at same position
+					shouldDeleteThis = true;
+					break;
+				}
+
+				if (shouldDeleteThis && helper != nullptr)
+				{
+					helper->DeleteObject(shouldDeleteThis, game->entities[i]);
+					if (onlyPressedButtonDown)
+					{
+						DoAction();
+					}
+
+					return;
+				}
+			}
 		}
+
+		
 	}
 
 	
@@ -1248,8 +1270,9 @@ void Editor::ClickedButton()
 	}
 	else if (clickedButton->name == "map")
 	{
-		//TODO: Maybe make this use the mouse wheel too?
+		//TODO: When not in any object mode, allow scroll wheel to zoom the camera
 		ToggleSpriteMap(1);
+		return; // intentionally exit early to avoid sprite map issue
 	}
 	else if (clickedButton->name == "grid")
 	{
@@ -1395,6 +1418,8 @@ void Editor::ClickedButton()
 		clickedButton->isClicked = false;	
 	}
 
+	ToggleSpriteMap(9999); // reset the preview sprite
+	objectPreview = previewMap[objectMode];
 }
 
 void Editor::ToggleSpriteMap(int num)
@@ -2284,8 +2309,7 @@ void Editor::InitLevelFromFile(const std::string& levelName)
 	if (levelName != "")
 		game->currentLevel = levelName;
 
-	levelStrings.clear();
-	levelStringIndex = -1;
+
 
 	// In Release builds, don't reload the level from file, store it in memory
 
@@ -2300,7 +2324,11 @@ void Editor::InitLevelFromFile(const std::string& levelName)
 
 	CreateLevelFromVector(levelFilesMap[levelName]);
 
+	// Reset the undo/redo queue
+	levelStrings.clear();
+	levelStringIndex = -1;
 	DoAction();
+
 	game->SortEntities(game->entities);
 
 	game->PopulateQuadTree();
