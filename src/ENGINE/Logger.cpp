@@ -3,6 +3,7 @@
 #include <ctime> 
 #include <string>
 #include <iostream>
+#include "Entity.h"
 
 Logger::Logger(const char* filename)
 {
@@ -56,4 +57,21 @@ void Logger::Log(const std::string& message, LogType ltype)
 		std::string theTime = std::ctime(&endTime);
 		file << theTime << " | " << message << std::endl;
 	}		
+}
+
+void Logger::LogEntity(const std::string& message, Entity& entity, LogType ltype)
+{
+#if _DEBUG
+	if (shouldPrintMessage && shouldPrintLogType[(int)ltype])
+	{
+		std::cout << message << " - " << entity.name << " #" << entity.id << std::endl;
+	}
+#endif
+
+	if (file.is_open() && shouldWriteLogType[(int)ltype])
+	{
+		std::time_t endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		std::string theTime = std::ctime(&endTime);
+		file << theTime << " | " << message << std::endl;
+	}
 }

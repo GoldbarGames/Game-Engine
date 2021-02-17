@@ -59,6 +59,10 @@ void Property::SetProperty(const std::string& value)
 		{
 			*pString = value;
 		}
+		else if (pType == PropertyType::Bool && pBool != nullptr)
+		{
+			*pBool = std::stoi(value);
+		}
 		else
 		{
 			std::cout << "ERROR: Failed to set property " << key << " with value " << value << std::endl;

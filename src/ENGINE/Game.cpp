@@ -443,17 +443,17 @@ void Game::CalcDt()
 	dt = std::chrono::duration<float, milliseconds::period>(clock::now() - previousTime).count();
 	previousTime = clock::now();
 
-	dtUnscaled = dt;
-	dt *= timeScale;
-
-	now = std::chrono::duration<float, milliseconds::period>(previousTime - startOfGame).count();
-	renderer.now = now;
-
 	// When we are debugging and hit a breakpoint in an IDE, the timer continues running.
 	// This causes the dt to become huge and throw everything around like crazy.
 	// So reset the dt if it becomes too big so that we can debug properly.
 	if (dt > 100)
 		dt = 33;
+
+	dtUnscaled = dt;
+	dt *= timeScale;
+
+	now = std::chrono::duration<float, milliseconds::period>(previousTime - startOfGame).count();
+	renderer.now = now;
 }
 
 void Game::InitOpenGL()
@@ -778,30 +778,35 @@ glm::vec3 Game::CalculateObjectSpawnPosition(glm::vec2 mousePos, const int GRID_
 	return glm::vec3(newTileX, newTileY, 0);
 }
 
-Tile* Game::CreateTile(const Vector2& frame, const std::string& tilesheet, 
+Tile* Game::CreateTile(const Vector2& frame, const int tilesheetIndex, 
 	const glm::vec3& position, DrawingLayer drawingLayer) const
 {
-	Tile* tile = new Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
+	Tile* tile = new Tile(position, frame, 
+		spriteManager.GetImage(editor->GetTileSheetFileName(tilesheetIndex)),
+		renderer, editor->SPAWN_TILE_SIZE);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION
 		|| drawingLayer == DrawingLayer::COLLISION2;
+	tile->tilesheetIndex = tilesheetIndex;
 
 	return tile;
 }
 
-Tile* Game::SpawnTile(const Vector2& frame, const std::string& tilesheet, 
+Tile* Game::SpawnTile(const Vector2& frame, const int tilesheetIndex, 
 	const glm::vec3& position, DrawingLayer drawingLayer) const
 {
 	// TODO: Tiles that are on the rightmost column do not appear visible
 
-	Tile* tile = new Tile(position, frame, spriteManager.GetImage(tilesheet), renderer, editor->SPAWN_TILE_SIZE);
+	Tile* tile = new Tile(position, frame, 
+		spriteManager.GetImage(editor->GetTileSheetFileName(tilesheetIndex)), 
+		renderer, editor->SPAWN_TILE_SIZE);
 
 	tile->layer = drawingLayer;
 	tile->impassable = drawingLayer == DrawingLayer::COLLISION 
 		|| drawingLayer == DrawingLayer::COLLISION2;
 
-	tile->tilesheetIndex = editor->tilesheetIndex;
+	tile->tilesheetIndex = tilesheetIndex;
 	tile->CalculateCollider();
 
 	entities.emplace_back(tile);
@@ -825,6 +830,8 @@ void Game::ShouldDeleteEntity(int index)
 	entities[index]->shouldDelete = true;
 }
 
+// TODO: This function seems kind of pointless
+// because we already have the entity at the start!
 void Game::ShouldDeleteEntity(Entity* entity)
 {
 	std::vector<Entity*>::iterator iter = std::find(entities.begin(), entities.end(), entity);
@@ -833,13 +840,20 @@ void Game::ShouldDeleteEntity(Entity* entity)
 		int index = std::distance(entities.begin(), iter);
 		entities[index]->shouldDelete = true;
 	}
+	else
+	{
+		logger.LogEntity("Failed to mark entity for deletion", *entity);
+	}
 }
 
 void Game::DeleteEntity(Entity* entity)
 {
 	std::vector<Entity*>::iterator index = std::find(entities.begin(), entities.end(), entity);
 	if (index != entities.end()) // means the element was not found
+	{
+		delete_it(*index);
 		entities.erase(index);
+	}		
 }
 
 void Game::DeleteEntity(int index)

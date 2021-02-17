@@ -52,6 +52,7 @@ public:
 	const std::string MODE_TILE = "tile";
 	const std::string MODE_REPLACE = "replace";
 	const std::string MODE_COPY = "copy";
+	const std::string MODE_FILL = "fill";
 
 	// Variables for the Properties Inspector
 	Entity* selectedEntity = nullptr;
@@ -151,6 +152,7 @@ public:
 
 	void CreateDialog(const std::string& txt);
 
+	void FillTiles(const glm::vec3& spawnPosition, int depth=0);
 	void PlaceTile(const glm::vec2& clickedPosition);
 	void PlaceObject(const glm::vec2& mousePos);
 	void InspectObject(const glm::vec3& clickedWorldPosition, const glm::vec2& clickedScreenPosition);

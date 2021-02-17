@@ -17,7 +17,8 @@ class Camera;
 class EditorButton;
 
 enum class DebugText {
-	cursorPositionInScreen, cursorPositionInWorld, currentEditModeLayer,
+	cursorPositionInScreen, cursorPositionInWorld, 
+	cursorPositionInTiles, currentEditModeLayer,
 	drawCalls, updateCalls, collisionChecks, hoveredEntityID,
 	cameraPosition, cameraAngle, cameraYaw, cameraPitch, cameraRoll
 };

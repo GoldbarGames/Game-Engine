@@ -8,6 +8,8 @@
 
 enum class LogType { DEFAULT, ERROR, WARNING };
 
+class Entity;
+
 class KINJO_API Logger
 {
 public:
@@ -20,6 +22,7 @@ public:
 	Logger(const char* filename);
 	~Logger();
 	void Log(const std::string& message, LogType ltype = LogType::ERROR);
+	void LogEntity(const std::string& message, Entity& entity, LogType ltype = LogType::ERROR);
 
 	void SetOutputFile(const char* filename);
 };

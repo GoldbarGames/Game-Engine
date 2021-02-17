@@ -365,7 +365,18 @@ void Editor::CreateEditorButtons()
 
 	std::vector<string> buttonNames = ReadStringsFromFile("data/lists/editorbuttons.list"); 
 
-	buttonNames.insert(buttonNames.begin() + 7, previewMapObjectNames.begin(), previewMapObjectNames.end());
+	auto objectIndex = std::find(buttonNames.begin(), buttonNames.end(), "objects");
+	
+	if (objectIndex != buttonNames.end())
+	{
+		buttonNames.insert(objectIndex, previewMapObjectNames.begin(), previewMapObjectNames.end());
+		objectIndex = std::find(buttonNames.begin(), buttonNames.end(), "objects");
+		buttonNames.erase(objectIndex);
+	}
+	else
+	{
+		buttonNames.insert(buttonNames.begin() + 7, previewMapObjectNames.begin(), previewMapObjectNames.end());
+	}
 
 	unsigned int BUTTON_LIST_START = currentButtonPage * BUTTONS_PER_PAGE;
 	unsigned int BUTTON_LIST_END = BUTTON_LIST_START + BUTTONS_PER_PAGE;
@@ -391,10 +402,8 @@ void Editor::CreateEditorButtons()
 	
 	buttons.emplace_back(previousButton);
 
-	float bx = (buttonStartX + (buttonWidth + buttonSpacing) * (BUTTONS_PER_PAGE + 1) * Camera::MULTIPLIER);
-	
 	EditorButton* nextButton = new EditorButton("", "nextpage", 
-		glm::vec3( bx, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
+		glm::vec3(buttonX * Camera::MULTIPLIER, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
 	
 	buttons.emplace_back(nextButton);
 
@@ -419,7 +428,7 @@ void Editor::StartEdit()
 
 	helper->OnEditorStart();
 
-	previewMap[MODE_TILE] = game->CreateTile(Vector2(0, 0), "assets/editor/rect-outline.png",
+	previewMap[MODE_TILE] = game->CreateTile(Vector2(0, 0), 0,
 		glm::vec3(0, 0, 0), DrawingLayer::FRONT);
 
 	previewMap[MODE_TILE]->GetSprite()->color = { 255, 255, 255, 64 };
@@ -527,7 +536,7 @@ void Editor::RefreshTilePreview()
 	if (prev != nullptr)
 		delete_it(prev);
 
-	prev = game->CreateTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex],
+	prev = game->CreateTile(spriteSheetTileFrame, tilesheetIndex,
 		glm::vec3(0, 0, 0), DrawingLayer::FRONT);
 
 	objectPreview = prev;
@@ -740,6 +749,10 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 		{
 			PlaceTile(clickedScreenPosition);
 		}
+		else if (objectMode == MODE_FILL)
+		{
+			FillTiles(game->CalculateObjectSpawnPosition(clickedScreenPosition, GRID_SIZE));
+		}
 		else if (objectMode == MODE_REPLACE)
 		{
 			bool foundTile = false;
@@ -789,7 +802,7 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 
 			}
 		}
-		else if (objectMode == "copy")
+		else if (objectMode == MODE_COPY)
 		{
 			// We want to set the active tilesheet to the copied tile's
 			// and we want to set the selected tile to the copied tile's
@@ -830,7 +843,99 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 		{
 			PlaceObject(glm::vec2(mouseX, mouseY));
 		}
-		
+	}
+}
+
+// TODO: This algorithm doesn't seem to be working perfectly.
+// It looks like it fills more vertically than horizontally,
+// but I don't know why...
+void Editor::FillTiles(const glm::vec3& spawnPosition, int depth)
+{
+	static std::vector<glm::vec3> seenTiles;
+	static std::unordered_map<std::string, Entity*> mapEntities;
+
+	// Initialization
+	if (depth == 0)
+	{
+		seenTiles.clear();
+		mapEntities.clear();
+
+		for (const auto& entity : game->entities)
+		{
+			if (entity->etype == MODE_TILE)
+			{
+				Vector2 v = Vector2(entity->position.x, entity->position.y);
+				mapEntities[v.ToString()] = entity;
+			}
+		}
+	}
+
+	// Don't bother with tiles we have already checked to save time
+	for (const auto& tile : seenTiles)
+	{
+		if (tile == spawnPosition)
+			return;
+	}
+
+	//std::cout << "Checking tile at " << spawnPosition.x << "," << spawnPosition.y << std::endl;
+
+	seenTiles.emplace_back(spawnPosition);
+
+	// 1. Place the tile where we clicked
+	bool canPlaceTileHere = true;
+
+	// TODO: Faster than a for loop, but technically still bad (allocating strings).
+	// Need a single map that can take a vector2 as a key, entity* as value
+	Vector2 v = Vector2(spawnPosition.x, spawnPosition.y);
+	if (mapEntities.count(v.ToString()) != 0)
+	{
+		if (RoundToInt(mapEntities[v.ToString()]->position) == spawnPosition)
+		{
+			canPlaceTileHere = false;
+		}
+	}
+
+	if (canPlaceTileHere)
+	{
+		Tile* tile = game->SpawnTile(spriteSheetTileFrame, tilesheetIndex, spawnPosition, drawingLayer);
+
+		if (tile != nullptr)
+		{
+			//std::cout << "Spawned at (" << spawnPosition.x << "," << spawnPosition.y << ") !" << std::endl;
+
+			if (helper != nullptr)
+			{
+				// NOTE: This is a major source of slowdown, 
+				// so keep this commented unless we can improve its speed
+				//helper->PlaceTile(*tile);
+			}
+		}
+	}
+	else
+	{
+		std::cout << "Cannot spawn tile here." << std::endl;
+		return; // don't go beyond an existing tile
+	}
+
+	// don't fill more than MAX_DEPTH tiles at a time, just to be safe!
+	const int MAX_DEPTH = 50;
+	if (depth < MAX_DEPTH)
+	{
+		// 2. For each direction (up, down, left, right)
+		// recursively call this function (with a limit)
+
+		const int newTilePos = Globals::TILE_SIZE * Camera::MULTIPLIER;
+
+		FillTiles(spawnPosition + glm::vec3(0, newTilePos, 0), depth + 1);
+		FillTiles(spawnPosition + glm::vec3(0, -newTilePos, 0), depth + 1);
+		FillTiles(spawnPosition + glm::vec3(newTilePos, 0, 0), depth + 1);
+		FillTiles(spawnPosition + glm::vec3(-newTilePos, 0, 0), depth + 1);
+	}
+
+	if (canPlaceTileHere && depth == 0)
+	{
+		game->SortEntities(game->entities);
+		DoAction();
 	}
 }
 
@@ -1034,8 +1139,9 @@ void Editor::PlaceTile(const glm::vec2& clickedPosition)
 			}
 			else // overwrite
 			{
-				//TODO: Delete this tile, then break
+				// Delete this tile, then break
 				game->DeleteEntity(i);
+				std::cout << "Overwriting tile" << std::endl;
 			}
 
 			break;
@@ -1044,7 +1150,7 @@ void Editor::PlaceTile(const glm::vec2& clickedPosition)
 
 	if (canPlaceTileHere)
 	{
-		Tile* tile = game->SpawnTile(spriteSheetTileFrame, tilesheetFilenames[tilesheetIndex], spawnPos, drawingLayer);
+		Tile* tile = game->SpawnTile(spriteSheetTileFrame, tilesheetIndex, spawnPos, drawingLayer);
 
 		if (tile != nullptr)
 		{
@@ -1056,10 +1162,10 @@ void Editor::PlaceTile(const glm::vec2& clickedPosition)
 			{
 				helper->PlaceTile(*tile);
 			}
-		}
 
-		// Only save this action if the tile was successfully placed in the level
-		DoAction();
+			// Only save this action if the tile was successfully placed in the level
+			DoAction();
+		}
 	}
 }
 
@@ -1187,12 +1293,8 @@ void Editor::RightClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::
 					return;
 				}
 			}
-		}
-
-		
-	}
-
-	
+		}		
+	}	
 }
 
 void Editor::HandleEdit()
@@ -1212,7 +1314,15 @@ void Editor::HandleEdit()
 
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
 	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);
-	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->GetSprite()->keepScaleRelativeToCamera = true;
+
+	glm::vec3 worldPosition = game->ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
+
+	std::string clickedText2 = std::to_string((int)worldPosition.x) + " " + std::to_string((int)worldPosition.y);
+	game->debugScreen->debugText[DebugText::cursorPositionInWorld]->SetText("Mouse World: " + clickedText2);
+
+	std::string clickedText3 = std::to_string((int)(worldPosition.x / (Globals::TILE_SIZE * Camera::MULTIPLIER)))
+		+ " " + std::to_string((int)(worldPosition.y / (Globals::TILE_SIZE * Camera::MULTIPLIER)));
+	game->debugScreen->debugText[DebugText::cursorPositionInTiles]->SetText("Mouse Tiles: " + clickedText3);
 
 	glm::mat4 invertedProjection = glm::inverse(game->renderer.camera.projection);
 	glm::vec4 spawnPos = (invertedProjection * glm::vec4(mouseX, mouseY, 0, 1));
@@ -1321,6 +1431,18 @@ void Editor::ClickedButton()
 		CreateDialog("Type in the name of the background to use:");
 		game->StartTextInput(*dialog, "set_background");
 		clickedButton->isClicked = false;
+	}
+	else if (clickedButton->name == MODE_FILL)
+	{
+		if (objectMode == MODE_FILL)
+		{
+			//SetLayer(DrawingLayer::BACK);
+			objectMode = MODE_TILE;
+		}
+		else
+		{
+			objectMode = MODE_FILL;
+		}
 	}
 	else if (clickedButton->name == MODE_REPLACE)
 	{
@@ -1567,9 +1689,12 @@ void Editor::ToggleTileset()
 
 		game->SaveEditorSettings();
 
-		previewMap[MODE_TILE] = game->CreateTile(Vector2(0, 0), "assets/editor/rect-outline.png",
+		previewMap[MODE_TILE] = game->CreateTile(Vector2(0, 0), 0,
 			glm::vec3(0, 0, 0), DrawingLayer::FRONT);
 		previewMap[MODE_TILE]->GetSprite()->color = { 255, 255, 255, 64 };
+
+		previewMap[MODE_FILL] = previewMap[MODE_TILE];
+
 		objectPreview = previewMap[MODE_TILE];
 	}
 }
@@ -1854,10 +1979,15 @@ void Editor::UndoAction()
 	if (levelStringIndex > 0)
 	{
 		levelStringIndex--;
+
+		glm::vec3 pos = game->renderer.camera.position;
+
 		// Load the level here
 		ClearLevelEntities();
 		CreateLevelFromString(levelStrings[levelStringIndex], "undo");
 		CreateLevelFromVector(levelFilesMap["undo"]);
+
+		game->renderer.camera.position = pos;
 	}
 }
 
@@ -1866,16 +1996,28 @@ void Editor::RedoAction()
 	if (levelStringIndex < levelStrings.size() - 1)
 	{
 		levelStringIndex++;
+
+		glm::vec3 pos = game->renderer.camera.position;
+
 		// Load the level here
 		ClearLevelEntities();
 		CreateLevelFromString(levelStrings[levelStringIndex], "redo");
 		CreateLevelFromVector(levelFilesMap["redo"]);
+
+		game->renderer.camera.position = pos;
 	}
 }
 
 void Editor::DoAction()
 {
 	const int UNDO_LIMIT = 99;
+
+	int timesToPopBack = levelStrings.size() - levelStringIndex - 1;
+
+	for (int i = 0; i < timesToPopBack; i++)
+	{
+		levelStrings.pop_back();
+	}
 
 	levelStrings.push_back(SaveLevelAsString());
 	levelStringIndex++;
@@ -2135,8 +2277,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 					int tilesheetIndex = std::stoi(map[STR_TILESHEET]);
 
 					Tile* newTile = game->SpawnTile(Vector2(std::stoi(map[STR_FRAMEX]), std::stoi(map[STR_FRAMEY])),
-						GetTileSheetFileName(tilesheetIndex),
-						glm::vec3(std::stoi(map[STR_POSITIONX]), std::stoi(map[STR_POSITIONY]), 0),
+						tilesheetIndex, glm::vec3(std::stoi(map[STR_POSITIONX]), std::stoi(map[STR_POSITIONY]), 0),
 						(DrawingLayer)std::stoi(map[STR_LAYER]));
 
 					newTile->Load(map, *game);
@@ -2217,6 +2358,12 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 						{
 							game->cameraBoundsEntities.push_back(newEntity);
 						}
+					}
+					else
+					{
+						game->logger.Log("FAILED TO SPAWN " + etype);
+						std::cout << "LINE: " << lineNumber << std::endl;
+						std::cout << "INDEX: " << index << std::endl;
 					}
 				}
 

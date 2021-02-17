@@ -3027,15 +3027,40 @@ namespace CutsceneFunctions
 
 		const int entityIndex = c.ParseNumberValue(parameters[1]);
 
-		if (c.manager->images[entityIndex] == nullptr)
+		Entity* entity = c.manager->images[entityIndex];
+
+		// Special case for the player
+		if (parameters[1] == "player")
+		{
+			entity = c.manager->game->player;
+		}
+
+		// If there is no entity in the cutscene system with this ID,
+		// check the normal game for entities with this ID
+		if (entity == nullptr)
+		{
+			for (const auto& e : c.manager->game->entities)
+			{
+				if (e->id == entityIndex)
+				{
+					entity = e;
+					break;
+				}
+			}
+		}
+		
+		if (entity == nullptr)
+		{
+			c.manager->game->logger.Log("ERROR: Could not change animator on null entity: " + parameters[1]);
 			return 0;
+		}
 
 		// TODO: Parse all these parameters for variables
 		if (parameters[2] == "state")
 		{
 			int index = 3;
 			std::string stateName = parameters[index++];
-			AnimState* state = c.manager->images[entityIndex]->GetAnimator()->GetState(stateName);
+			AnimState* state = entity->GetAnimator()->GetState(stateName);
 
 			int stateSpeed = std::stoi(parameters[index++]);
 			int spriteStartFrame = std::stoi(parameters[index++]);
@@ -3059,16 +3084,16 @@ namespace CutsceneFunctions
 		}
 		else if (parameters[2] == "disable")
 		{
-			if (c.manager->images[entityIndex]->GetAnimator() != nullptr)
+			if (entity->GetAnimator() != nullptr)
 			{
-				c.manager->images[entityIndex]->GetAnimator()->shouldUpdate = false;
+				entity->GetAnimator()->shouldUpdate = false;
 			}
 		}
 		else if (parameters[2] == "enable")
 		{
-			if (c.manager->images[entityIndex]->GetAnimator() != nullptr)
+			if (entity->GetAnimator() != nullptr)
 			{
-				c.manager->images[entityIndex]->GetAnimator()->shouldUpdate = true;
+				entity->GetAnimator()->shouldUpdate = true;
 			}
 		}
 		else if (parameters[2] == "set")
@@ -3078,13 +3103,13 @@ namespace CutsceneFunctions
 			// it will just flow back into whatever state it was in before (or can get to)
 			if (parameters[3] == "state")
 			{
-				c.manager->images[entityIndex]->GetAnimator()->SetState(parameters[4].c_str());
-				c.manager->images[entityIndex]->GetAnimator()->Update(*c.manager->images[entityIndex]);
+				entity->GetAnimator()->SetState(parameters[4].c_str());
+				entity->GetAnimator()->Update(*entity);
 			}
 			else if (parameters[3] == "bool")
 			{
-				c.manager->images[entityIndex]->GetAnimator()->SetBool(parameters[4].c_str(), parameters[5] == "true");
-				c.manager->images[entityIndex]->GetAnimator()->Update(*c.manager->images[entityIndex]);
+				entity->GetAnimator()->SetBool(parameters[4].c_str(), parameters[5] == "true");
+				entity->GetAnimator()->Update(*entity);
 			}
 			else if (parameters[3] == "data")
 			{
@@ -3093,10 +3118,10 @@ namespace CutsceneFunctions
 				std::vector<AnimState*> animStates = c.manager->game->spriteManager.ReadAnimData(parameters[5], args);
 				Animator* anim1 = new Animator(parameters[4] + "/" + parameters[4], animStates, parameters[6]);
 
-				c.manager->images[entityIndex]->SetAnimator(*anim1);
-				c.manager->images[entityIndex]->GetAnimator()->Update(*c.manager->images[entityIndex]);
-				c.manager->images[entityIndex]->GetSprite()->keepPositionRelativeToCamera = true;
-				c.manager->images[entityIndex]->GetSprite()->keepScaleRelativeToCamera = true;
+				entity->SetAnimator(*anim1);
+				entity->GetAnimator()->Update(*entity);
+				entity->GetSprite()->keepPositionRelativeToCamera = true;
+				entity->GetSprite()->keepScaleRelativeToCamera = true;
 			}
 		}
 

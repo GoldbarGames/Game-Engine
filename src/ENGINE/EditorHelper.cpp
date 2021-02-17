@@ -52,7 +52,7 @@ void EditorHelper::DeleteObject(bool shouldDeleteThis, Entity* entityToDelete)
 	}
 }
 
-void EditorHelper::PlaceTile(const Tile& tile)
+void EditorHelper::PlaceTile(Tile& tile)
 {
 
 }

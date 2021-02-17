@@ -102,9 +102,7 @@ void Path::GetProperties(std::vector<Property*>& properties)
 	Entity::GetProperties(properties);
 
 	// TODO: Maybe move this property to the thing on the path, not the path itself?
-	std::string loopString = shouldLoop ? "True" : "False";
-	properties.emplace_back(new Property("Should Loop", loopString));
-
+	properties.emplace_back(new Property("Should Loop", shouldLoop));
 	properties.emplace_back(new Property("Node Count", nodeCount));
 
 	if (nodeCount > 0)

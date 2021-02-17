@@ -243,9 +243,9 @@ public:
 	void SortEntities(std::vector<Entity*>& entityVector);
 	
 	// Spawn functions
-	Tile* CreateTile(const Vector2& frame, const std::string& tilesheet,
+	Tile* CreateTile(const Vector2& frame, const int tilesheetIndex,
 		const glm::vec3& position, DrawingLayer drawingLayer) const;
-	Tile* SpawnTile(const Vector2& frame, const std::string& tilesheet,
+	Tile* SpawnTile(const Vector2& frame, const int tilesheetIndex,
 		const glm::vec3& position, DrawingLayer drawingLayer) const;
 
 	Entity* SpawnPlayer(const glm::vec3& position);

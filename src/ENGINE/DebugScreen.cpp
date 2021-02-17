@@ -20,8 +20,10 @@ DebugScreen::DebugScreen(Game& g)
 	insertVariableButton->imageScale = Vector2(2, 1);
 	removeVariableButton->imageScale = Vector2(2, 1);
 
-	CreateDebugText(DebugText::cursorPositionInScreen, 400, 50);
-	CreateDebugText(DebugText::cursorPositionInWorld, 400, 100);
+	CreateDebugText(DebugText::cursorPositionInScreen, 500, 50);
+	CreateDebugText(DebugText::cursorPositionInWorld, 500, 100);
+	CreateDebugText(DebugText::cursorPositionInTiles, 500, 150);
+
 	CreateDebugText(DebugText::currentEditModeLayer, 400, 200);
 	CreateDebugText(DebugText::drawCalls, 400, 1100);
 	CreateDebugText(DebugText::updateCalls, 400, 1200);
@@ -119,6 +121,10 @@ bool DebugScreen::Update()
 
 	std::string clickedText2 = std::to_string((int)worldPosition.x) + " " + std::to_string((int)worldPosition.y);
 	game->debugScreen->debugText[DebugText::cursorPositionInWorld]->SetText("Mouse World: " + clickedText2);
+
+	std::string clickedText3 = std::to_string((int)(worldPosition.x/(Globals::TILE_SIZE * Camera::MULTIPLIER))) 
+		+ " " + std::to_string((int)(worldPosition.y/ (Globals::TILE_SIZE * Camera::MULTIPLIER)));
+	game->debugScreen->debugText[DebugText::cursorPositionInTiles]->SetText("Mouse Tiles: " + clickedText3);
 
 	// Find the hovered entity ID
 	Entity* hoveredEntity = game->editor->GetEntityAtWorldPosition(worldPosition);
@@ -342,6 +348,7 @@ void DebugScreen::Render(const Renderer& renderer)
 
 		debugText[DebugText::cursorPositionInScreen]->Render(renderer);
 		debugText[DebugText::cursorPositionInWorld]->Render(renderer);
+		debugText[DebugText::cursorPositionInTiles]->Render(renderer);
 
 		if (onePixelSprite != nullptr)
 		{
