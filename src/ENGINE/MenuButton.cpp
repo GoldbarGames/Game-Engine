@@ -20,7 +20,7 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 	text->SetText(txt);
 
 	//text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->GetTextHeight()/2));
-	text->SetPosition(pos.x, pos.y - (text->GetTextHeight() / 4));
+	AlignTextCenterY();
 	text->SetScale(Vector2(Camera::MULTIPLIER, Camera::MULTIPLIER));	
 
 	// If this button has any text, scale the image to fit all the text inside it
@@ -49,6 +49,12 @@ MenuButton::~MenuButton()
 
 	if (text != nullptr)
 		delete_it(text);
+
+	for (auto& s : otherImages)
+	{
+		if (s != nullptr)
+			delete_it(s);
+	}
 }
 
 void MenuButton::Render(const Renderer& renderer)
@@ -75,9 +81,42 @@ void MenuButton::Render(const Renderer& renderer)
 	}	
 
 	image->Render(imagePosition, renderer, scale);
+
+	for (auto& s : otherImages)
+	{
+		s->Render(renderer);
+	}
+
 	text->Render(renderer);
 }
 
+void MenuButton::Highlight(Game& game)
+{
+	if (image != nullptr)
+		image->SetShader(game.renderer.shaders[ShaderName::Glow]);
+
+	if (text != nullptr)
+		text->GetSprite()->SetShader(game.renderer.shaders[ShaderName::Glow]);
+
+	for (auto& s : otherImages)
+	{
+		s->GetSprite()->SetShader(game.renderer.shaders[ShaderName::Glow]);
+	}
+}
+
+void MenuButton::Unhighlight(Game& game)
+{
+	if (image != nullptr)
+		image->SetShader(game.renderer.shaders[ShaderName::GUI]);
+
+	if (text != nullptr)
+		text->GetSprite()->SetShader(game.renderer.shaders[ShaderName::GUI]);
+
+	for (auto& s : otherImages)
+	{
+		s->GetSprite()->SetShader(game.renderer.shaders[ShaderName::GUI]);
+	}
+}
 
 BaseButton* MenuButton::Update(Game& game, const Uint8* currentKeyStates)
 {

@@ -6,6 +6,37 @@
 #include "Editor.h"
 #include "FileManager.h"
 
+void MenuAnimKeyframe::Update(uint32_t currentTime)
+{
+	// Can't update an entity that doesn't exist
+	if (entity == nullptr)
+		return;
+
+	if (setPosition)
+	{
+		glm::vec3 newPosition = entity->position;
+
+		LerpVector3(newPosition, previousFrame->targetPosition, targetPosition, 
+			currentTime, previousFrame->time, time);
+
+		entity->SetPosition(newPosition);
+	}
+
+	if (setColor)
+	{
+		glm::vec4 newColorV4 = glm::vec4(entity->color.r, entity->color.g, entity->color.b, entity->color.a);
+
+		LerpVector4(newColorV4, previousFrame->targetColor, targetColor,
+			currentTime, previousFrame->time, time);
+
+		Color newColor = { (uint8_t)newColorV4.r, (uint8_t)newColorV4.g, (uint8_t)newColorV4.b, (uint8_t)newColorV4.a };
+
+		entity->SetColor(newColor);
+	}
+
+}
+
+
 MenuScreen::MenuScreen(const std::string& n, Game& game)
 {
 	name = n;	
@@ -73,6 +104,20 @@ void MenuScreen::ResetMenu()
 			delete_it(images[i]);
 	}
 	images.clear();
+
+	for (auto& keyframe : enterAnimation)
+	{
+		if (keyframe != nullptr)
+			delete_it(keyframe);
+	}
+	enterAnimation.clear();
+
+	for (auto& keyframe : exitAnimation)
+	{
+		if (keyframe != nullptr)
+			delete_it(keyframe);
+	}
+	exitAnimation.clear();
 }
 
 MenuScreen::~MenuScreen()
@@ -113,10 +158,8 @@ bool MenuScreen::Update(Game& game)
 
 	if (selectedButton != lastButton)
 	{
-		if (selectedButton->image != nullptr)
-			selectedButton->image->SetShader(game.renderer.shaders[ShaderName::Glow]);
-		if (lastButton->image != nullptr)
-			lastButton->image->SetShader(game.renderer.shaders[ShaderName::GUI]);
+		selectedButton->Highlight(game);
+		lastButton->Unhighlight(game);
 	}
 
 	return (lastButton->pressedAnyKey);

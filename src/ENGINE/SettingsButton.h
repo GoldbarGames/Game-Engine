@@ -15,7 +15,6 @@ enum class SettingsType { NORMAL, KEYMAP, BUTTONMAP };
 class KINJO_API SettingsButton : public BaseButton
 {
 public:
-	Vector2 position = Vector2(0,0);
 	int selectedOption = 0;
 	std::vector<Text*> options;
 	Text* label = nullptr;

@@ -212,6 +212,8 @@ public:
 	SDL_Window* window = nullptr;
 	Entity* player = nullptr;
 
+	MenuScreen* menuLastFrame = nullptr;
+
 	bool loadingFromSaveFile = false;
 
 	bool isFullscreen = false;

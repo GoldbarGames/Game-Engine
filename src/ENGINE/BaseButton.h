@@ -16,6 +16,7 @@ class Game;
 class KINJO_API BaseButton
 {
 public:
+	glm::vec3 position = glm::vec3(0, 0, 0);
 	Vector2 scale = Vector2(1, 1);
 	Sprite* image = nullptr;
 	std::string name = ""; // function to execute when button is pressed
@@ -33,6 +34,13 @@ public:
 
 	void SetButtonsUpDownLeftRight(BaseButton* up = nullptr, BaseButton* down = nullptr, BaseButton* left = nullptr, BaseButton* right = nullptr);
 	virtual void SetOptionColors(Color color);
+
+	virtual void Highlight(Game& game);
+	virtual void Unhighlight(Game& game);
+
+	void AlignTextCenterY();
+	void AlignTextTopY();
+	void AlignTextBottomY();
 };
 
 

@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <SDL2/SDL.h>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include "Vector2.h"
 #include "leak_check.h"
 
@@ -72,6 +73,8 @@ extern KINJO_API bool LerpVector2(Vector2& current, const Vector2& start, const 
 
 extern KINJO_API bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxStep, const float minStep);
 extern KINJO_API bool LerpVector3(glm::vec3& current, const glm::vec3& start, const glm::vec3& target,
+	const uint32_t currentTime, uint32_t startTime, uint32_t endTime);
+extern KINJO_API bool LerpVector4(glm::vec4& current, const glm::vec4& start, const glm::vec4& target,
 	const uint32_t currentTime, uint32_t startTime, uint32_t endTime);
 extern KINJO_API bool LerpCoord(float& current, const float& start, const float& target, const float& t);
 

@@ -127,12 +127,42 @@ bool LerpVector3(glm::vec3& current, const glm::vec3& start, const glm::vec3& ta
 
 	bool xFinished = LerpCoord(current.x, start.x, target.x, t);
 	bool yFinished = LerpCoord(current.y, start.y, target.y, t);
+	bool zFinished = LerpCoord(current.z, start.z, target.z, t);
 
 	//std::cout << overlayColor.a << std::endl;
 	//std::cout << timerOverlayColor.GetTicks() << std::endl;
 	//timerOverlayColor.Start(1);
 
-	return xFinished && yFinished;
+	return xFinished && yFinished && zFinished;
+}
+
+// Return whether or not all values have reached their target values
+bool LerpVector4(glm::vec4& current, const glm::vec4& start, const glm::vec4& target,
+	const uint32_t currentTime, uint32_t startTime, uint32_t endTime)
+{
+	float difference = endTime - startTime;
+	float t = 1.0f;
+	if (difference != 0)
+	{
+		t = (currentTime - startTime) / difference; // percentage of passed time
+	}
+
+	if (t > 1.0f)
+		t = 1.0f;
+
+	//std::cout << (currentTime - startTime) << " / " << difference << " = " << t << std::endl;
+	//std::cout << current.x << "," << current.y << std::endl;
+
+	bool rFinished = LerpCoord(current.r, start.r, target.r, t);
+	bool gFinished = LerpCoord(current.g, start.g, target.g, t);
+	bool bFinished = LerpCoord(current.b, start.b, target.b, t);
+	bool aFinished = LerpCoord(current.a, start.a, target.a, t);
+
+	//std::cout << overlayColor.a << std::endl;
+	//std::cout << timerOverlayColor.GetTicks() << std::endl;
+	//timerOverlayColor.Start(1);
+
+	return rFinished && gFinished && bFinished && aFinished;
 }
 
 bool LerpCoord(float& current, const float& start, const float& target, const float& t)

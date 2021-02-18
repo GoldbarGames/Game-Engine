@@ -7,7 +7,7 @@
 SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& game, SettingsType st)
 {
 	name = n;
-	position = pos;
+	position = glm::vec3(pos.x, pos.y, 0);
 	settingsType = st;
 
 	label = new Text(game.headerFont, name);

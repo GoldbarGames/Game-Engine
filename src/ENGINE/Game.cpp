@@ -2152,7 +2152,72 @@ void Game::Update()
 
 	if (openedMenus.size() > 0)
 	{
-		GetMenuInput();
+		// If the menu that is open now is not the one that was open before...
+		// Then we want to transition from the old to the new
+		// (exit old, then enter new)
+		if (menuLastFrame != nullptr && menuLastFrame->isPlayingExitAnimation)
+		{
+			// For every keyframe that is within the current time,
+			// update the entity's properties for that frame
+			bool isFinished = true;
+			for (auto& keyframe : menuLastFrame->exitAnimation)
+			{
+				if (keyframe->time > Globals::CurrentTicks)
+				{
+					isFinished = (keyframe->previousFrame == nullptr);
+					keyframe->Update(Globals::CurrentTicks);
+				}
+			}
+
+			if (isFinished)
+			{
+				menuLastFrame->isPlayingExitAnimation = false;
+				openedMenus.back()->isPlayingEnterAnimation = true;
+
+				// Set the time for each keyframe
+				for (auto& keyframe : openedMenus.back()->enterAnimation)
+				{
+					keyframe->time = keyframe->duration + Globals::CurrentTicks;
+				}
+			}
+		}
+		else if (openedMenus.back()->isPlayingEnterAnimation)
+		{
+			// For every keyframe that is within the current time,
+			// update the entity's properties for that frame
+			bool isFinished = true;
+			MenuScreen* nextMenu = openedMenus.back();
+			for (auto& keyframe : nextMenu->enterAnimation)
+			{
+				if (keyframe->time > Globals::CurrentTicks)
+				{
+					isFinished = (keyframe->previousFrame == nullptr);
+					keyframe->Update(Globals::CurrentTicks);
+				}
+			}
+
+			if (isFinished)
+			{
+				nextMenu->isPlayingEnterAnimation = false;
+				menuLastFrame = nextMenu;
+			}
+		}
+		else if (menuLastFrame != openedMenus.back() && menuLastFrame != nullptr)
+		{
+			menuLastFrame->isPlayingExitAnimation = true;
+
+			// Set the time for each keyframe
+			for (auto& keyframe : menuLastFrame->exitAnimation)
+			{
+				keyframe->time = keyframe->duration + Globals::CurrentTicks;
+			}
+		}
+		else
+		{
+			menuLastFrame = openedMenus.back();
+			GetMenuInput();
+		}
+		
 		updateNormalStuff = false;
 	}
 	else if (editMode)
@@ -2389,7 +2454,14 @@ void Game::Render()
 	// Render all menu screens above the GUI
 	if (openedMenus.size() > 0)
 	{
-		openedMenus[openedMenus.size() - 1]->Render(renderer);
+		if (menuLastFrame->isPlayingExitAnimation)
+		{
+			menuLastFrame->Render(renderer);
+		}
+		else
+		{
+			openedMenus[openedMenus.size() - 1]->Render(renderer);
+		}
 	}
 
 	// Always render the mouse last

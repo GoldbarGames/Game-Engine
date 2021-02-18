@@ -13,9 +13,11 @@ class KINJO_API MenuButton : public BaseButton
 {
 private:
 	int thickness = 2;
-	glm::vec3 position = glm::vec3(0, 0, 0);
 	glm::vec3 imagePosition = glm::vec3(0, 0, 0);
 public:	
+
+	std::vector<Entity*> otherImages;
+
 	MenuButton(const std::string& txt, const std::string& filepath, 
 		const std::string& function, const glm::vec3& pos, Game& game, 
 		Color col = { 255, 255, 255, 255 });
@@ -23,6 +25,9 @@ public:
 	void Render(const Renderer& renderer);
 	BaseButton* Update(Game& game, const Uint8* currentKeyStates);
 	void SetOptionColors(Color color);
+
+	void Highlight(Game& game);
+	void Unhighlight(Game& game);
 };
 
 #endif
