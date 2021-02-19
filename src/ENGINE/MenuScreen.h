@@ -10,7 +10,7 @@
 
 class Entity;
 
-struct MenuAnimKeyframe
+struct KINJO_API MenuAnimKeyframe
 {
 	// We need the previous frame to get the start values.
 	// For the first keyframe, we need to make a "zero" keyframe
@@ -20,7 +20,6 @@ struct MenuAnimKeyframe
 	// so that other functions can know if they reached it
 	MenuAnimKeyframe* previousFrame = nullptr;
 
-	Entity* entity = nullptr;
 	uint32_t time = 0; // duration + current time
 	uint32_t duration = 0; // duration only
 
@@ -28,14 +27,22 @@ struct MenuAnimKeyframe
 	glm::vec3 targetPosition = glm::vec3(0, 0, 0);
 	glm::vec4 targetColor = { 255, 255, 255, 255 };
 
-	// Whether or not we are changing this property
-	bool setPosition = false;
-	bool setColor = false;
+	MenuAnimKeyframe();
+	MenuAnimKeyframe(MenuAnimKeyframe* p, uint32_t d);
 
 	// The actual method to change the properties
-	void Update(uint32_t currentTime);
+	void Update(Entity* entity, uint32_t currentTime);
+
+	void CalculateTime();
 };
 
+struct KINJO_API MenuAnimation
+{
+	Entity* entity = nullptr;
+	std::vector<MenuAnimKeyframe*> keyframes;
+
+	MenuAnimation(Entity* e);
+};
 
 class KINJO_API MenuScreen
 {	
@@ -46,8 +53,8 @@ public:
 	std::vector<Text*> texts;
 	std::vector<Entity*> images;
 
-	std::vector<MenuAnimKeyframe*> enterAnimation;
-	std::vector<MenuAnimKeyframe*> exitAnimation;
+	std::vector<MenuAnimation*> enterAnimation;
+	std::vector<MenuAnimation*> exitAnimation;
 
 	bool isPlayingEnterAnimation = false;
 	bool isPlayingExitAnimation = false;

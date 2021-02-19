@@ -20,7 +20,7 @@ enum class ShaderVariable { model, view, projection, texFrame, texOffset, sprite
 	pointPosition, attenuationConstant, attenuationLinear, attenuationExponent, pointLightCount, spotLightCount, distanceToLight2D
 };
 enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, SolidColor, Grid, 
-	Grayscale, Sharpen, Blur, Edge, Test, Custom, Diffuse };
+	Grayscale, Sharpen, Blur, Edge, Test, Custom, Diffuse, Motion };
 
 class KINJO_API ShaderProgram
 {

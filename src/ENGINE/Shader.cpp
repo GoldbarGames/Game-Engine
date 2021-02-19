@@ -70,7 +70,11 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     uniformVariables[ShaderVariable::model] = glGetUniformLocation(programID, "model");
     uniformVariables[ShaderVariable::projection] = glGetUniformLocation(programID, "projection");
     uniformVariables[ShaderVariable::view] = glGetUniformLocation(programID, "view");
+
+    // The size of the frame (width and height) in the texture
     uniformVariables[ShaderVariable::texFrame] = glGetUniformLocation(programID, "texFrame");
+
+    // The offset of the frame within the texture
     uniformVariables[ShaderVariable::texOffset] = glGetUniformLocation(programID, "texOffset");
 
     //TODO: What is a good way for us to define variables for specific shaders?

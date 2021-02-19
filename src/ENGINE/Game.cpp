@@ -2087,6 +2087,96 @@ void Game::UpdateClickAndDrag()
 	}
 }
 
+void Game::TransitionMenu()
+{
+	// If the menu that is open now is not the one that was open before...
+	// Then we want to transition from the old to the new
+	// (exit old, then enter new)
+	if (menuLastFrame != nullptr && menuLastFrame->isPlayingExitAnimation)
+	{
+		// For every keyframe that is within the current time,
+		// update the entity's properties for that frame
+		bool isFinished = true;
+		for (auto& anim : menuLastFrame->exitAnimation)
+		{
+			for (auto& keyframe : anim->keyframes)
+			{
+				// We want to update using the latest keyframe 
+				// for each entity without going past the current time
+				if (keyframe->time > Globals::CurrentTicks
+					&& keyframe->previousFrame != nullptr)
+				{
+					isFinished = false;
+					keyframe->Update(anim->entity, Globals::CurrentTicks);
+					break;
+				}
+			}
+		}
+
+		if (isFinished)
+		{
+			menuLastFrame->isPlayingExitAnimation = false;
+			openedMenus.back()->isPlayingEnterAnimation = true;
+
+			// Set the time for each keyframe
+			for (auto& anim : openedMenus.back()->enterAnimation)
+			{
+				for (auto& keyframe : anim->keyframes)
+				{
+					keyframe->CalculateTime();
+				}
+			}
+		}
+	}
+	else if (openedMenus.back()->isPlayingEnterAnimation)
+	{
+		// For every keyframe that is within the current time,
+		// update the entity's properties for that frame
+		bool isFinished = true;
+		MenuScreen* nextMenu = openedMenus.back();
+		for (auto& anim : nextMenu->enterAnimation)
+		{
+			for (auto& keyframe : anim->keyframes)
+			{
+
+				if (keyframe->time > Globals::CurrentTicks
+					&& keyframe->previousFrame != nullptr)
+				{
+					isFinished = false;
+					keyframe->Update(anim->entity, Globals::CurrentTicks);
+					break;
+				}
+			}
+		}
+
+		if (isFinished)
+		{
+			nextMenu->isPlayingEnterAnimation = false;
+			menuLastFrame = nextMenu;
+			menuLastFrame->selectedButton->Highlight(*this);
+		}
+	}
+	else if (menuLastFrame != openedMenus.back() && menuLastFrame != nullptr)
+	{
+		menuLastFrame->isPlayingExitAnimation = true;
+		menuLastFrame->selectedButton->Unhighlight(*this);
+
+		// Set the time for each keyframe
+		for (auto& anim : menuLastFrame->exitAnimation)
+		{
+			for (auto& keyframe : anim->keyframes)
+			{
+				keyframe->CalculateTime();
+			}
+		}
+	}
+	else
+	{
+		menuLastFrame = openedMenus.back();
+		GetMenuInput();
+	}
+}
+
 void Game::Update()
 {
 	inputManager.StartUpdate();
@@ -2152,71 +2242,15 @@ void Game::Update()
 
 	if (openedMenus.size() > 0)
 	{
-		// If the menu that is open now is not the one that was open before...
-		// Then we want to transition from the old to the new
-		// (exit old, then enter new)
-		if (menuLastFrame != nullptr && menuLastFrame->isPlayingExitAnimation)
+		if (waitForMenuTransitions)
 		{
-			// For every keyframe that is within the current time,
-			// update the entity's properties for that frame
-			bool isFinished = true;
-			for (auto& keyframe : menuLastFrame->exitAnimation)
-			{
-				if (keyframe->time > Globals::CurrentTicks)
-				{
-					isFinished = (keyframe->previousFrame == nullptr);
-					keyframe->Update(Globals::CurrentTicks);
-				}
-			}
-
-			if (isFinished)
-			{
-				menuLastFrame->isPlayingExitAnimation = false;
-				openedMenus.back()->isPlayingEnterAnimation = true;
-
-				// Set the time for each keyframe
-				for (auto& keyframe : openedMenus.back()->enterAnimation)
-				{
-					keyframe->time = keyframe->duration + Globals::CurrentTicks;
-				}
-			}
-		}
-		else if (openedMenus.back()->isPlayingEnterAnimation)
-		{
-			// For every keyframe that is within the current time,
-			// update the entity's properties for that frame
-			bool isFinished = true;
-			MenuScreen* nextMenu = openedMenus.back();
-			for (auto& keyframe : nextMenu->enterAnimation)
-			{
-				if (keyframe->time > Globals::CurrentTicks)
-				{
-					isFinished = (keyframe->previousFrame == nullptr);
-					keyframe->Update(Globals::CurrentTicks);
-				}
-			}
-
-			if (isFinished)
-			{
-				nextMenu->isPlayingEnterAnimation = false;
-				menuLastFrame = nextMenu;
-			}
-		}
-		else if (menuLastFrame != openedMenus.back() && menuLastFrame != nullptr)
-		{
-			menuLastFrame->isPlayingExitAnimation = true;
-
-			// Set the time for each keyframe
-			for (auto& keyframe : menuLastFrame->exitAnimation)
-			{
-				keyframe->time = keyframe->duration + Globals::CurrentTicks;
-			}
+			TransitionMenu();
 		}
 		else
 		{
-			menuLastFrame = openedMenus.back();
 			GetMenuInput();
 		}
+
 		
 		updateNormalStuff = false;
 	}
@@ -2328,24 +2362,40 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 	renderer.camera.ResetProjection();
 	renderer.guiCamera.Zoom(0.0f, screenWidth * Camera::MULTIPLIER, screenHeight * Camera::MULTIPLIER);
 
+	ShaderProgram* shader1 = nullptr;
+	ShaderProgram* shader2 = nullptr;
+	ShaderProgram* shader3 = nullptr;
+
 	if (mainFrameBuffer != nullptr)
 	{
+		shader1 = mainFrameBuffer->sprite->GetShader();
 		delete_it(mainFrameBuffer);
 	}
 
 	if (cutsceneFrameBuffer != nullptr)
 	{
+		shader2 = cutsceneFrameBuffer->sprite->GetShader();
 		delete_it(cutsceneFrameBuffer);
 	}
 
 	if (prevCutsceneFrameBuffer != nullptr)
 	{
+		shader3 = prevCutsceneFrameBuffer->sprite->GetShader();
 		delete_it(prevCutsceneFrameBuffer);
 	}
 
 	mainFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 	cutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 	prevCutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
+
+	if (shader1 != nullptr)
+		mainFrameBuffer->sprite->SetShader(shader1);
+
+	if (shader2 != nullptr)
+		cutsceneFrameBuffer->sprite->SetShader(shader2);
+
+	if (shader3 != nullptr)
+		prevCutsceneFrameBuffer->sprite->SetShader(shader3);
 
 	glViewport(0, 0, screenWidth, screenHeight);
 }
@@ -2454,7 +2504,7 @@ void Game::Render()
 	// Render all menu screens above the GUI
 	if (openedMenus.size() > 0)
 	{
-		if (menuLastFrame->isPlayingExitAnimation)
+		if (menuLastFrame != nullptr && menuLastFrame->isPlayingExitAnimation)
 		{
 			menuLastFrame->Render(renderer);
 		}

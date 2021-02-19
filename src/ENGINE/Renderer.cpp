@@ -5,6 +5,7 @@
 #include <algorithm>
 
 ShaderProgram* Renderer::textShader;
+ShaderProgram* Renderer::tileShader;
 
 ShaderProgram* Renderer::GetTextShader()
 {
@@ -48,8 +49,10 @@ void Renderer::CreateShaders()
 	CreateShader(ShaderName::Edge, "data/shaders/default.vert", "data/shaders/edge.frag");
 	CreateShader(ShaderName::Test, "data/shaders/default.vert", "data/shaders/test.frag");
 	CreateShader(ShaderName::Diffuse, "data/shaders/default.vert", "data/shaders/default.frag");
+	CreateShader(ShaderName::Motion, "data/shaders/motion.vert", "data/shaders/default.frag");
 
 	textShader = shaders[ShaderName::GUI];
+	tileShader = shaders[ShaderName::Default];
 }
 
 Renderer::~Renderer()

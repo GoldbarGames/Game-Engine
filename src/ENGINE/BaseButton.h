@@ -13,13 +13,10 @@
 class Renderer;
 class Game;
 
-class KINJO_API BaseButton
+class KINJO_API BaseButton : public Entity
 {
 public:
-	glm::vec3 position = glm::vec3(0, 0, 0);
-	Vector2 scale = Vector2(1, 1);
 	Sprite* image = nullptr;
-	std::string name = ""; // function to execute when button is pressed
 	Text* text = nullptr;
 	bool isSelected = false;
 	bool pressedAnyKey = false;
@@ -33,7 +30,8 @@ public:
 	virtual BaseButton* Update(Game& game, const Uint8* currentKeyStates);
 
 	void SetButtonsUpDownLeftRight(BaseButton* up = nullptr, BaseButton* down = nullptr, BaseButton* left = nullptr, BaseButton* right = nullptr);
-	virtual void SetOptionColors(Color color);
+	virtual void SetOptionColors(Color c);
+	void SetColor(Color c);
 
 	virtual void Highlight(Game& game);
 	virtual void Unhighlight(Game& game);

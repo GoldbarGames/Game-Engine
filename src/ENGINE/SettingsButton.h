@@ -26,7 +26,7 @@ public:
 	void Render(const Renderer& renderer);
 	BaseButton* Update(Game& game, const Uint8* currentKeyStates);
 	void ExecuteSelectedOption(Game& game);
-	void SetOptionColors(Color color);
+	void SetOptionColors(Color c);
 };
 
 #endif

@@ -1,6 +1,6 @@
 #include "BaseButton.h"
 
-BaseButton::BaseButton()
+BaseButton::BaseButton() : Entity(glm::vec3(0,0,0))
 {
 
 }
@@ -44,7 +44,16 @@ void BaseButton::SetButtonsUpDownLeftRight(BaseButton* up, BaseButton* down, Bas
 	buttonPressedRight = right;
 }
 
-void BaseButton::SetOptionColors(Color color)
+void BaseButton::SetColor(Color c)
+{
+	color = c;
+	if (image != nullptr)
+		image->color = c;
+	if (text != nullptr)
+		text->SetColor(c);
+}
+
+void BaseButton::SetOptionColors(Color c)
 {
 
 }

@@ -95,11 +95,11 @@ void SettingsButton::Render(const Renderer& renderer)
 	options[selectedOption]->Render(renderer);
 }
 
-void SettingsButton::SetOptionColors(Color color)
+void SettingsButton::SetOptionColors(Color c)
 {
 	for (unsigned int i = 0; i < options.size(); i++)
 	{
-		options[i]->SetText(options[i]->txt, color);
+		options[i]->SetText(options[i]->txt, c);
 	}
 }
 

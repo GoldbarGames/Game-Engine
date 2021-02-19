@@ -403,7 +403,7 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 
 		// Set the texture offset based on the current frame
 		unsigned int currentFrameOnRow = (currentFrame % framesPerRow);
-		texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow;
+		texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow - (1.0f / framesPerRow);
 		texOffset.y = (frameHeight * (currentRow)) / (GLfloat)texture->GetHeight();
 	}
 	else
@@ -564,7 +564,7 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	if (texture != nullptr)
 		height = texture->GetHeight();
 
-	GLfloat totalFrames = (endFrame - startFrame) + 1;
+	//GLfloat totalFrames = (endFrame - startFrame) + 1;
 	glm::vec2 texFrame = glm::vec2((1.0f / framesPerRow), frameHeight/height);
 	glm::vec2 texOffset = glm::vec2(0, 0);
 	
@@ -595,6 +595,10 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 
 	glUniform1f(shader->GetUniformVariable(ShaderVariable::distanceToLight2D), lightRatio);
 
+	glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
+	glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(spriteColor));
+	glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer.now);
+
 	float fadePoint, fadeR, fadeG, fadeB, fadeA, freq, maxColor;
 	glm::vec4 fadeColor;
 
@@ -617,6 +621,13 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 		fadeColor = glm::vec4(fadeR, fadeG, fadeB, fadeA);
 
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
+		break;
+	case ShaderName::Motion:
+		// % is the number of seconds / tiles for the pattern
+		// NOTE: The tile must loop at the halfway mark to look correct
+		// TODO: Can this be improved to work for whole tiles?
+		freq = 1000;
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
 		break;
 	case ShaderName::Glow:
 		freq = 0.002f;
@@ -642,9 +653,6 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
 		break;
 	default:
-		glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
-		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(spriteColor));
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer.now);
 		break;
 	}
 

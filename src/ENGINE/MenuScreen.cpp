@@ -6,34 +6,61 @@
 #include "Editor.h"
 #include "FileManager.h"
 
-void MenuAnimKeyframe::Update(uint32_t currentTime)
+MenuAnimation::MenuAnimation(Entity* e)
+{
+	entity = e;
+
+	MenuAnimKeyframe* initialFrame = new MenuAnimKeyframe();
+	initialFrame->targetPosition = e->position;
+	initialFrame->targetColor = glm::vec4(e->color.r, e->color.g, e->color.b, e->color.a);
+
+	keyframes.emplace_back(initialFrame);
+}
+
+MenuAnimKeyframe::MenuAnimKeyframe()
+{
+
+}
+
+MenuAnimKeyframe::MenuAnimKeyframe(MenuAnimKeyframe* p, uint32_t d)
+{
+	previousFrame = p;
+	duration = d;
+
+	// Set properties to the same as the previous frame
+	targetPosition = p->targetPosition;
+	targetColor = p->targetColor;
+}
+
+void MenuAnimKeyframe::CalculateTime()
+{
+	if (previousFrame != nullptr)
+		time = previousFrame->time + duration;
+	else
+		time = duration + Globals::CurrentTicks;
+}
+
+void MenuAnimKeyframe::Update(Entity* entity, uint32_t currentTime)
 {
 	// Can't update an entity that doesn't exist
 	if (entity == nullptr)
 		return;
 
-	if (setPosition)
-	{
-		glm::vec3 newPosition = entity->position;
+	glm::vec3 newPosition = entity->position;
 
-		LerpVector3(newPosition, previousFrame->targetPosition, targetPosition, 
-			currentTime, previousFrame->time, time);
+	LerpVector3(newPosition, previousFrame->targetPosition, targetPosition,
+		currentTime, previousFrame->time, time);
 
-		entity->SetPosition(newPosition);
-	}
+	entity->SetPosition(newPosition);
 
-	if (setColor)
-	{
-		glm::vec4 newColorV4 = glm::vec4(entity->color.r, entity->color.g, entity->color.b, entity->color.a);
+	glm::vec4 newColorV4 = glm::vec4(entity->color.r, entity->color.g, entity->color.b, entity->color.a);
 
-		LerpVector4(newColorV4, previousFrame->targetColor, targetColor,
-			currentTime, previousFrame->time, time);
+	LerpVector4(newColorV4, previousFrame->targetColor, targetColor,
+		currentTime, previousFrame->time, time);
 
-		Color newColor = { (uint8_t)newColorV4.r, (uint8_t)newColorV4.g, (uint8_t)newColorV4.b, (uint8_t)newColorV4.a };
+	Color newColor = { (uint8_t)newColorV4.r, (uint8_t)newColorV4.g, (uint8_t)newColorV4.b, (uint8_t)newColorV4.a };
 
-		entity->SetColor(newColor);
-	}
-
+	entity->SetColor(newColor);
 }
 
 
@@ -105,17 +132,27 @@ void MenuScreen::ResetMenu()
 	}
 	images.clear();
 
-	for (auto& keyframe : enterAnimation)
+	for (auto& anim : enterAnimation)
 	{
-		if (keyframe != nullptr)
-			delete_it(keyframe);
+		for (auto& keyframe : anim->keyframes)
+		{
+			if (keyframe != nullptr)
+				delete_it(keyframe);
+		}
+		if (anim != nullptr)
+			delete_it(anim);
 	}
 	enterAnimation.clear();
 
-	for (auto& keyframe : exitAnimation)
+	for (auto& anim : exitAnimation)
 	{
-		if (keyframe != nullptr)
-			delete_it(keyframe);
+		for (auto& keyframe : anim->keyframes)
+		{
+			if (keyframe != nullptr)
+				delete_it(keyframe);
+		}
+		if (anim != nullptr)
+			delete_it(anim);
 	}
 	exitAnimation.clear();
 }

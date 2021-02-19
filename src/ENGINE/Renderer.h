@@ -30,6 +30,7 @@ private:
 	static ShaderProgram* textShader;
 	mutable std::unordered_map<DrawingLayer, bool> layersVisible;
 public:
+	static ShaderProgram* tileShader;
 	Camera camera;
 	Camera guiCamera;
 

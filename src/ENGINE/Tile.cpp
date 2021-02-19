@@ -25,7 +25,7 @@ Tile::~Tile()
 void Tile::ChangeSprite(const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize)
 {
 	tileCoordinates = frame;
-	currentSprite = Sprite(frame, image, renderer.shaders[ShaderName::Default], tileSize);
+	currentSprite = Sprite(frame, image, Renderer::tileShader, tileSize);
 }
 
 void Tile::Animate()

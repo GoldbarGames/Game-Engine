@@ -214,6 +214,7 @@ public:
 
 	MenuScreen* menuLastFrame = nullptr;
 
+	bool waitForMenuTransitions = true;
 	bool loadingFromSaveFile = false;
 
 	bool isFullscreen = false;
@@ -254,6 +255,7 @@ public:
 
 	Sprite* cursorSprite = nullptr;
 
+	void TransitionMenu();
 	void TransitionLevel();
 
 	void LoadTitleScreen();
