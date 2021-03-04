@@ -119,7 +119,7 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 	}
 }
 
-void Background::SpawnBackground(const std::string& n, Game& game)
+void Background::SpawnBackground(const std::string& n, int x, int y, Game& game)
 {
 	//DeleteLayers(game);
 	ResetBackground();
@@ -131,8 +131,8 @@ void Background::SpawnBackground(const std::string& n, Game& game)
 		// Create the backgrounds from file data
 		unsigned int NUM_BGS = data->numBGs;
 		unsigned int BG_WIDTH = data->width * Camera::MULTIPLIER;
-		unsigned int X_OFFSET = data->xOffset;
-		unsigned int Y_OFFSET = data->yOffset;
+		unsigned int X_OFFSET = data->xOffset + x;
+		unsigned int Y_OFFSET = data->yOffset + y;
 
 		for (unsigned int i = 0; i < NUM_BGS; i++)
 		{
@@ -174,7 +174,7 @@ Entity* Background::AddLayer(const glm::vec3& pos, const BackgroundLayerData& da
 	Entity* bg = new BackgroundLayer(glm::vec3(pos.x + data.offsetX, pos.y + data.offsetY, pos.z), data.parallax);
 	bg->drawOrder = data.drawOrder;
 	bg->GetSprite()->SetTexture(spriteManager.GetImage(data.filepath));
-	bg->GetSprite()->SetShader(renderer.shaders[ShaderName::GUI]);
+	bg->GetSprite()->SetShader(renderer.shaders[2]);
 	bg->SetColor(data.color);
 	bg->GetSprite()->color = data.color;
 	bg->SetScale(Vector2(data.scaleX, data.scaleY));

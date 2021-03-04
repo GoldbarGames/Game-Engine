@@ -49,7 +49,7 @@ public:
 	Entity* AddLayer(const glm::vec3& pos, const BackgroundLayerData& data,
 		const SpriteManager& spriteManager, const Renderer& renderer);
 	void Save(std::unordered_map<std::string, std::string>& map);
-	void SpawnBackground(const std::string& n, Game& game);
+	void SpawnBackground(const std::string& n, int x, int y, Game& game);
 
 	static std::unordered_map<std::string, BackgroundData*> bgData;
 	static void ReadBackgroundData(const std::string& dataFilePath);

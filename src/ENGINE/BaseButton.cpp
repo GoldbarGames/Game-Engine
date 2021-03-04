@@ -47,10 +47,19 @@ void BaseButton::SetButtonsUpDownLeftRight(BaseButton* up, BaseButton* down, Bas
 void BaseButton::SetColor(Color c)
 {
 	color = c;
+
 	if (image != nullptr)
+	{
 		image->color = c;
+	}
+
+	// We must be careful here to not set the text color
+	// to the same as the background color, so change alpha only
 	if (text != nullptr)
-		text->SetColor(c);
+	{
+		Color txtCol = { text->color.r, text->color.g, text->color.b, c.a };
+		text->SetColor(txtCol);
+	}
 }
 
 void BaseButton::SetOptionColors(Color c)
@@ -58,21 +67,24 @@ void BaseButton::SetOptionColors(Color c)
 
 }
 
-void BaseButton::AlignTextCenterY()
+glm::vec3 BaseButton::AlignTextCenterY()
 {
 	text->SetPosition(position.x, position.y);
+	return text->position;
 }
 
-void BaseButton::AlignTextTopY()
+glm::vec3 BaseButton::AlignTextTopY()
 {
 	const float textCenter = (text->GetTextHeight());
 	const float imageCenter = (image->frameHeight * scale.y) * 0.75f;
 	text->SetPosition(position.x, position.y + textCenter - imageCenter);
+	return text->position;
 }
 
-void BaseButton::AlignTextBottomY()
+glm::vec3 BaseButton::AlignTextBottomY()
 {
 	const float textCenter = (text->GetTextHeight());
 	const float imageCenter = (image->frameHeight * scale.y) * 0.75f;
 	text->SetPosition(position.x, position.y - textCenter + imageCenter);
+	return text->position;
 }

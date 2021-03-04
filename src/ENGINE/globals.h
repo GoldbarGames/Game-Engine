@@ -80,6 +80,9 @@ extern KINJO_API bool LerpCoord(float& current, const float& start, const float&
 
 extern KINJO_API const std::string& GetLanguage();
 
+extern KINJO_API glm::vec4 ConvertColorToVec4(const Color& color);
+extern KINJO_API glm::vec4 ConvertColorToVec4NoAlpha(const Color& color);
+
 template<typename T>
 void delete_it(T& v)
 {

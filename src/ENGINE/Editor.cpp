@@ -52,7 +52,8 @@ Editor::Editor(Game& g)
 	dialog->text->SetPosition(dialog->position.x, dialog->position.y + 20);
 	dialog->input->SetPosition(dialog->position.x, dialog->position.y + 70);
 
-	dialog->sprite->SetShader(game->renderer.shaders[ShaderName::SolidColor]);
+	// shaders[4] = SolidColor
+	dialog->sprite->SetShader(game->renderer.shaders[4]);
 	dialog->sprite->color = { 255, 0, 0, 255 };
 	dialog->sprite->keepPositionRelativeToCamera = true;
 	dialog->sprite->keepScaleRelativeToCamera = true;
@@ -65,7 +66,7 @@ Editor::Editor(Game& g)
 	dialog->input->GetSprite()->keepScaleRelativeToCamera = true;
 
 
-	grid = new Sprite(game->renderer.shaders[ShaderName::Grid]);
+	grid = new Sprite(game->renderer.shaders[1]);
 	//grid->SetScale(Vector2(game->screenWidth, game->screenHeight));
 
 	game->entities.clear();	
@@ -260,9 +261,10 @@ void Editor::UpdateLevelFiles()
 				int reorderEntitySize = reorderMap[STR_ENTITY].size();
 				for (int i = 0; i < reorderEntitySize; i++)
 				{
-					int oldIndex = reorderMap[STR_ENTITY][i].x + difference;
-					int newIndex = reorderMap[STR_ENTITY][i].y + difference;
-					newTokens[newIndex] = tokens[oldIndex];
+					int oldIndex = reorderMap[STR_ENTITY][i].x;
+					int newIndex = reorderMap[STR_ENTITY][i].y;
+					if (tokens.size() > oldIndex)
+						newTokens[newIndex] = tokens[oldIndex];
 				}
 
 				int reorderTypeSize = reorderMap[etype].size();
@@ -358,7 +360,7 @@ void Editor::CreateEditorButtons()
 
 	const int buttonStartX = 50;
 	const int buttonWidth = 50;
-	const int buttonHeight = 50;
+	const int buttonHeight = 50 * (game->screenHeight/1280.0f);
 	const int buttonSpacing = 20;
 
 	int buttonX = buttonStartX + buttonWidth + buttonSpacing;
@@ -384,13 +386,18 @@ void Editor::CreateEditorButtons()
 	if (BUTTON_LIST_END > buttonNames.size())
 		BUTTON_LIST_END = buttonNames.size();
 
+	float bPadding = buttonHeight * Camera::MULTIPLIER;
+
+	float buttonY = (game->screenHeight * Camera::MULTIPLIER) - (bPadding * 2);
+	float buttonY2 = (game->screenHeight * Camera::MULTIPLIER) - (bPadding * 2 * Camera::MULTIPLIER);
+
 	for (unsigned int i = BUTTON_LIST_START; i < BUTTON_LIST_END; i++)
 	{
 		if (i > buttonNames.size() - 1)
 			break;
 
 		EditorButton* editorButton = new EditorButton("", buttonNames[i], 
-			glm::vec3(buttonX * Camera::MULTIPLIER, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
+			glm::vec3(buttonX * Camera::MULTIPLIER, buttonY, 0), *game);
 		
 		buttons.emplace_back(editorButton);
 
@@ -398,28 +405,33 @@ void Editor::CreateEditorButtons()
 	}
 
 	EditorButton* previousButton = new EditorButton("", "prevpage", 
-		glm::vec3(buttonStartX * Camera::MULTIPLIER, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
+		glm::vec3(buttonStartX * Camera::MULTIPLIER, buttonY, 0), *game);
 	
 	buttons.emplace_back(previousButton);
 
 	EditorButton* nextButton = new EditorButton("", "nextpage", 
-		glm::vec3(buttonX * Camera::MULTIPLIER, (game->screenHeight - buttonHeight) * Camera::MULTIPLIER, 0), *game);
+		glm::vec3(buttonX * Camera::MULTIPLIER, buttonY, 0), *game);
 	
 	buttons.emplace_back(nextButton);
 
 	// Level navigation
 
 	EditorButton* previousLevelButton = new EditorButton("", "prevlevel",
-		glm::vec3(buttonStartX * Camera::MULTIPLIER,
-			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER, 0), *game);
+		glm::vec3((buttonStartX + (buttonWidth + buttonSpacing)) * Camera::MULTIPLIER,
+			buttonY2, 0), *game);
 
 	buttons.emplace_back(previousLevelButton);
 
 	EditorButton* nextLevelButton = new EditorButton("", "nextlevel",
-		glm::vec3((buttonStartX + (buttonWidth + buttonSpacing)) * Camera::MULTIPLIER,
-			(game->screenHeight - buttonHeight - buttonHeight - buttonSpacing) * Camera::MULTIPLIER, 0), *game);
+		glm::vec3((buttonStartX + ( 2 * (buttonWidth + buttonSpacing))) * Camera::MULTIPLIER, 
+			buttonY2, 0), *game);
 
 	buttons.emplace_back(nextLevelButton);
+
+	for (auto& button : buttons)
+	{
+		button->image->keepScaleRelativeToCamera = true;
+	}
 }
 
 void Editor::StartEdit()
@@ -450,12 +462,13 @@ void Editor::StartEdit()
 	// TILE SHEET FOR TOOLBOX
 	if (tilesheetSprites.empty())
 	{
+		// shaders[3] = NoAlpha
 		for (int i = 0; i < tilesheetFilenames.size(); i++)
 		{
 			tilesheetSprites.push_back(new Sprite(1, game->spriteManager,
-				tilesheetFilenames[i], game->renderer.shaders[ShaderName::NoAlpha], Vector2(0, 0)));
+				tilesheetFilenames[i], game->renderer.shaders[3], Vector2(0, 0)));
 
-			tilesheetSprites[i]->keepPositionRelativeToCamera = true;
+			//tilesheetSprites[i]->keepPositionRelativeToCamera = true;
 			tilesheetSprites[i]->keepScaleRelativeToCamera = true;
 		}
 	}
@@ -1724,7 +1737,7 @@ void Editor::Render(const Renderer& renderer)
 
 		if (rectSprite == nullptr)
 		{
-			rectSprite = new Sprite(renderer.shaders[ShaderName::SolidColor]);
+			rectSprite = new Sprite(renderer.shaders[4]);
 			rectSprite->keepPositionRelativeToCamera = true;
 			rectSprite->keepScaleRelativeToCamera = true;
 		}
@@ -2331,9 +2344,11 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 				}
 				else if (etype == "bg")
 				{
-					index = 4;
+					index = 2;					
+					int bgX = std::stoi(tokens[index++]);
+					int bgY = std::stoi(tokens[index++]);
 					std::string bgName = tokens[index++];
-					game->background->SpawnBackground(bgName, *game);
+					game->background->SpawnBackground(bgName, bgX, bgY, *game);
 				}
 				else
 				{

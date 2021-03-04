@@ -4,8 +4,8 @@
 #include <sstream>
 
 SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager), 
-										timelineRectangle(m.game->renderer.shaders[ShaderName::SolidColor]), 
-										timelineLocation(m.game->renderer.shaders[ShaderName::SolidColor])
+										timelineRectangle(m.game->renderer.shaders[4]), 
+										timelineLocation(m.game->renderer.shaders[4])
 {
 	manager = &m;
 
@@ -86,7 +86,7 @@ SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager),
 	dialog.text->SetPosition(dialog.position.x, dialog.position.y + 20);
 	dialog.input->SetPosition(dialog.position.x, dialog.position.y + 70);
 
-	dialog.sprite->SetShader(manager->game->renderer.shaders[ShaderName::SolidColor]);
+	dialog.sprite->SetShader(manager->game->renderer.shaders[4]);
 	dialog.sprite->color = { 255, 0, 0, 255 };
 	dialog.sprite->keepPositionRelativeToCamera = true;
 	dialog.sprite->keepScaleRelativeToCamera = true;

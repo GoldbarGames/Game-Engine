@@ -239,10 +239,9 @@ Sprite::Sprite(const Vector2& frame, Texture* image, ShaderProgram* s, const int
 	// The lowest number input would be (0,0) so we subtract 1 from each
 	currentFrame = (frame.y * framesPerRow) + (frame.x);
 
+	currentFrame--;
 	currentRow = currentFrame / framesPerRow;
 	currentRow--;
-
-	currentFrame--;
 }
 
 Sprite::Sprite(int numFrames, const SpriteManager& manager, const std::string& filepath,
@@ -401,9 +400,8 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 			//std::cout << currentFrame << std::endl;
 		}
 
-		// Set the texture offset based on the current frame
 		unsigned int currentFrameOnRow = (currentFrame % framesPerRow);
-		texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow - (1.0f / framesPerRow);
+		texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow; // - (1.0f / framesPerRow);
 		texOffset.y = (frameHeight * (currentRow)) / (GLfloat)texture->GetHeight();
 	}
 	else
@@ -529,14 +527,14 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 
 	if (shader == nullptr)
 	{
-		shader = renderer.shaders[ShaderName::Default];
+		shader = renderer.shaders[1];
 	}
 
 	if (isHovered)
 	{
 		if (hoverShader == nullptr)
 		{
-			hoverShader = renderer.shaders[ShaderName::FadeInOut];
+			hoverShader = renderer.shaders[7];
 		}
 
 		shader = hoverShader;
@@ -604,7 +602,7 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 
 	switch (shader->GetName())
 	{
-	case ShaderName::FadeInOut:
+	case 7: // ShaderName::FadeInOut:
 		// in order to fade to a color, we want to oscillate all the colors we DON'T want
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)		
 		// To fade to red, oscillate blue and green, but not red or alpha
@@ -622,14 +620,7 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
 		break;
-	case ShaderName::Motion:
-		// % is the number of seconds / tiles for the pattern
-		// NOTE: The tile must loop at the halfway mark to look correct
-		// TODO: Can this be improved to work for whole tiles?
-		freq = 1000;
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
-		break;
-	case ShaderName::Glow:
+	case 8: // ShaderName::Glow:
 		freq = 0.002f;
 		fadePoint = abs(sin(renderer.now * freq));
 		fadeR = color.r > fadePoint ? (color.r / 255.0f) : fadePoint;
@@ -651,6 +642,17 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 		// (so in order to fade to clear/transparent, we oscillate EVERY color)
 
 		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
+		break;
+	case 13: //ShaderName::Motion:
+		// % is the number of seconds / tiles for the pattern
+		// NOTE: The tile must loop at the halfway mark to look correct
+		// TODO: Can this be improved to work for whole tiles?
+		freq = 1000;
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
+		break;
+	case 15:
+		freq = 0.0004f;
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
 		break;
 	default:
 		break;

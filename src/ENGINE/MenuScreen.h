@@ -42,6 +42,7 @@ struct KINJO_API MenuAnimation
 	std::vector<MenuAnimKeyframe*> keyframes;
 
 	MenuAnimation(Entity* e);
+	MenuAnimKeyframe* CreateKeyframe(uint32_t duration);
 };
 
 class KINJO_API MenuScreen
@@ -69,7 +70,10 @@ public:
 	
 	void Render(const Renderer& renderer);
 	bool Update(Game& game);
-	
+
+	MenuAnimation* CreateEnterAnimation(Entity* entity);
+	MenuAnimation* CreateExitAnimation(Entity* entity);
+
 	virtual void CreateMenu(const std::string& n, Game& game);
 	virtual bool PressSelectedButton(Game& game);
 

@@ -25,7 +25,7 @@ enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, S
 class KINJO_API ShaderProgram
 {
 public:
-	ShaderProgram(const ShaderName n, const char* vertexFilePath, const char* fragmentFilePath);
+	ShaderProgram(const int n, const char* vertexFilePath, const char* fragmentFilePath);
 
 	~ShaderProgram();
 
@@ -41,7 +41,7 @@ public:
 
 	GLuint GetUniformVariable(ShaderVariable variable) const;
 
-	const ShaderName& GetName() { return name; }
+	const int& GetName() { return name; }
 	const std::string& GetNameString();
 	void SetNameString(const std::string& s) { nameString = s; };
 
@@ -84,7 +84,7 @@ public:
 
 private:
 	GLuint programID;
-	ShaderName name;
+	int name;
 	std::string nameString = "";
 	mutable std::unordered_map<ShaderVariable, GLuint> uniformVariables;
 

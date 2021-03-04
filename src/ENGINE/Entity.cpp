@@ -172,6 +172,9 @@ void Entity::Update(Game& game)
 
 	if (animator != nullptr)
 		animator->Update(*this);
+
+	//if (shader != nullptr && currentSprite.shader != shader)
+	//	currentSprite.SetShader(shader);
 	
 	CalculateCollider();
 }
@@ -424,6 +427,15 @@ void Entity::Save(std::unordered_map<std::string, std::string>& map)
 		map["positionX"] = std::to_string((int)startPosition.x);
 		map["positionY"] = std::to_string((int)startPosition.y);
 		map["rotationZ"] = std::to_string((int)rotation.z);
+
+		if (etype == "player")
+			int test = 0;
+		
+		if (currentSprite.shader == nullptr)
+			map["shader"] = 1;
+		else
+			map["shader"] = std::to_string(currentSprite.shader->GetName());
+
 		map["subtype"] = std::to_string(subtype);
 	}
 }
@@ -440,6 +452,7 @@ void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 	}		
 
 	static const std::string rotationZ = "rotationZ";
+	static const std::string shaderString = "shader";
 
 	if (map.count(rotationZ) != 0)
 	{
@@ -449,6 +462,11 @@ void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 			rotation.z = std::stoi(map[rotationZ]);
 	}
 
+	if (map.count(shaderString) != 0)
+	{
+		//if (map[shaderString] != "" && game.renderer.shaders.count(std::stoi(map[shaderString])) != 0)
+		//	shader = game.renderer.shaders[std::stoi(map[shaderString])];
+	}
 }
 
 

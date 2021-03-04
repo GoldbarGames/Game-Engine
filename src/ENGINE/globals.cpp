@@ -229,6 +229,16 @@ std::string GetDrawingLayerName(DrawingLayer layer)
 	return "";
 }
 
+glm::vec4 ConvertColorToVec4(const Color& color)
+{
+	return glm::vec4(color.r, color.g, color.b, color.a);
+}
+
+glm::vec4 ConvertColorToVec4NoAlpha(const Color& color)
+{
+	return glm::vec4(color.r, color.g, color.b, 0);
+}
+
 std::string CurrentDate() {
 	time_t now = time(NULL);
 	struct tm tstruct;

@@ -286,7 +286,8 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 		renderer.spotLights[0] = new SpotLight(lColor2, 0.4f, 0.2f, pos2, attenuation, lDir, 20.0f);
 		renderer.spotLightCount++;
 
-		triangle3D = new Sprite(renderer.shaders[ShaderName::Diffuse], MeshType::Pyramid);
+		// shaders[5] = Diffuse
+		triangle3D = new Sprite(renderer.shaders[5], MeshType::Pyramid);
 		triangle3D->color = { 255, 0, 0, 255 };
 
 		// Shiny Material
@@ -388,7 +389,7 @@ Game::~Game()
 	EndSDL();
 }
 
-Sprite* Game::CreateSprite(const std::string& filepath, const ShaderName shaderName)
+Sprite* Game::CreateSprite(const std::string& filepath, const int shaderName)
 {
 	return new Sprite(spriteManager.GetImage(filepath), renderer.shaders[shaderName]);
 }
@@ -963,7 +964,7 @@ void Game::StopTextInput(Dialog& dialog)
 		// If a BG with that name exists, then use it
 		if (background->bgData.count(inputText) != 0)
 		{
-			background->SpawnBackground(inputText, *this);
+			background->SpawnBackground(inputText, 0, 0, *this);
 		}
 		else
 		{
@@ -2138,7 +2139,6 @@ void Game::TransitionMenu()
 		{
 			for (auto& keyframe : anim->keyframes)
 			{
-
 				if (keyframe->time > Globals::CurrentTicks
 					&& keyframe->previousFrame != nullptr)
 				{

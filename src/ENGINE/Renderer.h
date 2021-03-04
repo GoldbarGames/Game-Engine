@@ -67,14 +67,14 @@ public:
 	Vector2 CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const;
 	Vector2 screenScale = Vector2(1, 1);
 
-	mutable std::unordered_map<ShaderName, ShaderProgram*> shaders;
+	mutable std::unordered_map<int, ShaderProgram*> shaders;
 	
 	void LerpColor(float& color, float target, const float& speed);
 	void FadeOverlay(const int screenWidth, const int screenHeight) const;
 	void ToggleVisibility(DrawingLayer layer);
 	bool IsVisible(DrawingLayer layer) const;
 
-	void CreateShader(const ShaderName shaderName, const char* vertexFilePath, const char* fragmentFilePath);
+	void CreateShader(const int shaderName, const char* vertexFilePath, const char* fragmentFilePath);
 	void CreateShaders();
 
 	static ShaderProgram* GetTextShader();

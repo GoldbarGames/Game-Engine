@@ -2032,7 +2032,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 			// Add the image to the text here
 			//TODO: Check this for memory leaks!
 			
-			Sprite* sprite = game->CreateSprite(commands.ParseStringValue(imageName), ShaderName::Default);
+			Sprite* sprite = game->CreateSprite(commands.ParseStringValue(imageName), 1);
 
 			text->AddImage(sprite);
 			letterIndex = imageIndex;
@@ -2912,7 +2912,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 					{
 						if (lineParams[10] == Globals::NONE_STRING)
 						{
-							entity->GetSprite()->SetShader(game->renderer.shaders[ShaderName::Default]);
+							entity->GetSprite()->SetShader(game->renderer.shaders[1]);
 						}
 						else
 						{

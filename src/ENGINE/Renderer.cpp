@@ -32,27 +32,23 @@ void Renderer::Init(Game* g)
 
 void Renderer::CreateShaders()
 {
-	CreateShader(ShaderName::Default, "data/shaders/default.vert", "data/shaders/default.frag");
-	//CreateShader("special", "data/shaders/special.vert", "data/shaders/special.frag");
-	//CreateShader(ShaderName::Multiply, "data/shaders/default.vert", "data/shaders/multiply.frag");
-	CreateShader(ShaderName::Add, "data/shaders/default.vert", "data/shaders/add.frag");
-	//CreateShader("hue-shift", "data/shaders/hue-shift.vert", "data/shaders/hue-shift.frag");
-	CreateShader(ShaderName::FadeInOut, "data/shaders/default.vert", "data/shaders/fade-in-out.frag");
-	CreateShader(ShaderName::Glow, "data/shaders/default.vert", "data/shaders/glow.frag");
-	CreateShader(ShaderName::GUI, "data/shaders/gui.vert", "data/shaders/gui.frag");
-	CreateShader(ShaderName::NoAlpha, "data/shaders/default.vert", "data/shaders/noalpha.frag");
-	CreateShader(ShaderName::SolidColor, "data/shaders/default.vert", "data/shaders/solidcolor.frag");
-	//CreateShader(ShaderName::Grid, "data/shaders/default.vert", "data/shaders/grid.frag");
-	CreateShader(ShaderName::Grayscale, "data/shaders/default.vert", "data/shaders/grayscale.frag");
-	CreateShader(ShaderName::Sharpen, "data/shaders/default.vert", "data/shaders/sharpen.frag");
-	CreateShader(ShaderName::Blur, "data/shaders/default.vert", "data/shaders/blur.frag");
-	CreateShader(ShaderName::Edge, "data/shaders/default.vert", "data/shaders/edge.frag");
-	CreateShader(ShaderName::Test, "data/shaders/default.vert", "data/shaders/test.frag");
-	CreateShader(ShaderName::Diffuse, "data/shaders/default.vert", "data/shaders/default.frag");
-	CreateShader(ShaderName::Motion, "data/shaders/motion.vert", "data/shaders/default.frag");
+	std::vector<std::string> shaderList = ReadStringsFromFile("data/shaders.dat");
+	std::string vertexFile = "";
+	std::string fragmentFile = "";
+	std::string shaderFolder = "data/shaders/";
 
-	textShader = shaders[ShaderName::GUI];
-	tileShader = shaders[ShaderName::Default];
+	for (int i = 0; i < shaderList.size(); i++)
+	{
+		int index = 0;
+		ParseWord(shaderList[i], ' ', index);
+		vertexFile = shaderFolder + ParseWord(shaderList[i], ' ', index);
+		fragmentFile = shaderFolder + ParseWord(shaderList[i], ' ', index);
+		CreateShader(i + 1, vertexFile.c_str(), fragmentFile.c_str());
+	}
+
+	// shaders[0] = custom shader
+	tileShader = shaders[1]; // default
+	textShader = shaders[2]; // gui
 }
 
 Renderer::~Renderer()
@@ -173,7 +169,7 @@ void Renderer::FadeOverlay(const int screenWidth, const int screenHeight) const
 	overlayScale = Vector2(screenWidth / rWidth, screenHeight / rHeight);
 }
 
-void Renderer::CreateShader(const ShaderName shaderName, const char* vertexFilePath, const char* fragmentFilePath)
+void Renderer::CreateShader(const int shaderName, const char* vertexFilePath, const char* fragmentFilePath)
 {
 	if (shaders[shaderName] != nullptr)
 		delete_it(shaders[shaderName]);

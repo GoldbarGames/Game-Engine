@@ -1376,7 +1376,7 @@ namespace CutsceneFunctions
 		// Load the sprite under the currently selected filter (shader)
 		if (c.shaderFilter == "")
 		{
-			newImage.GetSprite()->SetShader(c.manager->game->renderer.shaders[ShaderName::Default]);
+			newImage.GetSprite()->SetShader(c.manager->game->renderer.shaders[1]);
 		}
 		else if (imageNumber >= c.filterMin && imageNumber <= c.filterMax)
 		{
@@ -3308,7 +3308,7 @@ namespace CutsceneFunctions
 
 		m->BindMesh();
 
-		c.customShaders[shaderName] = new ShaderProgram(ShaderName::Custom, vertexFile.c_str(), fragmentFile.c_str());
+		c.customShaders[shaderName] = new ShaderProgram(0, vertexFile.c_str(), fragmentFile.c_str());
 		c.customShaders[shaderName]->SetNameString(shaderName);
 
 		m->ClearMesh();

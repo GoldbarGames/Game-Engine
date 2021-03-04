@@ -5,13 +5,13 @@
 
 Dialog::Dialog(SpriteManager* manager)
 {
-	sprite = new Sprite(manager->renderer->shaders[ShaderName::Default]);
+	sprite = new Sprite(manager->renderer->shaders[1]);
 }
 
 Dialog::Dialog(const glm::vec3& pos, SpriteManager* manager)
 {
 	position = pos;
-	sprite = new Sprite(manager->renderer->shaders[ShaderName::Default]);
+	sprite = new Sprite(manager->renderer->shaders[1]);
 }
 
 Dialog::~Dialog()

@@ -36,9 +36,9 @@ public:
 	virtual void Highlight(Game& game);
 	virtual void Unhighlight(Game& game);
 
-	void AlignTextCenterY();
-	void AlignTextTopY();
-	void AlignTextBottomY();
+	glm::vec3 AlignTextCenterY();
+	glm::vec3 AlignTextTopY();
+	glm::vec3 AlignTextBottomY();
 };
 
 

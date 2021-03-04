@@ -33,7 +33,7 @@ void ParticleSystem::Update(Game& game)
 		particles[nextActiveIndex].GetSprite()->SetTexture(game.spriteManager.GetImage(nextFilename));
 
 		// TODO: Add a way to set the shader to something else
-		particles[nextActiveIndex].GetSprite()->SetShader(game.renderer.shaders[ShaderName::Default]);
+		particles[nextActiveIndex].GetSprite()->SetShader(game.renderer.shaders[1]);
 
 		int colliderWidth = particles[nextActiveIndex].GetSprite()->frameWidth;
 		if (nextParticleColliderWidth > 0)

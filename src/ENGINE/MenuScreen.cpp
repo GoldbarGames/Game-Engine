@@ -22,6 +22,13 @@ MenuAnimKeyframe::MenuAnimKeyframe()
 
 }
 
+MenuAnimKeyframe* MenuAnimation::CreateKeyframe(uint32_t duration)
+{
+	MenuAnimKeyframe* keyframe = new MenuAnimKeyframe(keyframes.back(), duration);
+	keyframes.emplace_back(keyframe);
+	return keyframe;
+}
+
 MenuAnimKeyframe::MenuAnimKeyframe(MenuAnimKeyframe* p, uint32_t d)
 {
 	previousFrame = p;
@@ -63,6 +70,19 @@ void MenuAnimKeyframe::Update(Entity* entity, uint32_t currentTime)
 	entity->SetColor(newColor);
 }
 
+MenuAnimation* MenuScreen::CreateEnterAnimation(Entity* entity)
+{
+	MenuAnimation* animation = new MenuAnimation(entity);
+	enterAnimation.emplace_back(animation);
+	return animation;
+}
+
+MenuAnimation* MenuScreen::CreateExitAnimation(Entity* entity)
+{
+	MenuAnimation* animation = new MenuAnimation(entity);
+	exitAnimation.emplace_back(animation);
+	return animation;
+}
 
 MenuScreen::MenuScreen(const std::string& n, Game& game)
 {

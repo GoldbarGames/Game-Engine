@@ -288,7 +288,7 @@ public:
 
 	void SaveScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension);
 
-	Sprite* CreateSprite(const std::string& filepath, const ShaderName shaderName = ShaderName::Default);
+	Sprite* CreateSprite(const std::string& filepath, const int shaderName = 1);
 };
 
 #endif

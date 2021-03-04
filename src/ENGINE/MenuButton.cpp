@@ -10,7 +10,7 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 {
 	position = pos;
 
-	image = new Sprite(1, game.spriteManager, filepath, game.renderer.shaders[ShaderName::GUI], Vector2(0,0));
+	image = new Sprite(1, game.spriteManager, filepath, Renderer::GetTextShader(), Vector2(0,0));
 	SetColor(col);
 
 	text = new Text(game.theFont);
@@ -92,29 +92,31 @@ void MenuButton::Render(const Renderer& renderer)
 
 void MenuButton::Highlight(Game& game)
 {
+	// shaders[8] = glow
+
 	if (image != nullptr)
-		image->SetShader(game.renderer.shaders[ShaderName::Glow]);
+		image->SetShader(game.renderer.shaders[8]);
 
 	if (text != nullptr)
-		text->GetSprite()->SetShader(game.renderer.shaders[ShaderName::Glow]);
+		text->GetSprite()->SetShader(game.renderer.shaders[8]);
 
 	for (auto& s : otherImages)
 	{
-		s->GetSprite()->SetShader(game.renderer.shaders[ShaderName::Glow]);
+		s->GetSprite()->SetShader(game.renderer.shaders[8]);
 	}
 }
 
 void MenuButton::Unhighlight(Game& game)
 {
 	if (image != nullptr)
-		image->SetShader(game.renderer.shaders[ShaderName::GUI]);
+		image->SetShader(game.renderer.shaders[2]);
 
 	if (text != nullptr)
-		text->GetSprite()->SetShader(game.renderer.shaders[ShaderName::GUI]);
+		text->GetSprite()->SetShader(game.renderer.shaders[2]);
 
 	for (auto& s : otherImages)
 	{
-		s->GetSprite()->SetShader(game.renderer.shaders[ShaderName::GUI]);
+		s->GetSprite()->SetShader(game.renderer.shaders[2]);
 	}
 }
 

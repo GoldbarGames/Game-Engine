@@ -18,14 +18,14 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	boxObject = new Entity(glm::vec3(1280, 720, 0));
 
 	boxObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/textbox1.png"));
-	boxObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
+	boxObject->GetSprite()->SetShader(renderer->shaders[2]);
 	boxObject->GetSprite()->keepScaleRelativeToCamera = true;
 	boxObject->GetSprite()->keepPositionRelativeToCamera = true;
 
 	nameObject = new Entity(glm::vec3(1280, 720, 0));
 
 	nameObject->GetSprite()->SetTexture(spriteManager->GetImage("assets/gui/namebox1.png"));
-	nameObject->GetSprite()->SetShader(renderer->shaders[ShaderName::GUI]);
+	nameObject->GetSprite()->SetShader(renderer->shaders[2]);
 	nameObject->GetSprite()->keepScaleRelativeToCamera = true;
 	nameObject->GetSprite()->keepPositionRelativeToCamera = true;
 

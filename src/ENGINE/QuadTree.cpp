@@ -47,7 +47,7 @@ void QuadTree::RenderEntities(const Renderer& renderer, const std::vector<Entity
    return;
 
     if (debugSprite == nullptr)
-        debugSprite = new Sprite(renderer.shaders[ShaderName::SolidColor]);
+        debugSprite = new Sprite(renderer.shaders[4]);
 
     for (int i = 0; i < e.size(); i++)
     {
@@ -108,7 +108,7 @@ void QuadTree::Render(const Renderer& renderer)
     if (renderer.game->debugMode)
     {
         if (debugSprite == nullptr)
-            debugSprite = new Sprite(renderer.shaders[ShaderName::SolidColor]);
+            debugSprite = new Sprite(renderer.shaders[4]);
 
         int colorIndex = depth % 6;
         Uint8 c = (int)renderAlpha;

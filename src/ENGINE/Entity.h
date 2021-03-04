@@ -49,6 +49,10 @@ public:
 	std::string name = "";
 	std::string etype = "entity";
 
+	// Since the sprite changes all the time due to animations,
+	// we must have a single reference point for the shader
+	//ShaderProgram* shader = nullptr;
+
 	uint32_t id = 0;
 	int subtype = 0;
 	int drawOrder = 0; // order for drawing

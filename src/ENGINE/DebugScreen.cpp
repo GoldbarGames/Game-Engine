@@ -11,7 +11,7 @@ DebugScreen::DebugScreen(Game& g)
 	game = &g;
 
 #ifdef _DEBUG
-	onePixelSprite = game->CreateSprite("assets/editor/1pixel.png", ShaderName::GUI);
+	onePixelSprite = game->CreateSprite("assets/editor/1pixel.png", 2);
 	camera = &game->renderer.camera;
 
 	insertVariableButton = new EditorButton("Watch", "Btn", glm::vec3(2000, 100, 0), *game);
