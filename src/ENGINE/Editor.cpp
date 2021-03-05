@@ -468,7 +468,7 @@ void Editor::StartEdit()
 			tilesheetSprites.push_back(new Sprite(1, game->spriteManager,
 				tilesheetFilenames[i], game->renderer.shaders[3], Vector2(0, 0)));
 
-			//tilesheetSprites[i]->keepPositionRelativeToCamera = true;
+			tilesheetSprites[i]->keepPositionRelativeToCamera = true;
 			tilesheetSprites[i]->keepScaleRelativeToCamera = true;
 		}
 	}

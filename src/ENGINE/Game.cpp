@@ -828,6 +828,7 @@ Entity* Game::SpawnPlayer(const glm::vec3& position)
 
 void Game::ShouldDeleteEntity(int index)
 {
+	//entitiesToDelete.emplace_back(index);
 	entities[index]->shouldDelete = true;
 }
 
@@ -840,6 +841,7 @@ void Game::ShouldDeleteEntity(Entity* entity)
 	{
 		int index = std::distance(entities.begin(), iter);
 		entities[index]->shouldDelete = true;
+		//entitiesToDelete.emplace_back(index);
 	}
 	else
 	{
@@ -1334,6 +1336,14 @@ bool Game::CheckInputs()
 
 void Game::CheckDeleteEntities()
 {
+	// TODO: Instead of iterating over all entities,
+	// should probably just have a list of IDs
+	// corresponding to each entity to delete
+	for (int i = 0; i < entitiesToDelete.size(); i++)
+	{
+		DeleteEntity(entities[entitiesToDelete[i]]);
+	}
+
 	// Destroy entities before we update them
 	unsigned int k = 0;
 	while (k < entities.size())
@@ -1354,42 +1364,6 @@ void Game::HandleEditMode()
 		renderer.guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
 
 		editor->HandleEdit();
-	}
-}
-
-void Game::TogglePause(bool toggle)
-{
-	isPaused = toggle;
-
-	if (isPaused)
-	{
-		openedMenus.emplace_back(allMenus["Pause"]);
-		uint32_t ticks = Globals::CurrentTicks;
-		for (unsigned int i = 0; i < entities.size(); i++)
-			entities[i]->Pause(ticks);
-	}
-	else
-	{
-		openedMenus.clear();
-		for (unsigned int i = 0; i < entities.size(); i++)
-			entities[i]->Unpause(Globals::CurrentTicks);
-	}
-}
-
-void Game::EscapeMenu()
-{
-	if (openedMenus.size() > 0)
-	{
-		MenuScreen* currentMenu = openedMenus.back();
-		if (openedMenus.back()->canEscapeFrom)
-		{
-			openedMenus.pop_back();
-		}
-
-		if (currentMenu->name == "Pause")
-		{
-			TogglePause(false);
-		}		
 	}
 }
 
@@ -1619,12 +1593,6 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 		{
 			switch (event.key.keysym.sym)
 			{
-			case SDLK_ESCAPE:
-				EscapeMenu();
-				break;
-			case SDLK_q:
-				quit = true;
-				break;
 			case SDLK_RETURN:
 				quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
 				break;
@@ -2035,6 +2003,16 @@ void Game::GetMenuInput()
 			// If we have pressed any key on the menu, add a delay between presses
 			if (openedMenus[openedMenus.size() - 1]->Update(*this))
 				lastPressedKeyTicks = ticks;
+
+			// TODO: Is there a better way to do this?
+			// We can't pop_back inside of the Update() function!
+			if (menuManager->shouldPopBackThisFrame)
+			{
+				menuManager->shouldPopBackThisFrame = false;
+				if (openedMenus.size() > 0)
+					openedMenus.pop_back();
+			}
+				
 		}
 	}
 }
@@ -2153,13 +2131,13 @@ void Game::TransitionMenu()
 		{
 			nextMenu->isPlayingEnterAnimation = false;
 			menuLastFrame = nextMenu;
-			menuLastFrame->selectedButton->Highlight(*this);
+			menuLastFrame->HighlightSelectedButton(*this);
 		}
 	}
 	else if (menuLastFrame != openedMenus.back() && menuLastFrame != nullptr)
 	{
 		menuLastFrame->isPlayingExitAnimation = true;
-		menuLastFrame->selectedButton->Unhighlight(*this);
+		menuLastFrame->UnhighlightSelectedButton(*this);
 
 		// Set the time for each keyframe
 		for (auto& anim : menuLastFrame->exitAnimation)

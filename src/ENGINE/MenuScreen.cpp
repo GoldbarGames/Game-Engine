@@ -182,6 +182,18 @@ MenuScreen::~MenuScreen()
 	ResetMenu();
 }
 
+void MenuScreen::HighlightSelectedButton(Game& game)
+{
+	if (selectedButton != nullptr)
+		selectedButton->Highlight(game);
+}
+
+void MenuScreen::UnhighlightSelectedButton(Game& game)
+{
+	if (selectedButton != nullptr)
+		selectedButton->Unhighlight(game);
+}
+
 void MenuScreen::Render(const Renderer& renderer)
 {
 	for (unsigned int i = 0; i < images.size(); i++)

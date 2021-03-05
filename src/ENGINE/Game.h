@@ -68,6 +68,8 @@ public:
 	const FileManager* fileManager = nullptr;
 	const MenuManager* menuManager = nullptr;
 
+	std::vector<int> entitiesToDelete;
+
 	SDL_Rect mouseRect;
 	uint32_t mouseState;
 	uint32_t previousMouseState;
@@ -134,7 +136,6 @@ public:
 	void HandleEditMode();
 
 	void GetMenuInput();
-	void TogglePause(bool toggle);
 
 	void PopulateQuadTree();
 
@@ -271,8 +272,6 @@ public:
 
 	void StartTextInput(Dialog& dialog, const std::string& reason);
 	void StopTextInput(Dialog& dialog);
-
-	void EscapeMenu();
 
 	void ResetLevel();
 

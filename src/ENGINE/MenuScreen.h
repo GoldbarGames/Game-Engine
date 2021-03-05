@@ -69,7 +69,7 @@ public:
 	~MenuScreen();
 	
 	void Render(const Renderer& renderer);
-	bool Update(Game& game);
+	virtual bool Update(Game& game);
 
 	MenuAnimation* CreateEnterAnimation(Entity* entity);
 	MenuAnimation* CreateExitAnimation(Entity* entity);
@@ -78,6 +78,9 @@ public:
 	virtual bool PressSelectedButton(Game& game);
 
 	void ResetMenu();
+
+	void HighlightSelectedButton(Game& game);
+	void UnhighlightSelectedButton(Game& game);
 	
 	BaseButton* GetButtonByName(const std::string& buttonName);
 	void AssignButtons(bool useLeftRight);
