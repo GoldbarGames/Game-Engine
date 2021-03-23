@@ -404,6 +404,10 @@ std::vector<std::string> ReadStringsFromFile(const std::string& filepath)
 				result.emplace_back(token);
 		}
 	}
+	else
+	{
+		std::cout << "ERROR: Could not open file " << filepath << std::endl;
+	}
 
 	fin.close();
 

@@ -1210,21 +1210,7 @@ void Game::TransitionLevel()
 			if (loadingFromSaveFile)
 			{
 				loadingFromSaveFile = false;
-				// Load data from the current save file
-				if (player != nullptr)
-				{
-					player->position.x = cutsceneManager.commands.numberVariables[202];
-					player->position.y = cutsceneManager.commands.numberVariables[203];
-					player->startPosition = player->position;
-
-					/*
-					if (player->health != nullptr)
-					{
-						player->health->SetMaxHP(cutsceneManager.commands.numberVariables[204]);
-						player->health->SetCurrentHP(cutsceneManager.commands.numberVariables[205]);
-					}
-					*/
-				}
+				fileManager->AfterLoadLevelFromFile();
 			}			
 		}
 	}
@@ -1998,7 +1984,7 @@ void Game::GetMenuInput()
 	else
 	{
 		uint32_t ticks = timer.GetTicks();
-		if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
+		if (ticks > lastPressedKeyTicks + 50) //TODO: Check for overflow errors
 		{
 			// If we have pressed any key on the menu, add a delay between presses
 			if (openedMenus[openedMenus.size() - 1]->Update(*this))
@@ -2153,6 +2139,19 @@ void Game::TransitionMenu()
 		menuLastFrame = openedMenus.back();
 		GetMenuInput();
 	}
+}
+
+void Game::OpenMenu(const std::string& menuName)
+{
+	MenuScreen& menu = *allMenus[menuName];
+
+	if (menu.isDynamic)
+	{
+		menu.ResetMenu();
+		menu.CreateMenu(menuName, *this);
+	}
+
+	openedMenus.emplace_back(&menu);
 }
 
 void Game::Update()

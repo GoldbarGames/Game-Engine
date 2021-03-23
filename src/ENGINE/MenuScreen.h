@@ -54,11 +54,23 @@ public:
 	std::vector<Text*> texts;
 	std::vector<Entity*> images;
 
+	BaseButton* lastButton = nullptr;
+
 	std::vector<MenuAnimation*> enterAnimation;
 	std::vector<MenuAnimation*> exitAnimation;
 
 	bool isPlayingEnterAnimation = false;
 	bool isPlayingExitAnimation = false;
+
+	// Should this menu be recreated each time it is opened?
+	// Set to true if this menu uses any variables
+	bool isDynamic = false;
+
+	// If true, then when we create the menu,
+	// it should auto select the last button
+	// that was previously selected rather than the first
+	bool rememberLastButton = false;
+	int lastButtonIndex = 0;
 
 	// Can press Escape to pop the menu from the stack?
 	// Usually true, but not for things like Title Screens, etc.
@@ -83,7 +95,7 @@ public:
 	void UnhighlightSelectedButton(Game& game);
 	
 	BaseButton* GetButtonByName(const std::string& buttonName);
-	void AssignButtons(bool useLeftRight);
+	void AssignButtons(bool useLeftRight, bool useUpDown=true);
 	bool FileExists(const std::string& filepath);
 };
 

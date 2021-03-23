@@ -2363,6 +2363,8 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 	//TODO: Make sure to save the gosub stack as well
 	fout.open(std::string(path) + filename);
 
+	std::string labelName = "";
+
 	std::map<SaveSections, std::string> sections = {
 		{ SaveSections::CONFIG_OPTIONS, "@ CONFIG_OPTIONS"},
 		{ SaveSections::STORY_DATA, "@ STORY_DATA"},
@@ -2388,7 +2390,10 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			fout << "global_start " << globalStart << std::endl;
 			break;
 		case SaveSections::STORY_DATA:
-			fout << GetLabelName(currentLabel) << " ";
+
+			labelName = GetLabelName(currentLabel);
+
+			fout << ((labelName == " ") ? labelName : "0") << " ";
 			fout << labelIndex << " ";
 			fout << lineIndex << " ";
 			fout << commandIndex << " ";
@@ -2444,7 +2449,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			// 2. Save string variables (keys and values)
 			for (auto const& var : commands.stringVariables)
 			{
-				if (var.first < globalStart)
+				if (var.first < globalStart && var.second != "")
 				{
 					fout << var.first  // key
 						<< " "
@@ -2779,7 +2784,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 		{
 			currentSection = dataLines[index];
 		}
-		else
+		else if (lineParams.size() > 1)
 		{
 			SaveSections section = sections[currentSection];
 			switch (section)

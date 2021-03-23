@@ -90,6 +90,10 @@ void delete_it(T& v)
 	v = nullptr;
 }
 
+// TODO: These Trim functions should either
+// modify the value or return a new one,
+// not do both... so pick one.
+
 // trim from end of string (right)
 inline std::string& RTrim(std::string& s, const char* t = " \t\n\r\f\v")
 {

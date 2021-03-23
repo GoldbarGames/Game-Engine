@@ -12,6 +12,9 @@ public:
 	void Init(Game& g) const;
 	virtual void SaveFile(const std::string& filename) const;
 	virtual void LoadFile(const std::string& filename) const;
+	virtual void AfterLoadLevelFromFile() const;
+	virtual void SaveVariables() const;
+	virtual void ResetVariables() const;
 };
 
 #endif

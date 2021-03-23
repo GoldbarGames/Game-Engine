@@ -192,6 +192,7 @@ Sprite* Entity::GetSprite()
 void Entity::SetColor(Color newColor)
 {
 	color = newColor;
+	currentSprite.color = newColor;
 }
 
 // NOTE: This returns coordinates where x and y are the center of the rectangle!

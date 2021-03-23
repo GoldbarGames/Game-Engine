@@ -235,6 +235,8 @@ public:
 
 	glm::vec3 ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos);
 
+	void OpenMenu(const std::string& menuName);
+
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
 

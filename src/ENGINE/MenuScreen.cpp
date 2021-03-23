@@ -106,7 +106,7 @@ bool MenuScreen::FileExists(const std::string& filepath)
 }
 
 //TODO: Maybe rename this to a better name
-void MenuScreen::AssignButtons(bool useLeftRight)
+void MenuScreen::AssignButtons(bool useLeftRight, bool useUpDown)
 {
 	for (unsigned int i = 0; i < buttons.size(); i++)
 	{
@@ -119,12 +119,27 @@ void MenuScreen::AssignButtons(bool useLeftRight)
 		if (nextIndex >= buttons.size())
 			nextIndex = 0;
 
-		if (useLeftRight)
-			buttons[i]->SetButtonsUpDownLeftRight(buttons[prevIndex], buttons[nextIndex], 
+		if (useLeftRight && useUpDown)
+		{
+			buttons[i]->SetButtonsUpDownLeftRight(buttons[prevIndex], buttons[nextIndex],
 				buttons[prevIndex], buttons[nextIndex]);
-		else
-			buttons[i]->SetButtonsUpDownLeftRight(buttons[prevIndex], buttons[nextIndex], 
+		}
+		else if (!useLeftRight && useUpDown)
+		{
+			buttons[i]->SetButtonsUpDownLeftRight(nullptr, nullptr,
+				buttons[prevIndex], buttons[nextIndex]);
+		}
+		else if (useLeftRight && !useUpDown)
+		{
+			buttons[i]->SetButtonsUpDownLeftRight(buttons[prevIndex], buttons[nextIndex],
 				nullptr, nullptr);
+		}
+		else
+		{
+			buttons[i]->SetButtonsUpDownLeftRight(nullptr, nullptr,
+				nullptr, nullptr);
+		}
+
 	}
 }
 
@@ -133,6 +148,9 @@ void MenuScreen::ResetMenu()
 {
 	for (int i = 0; i < buttons.size(); i++)
 	{
+		if (rememberLastButton && buttons[i] == selectedButton)
+			lastButtonIndex = i;
+
 		if (buttons[i] != nullptr)
 			delete_it(buttons[i]);
 	}
@@ -215,7 +233,7 @@ void MenuScreen::Render(const Renderer& renderer)
 bool MenuScreen::Update(Game& game)
 {
 	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-	BaseButton* lastButton = selectedButton;
+	lastButton = selectedButton;
 
 	// Don't crash if there is no button in this menu
 	if (selectedButton == nullptr)

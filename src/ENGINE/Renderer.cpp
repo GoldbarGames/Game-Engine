@@ -12,6 +12,18 @@ ShaderProgram* Renderer::GetTextShader()
 	return textShader;
 }
 
+ShaderProgram* Renderer::GetShader(int key)
+{
+	if (shaders.count(key) != 0)
+	{
+		return shaders[key];
+	}
+
+	game->logger.Log("ERROR: Shader not in renderer list: " + std::to_string(key));
+
+	return shaders[1];
+}
+
 Renderer::Renderer()
 {
 	layersVisible[DrawingLayer::BACK] = true;
