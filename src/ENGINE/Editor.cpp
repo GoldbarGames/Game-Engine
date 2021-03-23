@@ -1552,6 +1552,13 @@ void Editor::ClickedButton()
 		game->StartTextInput(*dialog, "new_entity_type");
 		clickedButton->isClicked = false;	
 	}
+	else // can't find a button with this name, so check helper
+	{
+		if (!helper->ClickedCustomButton(clickedButton->name))
+		{
+			game->logger.Log("Could not find editor button with name " + clickedButton->name);
+		}
+	}
 
 	ToggleSpriteMap(9999); // reset the preview sprite
 	objectPreview = previewMap[objectMode];
@@ -1967,7 +1974,7 @@ std::string Editor::SaveLevelAsString()
 		}
 	}
 
-	//
+	helper->CustomSave(level);	
 
 	return level.str();
 }
@@ -2350,7 +2357,8 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 					std::string bgName = tokens[index++];
 					game->background->SpawnBackground(bgName, bgX, bgY, *game);
 				}
-				else
+				// if not handled by helper, load it as a normal entity
+				else if (!helper->CustomLoad(etype, tokens))
 				{
 					Entity::nextValidID = std::stoi(tokens[indexOfID]);
 					positionX = std::stoi(tokens[indexOfPositionX]);

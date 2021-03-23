@@ -2668,7 +2668,6 @@ void Game::RenderNormally()
 		glEnable(GL_DEPTH_TEST);
 	}
 
-
 	gui->RenderStart();
 
 	// Render all backgrounds and their layers

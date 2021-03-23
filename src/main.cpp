@@ -21,13 +21,14 @@ int main(int argc, char *args[])
 		// For your own custom entity types
 		EntityFactory* e = EntityFactory::Get();
 		GUI* gui = new GUI();
-		EditorHelper* helper = new EditorHelper();
+		
 		FileManager* f = new FileManager();
 		MenuManager* m = new MenuManager();
 
 		Game game("WDK", "Witch Doctor Kaneko", "icon.png", true, *e, *f, *gui, *m);
-		game.editor->helper = helper;
-		game.editor->helper->editor = game.editor;
+
+		EditorHelper* helper = new EditorHelper(&game);
+
 		game.MainLoop();
 
 		if (gui != nullptr)
