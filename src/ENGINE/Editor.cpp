@@ -727,14 +727,11 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 	{
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
-			glm::vec3 grabPosition = glm::vec3(mouseX, mouseY, 0);
-			grabPosition.x += game->renderer.camera.position.x;
-			grabPosition.y += game->renderer.camera.position.y;
-
 			// Either grab a new entity, or place the currently grabbed one
 			if (grabbedEntity == nullptr)
 			{
-				grabbedEntity = GetEntityAtWorldPosition(grabPosition);
+				glm::vec3 worldPosition = game->ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
+				grabbedEntity = GetEntityAtWorldPosition(worldPosition);
 
 				if (grabbedEntity != nullptr)
 				{
@@ -1223,7 +1220,6 @@ void Editor::MiddleClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm:
 		if (previewMap[objectMode]->rotation.z < 0)
 			previewMap[objectMode]->rotation.z += 360;
 	}
-
 }
 
 //TODO: Figure out how to structure this so we can add deleting stuff as an Action
@@ -1237,9 +1233,9 @@ void Editor::RightClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::
 		return;
 	}
 
-	clickedWorldPosition = glm::vec3(mouseX / Camera::MULTIPLIER, mouseY / Camera::MULTIPLIER, clickedWorldPosition.z);
-	clickedWorldPosition.x += game->renderer.camera.position.x;
-	clickedWorldPosition.y += game->renderer.camera.position.y;
+	mouseX /= Camera::MULTIPLIER;
+	mouseY /= Camera::MULTIPLIER;
+	clickedWorldPosition = game->ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
 
 	if (objectMode == "rotate")
 	{
@@ -1366,11 +1362,8 @@ void Editor::HandleEdit()
 
 	if (grabbedEntity != nullptr)
 	{
-		glm::vec3 grabPosition = glm::vec3(mouseX, mouseY, 0);
-		grabPosition.x += game->renderer.camera.position.x;
-		grabPosition.y += game->renderer.camera.position.y;
-
-		grabbedEntity->SetPosition(game->SnapToGrid(grabPosition, GRID_SIZE));
+		glm::vec3 worldPosition = game->ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
+		grabbedEntity->SetPosition(game->SnapToGrid(worldPosition, GRID_SIZE));
 	}
 
 	previousMouseState = mouseState;
