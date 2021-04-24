@@ -2277,7 +2277,10 @@ void Game::Update()
 			collisionChecks = 0;
 			for (unsigned int i = 0; i < entities.size(); i++)
 			{
-				entities[i]->Update(*this);
+				if (entities[i]->active)
+				{
+					entities[i]->Update(*this);
+				}
 			}
 
 			// Update the camera last
@@ -2690,7 +2693,7 @@ void Game::RenderNormally()
 		{
 			const SDL_Rect* theirBounds = entities[i]->GetBounds();
 
-			if (HasIntersection(cameraBounds, *theirBounds))
+			if (entities[i]->active && HasIntersection(cameraBounds, *theirBounds))
 			{
 				entities[i]->Render(renderer);
 			}
@@ -2718,7 +2721,11 @@ void Game::RenderNormally()
 	{
 		for (unsigned int i = 0; i < entities.size(); i++)
 		{
-			entities[i]->Render(renderer);
+			if (entities[i]->active)
+			{
+				entities[i]->Render(renderer);
+			}
+			
 			if (debugMode)
 				entities[i]->RenderDebug(renderer);
 		}
@@ -2737,7 +2744,6 @@ void Game::RenderScene()
 	glDisable(GL_DEPTH_TEST);
 
 	cutsceneManager.Render(renderer); // includes the overlay
-
 
 	// Render editor toolbox
 	if (editMode)
@@ -2764,6 +2770,23 @@ void Game::RenderScene()
 #endif
 
 
+}
+
+Entity* Game::GetEntityFromID(int id)
+{
+	// TODO: Implement a method in the Game class
+	// that allows for fast retrieval of an entity
+	// based on its ID (like using a map or something)
+
+	for (int i = 0; i < entities.size(); i++)
+	{
+		if (entities[i]->id == id)
+		{
+			return entities[i];
+		}
+	}
+
+	return nullptr;
 }
 
 // Implementation of insertion sort:

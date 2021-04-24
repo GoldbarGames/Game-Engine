@@ -50,10 +50,13 @@ MenuButton::~MenuButton()
 	if (text != nullptr)
 		delete_it(text);
 
-	for (auto& s : otherImages)
+	if (deleteOtherImages)
 	{
-		if (s != nullptr)
-			delete_it(s);
+		for (auto& s : otherImages)
+		{
+			if (s != nullptr)
+				delete_it(s);
+		}
 	}
 }
 

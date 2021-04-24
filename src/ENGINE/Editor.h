@@ -60,8 +60,11 @@ public:
 	int propertyOptionIndex = 0;
 
 	// Variables for the Grab Button
-	Entity* grabbedEntity = nullptr;
-	glm::vec3 oldGrabbedPosition = glm::vec3(0, 0, 0);
+	//Entity* grabbedEntity = nullptr;
+	//glm::vec3 oldGrabbedPosition = glm::vec3(0, 0, 0);
+
+	std::vector<Entity*> grabbedEntities;
+	std::vector<glm::vec3> oldGrabbedPositions;
 
 	const unsigned int BUTTONS_PER_PAGE = 16;
 
@@ -72,8 +75,6 @@ public:
 
 
 	static FontInfo* fontInfo;
-	int cameraTargetID = -1;
-	bool switchTargetBackToPlayer = false;
 
 	int entitySubtype = 0;
 	Game* game = nullptr;

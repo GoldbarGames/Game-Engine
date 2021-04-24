@@ -30,7 +30,7 @@ public:
 	Property(const std::string& k, int& v, const std::vector<std::string>& o = std::vector<std::string>());
 	Property(const std::string& k, bool& v, const std::vector<std::string>& o = std::vector<std::string>());
 
-	Property(const std::string& k, uint32_t v, const std::vector<std::string>& o = std::vector<std::string>());
+	Property(const std::string& k, const uint32_t& v, const std::vector<std::string>& o = std::vector<std::string>());
 
 	void SetProperty(const std::string& value);
 

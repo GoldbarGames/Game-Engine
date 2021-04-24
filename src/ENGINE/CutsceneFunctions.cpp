@@ -28,6 +28,23 @@ namespace CutsceneFunctions
 		return 0;
 	}
 
+	int SetNumberVariable(int key, int value, CutsceneCommands& c)
+	{
+		c.key = key;
+		c.parseNumberValue = value;
+
+		if (c.numberVariables[c.key] != c.parseNumberValue)
+		{
+			c.numberVariables[c.key] = c.parseNumberValue;
+
+			// If global variable, save change to file
+			if (c.key >= c.manager->globalStart)
+				c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
+		}
+
+		return 0;
+	}
+
 	int SetNumberVariable(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		c.cacheParseNumbers.erase(parameters[1]);

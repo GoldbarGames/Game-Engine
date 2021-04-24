@@ -259,12 +259,10 @@ void Entity::RenderDebug(const Renderer& renderer)
 				renderer.RenderDebugRect(rect, scale, debugColor);
 			}
 
-			/*
-			if (collider != nullptr && physics != nullptr)
+			if (etype != "tile")
 			{
-				renderer.RenderDebugRect(*collider->bounds, scale);
-			}
-			*/
+				renderer.RenderDebugRect(collider.bounds, scale);
+			}			
 		}
 	}
 }
@@ -394,6 +392,7 @@ void Entity::GetProperties(std::vector<Property*>& properties)
 {
 	Entity::DeleteProperties(properties);
 	properties.emplace_back(new Property("ID", id));
+	properties.emplace_back(new Property("Subtype", subtype));
 	properties.emplace_back(new Property("Layer", (int)layer));
 }
 
@@ -433,7 +432,7 @@ void Entity::Save(std::unordered_map<std::string, std::string>& map)
 			int test = 0;
 		
 		if (currentSprite.shader == nullptr)
-			map["shader"] = 1;
+			map["shader"] = "1";
 		else
 			map["shader"] = std::to_string(currentSprite.shader->GetName());
 
@@ -502,4 +501,9 @@ Vector2 Entity::GetScale() const
 void Entity::SetScale(const Vector2& newScale) 
 {
 	scale = newScale;
+}
+
+int Entity::GetGridSize()
+{
+	return Globals::TILE_SIZE;
 }

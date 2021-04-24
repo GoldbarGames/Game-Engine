@@ -126,13 +126,13 @@ void MenuScreen::AssignButtons(bool useLeftRight, bool useUpDown)
 		}
 		else if (!useLeftRight && useUpDown)
 		{
-			buttons[i]->SetButtonsUpDownLeftRight(nullptr, nullptr,
-				buttons[prevIndex], buttons[nextIndex]);
+			buttons[i]->SetButtonsUpDownLeftRight(buttons[prevIndex], buttons[nextIndex],
+				nullptr, nullptr);
 		}
 		else if (useLeftRight && !useUpDown)
 		{
-			buttons[i]->SetButtonsUpDownLeftRight(buttons[prevIndex], buttons[nextIndex],
-				nullptr, nullptr);
+			buttons[i]->SetButtonsUpDownLeftRight(nullptr, nullptr,
+				buttons[prevIndex], buttons[nextIndex]);
 		}
 		else
 		{

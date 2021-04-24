@@ -77,3 +77,16 @@ void EditorHelper::ToggleObjectMode(const std::string& mode)
 {
 	editor->SetLayer(DrawingLayer::OBJECT);
 }
+
+void EditorHelper::GrabEntity(int mouseX, int mouseY)
+{
+	glm::vec3 worldPosition = editor->game->ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
+	Entity* grabbedEntity = editor->GetEntityAtWorldPosition(worldPosition);
+
+	if (grabbedEntity != nullptr)
+	{
+		editor->grabbedEntities.emplace_back(grabbedEntity);
+		editor->oldGrabbedPositions.emplace_back(grabbedEntity->GetPosition());
+		editor->GRID_SIZE = grabbedEntity->GetGridSize();
+	}
+}

@@ -54,6 +54,8 @@ public:
 	float startScreenWidth = 1280;
 	float startScreenHeight = 720;
 	const Entity* target = nullptr;
+	int startingTargetID = -1;
+	int afterStartingTargetID = -1;
 	bool shouldUpdate = true;
 	bool useOrthoCamera = true;
 	bool switchingTarget = false;

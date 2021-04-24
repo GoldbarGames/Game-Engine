@@ -89,7 +89,7 @@ public:
 	virtual void CreateMenu(const std::string& n, Game& game);
 	virtual bool PressSelectedButton(Game& game);
 
-	void ResetMenu();
+	virtual void ResetMenu();
 
 	void HighlightSelectedButton(Game& game);
 	void UnhighlightSelectedButton(Game& game);

@@ -92,6 +92,8 @@ public:
 
 	std::vector<Entity*> quadrantEntities;
 
+	Entity* GetEntityFromID(int id);
+
 	void DeleteEntity(Entity* entity);
 	void DeleteEntity(int index);
 

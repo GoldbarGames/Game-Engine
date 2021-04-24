@@ -16,6 +16,7 @@ private:
 	glm::vec3 imagePosition = glm::vec3(0, 0, 0);
 public:	
 
+	bool deleteOtherImages = true;
 	std::vector<Entity*> otherImages;
 
 	MenuButton(const std::string& txt, const std::string& filepath, 

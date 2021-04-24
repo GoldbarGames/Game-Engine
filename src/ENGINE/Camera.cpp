@@ -131,17 +131,22 @@ void Camera::FollowTarget(const Game& game, bool instantFollow)
 				for (int i = 0; i < game.cameraBoundsEntities.size(); i++)
 				{
 					entity = game.cameraBoundsEntities[i];
-					theirBounds = *(entity->GetBounds());
-
-					if (!horizontalCollision && HasIntersection(newBoundsHorizontal, theirBounds))
+					
+					if (entity != nullptr)
 					{
-						horizontalCollision = true;
-					}
+						theirBounds = *(entity->GetBounds());
 
-					if (!verticalCollision && HasIntersection(newBoundsVertical, theirBounds))
-					{
-						verticalCollision = true;
+						if (!horizontalCollision && HasIntersection(newBoundsHorizontal, theirBounds))
+						{
+							horizontalCollision = true;
+						}
+
+						if (!verticalCollision && HasIntersection(newBoundsVertical, theirBounds))
+						{
+							verticalCollision = true;
+						}
 					}
+					
 				}
 
 				if (horizontalCollision)
@@ -418,26 +423,37 @@ void Camera::Save(std::unordered_map<std::string, std::string>& map)
 	map["angle"] = std::to_string((float)angle);
 	map["zoom"] = std::to_string((float)startingZoom);
 
-	// TODO: Deal with saving/loading target info
-	if (target != nullptr)
-	{
-		map["targetID"] = std::to_string((int)target->id);
-	}
+	// We don't want to accidentally save changes to the camera
+	// in the middle of moving the camera around to look at the level.
+	// So in order to change things like startingZoom,
+	// we click on a button that brings up a list of properties
+	// that we can manually type in to change.
 
-	//map["switchToPlayer"] = std::to_string((int)switch)
+	map["targetID"] = std::to_string(startingTargetID);
+	map["nextID"] = std::to_string(afterStartingTargetID);
 }
 
 void Camera::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
-	position.x = std::stof(map["positionX"]);
-	position.y = std::stof(map["positionY"]);
-	position.z = std::stof(map["positionZ"]);
-
-	yaw = std::stof(map["yaw"]);
-	pitch = std::stof(map["pitch"]);
-	roll = std::stof(map["roll"]);
-	angle = std::stof(map["angle"]);
 	startingZoom = std::stof(map["zoom"]);
+	startingTargetID = std::stoi(map["targetID"]);
+	afterStartingTargetID = std::stoi(map["nextID"]);
+
+	try
+	{
+		position.x = std::stof(map["positionX"]);
+		position.y = std::stof(map["positionY"]);
+		position.z = std::stof(map["positionZ"]);
+
+		yaw = std::stof(map["yaw"]);
+		pitch = std::stof(map["pitch"]);
+		roll = std::stof(map["roll"]);
+		angle = std::stof(map["angle"]);
+	}
+	catch (std::exception e)
+	{
+		game.logger.Log(e.what());
+	}
 
 	Update();
 }

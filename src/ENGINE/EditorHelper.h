@@ -29,6 +29,7 @@ public:
 	virtual void DeleteObject(bool shouldDeleteThis, Entity* entityToDelete);
 	virtual void PlaceTile(Tile& tile);
 	virtual void ToggleObjectMode(const std::string& mode);
+	virtual void GrabEntity(int mouseX, int mouseY);
 	EditorHelper(Game* game);
 	~EditorHelper();
 };

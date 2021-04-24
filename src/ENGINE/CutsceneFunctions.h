@@ -2,6 +2,7 @@
 
 namespace CutsceneFunctions
 {
+	int KINJO_API SetNumberVariable(int key, int value, CutsceneCommands& c);
 
 	// Load graphics
 	int KINJO_API LoadSprite(CutsceneParameters parameters, CutsceneCommands& c);

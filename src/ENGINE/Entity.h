@@ -53,6 +53,8 @@ public:
 	// we must have a single reference point for the shader
 	//ShaderProgram* shader = nullptr;
 
+	bool active = true;
+
 	uint32_t id = 0;
 	int subtype = 0;
 	int drawOrder = 0; // order for drawing
@@ -131,6 +133,8 @@ public:
 	virtual void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 
 	virtual void SetColor(Color newColor);
+
+	virtual int GetGridSize();
 
 	static Entity* __stdcall Create(const glm::vec3& pos) { return new Entity(pos); };
 };

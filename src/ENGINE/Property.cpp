@@ -6,6 +6,8 @@
 // TODO: Refactor class so that we don't store a Text in every Property, it's wasteful.
 // Rather, the editor should have a set number of texts.
 
+// TODO: Refactor so that we don't use a vector of pointers to avoid memory leaks
+
 Property::Property(const std::string& k, std::string& v, const std::vector<std::string>& o) 
 	: key(k), value(v), pType(PropertyType::String)
 {
@@ -34,7 +36,7 @@ Property::Property(const std::string& k, bool& v, const std::vector<std::string>
 	text = new Text(Editor::fontInfo, key + ": " + value);
 }
 
-Property::Property(const std::string& k, uint32_t v, const std::vector<std::string>& o)
+Property::Property(const std::string& k, const uint32_t& v, const std::vector<std::string>& o)
 	: key(k), value(std::to_string(v)), pType(PropertyType::ReadOnly)
 {
 	text = new Text(Editor::fontInfo, key + ": " + value);
@@ -72,8 +74,6 @@ void Property::SetProperty(const std::string& value)
 	{
 		std::cout << "ERROR: Failed to set property " << key << " with value " << value << ": " << ex.what() << std::endl;
 	}
-
-
 }
 
 Property::~Property()

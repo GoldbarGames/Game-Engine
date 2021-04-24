@@ -233,7 +233,8 @@ void Editor::UpdateLevelFiles()
 				std::vector<std::string> tokens(beg, end);
 
 				// Get the type of entity we are dealing with
-				etype = tokens[1];
+				if (tokens.size() > 0)
+					etype = tokens[1];
 
 				// Depending on the type of entity, figure out the rest
 
@@ -268,12 +269,26 @@ void Editor::UpdateLevelFiles()
 				}
 
 				int reorderTypeSize = reorderMap[etype].size();
-				for (int i = 0; i < reorderTypeSize; i++)
+
+				if (etype == "camera")
 				{
-					int oldIndex = reorderMap[etype][i].x + reorderEntitySize;
-					int newIndex = reorderMap[etype][i].y + reorderEntitySize + difference;
-					newTokens[newIndex] = tokens[oldIndex];
+					for (int i = 0; i < reorderTypeSize; i++)
+					{
+						int oldIndex = reorderMap[etype][i].x;
+						int newIndex = reorderMap[etype][i].y + difference;
+						newTokens[newIndex] = tokens[oldIndex];
+					}
 				}
+				else
+				{
+					for (int i = 0; i < reorderTypeSize; i++)
+					{
+						int oldIndex = reorderMap[etype][i].x + reorderEntitySize;
+						int newIndex = reorderMap[etype][i].y + reorderEntitySize + difference;
+						newTokens[newIndex] = tokens[oldIndex];
+					}
+				}
+
 
 				// After setting all the tokens, write them to the level string
 				for (int i = 0; i < newTokens.size(); i++)
@@ -546,6 +561,7 @@ void Editor::StopEdit()
 void Editor::RefreshTilePreview()
 {
 	Entity*& prev = previewMap[objectMode];
+	
 	if (prev != nullptr)
 		delete_it(prev);
 
@@ -728,24 +744,31 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 		if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		{
 			// Either grab a new entity, or place the currently grabbed one
-			if (grabbedEntity == nullptr)
+			if (grabbedEntities.size() == 0)
 			{
-				glm::vec3 worldPosition = game->ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
-				grabbedEntity = GetEntityAtWorldPosition(worldPosition);
-
-				if (grabbedEntity != nullptr)
-				{
-					oldGrabbedPosition = grabbedEntity->GetPosition();
-				}
+				helper->GrabEntity(mouseX, mouseY);
 			}
 			else
 			{
-				// If the entity is allowed to spawn here, then place it there
-				if (grabbedEntity->CanSpawnHere(glm::vec3(mouseX, mouseY, 0), *game, false))
+				bool canSpawnAllEntities = true;
+				for (int i = 0; i < grabbedEntities.size(); i++)
 				{
-					grabbedEntity->startPosition = grabbedEntity->position;
-					grabbedEntity->CalculateCollider();
-					grabbedEntity = nullptr;
+					if (!grabbedEntities[i]->CanSpawnHere(glm::vec3(mouseX, mouseY, 0), *game, false))
+					{
+						canSpawnAllEntities = false;
+					}
+				}
+
+				// If the entity is allowed to spawn here, then place it there
+				if (canSpawnAllEntities)
+				{
+					for (int i = 0; i < grabbedEntities.size(); i++)
+					{
+						grabbedEntities[i]->startPosition = grabbedEntities[i]->position;
+						grabbedEntities[i]->CalculateCollider();
+					}
+
+					grabbedEntities.clear();
 					DoAction();
 				}
 			}
@@ -857,6 +880,7 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 }
 
 // TODO: This algorithm doesn't seem to be working perfectly.
+// It looks like it fills more vertically than horizontally,
 // It looks like it fills more vertically than horizontally,
 // but I don't know why...
 void Editor::FillTiles(const glm::vec3& spawnPosition, int depth)
@@ -1226,10 +1250,16 @@ void Editor::MiddleClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm:
 void Editor::RightClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::vec3 clickedWorldPosition)
 {
 	// If we have grabbed an entity, return it to its old position and immediately exit
-	if (grabbedEntity != nullptr)
+	if (grabbedEntities.size() > 0)
 	{
-		grabbedEntity->SetPosition(oldGrabbedPosition);
-		grabbedEntity = nullptr;
+		for (int i = 0; i < grabbedEntities.size(); i++)
+		{
+			grabbedEntities[i]->SetPosition(oldGrabbedPositions[i]);
+			grabbedEntities[i] = nullptr;
+		}
+
+		grabbedEntities.clear();
+
 		return;
 	}
 
@@ -1360,10 +1390,17 @@ void Editor::HandleEdit()
 		}
 	}
 
-	if (grabbedEntity != nullptr)
+	if (grabbedEntities.size() > 0)
 	{
 		glm::vec3 worldPosition = game->ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
-		grabbedEntity->SetPosition(game->SnapToGrid(worldPosition, GRID_SIZE));
+		glm::vec3 diff = oldGrabbedPositions[0] - worldPosition;
+
+		// Apply the difference to every entity to get their new positions
+		for (int i = 0; i < grabbedEntities.size(); i++)
+		{
+			glm::vec3 newPosition = oldGrabbedPositions[i] - diff;
+			grabbedEntities[i]->SetPosition(game->SnapToGrid(newPosition, grabbedEntities[i]->GetGridSize()));
+		}
 	}
 
 	previousMouseState = mouseState;
@@ -1555,6 +1592,12 @@ void Editor::ClickedButton()
 
 	ToggleSpriteMap(9999); // reset the preview sprite
 	objectPreview = previewMap[objectMode];
+
+	if (objectPreview != nullptr)
+	{
+		GRID_SIZE = objectPreview->GetGridSize();
+	}
+	
 }
 
 void Editor::ToggleSpriteMap(int num)
@@ -1709,6 +1752,8 @@ void Editor::ToggleTileset()
 		previewMap[MODE_FILL] = previewMap[MODE_TILE];
 
 		objectPreview = previewMap[MODE_TILE];
+
+		GRID_SIZE = previewMap[MODE_TILE]->GetGridSize();
 	}
 }
 
@@ -1929,25 +1974,7 @@ std::string Editor::SaveLevelAsString()
 		level << "1 cutscene-start 0 0 " << game->levelStartCutscene << std::endl;
 	}
 
-	// TODO: Save the camera properties from within the class here
-	// (You can just output the bool as a 0 or 1 to save a line)
-	if (cameraTargetID > -1)
-	{
-		if (switchTargetBackToPlayer)
-		{
-			level << "0 camera-target-player 0 0 " << cameraTargetID << " " << std::endl;
-		}
-		else
-		{
-			level << "0 camera-target 0 0 " << cameraTargetID << std::endl;
-		}
-	}
-
-	level << "0 camera-zoom 0 0 " << game->renderer.camera.orthoZoom << std::endl;
-
-
 	// Save the camera
-
 	map.clear();
 	game->renderer.camera.Save(map);
 
@@ -1966,6 +1993,8 @@ std::string Editor::SaveLevelAsString()
 			level << "0 ";
 		}
 	}
+
+	level << "\n";
 
 	helper->CustomSave(level);	
 
@@ -2152,8 +2181,8 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 			helper->CreateLevelStart();
 		}
 
-		cameraTargetID = -1;
-		switchTargetBackToPlayer = false;
+		//cameraTargetID = -1;
+		//switchTargetBackToPlayer = false;
 
 		int lineNumber = 0;
 		int index = 0;
@@ -2314,34 +2343,6 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 				{
 					game->renderer.camera.Load(map, *game);
 				}
-				else if (etype == "camera-zoom")
-				{
-					// TODO: This won't get saved if we make changes to the level from the editor,
-					// so we need a way to set the camera's properties within a level.
-
-					// We can have a button in the editor that brings up the properties
-					// like any other object, then as we click on a property we can edit it.
-					// Then when the level is saved, the camera must also be saved.
-
-					index = 4;
-					game->renderer.camera.startingZoom = std::stof(tokens[index++]);
-				}
-				else if (etype == "camera-target")
-				{
-					// TODO: This won't get saved if we make changes to the level from the editor,
-					// so we need a way to set the camera's properties within a level
-					index = 4;
-					cameraTargetID = std::stoi(tokens[index++]);
-					switchTargetBackToPlayer = false;
-				}
-				else if (etype == "camera-target-player")
-				{
-					// TODO: This won't get saved if we make changes to the level from the editor,
-					// so we need a way to set the camera's properties within a level
-					index = 4;
-					cameraTargetID = std::stoi(tokens[index++]);
-					switchTargetBackToPlayer = true;
-				}
 				else if (etype == "bg")
 				{
 					index = 2;					
@@ -2408,21 +2409,35 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 		std::cout << "FINISH LOADING LEVEL" << std::endl;
 
 		// Switch the camera's target
-		if (cameraTargetID >= 0)
+		if (game->renderer.camera.startingTargetID >= 0)
 		{
-			for (int i = 0; i < game->entities.size(); i++)
+			Entity* targetEntity = game->GetEntityFromID(game->renderer.camera.startingTargetID);
+
+			if (targetEntity != nullptr)
 			{
-				if (game->entities[i]->id == cameraTargetID)
-				{
-					game->renderer.camera.SwitchTarget(*game->entities[i]);
-					game->renderer.camera.FollowTarget(*game, true);
-				}
+				// Switch to the target and teleport to its location
+				// so that we know we are within the camera bounds
+				// TODO: Is there a way to automatically do this
+				// without placing a specific object in the level?
+				game->renderer.camera.SwitchTarget(*targetEntity);
+				game->renderer.camera.FollowTarget(*game, true);
 			}
 		}
 
-		if (switchTargetBackToPlayer)
+		// Here we are setting up the player so that once
+		// we arrive at the next frame, the camera will
+		// now move toward the player, stopping at the bounds
+		if (game->renderer.camera.afterStartingTargetID > -1)
 		{
-			game->renderer.camera.SwitchTarget(*game->player);
+			// Get the entity associated with this ID
+
+			Entity* targetEntity = game->GetEntityFromID(game->renderer.camera.afterStartingTargetID);
+
+			if (targetEntity != nullptr)
+			{
+				// Switch target to that entity
+				game->renderer.camera.SwitchTarget(*targetEntity);
+			}
 		}
 
 		if (helper != nullptr)
@@ -2449,6 +2464,9 @@ void Editor::ClearLevelEntities()
 		
 	game->entities.clear();
 	game->cameraBoundsEntities.clear();
+
+	grabbedEntities.clear();
+	oldGrabbedPositions.clear();
 }
 
 //TODO: Display an error message if the file does not exist
