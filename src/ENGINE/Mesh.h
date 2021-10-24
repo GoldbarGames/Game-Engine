@@ -2,7 +2,7 @@
 #define MESH_H
 #pragma once
 
-#include <GL/glew.h>
+#include "opengl_includes.h"
 #include "leak_check.h"
 enum class MeshType { Quad, Triangle, Line, Cube, Pyramid };
 

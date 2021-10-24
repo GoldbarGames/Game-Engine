@@ -1,4 +1,4 @@
-#include "Framebuffer.h"
+#include "FrameBuffer.h"
 #include "Shader.h"
 
 FrameBuffer::FrameBuffer(const Renderer& renderer, int screenWidth, int screenHeight)
@@ -19,12 +19,18 @@ FrameBuffer::FrameBuffer(const Renderer& renderer, int screenWidth, int screenHe
 	glGenRenderbuffers(1, &renderBufferObject);
 	glBindRenderbuffer(GL_RENDERBUFFER, renderBufferObject);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
+	//glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, screenWidth, screenHeight);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBufferObject);
+	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBufferObject);
+	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBufferObject);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+	{
+		std::cout << "ERROR::FRAMEBUFFER:: " << glCheckFramebufferStatus(GL_FRAMEBUFFER) << std::endl;
+	}
+		
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 

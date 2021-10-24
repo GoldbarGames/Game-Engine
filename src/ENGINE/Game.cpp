@@ -51,6 +51,14 @@
 #include "SoundManager.h"
 #include "RandomManager.h"
 
+// For WebAssembly builds only
+#ifdef EMSCRIPTEN
+
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+
+#endif
+
 static unsigned int allocationCount = 0;
 
 /*
@@ -68,26 +76,18 @@ void operator delete(void* p)
 }
 */
 
-int Game::MainLoop()
+void WebGLMainLoop(Game* game)
+{
+	game->MainLoop();
+}
+
+int Game::BeforeMainLoop()
 {
 	// Load settings
 	LoadSettings();
 	LoadTitleScreen();
 	SortEntities(entities);
 	timer.Start();
-
-	const int updateInterval = 500; // update fps every X ms
-	float fpsSum = 0.0f; // 
-	float timeLeft = updateInterval; // time left before updating
-	int frames = 0; // number of frames counted
-
-	int drawCallsLastFrame = 0;
-	int previousNumberOfFrames = 0;
-	int currentNumberOfFrames = 0;
-
-	const std::string guiFPS = "FPS";
-	const std::string guiFPS2 = "FPS: ";
-	const std::string guiTimer = "timer";
 
 	if (autoGIFsDelay > 0 && autoGIFsDuration > 0)
 	{
@@ -98,87 +98,102 @@ int Game::MainLoop()
 		screenshotTimer.Start(autoScreenshots);
 	}
 
+#ifdef EMSCRIPTEN
+	//emscripten_request_animation_frame_loop(one_iter, 0);
+	std::cout << "Attempting to set and enter the main loop..." << std::endl;
+	emscripten_set_main_loop_arg((em_arg_callback_func)WebGLMainLoop, this, 0, 1);
+#else
 	while (!shouldQuit)
 	{
-		renderer.drawCallsPerFrame = 0;
+		MainLoop();
+	}
+#endif
 
-		CalcDt();
+	return 0;
+}
 
-		//std::cout << "---" << std::endl;
-		allocationCount = 0;
 
-		//game.showFPS = true;
-		if (showFPS)
+
+int Game::MainLoop()
+{
+	renderer.drawCallsPerFrame = 0;
+
+	CalcDt();
+
+	//std::cout << "---" << std::endl;
+	allocationCount = 0;
+
+	//game.showFPS = true;
+	if (showFPS)
+	{
+		timeLeft -= dt;
+		fpsSum += 1000 / dt;
+		if (timeLeft <= 0)
 		{
-			timeLeft -= dt;
-			fpsSum += 1000 / dt;
-			if (timeLeft <= 0)
+			currentNumberOfFrames = (int)(fpsSum / frames);
+			if (currentNumberOfFrames != previousNumberOfFrames)
 			{
-				currentNumberOfFrames = (int)(fpsSum / frames);
-				if (currentNumberOfFrames != previousNumberOfFrames)
-				{
-					gui->texts[guiFPS]->SetText(guiFPS2 + std::to_string(currentNumberOfFrames));
-					previousNumberOfFrames = currentNumberOfFrames;
-				}
-
-				//std::cout << game.fpsText->txt << std::endl;
-				timeLeft = updateInterval;
-				fpsSum = 0;
-				frames = 0;
+				gui->texts[guiFPS]->SetText(guiFPS2 + std::to_string(currentNumberOfFrames));
+				previousNumberOfFrames = currentNumberOfFrames;
 			}
-			frames++;
+
+			//std::cout << game.fpsText->txt << std::endl;
+			timeLeft = updateInterval;
+			fpsSum = 0;
+			frames = 0;
 		}
+		frames++;
+	}
 
-		if (showTimer)
-		{
-			gui->texts[guiTimer]->SetText(std::to_string(timer.GetTicks() / 1000.0f));
-		}
+	if (showTimer)
+	{
+		gui->texts[guiTimer]->SetText(std::to_string(timer.GetTicks() / 1000.0f));
+	}
 
-		switch (state)
-		{
-		case GameState::RESET_LEVEL:
-			editor->InitLevelFromFile(currentLevel);
-			state = GameState::NORMAL;
-			break;
-		case GameState::LOAD_NEXT_LEVEL:
-			LoadLevel(nextLevel);
-			state = GameState::NORMAL;
-			break;
-		default:
-			break;
-		}
+	switch (state)
+	{
+	case GameState::RESET_LEVEL:
+		editor->InitLevelFromFile(currentLevel);
+		state = GameState::NORMAL;
+		break;
+	case GameState::LOAD_NEXT_LEVEL:
+		LoadLevel(nextLevel);
+		state = GameState::NORMAL;
+		break;
+	default:
+		break;
+	}
 
-		Update();
+	Update();
 
-		Render();
+	Render();
 
-		if (renderer.drawCallsPerFrame != drawCallsLastFrame)
-		{
-			drawCallsLastFrame = renderer.drawCallsPerFrame;
-			//std::cout << "Draw calls: " << renderer.drawCallsPerFrame << std::endl;
-		}
+	if (renderer.drawCallsPerFrame != drawCallsLastFrame)
+	{
+		drawCallsLastFrame = renderer.drawCallsPerFrame;
+		//std::cout << "Draw calls: " << renderer.drawCallsPerFrame << std::endl;
+	}
 
 #if _DEBUG
-		if (savingGIF)
+	if (savingGIF)
+	{
+		if (autoGIFsDuration > 0 && autoGifDurationTimer.HasElapsed())
 		{
-			if (autoGIFsDuration > 0 && autoGifDurationTimer.HasElapsed())
-			{
-				EndGIF();
-			}
+			EndGIF();
 		}
-		else if (autoGIFsDelay > 0 && autoGifDelayTimer.HasElapsed())
-		{
-			StartGIF("screenshots/gif/frames/");
-			autoGifDurationTimer.Start(autoGIFsDuration);
-		}
-		else if (autoScreenshots > 0 && screenshotTimer.HasElapsed())
-		{
-			screenshotTimer.Start(autoScreenshots);
-
-			SaveScreenshot("screenshots/auto/", "", ".png");
-		}
-#endif
 	}
+	else if (autoGIFsDelay > 0 && autoGifDelayTimer.HasElapsed())
+	{
+		StartGIF("screenshots/gif/frames/");
+		autoGifDurationTimer.Start(autoGIFsDuration);
+	}
+	else if (autoScreenshots > 0 && screenshotTimer.HasElapsed())
+	{
+		screenshotTimer.Start(autoScreenshots);
+
+		SaveScreenshot("screenshots/auto/", "", ".png");
+	}
+#endif
 
 	return 0;
 }
@@ -207,6 +222,8 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 	spriteManager.Init(&renderer);
 
 	InitOpenGL();
+
+	std::cout << "After OpenGL Init..." << std::endl;
 
 	//Sprite::mesh = CreateSpriteMesh();
 	cubeMesh = CreateCubeMesh();
@@ -310,6 +327,8 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 		glm::vec3 lDir = glm::vec3(2.0f, 2.0f, 2.0f);
 		renderer.light = new DirectionalLight(lColor, 1.0f, 1.0f, lDir);
 	}
+
+	std::cout << "Game Created" << std::endl;
 }
 
 Game::~Game()
@@ -459,6 +478,23 @@ void Game::CalcDt()
 
 void Game::InitOpenGL()
 {
+	std::cout << "Init OpenGL..." << std::endl;
+
+
+#if EMSCRIPTEN
+
+	EmscriptenWebGLContextAttributes attrs;
+	attrs.antialias = true;
+	attrs.majorVersion = 3;
+	attrs.minorVersion = 0;
+	attrs.alpha = false; // will the screen be black or transparent?
+
+	std::cout << "Attempting to create emscripten WebGL context..." << std::endl;
+
+	EMSCRIPTEN_WEBGL_CONTEXT_HANDLE webgl_context = emscripten_webgl_create_context("#canvas", &attrs);
+	emscripten_webgl_make_context_current(webgl_context);
+
+#else
 	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
 	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0)
 	{
@@ -477,12 +513,7 @@ void Game::InitOpenGL()
 		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_MASK failed. " + std::string(SDL_GetError()));
 	}
 
-	// Turn on double buffering with a 24bit Z buffer.
-	// You may need to change this to 16 or 32 for your system
-	if (SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_DOUBLEBUFFER failed. " + std::string(SDL_GetError()));
-	}
+	std::cout << "Creating context..." << std::endl;
 
 	// Set up OpenGL context - CALL THIS AFTER SETTING THE ATTRIBUTES!
 	// If you call in the wrong order, won't display correctly on many devices!
@@ -490,10 +521,20 @@ void Game::InitOpenGL()
 
 	if (SDL_GL_MakeCurrent(window, mainContext) != 0)
 	{
+		std::cout << "Context failed..." << std::endl;
 		logger.Log("ERROR: SDL_GL_MakeCurrent failed. " + std::string(SDL_GetError()));
+	}
+#endif
+
+	// Turn on double buffering with a 24bit Z buffer.
+	// You may need to change this to 16 or 32 for your system
+	if (SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) != 0)
+	{
+		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_DOUBLEBUFFER failed. " + std::string(SDL_GetError()));
 	}
 
 	std::cout << "GL_VERSION: " << glGetString(GL_VERSION) << std::endl;
+	//std::cout << "GL_VERSION? " << std::endl;
 
 	// Parameter 0 = no vsync, 1 = vsync
 	if (SDL_GL_SetSwapInterval(1) != 0)
@@ -501,17 +542,18 @@ void Game::InitOpenGL()
 		logger.Log("ERROR: SDL_GL_SetSwapInterval failed. " + std::string(SDL_GetError()));
 	}
 
+#ifndef EMSCRIPTEN
 	glewExperimental = GL_TRUE;
 	glewInit();
+	glAlphaFunc(GL_GREATER, 0.1);
+	glEnable(GL_ALPHA_TEST);
+#endif
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glAlphaFunc(GL_GREATER, 0.1);
-	glEnable(GL_ALPHA_TEST);
 
 	glViewport(0, 0, screenWidth, screenHeight);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -531,7 +573,7 @@ void Game::InitOpenGL()
 
 	renderer.camera.Update();
 	renderer.guiCamera.Update();
-	
+
 	// Creating and binding a mesh before creating the shaders is necessary
 	// for other platforms that use Open GL 4.X like Macs
 	Mesh* m = CreateQuadMesh();
@@ -541,11 +583,13 @@ void Game::InitOpenGL()
 
 	m->ClearMesh();
 
+	logger.Log("ERROR: " + std::string(SDL_GetError()));
 	mainFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
+	logger.Log("ERROR: " + std::string(SDL_GetError()));
+
 	prevMainFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 	cutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 	prevCutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
-
 }
 
 void Game::InitSDL()
@@ -559,6 +603,8 @@ void Game::InitSDL()
 	{
 		logger.Log("ERROR: SDL_TTF failed to initialize:" + std::string(SDL_GetError()));
 	}
+
+	std::cout << "Creating window..." << std::endl;
 
 	window = SDL_CreateWindow(windowTitle.c_str(),
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
@@ -1281,12 +1327,12 @@ bool Game::CheckInputs()
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
 	{
-		if (event.type == SDL_MOUSEBUTTONUP)
+		switch (event.type)
 		{
+		case SDL_MOUSEBUTTONUP:
 			cutsceneManager.previousMouseState = 0;
-		}
-		else if (event.type == SDL_CONTROLLERBUTTONDOWN)
-		{
+			break;
+		case SDL_CONTROLLERBUTTONDOWN:
 			inputManager.buttonsPressed[event.cbutton.button] = true;
 
 			if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A)
@@ -1297,11 +1343,35 @@ bool Game::CheckInputs()
 			{
 				std::cout << "PRESSED B" << std::endl;
 			}
-		}
-		else if (event.type == SDL_CONTROLLERBUTTONUP)
-		{
+			break;
+		case SDL_CONTROLLERBUTTONUP:
 			inputManager.buttonsReleased[event.cbutton.button] = true;
+			break;
+
+		case SDL_KEYDOWN:
+			switch (event.key.keysym.sym) {
+			case SDLK_RETURN:
+				std::cout << "HIT RETURN EVENT" << std::endl;
+				break;
+			default:
+				break;
+			}
+			break;
+
+		case SDL_KEYUP:
+			switch (event.key.keysym.sym) {
+			case SDLK_RETURN:
+				std::cout << "HIT RETURN EVENT UP" << std::endl;
+				break;
+			default:
+				break;
+			}
+			break;
+
+		default:
+			break;
 		}
+
 
 		if (openedMenus.size() > 0)
 		{
@@ -1476,23 +1546,29 @@ void Game::LoadSettings()
 
 		if (tokens[0] == "music_volume")
 		{
-			soundManager.SetVolumeBGM(std::stoi(tokens[1]));
+			soundManager.SetVolumeBGMIndex(std::stoi(tokens[1]));
 
 			if (hasSettingsButton)
 			{
 				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["SoundSettings"]->GetButtonByName("Music Volume"));
-				button->selectedOption = std::stoi(tokens[1]);
+				if (button != nullptr)
+				{
+					button->selectedOption = std::stoi(tokens[1]);
+				}				
 			}
 
 		}
 		else if (tokens[0] == "sound_volume")
 		{
-			soundManager.SetVolumeSound(std::stoi(tokens[1]));
+			soundManager.SetVolumeSoundIndex(std::stoi(tokens[1]));
 
 			if (hasSettingsButton)
 			{
 				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["SoundSettings"]->GetButtonByName("Sound Volume"));
-				button->selectedOption = std::stoi(tokens[1]);
+				if (button != nullptr)
+				{
+					button->selectedOption = std::stoi(tokens[1]);
+				}				
 			}
 
 		}
@@ -1508,7 +1584,10 @@ void Game::LoadSettings()
 			if (hasSettingsButton)
 			{
 				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["DisplaySettings"]->GetButtonByName("Windowed"));
-				button->selectedOption = std::stoi(tokens[1]);
+				if (button != nullptr)
+				{
+					button->selectedOption = std::stoi(tokens[1]);
+				}
 			}
 
 
@@ -1520,8 +1599,12 @@ void Game::LoadSettings()
 			if (hasSettingsButton)
 			{
 				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["DisplaySettings"]->GetButtonByName("Screen Resolution"));
-				button->selectedOption = indexScreenResolution;
-				button->ExecuteSelectedOption(*this);
+
+				if (button != nullptr)
+				{
+					button->selectedOption = indexScreenResolution;
+					button->ExecuteSelectedOption(*this);
+				}
 			}
 		}
 		else if (tokens[0] == "display_fps")
@@ -1531,7 +1614,10 @@ void Game::LoadSettings()
 			if (hasSettingsButton)
 			{
 				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["DisplaySettings"]->GetButtonByName("Display FPS"));
-				button->selectedOption = std::stoi(tokens[1]);
+				if (button != nullptr)
+				{
+					button->selectedOption = std::stoi(tokens[1]);
+				}
 			}
 		}
 		else if (tokens[0] == "display_timer")
@@ -1541,7 +1627,10 @@ void Game::LoadSettings()
 			if (hasSettingsButton)
 			{
 				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["DisplaySettings"]->GetButtonByName("Display Timer"));
-				button->selectedOption = std::stoi(tokens[1]);
+				if (button != nullptr)
+				{
+					button->selectedOption = std::stoi(tokens[1]);
+				}
 			}
 		}
 		else if (tokens[0] == "language")
@@ -1551,7 +1640,10 @@ void Game::LoadSettings()
 			if (hasSettingsButton)
 			{
 				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["OtherSettings"]->GetButtonByName("Language"));
-				button->selectedOption = std::stoi(tokens[1]);
+				if (button != nullptr)
+				{
+					button->selectedOption = std::stoi(tokens[1]);
+				}
 			}
 		}
 
@@ -1577,9 +1669,11 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 		}
 		else
 		{
+			std::cout << "Handle Menu Event" << std::endl;
 			switch (event.key.keysym.sym)
 			{
 			case SDLK_RETURN:
+				std::cout << "Handle Menu Event - hit return key" << std::endl;
 				quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
 				break;
 			default:
@@ -1717,8 +1811,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				if (currentDialog != nullptr)
 				{
 					StopTextInput(*currentDialog);
-				}
-				
+				}				
 			}
 		}
 		else
@@ -1740,6 +1833,7 @@ bool Game::HandleEvent(SDL_Event& event)
 					LoadLevel(nextLevel);
 				break;
 			case SDLK_1: // toggle Debug mode
+				std::cout << "Handle Menu Event - hit 1 key" << std::endl;
 				debugMode = !debugMode;
 				break;
 			case SDLK_2: // toggle Editor mode
@@ -1921,6 +2015,7 @@ void Game::SaveGIF()
 
 void Game::SaveScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension)
 {
+#ifndef EMSCRIPTEN
 	const unsigned int bytesPerPixel = 3;
 
 	unsigned char* pixels = new unsigned char[screenWidth * screenHeight * bytesPerPixel]; // 4 bytes for RGBA
@@ -1971,6 +2066,7 @@ void Game::SaveScreenshot(const std::string& filepath, const std::string& filena
 	SDL_FreeSurface(screenshot);
 
 	delete[] pixels;
+#endif
 }
 
 void Game::GetMenuInput()
@@ -1984,7 +2080,7 @@ void Game::GetMenuInput()
 	else
 	{
 		uint32_t ticks = timer.GetTicks();
-		if (ticks > lastPressedKeyTicks + 50) //TODO: Check for overflow errors
+		if (ticks > lastPressedKeyTicks + 100) //TODO: Check for overflow errors
 		{
 			// If we have pressed any key on the menu, add a delay between presses
 			if (openedMenus[openedMenus.size() - 1]->Update(*this))
@@ -2335,6 +2431,7 @@ void Game::PopulateQuadTree()
 
 void Game::SetScreenResolution(const unsigned int width, const unsigned int height)
 {
+#ifndef EMSCRIPTEN
 	screenWidth = width;
 	screenHeight = height;
 
@@ -2378,13 +2475,17 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 		prevCutsceneFrameBuffer->sprite->SetShader(shader3);
 
 	glViewport(0, 0, screenWidth, screenHeight);
+#endif
 }
 
 
 void Game::Render()
-{
+{	
+	/*
 	// zero pass
 	glBindFramebuffer(GL_FRAMEBUFFER, mainFrameBuffer->framebufferObject);
+
+
 	//glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
@@ -2397,9 +2498,6 @@ void Game::Render()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	RenderScene();
-
-
-
 
 	// second pass
 	bool renderSecondCutsceneBuffer = false;
@@ -2451,18 +2549,25 @@ void Game::Render()
 		}
 	}
 
+	*/
+
 	// final pass
 	glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glm::vec3 screenPos = glm::vec3(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight, 0);
 	Vector2 screenScale = Vector2(renderer.camera.startScreenWidth / screenWidth, renderer.camera.startScreenHeight / -screenHeight);
 
+	RenderNormally();
+	RenderScene();
+
 	RenderQuake(screenPos);
 
+	/*
 	mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
 	
+
 	if (renderSecondCutsceneBuffer)
 	{
 		prevMainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
@@ -2473,7 +2578,7 @@ void Game::Render()
 	if (renderSecondCutsceneBuffer)
 	{
 		prevCutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
-	}
+	}*/
 
 	// Render the GUI above everything
 	if (!cutsceneManager.watchingCutscene && !editMode)

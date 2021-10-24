@@ -9,7 +9,7 @@
 
 #include <unordered_map>
 
-#include <GL/glew.h>
+#include "opengl_includes.h"
 #include "leak_check.h"
 #include "globals.h"
 

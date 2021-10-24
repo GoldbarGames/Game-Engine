@@ -12,7 +12,7 @@ ShaderProgram* Renderer::GetTextShader()
 	return textShader;
 }
 
-ShaderProgram* Renderer::GetShader(int key)
+ShaderProgram* Renderer::GetShader(int key) const
 {
 	if (shaders.count(key) != 0)
 	{
@@ -48,6 +48,10 @@ void Renderer::CreateShaders()
 	std::string vertexFile = "";
 	std::string fragmentFile = "";
 	std::string shaderFolder = "data/shaders/";
+
+#ifdef EMSCRIPTEN
+	shaderFolder += "webgl/";
+#endif
 
 	for (int i = 0; i < shaderList.size(); i++)
 	{

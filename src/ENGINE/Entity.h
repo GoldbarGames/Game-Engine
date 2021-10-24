@@ -86,7 +86,7 @@ public:
 
 	Vector2 GetScale() const;
 
-	void SetScale(const Vector2& newScale);
+	virtual void SetScale(const Vector2& newScale);
 
 	Sprite* GetSprite();
 	Animator* GetAnimator();

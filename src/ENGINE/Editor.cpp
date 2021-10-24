@@ -2220,8 +2220,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 
 		std::vector<std::string>* currentDataMap;
 
-		std::cout << "START LOADING LEVEL" << std::endl;
-		std::cout << "At Load: " << testTimer.GetTicks() << std::endl;
+		std::cout << "START LOADING LEVEL TIMER:  " << testTimer.GetTicks() << std::endl;
 		testTimer.Start(0);
 
 		// Make sure to clear the list of taken IDs 
@@ -2238,7 +2237,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 			t = testTimer.GetTicks();
 			if (t > 20)
 			{
-				std::cout << "At while start: " << t << std::endl;
+				//std::cout << "At while start: " << t << std::endl;
 				testTimer.Start(0);
 			}
 
@@ -2270,7 +2269,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 			t = testTimer.GetTicks();
 			if (t > 20)
 			{
-				std::cout << "At token: " << t << std::endl;
+				//std::cout << "At token: " << t << std::endl;
 				testTimer.Start(0);
 			}
 
@@ -2403,10 +2402,8 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 			//ss.getline(lineChar, LINE_SIZE);
 		}
 
-		std::cout << "After Load: " << testTimer.GetTicks() << std::endl;
+		std::cout << "FINISH LOADING LEVEL TIMER: " << testTimer.GetTicks() << std::endl;
 		testTimer.Start(0);
-
-		std::cout << "FINISH LOADING LEVEL" << std::endl;
 
 		// Switch the camera's target
 		if (game->renderer.camera.startingTargetID >= 0)

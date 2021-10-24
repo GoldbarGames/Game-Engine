@@ -2,11 +2,10 @@
 #define CAMERA_H
 #pragma once
 
-#include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <unordered_map>
-//#include <GLFW/glfw3.h>
+
 #include "leak_check.h"
 class Entity;
 class Game;

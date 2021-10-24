@@ -343,6 +343,8 @@ public:
 	void SaveGame(const char* filename, const char* path = "saves/");
 	void LoadGame(const char* filename, const char* path = "saves/");
 
+	void LoadGameData(const char* filename, const char* path = "saves/");
+
 	void FlushCurrentColor(const std::string& speakerName="");
 
 	void LoadGlobalVariables();

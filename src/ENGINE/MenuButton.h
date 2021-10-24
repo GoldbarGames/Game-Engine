@@ -27,6 +27,8 @@ public:
 	BaseButton* Update(Game& game, const Uint8* currentKeyStates);
 	void SetOptionColors(Color color);
 
+	void SetScale(const Vector2& newScale);
+
 	void Highlight(Game& game);
 	void Unhighlight(Game& game);
 };

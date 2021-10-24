@@ -441,6 +441,7 @@ void Camera::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 
 	try
 	{
+		/*
 		position.x = std::stof(map["positionX"]);
 		position.y = std::stof(map["positionY"]);
 		position.z = std::stof(map["positionZ"]);
@@ -449,6 +450,7 @@ void Camera::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 		pitch = std::stof(map["pitch"]);
 		roll = std::stof(map["roll"]);
 		angle = std::stof(map["angle"]);
+		*/
 	}
 	catch (std::exception e)
 	{

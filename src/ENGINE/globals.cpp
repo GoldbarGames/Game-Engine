@@ -400,8 +400,19 @@ std::vector<std::string> ReadStringsFromFile(const std::string& filepath)
 		while (!fin.eof())
 		{
 			fin.getline(token, 256);
+
 			if (token[0] != '\0')
+			{
+#ifdef EMSCRIPTEN
+				std::string stoken = token;
+				stoken += " ";
+				stoken = RTrim(stoken);
+				result.emplace_back(stoken);
+#else
 				result.emplace_back(token);
+#endif
+			}
+
 		}
 	}
 	else

@@ -1,7 +1,7 @@
 #include "Material.h"
 #include "Material.h"
 
-#include <GL/glew.h>
+#include "opengl_includes.h"
 
 Material::Material()
 {

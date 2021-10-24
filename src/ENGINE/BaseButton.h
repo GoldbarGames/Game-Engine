@@ -6,8 +6,6 @@
 #include <string>
 #include "globals.h"
 
-#include "GL/glew.h"
-
 #include "Text.h"
 
 class Renderer;

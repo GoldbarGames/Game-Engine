@@ -67,7 +67,7 @@ public:
 	Vector2 CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const;
 	Vector2 screenScale = Vector2(1, 1);
 
-	ShaderProgram* GetShader(int key);
+	ShaderProgram* GetShader(int key) const;
 	mutable std::unordered_map<int, ShaderProgram*> shaders;
 	
 	void LerpColor(float& color, float target, const float& speed);

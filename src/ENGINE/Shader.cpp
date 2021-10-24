@@ -38,6 +38,8 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     if (!programID)
     {
         printf("Error creating shader program!\n");
+        //GLenum err = glGetError();
+        //std::cerr << glewGetErrorString(err) << std::endl;
         return;
     }
 

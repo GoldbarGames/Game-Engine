@@ -2,7 +2,7 @@
 #define TEXTURE_H
 #pragma once
 
-#include <GL/glew.h>
+#include "opengl_includes.h"
 #include <SDL2/SDL_image.h>
 #include "leak_check.h"
 #include <string>

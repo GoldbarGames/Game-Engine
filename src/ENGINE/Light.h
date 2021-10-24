@@ -3,7 +3,6 @@
 #pragma once
 
 #include "leak_check.h"
-#include <GL/glew.h>
 #include <glm/glm.hpp>
 #include "Shader.h"
 

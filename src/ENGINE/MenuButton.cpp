@@ -165,3 +165,9 @@ void MenuButton::SetOptionColors(Color color)
 {
 	text->SetText(text->txt, color);
 }
+
+void MenuButton::SetScale(const Vector2& newScale)
+{
+	text->SetScale(newScale);
+	Entity::SetScale(newScale);
+}

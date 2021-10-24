@@ -11,42 +11,5 @@
 
 int main(int argc, char *args[])
 {
-#ifdef _WIN32
-	//#ifdef MY_ENABLE_LEAK_CHECK /DMYENABLE_LEAK_CHECK
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	//#endif
-#endif
-
-	{
-		// For your own custom entity types
-		EntityFactory* e = EntityFactory::Get();
-		GUI* gui = new GUI();
-		
-		FileManager* f = new FileManager();
-		MenuManager* m = new MenuManager();
-
-		Game game("WDK", "Witch Doctor Kaneko", "icon.png", true, *e, *f, *gui, *m);
-
-		EditorHelper* helper = new EditorHelper(&game);
-
-		game.MainLoop();
-
-		if (gui != nullptr)
-			delete_it(gui);
-
-		if (helper != nullptr)
-			delete_it(helper);
-
-		if (f != nullptr)
-			delete_it(f);
-
-		if (m != nullptr)
-			delete_it(m);
-	}
-
-#if _DEBUG
-	_CrtDumpMemoryLeaks();
-#endif
-
 	return 0;
 }

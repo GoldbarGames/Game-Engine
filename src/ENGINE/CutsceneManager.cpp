@@ -100,7 +100,7 @@ void CutsceneManager::ReadCutsceneFile()
 	try
 	{
 		// First try to read a separate define file
-		std::cout << "Attempting to open " + defineFilePath << std::endl;
+		//std::cout << "Attempting to open " + defineFilePath << std::endl;
 		fin.open(defineFilePath);
 		if (fin.is_open())
 		{
@@ -135,7 +135,7 @@ void CutsceneManager::ReadCutsceneFile()
 		data = "";
 		for (const auto& file : filesToRead)
 		{
-			std::cout << "Attempting to open " + file << std::endl;
+			//std::cout << "Attempting to open " + file << std::endl;
 			fin.open(file);
 			if (fin.is_open())
 			{
@@ -498,7 +498,7 @@ void CutsceneManager::ParseCutsceneFile()
 {
 	if (data.size() < 1)
 	{
-		game->logger.Log("No cutscene data to parse.");
+		//game->logger.Log("No cutscene data to parse.");
 		return;
 	}
 
@@ -2660,24 +2660,8 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 
 }
 
-void CutsceneManager::LoadGame(const char* filename, const char* path)
+void CutsceneManager::LoadGameData(const char* filename, const char* path)
 {
-	// Clear everything off the screen before we load the game
-	for (const auto& [key, val] : images)
-	{
-		CutsceneFunctions::ClearSprite({ "clear", std::to_string(key), "0" }, commands);
-	}
-
-	// Clear backlog text
-	backlog.clear();
-
-	// Clear selected choices
-	selectedChoices.clear();
-
-	// Stop all sounds
-	game->soundManager.StopBGM();
-	game->soundManager.FadeOutChannel(-1);
-
 	std::ifstream fin;
 	//std::string data = "";
 	std::vector<std::string> dataLines;
@@ -2689,8 +2673,6 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 		dataLines.push_back(line);
 	}
 	fin.close();
-
-	gosubStack.clear();
 
 	// Temporarily remove the path prefix
 	// to correctly load sprites
@@ -2801,6 +2783,11 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				// but we might want to use them to more accurately find the load point
 
 				labelName = lineParams[0];
+
+				// TODO: Make sure the developer knows that this name shouldn't be used
+				if (labelName == "0")
+					break;
+
 				//std::string lineText = saveData[1];
 				labelIndex = std::stoi(lineParams[1]);
 				lineIndex = std::stoi(lineParams[2]);
@@ -2844,7 +2831,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 			case SaveSections::ALIAS_STRINGS:
 				// This is done so that we can use filepaths with spaces in them
 				currentStringAlias = dataLines[index].substr(lineParams[0].size() + 1, dataLines[index].size() - lineParams[0].size());
-											
+
 				commands.stralias[lineParams[0]] = currentStringAlias;
 				break;
 			case SaveSections::ALIAS_NUMBERS:
@@ -2866,7 +2853,7 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 					// particle system create %var2 %var1 0
 
 					// Spawn the particle system
-					CutsceneFunctions::ParticleCommand({"particle", "system", "create", lineParams[0], lineParams[2], lineParams[3] }, commands);
+					CutsceneFunctions::ParticleCommand({ "particle", "system", "create", lineParams[0], lineParams[2], lineParams[3] }, commands);
 
 					// Modify its values
 					ParticleSystem* ps = dynamic_cast<ParticleSystem*>(images[std::stoi(lineParams[0])]);
@@ -2905,12 +2892,12 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 					Entity* entity = images[std::stoi(lineParams[1])];
 
 					entity->rotation = glm::vec3(
-						std::stoi(lineParams[5]), 
-						std::stoi(lineParams[6]), 
+						std::stoi(lineParams[5]),
+						std::stoi(lineParams[6]),
 						std::stoi(lineParams[7]));
-					
+
 					entity->scale = Vector2(
-						std::stoi(lineParams[8]), 
+						std::stoi(lineParams[8]),
 						std::stoi(lineParams[9]));
 
 					if (lineParams.size() > 10)
@@ -2946,11 +2933,11 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 				break;
 			case SaveSections::OTHER_STUFF:
 
-				if (lineParams[0] == "bgm" && lineParams.size() > 1)
+				if (lineParams[0] == "bgm" && lineParams.size() > 1 && lineParams[1] != "None")
 				{
 					game->soundManager.PlayBGM(lineParams[1]);
 				}
-				else if (lineParams[0] == "me" && lineParams.size() > 2)
+				else if (lineParams[0] == "me" && lineParams.size() > 2 && lineParams[2] != "None")
 				{
 					game->soundManager.PlaySound(lineParams[2], std::stoi(lineParams[1]), -1);
 				}
@@ -2993,6 +2980,28 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 	}
 
 	commands.pathPrefix = pathPrefix;
+}
+
+void CutsceneManager::LoadGame(const char* filename, const char* path)
+{
+	// Clear everything off the screen before we load the game
+	for (const auto& [key, val] : images)
+	{
+		CutsceneFunctions::ClearSprite({ "clear", std::to_string(key), "0" }, commands);
+	}
+
+	// Clear backlog text
+	backlog.clear();
+	gosubStack.clear();
+
+	// Clear selected choices
+	selectedChoices.clear();
+
+	// Stop all sounds
+	game->soundManager.StopBGM();
+	game->soundManager.FadeOutChannel(-1);
+
+	LoadGameData(filename, path);
 
 	// This is necessary to advance the text after loading.
 	// Because we can't fall through labels, it presents an empty textbox.

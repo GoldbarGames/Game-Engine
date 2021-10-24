@@ -34,8 +34,25 @@ private:
 	SDL_Surface* screenSurface = nullptr;
 	SDL_GLContext mainContext = nullptr;
 
+	SDL_Renderer* sdlRenderer = nullptr; // only for web builds
+
 	float now = 0; // duration from game start to current frame
 	bool waitingForDebugDialog = false;
+
+	// Below are reserved for the main loop
+
+	const int updateInterval = 500; // update fps every X ms
+	float fpsSum = 0.0f; // 
+	float timeLeft = updateInterval; // time left before updating
+	int frames = 0; // number of frames counted
+
+	int drawCallsLastFrame = 0;
+	int previousNumberOfFrames = 0;
+	int currentNumberOfFrames = 0;
+
+	const std::string guiFPS = "FPS";
+	const std::string guiFPS2 = "FPS: ";
+	const std::string guiTimer = "timer";
 
 public:
 
@@ -122,6 +139,7 @@ public:
 
 	void InitOpenGL();
 
+	int BeforeMainLoop();
 	int MainLoop();
 
 	void CheckController(bool output);
@@ -156,7 +174,7 @@ public:
 	bool limitFPS = false;
 
 	bool isPaused = false;
-	
+
 	GameState state;
 	//GameState previousState;
 
@@ -165,7 +183,7 @@ public:
 
 	uint32_t lastPressedKeyTicks = 0;
 
-	Background* background = nullptr;	
+	Background* background = nullptr;
 
 	Renderer renderer;
 	CutsceneManager cutsceneManager;
@@ -224,7 +242,7 @@ public:
 	bool showFPS = false;
 	bool showTimer = false;
 	int indexScreenResolution = 0;
-	
+
 	mutable std::vector<Entity*> entities;
 
 	std::vector<Entity*> lightSourcesInLevel;
@@ -249,7 +267,7 @@ public:
 	void InitSDL();
 	void EndSDL();
 	void SortEntities(std::vector<Entity*>& entityVector);
-	
+
 	// Spawn functions
 	Tile* CreateTile(const Vector2& frame, const int tilesheetIndex,
 		const glm::vec3& position, DrawingLayer drawingLayer) const;
@@ -264,7 +282,7 @@ public:
 	void TransitionLevel();
 
 	void LoadTitleScreen();
-	void LoadLevel(const std::string& level, int onExit=0, int onEnter=0);
+	void LoadLevel(const std::string& level, int onExit = 0, int onEnter = 0);
 
 	glm::vec3 CalculateObjectSpawnPosition(glm::vec2 mousePos, const int GRID_SIZE);
 
@@ -292,6 +310,8 @@ public:
 	void SaveScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension);
 
 	Sprite* CreateSprite(const std::string& filepath, const int shaderName = 1);
-};
+
+
 
 #endif
+};

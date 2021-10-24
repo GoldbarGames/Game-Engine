@@ -534,7 +534,7 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	{
 		if (hoverShader == nullptr)
 		{
-			hoverShader = renderer.shaders[7];
+			hoverShader = renderer.shaders[8];
 		}
 
 		shader = hoverShader;
