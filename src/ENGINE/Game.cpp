@@ -171,7 +171,7 @@ int Game::MainLoop()
 	if (renderer.drawCallsPerFrame != drawCallsLastFrame)
 	{
 		drawCallsLastFrame = renderer.drawCallsPerFrame;
-		//std::cout << "Draw calls: " << renderer.drawCallsPerFrame << std::endl;
+		std::cout << "Draw calls: " << renderer.drawCallsPerFrame << std::endl;
 	}
 
 #if _DEBUG
@@ -483,16 +483,39 @@ void Game::InitOpenGL()
 
 #if EMSCRIPTEN
 
+	std::cout << "Attempting to create emscripten WebGL context..." << std::endl;
+
+	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
+	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0)
+	{
+		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_MAJOR_VERSION failed. " + std::string(SDL_GetError()));
+	}
+
+	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2) != 0)
+	{
+		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_MINOR_VERSION failed. " + std::string(SDL_GetError()));
+}
+
+	// Set our OpenGL version.
+	// SDL_GL_CONTEXT_CORE gives us only the newer version, deprecated functions are disabled
+	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES) != 0)
+	{
+		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_MASK failed. " + std::string(SDL_GetError()));
+	}
+
 	EmscriptenWebGLContextAttributes attrs;
 	attrs.antialias = true;
 	attrs.majorVersion = 3;
-	attrs.minorVersion = 0;
-	attrs.alpha = false; // will the screen be black or transparent?
+	attrs.minorVersion = 2;
+	attrs.alpha = true;
+	attrs.powerPreference = EM_WEBGL_POWER_PREFERENCE_DEFAULT;
 
-	std::cout << "Attempting to create emscripten WebGL context..." << std::endl;
-
+	// The following lines must be done in exact order, or it will break!
+	emscripten_webgl_init_context_attributes(&attrs); // you MUST init the attributes before creating the context
+	attrs.majorVersion = 3; // you MUST set the version AFTER the above line
 	EMSCRIPTEN_WEBGL_CONTEXT_HANDLE webgl_context = emscripten_webgl_create_context("#canvas", &attrs);
 	emscripten_webgl_make_context_current(webgl_context);
+	mainContext = SDL_GL_CreateContext(window);
 
 #else
 	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
@@ -583,10 +606,7 @@ void Game::InitOpenGL()
 
 	m->ClearMesh();
 
-	logger.Log("ERROR: " + std::string(SDL_GetError()));
 	mainFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
-	logger.Log("ERROR: " + std::string(SDL_GetError()));
-
 	prevMainFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 	cutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 	prevCutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
@@ -594,6 +614,11 @@ void Game::InitOpenGL()
 
 void Game::InitSDL()
 {
+	
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
+	TTF_Init();
+	
+	/*
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) == -1)
 	{
 		logger.Log("ERROR: SDL failed to initialize:" + std::string(SDL_GetError()));
@@ -602,12 +627,11 @@ void Game::InitSDL()
 	if (TTF_Init() == -1)
 	{
 		logger.Log("ERROR: SDL_TTF failed to initialize:" + std::string(SDL_GetError()));
-	}
+	}*/
 
 	std::cout << "Creating window..." << std::endl;
 
-	window = SDL_CreateWindow(windowTitle.c_str(),
-		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
+	window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
 	if (window == nullptr)
 	{
@@ -2431,7 +2455,7 @@ void Game::PopulateQuadTree()
 
 void Game::SetScreenResolution(const unsigned int width, const unsigned int height)
 {
-#ifndef EMSCRIPTEN
+
 	screenWidth = width;
 	screenHeight = height;
 
@@ -2442,6 +2466,7 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 	ShaderProgram* shader1 = nullptr;
 	ShaderProgram* shader2 = nullptr;
 	ShaderProgram* shader3 = nullptr;
+	ShaderProgram* shader4 = nullptr;
 
 	if (mainFrameBuffer != nullptr)
 	{
@@ -2461,9 +2486,16 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 		delete_it(prevCutsceneFrameBuffer);
 	}
 
+	if (prevMainFrameBuffer != nullptr)
+	{
+		shader4 = prevMainFrameBuffer->sprite->GetShader();
+		delete_it(prevMainFrameBuffer);
+	}
+
 	mainFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 	cutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 	prevCutsceneFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
+	prevMainFrameBuffer = new FrameBuffer(renderer, screenWidth, screenHeight);
 
 	if (shader1 != nullptr)
 		mainFrameBuffer->sprite->SetShader(shader1);
@@ -2474,17 +2506,17 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 	if (shader3 != nullptr)
 		prevCutsceneFrameBuffer->sprite->SetShader(shader3);
 
+	if (shader4 != nullptr)
+		prevMainFrameBuffer->sprite->SetShader(shader4);
+
 	glViewport(0, 0, screenWidth, screenHeight);
-#endif
 }
 
 
 void Game::Render()
 {	
-	/*
 	// zero pass
 	glBindFramebuffer(GL_FRAMEBUFFER, mainFrameBuffer->framebufferObject);
-
 
 	//glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -2549,8 +2581,6 @@ void Game::Render()
 		}
 	}
 
-	*/
-
 	// final pass
 	glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -2559,14 +2589,9 @@ void Game::Render()
 	glm::vec3 screenPos = glm::vec3(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight, 0);
 	Vector2 screenScale = Vector2(renderer.camera.startScreenWidth / screenWidth, renderer.camera.startScreenHeight / -screenHeight);
 
-	RenderNormally();
-	RenderScene();
-
 	RenderQuake(screenPos);
 
-	/*
 	mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
-	
 
 	if (renderSecondCutsceneBuffer)
 	{
@@ -2578,7 +2603,7 @@ void Game::Render()
 	if (renderSecondCutsceneBuffer)
 	{
 		prevCutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
-	}*/
+	}
 
 	// Render the GUI above everything
 	if (!cutsceneManager.watchingCutscene && !editMode)

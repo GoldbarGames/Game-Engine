@@ -34,8 +34,6 @@ private:
 	SDL_Surface* screenSurface = nullptr;
 	SDL_GLContext mainContext = nullptr;
 
-	SDL_Renderer* sdlRenderer = nullptr; // only for web builds
-
 	float now = 0; // duration from game start to current frame
 	bool waitingForDebugDialog = false;
 
@@ -311,7 +309,6 @@ public:
 
 	Sprite* CreateSprite(const std::string& filepath, const int shaderName = 1);
 
-
+};
 
 #endif
-};
