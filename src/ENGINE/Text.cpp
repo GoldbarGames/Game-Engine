@@ -345,7 +345,7 @@ void Text::AddImage(Sprite* newSprite)
 			float scaleX = oldRatioX / (float)newRatioX;
 			float scaleY = oldRatioY / (float)newRatioY;
 
-			newGlyph->scale = Vector2(scaleY, scaleY);
+			newGlyph->scale = glm::vec2(scaleY, scaleY);
 		}
 
 		glyphs.push_back(newGlyph);
@@ -429,7 +429,7 @@ void Text::Render(const Renderer& renderer, glm::vec3 offset)
 	}
 }
 
-void Text::SetScale(Vector2 newScale)
+void Text::SetScale(glm::vec2 newScale)
 {
 	scale = newScale;
 

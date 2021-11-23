@@ -23,14 +23,14 @@ class KINJO_API Tile : public Entity
 {
 public:
 	int tilesheetIndex = 0;
-	Vector2 tileCoordinates = Vector2(0, 0);
+	glm::vec2 tileCoordinates = glm::vec2(0, 0);
 
 	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
 	void Destroy();
-	void ChangeSprite(const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize);
+	void ChangeSprite(const glm::vec2& frame, Texture* image, const Renderer& renderer, const int tileSize);
 	void Animate();
 	bool CanSpawnHere(const glm::vec3& spawnPosition, Game& game, bool useCamera = true);
-	Tile(const glm::vec3& pos, const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize);
+	Tile(const glm::vec3& pos, const glm::vec2& frame, Texture* image, const Renderer& renderer, const int tileSize);
 	~Tile();
 
 	void Save(std::unordered_map<std::string, std::string>& map);

@@ -218,7 +218,7 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 }
 
 // constructor for tiles from tilesheets
-Sprite::Sprite(const Vector2& frame, Texture* image, ShaderProgram* s, const int tileSize)
+Sprite::Sprite(const glm::vec2& frame, Texture* image, ShaderProgram* s, const int tileSize)
 {
 	model = glm::mat4(1.0f);
 	texture = image;
@@ -245,7 +245,7 @@ Sprite::Sprite(const Vector2& frame, Texture* image, ShaderProgram* s, const int
 }
 
 Sprite::Sprite(int numFrames, const SpriteManager& manager, const std::string& filepath,
-	ShaderProgram* s, Vector2 newPivot)
+	ShaderProgram* s, glm::vec2 newPivot)
 {
 	model = glm::mat4(1.0f);
 	texture = manager.GetImage(filepath);
@@ -266,7 +266,7 @@ Sprite::Sprite(int numFrames, const SpriteManager& manager, const std::string& f
 }
 
 Sprite::Sprite(int start, int end, int width, int height, const SpriteManager& manager,
-	const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop)
+	const std::string& filepath, ShaderProgram* s, const glm::vec2& newPivot, bool loop)
 {
 	model = glm::mat4(1.0f);
 	texture = manager.GetImage(filepath);
@@ -296,7 +296,7 @@ Sprite::Sprite(int start, int end, int width, int height, const SpriteManager& m
 }
 
 Sprite::Sprite(int start, int end, int numframes, const SpriteManager& manager,
-	const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop)
+	const std::string& filepath, ShaderProgram* s, const glm::vec2& newPivot, bool loop)
 {
 	model = glm::mat4(1.0f);
 	texture = manager.GetImage(filepath);
@@ -331,7 +331,7 @@ Sprite::~Sprite()
 	// be used again many more times by other sprites.
 }
 
-void Sprite::Render(const glm::vec3& position, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)
+void Sprite::Render(const glm::vec3& position, const Renderer& renderer, const glm::vec2& scale, const glm::vec3& rotation)
 {
 	Render(position, 0, renderer, scale, rotation);
 }
@@ -354,7 +354,7 @@ void Sprite::SetTexture(Texture* t)
 	endFrame = 0;
 	frameWidth = texture->GetWidth();
 	frameHeight = texture->GetHeight();
-	pivot = Vector2(0, 0);
+	pivot = glm::vec2(0, 0);
 
 	//TODO: This only works if there is only one row, but that is okay for now
 	numberFramesInTexture = 1;
@@ -511,7 +511,7 @@ void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const
 }
 
 
-void Sprite::Render(const glm::vec3& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation)
+void Sprite::Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec2& scale, const glm::vec3& rotation)
 {
 	// TODO: Refactor this to be more efficient for 2D draw calls
 	Render(position, speed, renderer, glm::vec3(scale.x, scale.y, 1.0f), rotation);

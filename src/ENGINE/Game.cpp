@@ -171,7 +171,7 @@ int Game::MainLoop()
 	if (renderer.drawCallsPerFrame != drawCallsLastFrame)
 	{
 		drawCallsLastFrame = renderer.drawCallsPerFrame;
-		std::cout << "Draw calls: " << renderer.drawCallsPerFrame << std::endl;
+		//std::cout << "Draw calls: " << renderer.drawCallsPerFrame << std::endl;
 	}
 
 #if _DEBUG
@@ -261,6 +261,9 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 
 	// Initialize this AFTER OpenGL, Fonts, and Editor
 	soundManager.Init(this);
+
+	dirNames = ReadStringsFromFile("data/dirs.dat");
+	initialStates = GetMapStringsFromFile("data/istates.dat");
 
 	entities.clear();
 
@@ -617,17 +620,6 @@ void Game::InitSDL()
 	
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
 	TTF_Init();
-	
-	/*
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) == -1)
-	{
-		logger.Log("ERROR: SDL failed to initialize:" + std::string(SDL_GetError()));
-	}
-
-	if (TTF_Init() == -1)
-	{
-		logger.Log("ERROR: SDL_TTF failed to initialize:" + std::string(SDL_GetError()));
-	}*/
 
 	std::cout << "Creating window..." << std::endl;
 
@@ -736,10 +728,16 @@ Entity* Game::CreateEntity(const std::string& entityName, const glm::vec3& posit
 			args["1"] = entityTypes[entityName][subtype];
 		}
 
-		// TODO: Don't hardcode this part, store these in an external file
-		// and check to see if it matches any entity type in that file...
-		// (but make sure to only read in once, store/lookup in a data structure after)
-		if (args["1"] != "" && (entityName == "enemy" || entityName == "npc" || entityName == "collectible"))
+		bool subdirectory = false;
+		for (int i = 0; i < dirNames.size(); i++)
+		{
+			if (entityName == dirNames[i])
+			{
+				subdirectory = true;
+			}
+		}
+
+		if (args["1"] != "" && subdirectory)
 		{
 			filepath += args["1"] + "/" + args["1"];
 		}
@@ -752,18 +750,10 @@ Entity* Game::CreateEntity(const std::string& entityName, const glm::vec3& posit
 
 		//TODO: Make this better...
 		// - Allow for conditions that are always true/false 
-		// so that you can write Animator files that 
-		// immediately go to other states
+		// so that you can write Animator files that immediately go to other states
 		// (such as "notidle: bool true == true")
 		// - OR add a simple way to define the starting state in the animator file itself
 		// (such as "^*unpressed*") and otherwise just default to the topmost state
-
-		// TODO: Don't hardcode this part
-		std::string initialState = "idle";
-		if (newEntity->etype == "ladder")
-			initialState = "middle";
-		if (newEntity->etype == "switch")
-			initialState = "unpressed";
 
 		if (animStates.size() > 0)
 		{
@@ -786,6 +776,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const glm::vec3& posit
 
 			if (newAnimator == nullptr)
 			{
+				std::string initialState = initialStates.count(newEntity->etype) ? initialStates.at(newEntity->etype) : "idle";
 				newAnimator = new Animator(filepath, animStates, initialState);
 				//animators[filepath] = newAnimator;
 			}
@@ -849,7 +840,7 @@ glm::vec3 Game::CalculateObjectSpawnPosition(glm::vec2 mousePos, const int GRID_
 	return glm::vec3(newTileX, newTileY, 0);
 }
 
-Tile* Game::CreateTile(const Vector2& frame, const int tilesheetIndex, 
+Tile* Game::CreateTile(const glm::vec2& frame, const int tilesheetIndex,
 	const glm::vec3& position, DrawingLayer drawingLayer) const
 {
 	Tile* tile = new Tile(position, frame, 
@@ -864,11 +855,9 @@ Tile* Game::CreateTile(const Vector2& frame, const int tilesheetIndex,
 	return tile;
 }
 
-Tile* Game::SpawnTile(const Vector2& frame, const int tilesheetIndex, 
+Tile* Game::SpawnTile(const glm::vec2& frame, const int tilesheetIndex,
 	const glm::vec3& position, DrawingLayer drawingLayer) const
 {
-	// TODO: Tiles that are on the rightmost column do not appear visible
-
 	Tile* tile = new Tile(position, frame, 
 		spriteManager.GetImage(editor->GetTileSheetFileName(tilesheetIndex)), 
 		renderer, editor->SPAWN_TILE_SIZE);
@@ -885,7 +874,7 @@ Tile* Game::SpawnTile(const Vector2& frame, const int tilesheetIndex,
 	return tile;
 }
 
-// NOTE: Spawning more than one player this way breaks things
+// TODO: Spawning more than one player this way breaks things
 Entity* Game::SpawnPlayer(const glm::vec3& position)
 {
 	Entity* player = SpawnEntity("player", position, 0);
@@ -898,20 +887,16 @@ Entity* Game::SpawnPlayer(const glm::vec3& position)
 
 void Game::ShouldDeleteEntity(int index)
 {
-	//entitiesToDelete.emplace_back(index);
-	entities[index]->shouldDelete = true;
+	ShouldDeleteEntity(entities[index]);
 }
 
-// TODO: This function seems kind of pointless
-// because we already have the entity at the start!
 void Game::ShouldDeleteEntity(Entity* entity)
 {
-	std::vector<Entity*>::iterator iter = std::find(entities.begin(), entities.end(), entity);
-	if (iter != entities.end())
+	// Only add this entity to the list if it is not already there
+	std::vector<Entity*>::iterator iter = std::find(entitiesToDelete.begin(), entitiesToDelete.end(), entity);
+	if (iter == entitiesToDelete.end())
 	{
-		int index = std::distance(entities.begin(), iter);
-		entities[index]->shouldDelete = true;
-		//entitiesToDelete.emplace_back(index);
+		entitiesToDelete.emplace_back(entity);
 	}
 	else
 	{
@@ -922,11 +907,16 @@ void Game::ShouldDeleteEntity(Entity* entity)
 void Game::DeleteEntity(Entity* entity)
 {
 	std::vector<Entity*>::iterator index = std::find(entities.begin(), entities.end(), entity);
-	if (index != entities.end()) // means the element was not found
+	if (index != entities.end())
 	{
 		delete_it(*index);
 		entities.erase(index);
-	}		
+		entitiesToDelete.erase(entitiesToDelete.begin());
+	}	
+	else
+	{
+		logger.LogEntity("Failed to delete entity", *entity);
+	}
 }
 
 void Game::DeleteEntity(int index)
@@ -946,6 +936,7 @@ void Game::DeleteEntity(int index)
 
 	delete_it(entities[index]);
 	entities.erase(entities.begin() + index);
+	entitiesToDelete.erase(entitiesToDelete.begin());
 }
 
 void Game::StartTextInput(Dialog& dialog, const std::string& reason)
@@ -1049,6 +1040,7 @@ void Game::StopTextInput(Dialog& dialog)
 			return;
 
 		std::string newEntityName = Trim(inputText);
+		newEntityName[0] = std::toupper(newEntityName[0]);
 
 		// 1. Add this entity to the entityTypes.list
 		std::ifstream fin;
@@ -1416,23 +1408,11 @@ bool Game::CheckInputs()
 
 void Game::CheckDeleteEntities()
 {
-	// TODO: Instead of iterating over all entities,
-	// should probably just have a list of IDs
-	// corresponding to each entity to delete
-	for (int i = 0; i < entitiesToDelete.size(); i++)
+	// We use a while loop because we must remove from the list while deleting
+	while(entitiesToDelete.size() > 0)
 	{
-		DeleteEntity(entities[entitiesToDelete[i]]);
-	}
-
-	// Destroy entities before we update them
-	unsigned int k = 0;
-	while (k < entities.size())
-	{
-		if (entities[k]->shouldDelete)
-			DeleteEntity(k);
-		else
-			k++;
-	}
+		DeleteEntity(entitiesToDelete[0]);
+	}	
 }
 
 void Game::HandleEditMode()
@@ -2587,7 +2567,7 @@ void Game::Render()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glm::vec3 screenPos = glm::vec3(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight, 0);
-	Vector2 screenScale = Vector2(renderer.camera.startScreenWidth / screenWidth, renderer.camera.startScreenHeight / -screenHeight);
+	glm::vec2 screenScale = glm::vec2(renderer.camera.startScreenWidth / screenWidth, renderer.camera.startScreenHeight / -screenHeight);
 
 	RenderQuake(screenPos);
 
@@ -2804,7 +2784,12 @@ void Game::RenderNormally()
 	gui->RenderStart();
 
 	// Render all backgrounds and their layers
-	background->Render(renderer);
+	
+	if (background != nullptr)
+	{
+		background->Render(renderer);
+	}
+
 	quadTree.Render(renderer);
 
 	// Render all entities

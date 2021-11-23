@@ -8,7 +8,7 @@
 #include "Editor.h"
 #include "Entity.h"
 
-Tile::Tile(const glm::vec3& pos, const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize) : Entity(pos)
+Tile::Tile(const glm::vec3& pos, const glm::vec2& frame, Texture* image, const Renderer& renderer, const int tileSize) : Entity(pos)
 {	
 	shouldSave = true;
 	ChangeSprite(frame, image, renderer, tileSize);
@@ -22,7 +22,7 @@ Tile::~Tile()
 }
 
 // TODO: Move this inside the Game class: ChangeTileSprite?
-void Tile::ChangeSprite(const Vector2& frame, Texture* image, const Renderer& renderer, const int tileSize)
+void Tile::ChangeSprite(const glm::vec2& frame, Texture* image, const Renderer& renderer, const int tileSize)
 {
 	tileCoordinates = frame;
 	currentSprite = Sprite(frame, image, Renderer::tileShader, tileSize);

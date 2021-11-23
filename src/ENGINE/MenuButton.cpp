@@ -10,7 +10,7 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 {
 	position = pos;
 
-	image = new Sprite(1, game.spriteManager, filepath, Renderer::GetTextShader(), Vector2(0,0));
+	image = new Sprite(1, game.spriteManager, filepath, Renderer::GetTextShader(), glm::vec2(0,0));
 	SetColor(col);
 
 	text = new Text(game.theFont);
@@ -21,7 +21,7 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 
 	//text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->GetTextHeight()/2));
 	AlignTextCenterY();
-	text->SetScale(Vector2(Camera::MULTIPLIER, Camera::MULTIPLIER));	
+	text->SetScale(glm::vec2(Camera::MULTIPLIER, Camera::MULTIPLIER));
 
 	// If this button has any text, scale the image to fit all the text inside it
 	if (text->txt != "")
@@ -166,7 +166,7 @@ void MenuButton::SetOptionColors(Color color)
 	text->SetText(text->txt, color);
 }
 
-void MenuButton::SetScale(const Vector2& newScale)
+void MenuButton::SetScale(const glm::vec2& newScale)
 {
 	text->SetScale(newScale);
 	Entity::SetScale(newScale);

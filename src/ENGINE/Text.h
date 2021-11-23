@@ -64,8 +64,8 @@ public:
 
 	Texture* GetTexture(TTF_Font* f, char c, int size);
 
-	void SetScale(Vector2 newScale);
-	Vector2 currentScale = Vector2(1, 1);
+	void SetScale(glm::vec2 newScale);
+	glm::vec2 currentScale = glm::vec2(1, 1);
 
 	Text();
 	Text(FontInfo* newFontInfo);

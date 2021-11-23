@@ -67,6 +67,10 @@ public:
 	mutable std::unordered_map<std::string, std::vector<std::string>> entityTypes;
 	std::unordered_map<std::string, std::vector<std::string>> spriteMap;
 
+	// Used when creating entities
+	std::vector<std::string> dirNames;
+	std::unordered_map<std::string, std::string> initialStates;
+
 	std::string windowIconFilepath = "";
 	std::string windowTitle = "";
 
@@ -83,7 +87,7 @@ public:
 	const FileManager* fileManager = nullptr;
 	const MenuManager* menuManager = nullptr;
 
-	std::vector<int> entitiesToDelete;
+	std::vector<Entity*> entitiesToDelete;
 
 	SDL_Rect mouseRect;
 	uint32_t mouseState;
@@ -267,9 +271,9 @@ public:
 	void SortEntities(std::vector<Entity*>& entityVector);
 
 	// Spawn functions
-	Tile* CreateTile(const Vector2& frame, const int tilesheetIndex,
+	Tile* CreateTile(const glm::vec2& frame, const int tilesheetIndex,
 		const glm::vec3& position, DrawingLayer drawingLayer) const;
-	Tile* SpawnTile(const Vector2& frame, const int tilesheetIndex,
+	Tile* SpawnTile(const glm::vec2& frame, const int tilesheetIndex,
 		const glm::vec3& position, DrawingLayer drawingLayer) const;
 
 	Entity* SpawnPlayer(const glm::vec3& position);

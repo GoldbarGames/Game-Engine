@@ -3,13 +3,13 @@
 #include "Renderer.h"
 #include "Editor.h"
 
-EditorButton::EditorButton(std::string txt, std::string filename, glm::vec3 pos, Game& game, Vector2 size, Color color)
+EditorButton::EditorButton(std::string txt, std::string filename, glm::vec3 pos, Game& game, glm::vec2 size, Color color)
 {
 	buttonTextureRect.x = 0;
 	buttonTextureRect.y = 0;
 
 	image = new Sprite(1, game.spriteManager, "assets/editor/btn" + filename + ".png", 
-		Renderer::GetTextShader(), Vector2(0, 0));
+		Renderer::GetTextShader(), glm::vec2(0, 0));
 
 	image->keepPositionRelativeToCamera = true;
 	image->keepScaleRelativeToCamera = true;

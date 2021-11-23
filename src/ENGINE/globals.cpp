@@ -1,7 +1,6 @@
 #include "globals.h"
 #include <iostream>
 #include <time.h>
-#include "Vector2.h"
 #include <fstream>
 #include <glm/geometric.hpp>
 
@@ -27,7 +26,7 @@ float myabs(float n)
 #endif
 }
 
-bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, const float minStep)
+bool LerpVector2(glm::vec2& current, const glm::vec2& target, const float maxStep, const float minStep)
 {
 	bool xDirectionPositive = (current.x < target.x);
 	bool yDirectionPositive = (current.y < target.y);
@@ -54,7 +53,7 @@ bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, c
 	return xFinished && yFinished;
 }
 
-bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
+bool LerpVector2(glm::vec2& current, const glm::vec2& start, const glm::vec2& target,
 	const uint32_t currentTime, uint32_t startTime, uint32_t endTime)
 {
 	float difference = endTime - startTime;
@@ -424,6 +423,24 @@ std::vector<std::string> ReadStringsFromFile(const std::string& filepath)
 
 	return result;
 }
+
+std::unordered_map<std::string, std::string> GetMapStringsFromFile(const std::string& filepath)
+{
+	std::vector<std::string> vector = ReadStringsFromFile(filepath);
+	std::unordered_map<std::string, std::string> result;
+
+	std::string key = "";
+	std::string value = "";
+	for (int i = 0; i < vector.size(); i++)
+	{
+		int index = 0;
+		key = ParseWord(vector[i], 0, index);
+		value = ParseWord(vector[i], 0, index);
+	}
+
+	return result;
+}
+
 
 const std::string& GetLanguage()
 { 

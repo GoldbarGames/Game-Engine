@@ -17,8 +17,8 @@ DebugScreen::DebugScreen(Game& g)
 	insertVariableButton = new EditorButton("Watch", "Btn", glm::vec3(2000, 100, 0), *game);
 	removeVariableButton = new EditorButton("Unwatch", "Btn", glm::vec3(2200, 100, 0), *game);
 
-	insertVariableButton->imageScale = Vector2(2, 1);
-	removeVariableButton->imageScale = Vector2(2, 1);
+	insertVariableButton->imageScale = glm::vec2(2, 1);
+	removeVariableButton->imageScale = glm::vec2(2, 1);
 
 	CreateDebugText(DebugText::cursorPositionInScreen, 500, 50);
 	CreateDebugText(DebugText::cursorPositionInWorld, 500, 100);
@@ -278,7 +278,7 @@ void DebugScreen::Render(const Renderer& renderer)
 				onePixelSprite->keepPositionRelativeToCamera = true;
 				onePixelSprite->keepScaleRelativeToCamera = true;
 				onePixelSprite->color = { 0, 0, 0, 64 };
-				onePixelSprite->Render(glm::vec3(800, 800, 0), renderer, Vector2(800, 800));
+				onePixelSprite->Render(glm::vec3(800, 800, 0), renderer, glm::vec2(800, 800));
 			}
 
 			CutsceneCommands& cmds = renderer.game->cutsceneManager.commands;

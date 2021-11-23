@@ -29,7 +29,7 @@ unsigned int Entity::Size()
 	totalSize += sizeof(name);
 	//totalSize += sizeof(flip);
 	//totalSize += sizeof(entityPivot);
-	totalSize += sizeof(shouldDelete);
+	//totalSize += sizeof(shouldDelete);
 	totalSize += sizeof(etype);
 	totalSize += sizeof(id);
 	totalSize += sizeof(drawOrder);
@@ -427,15 +427,13 @@ void Entity::Save(std::unordered_map<std::string, std::string>& map)
 		map["positionX"] = std::to_string((int)startPosition.x);
 		map["positionY"] = std::to_string((int)startPosition.y);
 		map["rotationZ"] = std::to_string((int)rotation.z);
-
-		if (etype == "player")
-			int test = 0;
 		
 		if (currentSprite.shader == nullptr)
 			map["shader"] = "1";
 		else
 			map["shader"] = std::to_string(currentSprite.shader->GetName());
 
+		map["name"] = name;
 		map["subtype"] = std::to_string(subtype);
 	}
 }
@@ -453,6 +451,8 @@ void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 
 	static const std::string rotationZ = "rotationZ";
 	static const std::string shaderString = "shader";
+	static const std::string subtypeString = "subtype";
+	static const std::string nameString = "name";
 
 	if (map.count(rotationZ) != 0)
 	{
@@ -493,12 +493,12 @@ void Entity::OnClickReleased(Uint32 mouseState, Game& game)
 	}
 }
 
-Vector2 Entity::GetScale() const 
+glm::vec2 Entity::GetScale() const
 { 
 	return scale; 
 }
 
-void Entity::SetScale(const Vector2& newScale) 
+void Entity::SetScale(const glm::vec2& newScale)
 {
 	scale = newScale;
 }

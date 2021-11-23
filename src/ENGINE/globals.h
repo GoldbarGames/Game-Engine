@@ -6,9 +6,9 @@
 #include <string>
 #include <unordered_map>
 #include <SDL2/SDL.h>
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-#include "Vector2.h"
 #include "leak_check.h"
 
 const int SCREEN_FPS = 60;
@@ -67,8 +67,8 @@ extern KINJO_API std::vector<std::string> SplitString(const std::string& str, ch
 extern KINJO_API Color ParseColorHexadecimal(const std::string& text);
 extern KINJO_API int HexToDecimal(const char hex);
 
-extern KINJO_API bool LerpVector2(Vector2& current, const Vector2& target, const float maxStep, const float minStep);
-extern KINJO_API bool LerpVector2(Vector2& current, const Vector2& start, const Vector2& target,
+extern KINJO_API bool LerpVector2(glm::vec2& current, const glm::vec2& target, const float maxStep, const float minStep);
+extern KINJO_API bool LerpVector2(glm::vec2& current, const glm::vec2& start, const glm::vec2& target,
 	const uint32_t currentTime, uint32_t startTime, uint32_t endTime);
 
 extern KINJO_API bool LerpVector3(glm::vec3& current, const glm::vec3& target, const float maxStep, const float minStep);
@@ -123,6 +123,7 @@ extern KINJO_API bool HasHorizontalIntersection(const SDL_Rect& rect1, const SDL
 extern KINJO_API void ReplaceAll(std::string& s, const std::string& toReplace, const std::string& replaceWith);
 
 extern KINJO_API std::vector<std::string> ReadStringsFromFile(const std::string& filepath);
+extern KINJO_API std::unordered_map<std::string, std::string> GetMapStringsFromFile(const std::string& filepath);
 
 extern KINJO_API void CalcAverageNormals(unsigned int* indices, unsigned int indiceCount, float* vertices,
 	unsigned int verticeCount, unsigned int vLength, unsigned int normalOffset);

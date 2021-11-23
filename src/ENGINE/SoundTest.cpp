@@ -744,7 +744,7 @@ void SoundTest::Render(const Renderer& renderer)
 
 	float tlPos = 0;
 
-	timelineRectangle.Render(glm::vec3(a, y, 0), renderer, Vector2(w, 20));
+	timelineRectangle.Render(glm::vec3(a, y, 0), renderer, glm::vec2(w, 20));
 
 	for (int i = 0; i < soundLoops[currentBGM].size(); i++)
 	{
@@ -755,10 +755,10 @@ void SoundTest::Render(const Renderer& renderer)
 			timelineLocation.color = soundLoops[currentBGM][i]->color;
 
 			tlPos = CalcTimelinePosition(soundLoops[currentBGM][i]->startTime, a, b, w);
-			timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, Vector2(20, 20));
+			timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, glm::vec2(20, 20));
 
 			tlPos = CalcTimelinePosition(soundLoops[currentBGM][i]->endTime, a, b, w);
-			timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, Vector2(20, 20));
+			timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, glm::vec2(20, 20));
 		}	
 
 		soundLoops[currentBGM][i]->text->Render(renderer);
@@ -786,7 +786,7 @@ void SoundTest::Render(const Renderer& renderer)
 
 	tlPos = CalcTimelinePosition(songTimer, a, b, w);
 	timelineLocation.color = { 255, 255, 255, 255 };
-	timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, Vector2(20, 20));
+	timelineLocation.Render(glm::vec3(tlPos, y, 0), renderer, glm::vec2(20, 20));
 
 	dialog.Render(renderer);
 }

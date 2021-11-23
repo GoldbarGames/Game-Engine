@@ -2,6 +2,7 @@
 #include "Property.h"
 #include "Renderer.h"
 #include "Game.h"
+#include <glm/vec2.hpp>
 
 CameraBounds::CameraBounds(glm::vec3 pos) : Entity(pos)
 {
@@ -20,7 +21,7 @@ void CameraBounds::Render(const Renderer& renderer)
 	if (renderer.game->editMode || renderer.game->debugMode)
 	{
 		renderer.debugSprite->color = { 0, 255, 255, 255 };
-		Vector2 adjustedScale = Vector2(collider.scale.x / Globals::TILE_SIZE, collider.scale.y / Globals::TILE_SIZE);
+		glm::vec2 adjustedScale = glm::vec2(collider.scale.x / Globals::TILE_SIZE, collider.scale.y / Globals::TILE_SIZE);
 		renderer.debugSprite->Render(position, renderer, adjustedScale);
 	}
 }

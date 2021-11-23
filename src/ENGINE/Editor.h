@@ -35,7 +35,7 @@ public:
 	std::vector<Sprite*> tilesheetSprites;	
 	std::vector<std::string> tilesheetFilenames;
 
-	Vector2 spriteSheetTileFrame = Vector2(0, 0);
+	glm::vec2 spriteSheetTileFrame = glm::vec2(0, 0);
 	glm::vec3 selectedTilePosition = glm::vec3(0, 0, 0);
 	glm::vec3 objPreviewPosition = glm::vec3(0, 0, 0);
 

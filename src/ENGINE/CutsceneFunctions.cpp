@@ -1484,7 +1484,7 @@ namespace CutsceneFunctions
 			std::stoi(parameters[5]),
 			std::stoi(parameters[6]));
 
-		Vector2 scale = Vector2(std::stoi(parameters[7]), std::stoi(parameters[8]));
+		glm::vec2 scale = glm::vec2(std::stoi(parameters[7]), std::stoi(parameters[8]));
 
 		std::string text = "";
 
@@ -1732,7 +1732,7 @@ namespace CutsceneFunctions
 			// Because animators have different sprites for each animation state,
 			// we want to change the scale of the entity and then apply that scale
 			// to whatever sprite is currently being animated
-			entity->scale = Vector2(c.ParseNumberValue(parameters[3]), c.ParseNumberValue(parameters[4]));
+			entity->scale = glm::vec2(c.ParseNumberValue(parameters[3]), c.ParseNumberValue(parameters[4]));
 			entity->SetSprite(*entity->GetSprite());
 		}
 		else if (spriteProperty == "rotate")
@@ -2092,7 +2092,7 @@ namespace CutsceneFunctions
 		if (parameters.size() > 2)
 		{
 			int spriteNum = c.ParseNumberValue(parameters[1]);
-			Vector2 scale = c.manager->images[spriteNum]->scale;
+			glm::vec2 scale = c.manager->images[spriteNum]->scale;
 
 			std::string direction = c.ParseStringValue(parameters[2]);
 
@@ -3420,7 +3420,7 @@ namespace CutsceneFunctions
 						float sx = c.ParseNumberValue(parameters[4]);
 						float sy = c.ParseNumberValue(parameters[5]);
 						float sz = (parameters.size() > 6) ? c.ParseNumberValue(parameters[6]) : 0;
-						particleSystem->nextParticleScale = Vector2(sx, sy);
+						particleSystem->nextParticleScale = glm::vec2(sx, sy);
 					}
 					else if (parameters[3] == "timeToSpawn") // set time between particle spawns
 					{
@@ -3470,7 +3470,7 @@ namespace CutsceneFunctions
 		// currentValue / maxValue
 		float ratio = c.ParseNumberValue(parameters[6]) / (float)c.ParseNumberValue(parameters[7]);
 
-		Vector2 newScale = Vector2(c.ParseNumberValue(parameters[4]) * ratio,
+		glm::vec2 newScale = glm::vec2(c.ParseNumberValue(parameters[4]) * ratio,
 			(float)c.ParseNumberValue(parameters[5]));
 
 		// TODO: Don't hardcode this

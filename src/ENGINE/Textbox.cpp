@@ -35,7 +35,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	//TODO: Customize these things from a file as well
 	text->SetPosition(1080, 1040);
 	speaker->SetPosition(235, 985);
-	text->SetScale(Vector2(0.25f, 0.25f));
+	text->SetScale(glm::vec2(0.25f, 0.25f));
 	boxWidth = 1130;
 
 	text->isRichText = true;
@@ -48,7 +48,7 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	newAnimator->SetBool("endOfPage", false);
 	
 	clickToContinue->SetAnimator(*newAnimator);
-	clickToContinue->SetScale(Vector2(0.5f, 0.5f));
+	clickToContinue->SetScale(glm::vec2(0.5f, 0.5f));
 	clickToContinue->GetSprite()->keepPositionRelativeToCamera = true;
 	clickToContinue->GetSprite()->keepScaleRelativeToCamera = true;
 
@@ -79,7 +79,7 @@ Textbox::~Textbox()
 void Textbox::SetFontSize(int newSize)
 {
 	float newValue = newSize / (float)fontInfoText->GetFontSize();
-	text->currentScale = Vector2(newValue, newValue);
+	text->currentScale = glm::vec2(newValue, newValue);
 }
 
 void Textbox::SetCursorPosition(bool endOfPage)
@@ -94,7 +94,7 @@ void Textbox::SetCursorPosition(bool endOfPage, glm::vec3 newCursorPos)
 	clickToContinue->GetAnimator()->SetBool("endOfPage", endOfPage);
 	clickToContinue->GetAnimator()->Update(*clickToContinue);
 	clickToContinue->GetAnimator()->DoState(*clickToContinue);
-	clickToContinue->SetScale(Vector2(0.5f, 0.5f));
+	clickToContinue->SetScale(glm::vec2(0.5f, 0.5f));
 
 	newCursorPos.x += clickToContinue->GetSprite()->frameWidth;
 	clickToContinue->SetPosition(newCursorPos);

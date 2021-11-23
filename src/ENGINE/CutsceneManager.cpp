@@ -2863,7 +2863,7 @@ void CutsceneManager::LoadGameData(const char* filename, const char* path)
 						std::stoi(lineParams[5]),
 						std::stoi(lineParams[6]));
 
-					ps->scale = Vector2(
+					ps->scale = glm::vec2(
 						std::stoi(lineParams[7]),
 						std::stoi(lineParams[8]));
 
@@ -2896,7 +2896,7 @@ void CutsceneManager::LoadGameData(const char* filename, const char* path)
 						std::stoi(lineParams[6]),
 						std::stoi(lineParams[7]));
 
-					entity->scale = Vector2(
+					entity->scale = glm::vec2(
 						std::stoi(lineParams[8]),
 						std::stoi(lineParams[9]));
 

@@ -85,8 +85,8 @@ void QuadTree::RenderEntities(const Renderer& renderer, const std::vector<Entity
         float targetWidth = e[i]->GetSprite()->frameWidth;
         float targetHeight = e[i]->GetSprite()->frameHeight;
 
-        debugSprite->pivot = Vector2(0, 0);
-        renderer.debugScale = Vector2(targetWidth / rWidth, targetHeight / rHeight);
+        debugSprite->pivot = glm::vec2(0, 0);
+        renderer.debugScale = glm::vec2(targetWidth / rWidth, targetHeight / rHeight);
         debugSprite->Render(e[i]->position, renderer, renderer.debugScale);
     }
 
@@ -138,8 +138,8 @@ void QuadTree::Render(const Renderer& renderer)
             break;
         }
 
-        debugSprite->pivot = Vector2(0, 0);
-        renderer.debugScale = Vector2(rect.w, rect.h);
+        debugSprite->pivot = glm::vec2(0, 0);
+        renderer.debugScale = glm::vec2(rect.w, rect.h);
         debugSprite->Render(glm::vec3(rect.x, rect.y, 0), renderer, renderer.debugScale);
 
         for (int i = 0; i < 4; i++)

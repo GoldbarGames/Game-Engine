@@ -5,11 +5,11 @@
 #include <SDL2/SDL.h>
 #include <string>
 
-#include "Vector2.h"
 #include "globals.h"
 #include "Texture.h"
 #include "leak_check.h"
 #include "Text.h"
+#include <glm/vec2.hpp>
 
 class Game;
 class Text;
@@ -25,7 +25,7 @@ public:
 	Text* text= nullptr;
 
 	glm::vec3 position = glm::vec3(0,0,0);
-	Vector2 imageScale = Vector2(1, 1);
+	glm::vec2 imageScale = glm::vec2(1, 1);
 	std::string name = "";
 
 	Color color = { 255, 255, 255, 255 };
@@ -34,7 +34,7 @@ public:
 	bool isHovered = false;
 
 	EditorButton(std::string txt, std::string filename, glm::vec3 pos,
-		Game& game, Vector2 size = Vector2(0, 0), Color color = { 255, 255, 255, 255 });
+		Game& game, glm::vec2 size = glm::vec2(0, 0), Color color = { 255, 255, 255, 255 });
 
 	~EditorButton();
 

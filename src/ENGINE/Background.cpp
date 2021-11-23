@@ -177,7 +177,7 @@ Entity* Background::AddLayer(const glm::vec3& pos, const BackgroundLayerData& da
 	bg->GetSprite()->SetShader(renderer.shaders[2]);
 	bg->SetColor(data.color);
 	bg->GetSprite()->color = data.color;
-	bg->SetScale(Vector2(data.scaleX, data.scaleY));
+	bg->SetScale(glm::vec2(data.scaleX, data.scaleY));
 	layers.emplace_back(bg);
 	return bg;
 }

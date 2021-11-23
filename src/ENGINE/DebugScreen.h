@@ -32,7 +32,7 @@ public:
 	Sprite* onePixelSprite = nullptr;
 	Camera* camera = nullptr;
 	glm::vec3 worldPosition = glm::vec3(0, 0, 0);
-	Vector2 scale = Vector2(1, 1);
+	glm::vec2 scale = glm::vec2(1, 1);
 	std::unordered_map<DebugText, Text*> debugText;
 
 	std::vector<std::string> cutsceneVariableNames;

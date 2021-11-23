@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/vec2.hpp>
 
 class Game;
 class Property;
@@ -36,7 +37,7 @@ public:
 	glm::vec3 startPosition = glm::vec3(0, 0, 0);
 	glm::vec3 lastPosition = glm::vec3(0, 0, 0);
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-	Vector2 scale = Vector2(1, 1);
+	glm::vec2 scale = glm::vec2(1, 1);
 	
 	Entity* attachedSwitch = nullptr;
 	QuadTree* quadrant = nullptr;
@@ -84,9 +85,9 @@ public:
 	Entity(const glm::vec3& pos);
 	Entity(const glm::vec3& pos, Sprite* sprite);
 
-	Vector2 GetScale() const;
+	glm::vec2 GetScale() const;
 
-	virtual void SetScale(const Vector2& newScale);
+	virtual void SetScale(const glm::vec2& newScale);
 
 	Sprite* GetSprite();
 	Animator* GetAnimator();

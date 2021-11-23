@@ -82,28 +82,28 @@ Renderer::~Renderer()
 		delete_it(overlaySprite);
 }
 
-void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, Color color) const
+void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const glm::vec2& targetScale, Color color) const
 {
-	RenderDebugRect(targetRect, targetScale, Vector2(0, 0), color);
+	RenderDebugRect(targetRect, targetScale, glm::vec2(0, 0), color);
 }
 
-void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const Vector2& targetScale, const Vector2& targetPivot, Color color) const
+void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const glm::vec2& targetScale, const glm::vec2& targetPivot, Color color) const
 {
 	debugSprite->color = color;
 	debugSprite->pivot = targetPivot;
-	debugScale = Vector2(CalculateScale(*debugSprite, targetRect.w, targetRect.h, targetScale));
+	debugScale = glm::vec2(CalculateScale(*debugSprite, targetRect.w, targetRect.h, targetScale));
 	debugSprite->Render(glm::vec3(targetRect.x, targetRect.y, 0), *this, debugScale);
 }
 
-Vector2 Renderer::CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const Vector2& targetScale) const
+glm::vec2 Renderer::CalculateScale(const Sprite& sourceSprite, int targetWidth, int targetHeight, const glm::vec2& targetScale) const
 {
 	if (sourceSprite.texture == nullptr)
-		return Vector2(targetWidth * targetScale.x, targetHeight * targetScale.y);
+		return glm::vec2(targetWidth * targetScale.x, targetHeight * targetScale.y);
 
 	float sourceWidth = sourceSprite.texture->GetWidth();
 	float sourceHeight = sourceSprite.texture->GetHeight();
 
-	return Vector2(targetWidth * targetScale.x / sourceWidth,
+	return glm::vec2(targetWidth * targetScale.x / sourceWidth,
 		targetHeight * targetScale.y / sourceHeight);
 }
 
@@ -181,8 +181,8 @@ void Renderer::FadeOverlay(const int screenWidth, const int screenHeight) const
 	float rWidth = overlaySprite->texture->GetWidth();
 	float rHeight = overlaySprite->texture->GetHeight();
 	overlaySprite->color = overlayColor;
-	overlaySprite->pivot = Vector2(0, 0);
-	overlayScale = Vector2(screenWidth / rWidth, screenHeight / rHeight);
+	overlaySprite->pivot = glm::vec2(0, 0);
+	overlayScale = glm::vec2(screenWidth / rWidth, screenHeight / rHeight);
 }
 
 void Renderer::CreateShader(const int shaderName, const char* vertexFilePath, const char* fragmentFilePath)

@@ -4,7 +4,7 @@
 #include "Editor.h"
 #include "Text.h"
 
-SettingsButton::SettingsButton(const std::string& n, const Vector2& pos, Game& game, SettingsType st)
+SettingsButton::SettingsButton(const std::string& n, const glm::vec2& pos, Game& game, SettingsType st)
 {
 	name = n;
 	position = glm::vec3(pos.x, pos.y, 0);

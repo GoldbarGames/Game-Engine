@@ -118,7 +118,7 @@ void Animator::SetSpriteFromState(AnimState* animState, Sprite& sprite)
 		sprite.endFrame = animState->endFrame;
 		sprite.frameWidth = std::min(animState->frameWidth, sprite.texture->GetWidth());
 		sprite.frameHeight = std::min(animState->frameHeight, sprite.texture->GetHeight());
-		sprite.pivot = Vector2(animState->pivotX, animState->pivotY);
+		sprite.pivot = glm::vec2(animState->pivotX, animState->pivotY);
 
 		if (sprite.currentFrame > sprite.endFrame)
 		{

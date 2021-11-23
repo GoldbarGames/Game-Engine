@@ -455,7 +455,7 @@ void Editor::StartEdit()
 
 	helper->OnEditorStart();
 
-	previewMap[MODE_TILE] = game->CreateTile(Vector2(0, 0), 0,
+	previewMap[MODE_TILE] = game->CreateTile(glm::vec2(0, 0), 0,
 		glm::vec3(0, 0, 0), DrawingLayer::FRONT);
 
 	previewMap[MODE_TILE]->GetSprite()->color = { 255, 255, 255, 64 };
@@ -481,7 +481,7 @@ void Editor::StartEdit()
 		for (int i = 0; i < tilesheetFilenames.size(); i++)
 		{
 			tilesheetSprites.push_back(new Sprite(1, game->spriteManager,
-				tilesheetFilenames[i], game->renderer.shaders[3], Vector2(0, 0)));
+				tilesheetFilenames[i], game->renderer.shaders[3], glm::vec2(0, 0)));
 
 			tilesheetSprites[i]->keepPositionRelativeToCamera = true;
 			tilesheetSprites[i]->keepScaleRelativeToCamera = true;
@@ -528,14 +528,14 @@ void Editor::StartEdit()
 	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
 	{
 		EditorButton* layerButton = new EditorButton(layerButtonNames[i], "Layer", 
-			glm::vec3(buttonX, buttonY, 0), *game, Vector2(layerButtonWidth, 50), { 255, 255, 255, 255 });
+			glm::vec3(buttonX, buttonY, 0), *game, glm::vec2(layerButtonWidth, 50), { 255, 255, 255, 255 });
 
 		layerButton->image->keepScaleRelativeToCamera = true;
 		layerButton->text->GetSprite()->keepScaleRelativeToCamera = true;
 		layerButtons.emplace_back(layerButton);
 		
 		EditorButton* layerVisibleButton = new EditorButton("", "Visible", 
-			glm::vec3(buttonX + (layerButtonWidth * 2), buttonY, 0), *game, Vector2(50, 50), { 255, 255, 255, 255 });
+			glm::vec3(buttonX + (layerButtonWidth * 2), buttonY, 0), *game, glm::vec2(50, 50), { 255, 255, 255, 255 });
 
 		layerVisibleButton->image->keepScaleRelativeToCamera = true;
 		layerVisibleButton->text->GetSprite()->keepScaleRelativeToCamera = true;
@@ -789,7 +789,7 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 		else if (objectMode == MODE_REPLACE)
 		{
 			bool foundTile = false;
-			Vector2 coordsToReplace = Vector2(0, 0);
+			glm::vec2 coordsToReplace = glm::vec2(0, 0);
 			glm::vec3 roundedPosition = RoundToInt(clickedWorldPosition);
 
 			std::vector<Tile*> tilesInLevel;
@@ -839,7 +839,7 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 		{
 			// We want to set the active tilesheet to the copied tile's
 			// and we want to set the selected tile to the copied tile's
-			Vector2 coordsToCopy = Vector2(0, 0);
+			glm::vec2 coordsToCopy = glm::vec2(0, 0);
 			Tile* tile = nullptr;
 
 			for (unsigned int i = 0; i < game->entities.size(); i++)
@@ -1745,7 +1745,7 @@ void Editor::ToggleTileset()
 
 		game->SaveEditorSettings();
 
-		previewMap[MODE_TILE] = game->CreateTile(Vector2(0, 0), 0,
+		previewMap[MODE_TILE] = game->CreateTile(glm::vec2(0, 0), 0,
 			glm::vec3(0, 0, 0), DrawingLayer::FRONT);
 		previewMap[MODE_TILE]->GetSprite()->color = { 255, 255, 255, 64 };
 
@@ -1787,16 +1787,16 @@ void Editor::Render(const Renderer& renderer)
 			rectSprite->keepScaleRelativeToCamera = true;
 		}
 
-		Vector2 scale;
+		glm::vec2 scale;
 		// Draw a yellow rectangle around the currently selected object
 		outlineSprite->color = { 0, 255, 255, 128 };
-		scale = (Vector2(selectedEntity->GetBounds()->w / outlineSprite->texture->GetWidth(),
+		scale = (glm::vec2(selectedEntity->GetBounds()->w / outlineSprite->texture->GetWidth(),
 			selectedEntity->GetBounds()->h / outlineSprite->texture->GetWidth()));
 		outlineSprite->Render(selectedEntity->position, renderer, scale);
 
 		// Draw the box that goes underneath all the properties
 		rectSprite->color = { 0, 255, 255, 128 };
-		scale = (Vector2(objectPropertiesRect.w, objectPropertiesRect.h));
+		scale = (glm::vec2(objectPropertiesRect.w, objectPropertiesRect.h));
 		rectSprite->Render(glm::vec3(objectPropertiesRect.x, objectPropertiesRect.y, 0), renderer, scale);
 
 		for (unsigned int k = 0; k < properties.size(); k++)
@@ -1804,7 +1804,7 @@ void Editor::Render(const Renderer& renderer)
 			float targetWidth = properties[k]->text->GetSprite()->frameWidth;
 			float targetHeight = properties[k]->text->GetSprite()->frameHeight;
 			rectSprite->color = { 0, 0, 255, 128 };
-			scale = (Vector2(targetWidth, targetHeight));
+			scale = (glm::vec2(targetWidth, targetHeight));
 
 			if (propertyIndex > -1)
 			{
@@ -1830,7 +1830,7 @@ void Editor::Render(const Renderer& renderer)
 		if (objectMode == MODE_TILE || objectMode == MODE_REPLACE || objectMode == MODE_COPY)
 		{
 			// Draw the tilesheet (only if we are placing a tile)
-			tilesheetSprites[tilesheetIndex]->Render(tilesheetPosition, game->renderer, Vector2(1,1));
+			tilesheetSprites[tilesheetIndex]->Render(tilesheetPosition, game->renderer, glm::vec2(1,1));
 
 			// Draw a yellow rectangle around the currently selected tileset tile
 			game->renderer.debugSprite->color = { 255, 255, 0, 255 };
@@ -1838,7 +1838,7 @@ void Editor::Render(const Renderer& renderer)
 			game->renderer.debugSprite->keepScaleRelativeToCamera = true;
 			
 			// Draw the yellow rectangle scaled to the tile size
-			Vector2 newScale = Vector2(SPAWN_TILE_SIZE/24.0f, SPAWN_TILE_SIZE/24.0f);
+			glm::vec2 newScale = glm::vec2(SPAWN_TILE_SIZE/24.0f, SPAWN_TILE_SIZE/24.0f);
 			game->renderer.debugSprite->Render(selectedTilePosition, renderer, newScale);
 
 			game->renderer.debugSprite->keepPositionRelativeToCamera = false;
@@ -2276,6 +2276,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 			try
 			{
 				etype = tokens[indexOfType];
+				//std::cout << etype << std::endl;
 
 				// Populate the map of data if it does not exist
 				if (loadDataMap.count(etype) != 0)
@@ -2317,7 +2318,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 
 					int tilesheetIndex = std::stoi(map[STR_TILESHEET]);
 
-					Tile* newTile = game->SpawnTile(Vector2(std::stoi(map[STR_FRAMEX]), std::stoi(map[STR_FRAMEY])),
+					Tile* newTile = game->SpawnTile(glm::vec2(std::stoi(map[STR_FRAMEX]), std::stoi(map[STR_FRAMEY])),
 						tilesheetIndex, glm::vec3(std::stoi(map[STR_POSITIONX]), std::stoi(map[STR_POSITIONY]), 0),
 						(DrawingLayer)std::stoi(map[STR_LAYER]));
 
@@ -2492,14 +2493,19 @@ void Editor::InitLevelFromFile(const std::string& levelName)
 	// In Release builds, don't reload the level from file, store it in memory
 
 #if _DEBUG
+	std::cout << "load 1" << std::endl;
 	CreateLevelFromString(ReadLevelFromFile(levelName), levelName);
 #else
+	std::cout << "load 2" << std::endl;
 	if (levelFilesMap.count(levelName) == 0)
 	{
+		std::cout << "load 3" << std::endl;
 		CreateLevelFromString(ReadLevelFromFile(levelName), levelName);
 	}
 #endif
 
+
+	std::cout << "Loading level \"" + levelName + "\"" << std::endl;
 	CreateLevelFromVector(levelFilesMap[levelName]);
 
 	// Reset the undo/redo queue

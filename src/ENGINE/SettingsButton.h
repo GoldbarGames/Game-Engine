@@ -4,7 +4,7 @@
 
 #include <vector>
 #include "Text.h"
-#include "Vector2.h"
+#include <glm/vec2.hpp>
 #include "BaseButton.h"
 #include "leak_check.h"
 
@@ -21,7 +21,7 @@ public:
 
 	SettingsType settingsType;
 
-	SettingsButton(const std::string& n, const Vector2& pos, Game& game, SettingsType st = SettingsType::NORMAL);
+	SettingsButton(const std::string& n, const glm::vec2& pos, Game& game, SettingsType st = SettingsType::NORMAL);
 	~SettingsButton();
 	void Render(const Renderer& renderer);
 	BaseButton* Update(Game& game, const Uint8* currentKeyStates);

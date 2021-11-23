@@ -8,7 +8,6 @@
 
 #include "globals.h"
 
-#include "Vector2.h"
 #include "SpriteManager.h"
 
 #include "Texture.h"
@@ -19,6 +18,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/vec2.hpp>
+
 #include "leak_check.h"
 
 class Renderer;
@@ -87,12 +88,12 @@ public:
 	// Change this if you want the sprite's center to be offset.
 	// For example, if a sprite is too far to the left by X pixels,
 	// you will want to add X so that it moves to the right.
-	Vector2 pivot = Vector2(0, 0);
+	glm::vec2 pivot = glm::vec2(0, 0);
 
 	const std::string& GetFileName();
 
-	void Render(const glm::vec3& position, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation=glm::vec3(0,0,0));
-	void Render(const glm::vec3& position, int speed, const Renderer& renderer, const Vector2& scale, const glm::vec3& rotation);
+	void Render(const glm::vec3& position, const Renderer& renderer, const glm::vec2& scale, const glm::vec3& rotation=glm::vec3(0,0,0));
+	void Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec2& scale, const glm::vec3& rotation);
 	void Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec3& scale, const glm::vec3& rotation);
 
 	bool ShouldAnimate(float time);
@@ -101,8 +102,8 @@ public:
 	Sprite();
 	Sprite(ShaderProgram* s, MeshType m=MeshType::Quad);
 	Sprite(Texture* t, ShaderProgram* s);
-	Sprite(const Vector2& frame, Texture* image, ShaderProgram* shader, const int tileSize);
-	Sprite(int numFrames, const SpriteManager& manager, const std::string& filepath, ShaderProgram* shader, Vector2 newPivot);
+	Sprite(const glm::vec2& frame, Texture* image, ShaderProgram* shader, const int tileSize);
+	Sprite(int numFrames, const SpriteManager& manager, const std::string& filepath, ShaderProgram* shader, glm::vec2 newPivot);
 
 	glm::vec2 CalculateRenderFrame(const Renderer& renderer, float animSpeed);
 	void CalculateModel(glm::vec3 position, const glm::vec3& rotation, const glm::vec3& scale, const Renderer& renderer);
@@ -112,8 +113,8 @@ public:
 	// end = last frame of animation
 	// numFrames = the number of frames in the whole sheet, regardless of the animation
 	// so the total number is used to derive the width and height of a single frame
-	Sprite(int start, int end, int numFrames, const SpriteManager& manager, const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop = true);
-	Sprite(int start, int end, int width, int height, const SpriteManager& manager, const std::string& filepath, ShaderProgram* s, const Vector2& newPivot, bool loop = true);
+	Sprite(int start, int end, int numFrames, const SpriteManager& manager, const std::string& filepath, ShaderProgram* s, const glm::vec2& newPivot, bool loop = true);
+	Sprite(int start, int end, int width, int height, const SpriteManager& manager, const std::string& filepath, ShaderProgram* s, const glm::vec2& newPivot, bool loop = true);
 	~Sprite();
 };
 
