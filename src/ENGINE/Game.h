@@ -13,6 +13,7 @@
 #include "SoundManager.h"
 #include "SpriteManager.h"
 #include "InputManager.h"
+#include "NetworkManager.h"
 #include "Renderer.h"
 #include "Logger.h"
 #include "FrameBuffer.h"
@@ -86,6 +87,7 @@ public:
 	const EntityFactory* entityFactory = nullptr;
 	const FileManager* fileManager = nullptr;
 	const MenuManager* menuManager = nullptr;
+	NetworkManager* networkManager = nullptr;
 
 	std::vector<Entity*> entitiesToDelete;
 
@@ -263,7 +265,7 @@ public:
 	void ShouldDeleteEntity(Entity* entity);
 
 	Game(const std::string& n, const std::string& title, const std::string& icon, bool is2D,
-		const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m);
+		const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m, NetworkManager& net);
 	~Game();
 
 	void InitSDL();

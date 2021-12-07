@@ -17,8 +17,7 @@ Texture::~Texture()
 // This function is used exclusively for loading textures on imported 3D meshes
 bool Texture::LoadTexture()
 {
-	//TODO: Make this work with PhysFS,
-	// possibly refactor it entirely
+	//TODO: Make this work with PhysFS, possibly refactor it entirely
 
 	SDL_Surface* surface = IMG_Load(filePath.c_str());
 	if (surface == nullptr)

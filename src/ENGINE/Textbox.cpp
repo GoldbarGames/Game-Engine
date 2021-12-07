@@ -210,7 +210,7 @@ void Textbox::Render(const Renderer& renderer, const int& screenWidth, const int
 					Text* shadow = shadows[i];
 					glm::vec3 pos = shadow->GetPosition();
 
-					// TODO: Make this more efficient!
+					// TODO: Make this more efficient - use a shader instead?
 					for (int i = 2; i < 5; i += 2)
 					{
 						shadow->SetPosition(pos.x - i, pos.y);

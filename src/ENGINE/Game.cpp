@@ -51,6 +51,10 @@
 #include "SoundManager.h"
 #include "RandomManager.h"
 
+#if USE_NETWORKING
+#include <nlohmann/json.hpp>
+#endif
+
 // For WebAssembly builds only
 #ifdef EMSCRIPTEN
 
@@ -200,11 +204,12 @@ int Game::MainLoop()
 
 
 Game::Game(const std::string& n, const std::string& title, const std::string& icon, bool is2D,
-	const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m) : logger("logs/output.log")
+	const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m, NetworkManager& net) : logger("logs/output.log")
 {
 	currentGame = n;
 	startOfGame = std::chrono::steady_clock::now();
 	entityFactory = &e;
+	networkManager = &net;
 
 	use2DCamera = is2D;
 
@@ -1836,6 +1841,19 @@ bool Game::HandleEvent(SDL_Event& event)
 				if (!editMode && !freeCameraMode)
 					LoadLevel(nextLevel);
 				break;
+			case SDLK_0:
+#if USE_NETWORKING
+				// Save this level data to the database
+				if (editMode)
+				{
+					std::cout << "Saving level to database..." << std::endl;
+					nlohmann::json leveldata;
+					leveldata["name"] = currentLevel;
+					leveldata["data"] = editor->ReadLevelFromFile(currentLevel);
+					networkManager->curlPostRequest("http://localhost:3000/api/levels", leveldata.dump().c_str(), "");
+				}					
+#endif
+				break;
 			case SDLK_1: // toggle Debug mode
 				std::cout << "Handle Menu Event - hit 1 key" << std::endl;
 				debugMode = !debugMode;
@@ -2256,6 +2274,12 @@ void Game::OpenMenu(const std::string& menuName)
 
 void Game::Update()
 {
+	if (networkManager->protocol == Protocol::UDP_Server)
+	{
+		networkManager->UDPServer();
+		networkManager->ReadMessage(*this);
+	}
+
 	inputManager.StartUpdate();
 
 	shouldQuit = CheckInputs();

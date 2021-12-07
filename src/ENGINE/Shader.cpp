@@ -105,7 +105,7 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
 
     uniformVariables[ShaderVariable::distanceToLight2D] = glGetUniformLocation(programID, "lightRatio");
 
-    for (size_t i = 0; i < MAX_POINT_LIGHTS; i++)
+    for (int i = 0; i < MAX_POINT_LIGHTS; i++)
     {
         char locBuff[100] = { '\0' };
 
@@ -130,7 +130,7 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     }
 
 
-    for (size_t i = 0; i < MAX_POINT_LIGHTS; i++)
+    for (int i = 0; i < MAX_POINT_LIGHTS; i++)
     {
         char locBuff[100] = { '\0' };
 

@@ -386,9 +386,14 @@ void ReplaceAll(std::string& s, const std::string& toReplace, const std::string&
 	}
 }
 
-std::vector<std::string> ReadStringsFromFile(const std::string& filepath)
+std::vector<std::string> ReadStringsFromFile(const std::string& filepath, bool startAtOne)
 {
 	std::vector<std::string> result;
+
+	if (startAtOne)
+	{
+		result.push_back("");
+	}
 
 	std::ifstream fin;
 	char token[256];
@@ -436,6 +441,23 @@ std::unordered_map<std::string, std::string> GetMapStringsFromFile(const std::st
 		int index = 0;
 		key = ParseWord(vector[i], 0, index);
 		value = ParseWord(vector[i], 0, index);
+		result[key] = value;
+	}
+
+	return result;
+}
+
+std::unordered_map<std::string, int> MapStringsToLineFromFile(const std::string& filepath)
+{
+	std::vector<std::string> vector = ReadStringsFromFile(filepath);
+	std::unordered_map<std::string, int> result;
+
+	std::string key = "";
+	for (int i = 0; i < vector.size(); i++)
+	{
+		int index = 0;
+		key = ParseWord(vector[i], 0, index);
+		result[key] = i + 1; // don't start from 0 (null-terminated string issues)
 	}
 
 	return result;

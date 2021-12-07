@@ -20,8 +20,8 @@ void CameraBounds::Render(const Renderer& renderer)
 {
 	if (renderer.game->editMode || renderer.game->debugMode)
 	{
-		renderer.debugSprite->color = { 0, 255, 255, 255 };
 		glm::vec2 adjustedScale = glm::vec2(collider.scale.x / Globals::TILE_SIZE, collider.scale.y / Globals::TILE_SIZE);
+		renderer.debugSprite->color = { 0, 255, 255, 255 };
 		renderer.debugSprite->Render(position, renderer, adjustedScale);
 	}
 }
