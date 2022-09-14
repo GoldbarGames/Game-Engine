@@ -94,6 +94,56 @@ void MenuScreen::CreateMenu(const std::string& n, Game& game)
 
 }
 
+Entity* MenuScreen::AddImage(const std::string& filepath, const glm::vec3& pos, 
+	const glm::vec2& scale, const Game& game, const int shader)
+{
+	Entity* image = new Entity(pos);
+	image->GetSprite()->SetTexture(game.spriteManager.GetImage(filepath));
+
+	if (shader > -1)
+	{
+		image->GetSprite()->SetShader(game.renderer.shaders[shader]);
+	}
+
+	image->SetScale(scale);
+	image->GetSprite()->keepPositionRelativeToCamera = true;
+	image->GetSprite()->keepScaleRelativeToCamera = true;
+	images.emplace_back(image);
+	return image;
+}
+
+MenuButton* MenuScreen::AddButton(const std::string& txt, const std::string& filepath,
+	const int btnID, const glm::vec3& pos, Game& game, Color col)
+{
+	MenuButton* button = new MenuButton(txt, filepath, "", pos, game, col);
+	button->btnID = btnID;
+	buttons.emplace_back(button);
+	return button;
+}
+
+// IMPORTANT: When center is true, pass in game.screenWidth as x
+Text* MenuScreen::AddText(FontInfo* font, const std::string& message,
+	int x, int y, float sx, float sy, bool center)
+{
+	Text* text = new Text(font, message, true, true);
+
+	if (center)
+	{
+		int cx = x - (text->GetTextWidth() / 2);
+		text->SetPosition(cx, y);
+	}
+	else
+	{
+		text->SetPosition(x, y);
+	}
+
+
+	text->SetScale(glm::vec2(sx, sy));
+	texts.emplace_back(text);
+	
+	return text;
+}
+
 bool MenuScreen::FileExists(const std::string& filepath)
 {
 	std::fstream fin;

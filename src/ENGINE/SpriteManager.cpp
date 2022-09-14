@@ -276,7 +276,7 @@ std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFileP
 			filePathInput = tokens[index++];
 			spriteFilePath = "";
 
-			//TODO: Parse this filepath and check for {0}, {1}, etc., and replace them
+			//Parse this filepath and check for {0}, {1}, etc., and replace them
 			filePathIndex = 0;
 
 			while (filePathIndex < filePathInput.size())

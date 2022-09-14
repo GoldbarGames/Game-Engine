@@ -58,7 +58,7 @@ void ParticleSystem::Update(Game& game)
 	// Update all particles
 	for (int i = 0; i < particles.size(); i++)
 	{
-		if (infos[i].active)
+		if (infos[i].active) // TODO: Only update if within screen
 		{
 			particles[i].Update(game);
 
@@ -83,7 +83,7 @@ void ParticleSystem::Update(Game& game)
 // are spawned from the same particle system
 void ParticleSystem::Render(const Renderer& renderer)
 {
-	for (auto& particle : particles)
+	for (auto& particle : particles) // TODO: Only if within screen
 	{
 		particle.Render(renderer);
 	}
@@ -110,4 +110,69 @@ void ParticleSystem::Resize(int newSize)
 	{
 		// TODO
 	}
+}
+
+void ParticleSystem::Save(std::unordered_map<std::string, std::string>& map)
+{
+	Entity::Save(map);
+}
+
+void ParticleSystem::Load(std::unordered_map<std::string, std::string>& map, Game& game)
+{
+	Entity::Load(map, game);
+
+	nextParticleSpriteFilename.emplace_back(game.cutsceneManager.commands.pathPrefix + map["sprite"]);
+	nextParticleVelocity = glm::vec3(std::stof(map["vx"]), std::stof(map["vy"]), 0);
+	nextParticleScale = glm::vec2(std::stof(map["sx"]), std::stof(map["sy"]));
+
+	if (map["timeToSpawn"][0] == 'r') // randomize spawn time
+	{
+		bool second = false;
+		int num1 = 0;
+		int num2 = 0;
+		const std::string& spawnString = map["timeToSpawn"];
+		std::string temp = "";
+
+		// Read in bounds
+		for (int i = 1; i < spawnString.size(); i++)
+		{
+			if (second)
+			{
+				if (spawnString[i] == '\n')
+				{
+					num2 = std::stoi(temp);
+					temp = "";
+				}
+				else
+				{
+					temp += spawnString[i];
+				}
+			}
+			else
+			{
+				if (spawnString[i] == ',')
+				{
+					second = true;
+					num1 = std::stoi(temp);
+					temp = "";
+				}
+				else
+				{
+					temp += spawnString[i];
+				}
+			}
+		}
+
+		// Get random number
+		int r = game.randomManager.RandomRange(num1, num2);
+		spawnTimer.Start(r);
+	}
+	else
+	{
+		spawnTimer.Start(std::stoi(map["timeToSpawn"]));
+	}
+
+	
+	Resize(std::stoi(map["maxNumber"]));
+	nextParticleTimeToLive = std::stoi(map["timeToLive"]);
 }

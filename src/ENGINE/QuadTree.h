@@ -38,6 +38,8 @@ public:
     QuadTree(int x, int y, int w, int h, int d=1);
     ~QuadTree();
 
+    void SetCoords(int x, int y, int w, int h, int s);
+
     void Render(const Renderer& renderer);
     void RenderEntities(const Renderer& renderer, const std::vector<Entity*>& e);
 

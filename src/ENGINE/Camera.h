@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <unordered_map>
+#include <SDL2/SDL.h>
 
 #include "leak_check.h"
 class Entity;
@@ -44,6 +45,8 @@ public:
 	glm::mat4 guiProjection = glm::mat4();
 	glm::mat4 CalculateViewMatrix() const;
 
+	const SDL_Rect GetBounds() const;
+
 	glm::vec3 position;
 	float orthoZoom = 4.0f;
 	float angle = -45.0f;
@@ -63,6 +66,8 @@ public:
 	uint32_t startTime = 0;
 	uint32_t endTime = 0;
 	bool isLerping = false;
+
+	glm::vec3 targetOffset = glm::vec3(0, 0, 0);
 	
 	void SwitchTarget(const Entity& newTarget);
 	void FollowTarget(const Game& game, bool instantFollow=false);

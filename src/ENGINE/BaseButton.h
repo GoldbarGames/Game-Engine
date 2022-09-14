@@ -18,11 +18,15 @@ public:
 	Text* text = nullptr;
 	bool isSelected = false;
 	bool pressedAnyKey = false;
+
+	int btnID = -1;
+
 	BaseButton* buttonPressedUp = nullptr;
 	BaseButton* buttonPressedDown = nullptr;
 	BaseButton* buttonPressedLeft = nullptr;
 	BaseButton* buttonPressedRight = nullptr;
 	BaseButton();
+
 	virtual ~BaseButton();
 	virtual void Render(const Renderer& renderer);
 	virtual BaseButton* Update(Game& game, const Uint8* currentKeyStates);

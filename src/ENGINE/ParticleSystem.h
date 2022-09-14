@@ -31,6 +31,11 @@ public:
 	void Resize(int newSize);
 	ParticleSystem(const glm::vec3& pos);
 	~ParticleSystem();
+
+	void Save(std::unordered_map<std::string, std::string>& map);
+	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
+
+	static Entity* __stdcall Create(const glm::vec3& pos) { return new ParticleSystem(pos); };
 };
 
 #endif

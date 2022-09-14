@@ -15,11 +15,17 @@ QuadTree::QuadTree(int x, int y, int w, int h, int d)
     children[2] = nullptr;
     children[3] = nullptr;
 
+    depth = d;
+
+    SetCoords(x, y, w, h, 500);
+}
+
+void QuadTree::SetCoords(int x, int y, int w, int h, int s)
+{
     rect.x = x;
     rect.y = y;
     rect.w = w;
     rect.h = h;
-    depth = d;
 
     topLeft.x = rect.x;
     topLeft.y = rect.y;
@@ -29,8 +35,8 @@ QuadTree::QuadTree(int x, int y, int w, int h, int d)
     midpoint.x = (topLeft.x + botRight.x) / 2;
     midpoint.y = (topLeft.y + botRight.y) / 2;
 
-    smallestSize = abs(topLeft.x - botRight.x) <= 500 &&
-        abs(topLeft.y - botRight.y) <= 500;
+    smallestSize = abs(topLeft.x - botRight.x) <= s &&
+        abs(topLeft.y - botRight.y) <= s;
 }
 
 QuadTree::~QuadTree()

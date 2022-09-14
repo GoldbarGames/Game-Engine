@@ -54,6 +54,8 @@ public:
 	AlignmentY alignY = AlignmentY::TOP;
 	Uint32 wrapWidth = 0;
 
+	bool shouldRender = true;
+
 	int GetTextWidth();
 	int GetTextHeight();
 	glm::vec3 GetLastGlyphPosition();

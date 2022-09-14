@@ -83,6 +83,8 @@ extern KINJO_API const std::string& GetLanguage();
 extern KINJO_API glm::vec4 ConvertColorToVec4(const Color& color);
 extern KINJO_API glm::vec4 ConvertColorToVec4NoAlpha(const Color& color);
 
+extern KINJO_API float Clamp(const float& value, const float& min, const float& max);
+
 template<typename T>
 void delete_it(T& v)
 {
@@ -123,8 +125,8 @@ extern KINJO_API bool HasHorizontalIntersection(const SDL_Rect& rect1, const SDL
 extern KINJO_API void ReplaceAll(std::string& s, const std::string& toReplace, const std::string& replaceWith);
 
 extern KINJO_API std::vector<std::string> ReadStringsFromFile(const std::string& filepath, bool startAtOne=false);
-extern KINJO_API std::unordered_map<std::string, std::string> GetMapStringsFromFile(const std::string& filepath);
-extern KINJO_API std::unordered_map<std::string, int> MapStringsToLineFromFile(const std::string& filepath);
+extern KINJO_API std::unordered_map<std::string, std::string> GetMapStringsFromFile(const std::string& filepath, char limit=' ');
+extern KINJO_API std::unordered_map<std::string, int> MapStringsToLineFromFile(const std::string& filepath, char limit=' ');
 
 extern KINJO_API void CalcAverageNormals(unsigned int* indices, unsigned int indiceCount, float* vertices,
 	unsigned int verticeCount, unsigned int vLength, unsigned int normalOffset);

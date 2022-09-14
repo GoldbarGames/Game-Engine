@@ -184,7 +184,7 @@ bool HasIntersection(const SDL_Rect& rect1, const SDL_Rect& rect2)
 	bool b1 = rect1.x < (rect2.x + rect2.w);
 	bool b2 = (rect1.x + rect1.w) > rect2.x;
 
-	bool b3 = rect1.y < (rect2.y + rect2.h);
+	bool b3 = rect1.y <= (rect2.y + rect2.h);
 	bool b4 = (rect1.y + rect1.h) > rect2.y;
 
 	return b1 && b2 && b3 && b4;
@@ -429,7 +429,7 @@ std::vector<std::string> ReadStringsFromFile(const std::string& filepath, bool s
 	return result;
 }
 
-std::unordered_map<std::string, std::string> GetMapStringsFromFile(const std::string& filepath)
+std::unordered_map<std::string, std::string> GetMapStringsFromFile(const std::string& filepath, char limit)
 {
 	std::vector<std::string> vector = ReadStringsFromFile(filepath);
 	std::unordered_map<std::string, std::string> result;
@@ -439,15 +439,15 @@ std::unordered_map<std::string, std::string> GetMapStringsFromFile(const std::st
 	for (int i = 0; i < vector.size(); i++)
 	{
 		int index = 0;
-		key = ParseWord(vector[i], 0, index);
-		value = ParseWord(vector[i], 0, index);
+		key = ParseWord(vector[i], limit, index);
+		value = ParseWord(vector[i], limit, index);
 		result[key] = value;
 	}
 
 	return result;
 }
 
-std::unordered_map<std::string, int> MapStringsToLineFromFile(const std::string& filepath)
+std::unordered_map<std::string, int> MapStringsToLineFromFile(const std::string& filepath, char limit)
 {
 	std::vector<std::string> vector = ReadStringsFromFile(filepath);
 	std::unordered_map<std::string, int> result;
@@ -456,7 +456,7 @@ std::unordered_map<std::string, int> MapStringsToLineFromFile(const std::string&
 	for (int i = 0; i < vector.size(); i++)
 	{
 		int index = 0;
-		key = ParseWord(vector[i], 0, index);
+		key = ParseWord(vector[i], limit, index);
 		result[key] = i + 1; // don't start from 0 (null-terminated string issues)
 	}
 
@@ -467,6 +467,16 @@ std::unordered_map<std::string, int> MapStringsToLineFromFile(const std::string&
 const std::string& GetLanguage()
 { 
 	return Globals::languages[Globals::currentLanguageIndex]; 
+}
+
+float Clamp(const float& value, const float& min, const float& max)
+{
+	if (value < min)
+		return min;
+	else if (value > max)
+		return max;
+	else
+		return value;
 }
 
 

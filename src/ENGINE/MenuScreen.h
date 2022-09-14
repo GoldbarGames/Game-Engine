@@ -66,6 +66,12 @@ public:
 	// Set to true if this menu uses any variables
 	bool isDynamic = false;
 
+
+	// Toggle whether or not entities in the level should update
+	// while the menu is active. Normally false, but might want to change,
+	// i.e. to make particle systems run
+	bool shouldUpdate = false;
+
 	// If true, then when we create the menu,
 	// it should auto select the last button
 	// that was previously selected rather than the first
@@ -97,6 +103,16 @@ public:
 	BaseButton* GetButtonByName(const std::string& buttonName);
 	void AssignButtons(bool useLeftRight, bool useUpDown=true);
 	bool FileExists(const std::string& filepath);
+
+	Text* AddText(FontInfo* font, const std::string& message,
+		int x, int y, float sx, float sy, bool center = false);
+
+	MenuButton* AddButton(const std::string& txt, const std::string& filepath,
+		const int btnID, const glm::vec3& pos, Game& game,
+		Color col = { 255, 255, 255, 255 });
+
+	Entity* AddImage(const std::string& filepath, const glm::vec3& pos, 
+		const glm::vec2& scale, const Game& game, const int shader);
 };
 
 #endif

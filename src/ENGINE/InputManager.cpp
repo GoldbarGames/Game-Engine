@@ -1,4 +1,5 @@
 #include "InputManager.h"
+#include "Camera.h"
 #include <iostream>
 
 void InputManager::Init()
@@ -296,6 +297,14 @@ std::string InputManager::GetButtonEventAsString(uint8_t code)
 	return "";
 }
 
+glm::vec3 InputManager::GetMouseWorldPosition()
+{
+	int clickedX = mouseX - ((int)mouseX % (Globals::TILE_SIZE));
+	int clickedY = mouseY - ((int)mouseY % (Globals::TILE_SIZE));
+
+	return glm::vec3(clickedX, clickedY, 0);
+}
+
 void InputManager::StartUpdate()
 {
 	SDL_GetMouseState(&mouseX, &mouseY);
@@ -417,4 +426,12 @@ bool InputManager::GetKeyReleased(const std::string& keyName)
 
 		return checkKey || checkController;
 	}
+}
+
+bool InputManager::GetLeftClicked()
+{
+	int mouseX, mouseY;
+	const uint32_t mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+
+	return (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
 }

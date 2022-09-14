@@ -63,6 +63,8 @@ public:
 	//Entity* grabbedEntity = nullptr;
 	//glm::vec3 oldGrabbedPosition = glm::vec3(0, 0, 0);
 
+	Entity* grabbedMenuEntity = nullptr;
+
 	std::vector<Entity*> grabbedEntities;
 	std::vector<glm::vec3> oldGrabbedPositions;
 
@@ -119,6 +121,7 @@ public:
 	void StartEdit();
 	void StopEdit();
 	void HandleEdit();
+	void HandleGUIMode();
 	void NewLevel();
 	std::string SaveLevelAsString();
 	void SaveLevel(const std::string& levelName = "");

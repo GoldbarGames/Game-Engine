@@ -128,6 +128,8 @@ void Background::SpawnBackground(const std::string& n, int x, int y, Game& game)
 	{
 		BackgroundData* data = bgData[n];
 
+		// TODO: Crashes here when level tries to load undefined BG
+
 		// Create the backgrounds from file data
 		unsigned int NUM_BGS = data->numBGs;
 		unsigned int BG_WIDTH = data->width * Camera::MULTIPLIER;

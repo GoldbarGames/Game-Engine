@@ -56,6 +56,7 @@ private:
 public:
 
 	bool use2DCamera = true;
+	bool sortByPosY = false;
 
 	Model modelChopper;
 
@@ -101,6 +102,7 @@ public:
 	bool debugMode = false;
 	bool editMode = false;
 	bool soundMode = false;
+	bool guiMode = false; 
 
 	GUI* gui;
 	Mesh* cubeMesh;
@@ -167,9 +169,11 @@ public:
 	bool CheckInputs();
 	void CheckDeleteEntities();
 
+	void RefreshAnimator(Entity* newEntity, const std::string& entityName) const;
+
 	void SetScreenResolution(const unsigned int width, const unsigned int height);
-	Entity* CreateEntity(const std::string& entityName, const glm::vec3& position, int spriteIndex) const;
-	Entity* SpawnEntity(const std::string& entityName, const glm::vec3& position, const int spriteIndex) const;
+	Entity* CreateEntity(const std::string& entityName, const glm::vec3& position, int subtype) const;
+	Entity* SpawnEntity(const std::string& entityName, const glm::vec3& position, const int subtype) const;
 
 	FontInfo* CreateFont(const std::string& fontName, int size);
 
@@ -201,7 +205,11 @@ public:
 
 	std::unordered_map<std::string, FontInfo*> fonts;
 
+	glm::vec3 worldPosition; // last hovered mouse pos in world pos
+
 	std::vector<Entity*> entitiesToRender;
+	std::vector<Entity*> debugEntities;
+
 	std::vector<MenuScreen*> openedMenus;
 
 	bool shouldUpdateDialogInput = false;
@@ -265,12 +273,12 @@ public:
 	void ShouldDeleteEntity(Entity* entity);
 
 	Game(const std::string& n, const std::string& title, const std::string& icon, bool is2D,
-		const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m, NetworkManager& net);
+		const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m, CutsceneHelper* ch, NetworkManager* net);
 	~Game();
 
 	void InitSDL();
 	void EndSDL();
-	void SortEntities(std::vector<Entity*>& entityVector);
+	void SortEntities(std::vector<Entity*>& entityVector, bool sortByPosY = false);
 
 	// Spawn functions
 	Tile* CreateTile(const glm::vec2& frame, const int tilesheetIndex,

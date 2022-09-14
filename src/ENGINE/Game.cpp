@@ -127,7 +127,8 @@ int Game::MainLoop()
 	//std::cout << "---" << std::endl;
 	allocationCount = 0;
 
-	//game.showFPS = true;
+#if _DEBUG
+	showFPS = true;
 	if (showFPS)
 	{
 		timeLeft -= dt;
@@ -137,21 +138,23 @@ int Game::MainLoop()
 			currentNumberOfFrames = (int)(fpsSum / frames);
 			if (currentNumberOfFrames != previousNumberOfFrames)
 			{
-				gui->texts[guiFPS]->SetText(guiFPS2 + std::to_string(currentNumberOfFrames));
+				gui->GetText(guiFPS)->SetText(guiFPS2 + std::to_string(currentNumberOfFrames));
 				previousNumberOfFrames = currentNumberOfFrames;
+				if (currentNumberOfFrames < 59)
+					std::cout << currentNumberOfFrames << std::endl;
 			}
 
-			//std::cout << game.fpsText->txt << std::endl;
 			timeLeft = updateInterval;
 			fpsSum = 0;
 			frames = 0;
 		}
 		frames++;
 	}
+#endif
 
 	if (showTimer)
 	{
-		gui->texts[guiTimer]->SetText(std::to_string(timer.GetTicks() / 1000.0f));
+		gui->GetText(guiTimer)->SetText(std::to_string(timer.GetTicks() / 1000.0f));
 	}
 
 	switch (state)
@@ -204,12 +207,12 @@ int Game::MainLoop()
 
 
 Game::Game(const std::string& n, const std::string& title, const std::string& icon, bool is2D,
-	const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m, NetworkManager& net) : logger("logs/output.log")
+	const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m, CutsceneHelper* ch, NetworkManager* net) : logger("logs/output.log")
 {
 	currentGame = n;
 	startOfGame = std::chrono::steady_clock::now();
 	entityFactory = &e;
-	networkManager = &net;
+	networkManager = net;
 
 	use2DCamera = is2D;
 
@@ -336,6 +339,9 @@ Game::Game(const std::string& n, const std::string& title, const std::string& ic
 		renderer.light = new DirectionalLight(lColor, 1.0f, 1.0f, lDir);
 	}
 
+	cutsceneManager.commands.helper = ch;
+	cutsceneManager.commands.helper->SetFunctions(cutsceneManager.commands);
+
 	std::cout << "Game Created" << std::endl;
 }
 
@@ -436,7 +442,9 @@ void Game::ReadEntityLists()
 		entityTypes[listNames[i]] = ReadStringsFromFile("data/lists/" + listNames[i] + ".list");
 	}
 
+	// TODO: Don't hardcode these? What if we want to add new ones?
 	entityTypes["cameraBounds"] = { "cameraBounds" };
+	entityTypes["particle"] = { "particle" };
 
 	spriteMap.clear();
 	for (auto const& [key, val] : entityTypes)
@@ -713,6 +721,80 @@ glm::vec3 Game::SnapToGrid(glm::vec3 position, int size)
 	return glm::vec3(x, y, position.z);
 }
 
+void Game::RefreshAnimator(Entity* newEntity, const std::string& entityName) const
+{
+	if (newEntity == nullptr)
+		return;
+
+	std::unordered_map<std::string, std::string> args;
+
+	std::string filepath = entityName + "/";
+
+	args["0"] = entityName; // std::to_string(subtype);
+	args["1"] = "";
+
+	if (entityTypes.count(entityName) > 0 && entityTypes[entityName].size() > newEntity->subtype)
+	{
+		args["1"] = entityTypes[entityName][newEntity->subtype];
+	}
+
+	bool subdirectory = false;
+	for (int i = 0; i < dirNames.size(); i++)
+	{
+		if (entityName == dirNames[i])
+		{
+			subdirectory = true;
+		}
+	}
+
+	if (args["1"] != "" && subdirectory)
+	{
+		filepath += args["1"] + "/" + args["1"];
+	}
+	else
+	{
+		filepath += entityName;
+	}
+
+	std::vector<AnimState*> animStates = spriteManager.ReadAnimData("data/animators/" + filepath + ".animations", args);
+
+	//TODO: Make this better...
+	// - Allow for conditions that are always true/false 
+	// so that you can write Animator files that immediately go to other states
+	// (such as "notidle: bool true == true")
+	// - OR add a simple way to define the starting state in the animator file itself
+	// (such as "^*unpressed*") and otherwise just default to the topmost state
+
+	if (animStates.size() > 0)
+	{
+		Animator* newAnimator = nullptr;
+
+		// TODO: It seems like we need a new animator for each entity
+		// because each one will be in different states at different times,
+		// and the entity's sprite is based on its animation state.
+		// However, this also seems wasteful, is there a way to optimize this?
+
+		/*
+		for (auto const& [key, val] : animators)
+		{
+			if (key == filepath)
+			{
+				newAnimator = val;
+			}
+		}
+		*/
+
+		if (newAnimator == nullptr)
+		{
+			std::string initialState = initialStates.count(newEntity->etype) ? initialStates.at(newEntity->etype) : "idle";
+			newAnimator = new Animator(filepath, animStates, initialState);
+			//animators[filepath] = newAnimator;
+		}
+
+		newEntity->SetAnimator(*newAnimator);
+	}
+}
+
 Entity* Game::CreateEntity(const std::string& entityName, const glm::vec3& position, int subtype) const
 {
 	Entity* newEntity = entityFactory->Create(entityName, position);
@@ -720,74 +802,7 @@ Entity* Game::CreateEntity(const std::string& entityName, const glm::vec3& posit
 	if (newEntity != nullptr)
 	{
 		newEntity->subtype = subtype;
-
-		std::unordered_map<std::string, std::string> args;
-
-		std::string filepath = entityName + "/";
-
-		args["0"] = entityName; // std::to_string(subtype);
-		args["1"] = "";
-		
-		if (entityTypes.count(entityName) > 0 && entityTypes[entityName].size() > subtype)
-		{
-			args["1"] = entityTypes[entityName][subtype];
-		}
-
-		bool subdirectory = false;
-		for (int i = 0; i < dirNames.size(); i++)
-		{
-			if (entityName == dirNames[i])
-			{
-				subdirectory = true;
-			}
-		}
-
-		if (args["1"] != "" && subdirectory)
-		{
-			filepath += args["1"] + "/" + args["1"];
-		}
-		else
-		{
-			filepath += entityName;
-		}
-
-		std::vector<AnimState*> animStates = spriteManager.ReadAnimData("data/animators/" + filepath + ".animations", args);
-
-		//TODO: Make this better...
-		// - Allow for conditions that are always true/false 
-		// so that you can write Animator files that immediately go to other states
-		// (such as "notidle: bool true == true")
-		// - OR add a simple way to define the starting state in the animator file itself
-		// (such as "^*unpressed*") and otherwise just default to the topmost state
-
-		if (animStates.size() > 0)
-		{
-			Animator* newAnimator = nullptr;
-
-			// TODO: It seems like we need a new animator for each entity
-			// because each one will be in different states at different times,
-			// and the entity's sprite is based on its animation state.
-			// However, this also seems wasteful, is there a way to optimize this?
-
-			/*
-			for (auto const& [key, val] : animators)
-			{
-				if (key == filepath)
-				{
-					newAnimator = val;
-				}
-			}
-			*/
-
-			if (newAnimator == nullptr)
-			{
-				std::string initialState = initialStates.count(newEntity->etype) ? initialStates.at(newEntity->etype) : "idle";
-				newAnimator = new Animator(filepath, animStates, initialState);
-				//animators[filepath] = newAnimator;
-			}
-
-			newEntity->SetAnimator(*newAnimator);			
-		}
+		RefreshAnimator(newEntity, entityName);	
 	}
 
 	return newEntity;
@@ -795,13 +810,13 @@ Entity* Game::CreateEntity(const std::string& entityName, const glm::vec3& posit
 
 // TODO: We want to sort the entities every time we spawn one
 // as long as the game is running, but not when we are first loading the level
-Entity* Game::SpawnEntity(const std::string& entityName, const glm::vec3& position, const int spriteIndex) const
+Entity* Game::SpawnEntity(const std::string& entityName, const glm::vec3& position, const int subtype) const
 {
-	Entity* entity = CreateEntity(entityName, position, spriteIndex); //entityFactory->Create(entityName, position);
+	Entity* entity = CreateEntity(entityName, position, subtype); //entityFactory->Create(entityName, position);
 
 	if (entity != nullptr)
 	{
-		entity->subtype = spriteIndex;
+		entity->subtype = subtype;
 		if (!entity->CanSpawnHere(position, *this))
 		{
 			delete_it(entity);
@@ -1142,7 +1157,7 @@ void Game::StopTextInput(Dialog& dialog)
 		for (auto const& [key, val] : entityTypes)
 		{
 			// TODO: Don't hardcode this
-			if (key == "cameraBounds" || key == "path" || key == "pathnode")
+			if (key == "cameraBounds" || key == "path" || key == "pathnode" || key == "particle")
 				continue;
 
 			std::string fixedKey = key;
@@ -1452,7 +1467,7 @@ void Game::SaveEditorSettings()
 	fout << "tilesheet " << editor->tilesheetIndex << std::endl;
 
 	// The currently opened level
-	fout << "level " << currentLevel << std::endl;
+	fout << "level " << (currentLevel == "" ? "title" : currentLevel ) << std::endl;
 
 	//fout << "display_fps " << showFPS << std::endl;
 	//fout << "display_timer " << showTimer << std::endl;
@@ -1685,6 +1700,11 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 				std::cout << "Handle Menu Event - hit return key" << std::endl;
 				quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
 				break;
+#if _DEBUG
+			case SDLK_2:
+				guiMode = !guiMode;
+				break;
+#endif
 			default:
 				break;
 			}
@@ -1859,44 +1879,62 @@ bool Game::HandleEvent(SDL_Event& event)
 				debugMode = !debugMode;
 				break;
 			case SDLK_2: // toggle Editor mode
-				editMode = !editMode;
-				
-				if (editMode)
+
+				if (!soundMode && !guiMode)
 				{
-					editor->StartEdit();
+					if (openedMenus.size() > 0)
+					{
+						guiMode = !guiMode;
+					}
+					else
+					{
+						editMode = !editMode;
+
+						if (editMode)
+						{
+							editor->StartEdit();
+						}
+						else
+						{
+							editor->StopEdit();
+						}
+					}
+
 				}
-				else
-				{
-					editor->StopEdit();
-				}
+
 				break;
 			case SDLK_3: // toggle Editor settings
 				if (editMode)
 				{
 					openedMenus.emplace_back(allMenus["EditorSettings"]);
 				}
-				else
+				else if (!guiMode)
 				{
 					// if not in edit mode, bring up/down the Sound Test
 					soundMode = !soundMode;
 				}
 				break;
-			case SDLK_4: // Undo Button
-				//editor->UndoAction();
-
-
-
-				cutsceneManager.renderCutscene = !cutsceneManager.renderCutscene;
-
-
+			case SDLK_4: // GUI edit button
+				if (editMode)
+				{
+					// ...?
+				}
+				else if (!soundMode)
+				{
+					// if not in edit mode, bring up/down the Gui Editor
+					guiMode = !guiMode;
+				}
 				break;
-			case SDLK_5: // Redo Button
+			case SDLK_MINUS: // Undo Button
+				editor->UndoAction();
+				//cutsceneManager.renderCutscene = !cutsceneManager.renderCutscene;
+				break;
+			case SDLK_PLUS: // Redo Button
 
 				// Free camera mode
+				//freeCameraMode = !freeCameraMode;
 
-				freeCameraMode = !freeCameraMode;
-
-				//editor->RedoAction();
+				editor->RedoAction();
 				//EndGIF();
 				break;
 			case SDLK_6: // Screenshot Button
@@ -2139,7 +2177,7 @@ void Game::UpdateClickAndDrag()
 
 	for (unsigned int i = 0; i < clickableEntities.size(); i++)
 	{
-		if (clickableEntities[i]->clickable)
+		if (clickableEntities[i]->clickable || clickableEntities[i]->draggable)
 		{
 			clickableEntities[i]->GetSprite()->isHovered = false;
 
@@ -2164,6 +2202,11 @@ void Game::UpdateClickAndDrag()
 			else if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
 			{
 				clickableEntities[i]->GetSprite()->isHovered = true;
+			}
+
+			if (draggedEntity != nullptr)
+			{
+				draggedEntity->position = worldPosition;
 			}
 
 		}
@@ -2274,7 +2317,7 @@ void Game::OpenMenu(const std::string& menuName)
 
 void Game::Update()
 {
-	if (networkManager->protocol == Protocol::UDP_Server)
+	if (networkManager && networkManager->protocol == Protocol::UDP_Server)
 	{
 		networkManager->UDPServer();
 		networkManager->ReadMessage(*this);
@@ -2341,24 +2384,45 @@ void Game::Update()
 	// so we use a bool here to only do the things we need.
 	bool updateNormalStuff = true;
 
+	// VERY IMPORTANT TO DO THIS HERE!
+	// Let's just keep mouse input stuff all in one place, then reference it everywhere else.
+	int mouseX, mouseY = 0;
+	const uint32_t mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+	worldPosition = ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
+
 	if (openedMenus.size() > 0)
 	{
+		if (guiMode)
+		{
+			editor->HandleGUIMode();
+		}
+
 		if (waitForMenuTransitions)
 		{
 			TransitionMenu();
 		}
 		else
 		{
+
+			if (openedMenus.size() > 0)
+			{
+				guiMode = !guiMode;
+			}
+
 			GetMenuInput();
 		}
 
 		
-		updateNormalStuff = false;
+		updateNormalStuff = openedMenus[openedMenus.size() - 1]->shouldUpdate;
 	}
 	else if (editMode)
 	{
 		HandleEditMode();
 		updateNormalStuff = false;
+	}
+	else if (guiMode)
+	{
+		editor->HandleGUIMode();
 	}
 	else if (transitionState > 0)
 	{
@@ -2396,12 +2460,16 @@ void Game::Update()
 				UpdateClickAndDrag();
 			}
 
+			// TODO: Don't hardcode these numbers
+			const SDL_Rect cameraBounds = renderer.camera.GetBounds();
+
 			// Update all entities
 			updateCalls = 0;
 			collisionChecks = 0;
 			for (unsigned int i = 0; i < entities.size(); i++)
 			{
-				if (entities[i]->active)
+				const SDL_Rect* theirBounds = entities[i]->GetBounds();
+				if (entities[i]->active && HasIntersection(cameraBounds, *theirBounds))
 				{
 					entities[i]->Update(*this);
 				}
@@ -2816,42 +2884,96 @@ void Game::RenderNormally()
 
 	quadTree.Render(renderer);
 
-	// Render all entities
+	// Render only entities in frame, or all entities
 	if (renderer.camera.useOrthoCamera && !editMode)
 	{
 		entitiesToRender.clear();
+		debugEntities.clear();
 
-		// TODO: Don't hardcode these numbers
-		SDL_Rect cameraBounds;
-		cameraBounds.x = renderer.camera.position.x - (6 * Globals::TILE_SIZE);
-		cameraBounds.y = renderer.camera.position.y - (6 * Globals::TILE_SIZE);
-		cameraBounds.w = (32 * Globals::TILE_SIZE) * Camera::MULTIPLIER;
-		cameraBounds.h = (20 * Globals::TILE_SIZE) * Camera::MULTIPLIER;
+		SDL_Rect cameraBounds = renderer.camera.GetBounds();
 
-		for (unsigned int i = 0; i < entities.size(); i++)
+		bool useQuadTree = false;
+
+		if (useQuadTree)
 		{
-			const SDL_Rect* theirBounds = entities[i]->GetBounds();
+			// Once all entities are sorted, render the ones on screen
+			quadTree.Retrieve(&cameraBounds, entitiesToRender, &quadTree);
 
-			if (entities[i]->active && HasIntersection(cameraBounds, *theirBounds))
+			// If one of the entities on screen moved this frame, sort them all by Y position
+			for (unsigned int i = 0; i < entitiesToRender.size(); i++)
 			{
-				entities[i]->Render(renderer);
+				Entity* e = entitiesToRender[i];
+				if (e->position != e->lastPosition)
+				{
+					SortEntities(entitiesToRender, sortByPosY);
+					break;
+				}
 			}
 
-			if (debugMode)
+			for (unsigned int i = 0; i < entitiesToRender.size(); i++)
 			{
-				if (entities[i]->etype == "player" || entities[i]->impassable 
-					|| entities[i]->trigger || entities[i]->jumpThru)
+				Entity* e = entitiesToRender[i];
+				if (e->active)
+				{
+					e->Render(renderer);
+				}
+
+				if (debugMode)
+				{
+					if (e->etype == "player" || e->impassable || e->trigger || e->jumpThru)
+					{
+						debugEntities.push_back(entitiesToRender[i]);
+					}
+				}
+			}
+		}
+		else
+		{
+			for (unsigned int i = 0; i < entities.size(); i++)
+			{
+				const SDL_Rect* theirBounds = entities[i]->GetBounds();
+				if (entities[i]->active && HasIntersection(cameraBounds, *theirBounds))
 				{
 					entitiesToRender.push_back(entities[i]);
-				}					
-			} 
+				}
+			}
+
+			// If one of the entities on screen moved this frame, sort them all by Y position
+			for (unsigned int i = 0; i < entitiesToRender.size(); i++)
+			{
+				Entity* e = entitiesToRender[i];
+				if (e->position != e->lastPosition)
+				{
+					SortEntities(entitiesToRender, sortByPosY);
+					break;
+				}
+			}
+
+			for (unsigned int i = 0; i < entitiesToRender.size(); i++)
+			{
+				entitiesToRender[i]->Render(renderer);
+
+				if (debugMode)
+				{
+					if (entitiesToRender[i]->etype == "player" || entitiesToRender[i]->impassable
+						|| entitiesToRender[i]->trigger || entitiesToRender[i]->jumpThru)
+					{
+						debugEntities.push_back(entitiesToRender[i]);
+					}
+				}
+			}
 		}
+
+
+
+
+
 
 		if (debugMode)
 		{
-			for (unsigned int i = 0; i < entitiesToRender.size(); i++)
+			for (unsigned int i = 0; i < debugEntities.size(); i++)
 			{
-				entitiesToRender[i]->RenderDebug(renderer);
+				debugEntities[i]->RenderDebug(renderer);
 			}
 		}
 
@@ -2931,7 +3053,7 @@ Entity* Game::GetEntityFromID(int id)
 // Implementation of insertion sort:
 // Splits the list into two portions - sorted and unsorted.
 // Then steps through the unsorted list, checking where the next one fits.
-void Game::SortEntities(std::vector<Entity*>& entityVector)
+void Game::SortEntities(std::vector<Entity*>& entityVector, bool sortByPosY)
 {
 	const int n = entityVector.size();
 	for (int i = 0; i < n; i++)
@@ -2945,10 +3067,28 @@ void Game::SortEntities(std::vector<Entity*>& entityVector)
 			}
 			else if (entityVector[j - 1]->layer == entityVector[j]->layer)
 			{
-				if (entityVector[j - 1]->drawOrder > entityVector[j]->drawOrder)
+				if (sortByPosY)
 				{
-					std::swap(entityVector[j], entityVector[j - 1]);
+					if (entityVector[j - 1]->position.y > entityVector[j]->position.y)
+					{
+						std::swap(entityVector[j], entityVector[j - 1]);
+					}
+					else
+					{
+						if (entityVector[j - 1]->drawOrder > entityVector[j]->drawOrder)
+						{
+							std::swap(entityVector[j], entityVector[j - 1]);
+						}
+					}
 				}
+				else
+				{
+					if (entityVector[j - 1]->drawOrder > entityVector[j]->drawOrder)
+					{
+						std::swap(entityVector[j], entityVector[j - 1]);
+					}
+				}
+
 			}
 			j--;
 		}

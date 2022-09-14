@@ -68,6 +68,29 @@ void Camera::SwitchTarget(const Entity& newTarget)
 		target->GetPosition().y - (startScreenHeight * 0.5f), position.z);
 }
 
+const SDL_Rect Camera::GetBounds() const
+{
+	SDL_Rect cameraBounds;
+
+	// TODO: Don't hardcode these numbers
+	if (Globals::TILE_SIZE >= 32)
+	{
+		cameraBounds.x = position.x - (6 * Globals::TILE_SIZE);
+		cameraBounds.y = position.y - (6 * Globals::TILE_SIZE);
+		cameraBounds.w = (32 * Globals::TILE_SIZE) * Camera::MULTIPLIER;
+		cameraBounds.h = (20 * Globals::TILE_SIZE) * Camera::MULTIPLIER;
+	}
+	else
+	{
+		cameraBounds.x = position.x - (12 * Globals::TILE_SIZE);
+		cameraBounds.y = position.y - (12 * Globals::TILE_SIZE);
+		cameraBounds.w = (64 * Globals::TILE_SIZE) * Camera::MULTIPLIER;
+		cameraBounds.h = (40 * Globals::TILE_SIZE) * Camera::MULTIPLIER;
+	}
+
+	return cameraBounds;
+}
+
 void Camera::FollowTarget(const Game& game, bool instantFollow)
 {
 	if (target != nullptr)
@@ -75,6 +98,10 @@ void Camera::FollowTarget(const Game& game, bool instantFollow)
 		glm::vec3 targetCenter = glm::vec3(target->GetPosition().x - (startScreenWidth * 0.5f),
 			target->GetPosition().y - (startScreenHeight * 0.5f), position.z);
 
+		position = targetCenter + targetOffset;
+
+		// TODO: Why does this get stuck? It used to work just fine.
+		/*
 		if (instantFollow)
 		{
 			position = targetCenter;
@@ -171,6 +198,8 @@ void Camera::FollowTarget(const Game& game, bool instantFollow)
 
 			}
 		}
+
+		*/
 	}
 }
 
@@ -363,6 +392,8 @@ void Camera::KeyControl(const uint8_t* input, const float& dt,
 
 void Camera::ResetProjection()
 {
+	orthoZoom = startingZoom;
+
 	if (useOrthoCamera)
 	{
 		float zoomX = (startScreenWidth * startingZoom);
@@ -437,7 +468,28 @@ void Camera::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 {
 	startingZoom = std::stof(map["zoom"]);
 	startingTargetID = std::stoi(map["targetID"]);
-	afterStartingTargetID = std::stoi(map["nextID"]);
+
+	// if ID == p, find the player
+	if (map["nextID"] == "p")
+	{
+		for (int i = 0; i < game.entities.size(); i++)
+		{
+			if (game.entities[i]->etype == "player")
+			{
+				afterStartingTargetID = game.entities[i]->id;
+				break;
+			}
+		}
+
+		if (map["nextID"] == "p")
+		{
+			afterStartingTargetID = -1;
+		}
+	}
+	else
+	{
+		afterStartingTargetID = std::stoi(map["nextID"]);
+	}
 
 	try
 	{
@@ -456,6 +508,8 @@ void Camera::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 	{
 		game.logger.Log(e.what());
 	}
+
+	ResetProjection();
 
 	Update();
 }

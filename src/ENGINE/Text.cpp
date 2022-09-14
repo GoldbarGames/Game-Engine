@@ -387,45 +387,52 @@ void Text::AddText(char c, Color color)
 
 void Text::Render(const Renderer& renderer)
 {
-	if (isRichText)
+	if (shouldRender)
 	{
-		for (int i = 0; i < glyphs.size(); i++)
+		if (isRichText)
 		{
-			if (glyphs[i]->animator != nullptr)
+			for (int i = 0; i < glyphs.size(); i++)
 			{
-				glyphs[i]->sprite.Render(glyphs[i]->position,
-					glyphs[i]->animator->GetSpeed(), renderer, glyphs[i]->scale, rotation);
-			}
-			else
-			{
-				glyphs[i]->sprite.Render(glyphs[i]->position, 0, renderer, glyphs[i]->scale, rotation);
+				if (glyphs[i]->animator != nullptr)
+				{
+					glyphs[i]->sprite.Render(glyphs[i]->position,
+						glyphs[i]->animator->GetSpeed(), renderer, glyphs[i]->scale, rotation);
+				}
+				else
+				{
+					glyphs[i]->sprite.Render(glyphs[i]->position, 0, renderer, glyphs[i]->scale, rotation);
+				}
 			}
 		}
-	}
-	else
-	{
-		if (lastLanguageIndex != Globals::currentLanguageIndex)
+		else
 		{
-			SetTextAsOneSprite(GetTranslatedText(txt), color, wrapWidth);
-		}
+			if (lastLanguageIndex != Globals::currentLanguageIndex)
+			{
+				SetTextAsOneSprite(GetTranslatedText(txt), color, wrapWidth);
+			}
 
-		currentSprite.Render(position, renderer, scale, rotation);
+			currentSprite.Render(position, renderer, scale, rotation);
+		}
 	}
+
 
 }
 
 void Text::Render(const Renderer& renderer, glm::vec3 offset)
 {
-	if (isRichText)
+	if (shouldRender)
 	{
-		for (int i = 0; i < glyphs.size(); i++)
+		if (isRichText)
 		{
-			glyphs[i]->sprite.Render(glyphs[i]->position + offset, renderer, glyphs[i]->scale);
+			for (int i = 0; i < glyphs.size(); i++)
+			{
+				glyphs[i]->sprite.Render(glyphs[i]->position + offset, renderer, glyphs[i]->scale);
+			}
 		}
-	}
-	else
-	{
-		currentSprite.Render(position + offset, renderer, scale);
+		else
+		{
+			currentSprite.Render(position + offset, renderer, scale);
+		}
 	}
 }
 

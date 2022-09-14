@@ -99,6 +99,10 @@ public:
 	bool GetKey(const std::string& keyName);
 	bool GetKeyPressed(const std::string& keyName);
 	bool GetKeyReleased(const std::string& keyName);
+
+	glm::vec3 GetMouseWorldPosition();
+
+	bool GetLeftClicked();
 };
 
 #endif

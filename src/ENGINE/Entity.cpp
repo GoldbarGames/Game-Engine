@@ -224,6 +224,9 @@ void Entity::SetPosition(const glm::vec3& newPosition)
 
 void Entity::SetAnimator(Animator& anim)
 {
+	if (animator != nullptr && animator != &anim)
+		delete animator;
+
 	animator = &anim;
 	animator->DoState(*this);
 }
@@ -271,6 +274,7 @@ void Entity::Render(const Renderer& renderer)
 {
 	if (renderer.IsVisible(layer))
 	{
+		renderer.drawCallsPerFrame++;
 		if (animator != nullptr)
 			currentSprite.Render(position, animator->GetSpeed(), renderer, scale, rotation);
 		else
@@ -284,6 +288,7 @@ void Entity::RenderParallax(const Renderer& renderer, float p)
 
 	if (renderer.IsVisible(layer))
 	{
+		renderer.drawCallsPerFrame++;
 		if (animator != nullptr)
 			currentSprite.Render(renderPosition, animator->GetSpeed(), renderer, scale, rotation);
 		else

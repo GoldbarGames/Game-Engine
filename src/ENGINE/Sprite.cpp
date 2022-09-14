@@ -521,7 +521,7 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 // so if you pass in a top-left rectangle, you'll see something wrong
 void Sprite::Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec3& scale, const glm::vec3& rotation)
 {
-	renderer.drawCallsPerFrame++;
+	//renderer.drawCallsPerFrame++;
 
 	ShaderProgram* shader = GetShader();
 

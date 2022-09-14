@@ -16,6 +16,8 @@
 #include "CutsceneManager.h"
 #include "Background.h"
 #include "EditorHelper.h"
+#include "MenuScreen.h"
+#include "CutsceneFunctions.h"
 
 FontInfo* Editor::fontInfo;
 
@@ -135,7 +137,7 @@ void Editor::UpdateLevelFiles()
 {
 	// Fill in the new array
 	loadDataMap.clear();
-	const std::string LOAD_FILE = "data/loading.dat";
+	const std::string LOAD_FILE = "data/load_key.dat";
 	std::string newData = ReadLoadingData(LOAD_FILE, loadDataMap);
 
 	const std::string OLD_FILEPATH = "data/load_old.dat";
@@ -453,6 +455,9 @@ void Editor::StartEdit()
 {
 	game->LoadEditorSettings();
 
+	grabbedEntities.clear();
+	oldGrabbedPositions.clear();
+
 	helper->OnEditorStart();
 
 	previewMap[MODE_TILE] = game->CreateTile(glm::vec2(0, 0), 0,
@@ -535,7 +540,7 @@ void Editor::StartEdit()
 		layerButtons.emplace_back(layerButton);
 		
 		EditorButton* layerVisibleButton = new EditorButton("", "Visible", 
-			glm::vec3(buttonX + (layerButtonWidth * 2), buttonY, 0), *game, glm::vec2(50, 50), { 255, 255, 255, 255 });
+			glm::vec3(buttonX - 125, buttonY, 0), *game, glm::vec2(50, 50), { 255, 255, 255, 255 });
 
 		layerVisibleButton->image->keepScaleRelativeToCamera = true;
 		layerVisibleButton->text->GetSprite()->keepScaleRelativeToCamera = true;
@@ -769,6 +774,7 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 					}
 
 					grabbedEntities.clear();
+					oldGrabbedPositions.clear();
 					DoAction();
 				}
 			}
@@ -1188,6 +1194,7 @@ void Editor::PlaceTile(const glm::vec2& clickedPosition)
 
 		if (tile != nullptr)
 		{
+			tile->rotation.z = previewMap[objectMode]->rotation.z;
 			game->SortEntities(game->entities);
 
 			std::cout << "Spawned at (" << spawnPos.x << "," << spawnPos.y << "!" << std::endl;
@@ -1238,7 +1245,7 @@ void Editor::MiddleClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm:
 			}
 		}
 	}
-	else
+	else if (previewMap[objectMode] != nullptr)
 	{
 		previewMap[objectMode]->rotation.z -= 90;
 		if (previewMap[objectMode]->rotation.z < 0)
@@ -1259,6 +1266,7 @@ void Editor::RightClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::
 		}
 
 		grabbedEntities.clear();
+		oldGrabbedPositions.clear();
 
 		return;
 	}
@@ -1336,12 +1344,70 @@ void Editor::RightClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::
 	}	
 }
 
-void Editor::HandleEdit()
+void Editor::HandleGUIMode()
 {
 	int mouseX = 0;
 	int mouseY = 0;
 
 	const uint32_t mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+
+	SDL_Rect clickedRect;
+	clickedRect.x = mouseX - ((int)mouseX % (GRID_SIZE));
+	clickedRect.y = mouseY - ((int)mouseY % (GRID_SIZE));
+	clickedRect.w = 1;
+	clickedRect.h = 1;
+
+	if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) // 
+	{
+		// If not holding anything, grab it; else, let go.
+
+		if (grabbedMenuEntity == nullptr)
+		{
+			// check to see if we grabbed something
+			
+			// // TODO: Do this for menu buttons/text/images as well
+			//std::vector<Text*>& menuTexts = game->openedMenus[game->openedMenus.size() - 1]->texts;
+
+			for (int i = 0; i < game->gui->texts.size(); i++)
+			{
+				// TODO: Fix this
+				if (HasIntersection(*game->gui->texts[i]->GetBounds(), clickedRect))
+				{
+					grabbedMenuEntity = game->gui->texts[i];
+					game->draggedEntity = game->gui->texts[i];
+					break;
+				}
+			}
+		}
+		else
+		{
+			grabbedMenuEntity = nullptr;
+			game->draggedEntity = nullptr;
+		}
+
+	}
+	else if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) // 
+	{
+		// save changes to file
+		game->gui->SaveData();
+	}
+	else if (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE)) // 
+	{
+		game->gui->LoadData(game);
+	}
+	else // no button was clicked, just check for hovering
+	{
+		// Highlight the hovered object
+
+	}
+}
+
+void Editor::HandleEdit()
+{
+	int mouseX, mouseY = 0;
+
+	const uint32_t mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+	game->worldPosition = game->ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
 
 	int clickedX = mouseX - ((int)mouseX % (GRID_SIZE));
 	int clickedY = mouseY - ((int)mouseY % (GRID_SIZE));
@@ -1354,13 +1420,11 @@ void Editor::HandleEdit()
 	std::string clickedText = std::to_string(mouseX) + " " + std::to_string(mouseY);
 	game->debugScreen->debugText[DebugText::cursorPositionInScreen]->SetText("Mouse Screen: " + clickedText);
 
-	glm::vec3 worldPosition = game->ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
-
-	std::string clickedText2 = std::to_string((int)worldPosition.x) + " " + std::to_string((int)worldPosition.y);
+	std::string clickedText2 = std::to_string((int)game->worldPosition.x) + " " + std::to_string((int)game->worldPosition.y);
 	game->debugScreen->debugText[DebugText::cursorPositionInWorld]->SetText("Mouse World: " + clickedText2);
 
-	std::string clickedText3 = std::to_string((int)(worldPosition.x / (Globals::TILE_SIZE * Camera::MULTIPLIER)))
-		+ " " + std::to_string((int)(worldPosition.y / (Globals::TILE_SIZE * Camera::MULTIPLIER)));
+	std::string clickedText3 = std::to_string((int)(game->worldPosition.x / (Globals::TILE_SIZE * Camera::MULTIPLIER)))
+		+ " " + std::to_string((int)(game->worldPosition.y / (Globals::TILE_SIZE * Camera::MULTIPLIER)));
 	game->debugScreen->debugText[DebugText::cursorPositionInTiles]->SetText("Mouse Tiles: " + clickedText3);
 
 	glm::mat4 invertedProjection = glm::inverse(game->renderer.camera.projection);
@@ -1595,7 +1659,7 @@ void Editor::ClickedButton()
 
 	if (objectPreview != nullptr)
 	{
-		GRID_SIZE = objectPreview->GetGridSize();
+		//GRID_SIZE = objectPreview->GetGridSize();
 	}
 	
 }
@@ -1693,10 +1757,33 @@ void Editor::ToggleObjectMode(const std::string& mode)
 
 void Editor::ToggleGridSize()
 {
-	if (GRID_SIZE == Globals::TILE_SIZE)
-		GRID_SIZE = Globals::TILE_SIZE / 2;
-	else
+	static int sizeNum = 0;
+
+	sizeNum++;
+
+	if (sizeNum > 2)
+		sizeNum = 0;
+
+	std::cout << sizeNum << std::endl;
+
+
+	switch (sizeNum)
+	{
+	case 0:
 		GRID_SIZE = Globals::TILE_SIZE;
+		break;
+	case 1:
+		GRID_SIZE = Globals::TILE_SIZE / 2;
+		break;
+	case 2:
+		GRID_SIZE = 1;
+		break;
+	default:
+		GRID_SIZE = Globals::TILE_SIZE;
+		break;
+	}
+
+	std::cout << "Grid size is now " << GRID_SIZE << std::endl;
 }
 
 void Editor::ToggleInspectionMode()
@@ -1864,16 +1951,16 @@ void Editor::Render(const Renderer& renderer)
 		buttons[i]->Render(renderer);
 	}
 
-	// Draw all layer buttons
-	for (unsigned int i = 0; i < layerButtons.size(); i++)
-	{
-		layerButtons[i]->Render(renderer);
-	}
-
 	// Draw all layer visible buttons
 	for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
 	{
 		layerVisibleButtons[i]->Render(renderer);
+	}
+
+	// Draw all layer buttons
+	for (unsigned int i = 0; i < layerButtons.size(); i++)
+	{
+		layerButtons[i]->Render(renderer);
 	}
 
 	if (dialog != nullptr && dialog->visible)
@@ -2306,11 +2393,17 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 					}
 				}
 
-				if (etype == "player")
+				if (etype == "player" || etype == "Player")
 				{
 					positionX = std::stoi(tokens[indexOfPositionX]);
 					positionY = std::stoi(tokens[indexOfPositionY]);
+					// TODO: If 3D, get position Z too
 					game->player = game->SpawnPlayer(glm::vec3(positionX, positionY, 0));
+
+					if (tokens->size() > 5 && game->player != nullptr)
+					{
+						game->player->Init(*game, "Player");
+					}
 				}
 				else if (etype == "tile")
 				{
@@ -2351,6 +2444,16 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 					std::string bgName = tokens[index++];
 					game->background->SpawnBackground(bgName, bgX, bgY, *game);
 				}
+				else if (etype == "particlesystem")
+				{
+					index = 4;
+					CutsceneFunctions::ParticleCommand({ "particle", "system", "create", tokens[index++], tokens[index++], tokens[index++] }, game->cutsceneManager.commands);
+					CutsceneFunctions::ParticleCommand({ "particle", "system", tokens[4], "sprite", tokens[index++] }, game->cutsceneManager.commands);
+					CutsceneFunctions::ParticleCommand({ "particle", "system", tokens[4], "velocity", tokens[index++], tokens[index++] }, game->cutsceneManager.commands);
+					CutsceneFunctions::ParticleCommand({ "particle", "system", tokens[4], "timeToSpawn", tokens[index++] }, game->cutsceneManager.commands);
+					CutsceneFunctions::ParticleCommand({ "particle", "system", tokens[4], "timeToLive", tokens[index++] }, game->cutsceneManager.commands);
+					CutsceneFunctions::ParticleCommand({ "particle", "system", tokens[4], "maxNumber", tokens[index++] }, game->cutsceneManager.commands);
+				}
 				// if not handled by helper, load it as a normal entity
 				else if (!helper->CustomLoad(etype, tokens))
 				{
@@ -2371,6 +2474,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 						newEntity->Load(map, *game);
 						newEntity->Init(*game, game->entityTypes[etype][std::stoi(subtype)]);
 
+						// TODO: Use enums for etypes, look up strings in a table
 						if (newEntity->etype == "cameraBounds")
 						{
 							game->cameraBoundsEntities.push_back(newEntity);
