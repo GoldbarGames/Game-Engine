@@ -9,8 +9,8 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	renderer = &r;
 
 	//TODO: Allow for this font to be defined via a file at startup
-	fontInfoText = renderer->game->CreateFont("SazanamiGothic", 24);
-	fontInfoSpeaker = renderer->game->CreateFont("SazanamiGothic", 24);
+	fontInfoText = renderer->game->CreateFont("SazanamiGothic", 96);
+	fontInfoSpeaker = renderer->game->CreateFont("SazanamiGothic", 96);
 
 	// These values can all be changed from the cutscene definition file at startup,
 	// although they will give errors here if they cannot find the images
@@ -35,11 +35,12 @@ Textbox::Textbox(SpriteManager& m, Renderer& r)
 	//TODO: Customize these things from a file as well
 	text->SetPosition(1080, 1040);
 	speaker->SetPosition(235, 985);
-	text->SetScale(glm::vec2(0.25f, 0.25f));
+	text->SetScale(glm::vec2(0.0625f, 0.0625f));
 	boxWidth = 1130;
 
 	text->isRichText = true;
-	speaker->isRichText = false;
+	speaker->isRichText = true;
+	speaker->alignX = AlignmentX::CENTER;
 
 	clickToContinue = new Entity(glm::vec3(0,0,0));
 
@@ -163,7 +164,7 @@ void Textbox::UpdateText(const char c, const Color& color)
 		}
 
 		int lineNumStart = 0;
-		for (int i = 0; i < shadows.size(); i++)
+		for (size_t i = 0; i < shadows.size(); i++)
 		{
 			if (text->lineNumToIndex.count(i) != 0)
 			{
@@ -205,7 +206,7 @@ void Textbox::Render(const Renderer& renderer, const int& screenWidth, const int
 			if (useShadow && shadows.size() > 0)
 			{
 
-				for (int i = 0; i < text->lineNumToIndex.size(); i++)
+				for (size_t i = 0; i < text->lineNumToIndex.size(); i++)
 				{
 					Text* shadow = shadows[i];
 					glm::vec3 pos = shadow->GetPosition();

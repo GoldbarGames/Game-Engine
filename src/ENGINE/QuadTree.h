@@ -2,8 +2,8 @@
 #define QUADTREE_H
 #pragma once
 
-#include "Vector2.h"
 #include "Entity.h"
+#include <glm/vec3.hpp>
 #include <SDL2/SDL.h>
 #include "leak_check.h"
 
@@ -14,7 +14,7 @@ class KINJO_API QuadTree
 private:
     QuadTree* children[4];
 
-    Vector2 midpoint = Vector2(0, 0);
+    glm::vec3 midpoint = glm::vec3(0,0,0);
     bool smallestSize = false;
 
     Sprite* debugSprite = nullptr;
@@ -25,17 +25,22 @@ public:
     // and therefore also within the same subtree
     std::vector<Entity*> entities;
 
+    size_t MAX_ENTITIES = 100;
+    int id = 0;
+
     // Hold details of the boundary of this node 
     SDL_Rect rect;
-    Vector2 topLeft = Vector2(0,0);
-    Vector2 botRight = Vector2(0,0);
+    glm::vec3 topLeft = glm::vec3(0,0,0);
+    glm::vec3 botRight = glm::vec3(0,0,0);
 
     int depth = 1;
     Uint8 renderAlpha = 255;
     bool active = true;
 
+    bool output = false;
+
     QuadTree();
-    QuadTree(int x, int y, int w, int h, int d=1);
+    QuadTree(int i, int x, int y, int w, int h, int d=1);
     ~QuadTree();
 
     void SetCoords(int x, int y, int w, int h, int s);
@@ -47,10 +52,10 @@ public:
     void Insert(Entity* newEntity);
     QuadTree* SearchTree(Entity* e);
     void Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out, QuadTree* root);
-    bool Contains(Vector2 point);
+    bool Contains(glm::vec3 point);
     std::vector<Entity*> GetEntities();
 
-    QuadTree* GetInsertedChild(const SDL_Rect* bounds);
+    QuadTree* GetChildContainingBounds(const SDL_Rect* bounds);
 };
 
 #endif

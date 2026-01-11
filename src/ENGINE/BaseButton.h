@@ -14,10 +14,13 @@ class Game;
 class KINJO_API BaseButton : public Entity
 {
 public:
-	Sprite* image = nullptr;
 	Text* text = nullptr;
 	bool isSelected = false;
 	bool pressedAnyKey = false;
+
+	std::vector<Sprite*> images;
+
+	int loopImages = 0;
 
 	int btnID = -1;
 
@@ -34,6 +37,7 @@ public:
 	void SetButtonsUpDownLeftRight(BaseButton* up = nullptr, BaseButton* down = nullptr, BaseButton* left = nullptr, BaseButton* right = nullptr);
 	virtual void SetOptionColors(Color c);
 	void SetColor(Color c);
+	Color GetImageColor(const unsigned int index);
 
 	virtual void Highlight(Game& game);
 	virtual void Unhighlight(Game& game);

@@ -5,7 +5,6 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-#include "Vector2.h"
 #include "globals.h"
 #include "Animator.h"
 #include "Collider.h"
@@ -91,8 +90,10 @@ public:
 
 	Sprite* GetSprite();
 	Animator* GetAnimator();
+	void CreateSprite(const glm::vec2& frame, Texture* image, ShaderProgram* s, 
+		const int tileSize, const int tileSize2=0, const int cf=-1);
 
-	virtual const SDL_Rect* GetBounds();
+	virtual const SDL_Rect* GetBounds() const;
 	SDL_Rect GetTopLeftBounds() const;
 	glm::vec3 GetPosition() const;
 	glm::vec3 GetCenter() const;
@@ -102,8 +103,8 @@ public:
 	void SetSprite(Sprite& sprite);
 
 	virtual void Update(Game& game);
+	virtual void Render(const Renderer& renderer, float parallax);
 	virtual void Render(const Renderer& renderer);
-	virtual void RenderParallax(const Renderer& renderer, float p);
 	virtual void RenderDebug(const Renderer& renderer);
 
 	void CreateCollider(float x, float y, float w, float h);

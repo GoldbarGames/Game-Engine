@@ -9,7 +9,6 @@
 #include "globals.h"
 #include "Shader.h"
 #include "Camera.h"
-#include "Vector2.h"
 #include "Timer.h"
 #include "GUI.h"
 #include "leak_check.h"
@@ -37,6 +36,8 @@ public:
 	Camera guiCamera;
 
 	Light* light = nullptr;
+
+	bool hotReloadShaders = true;
 	
 	PointLight* pointLights[MAX_POINT_LIGHTS];
 	SpotLight* spotLights[MAX_SPOT_LIGHTS];
@@ -51,7 +52,7 @@ public:
 	Game* game;
 
 	void Update();
-	void UseLight(ShaderProgram& shader) const;
+	void UseLight(const ShaderProgram& shader) const;
 
 	Color overlayColor{ 0, 0, 0, 0 };
 	Color targetColor{ 0, 0, 0, 0 };
@@ -71,16 +72,28 @@ public:
 
 	ShaderProgram* GetShader(int key) const;
 	mutable std::unordered_map<int, ShaderProgram*> shaders;
+
+	Timer reloadTimer;
+	std::vector<std::string> shaderList;
+	std::string shaderFolder = "data/shaders/";
+
+	std::unordered_map<std::string, std::filesystem::file_time_type> lastModified;
+
+	void HotReload();
 	
 	void LerpColor(float& color, float target, const float& speed);
 	void FadeOverlay(const int screenWidth, const int screenHeight) const;
 	void ToggleVisibility(DrawingLayer layer);
 	bool IsVisible(DrawingLayer layer) const;
 
-	void CreateShader(const int shaderName, const char* vertexFilePath, const char* fragmentFilePath);
+	void CreateShader(const int shaderName, const char* vertexFilePath, const char* fragmentFilePath, bool fromString = false);
 	void CreateShaders();
 
 	static ShaderProgram* GetTextShader();
+
+	int instanceAmount = 0;
+	void ConfigureInstanceArray(unsigned int amount=100000);
+	glm::mat4* modelMatrices = nullptr;
 
 	void Init(Game* g);
 	Renderer();

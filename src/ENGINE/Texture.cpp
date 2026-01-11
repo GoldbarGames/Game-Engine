@@ -1,6 +1,9 @@
 #include "Texture.h"
 #include <iostream>
 
+int Texture::lastTextureID = -1;
+int Texture::lastActiveTexture = -1;
+
 Texture::Texture(const std::string& path)
 {
 	textureID = 0;
@@ -78,28 +81,25 @@ void Texture::LoadTexture(SDL_Surface* surface, bool reset)
 	width = surface->w;
 	height = surface->h;
 
-	// NOTE: Can pass in two different Modes here, maybe? To swap between RGBA and BGRA for complicated textures.
-	glTexImage2D(GL_TEXTURE_2D, 0, Mode, surface->w, surface->h, 0, Mode, GL_UNSIGNED_BYTE, surface->pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, Mode, width, height, 0, Mode, GL_UNSIGNED_BYTE, surface->pixels);
 
 	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-void Texture::UseTexture()
+void Texture::UseTexture(int textureNum)
 {
-	// WARNING: For some reason this code can cause the texture 
-	// to flicker in and out with an incorrect texture
-	// Is there a way to resolve this?
-	/*
-	static unsigned int lastTextureID = -1;
-
 	if (textureID != lastTextureID)
 	{
-		
 		lastTextureID = textureID;
-	}*/
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, textureID);
+		if (lastActiveTexture != textureNum)
+		{
+			lastActiveTexture = textureNum;
+			glActiveTexture(textureNum);
+		}
+
+		glBindTexture(GL_TEXTURE_2D, textureID);
+	}
 }
 
 void Texture::ClearTexture()

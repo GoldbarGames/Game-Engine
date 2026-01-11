@@ -15,6 +15,7 @@ public:
 	virtual void AfterLoadLevelFromFile() const;
 	virtual void SaveVariables() const;
 	virtual void ResetVariables() const;
+	bool FileExists(const std::string& path) const;
 };
 
 #endif

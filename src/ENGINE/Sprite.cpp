@@ -218,7 +218,7 @@ Sprite::Sprite(Texture* t, ShaderProgram* s)
 }
 
 // constructor for tiles from tilesheets
-Sprite::Sprite(const glm::vec2& frame, Texture* image, ShaderProgram* s, const int tileSize)
+Sprite::Sprite(const glm::vec2& frame, Texture* image, ShaderProgram* s, const int tileSize, const int tileSize2, const int cf)
 {
 	model = glm::mat4(1.0f);
 	texture = image;
@@ -226,8 +226,8 @@ Sprite::Sprite(const glm::vec2& frame, Texture* image, ShaderProgram* s, const i
 
 	CreateMesh();
 
-	frameWidth = tileSize;
-	frameHeight = tileSize;
+	frameWidth = tileSize > 0 ? tileSize : texture->GetWidth();
+	frameHeight = tileSize2 > 0 ? tileSize2 : (tileSize > 0 ? tileSize : texture->GetHeight());
 
 	framesPerRow = std::max(1, texture->GetWidth() / frameWidth);
 	numberRows = std::max(1, texture->GetHeight() / frameHeight);
@@ -237,7 +237,7 @@ Sprite::Sprite(const glm::vec2& frame, Texture* image, ShaderProgram* s, const i
 	endFrame = numberFramesInTexture;
 
 	// The lowest number input would be (0,0) so we subtract 1 from each
-	currentFrame = (frame.y * framesPerRow) + (frame.x);
+	currentFrame = cf > -1 ? cf : (frame.y * framesPerRow) + (frame.x);
 
 	currentFrame--;
 	currentRow = currentFrame / framesPerRow;
@@ -400,9 +400,17 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 			//std::cout << currentFrame << std::endl;
 		}
 
-		unsigned int currentFrameOnRow = (currentFrame % framesPerRow);
-		texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow; // - (1.0f / framesPerRow);
-		texOffset.y = (frameHeight * (currentRow)) / (GLfloat)texture->GetHeight();
+		if (useCustomTexOffset)
+		{
+			return customTexOffset;
+		}
+		else
+		{
+			unsigned int currentFrameOnRow = (currentFrame % framesPerRow);
+			texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow; // - (1.0f / framesPerRow);
+			texOffset.y = (frameHeight * (currentRow)) / (GLfloat)texture->GetHeight();
+		}
+
 	}
 	else
 	{
@@ -441,14 +449,11 @@ void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const
 	if (rotation.x >= 89)
 		int test = 0;
 
-	// TODO: Maybe do a clever multiplication trick instead
-	if (scale.x > 0) // flip the pivot x based on direction
-		position += glm::vec3(Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y, 0);
-	else
-		position += glm::vec3(-Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y, 0);
+	// flip the pivot x based on direction
+	position += glm::vec3( (scale.x > 0 ? 1 : -1) * Camera::MULTIPLIER * pivot.x, Camera::MULTIPLIER * pivot.y, 0);
 
 	// Only recalculate the model if position, rotation, or scale have changed
-	if (position != lastPosition || rotation != lastRotation || scale != lastScale || keepPositionRelativeToCamera)
+	if (position != lastPosition || rotation != lastRotation || scale != lastScale)
 	{
 		model = glm::mat4(1.0f);
 
@@ -458,30 +463,19 @@ void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const
 
 		// Translate, Rotate, Scale
 
+		//const float z = renderer.guiCamera.useOrthoCamera ? -2.0f : renderer.guiCamera.position.z + position.z;
+		const float optsRelative[2] = { -2.0f, renderer.guiCamera.position.z + position.z };
+		const float optsAbsolute[2] = { -2.0f, position.z };
+
 		// Position
 		if (keepPositionRelativeToCamera)
 		{
-			if (renderer.guiCamera.useOrthoCamera)
-			{
-				model = glm::translate(model, glm::vec3(position.x + renderer.guiCamera.position.x,
-					position.y + renderer.guiCamera.position.y, -2.0f));
-			}
-			else
-			{
-				model = glm::translate(model, glm::vec3(position.x + renderer.guiCamera.position.x,
-					position.y + renderer.guiCamera.position.y, renderer.guiCamera.position.z + position.z));
-			}
+			model = glm::translate(model, glm::vec3(position.x + renderer.guiCamera.position.x,
+				position.y + renderer.guiCamera.position.y, optsRelative[renderer.guiCamera.useOrthoCamera]));
 		}
 		else
 		{
-			if (renderer.camera.useOrthoCamera)
-			{
-				model = glm::translate(model, glm::vec3(position.x, position.y, -2.0f));
-			}
-			else
-			{
-				model = glm::translate(model, glm::vec3(position.x, position.y, position.z));
-			}
+			model = glm::translate(model, glm::vec3(position.x, position.y, optsAbsolute[renderer.camera.useOrthoCamera]));
 		}
 
 		// Rotation
@@ -497,13 +491,8 @@ void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const
 		model = glm::rotate(model, rotation.z * toRadians, glm::vec3(0.0f, 0.0f, -1.0f));
 
 		// Scale
-		int width = 1;
-		if (texture != nullptr)
-			width = texture->GetWidth();
-
-		int height = 1;
-		if (texture != nullptr)
-			height = texture->GetHeight();
+		const int width = (texture != nullptr) ? texture->GetWidth() : 1;
+		const int height = (texture != nullptr) ? texture->GetHeight() : 1;
 
 		model = glm::scale(model, glm::vec3(-1 * scale.x * width / (GLfloat)(framesPerRow),
 			scale.y * height / (GLfloat)numberRows, scale.z));
@@ -521,61 +510,35 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 // so if you pass in a top-left rectangle, you'll see something wrong
 void Sprite::Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec3& scale, const glm::vec3& rotation)
 {
-	//renderer.drawCallsPerFrame++;
-
-	ShaderProgram* shader = GetShader();
-
-	if (shader == nullptr)
+	if (hoverShader == nullptr)
 	{
-		shader = renderer.shaders[1];
+		hoverShader = (renderer.shaders.size() > 8) ? renderer.shaders[8] : renderer.shaders[0];
 	}
 
-	if (isHovered)
-	{
-		if (hoverShader == nullptr)
-		{
-			hoverShader = renderer.shaders[8];
-		}
+	const ShaderProgram* shaderToUse = isHovered ? hoverShader : ((shader == nullptr) ? renderer.shaders[0] : shader);
 
-		shader = hoverShader;
+	shaderToUse->UseShader();
+
+	const Camera* camera = keepPositionRelativeToCamera ? &renderer.guiCamera : &renderer.camera;
+	glUniformMatrix4fv(shaderToUse->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
+		glm::value_ptr(camera->CalculateViewMatrix()));
+
+	if (!camera->useOrthoCamera)
+	{
+		renderer.UseLight(*shaderToUse);
 	}
 
-	shader->UseShader();
-
-	if (!renderer.camera.useOrthoCamera)
-	{
-		renderer.UseLight(*shader);
-	}
-
-	if (keepPositionRelativeToCamera)
-	{
-		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
-			glm::value_ptr(renderer.guiCamera.CalculateViewMatrix()));
-	}
-	else
-	{
-		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
-			glm::value_ptr(renderer.camera.CalculateViewMatrix()));
-	}
-
-	float height = frameHeight;
-	if (texture != nullptr)
-		height = texture->GetHeight();
-
-	//GLfloat totalFrames = (endFrame - startFrame) + 1;
-	glm::vec2 texFrame = glm::vec2((1.0f / framesPerRow), frameHeight/height);
-	glm::vec2 texOffset = glm::vec2(0, 0);
-	
-	if (texture != nullptr)
-		texOffset = CalculateRenderFrame(renderer, speed);
+	const float height = (texture != nullptr) ? texture->GetHeight() : frameHeight;
+	const glm::vec2 texOffset = (texture == nullptr) ? glm::vec2(0, 0) : CalculateRenderFrame(renderer, speed);
+	const glm::vec2 texFrame = useCustomTexFrame ? customTexFrame : glm::vec2((1.0f / framesPerRow), frameHeight/height);
 
 	// Send the info to the shader
-	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
-	glUniform2fv(shader->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
+	glUniform2fv(shaderToUse->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
+	glUniform2fv(shaderToUse->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
 
 	// Calculate 2D lighting
+	const float maxDistanceToLight = 10 * Globals::TILE_SIZE;
 	float distanceToLightSource = 0;
-	float maxDistanceToLight = 10 * Globals::TILE_SIZE;
 	float lightRatio = 1.0f;
 
 	// TODO: Only iterate over light sources near the screen (within render distance)
@@ -591,106 +554,47 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 		//lightRatio = 1.0f - std::min(1.0f, (distanceToLightSource / maxDistanceToLight));
 	}
 
-	glUniform1f(shader->GetUniformVariable(ShaderVariable::distanceToLight2D), lightRatio);
+	glUniform1f(shaderToUse->GetUniformVariable(ShaderVariable::distanceToLight2D), lightRatio);
 
 	glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
-	glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(spriteColor));
-	glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer.now);
+	glUniform4fv(shaderToUse->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(spriteColor));
+	glUniform1f(shaderToUse->GetUniformVariable(ShaderVariable::currentTime), renderer.now);
 
-	float fadePoint, fadeR, fadeG, fadeB, fadeA, freq, maxColor;
-	glm::vec4 fadeColor;
-
-	switch (shader->GetName())
-	{
-	case 7: // ShaderName::FadeInOut:
-		// in order to fade to a color, we want to oscillate all the colors we DON'T want
-		// (so in order to fade to clear/transparent, we oscillate EVERY color)		
-		// To fade to red, oscillate blue and green, but not red or alpha
-		fadePoint = abs(sin(renderer.now / 1000));
-
-		// TODO: Change the /255.0f to a custom max amount < 1 (255/255)
-		maxColor = 255.0f;
-
-		fadeR = color.r > 0 ? (color.r/maxColor) : fadePoint;
-		fadeG = color.g > 0 ? (color.g/maxColor) : fadePoint;
-		fadeB = color.b > 0 ? (color.b/maxColor) : fadePoint;
-		fadeA = color.a > 0 ? (color.a/maxColor) : fadePoint;
-
-		fadeColor = glm::vec4(fadeR, fadeG, fadeB, fadeA);
-
-		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
-		break;
-	case 8: // ShaderName::Glow:
-		freq = 0.002f;
-		fadePoint = abs(sin(renderer.now * freq));
-		fadeR = color.r > fadePoint ? (color.r / 255.0f) : fadePoint;
-		fadeG = color.g > fadePoint ? (color.g / 255.0f) : fadePoint;
-		fadeB = color.b > fadePoint ? (color.b / 255.0f) : fadePoint;
-		fadeA = color.a > fadePoint ? (color.a / 255.0f) : fadePoint;
-
-		fadeR = std::max(fadeR, 0.5f);
-		fadeG = std::max(fadeG, 0.5f);
-		fadeB = std::max(fadeB, 0.5f);
-		fadeA = std::max(fadeA, 0.5f);
-
-		fadeColor = glm::vec4(fadeR, fadeG, fadeB, fadeA);
-
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), renderer.now);
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
-
-		// in order to fade to a color, we want to oscillate all the colors we DON'T want
-		// (so in order to fade to clear/transparent, we oscillate EVERY color)
-
-		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
-		break;
-	case 13: //ShaderName::Motion:
-		// % is the number of seconds / tiles for the pattern
-		// NOTE: The tile must loop at the halfway mark to look correct
-		// TODO: Can this be improved to work for whole tiles?
-		freq = 1000;
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
-		break;
-	case 15:
-		freq = 0.0004f;
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
-		break;
-	default:
-		break;
-	}
+	renderer.game->gui->SetShaderVariables(*this, shaderToUse);
 
 	CalculateModel(position, rotation, scale, renderer);
 
 	// Projection
-	if (keepScaleRelativeToCamera)
-	{
-		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
-			glm::value_ptr(renderer.camera.guiProjection));
-	}
-	else
-	{
-		glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
-			glm::value_ptr(renderer.camera.projection));
-	}
+	const glm::mat4* cameraProjection = keepScaleRelativeToCamera ? &renderer.camera.guiProjection : &renderer.camera.projection;
+	glUniformMatrix4fv(shaderToUse->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE, glm::value_ptr(*cameraProjection));
 
-	glUniform3f(shader->GetUniformVariable(ShaderVariable::eyePosition), renderer.camera.position.x, 
+	// For lights
+	glUniform3f(shaderToUse->GetUniformVariable(ShaderVariable::eyePosition), renderer.camera.position.x,
 		renderer.camera.position.y, renderer.camera.position.z);
 
 	// Set uniform variables
-	glUniformMatrix4fv(shader->GetUniformVariable(ShaderVariable::model), 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(shaderToUse->GetUniformVariable(ShaderVariable::model), 1, GL_FALSE, glm::value_ptr(model));
 
 	// Use Texture
 	if (texture != nullptr)
 		texture->UseTexture();
 
+	if (mask != nullptr)
+	{
+		glUniform1i(glGetUniformLocation(shaderToUse->GetID(), "theTexture"), 0);
+		glUniform1i(glGetUniformLocation(shaderToUse->GetID(), "maskTexture"), 1);
+		mask->UseTexture(GL_TEXTURE1);
+	}
+
 	// Use Material
 	if (material != nullptr)
 	{
-		material->UseMaterial(shader->GetUniformVariable(ShaderVariable::specularIntensity),
-			shader->GetUniformVariable(ShaderVariable::specularShine));
+		material->UseMaterial(shaderToUse->GetUniformVariable(ShaderVariable::specularIntensity),
+			shaderToUse->GetUniformVariable(ShaderVariable::specularShine));
 	}
 
 	// Render Mesh
-	mesh->RenderMesh();
+	mesh->RenderMesh(renderer.instanceAmount);
 }
 
 bool Sprite::HasAnimationElapsed()

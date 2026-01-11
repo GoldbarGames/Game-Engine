@@ -7,7 +7,7 @@ bool PathMover::MoveAlongPath(Entity& entity, Game& game)
 	{
 		// Find the path and assign it
 		bool foundPath = false;
-		for (int i = 0; i < game.entities.size(); i++)
+		for (size_t i = 0; i < game.entities.size(); i++)
 		{
 			if (game.entities[i]->id == pathID && game.entities[i]->etype == "path")
 			{
@@ -45,7 +45,7 @@ bool PathMover::MoveAlongPath(Entity& entity, Game& game)
 			LerpVector3(entity.position, currentPath->nodes[pathNodeID]->position, pathSpeed, 2.0f);
 		}
 
-		if (RoundToInt(entity.position) == RoundToInt(currentPath->nodes[pathNodeID]->position))
+		if (IsVec3Equals(entity.position, currentPath->nodes[pathNodeID]->position))
 		{
 			// loop for now
 			if (movingForwardOnPath)

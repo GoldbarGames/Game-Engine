@@ -4,6 +4,8 @@
 #include "FontInfo.h"
 #include "Animator.h"
 
+glm::vec2 Text::defaultScale = glm::vec2(1.0f, 1.0f);
+
 Text::Text() : Entity(glm::vec3(0,0,0))
 {
 	etype = "text";
@@ -11,7 +13,7 @@ Text::Text() : Entity(glm::vec3(0,0,0))
 
 Text::~Text()
 {
-	for (int i = 0; i < glyphs.size(); i++)
+	for (size_t i = 0; i < glyphs.size(); i++)
 	{
 		delete_it(glyphs[i]);
 	}
@@ -23,7 +25,7 @@ void Text::SetColor(Color newColor)
 {
 	if (isRichText)
 	{
-		for (int i = 0; i < glyphs.size(); i++)
+		for (size_t i = 0; i < glyphs.size(); i++)
 		{
 			glyphs[i]->sprite.color = newColor;
 		}
@@ -40,7 +42,7 @@ int Text::GetTextWidth()
 
 	if (isRichText)
 	{
-		for (int i = 0; i < glyphs.size(); i++)
+		for (size_t i = 0; i < glyphs.size(); i++)
 		{
 			width += glyphs[i]->sprite.texture->GetWidth();
 		}
@@ -60,7 +62,7 @@ int Text::GetTextHeight()
 	if (isRichText)
 	{
 		int width = 0;
-		for (int i = 0; i < glyphs.size(); i++)
+		for (size_t i = 0; i < glyphs.size(); i++)
 		{
 			width += glyphs[i]->sprite.texture->GetWidth();
 			if (width > wrapWidth)
@@ -125,6 +127,7 @@ Text::Text(FontInfo* newFontInfo) : Entity(glm::vec3(0, 0, 0))
 	position.x = 0;
 	position.y = 0;
 	SetPosition(0, 0);
+	SetScale(defaultScale);
 }
 
 Text::Text(FontInfo* newFontInfo, const std::string& txt, bool relPos, bool relScale) : Entity(glm::vec3(0, 0, 0))
@@ -138,6 +141,7 @@ Text::Text(FontInfo* newFontInfo, const std::string& txt, bool relPos, bool relS
 
 	currentSprite.keepPositionRelativeToCamera = relPos;
 	currentSprite.keepScaleRelativeToCamera = relScale;
+	SetScale(defaultScale);
 }
 
 Text::Text(FontInfo* newFontInfo, const std::string& txt, Color color) : Entity(glm::vec3(0, 0, 0))
@@ -148,6 +152,7 @@ Text::Text(FontInfo* newFontInfo, const std::string& txt, Color color) : Entity(
 	position.y = 0;
 	SetPosition(0, 0);
 	SetText(txt, color);
+	SetScale(defaultScale);
 }
 
 void Text::SetFontAndInfo(FontInfo* fInfo)
@@ -213,7 +218,7 @@ void Text::SetText(const std::string& text, Color color, uint32_t wrapWidth)
 
 	// We don't actually need to delete the glyph's sprite's texture.
 	// The Sprite Manager handles this when the game is closed.	
-	for (int i = 0; i < glyphs.size(); i++)
+	for (size_t i = 0; i < glyphs.size(); i++)
 	{
 		if (glyphs[i] != nullptr)
 			delete_it(glyphs[i]);
@@ -234,7 +239,7 @@ void Text::SetText(const std::string& text, Color color, uint32_t wrapWidth)
 		txt = " ";
 	}
 
-	for (int i = 0; i < txt.size(); i++)
+	for (size_t i = 0; i < txt.size(); i++)
 	{
 		Texture* textTexture = GetTexture(font, txt[i], currentFontInfo->GetFontSize());
 
@@ -424,7 +429,7 @@ void Text::Render(const Renderer& renderer, glm::vec3 offset)
 	{
 		if (isRichText)
 		{
-			for (int i = 0; i < glyphs.size(); i++)
+			for (size_t i = 0; i < glyphs.size(); i++)
 			{
 				glyphs[i]->sprite.Render(glyphs[i]->position + offset, renderer, glyphs[i]->scale);
 			}
@@ -438,13 +443,13 @@ void Text::Render(const Renderer& renderer, glm::vec3 offset)
 
 void Text::SetScale(glm::vec2 newScale)
 {
-	scale = newScale;
+	scale = defaultScale * newScale;
 
 	if (isRichText)
 	{
-		for (int i = 0; i < glyphs.size(); i++)
+		for (size_t i = 0; i < glyphs.size(); i++)
 		{
-			glyphs[i]->scale = newScale;
+			glyphs[i]->scale = scale;
 		}
 	}
 	else
@@ -508,7 +513,7 @@ void Text::SetPosition(const float x, const float y)
 	lineNumToIndex.clear();
 
 	// First, split the text into multiple lines, then align each line
-	for (int i = 0; i < glyphs.size(); i++)
+	for (size_t i = 0; i < glyphs.size(); i++)
 	{
 		//TODO: Maybe add some space between the letters?
 		int width = glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
@@ -585,7 +590,7 @@ void Text::SetPosition(const float x, const float y)
 		position.x = x;
 		currentPosition = position;
 
-		for (int i = 0; i < glyphs.size(); i++)
+		for (size_t i = 0; i < glyphs.size(); i++)
 		{
 			currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 			glyphs[i]->position = currentPosition;
@@ -626,7 +631,7 @@ void Text::SetPosition(const float x, const float y)
 			std::unordered_map<int, float> lineWidths;
 
 			// On each line, sum together the width of all glyphs on that line, and subtract half of that from the position
-			for (int i = 0; i < glyphs.size(); i++)
+			for (size_t i = 0; i < glyphs.size(); i++)
 			{
 				lineWidth += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 
@@ -641,7 +646,7 @@ void Text::SetPosition(const float x, const float y)
 			lineWidths[lineNumber] = lineWidth;
 			lineNumber = 0;
 
-			for (int i = 0; i < glyphs.size(); i++)
+			for (size_t i = 0; i < glyphs.size(); i++)
 			{			
 				currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 
@@ -697,4 +702,9 @@ void Text::SetPosition(const float x, const float y)
 void Text::SetPosition(const int x, const int y)
 {
 	SetPosition((float)x, (float)y);
+}
+
+void Text::SetShader(ShaderProgram* shader)
+{
+	GetSprite()->shader = shader;
 }

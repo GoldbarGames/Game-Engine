@@ -3,7 +3,6 @@
 #pragma once
 #include "leak_check.h"
 #include "globals.h"
-#include "Vector2.h"
 #include <glm/vec3.hpp>
 #include <SDL2/SDL.h>
 
@@ -11,8 +10,8 @@
 class KINJO_API Collider
 {
 public:
-	Vector2 offset = Vector2(0,0);
-	Vector2 scale = Vector2(0, 0);
+	glm::vec3 offset = glm::vec3(0, 0, 0);
+	glm::vec3 scale = glm::vec3(0, 0, 0);
 	SDL_Rect bounds;
 
 	Collider(float x, float y, float w, float h);

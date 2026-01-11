@@ -29,6 +29,10 @@ class KINJO_API Sprite
 {
 private:
 
+	glm::vec3 lastPosition = glm::vec3(0, 0, 0);
+	glm::vec3 lastRotation = glm::vec3(0, 0, 0);
+	glm::vec3 lastScale = glm::vec3(0, 0, 0);
+
 public:	
 
 	unsigned int Size();
@@ -54,6 +58,8 @@ public:
 	Texture* texture = nullptr;
 	Material* material = nullptr;
 
+	Texture* mask = nullptr;
+
 	Color color { 255, 255, 255, 255 };
 	static std::string selectedColor;
 
@@ -70,9 +76,14 @@ public:
 
 	bool playedOnce = false;
 
-	glm::vec3 lastPosition = glm::vec3(0, 0, 0);
-	glm::vec3 lastRotation = glm::vec3(0, 0, 0);
-	glm::vec3 lastScale = glm::vec3(0, 0, 0);
+	const glm::vec3& GetLastPosition() const { return lastPosition; }
+	void SetLastPosition(const glm::vec3& pos) { lastPosition = pos; }
+
+	const glm::vec3& GetLastRotation() const { return lastRotation; }
+	void SetLastRotation(const glm::vec3& pos) { lastRotation = pos; }
+
+	const glm::vec3& GetLastScale() const { return lastScale; }
+	void SetLastScale(const glm::vec3& pos) { lastScale = pos; }
 
 	bool shouldLoop = true;
 	int startFrame = 0;
@@ -82,6 +93,12 @@ public:
 	unsigned int numberRows = 1;
 
 	glm::mat4 model;
+
+	bool useCustomTexFrame = false;
+	glm::vec2 customTexFrame = glm::vec2(0, 0);
+
+	bool useCustomTexOffset = false;
+	glm::vec2 customTexOffset = glm::vec2(0, 0);
 
 	// The pivot point's origin (0,0) is the center of the sprite.
 	// The pivot is added or subtracted based on the direction.
@@ -102,7 +119,8 @@ public:
 	Sprite();
 	Sprite(ShaderProgram* s, MeshType m=MeshType::Quad);
 	Sprite(Texture* t, ShaderProgram* s);
-	Sprite(const glm::vec2& frame, Texture* image, ShaderProgram* shader, const int tileSize);
+	Sprite(const glm::vec2& frame, Texture* image, ShaderProgram* shader, 
+		const int tileSize, const int tileSize2 = 0, const int cf = -1);
 	Sprite(int numFrames, const SpriteManager& manager, const std::string& filepath, ShaderProgram* shader, glm::vec2 newPivot);
 
 	glm::vec2 CalculateRenderFrame(const Renderer& renderer, float animSpeed);

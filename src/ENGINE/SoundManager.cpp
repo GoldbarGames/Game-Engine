@@ -56,6 +56,8 @@ bool SoundChannel::Stop()
 	return true;
 }
 
+
+
 SoundManager::SoundManager()
 {
 	// TODO: Can we customize these settings from an external file?
@@ -98,6 +100,26 @@ bool SoundManager::IsPlayingBGM()
 	return Mix_PlayingMusic();
 }
 
+void SoundManager::Update()
+{
+	if (loopPoint1 < loopPoint2 && loopPoint2 > 0)
+	{
+		SetBGMPos(loopPoint1);
+	}
+}
+
+bool SoundManager::SetBGMPos(double pos)
+{
+	return Mix_SetMusicPosition(pos);
+}
+
+// Loop from A to B, both points are in seconds
+void SoundManager::LoopBGM(double p1, double p2)
+{
+	loopPoint1 = p1;
+	loopPoint2 = p2;
+}
+
 bool SoundManager::LoadBGM(const std::string& bgm)
 {
 	Mix_Music* newBGM = Mix_LoadMUS(bgm.c_str());
@@ -118,6 +140,8 @@ bool SoundManager::LoadBGM(const std::string& bgm)
 
 	//bgm = "bgm/" + bgm + ".ogg";
 	currentBGM = newBGM;
+	loopPoint1 = 0;
+	loopPoint2 = 0;
 
 	bgmFilepath = bgm;
 	return true;
@@ -234,6 +258,9 @@ void SoundManager::PlaySound(const std::string& filepath, int channel, int loop)
 	{
 		sounds[channel]->sound->LoadFile(filepath);
 	}
+
+	// Print volume
+	std::cout << "Play SE on CH " << channel << " at volume " << (int)sounds[channel]->volume << std::endl;
 
 	//sound = "se/" + sound + ".wav";
 	if (!sounds[channel]->Play())

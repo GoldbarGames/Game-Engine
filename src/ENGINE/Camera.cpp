@@ -38,6 +38,11 @@ Camera::Camera(glm::vec3 startPos, glm::vec3 startUp,
 	startScreenHeight = height;
 	guiProjection = glm::ortho(0.0f, startScreenWidth * MULTIPLIER, startScreenHeight * MULTIPLIER, 0.0f, -1.0f, 10.0f);
 
+	dragBounds.x = -9999;
+	dragBounds.y = -9999;
+	dragBounds.w = dragBounds.x * -2;
+	dragBounds.h = dragBounds.y * -2;
+
 	Zoom(0.0f, width, height);
 
 	Update();
@@ -93,18 +98,18 @@ const SDL_Rect Camera::GetBounds() const
 
 void Camera::FollowTarget(const Game& game, bool instantFollow)
 {
-	if (target != nullptr)
+	if (!isDragged && target != nullptr)
 	{
 		glm::vec3 targetCenter = glm::vec3(target->GetPosition().x - (startScreenWidth * 0.5f),
 			target->GetPosition().y - (startScreenHeight * 0.5f), position.z);
-
-		position = targetCenter + targetOffset;
-
+		
+		
 		// TODO: Why does this get stuck? It used to work just fine.
-		/*
+		instantFollow = true;
+
 		if (instantFollow)
 		{
-			position = targetCenter;
+			position = targetCenter + targetOffset;
 		}
 		else
 		{
@@ -155,7 +160,7 @@ void Camera::FollowTarget(const Game& game, bool instantFollow)
 				SDL_Rect theirBounds;
 
 				Entity* entity = nullptr;
-				for (int i = 0; i < game.cameraBoundsEntities.size(); i++)
+				for (size_t i = 0; i < game.cameraBoundsEntities.size(); i++)
 				{
 					entity = game.cameraBoundsEntities[i];
 					
@@ -198,8 +203,6 @@ void Camera::FollowTarget(const Game& game, bool instantFollow)
 
 			}
 		}
-
-		*/
 	}
 }
 
@@ -208,10 +211,31 @@ glm::mat4 Camera::CalculateViewMatrix() const
 	return glm::lookAt(position, position - front, up);
 }
 
+void Camera::UpdateDrag(const Game& game)
+{
+	const glm::vec3 curMousePos = game.inputManager.GetMouseWorldPos(game);
+
+	// Get the distance the mouse has moved between frames and add it to the initial position
+	const glm::vec3 diffMousePos = (curMousePos - lastMousePos) * dragSpeed;
+
+	SDL_Rect point;
+	point.x = dragStartPos.x - diffMousePos.x;
+	point.y = dragStartPos.y - diffMousePos.y;
+	point.w = 1;
+	point.h = 1;
+
+	if (HasIntersection(point, dragBounds))
+	{
+		position = dragStartPos - diffMousePos;
+	}	
+}
+
 void Camera::MouseControl(float xChange, float yChange)
 {
 	if (useOrthoCamera)
+	{
 		return;
+	}
 
 	xChange *= turnSpeed;
 	yChange *= turnSpeed;
@@ -239,25 +263,30 @@ void Camera::KeyControl(const uint8_t* input, const float& dt,
 
 	// 2D Movement
 
-	if (input[SDL_SCANCODE_K])
+	if (!isGUI)
 	{
-		position += up * velocity;
+		if (input[SDL_SCANCODE_K])
+		{
+			position += up * velocity;
+		}
+
+		if (input[SDL_SCANCODE_I])
+		{
+			position -= up * velocity;
+		}
+
+		if (input[SDL_SCANCODE_J])
+		{
+			position += right * velocity;
+		}
+
+		if (input[SDL_SCANCODE_L])
+		{
+			position -= right * velocity;
+		}
 	}
 
-	if (input[SDL_SCANCODE_I])
-	{
-		position -= up * velocity;
-	}
 
-	if (input[SDL_SCANCODE_J])
-	{
-		position += right * velocity;
-	}
-
-	if (input[SDL_SCANCODE_L])
-	{
-		position -= right * velocity;
-	}
 
 	// 3D Movement
 
@@ -409,7 +438,23 @@ void Camera::ResetProjection()
 
 void Camera::Zoom(float amount, float screenWidth, float screenHeight)
 {
-	orthoZoom += amount;
+	orthoZoom = orthoZoom + amount;
+
+
+	// TODO: Make this so editor (guiCamera) can zoom in/out indefinitely
+
+/*
+
+	if (orthoZoom > maxZoom)
+	{
+		orthoZoom = maxZoom;
+	}
+	else if (orthoZoom < minZoom)
+	{
+		orthoZoom = minZoom;
+	}
+
+*/
 
 	// TODO: Is this comment still accurate?
 	// For this to work correctly you need to use the original width/height
@@ -472,7 +517,7 @@ void Camera::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 	// if ID == p, find the player
 	if (map["nextID"] == "p")
 	{
-		for (int i = 0; i < game.entities.size(); i++)
+		for (size_t i = 0; i < game.entities.size(); i++)
 		{
 			if (game.entities[i]->etype == "player")
 			{
@@ -512,4 +557,7 @@ void Camera::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 	ResetProjection();
 
 	Update();
+
+	std::cout << GetBounds().x << "," << GetBounds().y << "," << GetBounds().w << "," << GetBounds().h << std::endl;
+
 }

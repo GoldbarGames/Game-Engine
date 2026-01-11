@@ -3,7 +3,7 @@
 #pragma once
 #include "leak_check.h"
 #include <vector>
-#include "Vector2.h"
+#include <glm/vec3.hpp>
 #include <unordered_map>
 #include "globals.h"
 
@@ -11,6 +11,7 @@ class Entity;
 class SpriteManager;
 class Renderer;
 class Game;
+class BackgroundLayer;
 
 struct BackgroundLayerData 
 {
@@ -20,6 +21,7 @@ struct BackgroundLayerData
 	float parallax = 0.0f;
 	float scaleX = 1;
 	float scaleY = 1;
+	int shader = 2;
 	Color color = { 255, 255, 255, 255 };
 	std::string filepath = "";
 };
@@ -38,16 +40,13 @@ struct BackgroundData
 class KINJO_API Background
 {
 public:
-	Vector2 position;
+	glm::vec3 position;
 	std::string name = "";
-	std::vector<Entity*> layers;
-	Background(const std::string& n, const Vector2& pos);
-	void CreateBackground(const std::string& n, glm::vec3 pos, const SpriteManager& spriteManager, const Renderer& renderer);
+	std::vector<BackgroundLayer*> layers;
+	Background(const std::string& n, const glm::vec3& pos);
 	void ResetBackground();
 	~Background();
 	void Render(const Renderer& renderer);
-	Entity* AddLayer(const glm::vec3& pos, const BackgroundLayerData& data,
-		const SpriteManager& spriteManager, const Renderer& renderer);
 	void Save(std::unordered_map<std::string, std::string>& map);
 	void SpawnBackground(const std::string& n, int x, int y, Game& game);
 

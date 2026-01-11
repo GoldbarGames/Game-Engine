@@ -23,12 +23,34 @@ private:
 	float movementSpeed = 0;
 	float turnSpeed = 0;
 
+
 public:
+
+	bool isGUI = false;
+
+	float maxZoom = 2.0f;
+	float minZoom = 0.6f;
+
+	bool draggable = false;
+	bool isDragged = false;
+
+	bool dragOnLeft = false;
+	bool dragOnRight = false;
+	bool dragOnMiddle = false;
+
+	float dragSpeed = 1.0f;
+	float zoomSpeed = 0.1f;
+
+	glm::vec3 dragStartPos = glm::vec3(0, 0, 0);
+	glm::vec3 lastMousePos = glm::vec3(0, 0, 0);
+
 	Camera();
 	Camera(glm::vec3 startPos, glm::vec3 startUp, float startYaw, float startPitch,
 		float startMovementSpeed, float startTurnSpeed, float startZoom,
 		float width, float height, bool useOrtho);
 	~Camera();
+
+	void UpdateDrag(const Game& game);
 
 	void KeyControl(const uint8_t* input, const float& dt,
 		const float& screenWidth, const float& screenHeight);
@@ -46,6 +68,8 @@ public:
 	glm::mat4 CalculateViewMatrix() const;
 
 	const SDL_Rect GetBounds() const;
+
+	SDL_Rect dragBounds;
 
 	glm::vec3 position;
 	float orthoZoom = 4.0f;

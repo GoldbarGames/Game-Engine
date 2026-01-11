@@ -16,8 +16,15 @@ private:
 	glm::vec3 imagePosition = glm::vec3(0, 0, 0);
 public:	
 
-	bool deleteOtherImages = true;
-	std::vector<Entity*> otherImages;
+	bool deleteBehindImages = true;
+	bool deleteFrontImages = true;
+
+	std::vector<Entity*> behindImages;
+	std::vector<Entity*> frontImages;
+
+	Entity* colBoundsSprite = nullptr;
+
+	SDL_Rect hoverRect;
 
 	MenuButton(const std::string& txt, const std::string& filepath, 
 		const std::string& function, const glm::vec3& pos, Game& game, 
@@ -29,9 +36,11 @@ public:
 	void SetOptionColors(Color color);
 
 	void SetScale(const glm::vec2& newScale);
+	void CalculateCollider();
 
 	void Highlight(Game& game);
 	void Unhighlight(Game& game);
+
 };
 
 #endif

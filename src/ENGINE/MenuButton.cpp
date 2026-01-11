@@ -9,15 +9,47 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 	const std::string& function, const glm::vec3& pos, Game& game, Color col)
 {
 	position = pos;
-
-	image = new Sprite(1, game.spriteManager, filepath, Renderer::GetTextShader(), glm::vec2(0,0));
-	SetColor(col);
+	name = function;
 
 	text = new Text(game.theFont);
-
+	text->SetText(txt);
 	text->alignX = AlignmentX::CENTER;
 	text->isRichText = false;
-	text->SetText(txt);
+	text->GetSprite()->keepPositionRelativeToCamera = true;
+	text->GetSprite()->keepScaleRelativeToCamera = true;
+
+	if (filepath[0] == '@') // "@assets/gui/menu.png"
+	{
+		// Split filepath into 3 parts
+		int extIndex = 0;
+		for (int i = filepath.size(); i > 0; i--)
+		{
+			if (filepath[i] == '.')
+			{				
+				break;
+			}
+			extIndex++;
+		}
+
+		const std::string ext = filepath.substr(filepath.size() - extIndex, extIndex);
+
+		const std::string file1 = filepath.substr(1, filepath.size() - extIndex - 1) + "1" + ext;
+		const std::string file2 = filepath.substr(1, filepath.size() - extIndex - 1) + "2" + ext;
+		const std::string file3 = filepath.substr(1, filepath.size() - extIndex - 1) + "3" + ext;
+
+		images.emplace_back(new Sprite(1, game.spriteManager, file1, Renderer::GetTextShader(), glm::vec2(0, 0)));
+		images.emplace_back(new Sprite(1, game.spriteManager, file2, Renderer::GetTextShader(), glm::vec2(0, 0)));
+		images.emplace_back(new Sprite(1, game.spriteManager, file3, Renderer::GetTextShader(), glm::vec2(0, 0)));
+
+	}
+	else
+	{
+		images.emplace_back(new Sprite(1, game.spriteManager, filepath, Renderer::GetTextShader(), glm::vec2(0, 0)));
+	}
+
+
+	SetColor(col);
+
 
 	//text->SetPosition(pos.x, pos.y + (image->GetRect()->h / 2) - (text->GetTextHeight()/2));
 	AlignTextCenterY();
@@ -26,33 +58,52 @@ MenuButton::MenuButton(const std::string& txt, const std::string& filepath,
 	// If this button has any text, scale the image to fit all the text inside it
 	if (text->txt != "")
 	{
-		scale = (game.renderer.CalculateScale(*image, text->GetTextWidth(), text->GetTextHeight(), text->scale));
+		if (images.size() == 1)
+		{
+			scale = (game.renderer.CalculateScale(*images[0], text->GetTextWidth(), text->GetTextHeight(), text->scale));
+		}
+		else
+		{
+			// Calculate loop number based on text width
+			loopImages = ((text->GetTextWidth() * text->GetScale().x) / images[1]->frameWidth) + 1;
+		}
 	}
-	
-	name = function;
 
-	// What if I want to scale the button to a particular width and height 
-	// independent of the image? ANSWER: See the EditorButton
+	for (size_t i = 0; i < images.size(); i++)
+	{
+		if (images[i] != nullptr)
+		{
+			images[i]->keepPositionRelativeToCamera = true;
+			images[i]->keepScaleRelativeToCamera = true;
+		}
+	}
 
-	image->keepPositionRelativeToCamera = true;
-	image->keepScaleRelativeToCamera = true;
-	
-	text->GetSprite()->keepPositionRelativeToCamera = true;
-	text->GetSprite()->keepScaleRelativeToCamera = true;
 }
 
 
 MenuButton::~MenuButton()
 {
-	if (image != nullptr)
-		delete_it(image);
+	for (size_t i = 0; i < images.size(); i++)
+	{
+		if (images[i] != nullptr)
+			delete_it(images[i]);
+	}
 
 	if (text != nullptr)
 		delete_it(text);
 
-	if (deleteOtherImages)
+	if (deleteBehindImages)
 	{
-		for (auto& s : otherImages)
+		for (auto& s : behindImages)
+		{
+			if (s != nullptr)
+				delete_it(s);
+		}
+	}
+
+	if (deleteFrontImages)
+	{
+		for (auto& s : frontImages)
 		{
 			if (s != nullptr)
 				delete_it(s);
@@ -60,66 +111,145 @@ MenuButton::~MenuButton()
 	}
 }
 
-void MenuButton::Render(const Renderer& renderer)
-{	
-	if (text != nullptr && text->isRichText)
-	{		
-		switch (text->alignX)
+void MenuButton::CalculateCollider()
+{
+	// Use a custom image for the collider instead of the one associated with the button
+	if (colBoundsSprite != nullptr)
+	{
+		collider.scale.x = colBoundsSprite->GetSprite()->frameWidth * colBoundsSprite->scale.x;
+		collider.scale.y = colBoundsSprite->GetSprite()->frameHeight * colBoundsSprite->scale.y;
+		collider.CalculateCollider(position, rotation);
+	}
+	else if (images.size() > 0) // use the associated image and loop it
+	{
+		int w = images[0]->frameWidth * scale.x;
+		int h = images[0]->frameHeight * scale.y;
+
+		for (int i = 1; i < loopImages; i++)
 		{
-		default:
-		case AlignmentX::LEFT:
-			imagePosition = glm::vec3(position.x + (image->frameWidth * scale.x), position.y, 0);
-			break;
-		case AlignmentX::CENTER:
-			imagePosition = position;
-			break;
-		case AlignmentX::RIGHT:
-			imagePosition = glm::vec3(position.x - (image->frameWidth * scale.x), position.y, 0);
-			break;
+			w += images[0]->frameWidth * scale.x;
 		}
+
+		collider.scale.x = w * 1.75f; // TODO: Why does this magic number work?
+		collider.scale.y = h;
+
+		collider.CalculateCollider(position, rotation);
 	}
 	else
 	{
-		imagePosition = position;
-	}	
+		collider.CalculateCollider(position, rotation);
+	}
+}
 
-	image->Render(imagePosition, renderer, scale);
-
-	for (auto& s : otherImages)
+void MenuButton::Render(const Renderer& renderer)
+{	
+	for (auto& s : behindImages)
 	{
 		s->Render(renderer);
 	}
 
+	//text->position = position + glm::vec3(w/3.0f, 0, 0);
 	text->Render(renderer);
+
+	if (images.size() == 1)
+	{
+		imagePosition = position;
+
+		if (text != nullptr && text->isRichText)
+		{
+			switch (text->alignX)
+			{
+			default:
+			case AlignmentX::LEFT:
+				imagePosition.x += images[0]->frameWidth * scale.x;
+				break;
+			case AlignmentX::CENTER:
+				imagePosition = position;
+				break;
+			case AlignmentX::RIGHT:
+				imagePosition -= images[0]->frameWidth * scale.x;
+				break;
+			}
+		}
+
+		images[0]->Render(imagePosition, renderer, scale);
+	}
+	else
+	{
+		float w = images[0]->frameWidth * scale.x * Camera::MULTIPLIER;
+
+		imagePosition = position - glm::vec3( (w * (loopImages + 1) / 2.0f), 0, 0);
+
+		// Render the starting image
+		images[0]->Render(imagePosition, renderer, scale);
+
+		// Render the loops
+		for (int i = 0; i < loopImages; i++)
+		{
+			images[1]->Render(imagePosition + glm::vec3(w, 0, 0), renderer, scale);
+			w += images[1]->frameWidth * scale.x * Camera::MULTIPLIER;
+		}
+
+		// Render the ending image
+		images[2]->Render(imagePosition + glm::vec3(w, 0, 0), renderer, scale);
+		w += images[2]->frameWidth * scale.x * Camera::MULTIPLIER;
+
+
+	}
+
+	for (auto& s : frontImages)
+	{
+		s->Render(renderer);
+	}
+
+	//text->position = position + glm::vec3(w/3.0f, 0, 0);
+	text->Render(renderer);
+
+
+	//renderer.RenderDebugRect(hoverRect, glm::vec2(1, 1), { 255, 0, 0, 255 });
 }
 
 void MenuButton::Highlight(Game& game)
 {
-	// shaders[8] = glow
-
-	if (image != nullptr)
-		image->SetShader(game.renderer.shaders[8]);
+	for (size_t i = 0; i < images.size(); i++)
+	{
+		if (images[i] != nullptr)
+			images[i]->isHovered = true;
+	}
 
 	if (text != nullptr)
-		text->GetSprite()->SetShader(game.renderer.shaders[8]);
+		text->GetSprite()->isHovered = true;
 
-	for (auto& s : otherImages)
+	for (auto& s : behindImages)
 	{
-		s->GetSprite()->SetShader(game.renderer.shaders[8]);
+		s->GetSprite()->isHovered = true;
+	}
+
+	for (auto& s : frontImages)
+	{
+		s->GetSprite()->isHovered = true;
 	}
 }
 
 void MenuButton::Unhighlight(Game& game)
 {
-	if (image != nullptr)
-		image->SetShader(game.renderer.shaders[2]);
+	for (size_t i = 0; i < images.size(); i++)
+	{
+		if (images[i] != nullptr)
+			images[i]->isHovered = false;
+	}
 
 	if (text != nullptr)
-		text->GetSprite()->SetShader(game.renderer.shaders[2]);
+		text->GetSprite()->isHovered = false;
 
-	for (auto& s : otherImages)
+	for (auto& s : behindImages)
 	{
-		s->GetSprite()->SetShader(game.renderer.shaders[2]);
+		s->GetSprite()->isHovered = true;
+	}
+
+	for (auto& s : frontImages)
+	{
+		s->GetSprite()->isHovered = true;
 	}
 }
 

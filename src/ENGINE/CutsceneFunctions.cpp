@@ -28,6 +28,27 @@ namespace CutsceneFunctions
 		return 0;
 	}
 
+	int MidTextCommand(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		int index = c.ParseNumberValue(parameters[1]);
+
+		// add the current mid-line to the index to do recursive stuff
+		// (i.e. if we're already on line 1 then add it to make it 2
+		// so "doin 1" is thus "doin 2" from the start of the line)
+		index += c.midTextCmdIndex;
+
+		while (c.midTextCommands.size() < index)
+		{
+			std::vector<std::string> command;
+			command.emplace_back("");
+			c.midTextCommands.emplace_back(command);
+		}
+
+		c.midTextCommands[index-1].emplace_back(parameters[2].substr(1, parameters[2].size() - 2));
+
+		return 0;
+	}
+
 	int SetNumberVariable(int key, int value, CutsceneCommands& c)
 	{
 		c.key = key;
@@ -38,7 +59,7 @@ namespace CutsceneFunctions
 			c.numberVariables[c.key] = c.parseNumberValue;
 
 			// If global variable, save change to file
-			if (c.key >= c.manager->globalStart)
+			if (c.manager->IsGlobal(c.key))
 				c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
 		}
 
@@ -62,7 +83,7 @@ namespace CutsceneFunctions
 			c.numberVariables[c.key] = c.parseNumberValue;
 
 			// If global variable, save change to file
-			if (c.key >= c.manager->globalStart)
+			if (c.manager->IsGlobal(c.key))
 				c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
 		}
 
@@ -77,12 +98,12 @@ namespace CutsceneFunctions
 
 		if (c.parseStringValue[0] == '[')
 		{
-			int varNameIndex = 1;
+			size_t varNameIndex = 1;
 			c.parseStringValue = ParseWord(c.parseStringValue, ']', varNameIndex);
 		}
 		else if (c.parseStringValue[0] == '\"')
 		{
-			int varNameIndex = 1;
+			size_t varNameIndex = 1;
 			c.parseStringValue = ParseWord(c.parseStringValue, '\"', varNameIndex);
 		}
 		else
@@ -96,7 +117,7 @@ namespace CutsceneFunctions
 			c.cacheParseStrings["$" + parameters[1]] = c.parseStringValue;
 
 			// If global variable, save change to file
-			if (c.key >= c.manager->globalStart)
+			if (c.manager->IsGlobal(c.key))
 				c.manager->SaveGlobalVariable(c.key, c.stringVariables[c.key], false);
 		}
 
@@ -144,8 +165,14 @@ namespace CutsceneFunctions
 			}
 			else
 			{
-				// We need to make sure to check if there is are any /
-			// only keep everything to the right of the final /
+				double p1 = std::stod(parameters[1]);
+				double p2 = std::stod(parameters[2]);
+
+				c.manager->game->soundManager.LoopBGM(p1, p2);
+
+				/*
+				// We need to make sure to check if there are any /
+				// only keep everything to the right of the final /
 				std::string bgmName = c.ParseStringValue(parameters[2]);
 
 				int startIndex = bgmName.size() - 1;
@@ -163,7 +190,7 @@ namespace CutsceneFunctions
 
 				std::string loopName = c.ParseStringValue(parameters[3]);
 
-				c.manager->game->soundManager.soundTest->SetSelectedLoopFromName(bgmNameFinal, loopName);
+				c.manager->game->soundManager.soundTest->SetSelectedLoopFromName(bgmNameFinal, loopName);*/
 			}
 		}
 		else if (parameters[1] == "once")
@@ -372,7 +399,7 @@ namespace CutsceneFunctions
 		if (c.manager->waitingForButton)
 		{
 			std::string statement = "";
-			for (int i = 0; i < parameters.size(); i++)
+			for (size_t i = 0; i < parameters.size(); i++)
 			{
 				statement += parameters[i] + " ";
 			}
@@ -570,7 +597,7 @@ namespace CutsceneFunctions
 					c.manager->foundTrueConditionOnBtnWait = true;
 
 					c.nextCommand = "";
-					for (int i = index; i < parameters.size(); i++)
+					for (size_t i = index; i < parameters.size(); i++)
 						c.nextCommand += (parameters[i] + " ");
 
 					// split the command into multiple commands if necessary
@@ -595,14 +622,14 @@ namespace CutsceneFunctions
 						}
 
 						// We must break early here if gosub or goto because otherwise it will continue to carry out commands in here
-						for (int i = 0; i < c.subcommands.size(); i++)
+						for (size_t i = 0; i < c.subcommands.size(); i++)
 						{
 							c.ExecuteCommand(Trim(c.subcommands[i]));
 
 							// Save commands to be called after gosub
 							if (c.subcommands[i].find("gosub") != std::string::npos)
 							{
-								for (int k = i + 1; k < c.subcommands.size(); k++)
+								for (size_t k = i + 1; k < c.subcommands.size(); k++)
 								{
 									c.manager->gosubStack.back()->commands.emplace_back(Trim(c.subcommands[k]));
 								}
@@ -648,8 +675,10 @@ namespace CutsceneFunctions
 			UserDefinedFunction* newFunction = new UserDefinedFunction;
 			newFunction->functionName = parameters[1];
 
-			for (int i = 2; i < parameters.size(); i++)
+			for (size_t i = 2; i < parameters.size(); i++)
+			{
 				newFunction->parameters.push_back(parameters[i]);
+			}
 
 			c.userDefinedFunctions[parameters[1]] = newFunction;
 		}
@@ -660,10 +689,18 @@ namespace CutsceneFunctions
 	int GoSubroutine(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		// Save our current spot in the text file
-		c.manager->PushCurrentSceneDataToStack();
+		c.manager->PushCurrentSceneDataToStack(parameters[1]);
 
 		// Jump to the specified label
-		GoToLabel(parameters, c);
+		if (parameters[1][0] == '*') // remove leading * if there is one
+		{
+			c.manager->PlayCutscene(c.ParseStringValue(parameters[1].substr(1, parameters[1].size() - 1)).c_str());
+		}
+		else
+		{
+			// Check the label name to see if it is a variable
+			c.manager->PlayCutscene(c.ParseStringValue(parameters[1]).c_str());
+		}
 
 		return 0;
 	}
@@ -749,10 +786,25 @@ namespace CutsceneFunctions
 			c.choiceBGFilePath = c.ParseStringValue(parameters[2]);
 			return 0;
 		}
+		else if (parameters[1] == "sprite")
+		{
+			c.choiceImageFilePath = c.ParseStringValue(parameters[2]);
+		}
+		else if (parameters[1] == "startnum")
+		{
+			c.manager->choiceSpriteStartNumber = c.ParseNumberValue(parameters[2]);
+		}
 		else if (parameters[1] == "clear")
 		{
 			c.manager->selectedChoices.clear();
-			return 0;
+		}
+		else if (parameters[1] == "offset")
+		{
+			c.choiceOffsetY = c.ParseNumberValue(parameters[2]);
+		}
+		else if (parameters[1] == "position")
+		{
+			c.choicePosY = c.ParseNumberValue(parameters[2]);
 		}
 		else if (parameters[1] == "get")
 		{
@@ -778,8 +830,6 @@ namespace CutsceneFunctions
 					MoveVariables({ "mov", parameters[4],  c.manager->allChoices[choiceNumber].responses[responseNumber] }, c);
 				}
 			}
-
-			return 0;
 		}
 		else if (parameters[1] == "show")
 		{
@@ -794,24 +844,31 @@ namespace CutsceneFunctions
 
 			int index = 3; // skip 2
 
-			// TODO: Should be able to customize this number via script
 			int spriteNumber = c.manager->choiceSpriteStartNumber;
 
 			std::string choiceQuestion = c.ParseStringValue(parameters[index]);
 
+			const int xpos = c.manager->game->initialWidth;
+			const std::string xposStr = std::to_string(xpos);
+
 			LoadSprite({ "ld", std::to_string(spriteNumber), c.choiceBGFilePath,
-				std::to_string(c.manager->game->screenWidth), std::to_string(c.manager->game->screenHeight) }, c);
+				xposStr, std::to_string(c.manager->game->initialHeight) }, c);
+
+			int posY = c.choicePosY; // *(c.manager->game->screenWidth / (float)c.manager->game->initialWidth);
+			const std::string posYStr = std::to_string(posY);
+
+			int offY = c.choiceOffsetY; // *(c.manager->game->screenWidth / (float)c.manager->game->initialWidth);
 
 			spriteNumber++;
-			int choiceYPos = 280;
-			LoadText({ "", std::to_string(spriteNumber), std::to_string(c.manager->game->screenWidth), std::to_string(choiceYPos), choiceQuestion }, c);
+			LoadText({ "", std::to_string(spriteNumber), xposStr, posYStr, choiceQuestion }, c);
 			AlignCommand({ "align", "x", "center", std::to_string(spriteNumber) }, c);
 			spriteNumber++;
 
 			c.manager->choiceIfStatements.clear();
 			//c.manager->activeButtons.clear();
 
-			for (int i = 0; i < numberOfChoices; i++)
+
+			for (size_t i = 0; i < numberOfChoices; i++)
 			{
 				// Get the text and label for the choice
 				index++;
@@ -820,18 +877,23 @@ namespace CutsceneFunctions
 				std::string choiceLabel = c.ParseStringValue(parameters[index]);
 
 				// Display the choice as a text sprite on the screen
-				std::string choiceNumber = std::to_string(spriteNumber + i);
+				std::string choiceNumber = std::to_string(spriteNumber + i + 10);
 				std::string responseNumber = std::to_string(i);
 
 				//TODO: Don't hard-code these numbers
-				choiceYPos = 400 + (120 * i);
+				int choiceYPos = posY + (offY * (i + 1));
 
-				//TODO: Don't hardcode 1280
-				LoadText({ "", choiceNumber, "1280",
-					std::to_string(choiceYPos), choiceText }, c);
+				LoadSprite({ "ld", std::to_string(spriteNumber + i), c.choiceImageFilePath, xposStr, std::to_string(choiceYPos) }, c);
 
-				c.manager->images[c.ParseNumberValue(choiceNumber)]->collider.offset.x = 0;
-				c.manager->images[c.ParseNumberValue(choiceNumber)]->CalculateCollider();
+				LoadText({ "", choiceNumber, xposStr, std::to_string(choiceYPos), choiceText}, c);
+
+				Entity* image = c.manager->images[spriteNumber + i + 10];
+				Entity* image2 = c.manager->images[spriteNumber + i];
+
+				image->collider.offset.x = 0;
+				image->collider.scale.x = image2->GetSprite()->frameWidth;
+				image->collider.scale.y = image2->GetSprite()->frameHeight;
+				image->CalculateCollider();
 
 				AlignCommand({ "align", "x", "center", choiceNumber }, c);
 
@@ -860,10 +922,9 @@ namespace CutsceneFunctions
 			{
 				c.manager->MakeChoice();
 			}
-
-			return 0;
 		}
 
+		return 0;
 	}
 
 	int WaitForClick(CutsceneParameters parameters, CutsceneCommands& c)
@@ -877,32 +938,38 @@ namespace CutsceneFunctions
 	int WaitForButton(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		// If there are no active buttons, you can't wait for a button
-		if (c.manager->activeButtons.size() > 0)
+		if (c.manager->activeButtons.size() == 0)
 		{
-			// Get the variable number to store the result in
-			c.manager->buttonResult = c.ParseNumberValue(parameters[1]);
+			std::cout << "ERROR: No active buttons during btnwait!" << std::endl;
+		}
 
-			// Change the state of the game to wait until a button has been pressed
-			c.manager->waitingForButton = true;
+		// Get the variable number to store the result in
+		c.manager->buttonResult = c.ParseNumberValue(parameters[1]);
 
-			// Set the first button as highlighted
-			c.manager->buttonIndex = 0;
-			//c.manager->images[c.manager->activeButtons[c.manager->buttonIndex]]->
-			//	GetSprite()->color = { 255, 255, 0, 255 };
+		// Change the state of the game to wait until a button has been pressed
+		c.manager->waitingForButton = true;
 
-			c.manager->isCarryingOutCommands = true;
-			c.manager->isReadingNextLine = true;
-			c.manager->textbox->isReading = false;
+		// Set the first button as highlighted
+		c.manager->buttonIndex = 0;
+		//c.manager->images[c.manager->activeButtons[c.manager->buttonIndex]]->
+		//	GetSprite()->color = { 255, 255, 0, 255 };
 
-			c.manager->textbox->text->SetText(c.manager->previousText);
-			c.manager->currentText = "";
+		c.manager->isCarryingOutCommands = true;
+		c.manager->isReadingNextLine = true;
+		c.manager->textbox->isReading = false;
 
-			// Clear out the list of if-statments for this button press
-			if (parameters[0] != "choice")
-			{
-				c.manager->choiceIfStatements.clear();
-			}
+		if (parameters.size() > 2)
+		{
+			c.manager->shouldClearButtons = (c.ParseNumberValue(parameters[2]) > 0);
+		}
 
+		c.manager->textbox->text->SetText(c.manager->previousText);
+		c.manager->currentText = "";
+
+		// Clear out the list of if-statments for this button press
+		if (parameters[0] != "choice")
+		{
+			c.manager->choiceIfStatements.clear();
 		}
 
 		return 0;
@@ -920,17 +987,43 @@ namespace CutsceneFunctions
 		return 0;
 	}
 
-	int GoToLabel(CutsceneParameters parameters, CutsceneCommands& c)
+	int ReadNextLine(CutsceneParameters parameters, CutsceneCommands& c)
 	{
+		c.manager->letterIndex++;
+		c.manager->ReadNextLine();
+		return 0;
+	}
+
+	int GoToLabel(CutsceneParameters parameters, CutsceneCommands& c)
+	{		
 		if (parameters[1][0] == '*') // remove leading * if there is one
 		{
-			c.manager->PlayCutscene(c.ParseStringValue(parameters[1].substr(1, parameters[1].size() - 1)).c_str());
+			c.manager->lastJumpedLabel = c.manager->PlayCutscene(c.ParseStringValue(parameters[1].substr(1, parameters[1].size() - 1)).c_str());
 		}
 		else
 		{
 			// Check the label name to see if it is a variable
-			c.manager->PlayCutscene(c.ParseStringValue(parameters[1]).c_str());
+			c.manager->lastJumpedLabel = c.manager->PlayCutscene(c.ParseStringValue(parameters[1]).c_str());
 		}
+
+		/*
+		std::string test = "";
+		SceneLine* line = &c.manager->lines[c.manager->lastJumpedLabel->lineStart + c.manager->baseLineIndex];
+		int index = line->textStart;
+
+		c.manager->ats = 0;
+
+		do
+		{
+			test += c.manager->data[index];
+			if (c.manager->data[index] == '@')
+			{
+				c.manager->ats++;
+			}
+			index++;
+
+		} while (c.manager->data[index] != '\\');
+		*/
 
 		return 0;
 	}
@@ -972,12 +1065,43 @@ namespace CutsceneFunctions
 		c.manager->game->soundManager.StopBGM();
 		for (auto& [key, channel] : c.manager->game->soundManager.sounds)
 		{
-			channel->Stop();
+			if (channel != nullptr)
+				channel->Stop();
 		}
 
-		// Go back to the start label
-		c.manager->PlayCutscene("start");
+		if (parameters.size() > 1)
+		{
+			c.manager->EndCutscene();
+			c.manager->game->LoadLevel(c.ParseStringValue(parameters[1]).c_str());
+		}
+		else
+		{
+			// Go back to the start label
+			c.manager->PlayCutscene("start");
+		}
+
+
 		
+		return 0;
+	}
+
+	int SaveIgnore(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		try
+		{
+			c.manager->saveIgnore.clear();
+			for (int i = 1; i < parameters.size(); i++)
+			{
+				c.manager->saveIgnore.emplace(c.ParseNumberValue(parameters[i]));
+			}
+		}
+		catch (const std::exception& ex)
+		{
+			c.manager->game->logger.Log("ERROR: Save ignore: ");
+			c.manager->game->logger.Log(ex.what());
+			return (int)CommandResult::ERROR;
+		}
+
 		return 0;
 	}
 
@@ -1016,12 +1140,38 @@ namespace CutsceneFunctions
 				c.manager->LoadGame(c.ParseStringValue(parameters[1]).c_str());
 			else
 				c.manager->LoadGame("file1.sav");
+
+			for (int i = 0; i < c.loadCommands.size(); i++)
+			{
+				c.ExecuteCommand(c.loadCommands[i]);
+			}
 		}
 		catch (const std::exception& ex)
 		{
 			c.manager->game->logger.Log("ERROR: Loading game: ");
 			c.manager->game->logger.Log(ex.what());
 			return (int)CommandResult::ERROR;
+		}
+
+		return 0;
+	}
+
+	// Add a command to the list of commands to play on load
+	int LoadCommand(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		if (parameters[1] == "add")
+		{
+			std::string fixedCommand = "";
+			for (int i = 2; i < parameters.size(); i++)
+			{
+				fixedCommand += parameters[i] + " ";
+			}
+
+			c.loadCommands.emplace_back(fixedCommand);
+		}
+		else if (parameters[1] == "clear")
+		{
+			c.loadCommands.clear();
 		}
 
 		return 0;
@@ -1075,7 +1225,7 @@ namespace CutsceneFunctions
 		c.cacheParseStrings[parameters[1]] = c.stringVariables[c.key];
 
 		// If global variable, save change to file
-		if (c.key >= c.manager->globalStart)
+		if (c.manager->IsGlobal(c.key))
 			c.manager->SaveGlobalVariable(c.key, c.stringVariables[c.key], false);
 
 		return 0;
@@ -1127,7 +1277,7 @@ namespace CutsceneFunctions
 		c.cacheParseNumbers[parameters[1]] = c.numberVariables[c.key];
 
 		// If global variable, save change to file
-		if (c.key >= c.manager->globalStart)
+		if (c.manager->IsGlobal(c.key))
 			c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
 
 		return 0;
@@ -1152,7 +1302,7 @@ namespace CutsceneFunctions
 		c.cacheParseNumbers[parameters[1]] = c.numberVariables[c.key];
 
 		// If global variable, save change to file
-		if (c.key >= c.manager->globalStart)
+		if (c.manager->IsGlobal(c.key))
 			c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
 
 		return 0;
@@ -1177,7 +1327,7 @@ namespace CutsceneFunctions
 		c.cacheParseNumbers[parameters[1]] = c.numberVariables[c.key];
 
 		// If global variable, save change to file
-		if (c.key >= c.manager->globalStart)
+		if (c.manager->IsGlobal(c.key))
 			c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
 
 		return 0;
@@ -1202,7 +1352,7 @@ namespace CutsceneFunctions
 		c.cacheParseNumbers[parameters[1]] = c.numberVariables[c.key];
 
 		// If global variable, save change to file
-		if (c.key >= c.manager->globalStart)
+		if (c.manager->IsGlobal(c.key))
 			c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
 
 		return 0;
@@ -1221,7 +1371,7 @@ namespace CutsceneFunctions
 		c.cacheParseNumbers[parameters[1]] = c.numberVariables[c.key];
 
 		// If global variable, save change to file
-		if (c.key >= c.manager->globalStart)
+		if (c.manager->IsGlobal(c.key))
 			c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
 
 		return 0;
@@ -1249,7 +1399,7 @@ namespace CutsceneFunctions
 			c.numberVariables[c.key] = c.manager->game->randomManager.RandomRange(minNumber, maxNumber);
 
 			// If global variable, save change to file
-			if (c.key >= c.manager->globalStart)
+			if (c.manager->IsGlobal(c.key))
 				c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
 		}
 		else // no offset
@@ -1257,13 +1407,47 @@ namespace CutsceneFunctions
 			c.key = c.ParseNumberValue(parameters[1]);
 			unsigned int maxNumber = c.ParseNumberValue(parameters[2]);
 
-			int value = c.manager->game->randomManager.RandomInt(maxNumber);
+			int redoIf = -999999;
+			
+			if (parameters.size() > 2) // reroll if we get this number
+			{
+				redoIf = c.ParseNumberValue(parameters[3]);
+			}
+
+			int value = 0;
+
+			do
+			{
+				value = c.manager->game->randomManager.RandomInt(maxNumber);
+
+			} while (value == redoIf);
+
 			c.numberVariables[c.key] = value;
 
 			// If global variable, save change to file
-			if (c.key >= c.manager->globalStart)
+			if (c.manager->IsGlobal(c.key))
 				c.manager->SaveGlobalVariable(c.key, std::to_string(c.numberVariables[c.key]), true);
 		}
+
+		return 0;
+	}
+
+	// Calc the length of a variable 
+	// len $inputvar outputvar
+	int Length(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		if (parameters[2][0] == '%')
+		{
+			c.key = c.numalias[parameters[2].substr(1, parameters[2].size() - 1)];
+		}
+		else
+		{
+			c.key = c.numalias[parameters[2]];
+		}
+
+		c.parseStringValue = c.ParseStringValue(parameters[1]);
+		c.numberVariables[c.key] = c.parseStringValue.size();
+		c.cacheParseNumbers[parameters[1]] = c.numberVariables[c.key];
 
 		return 0;
 	}
@@ -1279,8 +1463,10 @@ namespace CutsceneFunctions
 			c.key = c.numalias[parameters[1]];
 		}
 
+		c.parseNumberValue = c.ParseNumberValue(parameters[4]);
+
 		c.parseStringValue = c.ParseStringValue(parameters[2]);
-		c.stringVariables[c.key] = c.parseStringValue.substr(std::stoi(parameters[3]), std::stoi(parameters[4]));
+		c.stringVariables[c.key] = c.parseStringValue.substr(std::stoi(parameters[3]), c.parseNumberValue);
 		c.cacheParseStrings[parameters[1]] = c.stringVariables[c.key];
 
 		return 0;
@@ -1307,7 +1493,7 @@ namespace CutsceneFunctions
 				c.arrayVariables[c.arrayIndex][c.vectorIndex] = c.ParseNumberValue(parameters[2]);
 
 				// If global variable, save change to file
-				if (c.arrayIndex >= c.manager->globalStart)
+				if (c.manager->IsGlobal(c.arrayIndex))
 					c.manager->SaveGlobalVariable(c.arrayIndex, "?", true);
 			}
 			else
@@ -1406,22 +1592,20 @@ namespace CutsceneFunctions
 		{
 			int halfScreenWidth = ((c.manager->game->screenWidth * 2) / 2);
 			int spriteX = 0; // (c.manager->game->screenWidth / 5) * 3;
-			int spriteY = c.manager->game->screenHeight;
+			int spriteY = (c.manager->game->screenHeight * 2) + c.manager->spriteYOffset 
+				- (c.manager->images[imageNumber]->GetSprite()->frameHeight);
 
 			switch (parameters[1][0])
 			{
 			case 'l':
 				spriteX = halfScreenWidth - (halfScreenWidth / 2);
-				spriteY = (c.manager->game->screenHeight * 2) -
-					(c.manager->images[imageNumber]->GetSprite()->frameHeight);
 
 				pos = glm::vec3(spriteX + c.manager->game->renderer.guiCamera.position.x,
 					spriteY + c.manager->game->renderer.guiCamera.position.y, c.manager->game->renderer.guiCamera.position.z);
 				break;
 			case 'c':
 				spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
-				spriteY = (c.manager->game->screenHeight * 2) -
-					(c.manager->images[imageNumber]->GetSprite()->frameHeight);
+
 
 				pos = glm::vec3(spriteX + c.manager->game->renderer.guiCamera.position.x,
 					spriteY + c.manager->game->renderer.guiCamera.position.y, c.manager->game->renderer.guiCamera.position.z);
@@ -1429,8 +1613,6 @@ namespace CutsceneFunctions
 				break;
 			case 'r':
 				spriteX = halfScreenWidth + (halfScreenWidth / 2);
-				spriteY = (c.manager->game->screenHeight * 2) -
-					(c.manager->images[imageNumber]->GetSprite()->frameHeight);
 
 				pos = glm::vec3(spriteX + c.manager->game->renderer.guiCamera.position.x,
 					spriteY + c.manager->game->renderer.guiCamera.position.y, c.manager->game->renderer.guiCamera.position.z);
@@ -1450,15 +1632,8 @@ namespace CutsceneFunctions
 		{
 			c.manager->ClearAllSprites();
 
-			int halfScreenWidth = ((c.manager->game->screenWidth * 2) / 2);
-			int spriteY = c.manager->game->screenHeight;
-
-			int spriteX = halfScreenWidth; // +(sprites['c']->frameWidth / 2);
-			spriteY = (c.manager->game->screenHeight * 2) -
-				(newImage.GetSprite()->frameHeight);
-
-			pos = glm::vec3(spriteX + c.manager->game->renderer.guiCamera.position.x,
-				spriteY + c.manager->game->renderer.guiCamera.position.y, c.manager->game->renderer.guiCamera.position.z + imageNumber);
+			// TODO: This needs to be the INITIAL width/height of the screen to scale properly
+			pos = glm::vec3(c.manager->game->initialWidth, c.manager->game->initialHeight, c.manager->game->renderer.guiCamera.position.z);
 
 			newImage.SetPosition(pos);
 
@@ -1571,7 +1746,7 @@ namespace CutsceneFunctions
 		const unsigned int y = c.ParseNumberValue(parameters[3]);
 		pos = glm::vec3(x, y, 0);
 
-		std::string text = parameters[4];
+		std::string text = c.ParseStringValue(parameters[4]);
 
 		// So now, the entire text is stored within parameters[4]
 		for (int i = 0; i < text.size(); i++)
@@ -1590,7 +1765,7 @@ namespace CutsceneFunctions
 		Text* newText = nullptr;
 		Color textColor = { 255, 255, 255, 255 };
 
-		int letterIndex = 0;
+		size_t letterIndex = 0;
 		std::string finalText = "";
 
 		FontInfo* fontInfo = c.manager->textbox->fontInfoText;
@@ -1689,6 +1864,52 @@ namespace CutsceneFunctions
 		return 0;
 	}
 
+	int SettingChange(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		if (parameters[1] == "resolution")
+		{
+			// TODO: Find a way to customize screen resolutions
+			// depending on the player's monitor resolution
+
+			// TODO: How to support resolutions with a 4:3 aspect ratio, black bars?
+
+			int x = c.ParseNumberValue(parameters[2]);
+			int y = c.ParseNumberValue(parameters[3]);
+
+			c.manager->game->SetScreenResolution(x, y);
+
+		}
+		else if (parameters[1] == "narration")
+		{
+			c.manager->voiceNarration = (c.ParseNumberValue(parameters[2]) == 1);
+		}
+		else if (parameters[1] == "vsync")
+		{
+			SDL_GL_SetSwapInterval(c.ParseNumberValue(parameters[2]));
+		}
+		else if (parameters[1] == "fps")
+		{
+			c.manager->game->showFPS = (c.ParseNumberValue(parameters[2]) == 1);
+		}
+		else if (parameters[1] == "timer")
+		{
+			c.manager->game->showTimer = (c.ParseNumberValue(parameters[2]) == 1);
+		}
+		else if (parameters[1] == "language")
+		{
+			Globals::currentLanguageIndex = c.ParseNumberValue(parameters[2]);
+
+			// TODO: Don't read these files in here, do it all at the beginning
+			// and just store them until we switch languages
+			c.manager->game->cutsceneManager.ReadCutsceneFile();
+			c.manager->game->cutsceneManager.ParseCutsceneFile();
+		}
+
+		c.manager->game->SaveSettings();
+
+		return 0;
+	}
+
 	int SetSpriteProperty(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		unsigned int imageNumber = c.ParseNumberValue(parameters[1]);
@@ -1732,14 +1953,26 @@ namespace CutsceneFunctions
 			// Because animators have different sprites for each animation state,
 			// we want to change the scale of the entity and then apply that scale
 			// to whatever sprite is currently being animated
-			entity->scale = glm::vec2(c.ParseNumberValue(parameters[3]), c.ParseNumberValue(parameters[4]));
+
+			// TODO: Allow variables here (to get floats)
+			//entity->scale = glm::vec2(c.ParseNumberValue(parameters[3]), c.ParseNumberValue(parameters[4]));
+			
+			entity->scale = glm::vec2(std::stof(parameters[3]), std::stof(parameters[4]));
 			entity->SetSprite(*entity->GetSprite());
+			entity->collider.scale.x = entity->collider.bounds.x * entity->scale.x;
+			entity->collider.scale.y = entity->collider.bounds.y * entity->scale.y;
+			entity->CalculateCollider();
 		}
 		else if (spriteProperty == "rotate")
 		{
 			entity->rotation = glm::vec3(c.ParseNumberValue(parameters[3]),
 				c.ParseNumberValue(parameters[4]), c.ParseNumberValue(parameters[5]));
 			entity->SetSprite(*entity->GetSprite());
+		}
+		else if (spriteProperty == "cache")
+		{
+			//c.manager->game->spriteManager.ClearCache(entity->GetSprite()->GetFileName());
+			c.manager->game->spriteManager.ClearCache(c.ParseStringValue(parameters[3]));
 		}
 		else if (spriteProperty == "shader")
 		{
@@ -1809,6 +2042,11 @@ namespace CutsceneFunctions
 			c.manager->textbox->isReading = false; // don't render the textbox while waiting
 		}
 
+		return 0;
+	}
+
+	int MenuCommand(CutsceneParameters parameters, CutsceneCommands& c)
+	{
 		return 0;
 	}
 
@@ -1916,10 +2154,10 @@ namespace CutsceneFunctions
 			}
 			else if (parameters[2] == "position")
 			{
-				glm::vec3 newPos = glm::vec3(c.ParseNumberValue(parameters[2]), c.ParseNumberValue(parameters[3]), 0);
+				//glm::vec3 newPos = glm::vec3(c.ParseNumberValue(parameters[3]), c.ParseNumberValue(parameters[4]), 0);
 
-				c.manager->textbox->boxOffsetX = newPos.x;
-				c.manager->textbox->boxOffsetY = newPos.y;
+				c.manager->textbox->boxOffsetX = c.ParseNumberValue(parameters[3]);
+				c.manager->textbox->boxOffsetY = c.ParseNumberValue(parameters[4]);
 			}
 		}
 		else if (parameters[1] == "color")
@@ -2016,6 +2254,10 @@ namespace CutsceneFunctions
 	int SetGlobalNumber(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		c.manager->globalStart = c.ParseNumberValue(parameters[1]);
+		if (parameters.size() > 2)
+		{
+			c.manager->globalEnd = c.ParseNumberValue(parameters[2]);
+		}
 		return 0;
 	}
 
@@ -2582,13 +2824,17 @@ namespace CutsceneFunctions
 
 	int ScreenshotCommand(CutsceneParameters parameters, CutsceneCommands& c)
 	{
-		if (parameters.size() > 1)
+		if (parameters.size() > 2)
 		{
-			c.manager->game->SaveScreenshot(parameters[1], "", ".png");
+			c.manager->game->SaveCreatedScreenshot(c.ParseStringValue(parameters[1]), c.ParseStringValue(parameters[2]), ".png");
+		}
+		else if (parameters.size() > 1)
+		{
+			c.manager->game->SaveCreatedScreenshot(c.ParseStringValue(parameters[1]), "", ".png");
 		}
 		else
 		{
-			c.manager->game->SaveScreenshot("", "", ".png");
+			c.manager->game->SaveCreatedScreenshot("", "", ".png");
 		}
 
 		return 0;
@@ -2677,6 +2923,45 @@ namespace CutsceneFunctions
 
 			MoveVariables({ "mov", parameters[2], theText }, c);
 		}
+		else if (whatToGet == "at") // number of @ in text
+		{
+			// The problem is that since we're calling this from a subroutine,
+			// the current label is not the label whose text we want to grab
+
+			// This only gives us the initial line of text, not all lines of text
+			SceneLine* line = &c.manager->lines[c.manager->baseLabel->lineStart + c.manager->baseLineIndex + 1];
+
+			int numAts = 0;
+
+			if (false) // c.manager->lastJumpedLabel != c.manager->baseLabel)
+			{
+				line = &c.manager->lines[c.manager->lastJumpedLabel->lineStart + c.manager->lineIndex + 1];
+				numAts++;
+
+				MoveVariables({ "mov", parameters[2], std::to_string(c.manager->ats) }, c);
+			}
+			else
+			{
+				int index = line->textStart;
+
+				std::string test = "";
+
+				do
+				{
+					test += c.manager->data[index];
+					if (c.manager->data[index] == '@')
+					{
+						numAts++;
+					}
+					index++;
+
+				} while (c.manager->data[index] != '\\');
+
+				MoveVariables({ "mov", parameters[2], std::to_string(numAts) }, c);
+			}
+
+
+		}
 
 		return 0;
 	}
@@ -2742,9 +3027,7 @@ namespace CutsceneFunctions
 
 	int Output(CutsceneParameters parameters, CutsceneCommands& c)
 	{
-#if _DEBUG
 		c.shouldOutput = true;
-#endif
 
 		bool shouldLog = true;
 
@@ -2760,31 +3043,99 @@ namespace CutsceneFunctions
 		{
 			if (parameters[1] == "str")
 			{
+				std::cout << parameters[2] << ": " << c.ParseStringValue(parameters[2]) << std::endl;
 				if (shouldLog)
 					c.manager->game->logger.Log(parameters[2] + ": " + c.ParseStringValue(parameters[2]));
-				else
-					std::cout << parameters[2] << ": " << c.ParseStringValue(parameters[2]) << std::endl;
 			}
 			else if (parameters[1] == "num")
 			{
+				std::cout << parameters[2] << ": " << c.ParseNumberValue(parameters[2]) << std::endl;
 				if (shouldLog)
 					c.manager->game->logger.Log(parameters[2] + ": " + std::to_string(c.ParseNumberValue(parameters[2])));
-				else
-					std::cout << parameters[2] << ": " << c.ParseNumberValue(parameters[2]) << std::endl;
+			}
+			else if (parameters[1] == "arr_all")
+			{
+				// stdout arr_all j_up
+				// output the values of all variables in the j_up array
+				// up until parameters[3] row
+
+				int arrayIndex = c.ParseNumberValue(parameters[2]);
+				int valuesPerRow = c.arrayNumbersPerSlot[arrayIndex];
+				int row = 0;
+
+				std::string output = parameters[2] + ": ";
+
+				int maxRow = c.ParseNumberValue(parameters[3]);
+
+				for (int i = 0; i < c.arrayVariables[arrayIndex].size(); i++)
+				{
+					if (i % valuesPerRow == 0)
+					{
+						row++;
+						output += "\n" + std::to_string(row) + ": ";
+
+
+						/* TODO: Get names of each row
+
+						for (const auto& pair : c.stringVariables)
+						{
+							if (pair.second == std::to_string(row))
+							{
+								output += std::to_string(pair.first) + ":";
+							}
+						}*/
+					}
+
+					if (row > maxRow)
+						break;
+
+					output += " " + std::to_string(c.arrayVariables[arrayIndex][i]) + " ";
+				}
+
+				std::cout << output << std::endl;
+
+				if (shouldLog)
+				{
+					c.manager->game->logger.Log(output);
+				}
+
 			}
 			else if (parameters[1] == "arr")
 			{
-				if (c.GetArray(parameters[2]))
+				// stdout arr j_up 2 3
+				// output the value at this index in the array
+
+				/*
+
+				if (true) // c.GetArray(parameters[2]))
 				{
+					std::string output = "";
+
 					if (shouldLog)
+					{
+						c.manager->game->logger.Log(output);
+
+						for (int i = 0; i < c.arrayVariables.size(); i++)
+						{
+							for (int i = 0; i < c.arrayVariables[i].size(); i++)
+							{
+								output += 
+							}
+						}
+
+					}
 						c.manager->game->logger.Log(parameters[2] + ": " + std::to_string(c.arrayVariables[c.arrayIndex][c.vectorIndex]));
 					else
+					{
+						std::cout << output << std::endl;
+					}
 						std::cout << parameters[2] << ": " << c.arrayVariables[c.arrayIndex][c.vectorIndex] << std::endl;
 				}
 				else
 				{
 					return (int)CommandResult::ERROR;
 				}
+				*/
 			}
 			else
 			{
@@ -2801,7 +3152,8 @@ namespace CutsceneFunctions
 	int FileExist(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		std::string filename = c.ParseStringValue(parameters[2]);
-		MoveVariables({ "mov", parameters[1], std::to_string(fs::exists(filename)) }, c);
+		int exists = fs::exists(filename);
+		MoveVariables({ "mov", parameters[1], std::to_string(exists) }, c);
 
 		return 0;
 	}
@@ -2866,7 +3218,7 @@ namespace CutsceneFunctions
 				delete_it(c.manager->game->cursorSprite);
 
 			// TODO: Actually create the sprite here
-			//c.manager->game->cursorSprite = new Sprite();
+			// c.manager->game->cursorSprite = new Sprite(0, 0, 0, c.ParseStringValue(parameters[2]));
 		}
 
 		return 0;
@@ -2887,6 +3239,10 @@ namespace CutsceneFunctions
 			else if (parameters[1] == "speed")
 			{
 				c.manager->autoTimeToWaitPerGlyph = c.ParseNumberValue(parameters[2]);
+			}
+			else if (parameters[1] == "voicewait") // wait for this channel to finish
+			{
+				c.manager->autoWaitChannel = c.ParseNumberValue(parameters[2]);
 			}
 		}
 
@@ -3134,11 +3490,17 @@ namespace CutsceneFunctions
 
 				std::vector<AnimState*> animStates = c.manager->game->spriteManager.ReadAnimData(parameters[5], args);
 				Animator* anim1 = new Animator(parameters[4] + "/" + parameters[4], animStates, parameters[6]);
+				anim1->args = args;
+				anim1->path = parameters[5];
+
+				Color c = entity->GetSprite()->color;
 
 				entity->SetAnimator(*anim1);
 				entity->GetAnimator()->Update(*entity);
 				entity->GetSprite()->keepPositionRelativeToCamera = true;
 				entity->GetSprite()->keepScaleRelativeToCamera = true;
+				entity->GetSprite()->color = c;
+				entity->color = c;
 			}
 		}
 
@@ -3309,6 +3671,34 @@ namespace CutsceneFunctions
 			std::vector<int> numbers = std::vector<int>(size, 0);
 			c.arrayVariables[index] = numbers;
 			c.arrayNumbersPerSlot[index] = 0;
+		}
+
+		return 0;
+	}
+
+	int CreateArrayStringVariable(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		// numalias j_up,2500
+		// dim j_up 35 2
+
+		unsigned int index = c.ParseNumberValue(parameters[1]);
+
+		// Is this a 2D array?
+		if (parameters.size() > 3)
+		{
+			int sizeSlots = c.ParseNumberValue(parameters[2]);
+			int numbersPerSlot = c.ParseNumberValue(parameters[3]);
+
+			std::vector<int> numbers = std::vector<int>(sizeSlots * numbersPerSlot, 0);
+			c.arrayVariables[index] = numbers;
+			c.arrayNumbersPerSlot[index] = numbersPerSlot;
+		}
+		else // just 1D
+		{
+			int size = c.ParseNumberValue(parameters[2]);
+			std::vector<std::string> data = std::vector<std::string>(size, "");
+			c.arrayStrVariables[index] = data;
+			c.arrayStrNumbersPerSlot[index] = 0;
 		}
 
 		return 0;

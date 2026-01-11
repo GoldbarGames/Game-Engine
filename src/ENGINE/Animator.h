@@ -35,6 +35,9 @@ public:
 	static std::map<unsigned int, AnimatorInfo*> mapTypeToInfo;
 	Sprite* GetCurrentSprite();
 
+	std::unordered_map<std::string, std::string> args;
+	std::string path = "";
+
 	Timer animationTimer;
 	int animatorType = 0;
 	AnimState* currentState = nullptr;

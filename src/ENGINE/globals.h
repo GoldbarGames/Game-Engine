@@ -39,7 +39,7 @@ public:
 };
 
 enum class DrawingLayer { BACK = 0, MIDDLE = 10, OBJECT = 20, 
-	COLLISION = 30, COLLISION2 = 35, FRONT = 40, INVISIBLE = 99 };
+	COLLISION = 30, COLLISION2 = 35, FRONT = 40, BG = 50, INVISIBLE = 99 };
 
 struct Color {
 	uint8_t r = 0;
@@ -58,14 +58,33 @@ struct Color {
 	}
 };
 
+struct ColorF {
+	float r = 0.0f;
+	float g = 0.0f;
+	float b = 0.0f;
+	float a = 0.0f;
+
+	bool operator==(const Color& other) const
+	{
+		return (r == other.r && g == other.g && b == other.b && a == other.a);
+	}
+
+	bool operator!=(const Color& other) const
+	{
+		return !(*this == other);
+	}
+};
+
 extern KINJO_API void ReadTranslationData();
 extern KINJO_API std::string CurrentDate();
 extern KINJO_API std::string CurrentTime();
 extern KINJO_API std::string GetDrawingLayerName(DrawingLayer layer);
-extern KINJO_API std::string ParseWord(const std::string& text, char limit, int& index);
+extern KINJO_API std::string ParseWord(const std::string& text, char limit, size_t& index);
 extern KINJO_API std::vector<std::string> SplitString(const std::string& str, char delim);
 extern KINJO_API Color ParseColorHexadecimal(const std::string& text);
 extern KINJO_API int HexToDecimal(const char hex);
+
+extern KINJO_API float Lerp(const float min, const float max, const float dt);
 
 extern KINJO_API bool LerpVector2(glm::vec2& current, const glm::vec2& target, const float maxStep, const float minStep);
 extern KINJO_API bool LerpVector2(glm::vec2& current, const glm::vec2& start, const glm::vec2& target,
@@ -114,6 +133,25 @@ inline std::string& LTrim(std::string& s, const char* t = " \t\n\r\f\v")
 inline std::string& Trim(std::string& s, const char* t = " \t\n\r\f\v")
 {
 	return LTrim(RTrim(s, t), t);
+}
+
+inline bool IsVec3Equals(const glm::vec3& lhs, const glm::vec3& rhs)
+{
+	bool x = static_cast<int>(lhs.x) == static_cast<int>(rhs.x);
+	bool y = static_cast<int>(lhs.y) == static_cast<int>(rhs.y);
+	bool z = static_cast<int>(lhs.z) == static_cast<int>(rhs.z);
+
+	return x && y && z;
+}
+
+inline std::string Vec2ToString(const glm::vec2& v)
+{
+	return "(" + std::to_string(v.x) + "," + std::to_string(v.y) + ")";
+}
+
+inline std::string Vec3ToString(const glm::vec3& v)
+{
+	return "(" + std::to_string(v.x) + "," + std::to_string(v.y) + "," + std::to_string(v.z) + ")";
 }
 
 extern KINJO_API SDL_Rect ConvertCoordsFromCenterToTopLeft(const SDL_Rect& originalRect);

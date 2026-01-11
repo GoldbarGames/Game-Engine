@@ -3,6 +3,7 @@
 #include "Sprite.h"
 #include "Game.h"
 #include <algorithm>
+#include <filesystem>
 
 ShaderProgram* Renderer::textShader;
 ShaderProgram* Renderer::tileShader;
@@ -32,37 +33,151 @@ Renderer::Renderer()
 	layersVisible[DrawingLayer::COLLISION] = true;
 	layersVisible[DrawingLayer::COLLISION2] = true;
 	layersVisible[DrawingLayer::FRONT] = true;
+	layersVisible[DrawingLayer::BG] = true;
 	layersVisible[DrawingLayer::INVISIBLE] = false;
 
 	timerOverlayColor.Start(1);
+	reloadTimer.Start(1000);
 }
 
 void Renderer::Init(Game* g)
 {
 	game = g;
+
+	// TODO: Why do all these values get overwritten?
+	guiCamera.maxZoom = 1000;
+	guiCamera.minZoom = 0.0001f;
+	guiCamera.isGUI = true;
+}
+
+void Renderer::HotReload()
+{
+#ifndef EMSCRIPTEN
+	if (reloadTimer.HasElapsed())
+	{
+		reloadTimer.Reset();
+
+		std::string vertexFile = "";
+		std::string fragmentFile = "";
+
+		const fs::path dir = std::filesystem::current_path();
+
+		static std::vector<int> missingShaders;
+
+		for (size_t i = 0; i < shaderList.size(); i++)
+		{
+			size_t index = 0;
+			ParseWord(shaderList[i], ' ', index);
+			vertexFile = shaderFolder + ParseWord(shaderList[i], ' ', index);
+			fragmentFile = shaderFolder + ParseWord(shaderList[i], ' ', index);
+
+			fs::path path1 = dir / vertexFile;
+			fs::path path2 = dir / fragmentFile;
+			fs::directory_entry entry1 { path1 };
+			fs::directory_entry entry2 { path2 };
+
+			try
+			{
+				if (lastModified.count(vertexFile) == 0
+					|| lastModified.count(fragmentFile) == 0
+					|| entry1.last_write_time() != lastModified[vertexFile]
+					|| entry2.last_write_time() != lastModified[fragmentFile])
+				{
+					lastModified[vertexFile] = entry1.last_write_time();
+					lastModified[fragmentFile] = entry2.last_write_time();
+
+					std::cout << "reloading shader " << shaderList[i] << std::endl;
+
+					shaders[i + 1]->ClearShader();
+					shaders[i + 1]->CreateFromFiles(vertexFile.c_str(), fragmentFile.c_str());
+				}
+			}
+			catch (std::exception ex)
+			{
+				bool errorShown = false;
+				for (size_t k = 0; k < missingShaders.size(); k++)
+				{
+					if (missingShaders[k] == i)
+					{
+						errorShown = true;
+					}
+				}
+
+				if (!errorShown)
+				{
+					missingShaders.emplace_back(i);
+					std::cout << ex.what() << shaderList[i] << std::endl;
+				}
+
+			}
+
+
+
+		}
+	}
+#endif
 }
 
 void Renderer::CreateShaders()
 {
-	std::vector<std::string> shaderList = ReadStringsFromFile("data/shaders.dat");
+	shaderList = ReadStringsFromFile("data/config/shaders.dat");
+	shaderFolder = "data/shaders/";
+
 	std::string vertexFile = "";
 	std::string fragmentFile = "";
-	std::string shaderFolder = "data/shaders/";
 
 #ifdef EMSCRIPTEN
 	shaderFolder += "webgl/";
 #endif
 
-	for (int i = 0; i < shaderList.size(); i++)
+	const std::string defaultVert =
+	"#version 300 es\n"
+	"precision mediump float;\n"
+	"layout (location = 0) in vec3 pos;\n"
+	"layout (location = 1) in vec2 tex;\n"
+	"out vec4 vertexColor;\n"
+	"out vec2 TexCoord;\n"
+	"out vec2 MaskCoord;\n"
+	"uniform mat4 model;\n"
+	"uniform mat4 projection;\n"
+	"uniform mat4 view;\n"
+	"uniform vec2 texFrame;\n"
+	"uniform vec2 texOffset;\n"
+	"void main()\n"
+	"{\n"
+	"    gl_Position = projection * view * model * vec4(pos, 1.0);\n"
+	"    vertexColor = vec4(clamp(pos, 0.0, 1.0), 1.0);\n"
+	"    TexCoord = texOffset + (texFrame * tex);\n"
+	"    vec2 frame = vec2(1.0, 1.0);\n"
+	"    MaskCoord = frame * tex;\n"
+	"}";
+
+
+	const std::string defaultFrag =
+	"#version 300 es\n"
+	"precision mediump float;\n"
+	"in vec2 TexCoord;\n"
+	"out vec4 color;\n"
+	"uniform sampler2D theTexture;\n"
+	"uniform vec4 spriteColor;\n"
+	"void main()\n"
+	"{\n"
+	"    vec4 newColor = texture(theTexture, TexCoord) * spriteColor;\n"
+	"    color = vec4(newColor.r, newColor.g, newColor.b, newColor.a);\n"
+	"}";
+
+	CreateShader(0, defaultVert.c_str(), defaultFrag.c_str(), true);
+
+	for (size_t i = 0; i < shaderList.size(); i++)
 	{
-		int index = 0;
+		size_t index = 0;
+		std::cout << "Parsing shader: " << shaderList[i] << std::endl;
 		ParseWord(shaderList[i], ' ', index);
 		vertexFile = shaderFolder + ParseWord(shaderList[i], ' ', index);
 		fragmentFile = shaderFolder + ParseWord(shaderList[i], ' ', index);
 		CreateShader(i + 1, vertexFile.c_str(), fragmentFile.c_str());
 	}
 
-	// shaders[0] = custom shader
 	tileShader = shaders[1]; // default
 	textShader = shaders[2]; // gui
 }
@@ -185,12 +300,12 @@ void Renderer::FadeOverlay(const int screenWidth, const int screenHeight) const
 	overlayScale = glm::vec2(screenWidth / rWidth, screenHeight / rHeight);
 }
 
-void Renderer::CreateShader(const int shaderName, const char* vertexFilePath, const char* fragmentFilePath)
+void Renderer::CreateShader(const int shaderName, const char* vertexFilePath, const char* fragmentFilePath, bool fromString)
 {
 	if (shaders[shaderName] != nullptr)
 		delete_it(shaders[shaderName]);
 
-	shaders[shaderName] = new ShaderProgram(shaderName, vertexFilePath, fragmentFilePath);
+	shaders[shaderName] = new ShaderProgram(shaderName, vertexFilePath, fragmentFilePath, fromString);
 }
 
 bool Renderer::IsVisible(DrawingLayer layer) const
@@ -203,7 +318,7 @@ void Renderer::ToggleVisibility(DrawingLayer layer)
 	layersVisible[layer] = !layersVisible[layer];
 }
 
-void Renderer::UseLight(ShaderProgram& shader) const
+void Renderer::UseLight(const ShaderProgram& shader) const
 {
 	if (light != nullptr)
 	{
@@ -237,4 +352,40 @@ void Renderer::UseLight(ShaderProgram& shader) const
 			spotLights[i]->UseLight(shader);
 		}
 	}
+}
+
+
+void Renderer::ConfigureInstanceArray(unsigned int amount)
+{
+	instanceAmount = amount;
+	modelMatrices = new glm::mat4[amount];
+
+	unsigned int buffer;
+	glGenBuffers(1, &buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, instanceAmount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+
+	for (unsigned int i = 0; i < game->entities.size(); i++)
+	{
+		glBindVertexArray(game->entities[i]->GetSprite()->mesh->GetVAO());
+
+		// set attribute pointers for matrix (4 times vec4)
+		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+		glEnableVertexAttribArray(4);
+		glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+		glEnableVertexAttribArray(5);
+		glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+		glEnableVertexAttribArray(6);
+		glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+
+		glVertexAttribDivisor(3, 1);
+		glVertexAttribDivisor(4, 1);
+		glVertexAttribDivisor(5, 1);
+		glVertexAttribDivisor(6, 1);
+
+		glBindVertexArray(0);
+	}
+
+
 }

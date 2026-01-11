@@ -3,7 +3,6 @@
 #include "Game.h"
 #include "SpriteManager.h"
 #include "Entity.h"
-#include "Vector2.h"
 #include "Sprite.h"
 #include "Renderer.h"
 #include <iterator>
@@ -12,23 +11,23 @@
 
 std::unordered_map<std::string, BackgroundData*> Background::bgData;
 
-Background::Background(const std::string& n, const Vector2& pos)
+Background::Background(const std::string& n, const glm::vec3& pos)
 {
 	name = n;
 	position = pos;
-	ReadBackgroundData("data/bg.dat");
+	ReadBackgroundData("data/config/bg.dat");
 }
 
 Background::~Background()
 {
-	for (unsigned int i = 0; i < layers.size(); i++)
+	for (size_t i = 0; i < layers.size(); i++)
 	{
 		delete_it(layers[i]);
 	}
 
 	for (auto& [key, val] : bgData)
 	{
-		for (int i = 0; i < val->layers.size(); i++)
+		for (size_t i = 0; i < val->layers.size(); i++)
 		{
 			delete_it(val->layers[i]);
 		}
@@ -102,6 +101,12 @@ void Background::ReadBackgroundData(const std::string& dataFilePath)
 				newLayerData->scaleX = std::stof(tokens[index++]);
 				newLayerData->scaleY = std::stof(tokens[index++]);
 			}
+			else if (tokens.size() == 8)
+			{
+				newLayerData->scaleX = std::stof(tokens[index++]);
+				newLayerData->scaleY = std::stof(tokens[index++]);
+				newLayerData->shader = std::stoi(tokens[index++]);
+			}
 			else if (tokens.size() == 11)
 			{
 				newLayerData->scaleX = std::stof(tokens[index++]);
@@ -124,8 +129,9 @@ void Background::SpawnBackground(const std::string& n, int x, int y, Game& game)
 	//DeleteLayers(game);
 	ResetBackground();
 
-	if (n != "None")
+	if (n != "None" && n != "none")
 	{
+		std::vector<Entity*> layerEntities;
 		BackgroundData* data = bgData[n];
 
 		// TODO: Crashes here when level tries to load undefined BG
@@ -139,28 +145,35 @@ void Background::SpawnBackground(const std::string& n, int x, int y, Game& game)
 		for (unsigned int i = 0; i < NUM_BGS; i++)
 		{
 			glm::vec3 bgPos = glm::vec3((BG_WIDTH * i) + X_OFFSET, Y_OFFSET, 0);
-			CreateBackground(n, bgPos, game.spriteManager, game.renderer);
+			name = n;
+			BackgroundData* data = bgData[name];
+
+			for (size_t i = 0; i < data->layers.size(); i++)
+			{
+				BackgroundLayerData bld = *data->layers[i];
+
+				Entity* bg = new BackgroundLayer(glm::vec3(bgPos.x + bld.offsetX, bgPos.y + bld.offsetY, bgPos.z), bld.parallax);
+				bg->drawOrder = bld.drawOrder;
+				bg->GetSprite()->SetTexture(game.spriteManager.GetImage(bld.filepath));
+				bg->GetSprite()->SetShader(game.renderer.shaders[bld.shader]);
+				bg->SetColor(bld.color);
+				bg->GetSprite()->color = bld.color;
+				bg->SetScale(glm::vec2(bld.scaleX, bld.scaleY));
+				layerEntities.emplace_back(bg);
+			}
 		}
 
-		game.SortEntities(layers);
+		game.SortEntities(layerEntities);
+
+		for (size_t i = 0; i < layerEntities.size(); i++)
+		{
+			BackgroundLayer* bl = static_cast<BackgroundLayer*>(layerEntities[i]);
+			layers.emplace_back(bl);
+		}
 	}
+
+
 }
-
-// This function creates one background, possibly composed of multiple layers.
-// This function may be called multiple times to place copies of backgrounds next to each other.
-void Background::CreateBackground(const std::string& n, glm::vec3 pos,
-	const SpriteManager& spriteManager, const Renderer& renderer)
-{
-	name = n;
-	BackgroundData* data = bgData[name];
-
-	for (int i = 0; i < data->layers.size(); i++)
-	{
-		BackgroundLayerData* ld = data->layers[i];
-		AddLayer(pos, *ld, spriteManager, renderer);
-	}
-}
-
 
 void Background::Render(const Renderer& renderer)
 {
@@ -168,20 +181,6 @@ void Background::Render(const Renderer& renderer)
 	{
 		layers[i]->Render(renderer);
 	}
-}
-
-Entity* Background::AddLayer(const glm::vec3& pos, const BackgroundLayerData& data,
-	const SpriteManager& spriteManager, const Renderer& renderer)
-{	
-	Entity* bg = new BackgroundLayer(glm::vec3(pos.x + data.offsetX, pos.y + data.offsetY, pos.z), data.parallax);
-	bg->drawOrder = data.drawOrder;
-	bg->GetSprite()->SetTexture(spriteManager.GetImage(data.filepath));
-	bg->GetSprite()->SetShader(renderer.shaders[2]);
-	bg->SetColor(data.color);
-	bg->GetSprite()->color = data.color;
-	bg->SetScale(glm::vec2(data.scaleX, data.scaleY));
-	layers.emplace_back(bg);
-	return bg;
 }
 
 // Use this for clearing the list of layers without leaks

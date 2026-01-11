@@ -54,6 +54,8 @@ public:
 	std::vector<Text*> texts;
 	std::vector<Entity*> images;
 
+	Game* _game = nullptr;
+
 	BaseButton* lastButton = nullptr;
 
 	std::vector<MenuAnimation*> enterAnimation;
@@ -62,10 +64,16 @@ public:
 	bool isPlayingEnterAnimation = false;
 	bool isPlayingExitAnimation = false;
 
+	uint32_t mouseState = 0;
+	uint32_t previousMouseState = 0;
+
 	// Should this menu be recreated each time it is opened?
 	// Set to true if this menu uses any variables
 	bool isDynamic = false;
 
+
+	// Use mouse on this menu instead of a keyboard
+	bool useMouse = false;
 
 	// Toggle whether or not entities in the level should update
 	// while the menu is active. Normally false, but might want to change,
@@ -83,6 +91,10 @@ public:
 	bool canEscapeFrom = true;
 
 	int selectedButtonIndex = 0;
+	int defaultButtonIndex = 0;
+
+	void ResetSelectedButton(Game& game);
+
 	MenuScreen(const std::string& n, Game& game);
 	~MenuScreen();
 	
@@ -107,9 +119,15 @@ public:
 	Text* AddText(FontInfo* font, const std::string& message,
 		int x, int y, float sx, float sy, bool center = false);
 
+	Text* AddTextOutlined(FontInfo* font, const std::string& message,
+		int x, int y, float sx, float sy, bool center = false);
+
 	MenuButton* AddButton(const std::string& txt, const std::string& filepath,
 		const int btnID, const glm::vec3& pos, Game& game,
 		Color col = { 255, 255, 255, 255 });
+
+	MenuButton* AddButtonOutlined(const std::string& txt, const std::string& filepath,
+		const int btnID, const glm::vec3& pos, Game& game, Color col = { 255, 255, 255, 255 });
 
 	Entity* AddImage(const std::string& filepath, const glm::vec3& pos, 
 		const glm::vec2& scale, const Game& game, const int shader);

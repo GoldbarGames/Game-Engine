@@ -87,6 +87,7 @@ MenuAnimation* MenuScreen::CreateExitAnimation(Entity* entity)
 MenuScreen::MenuScreen(const std::string& n, Game& game)
 {
 	name = n;	
+	_game = &game;
 }
 
 void MenuScreen::CreateMenu(const std::string& n, Game& game)
@@ -121,6 +122,22 @@ MenuButton* MenuScreen::AddButton(const std::string& txt, const std::string& fil
 	return button;
 }
 
+MenuButton* MenuScreen::AddButtonOutlined(const std::string& txt, const std::string& filepath,
+	const int btnID, const glm::vec3& pos, Game& game, Color col)
+{
+	MenuButton* button = AddButton(txt, filepath, btnID, pos, game, col);
+
+	button->loopImages = 3;
+	for (int k = 0; k < button->images.size(); k++)
+	{
+		button->images[k]->hoverShader = game.renderer.shaders[20];
+	}
+	button->text->SetShader(game.renderer.shaders[18]);
+	button->text->GetSprite()->hoverShader = game.renderer.shaders[21];
+
+	return button;
+}
+
 // IMPORTANT: When center is true, pass in game.screenWidth as x
 Text* MenuScreen::AddText(FontInfo* font, const std::string& message,
 	int x, int y, float sx, float sy, bool center)
@@ -144,6 +161,16 @@ Text* MenuScreen::AddText(FontInfo* font, const std::string& message,
 	return text;
 }
 
+Text* MenuScreen::AddTextOutlined(FontInfo* font, const std::string& message,
+	int x, int y, float sx, float sy, bool center)
+{
+	Text* text = AddText(font, message, x, y, sx, sy, center);
+
+	text->GetSprite()->shader = _game->renderer.shaders[18];
+
+	return text;
+}
+
 bool MenuScreen::FileExists(const std::string& filepath)
 {
 	std::fstream fin;
@@ -155,7 +182,6 @@ bool MenuScreen::FileExists(const std::string& filepath)
 	return true;
 }
 
-//TODO: Maybe rename this to a better name
 void MenuScreen::AssignButtons(bool useLeftRight, bool useUpDown)
 {
 	for (unsigned int i = 0; i < buttons.size(); i++)
@@ -196,7 +222,7 @@ void MenuScreen::AssignButtons(bool useLeftRight, bool useUpDown)
 
 void MenuScreen::ResetMenu()
 {
-	for (int i = 0; i < buttons.size(); i++)
+	for (size_t i = 0; i < buttons.size(); i++)
 	{
 		if (rememberLastButton && buttons[i] == selectedButton)
 			lastButtonIndex = i;
@@ -206,14 +232,14 @@ void MenuScreen::ResetMenu()
 	}
 	buttons.clear();
 
-	for (int i = 0; i < texts.size(); i++)
+	for (size_t i = 0; i < texts.size(); i++)
 	{
 		if (texts[i] != nullptr)
 			delete_it(texts[i]);
 	}
 	texts.clear();
 
-	for (int i = 0; i < images.size(); i++)
+	for (size_t i = 0; i < images.size(); i++)
 	{
 		if (images[i] != nullptr)
 			delete_it(images[i]);
@@ -243,6 +269,9 @@ void MenuScreen::ResetMenu()
 			delete_it(anim);
 	}
 	exitAnimation.clear();
+
+	selectedButton = nullptr;
+	lastButton = nullptr;
 }
 
 MenuScreen::~MenuScreen()
@@ -280,28 +309,165 @@ void MenuScreen::Render(const Renderer& renderer)
 	}
 }
 
+void MenuScreen::ResetSelectedButton(Game& game)
+{
+	selectedButton = nullptr;
+	for (size_t i = 0; i < buttons.size(); i++)
+	{
+		buttons[i]->isSelected = (i == defaultButtonIndex);
+
+		if (buttons[i]->isSelected)
+		{
+			selectedButton = buttons[i];
+			selectedButtonIndex = i;
+			buttons[i]->Highlight(game);
+		}
+		else
+		{
+			buttons[i]->Unhighlight(game);
+		}
+	}
+}
+
 bool MenuScreen::Update(Game& game)
 {
-	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-	lastButton = selectedButton;
-
 	// Don't crash if there is no button in this menu
-	if (selectedButton == nullptr)
+	if (buttons.size() == 0)
 		return false;
 
-	selectedButton->isSelected = false;
-	selectedButton = selectedButton->Update(game, currentKeyStates);
-	selectedButton->isSelected = true;
+	lastButton = selectedButton;
+
+	if (useMouse)
+	{
+		SDL_Rect mouseRect;
+
+		previousMouseState = mouseState;
+		mouseState = SDL_GetMouseState(&mouseRect.x, &mouseRect.y);
+
+		glm::vec3 worldPosition = game.ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseRect.x, mouseRect.y)) - game.renderer.camera.position;
+
+		mouseRect.x = worldPosition.x * Camera::MULTIPLIER;
+		mouseRect.y = worldPosition.y * Camera::MULTIPLIER;
+		mouseRect.w = 1;
+		mouseRect.h = 1;
+
+		bool selectedAnyButton = false;
+		for (size_t i = 0; i < buttons.size(); i++)
+		{
+			MenuButton* mb = dynamic_cast<MenuButton*>(buttons[i]);
+
+			if (mb != nullptr)
+			{
+				mb->CalculateCollider();
+
+				SDL_Rect rect = *mb->GetBounds();
+
+				mb->hoverRect = rect;
+
+				// For some reason, only the rendering must be cut in half like so:
+				mb->hoverRect.x *= 0.5f;
+				mb->hoverRect.y *= 0.5f;
+				mb->hoverRect.w *= 0.5f;
+				mb->hoverRect.h *= 0.5f;
+
+				rect.x -= rect.w;
+				rect.y -= rect.h;
+				rect.w *= Camera::MULTIPLIER;
+				rect.h *= Camera::MULTIPLIER;
+
+				// 640,  400, 96,  32
+				// 1088, 736, 384, 128
+
+				buttons[i]->isSelected = HasIntersection(mouseRect, rect);
+
+				if (buttons[i]->isSelected)
+				{
+					selectedButton = buttons[i];
+					selectedAnyButton = true;
+				}
+			}
+			else // settings button
+			{
+				
+			}
+
+		}
+
+
+
+		if (!selectedAnyButton)
+		{
+			selectedButton = nullptr;
+			if (lastButton != nullptr)
+			{
+				lastButton->Unhighlight(game);
+				lastButton = nullptr;
+			}
+		}
+
+		if (selectedButton != nullptr)
+		{
+			SDL_Rect rect = *selectedButton->GetBounds();
+			rect.x -= rect.w;
+			rect.y -= rect.h;
+			rect.w *= Camera::MULTIPLIER;
+			rect.h *= Camera::MULTIPLIER;
+
+			if (HasIntersection(mouseRect, rect))
+			{
+
+				bool holdingLeft = (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
+				bool holdingRight = (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT));
+				bool holdingMiddle = (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE));
+
+				bool pressedLeft = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
+				bool pressedRight = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_RIGHT));
+				bool pressedMiddle = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE));
+
+				if (holdingLeft || holdingRight || holdingMiddle)
+				{
+					if (pressedLeft || pressedMiddle || pressedRight)
+					{
+						//hovered->OnClickPressed(mouseState, *this);
+					}
+					else
+					{
+						//hovered->OnClick(mouseState, *this);
+					}
+				}
+				else if (!pressedLeft)
+				{
+					PressSelectedButton(game);
+				}
+			}
+		}		
+
+	}
+	else
+	{
+		const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+		selectedButton->isSelected = false;
+		selectedButton = selectedButton->Update(game, currentKeyStates);
+		selectedButton->isSelected = true;
+	}
 
 	if (selectedButton != lastButton)
 	{
 		selectedButton->Highlight(game);
-		lastButton->Unhighlight(game);
+		if (lastButton != nullptr)
+		{
+			lastButton->Unhighlight(game);
+		}
 	}
 
-	return (lastButton->pressedAnyKey);
+	// Don't crash if there is no button in this menu
+	if (lastButton == nullptr)
+		return false;
+
+	return (lastButton->pressedAnyKey);	
 }
 
+// Game developer should override this method
 bool MenuScreen::PressSelectedButton(Game& game)
 {
 	if (selectedButton == nullptr)
@@ -310,10 +476,9 @@ bool MenuScreen::PressSelectedButton(Game& game)
 	return false;
 }
 
-
 BaseButton* MenuScreen::GetButtonByName(const std::string& buttonName)
 {
-	for (int i = 0; i < buttons.size(); i++)
+	for (size_t i = 0; i < buttons.size(); i++)
 	{
 		if (buttons[i]->name == buttonName)
 			return buttons[i];

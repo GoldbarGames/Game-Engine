@@ -66,10 +66,14 @@ public:
 	SoundManager();
 	~SoundManager();
 
+	double loopPoint1 = 0;
+	double loopPoint2 = 0;
+
 	SoundTest* soundTest;
 
 	void Init(Game* g);
 
+	void LoopBGM(double p1, double p2);
 	bool LoadBGM(const std::string& bgm);
 	bool IsPlayingBGM();
 	void SetVolumeBGM(int newVolume);
@@ -79,6 +83,10 @@ public:
 	void PauseBGM();
 	void UnpauseBGM();
 	void StopBGM();
+
+	bool SetBGMPos(double pos);
+
+	void Update();
 
 	void FadeInBGM(const std::string& bgm, uint32_t duration, bool loop = true);
 	void FadeOutBGM(uint32_t duration);

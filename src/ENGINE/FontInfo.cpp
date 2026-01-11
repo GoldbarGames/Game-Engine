@@ -9,7 +9,7 @@ FontInfo::FontInfo(const std::string& f, int s)
 	pathRegular = f;
 
 	if (regular == nullptr)
-		throw std::invalid_argument("Tried to create font with null pointer");
+		throw std::invalid_argument(std::string("Tried to create font with a null pointer: ") + f.c_str());
 }
 
 FontInfo::~FontInfo()

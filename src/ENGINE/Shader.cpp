@@ -1,7 +1,9 @@
 #include "Shader.h"
 #include "Renderer.h"
 
-ShaderProgram::ShaderProgram(const int n, const char* vertexFilePath, const char* fragmentFilePath)
+unsigned int ShaderProgram::lastProgramID = -1;
+
+ShaderProgram::ShaderProgram(const int n, const char* vertexFilePath, const char* fragmentFilePath, bool fromString)
 {
     name = n;
     programID = 0;
@@ -10,7 +12,10 @@ ShaderProgram::ShaderProgram(const int n, const char* vertexFilePath, const char
 
     pointLightCount = 0;
 
-    CreateFromFiles(vertexFilePath, fragmentFilePath);
+    if (fromString)
+        CreateFromString(vertexFilePath, fragmentFilePath);
+    else
+        CreateFromFiles(vertexFilePath, fragmentFilePath);
 }
 
 ShaderProgram::~ShaderProgram()
@@ -83,6 +88,9 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     uniformVariables[ShaderVariable::fadeColor] = glGetUniformLocation(programID, "spriteColor");
     uniformVariables[ShaderVariable::currentTime] = glGetUniformLocation(programID, "time");
     uniformVariables[ShaderVariable::frequency] = glGetUniformLocation(programID, "freq");
+
+    //uniformVariables[ShaderVariable::textureWidth] = glGetUniformLocation(programID, "textureWidth");
+    //uniformVariables[ShaderVariable::textureHeight] = glGetUniformLocation(programID, "textureHeight");
 
     /*
     uniformVariables[ShaderVariable::ambientColor] = glGetUniformLocation(programID, "directionalLight.color");
@@ -200,17 +208,16 @@ std::string ShaderProgram::ReadFile(const char* filePath)
     return content;
 }
 
-void ShaderProgram::UseShader()
+void ShaderProgram::UseShader() const
 {
-    glUseProgram(programID);
-    /*
-    static unsigned int lastProgramID = -1;
+    glUseProgram(programID); 
 
+    /*
     if (programID != lastProgramID)
     {
-        
         lastProgramID = programID;
-    }   */
+    } 
+    */
 }
 
 void ShaderProgram::ClearShader()
