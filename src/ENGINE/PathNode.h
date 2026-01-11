@@ -3,7 +3,6 @@
 #pragma once
 
 #include "Entity.h"
-#include "Vector2.h"
 #include <SDL2/SDL.h>
 #include "leak_check.h"
 class KINJO_API PathNode : public Entity

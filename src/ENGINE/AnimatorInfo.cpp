@@ -32,7 +32,7 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 		std::string stateName = "";
 		int stateIndex = 1;
 		int variableIndex = 0;
-		int index = 0;
+		size_t index = 0;
 
 		std::vector<AnimCondition> conditions;
 		std::string variableType = "";
@@ -110,7 +110,7 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 
 				// TODO: If there are two ways to get to the next state from within a state,
 				// the later way overwrites the first way (rather than both being options)
-				for (int i = 0; i < stateNames.size(); i++)
+				for (size_t i = 0; i < stateNames.size(); i++)
 				{
 					if (stateMachines.count(stateNames[i]) != 1)
 					{

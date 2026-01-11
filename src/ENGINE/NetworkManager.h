@@ -2,17 +2,29 @@
 #define NETWORKMANAGER_H
 #pragma once
 
+#pragma warning(disable: 4005)
+#pragma warning(disable: 4996)
+
 #define USE_NETWORKING 1
+#define _SILENCE_ALL_CXX20_DEPRECATION_WARNINGS 1
+#define _SILENCE_CXX20_CISO646_REMOVED_WARNING 1
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_net.h>
+
 #include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <string>
 #include <unordered_map>
 
+#ifndef EMSCRIPTEN
+#include <SDL2/SDL_net.h>
+#endif
+
+
 #include "Entity.h"
+
+#ifndef EMSCRIPTEN
 
 enum class Protocol { None, TCP_Client, TCP_Server, UDP_Client, UDP_Server };
 
@@ -65,5 +77,21 @@ public:
 	std::string curlGetRequest(const char* url, const char* userpwd);
 	void testGetCase();
 };
+
+
+
+#else
+	
+enum class Protocol { None, TCP_Client, TCP_Server, UDP_Client, UDP_Server };
+
+class KINJO_API NetworkManager {
+	NetworkManager(const char* h, const char* p);
+	~NetworkManager();
+	virtual void ReadMessage(Game& game);		
+};
+
+
+#endif
+
 
 #endif

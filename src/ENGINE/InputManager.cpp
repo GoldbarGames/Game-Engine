@@ -1,16 +1,17 @@
 #include "InputManager.h"
 #include "Camera.h"
+#include "Game.h"
 #include <iostream>
 
 void InputManager::Init()
 {
 	// Populate the keyboard keys
-	std::vector<std::string> initialValues = ReadStringsFromFile("data/keyboard.config");
-	for (int i = 0; i < initialValues.size(); i++)
+	std::vector<std::string> initialValues = ReadStringsFromFile("data/config/keyboard.config");
+	for (size_t i = 0; i < initialValues.size(); i++)
 	{
 		if (initialValues[i] != "")
 		{
-			int k = 0;
+			size_t k = 0;
 			int code = std::stoi(ParseWord(initialValues[i], ' ', k));
 			std::string name = initialValues[i].substr(k, initialValues[i].size() - k);
 			keys[name].mappedKey = (SDL_Scancode)code;
@@ -18,12 +19,12 @@ void InputManager::Init()
 	}
 
 	// Populate the controller buttons
-	initialValues = ReadStringsFromFile("data/controller.config");
-	for (int i = 0; i < initialValues.size(); i++)
+	initialValues = ReadStringsFromFile("data/config/controller.config");
+	for (size_t i = 0; i < initialValues.size(); i++)
 	{
 		if (initialValues[i] != "")
 		{
-			int k = 0;
+			size_t k = 0;
 			int code = std::stoi(ParseWord(initialValues[i], ' ', k));
 			std::string name = initialValues[i].substr(k, initialValues[i].size() - k);
 			buttons[name].mappedButton = (SDL_GameControllerButton)code;
@@ -181,7 +182,7 @@ void InputManager::SaveRecordedInput()
 {
 	std::ofstream fout;
 
-	fout.open("data/inputs.dat");
+	fout.open("data/config/inputs.dat");
 
 	for (const auto& input : recordedInputs)
 	{
@@ -217,7 +218,7 @@ void InputManager::SaveKeyMappingsToFile()
 {
 	std::ofstream fout;
 
-	fout.open("data/keyboard.config");
+	fout.open("data/config/keyboard.config");
 
 	if (fout.is_open())
 	{
@@ -260,7 +261,7 @@ void InputManager::SaveButtonMappingsToFile()
 {
 	std::ofstream fout;
 
-	fout.open("data/controller.config");
+	fout.open("data/config/controller.config");
 
 	if (fout.is_open())
 	{
@@ -297,7 +298,7 @@ std::string InputManager::GetButtonEventAsString(uint8_t code)
 	return "";
 }
 
-glm::vec3 InputManager::GetMouseWorldPosition()
+const glm::vec3 InputManager::GetMouseWorldPosition() const
 {
 	int clickedX = mouseX - ((int)mouseX % (Globals::TILE_SIZE));
 	int clickedY = mouseY - ((int)mouseY % (Globals::TILE_SIZE));
@@ -307,7 +308,20 @@ glm::vec3 InputManager::GetMouseWorldPosition()
 
 void InputManager::StartUpdate()
 {
-	SDL_GetMouseState(&mouseX, &mouseY);
+	previousMouseState = mouseState;
+	mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+
+	holdingLeft = (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
+	holdingRight = (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT));
+	holdingMiddle = (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE));
+
+	pressedLeft = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
+	pressedRight = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_RIGHT));
+	pressedMiddle = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE));
+
+	releasedLeft = !holdingLeft && !pressedLeft;
+	releasedRight = !holdingRight && !pressedRight;
+	releasedMiddle = !holdingMiddle && !pressedMiddle;
 
 	// Check every key at the beginning of the Update loop
 	// in order to see if it had been pressed or released last frame.
@@ -326,7 +340,7 @@ void InputManager::StartUpdate()
 		if (pTargetCount < 0)
 		{
 			endIndex = playbackIndex;
-			for (int i = playbackIndex; i < playbackInputs.size(); i++)
+			for (size_t i = playbackIndex; i < playbackInputs.size(); i++)
 			{
 				if (playbackInputs[i] < 0) // found the count
 				{
@@ -428,10 +442,15 @@ bool InputManager::GetKeyReleased(const std::string& keyName)
 	}
 }
 
-bool InputManager::GetLeftClicked()
+const bool InputManager::GetLeftClicked() const
 {
 	int mouseX, mouseY;
 	const uint32_t mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
 	return (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
+}
+
+glm::vec3 InputManager::GetMouseWorldPos(const Game& game) const
+{
+	return game.ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
 }

@@ -1,6 +1,7 @@
 #include "leak_check.h"
 
 #include "Game.h"
+#include "MainHelper.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -128,7 +129,7 @@ int Game::MainLoop()
 	allocationCount = 0;
 
 #if _DEBUG
-	showFPS = true;
+
 	if (showFPS)
 	{
 		timeLeft -= dt;
@@ -140,7 +141,7 @@ int Game::MainLoop()
 			{
 				gui->GetText(guiFPS)->SetText(guiFPS2 + std::to_string(currentNumberOfFrames));
 				previousNumberOfFrames = currentNumberOfFrames;
-				if (currentNumberOfFrames < 59)
+				if (currentNumberOfFrames < 59 && currentNumberOfFrames > 0)
 					std::cout << currentNumberOfFrames << std::endl;
 			}
 
@@ -150,6 +151,13 @@ int Game::MainLoop()
 		}
 		frames++;
 	}
+
+	if (renderer.hotReloadShaders)
+	{
+		renderer.HotReload();
+	}
+
+
 #endif
 
 	if (showTimer)
@@ -171,9 +179,13 @@ int Game::MainLoop()
 		break;
 	}
 
+	//SetDuration("Update");
 	Update();
+	//PrintDuration("Update");
 
+	//SetDuration("Render");
 	Render();
+	//PrintDuration("Render");
 
 	if (renderer.drawCallsPerFrame != drawCallsLastFrame)
 	{
@@ -205,149 +217,55 @@ int Game::MainLoop()
 	return 0;
 }
 
-
-Game::Game(const std::string& n, const std::string& title, const std::string& icon, bool is2D,
-	const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m, CutsceneHelper* ch, NetworkManager* net) : logger("logs/output.log")
+Game::Game(const std::string& name, const std::string& title, const std::string& icon, bool is2D, MainHelper* helper) : logger("logs/output.log")
 {
-	currentGame = n;
+	currentGame = name;
+	startOfGame = std::chrono::steady_clock::now();
+
+	cutsceneManager.commands.helper = helper->cmd;
+	entityFactory = helper->e;
+	networkManager = helper->n;
+	fileManager = helper->f;
+	gui = helper->gui;
+	menuManager = helper->m;
+
+	windowTitle = title;
+	windowIconFilepath = icon;
+	use2DCamera = is2D;
+
+	Init();
+
+	std::cout << "Game Created" << std::endl;
+}
+
+Game::Game(const std::string& name, const std::string& title, const std::string& icon, bool is2D,
+	const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m, CutsceneHelper* ch, NetworkManager* n) : logger("logs/output.log")
+{
+	currentGame = name;
 	startOfGame = std::chrono::steady_clock::now();
 	entityFactory = &e;
-	networkManager = net;
+	networkManager = n;
 
 	use2DCamera = is2D;
 
 	fileManager = &f;
-	fileManager->Init(*this);
 
+	gui = &g;
 	menuManager = &m;
 
 	windowTitle = title;
 	windowIconFilepath = icon;
 
-	InitSDL();
-
-	renderer.Init(this);
-	spriteManager.Init(&renderer);
-
-	InitOpenGL();
-
-	std::cout << "After OpenGL Init..." << std::endl;
-
-	//Sprite::mesh = CreateSpriteMesh();
-	cubeMesh = CreateCubeMesh();
-
-	// Initialize the font before all text
-
-	// TODO: Load all fonts from a file (fonts.list)
-	theFont = CreateFont("SazanamiGothic", m.GetFontSize());
-	headerFont = CreateFont("SazanamiGothic", m.GetFontSize() * 2);
-
-	soundManager.ReadMusicData("data/bgm.dat");
-
-	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager and random)
-	cutsceneManager.Init(*this);
-	cutsceneManager.ParseCutsceneFile();	
-
-	//ShaderProgram* shader = renderer.shaders[ShaderName::Default];
-
-	// Initialize debug stuff
-	renderer.debugSprite = CreateSprite("assets/editor/rect-outline.png");
-
-	// Initialize overlay sprite
-	renderer.overlaySprite = CreateSprite("assets/gui/white.png");
-	renderer.overlaySprite->keepPositionRelativeToCamera = true;
-	//renderer.overlaySprite->keepScaleRelativeToCamera = true;
-
-	// Initialize the sprite map (do this BEFORE the editor)
-	ReadEntityLists();
-
-	// Initialize the translation maps
-	ReadTranslationData();
-
-	editor = new Editor(*this);
-	debugScreen = new DebugScreen(*this);
-
-	// Initialize this AFTER OpenGL, Fonts, and Editor
-	soundManager.Init(this);
-
-	dirNames = ReadStringsFromFile("data/dirs.dat");
-	initialStates = GetMapStringsFromFile("data/istates.dat");
-
-	entities.clear();
-
-	SetScreenResolution(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
-
-	// Initialize GUI (do this AFTER fonts and resolution)
-	gui = &g;
-	gui->Init(this);
-
-	inputManager.Init();
-
-	// Initialize all the menus (do this AFTER fonts and resolution)
-	menuManager->Init(*this);
-
-	LoadEditorSettings();
-
-	previousTime = clock::now();
-
-	if (!use2DCamera)
-	{
-		glm::vec3 lColor2 = glm::vec3(0.0f, 1.0f, 0.0f);
-
-		glm::vec3 lColor = glm::vec3(1.0f, 1.0f, 1.0f);
-		glm::vec3 lDir = glm::vec3(2.0f, 2.0f, 2.0f);
-
-		shinyMaterial = Material(1.0f, 16);
-		dullMaterial = Material(0.3f, 4);
-
-		renderer.light = new DirectionalLight(lColor, 0.4f, 0.2f, lDir);
-
-		glm::vec3 pos1 = glm::vec3(0.0f, 0.0f, 0.0f);
-		glm::vec3 pos2 = glm::vec3(5.0f, 0.0f, 0.0f);
-		glm::vec3 attenuation = glm::vec3(0.3f, 0.2f, 0.1f);
-
-		renderer.pointLightCount = 0;
-		renderer.pointLights[0] = new PointLight(lColor2, 0.4f, 0.2f, pos1, attenuation);
-		renderer.pointLightCount++;
-
-		renderer.spotLightCount = 0;
-		renderer.spotLights[0] = new SpotLight(lColor2, 0.4f, 0.2f, pos2, attenuation, lDir, 20.0f);
-		renderer.spotLightCount++;
-
-		// shaders[5] = Diffuse
-		triangle3D = new Sprite(renderer.shaders[5], MeshType::Pyramid);
-		triangle3D->color = { 255, 0, 0, 255 };
-
-		// Shiny Material
-		triangle3D->material = &shinyMaterial;
-
-		// Dull Material
-		//triangle3D->material = &dullMaterial;
-
-		//cutsceneManager.commands.ExecuteCommand("shader pyramid data/shaders/default.vert data/shaders/pyramid.frag");
-		//triangle3D->SetShader(cutsceneManager.commands.customShaders["pyramid"]);
-
-#ifdef USE_ASSIMP
-		modelChopper.LoadModel("assets/models/chopper/chopper.obj");
-#endif
-
-	}
-	else
-	{
-		glm::vec3 lColor = glm::vec3(1.0f, 1.0f, 1.0f);
-		glm::vec3 lDir = glm::vec3(2.0f, 2.0f, 2.0f);
-		renderer.light = new DirectionalLight(lColor, 1.0f, 1.0f, lDir);
-	}
-
 	cutsceneManager.commands.helper = ch;
-	cutsceneManager.commands.helper->SetFunctions(cutsceneManager.commands);
+
+	Init();
 
 	std::cout << "Game Created" << std::endl;
 }
 
 Game::~Game()
 {	
-	for (int i = 0; i < entities.size(); i++)
+	for (size_t i = 0; i < entities.size(); i++)
 	{
 		if (entities[i] != nullptr)
 			delete_it(entities[i]);
@@ -422,6 +340,134 @@ Game::~Game()
 	EndSDL();
 }
 
+
+
+void Game::Init()
+{
+	fileManager->Init(*this);
+
+	InitSDL();
+
+	renderer.Init(this);
+	spriteManager.Init(&renderer);
+
+	InitOpenGL();
+
+	std::cout << "After OpenGL Init..." << std::endl;
+
+	//Sprite::mesh = CreateSpriteMesh();
+	cubeMesh = CreateCubeMesh();
+
+	// Initialize the font before all text
+
+	// TODO: Load all fonts from a file (fonts.list)
+	theFont = CreateFont("SazanamiGothic", menuManager->defaultFontSize);
+	headerFont = CreateFont("SazanamiGothic", menuManager->defaultFontSize * 2);
+
+	soundManager.ReadMusicData("data/config/bgm.dat");
+
+	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager and random)
+	cutsceneManager.Init(*this);
+	cutsceneManager.ParseCutsceneFile();
+
+	//ShaderProgram* shader = renderer.shaders[ShaderName::Default];
+
+	// Initialize debug stuff
+	renderer.debugSprite = CreateSprite("assets/editor/rect-outline.png");
+
+	// Initialize overlay sprite
+	renderer.overlaySprite = CreateSprite("assets/gui/white.png");
+	renderer.overlaySprite->keepPositionRelativeToCamera = true;
+	//renderer.overlaySprite->keepScaleRelativeToCamera = true;
+
+	// Initialize the sprite map (do this BEFORE the editor)
+	ReadEntityLists();
+
+	// Initialize the translation maps
+	ReadTranslationData();
+
+
+
+	editor = new Editor(*this);
+	debugScreen = new DebugScreen(*this);
+
+	// Initialize this AFTER OpenGL, Fonts, and Editor
+	soundManager.Init(this);
+
+	dirNames = ReadStringsFromFile("data/config/dirs.dat");
+	initialStates = GetMapStringsFromFile("data/config/istates.dat");
+
+	entities.clear();
+
+	SetScreenResolution(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
+
+
+	// Initialize GUI (do this AFTER fonts and resolution)
+	gui->Init(this);
+
+	inputManager.Init();
+
+	// Initialize all the menus (do this AFTER fonts and resolution)
+	menuManager->Init(*this);
+
+	LoadEditorSettings();
+
+	previousTime = clock::now();
+
+	if (!use2DCamera)
+	{
+		glm::vec3 lColor2 = glm::vec3(0.0f, 1.0f, 0.0f);
+
+		glm::vec3 lColor = glm::vec3(1.0f, 1.0f, 1.0f);
+		glm::vec3 lDir = glm::vec3(2.0f, 2.0f, 2.0f);
+
+		shinyMaterial = Material(1.0f, 16);
+		dullMaterial = Material(0.3f, 4);
+
+		renderer.light = new DirectionalLight(lColor, 0.4f, 0.2f, lDir);
+
+		glm::vec3 pos1 = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 pos2 = glm::vec3(5.0f, 0.0f, 0.0f);
+		glm::vec3 attenuation = glm::vec3(0.3f, 0.2f, 0.1f);
+
+		renderer.pointLightCount = 0;
+		renderer.pointLights[0] = new PointLight(lColor2, 0.4f, 0.2f, pos1, attenuation);
+		renderer.pointLightCount++;
+
+		renderer.spotLightCount = 0;
+		renderer.spotLights[0] = new SpotLight(lColor2, 0.4f, 0.2f, pos2, attenuation, lDir, 20.0f);
+		renderer.spotLightCount++;
+
+		// shaders[5] = Diffuse
+		triangle3D = new Sprite(renderer.shaders[5], MeshType::Pyramid);
+		triangle3D->color = { 255, 0, 0, 255 };
+
+		// Shiny Material
+		triangle3D->material = &shinyMaterial;
+
+		// Dull Material
+		//triangle3D->material = &dullMaterial;
+
+		//cutsceneManager.commands.ExecuteCommand("shader pyramid data/shaders/default.vert data/shaders/pyramid.frag");
+		//triangle3D->SetShader(cutsceneManager.commands.customShaders["pyramid"]);
+
+#ifdef USE_ASSIMP
+		modelChopper.LoadModel("assets/models/chopper/chopper.obj");
+#endif
+
+	}
+	else
+	{
+		glm::vec3 lColor = glm::vec3(1.0f, 1.0f, 1.0f);
+		glm::vec3 lDir = glm::vec3(2.0f, 2.0f, 2.0f);
+		renderer.light = new DirectionalLight(lColor, 1.0f, 1.0f, lDir);
+	}
+
+	cutsceneManager.commands.helper->SetFunctions(cutsceneManager.commands);
+
+}
+
+
 Sprite* Game::CreateSprite(const std::string& filepath, const int shaderName)
 {
 	return new Sprite(spriteManager.GetImage(filepath), renderer.shaders[shaderName]);
@@ -437,7 +483,7 @@ void Game::ReadEntityLists()
 	std::vector<std::string> listNames = ReadStringsFromFile("data/lists/entityTypes.list");
 
 	entityTypes.clear();
-	for (int i = 0; i < listNames.size(); i++)
+	for (size_t i = 0; i < listNames.size(); i++)
 	{
 		entityTypes[listNames[i]] = ReadStringsFromFile("data/lists/" + listNames[i] + ".list");
 	}
@@ -468,6 +514,17 @@ FontInfo* Game::CreateFont(const std::string& fontName, int size)
 	}
 
 	return fonts[key];
+}
+
+void Game::SetDuration(const std::string& label)
+{
+	durations[label] = clock::now();
+}
+
+void Game::PrintDuration(const std::string& label)
+{
+	float duration = std::chrono::duration<float, milliseconds::period>(clock::now() - durations[label]).count();
+	std::cout << label << " => " << duration << std::endl;
 }
 
 void Game::CalcDt()
@@ -510,7 +567,7 @@ void Game::InitOpenGL()
 	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2) != 0)
 	{
 		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_MINOR_VERSION failed. " + std::string(SDL_GetError()));
-}
+	}
 
 	// Set our OpenGL version.
 	// SDL_GL_CONTEXT_CORE gives us only the newer version, deprecated functions are disabled
@@ -519,21 +576,32 @@ void Game::InitOpenGL()
 		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_MASK failed. " + std::string(SDL_GetError()));
 	}
 
+	std::cout << "Attempting to create emscripten WebGL context 1 ..." << std::endl;
+
 	EmscriptenWebGLContextAttributes attrs;
-	attrs.antialias = true;
-	attrs.majorVersion = 3;
-	attrs.minorVersion = 2;
-	attrs.alpha = true;
-	attrs.powerPreference = EM_WEBGL_POWER_PREFERENCE_DEFAULT;
+	std::cout << "Attempting to create emscripten WebGL context 2 ..." << std::endl;
 
 	// The following lines must be done in exact order, or it will break!
 	emscripten_webgl_init_context_attributes(&attrs); // you MUST init the attributes before creating the context
-	attrs.majorVersion = 3; // you MUST set the version AFTER the above line
+	
+	attrs.majorVersion = 3;
+	attrs.minorVersion = 0;
+	attrs.alpha = true;
+	attrs.antialias = true;
+	attrs.powerPreference = EM_WEBGL_POWER_PREFERENCE_DEFAULT;
+	
 	EMSCRIPTEN_WEBGL_CONTEXT_HANDLE webgl_context = emscripten_webgl_create_context("#canvas", &attrs);
+	
+	std::cout << "Attempting to create emscripten WebGL context 3 ..." << std::endl;
+	
 	emscripten_webgl_make_context_current(webgl_context);
+	
+	std::cout << "Attempting to create emscripten WebGL context 4..." << std::endl;
+	
 	mainContext = SDL_GL_CreateContext(window);
 
 #else
+	
 	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
 	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0)
 	{
@@ -563,7 +631,6 @@ void Game::InitOpenGL()
 		std::cout << "Context failed..." << std::endl;
 		logger.Log("ERROR: SDL_GL_MakeCurrent failed. " + std::string(SDL_GetError()));
 	}
-#endif
 
 	// Turn on double buffering with a 24bit Z buffer.
 	// You may need to change this to 16 or 32 for your system
@@ -571,6 +638,19 @@ void Game::InitOpenGL()
 	{
 		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_DOUBLEBUFFER failed. " + std::string(SDL_GetError()));
 	}
+
+	if (SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1) != 0)
+	{
+		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_MULTISAMPLEBUFFERS failed. " + std::string(SDL_GetError()));
+	}
+
+	if (SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2) != 0)
+	{
+		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_MULTISAMPLESAMPLES failed. " + std::string(SDL_GetError()));
+	}
+
+	glEnable(GL_MULTISAMPLE);
+#endif
 
 	std::cout << "GL_VERSION: " << glGetString(GL_VERSION) << std::endl;
 	//std::cout << "GL_VERSION? " << std::endl;
@@ -584,7 +664,7 @@ void Game::InitOpenGL()
 #ifndef EMSCRIPTEN
 	glewExperimental = GL_TRUE;
 	glewInit();
-	glAlphaFunc(GL_GREATER, 0.1);
+	glAlphaFunc(GL_GREATER, 0.1f);
 	glEnable(GL_ALPHA_TEST);
 #endif
 
@@ -636,7 +716,7 @@ void Game::InitSDL()
 
 	std::cout << "Creating window..." << std::endl;
 
-	window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
+	window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, initialWidth, initialHeight, SDL_WINDOW_OPENGL);
 
 	if (window == nullptr)
 	{
@@ -721,7 +801,7 @@ glm::vec3 Game::SnapToGrid(glm::vec3 position, int size)
 	return glm::vec3(x, y, position.z);
 }
 
-void Game::RefreshAnimator(Entity* newEntity, const std::string& entityName) const
+void Game::RefreshAnimator(Entity* newEntity, const std::string& entityName, const std::string& customSubtype) const
 {
 	if (newEntity == nullptr)
 		return;
@@ -731,7 +811,7 @@ void Game::RefreshAnimator(Entity* newEntity, const std::string& entityName) con
 	std::string filepath = entityName + "/";
 
 	args["0"] = entityName; // std::to_string(subtype);
-	args["1"] = "";
+	args["1"] = customSubtype;
 
 	if (entityTypes.count(entityName) > 0 && entityTypes[entityName].size() > newEntity->subtype)
 	{
@@ -944,7 +1024,7 @@ void Game::DeleteEntity(int index)
 	// TODO: Is there a more efficient way of handling this?
 	if (entities[index]->isLightSource)
 	{
-		for (int i = 0; i < lightSourcesInLevel.size(); i++)
+		for (size_t i = 0; i < lightSourcesInLevel.size(); i++)
 		{
 			if (entities[index] == lightSourcesInLevel[i])
 			{
@@ -1164,7 +1244,7 @@ void Game::StopTextInput(Dialog& dialog)
 			std::string loweredKey = key;
 			transform(loweredKey.begin(), loweredKey.end(), loweredKey.begin(), ::tolower);
 
-			for (int i = 0; i < classNames.size(); i++)
+			for (size_t i = 0; i < classNames.size(); i++)
 			{
 				std::string loweredName = classNames[i];
 				transform(loweredName.begin(), loweredName.end(), loweredName.begin(), ::tolower);
@@ -1213,12 +1293,10 @@ void Game::LoadTitleScreen()
 		fin.close();
 	}
 
-	editor->InitLevelFromFile("title");
+	editor->InitLevelFromFile(startingLevel);
 
-	if (allMenus.count("Title") != 0)
-		openedMenus.emplace_back(allMenus["Title"]);
-	else
-		std::cout << "ERROR: No title menu found!" << std::endl;
+	if (startingMenu != "")
+		OpenMenu(startingMenu);
 
 	if (soundManager.bgmFilepath != soundManager.bgmNames[nextBGM])
 		soundManager.PlayBGM(soundManager.bgmNames[nextBGM]);
@@ -1285,7 +1363,7 @@ void Game::TransitionLevel()
 			}
 			else
 			{
-				openedMenus.clear();
+				//openedMenus.clear(); // TODO: Probably keep this line removed
 				editor->InitLevelFromFile(nextLevel);
 			}
 
@@ -1433,6 +1511,8 @@ void Game::CheckDeleteEntities()
 	{
 		DeleteEntity(entitiesToDelete[0]);
 	}	
+
+	PopulateQuadTree();
 }
 
 void Game::HandleEditMode()
@@ -1441,7 +1521,7 @@ void Game::HandleEditMode()
 	{
 		const Uint8* input = SDL_GetKeyboardState(NULL);
 		renderer.camera.KeyControl(input, dt, screenWidth, screenHeight);
-		renderer.guiCamera.KeyControl(input, dt, screenWidth, screenHeight);
+		// NOTE: DO NOT UPDATE THE GUI CAMERA HERE! ONLY THE NORMAL CAMERA!
 
 		editor->HandleEdit();
 	}
@@ -1450,7 +1530,7 @@ void Game::HandleEditMode()
 void Game::SaveEditorSettings()
 {
 	std::ofstream fout;
-	fout.open("data/editor.config");
+	fout.open("data/config/editor.config");
 
 	// Autoreplace = When we click to place a tile, automatically replace the one that was there before it
 	// Or if this setting is off, then you must right-click to delete it first (can only place when empty)
@@ -1480,7 +1560,7 @@ void Game::SaveEditorSettings()
 void Game::LoadEditorSettings()
 {
 	std::ifstream fin;
-	fin.open("data/editor.config");
+	fin.open("data/config/editor.config");
 
 	char line[256];
 	fin.getline(line, 256);
@@ -1532,7 +1612,7 @@ void Game::LoadEditorSettings()
 void Game::SaveSettings()
 {
 	std::ofstream fout;
-	fout.open("data/settings.config");
+	fout.open("data/config/settings.config");
 
 	fout << "music_volume " << soundManager.bgmVolumeIndex << std::endl;
 	fout << "sound_volume " << soundManager.soundVolumeIndex << std::endl;
@@ -1548,7 +1628,7 @@ void Game::SaveSettings()
 void Game::LoadSettings()
 {
 	std::ifstream fin;
-	fin.open("data/settings.config");
+	fin.open("data/config/settings.config");
 
 	char line[256];
 	fin.getline(line, 256);
@@ -1693,16 +1773,26 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 		}
 		else
 		{
-			std::cout << "Handle Menu Event" << std::endl;
+			//std::cout << "Handle Menu Event" << std::endl;
 			switch (event.key.keysym.sym)
 			{
 			case SDLK_RETURN:
-				std::cout << "Handle Menu Event - hit return key" << std::endl;
+				//std::cout << "Handle Menu Event - hit return key" << std::endl;
 				quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
 				break;
 #if _DEBUG
 			case SDLK_2:
 				guiMode = !guiMode;
+				break;
+			case SDLK_9:
+				if (savingGIF)
+				{
+					EndGIF();
+				}
+				else
+				{
+					StartGIF("screenshots/gif/frames/");
+				}
 				break;
 #endif
 			default:
@@ -1752,18 +1842,12 @@ bool Game::HandleEvent(SDL_Event& event)
 			}
 			else
 			{
-				if (cutsceneManager.watchingCutscene)
-				{
-					if (!cutsceneManager.waitingForButton)
-					{
-						cutsceneManager.OpenBacklog();
-					}
-				}
-				else
-				{
-					renderer.camera.Zoom(-0.1f, screenWidth, screenHeight);
-				}
+				inputManager.scrolledUp = true;
 
+				if (!cutsceneManager.watchingCutscene)
+				{
+					renderer.camera.Zoom(-renderer.camera.zoomSpeed, screenWidth, screenHeight);
+				}
 			}
 		}
 		else if (event.wheel.y < 0)
@@ -1774,20 +1858,11 @@ bool Game::HandleEvent(SDL_Event& event)
 			}
 			else
 			{
-				if (cutsceneManager.watchingCutscene)
-				{
-					if (cutsceneManager.readingBacklog)
-					{
-						cutsceneManager.CloseBacklog();
-					}
-					else // advance text
-					{
+				inputManager.scrolledDown = true;
 
-					}					
-				}
-				else
+				if (!cutsceneManager.watchingCutscene)
 				{
-					renderer.camera.Zoom(0.1f, screenWidth, screenHeight);
+					renderer.camera.Zoom(renderer.camera.zoomSpeed, screenWidth, screenHeight);
 				}
 
 			}
@@ -1957,7 +2032,7 @@ bool Game::HandleEvent(SDL_Event& event)
 				if (inputManager.isPlayingBackInput)
 					inputManager.StopPlayback();
 				else
-					inputManager.StartPlayback("data/inputs.dat");
+					inputManager.StartPlayback("data/config/inputs.dat");
 								
 				std::cout << "Toggle playback " << inputManager.isPlayingBackInput << std::endl;
 
@@ -2037,7 +2112,7 @@ void Game::EndGIF()
 	savingGIF = false;
 
 	std::string timestamp = CurrentDate() + "-" + CurrentTime();
-	for (int i = 0; i < timestamp.size(); i++)
+	for (size_t i = 0; i < timestamp.size(); i++)
 	{
 		if (timestamp[i] == ':')
 			timestamp[i] = '-';
@@ -2073,9 +2148,104 @@ void Game::SaveGIF()
 	}
 }
 
+
+void Game::CreateScreenshot()
+{
+	#ifndef EMSCRIPTEN
+	if (createdScreenshot != nullptr)
+	{
+		SDL_FreeSurface(createdScreenshot);
+		createdScreenshot = nullptr;
+	}
+
+	switch (screenWidth)
+	{
+		case 640:
+			glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels640);
+			createdScreenshot = SDL_CreateRGBSurfaceFrom(pixels640, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
+			break;
+		case 1280:
+			glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels1280);
+			createdScreenshot = SDL_CreateRGBSurfaceFrom(pixels1280, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
+			break;
+		case 1600:
+			glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels1600);
+			createdScreenshot = SDL_CreateRGBSurfaceFrom(pixels1600, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
+			break;
+		case 1920:
+			glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels1920);
+			createdScreenshot = SDL_CreateRGBSurfaceFrom(pixels1920, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
+			break;
+	}		
+	#endif
+}
+
+void Game::SaveCreatedScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension)
+{
+	SDL_Surface* screenshot = createdScreenshot;
+
+	static bool shouldFlip = true;
+
+	if (shouldFlip)
+	{
+		invertSDLSurfaceVertically(screenshot);
+		//shouldFlip = false;
+	}
+
+	shouldFlip = !shouldFlip;
+
+	int result = -1;
+	std::string finalpath = filepath;
+
+	if (filepath == "")
+	{
+		std::string timestamp = CurrentDate() + "-" + CurrentTime();
+		for (int i = 0; i < timestamp.size(); i++)
+		{
+			if (timestamp[i] == ':')
+				timestamp[i] = '-';
+		}
+
+		finalpath = "screenshots/" + timestamp + extension;
+	}
+	else if (filename == "")
+	{
+		std::string timestamp = CurrentDate() + "-" + CurrentTime();
+		for (size_t i = 0; i < timestamp.size(); i++)
+		{
+			if (timestamp[i] == ':')
+				timestamp[i] = '-';
+		}
+
+		finalpath = (filepath + timestamp + extension);
+	}
+	else
+	{
+		finalpath = (filepath + filename + extension);
+	}
+
+
+	// Check if file exists and if so, delete it
+	std::ifstream infile(finalpath.c_str());
+	if (infile.good()) 
+	{
+		infile.close();
+		remove(finalpath.c_str());
+	}
+
+	if (extension == ".png")
+		result = IMG_SavePNG(screenshot, finalpath.c_str());
+	else
+		result = SDL_SaveBMP(screenshot, finalpath.c_str());
+
+	//std::cout << "saved: " << result << std::endl;
+
+}
+
 void Game::SaveScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension)
 {
 #ifndef EMSCRIPTEN
+
 	const unsigned int bytesPerPixel = 3;
 
 	unsigned char* pixels = new unsigned char[screenWidth * screenHeight * bytesPerPixel]; // 4 bytes for RGBA
@@ -2083,14 +2253,12 @@ void Game::SaveScreenshot(const std::string& filepath, const std::string& filena
 
 	SDL_Surface* screenshot = SDL_CreateRGBSurfaceFrom(pixels, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
 
-	//SDL_Surface * screenshot = SDL_CreateRGBSurface(0, screenWidth, screenHeight, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-	//SDL_RenderReadPixels(renderer.renderer, NULL, SDL_PIXELFORMAT_ARGB8888, screenshot->pixels, screenshot->pitch);
 	invertSDLSurfaceVertically(screenshot);
-	
+
 	if (filepath == "")
 	{
 		std::string timestamp = CurrentDate() + "-" + CurrentTime();
-		for (int i = 0; i < timestamp.size(); i++)
+		for (size_t i = 0; i < timestamp.size(); i++)
 		{
 			if (timestamp[i] == ':')
 				timestamp[i] = '-';
@@ -2104,7 +2272,7 @@ void Game::SaveScreenshot(const std::string& filepath, const std::string& filena
 	else if (filename == "")
 	{
 		std::string timestamp = CurrentDate() + "-" + CurrentTime();
-		for (int i = 0; i < timestamp.size(); i++)
+		for (size_t i = 0; i < timestamp.size(); i++)
 		{
 			if (timestamp[i] == ':')
 				timestamp[i] = '-';
@@ -2122,10 +2290,10 @@ void Game::SaveScreenshot(const std::string& filepath, const std::string& filena
 		else
 			SDL_SaveBMP(screenshot, (filepath + filename + extension).c_str());
 	}
-	
-	SDL_FreeSurface(screenshot);
 
+	SDL_FreeSurface(screenshot);
 	delete[] pixels;
+
 #endif
 }
 
@@ -2161,11 +2329,19 @@ void Game::GetMenuInput()
 
 void Game::UpdateClickAndDrag()
 {
-	// Get position of mouse and any clicks
-	previousMouseState = mouseState;
-	mouseState = SDL_GetMouseState(&mouseRect.x, &mouseRect.y);
+	if (renderer.camera.isDragged)
+	{
+		renderer.camera.UpdateDrag(*this);
+		
+		if (inputManager.releasedLeft || inputManager.releasedMiddle || inputManager.releasedRight)
+		{
+			renderer.camera.isDragged = false;
+		}
 
-	glm::vec3 worldPosition = ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseRect.x, mouseRect.y));
+		return;
+	}
+
+	glm::vec3 worldPosition = inputManager.GetMouseWorldPos(*this);
 
 	mouseRect.x = worldPosition.x;
 	mouseRect.y = worldPosition.y;
@@ -2173,7 +2349,18 @@ void Game::UpdateClickAndDrag()
 	mouseRect.h = 1;
 
 	std::vector<Entity*> clickableEntities;
-	quadTree.Retrieve(&mouseRect, clickableEntities, &quadTree);
+	if (useQuadTree)
+	{
+		quadTree.Retrieve(&mouseRect, clickableEntities, &quadTree);
+	}
+	else
+	{
+		clickableEntities = entities;
+	}
+
+	Entity* hovered = nullptr;
+
+	// Only check entities near the mouse
 
 	for (unsigned int i = 0; i < clickableEntities.size(); i++)
 	{
@@ -2181,36 +2368,51 @@ void Game::UpdateClickAndDrag()
 		{
 			clickableEntities[i]->GetSprite()->isHovered = false;
 
-			if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+			if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
 			{
-				if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
-				{
-					if (!(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
-						clickableEntities[i]->OnClickPressed(mouseState, *this);
-					else
-						clickableEntities[i]->OnClick(mouseState, *this);
-					break;
-				}
+				hovered = clickableEntities[i];
 			}
-			else if (previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
-			{
-				if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
-				{
-					clickableEntities[i]->OnClickReleased(mouseState, *this);
-				}
-			}
-			else if (HasIntersection(mouseRect, ConvertCoordsFromCenterToTopLeft(*clickableEntities[i]->GetBounds())))
-			{
-				clickableEntities[i]->GetSprite()->isHovered = true;
-			}
-
-			if (draggedEntity != nullptr)
-			{
-				draggedEntity->position = worldPosition;
-			}
-
 		}
 	}
+
+	if (draggedEntity != nullptr)
+	{
+		draggedEntity->position = worldPosition;
+		hovered = draggedEntity;
+	}
+
+	if (hovered != nullptr)
+	{
+		hovered->GetSprite()->isHovered = true;
+
+		if (inputManager.holdingLeft || inputManager.holdingRight || inputManager.holdingMiddle)
+		{
+			if (inputManager.pressedLeft || inputManager.pressedMiddle || inputManager.pressedRight)
+			{
+				hovered->OnClickPressed(inputManager.mouseState, *this);
+			}
+			else
+			{
+				hovered->OnClick(inputManager.mouseState, *this);
+			}
+		}
+		else if (inputManager.releasedLeft || inputManager.releasedMiddle || inputManager.releasedRight)
+		{
+			hovered->OnClickReleased(inputManager.mouseState, *this);
+		}
+	}
+	else if (renderer.camera.draggable)
+	{
+		if ( (inputManager.holdingLeft && renderer.camera.dragOnLeft)
+			|| (inputManager.holdingRight && renderer.camera.dragOnRight)
+			|| (inputManager.holdingMiddle && renderer.camera.dragOnMiddle) )
+		{
+			renderer.camera.isDragged = true;
+			renderer.camera.dragStartPos = renderer.camera.position;
+			renderer.camera.lastMousePos = worldPosition;
+		}
+	}
+
 }
 
 void Game::TransitionMenu()
@@ -2302,26 +2504,15 @@ void Game::TransitionMenu()
 	}
 }
 
-void Game::OpenMenu(const std::string& menuName)
-{
-	MenuScreen& menu = *allMenus[menuName];
-
-	if (menu.isDynamic)
-	{
-		menu.ResetMenu();
-		menu.CreateMenu(menuName, *this);
-	}
-
-	openedMenus.emplace_back(&menu);
-}
-
 void Game::Update()
 {
+	#ifndef EMSCRIPTEN
 	if (networkManager && networkManager->protocol == Protocol::UDP_Server)
 	{
 		networkManager->UDPServer();
 		networkManager->ReadMessage(*this);
 	}
+	#endif
 
 	inputManager.StartUpdate();
 
@@ -2337,6 +2528,7 @@ void Game::Update()
 	}
 
 	gui->Update();
+	soundManager.Update();
 	renderer.Update();
 
 	if (soundMode)
@@ -2345,7 +2537,7 @@ void Game::Update()
 		return;
 	}
 
-	soundManager.soundTest->Update(*this);
+	//soundManager.soundTest->Update(*this);
 
 	if (freeCameraMode)
 	{
@@ -2385,12 +2577,14 @@ void Game::Update()
 	bool updateNormalStuff = true;
 
 	// VERY IMPORTANT TO DO THIS HERE!
-	// Let's just keep mouse input stuff all in one place, then reference it everywhere else.
-	int mouseX, mouseY = 0;
-	const uint32_t mouseState = SDL_GetMouseState(&mouseX, &mouseY);
-	worldPosition = ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
+	worldPosition = ConvertFromScreenSpaceToWorldSpace(glm::vec2(inputManager.GetMouseX(), inputManager.GetMouseY()));
 
-	if (openedMenus.size() > 0)
+	if (transitionState > 0)
+	{
+		TransitionLevel();
+		updateNormalStuff = false;
+	}
+	else if (openedMenus.size() > 0)
 	{
 		if (guiMode)
 		{
@@ -2413,7 +2607,7 @@ void Game::Update()
 		}
 
 		
-		updateNormalStuff = openedMenus[openedMenus.size() - 1]->shouldUpdate;
+		updateNormalStuff = openedMenus.size() == 0 || openedMenus[openedMenus.size() - 1]->shouldUpdate;
 	}
 	else if (editMode)
 	{
@@ -2423,11 +2617,6 @@ void Game::Update()
 	else if (guiMode)
 	{
 		editor->HandleGUIMode();
-	}
-	else if (transitionState > 0)
-	{
-		TransitionLevel();
-		updateNormalStuff = false;
 	}
 
 	if (updateNormalStuff)
@@ -2449,7 +2638,7 @@ void Game::Update()
 
 		if (updateNormalStuff)
 		{
-			PopulateQuadTree();
+			//PopulateQuadTree();
 
 			if (cutsceneManager.watchingCutscene)
 			{
@@ -2457,7 +2646,9 @@ void Game::Update()
 			}
 			else
 			{
+				//SetDuration("UpdateClickAndDrag");
 				UpdateClickAndDrag();
+				//PrintDuration("UpdateClickAndDrag");
 			}
 
 			// TODO: Don't hardcode these numbers
@@ -2466,14 +2657,33 @@ void Game::Update()
 			// Update all entities
 			updateCalls = 0;
 			collisionChecks = 0;
-			for (unsigned int i = 0; i < entities.size(); i++)
+
+			//SetDuration("UpdateEntities");
+
+			if (useQuadTree)
 			{
-				const SDL_Rect* theirBounds = entities[i]->GetBounds();
-				if (entities[i]->active && HasIntersection(cameraBounds, *theirBounds))
+				std::vector<Entity*> entitiesToUpdate;
+				quadTree.Retrieve(&cameraBounds, entitiesToUpdate, &quadTree);
+				for (unsigned int i = 0; i < entitiesToUpdate.size(); i++)
 				{
-					entities[i]->Update(*this);
+					if (entitiesToUpdate[i]->active)
+					{
+						entitiesToUpdate[i]->Update(*this);
+					}
 				}
 			}
+			else
+			{
+				for (unsigned int i = 0; i < entities.size(); i++)
+				{
+					if (entities[i]->active)
+					{
+						entities[i]->Update(*this);
+					}
+				}
+			}
+
+			//PrintDuration("UpdateEntities");
 
 			// Update the camera last
 			// We need to use the original screen resolution here (for some reason)
@@ -2491,7 +2701,7 @@ void Game::Update()
 	inputManager.EndUpdate();
 }
 
-glm::vec3 Game::ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos)
+glm::vec3 Game::ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos) const
 {
 	float halfScreenWidth = screenWidth / 2.0f;
 	float halfScreenHeight = screenHeight / 2.0f;
@@ -2515,7 +2725,7 @@ void Game::PopulateQuadTree()
 {
 	quadTree.Reset();
 
-	for (int i = 0; i < entities.size(); i++)
+	for (size_t i = 0; i < entities.size(); i++)
 	{
 		if (entities[i]->impassable || entities[i]->trigger || entities[i]->clickable
 			|| entities[i]->jumpThru || entities[i]->etype == "player")
@@ -2533,7 +2743,7 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 
 	SDL_SetWindowSize(window, screenWidth, screenHeight);
 	renderer.camera.ResetProjection();
-	renderer.guiCamera.Zoom(0.0f, screenWidth * Camera::MULTIPLIER, screenHeight * Camera::MULTIPLIER);
+	//renderer.guiCamera.Zoom(0.0f, screenWidth * Camera::MULTIPLIER, screenHeight * Camera::MULTIPLIER);
 
 	ShaderProgram* shader1 = nullptr;
 	ShaderProgram* shader2 = nullptr;
@@ -2587,6 +2797,9 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 
 void Game::Render()
 {	
+
+
+	
 	// zero pass
 	glBindFramebuffer(GL_FRAMEBUFFER, mainFrameBuffer->framebufferObject);
 
@@ -2594,14 +2807,18 @@ void Game::Render()
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
+	//SetDuration("RenderNormally");
 	RenderNormally();
+	//PrintDuration("RenderNormally");
 
 	// first pass
 	glBindFramebuffer(GL_FRAMEBUFFER, cutsceneFrameBuffer->framebufferObject);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	//SetDuration("RenderScene");
 	RenderScene();
+	//PrintDuration("RenderScene");
 
 	// second pass
 	bool renderSecondCutsceneBuffer = false;
@@ -2631,7 +2848,11 @@ void Game::Render()
 		// TODO: For alpha mask, use a shader to get the max of (alpha, pixel of black/white texture)
 		// so that the black parts render before the white parts
 
-		std::cout << std::to_string(prevMainFrameBuffer->sprite->color.a) << std::endl;
+		//std::cout << std::to_string(prevMainFrameBuffer->sprite->color.a) << std::endl;
+
+		// There are two cutscene framebuffers. We set this one to be drawn on top of the other one.
+		// Initially the alpha is 255, but it gradually fades out so that we only see the other one.
+		// Thus it looks like we faded from one image to another.
 
 		if (prevCutsceneFrameBuffer->sprite->color.a <= 10) // this can't be exactly 0 in case the timer expires first
 		{
@@ -2653,9 +2874,11 @@ void Game::Render()
 		}
 	}
 
+	//SetDuration("render2");
+
 	// final pass
 	glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glm::vec3 screenPos = glm::vec3(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight, 0);
@@ -2682,6 +2905,10 @@ void Game::Render()
 	{
 		gui->Render(renderer);
 	}
+	else if (gui->renderOnCutscene)
+	{
+		gui->Render(renderer);
+	}
 
 	// Render all menu screens above the GUI
 	if (openedMenus.size() > 0)
@@ -2699,10 +2926,8 @@ void Game::Render()
 	// Always render the mouse last
 	if (cursorSprite != nullptr)
 	{
-		int mouseX = 0;
-		int mouseY = 0;
-		SDL_GetMouseState(&mouseX, &mouseY);
-		cursorSprite->Render(glm::vec3(mouseX, mouseY, 0), 0, renderer, glm::vec3(1,1,1), glm::vec3(0,0,0));
+		cursorSprite->Render(glm::vec3(inputManager.GetMouseX() * Camera::MULTIPLIER, 
+			inputManager.GetMouseY() * Camera::MULTIPLIER, 0), 0, renderer, cursorScale, glm::vec3(0,0,0));
 	}
 
 	glUseProgram(0);
@@ -2712,6 +2937,10 @@ void Game::Render()
 	{
 		SaveGIF();
 	}
+
+	//PrintDuration("render2");
+
+
 }
 
 void Game::RenderQuake(glm::vec3& screenPos)
@@ -2885,7 +3114,7 @@ void Game::RenderNormally()
 	quadTree.Render(renderer);
 
 	// Render only entities in frame, or all entities
-	if (renderer.camera.useOrthoCamera && !editMode)
+	if (renderer.camera.useOrthoCamera && !editMode  && !renderAll)
 	{
 		entitiesToRender.clear();
 		debugEntities.clear();
@@ -3048,6 +3277,123 @@ Entity* Game::GetEntityFromID(int id)
 	}
 
 	return nullptr;
+}
+
+// Sort only one entity within a vector
+void Game::SortOneEntity(Entity* entity, std::vector<Entity*>& entityVector, bool sortByPosY)
+{
+	// Get entity position in vector
+	const int n = entityVector.size() - 1;
+	int index = -1;
+	for (int i = 0; i < n + 1; i++)
+	{
+		if (entityVector[i] == entity)
+		{
+			index = i;
+			break;
+		}
+	}
+
+	// If entity not found, exit early
+	if (index < 0)
+	{
+		return;
+	}
+
+	// Remove entity from vector
+	entityVector.erase(entityVector.begin() + index);
+
+	// Look for the right place to put the entity back
+	index = -1;
+	for (int i = 0; i < n; i++)
+	{
+		if (entityVector[i]->layer <= entity->layer)
+		{
+			if (sortByPosY)
+			{
+				if (entity->position.y > entityVector[i]->position.y)
+				{
+					index = i;
+				}
+				else
+				{
+					if (entity->drawOrder > entityVector[i]->drawOrder)
+					{
+						index = i;
+					}
+				}
+			}
+			else
+			{
+				if (entity->drawOrder > entityVector[i]->drawOrder)
+				{
+					index = i;
+				}
+			}
+		}
+	}
+
+	if (index > -1)
+	{
+		entityVector.insert(entityVector.begin() + index + 1, entity);
+	}
+	else
+	{
+		entityVector.emplace_back(entity);
+	}
+}
+
+void Game::OpenMenu(const std::string& menuName)
+{
+	if (allMenus.count(menuName) == 0)
+	{
+		if (strictMenu)
+		{
+			logger.Log("ERROR: Menu failed to open, does not exist: " + menuName);
+			return;
+		}
+		else
+		{
+			menuManager->CreateMenu(menuName, *this);
+		}
+	}
+
+	MenuScreen* menu = allMenus[menuName];
+
+	if (menu != nullptr)
+	{
+		if (menu->isDynamic)
+		{
+			menu->ResetMenu();
+			menu->CreateMenu(menuName, *this);
+		}
+
+		openedMenus.emplace_back(menu);
+	}
+	else
+	{
+		logger.Log("ERROR: Menu failed to open 2, does not exist: " + menuName);
+	}
+
+}
+
+void Game::SetMouseCursor(const std::string& filepath)
+{
+	if (filepath == "")
+	{
+		SDL_ShowCursor(true);
+	}
+	else
+	{
+		SDL_ShowCursor(false);
+
+		if (cursorSprite != nullptr)
+			delete cursorSprite;
+
+		cursorSprite = new Sprite(0, 0, 1, spriteManager, filepath, renderer.shaders[2], glm::vec2(0,0));
+		cursorSprite->keepPositionRelativeToCamera = true;
+		cursorSprite->keepScaleRelativeToCamera = true;
+	}
 }
 
 // Implementation of insertion sort:

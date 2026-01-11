@@ -15,10 +15,11 @@
 #include "CutsceneHelper.h"
 #include <map>
 #include <unordered_map>
+#include <set>
 
 enum class SaveSections { CONFIG_OPTIONS, STORY_DATA, SEEN_CHOICES, SEEN_LINES, GOSUB_STACK, 
 	ALIAS_STRINGS, ALIAS_NUMBERS, LOCAL_STRINGS, LOCAL_NUMBERS, LOCAL_OBJECTS, 
-	NAMES_TO_COLORS, OTHER_STUFF
+	NAMES_TO_COLORS, ARRAY_NUMBERS, ARRAY_STRINGS, ANIMATORS, OTHER_STUFF
 };
 
 class Game;
@@ -182,9 +183,9 @@ struct SelectedChoiceData
 
 class KINJO_API CutsceneManager
 {	
-	std::string data = "";
-public:	 
 
+public:	 
+	std::string data = "";
 
 	std::string currentText = "";
 	std::string previousText = "";
@@ -199,11 +200,15 @@ public:
 	bool overwriteName = true;
 	std::string currentScript = "";
 
+	int ats = 0;
+
 	bool playSoundsOnText = false;
 	std::unordered_map<std::string, std::string> textSounds;
 	
 	CutsceneCommands commands;
 	bool renderCutscene = true;
+
+	int spriteYOffset = 0;
 
 	Timer printTimer;
 	bool useMouseControls = true;
@@ -218,8 +223,16 @@ public:
 	Color backlogColor = { 255, 255, 0, 255 };
 	std::vector<std::string> unfinishedCommands;
 	std::vector<BacklogData*> backlog;
-	int backlogMaxSize = 3;
+	size_t backlogMaxSize = 3;
+
+	int prevPage = 0;
+	int currentPage = 0;
+
 	unsigned int globalStart = 1000; //TODO: Should this be a config variable?
+	unsigned int globalEnd = 99999;
+
+	bool IsGlobal(const unsigned int i) const { return i >= globalStart && i < globalEnd; }
+
 	//TODO: Move these button configurations to some place more relevant
 	// This class should have a reference to the controller and get the bindings from it
 
@@ -240,6 +253,10 @@ public:
 	std::vector<SceneData*> gosubStack;
 	std::vector<SceneRepeatData> repeatStack;
 
+	SceneLabel* baseLabel = nullptr;
+	int baseLineIndex = 0;
+	bool narrating = false;
+
 	// Checkpoint for debugging purposes
 	SceneData checkpoint;
 
@@ -254,18 +271,20 @@ public:
 
 	int currentChoice = -1;
 
-	const int choiceSpriteStartNumber = 10000;
+	int choiceSpriteStartNumber = 10000;
 	int buttonIndex = 0;
 	int buttonResult = 0;
 	bool watchingCutscene = false;
 	bool waitingForButton = false;
 	bool waitingForClick = false;
+	bool shouldClearButtons = true;
 	bool automaticallyRead = false;
 	bool readingSameLine = false;
 	float autoTimesToWait[3] = { 500, 2000, 8000 };
 	float autoTimeToWait = 1000;
 	float autoTimeToWaitPerGlyph = 100;
 	int autoTimeIndex = 0;
+	int autoWaitChannel = 0;
 	Timer autoReaderTimer;
 	Timer inputTimer;
 	float inputTimeToWait = 1000;
@@ -275,6 +294,11 @@ public:
 	std::vector<std::string> choiceIfStatements;
 	std::vector<int> activeButtons;
 	std::unordered_map<int, int> spriteButtons;
+
+	std::set<int> saveIgnore;
+
+	bool voiceNarration = false;
+	int narrationIndex = 0;
 
 	bool foundTrueConditionOnBtnWait = false;
 	unsigned int textboxImageNumber = 995;
@@ -314,6 +338,8 @@ public:
 	int backlogBtnDownX = 0;
 	int backlogBtnDownY = 0;
 
+	SceneLabel* lastJumpedLabel = nullptr;
+
 	CutsceneManager();
 	void Init(Game& g);
 	void ParseCutsceneFile();
@@ -322,15 +348,15 @@ public:
 	void Render(const Renderer& renderer);
 	void RenderTextbox(const Renderer& renderer);
 	SceneLabel* JumpToLabel(const std::string& newLabelName);
-	void PlayCutscene(const char* labelName);
+	SceneLabel* PlayCutscene(const char* labelName);
 	void EndCutscene();
 	void ReadNextLine();
 	void ClearAllSprites();
 	void JumpForward();
 	void JumpBack();
-	void PushCurrentSceneDataToStack();
+	void PushCurrentSceneDataToStack(const std::string& nextLabel);
 	bool PopSceneDataFromStack(SceneData& data);
-	std::string ParseText(const std::string& originalString, int& letterIndex, Color& textColor, Text* text);
+	std::string ParseText(const std::string& originalString, size_t& letterIndex, Color& textColor, Text* text);
 	~CutsceneManager();
 
 	void CheckKeys();
@@ -339,6 +365,9 @@ public:
 	void UpdateText();
 
 	void MakeChoice();
+
+	void LoadArrayData(const std::vector<std::string>& lineParams);
+	void LoadAnimators(const std::vector<std::string>& lineParams);
 
 	void SaveGame(const char* filename, const char* path = "saves/");
 	void LoadGame(const char* filename, const char* path = "saves/");
@@ -367,7 +396,7 @@ public:
 	void CloseBacklog();
 
 	SceneLabel* GetCurrentLabel();
-	SceneLine* GetCurrentLine();
+	SceneLine* GetCurrentLine(SceneLabel* label = nullptr);
 };
 
 #endif

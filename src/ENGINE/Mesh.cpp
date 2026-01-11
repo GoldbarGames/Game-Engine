@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include <glm/ext/matrix_float4x4.hpp>
 
 Mesh::Mesh()
 {
@@ -58,13 +59,25 @@ void Mesh::BindMesh()
     glBindVertexArray(VAO);
 }
 
-void Mesh::RenderMesh()
+
+void Mesh::RenderMesh(unsigned int instanceAmount)
 {
     if (indexCount > 0)
     {
         glBindVertexArray(VAO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+
+        // TODO: Also we need to calculate the model matrix 
+
+        // TODO: The error could be that during Config() it only sets up game.entities when there are other entities,
+        // and so when we try to render the mesh for one of those, it doesn't know what to do.
+        // glDrawElementsInstanced(mode, indexCount, GL_UNSIGNED_INT, 0, instanceAmount);
+
+        //if (instanceAmount > 0)
+        //    glDrawElementsInstanced(mode, indexCount, GL_UNSIGNED_INT, 0, instanceAmount);
+        //else
         glDrawElements(mode, indexCount, GL_UNSIGNED_INT, 0);
+        
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
     }

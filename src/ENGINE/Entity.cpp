@@ -138,10 +138,10 @@ void Entity::Init(const Game& g, const std::string& n)
 
 void Entity::CreateCollider(float x, float y, float w, float h)
 {
-	collider.offset.x = x;
-	collider.offset.y = y;
-	collider.scale.x = w;
-	collider.scale.y = h;
+	collider.offset.x = scale.x * x;
+	collider.offset.y = scale.y * y;
+	collider.scale.x = scale.x * w;
+	collider.scale.y = scale.y * h;
 
 	CalculateCollider();
 }
@@ -189,6 +189,11 @@ Sprite* Entity::GetSprite()
 	return &currentSprite;
 }
 
+void Entity::CreateSprite(const glm::vec2& frame, Texture* image, ShaderProgram* s, const int tileSize, const int tileSize2, const int cf)
+{
+	currentSprite = Sprite(frame, image, s, tileSize, tileSize2, cf);
+}
+
 void Entity::SetColor(Color newColor)
 {
 	color = newColor;
@@ -197,7 +202,7 @@ void Entity::SetColor(Color newColor)
 
 // NOTE: This returns coordinates where x and y are the center of the rectangle!
 // Be careful when using HasIntersection() because you'll get the wrong results
-const SDL_Rect* Entity::GetBounds()
+const SDL_Rect* Entity::GetBounds() const
 {
 	return &collider.bounds;
 }
@@ -272,27 +277,26 @@ void Entity::RenderDebug(const Renderer& renderer)
 
 void Entity::Render(const Renderer& renderer)
 {
-	if (renderer.IsVisible(layer))
-	{
-		renderer.drawCallsPerFrame++;
-		if (animator != nullptr)
-			currentSprite.Render(position, animator->GetSpeed(), renderer, scale, rotation);
-		else
-			currentSprite.Render(position, 0, renderer, scale, rotation);
-	}
+	Render(renderer, 0);
 }
 
-void Entity::RenderParallax(const Renderer& renderer, float p)
+void Entity::Render(const Renderer& renderer, float parallax)
 {
-	glm::vec3 renderPosition = glm::vec3(position.x + (renderer.camera.position.x * p), position.y, position.z);
-
 	if (renderer.IsVisible(layer))
 	{
 		renderer.drawCallsPerFrame++;
-		if (animator != nullptr)
-			currentSprite.Render(renderPosition, animator->GetSpeed(), renderer, scale, rotation);
+
+		const float speed = (animator != nullptr) ? animator->GetSpeed() : 0;
+
+		if (parallax == 0)
+		{
+			currentSprite.Render(position, speed, renderer, scale, rotation);
+		}
 		else
-			currentSprite.Render(renderPosition, 0, renderer, scale, rotation);
+		{
+			const glm::vec3& renderPosition = glm::vec3(position.x + (renderer.camera.position.x * parallax), position.y, position.z);
+			currentSprite.Render(renderPosition, speed, renderer, scale, rotation);
+		}
 	}
 }
 
@@ -306,76 +310,17 @@ void Entity::SetSprite(Sprite& sprite)
 // whether or not there is any ground below (classes can override this if needed)
 bool Entity::CanSpawnHere(const glm::vec3& spawnPosition, const Game& game, bool useCamera)
 {
-	bool shouldSpawn = true;
-
-	if (etype == "door")
+	for (unsigned int i = 0; i < game.entities.size(); i++)
 	{
-		//TODO: Maybe there's a better way to initialize the bounds for the sprite
-		SDL_Rect myBounds = *(GetBounds());
-		myBounds.x = (int)spawnPosition.x;
-		myBounds.y = (int)spawnPosition.y;
-
-		return true;
-
-		SDL_Rect tileBelowMyBoundsLeft = myBounds;
-		tileBelowMyBoundsLeft.y += myBounds.h;
-		tileBelowMyBoundsLeft.w = game.editor->GRID_SIZE;
-		tileBelowMyBoundsLeft.h = game.editor->GRID_SIZE;
-
-		SDL_Rect tileBelowMyBoundsRight = myBounds;
-		tileBelowMyBoundsRight.x += game.editor->GRID_SIZE;
-		tileBelowMyBoundsRight.y += myBounds.h;
-		tileBelowMyBoundsRight.w = game.editor->GRID_SIZE;
-		tileBelowMyBoundsRight.h = game.editor->GRID_SIZE;
-
-		bool hasGroundLeft = false;
-		bool hasGroundRight = false;
-
-		for (unsigned int i = 0; i < game.entities.size(); i++)
+		if (game.entities[i]->GetPosition() == spawnPosition &&
+			game.entities[i]->layer == layer &&
+			game.entities[i]->etype == etype)
 		{
-			const SDL_Rect* theirBounds = game.entities[i]->GetBounds();
-
-			// 1. Check to make sure that this door does NOT intersect with any other doors
-			// Check to make sure that we can't place inside a solid tile
-			if (game.entities[i]->etype == etype || game.entities[i]->impassable)
-			{
-				if (HasIntersection(myBounds, *theirBounds))
-				{
-					shouldSpawn = false;
-				}
-			}
-
-			// 2. Check to make sure that this door is one tile above a tile on the foreground layer
-			if (game.entities[i]->impassable)
-			{
-				if (HasIntersection(tileBelowMyBoundsLeft, *theirBounds))
-				{
-					hasGroundLeft = true;
-				}
-
-				if (HasIntersection(tileBelowMyBoundsRight, *theirBounds))
-				{
-					hasGroundRight = true;
-				}
-			}
-		}
-
-		shouldSpawn = !hasGroundLeft || !hasGroundRight;
-	}
-	else
-	{
-		for (unsigned int i = 0; i < game.entities.size(); i++)
-		{
-			if (game.entities[i]->GetPosition() == spawnPosition &&
-				game.entities[i]->layer == layer &&
-				game.entities[i]->etype == etype)
-			{
-				return false;
-			}
+			return false;
 		}
 	}
 
-	return shouldSpawn;
+	return true;
 }
 
 void Entity::OnTriggerStay(Entity& other, Game& game)
@@ -411,7 +356,7 @@ void Entity::DeleteProperties(std::vector<Property*>& properties)
 
 void Entity::SetProperty(const std::string& key, const std::string& newValue, std::vector<Property*>& properties)
 {
-	for (int i = 0; i < properties.size(); i++)
+	for (size_t i = 0; i < properties.size(); i++)
 	{
 		if (properties[i]->key == key)
 		{
@@ -473,7 +418,6 @@ void Entity::Load(std::unordered_map<std::string, std::string>& map, Game& game)
 		//	shader = game.renderer.shaders[std::stoi(map[shaderString])];
 	}
 }
-
 
 void Entity::OnClick(Uint32 mouseState, Game& game)
 {

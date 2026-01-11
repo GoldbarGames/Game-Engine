@@ -29,7 +29,7 @@ Editor::Editor(Game& g)
 	SPAWN_TILE_SIZE = Globals::TILE_SIZE;
 
 	tilesheetFilenames = ReadStringsFromFile("data/lists/tilesheet.list");
-	for (int i = 0; i < tilesheetFilenames.size(); i++)
+	for (size_t i = 0; i < tilesheetFilenames.size(); i++)
 	{
 		tilesheetFilenames[i] = "assets/tiles/" + tilesheetFilenames[i] + ".png";
 	}
@@ -92,25 +92,25 @@ Editor::~Editor()
 			delete_it(val);
 	}
 
-	for (int i = 0; i < buttons.size(); i++)
+	for (size_t i = 0; i < buttons.size(); i++)
 	{
 		if (buttons[i] != nullptr)
 			delete_it(buttons[i]);
 	}
 
-	for (int i = 0; i < layerButtons.size(); i++)
+	for (size_t i = 0; i < layerButtons.size(); i++)
 	{
 		if (layerButtons[i] != nullptr)
 			delete_it(layerButtons[i]);
 	}
 
-	for (int i = 0; i < layerVisibleButtons.size(); i++)
+	for (size_t i = 0; i < layerVisibleButtons.size(); i++)
 	{
 		if (layerVisibleButtons[i] != nullptr)
 			delete_it(layerVisibleButtons[i]);
 	}
 
-	for (int i = 0; i < tilesheetSprites.size(); i++)
+	for (size_t i = 0; i < tilesheetSprites.size(); i++)
 	{
 		if (tilesheetSprites[i] != nullptr)
 			delete_it(tilesheetSprites[i]);
@@ -137,10 +137,10 @@ void Editor::UpdateLevelFiles()
 {
 	// Fill in the new array
 	loadDataMap.clear();
-	const std::string LOAD_FILE = "data/load_key.dat";
+	const std::string LOAD_FILE = "data/config/load_key.dat";
 	std::string newData = ReadLoadingData(LOAD_FILE, loadDataMap);
 
-	const std::string OLD_FILEPATH = "data/load_old.dat";
+	const std::string OLD_FILEPATH = "data/config/load_old.dat";
 	std::unordered_map<std::string, std::vector<std::string>> oldMap;
 	std::string oldData = ReadLoadingData(OLD_FILEPATH, oldMap);
 
@@ -162,7 +162,7 @@ void Editor::UpdateLevelFiles()
 			std::string levelName = entry.path().stem().string();
 			std::cout << levelName << std::endl;
 
-			std::unordered_map<std::string, std::vector<Vector2>> reorderMap;
+			std::unordered_map<std::string, std::vector<glm::vec3>> reorderMap;
 			std::unordered_map<std::string, int> resizeMap;
 
 			// Store the new size of the list in order to resize it (add/remove)
@@ -180,7 +180,7 @@ void Editor::UpdateLevelFiles()
 				if (it != loadDataMap[STR_ENTITY].end())
 				{
 					int newIndex = std::distance(loadDataMap[STR_ENTITY].begin(), it);
-					reorderMap[STR_ENTITY].push_back(Vector2(i, newIndex));
+					reorderMap[STR_ENTITY].push_back(glm::vec3(i, newIndex, 0));
 					// index 2 old => index 2 new
 					// index 3 old => index 4 new
 					// etc...
@@ -208,7 +208,7 @@ void Editor::UpdateLevelFiles()
 						{
 							// keep track of the indices here and swap them in the level file
 							int newIndex = std::distance(loadDataMap[entityType].begin(), it);
-							reorderMap[entityType].push_back(Vector2(i, newIndex));
+							reorderMap[entityType].push_back(glm::vec3(i, newIndex, 0));
 						}
 					}
 				}
@@ -354,7 +354,7 @@ std::string Editor::ReadLoadingData(const std::string& filepath,
 
 		etype = tokens[0].substr(0, tokens[0].size() - 1);
 
-		for (int i = 1; i < tokens.size(); i++)
+		for (size_t i = 1; i < tokens.size(); i++)
 		{
 			map[etype].push_back(tokens[i]);
 		}
@@ -468,7 +468,7 @@ void Editor::StartEdit()
 	// Create a preview object of every entity type
 	previewMapObjectNames = ReadStringsFromFile("data/lists/entityTypes.list");
 
-	for (int i = 0; i < previewMapObjectNames.size(); i++)
+	for (size_t i = 0; i < previewMapObjectNames.size(); i++)
 	{
 		previewMap[previewMapObjectNames[i]] = game->CreateEntity(previewMapObjectNames[i],
 			glm::vec3(0, 0, 0), entitySubtype);
@@ -483,7 +483,7 @@ void Editor::StartEdit()
 	if (tilesheetSprites.empty())
 	{
 		// shaders[3] = NoAlpha
-		for (int i = 0; i < tilesheetFilenames.size(); i++)
+		for (size_t i = 0; i < tilesheetFilenames.size(); i++)
 		{
 			tilesheetSprites.push_back(new Sprite(1, game->spriteManager,
 				tilesheetFilenames[i], game->renderer.shaders[3], glm::vec2(0, 0)));
@@ -528,7 +528,7 @@ void Editor::StartEdit()
 	// 3. In renderer, add the layersVisible for it to true
 	// 4. In globals.cpp, add the switch/case for it
 
-	std::vector<string> layerButtonNames = { "BACK", "MIDDLE", "OBJECT", "COLLISION", "COLLISION2", "FRONT" };
+	std::vector<string> layerButtonNames = { "BACK", "MIDDLE", "OBJECT", "COLLISION", "COLLISION2", "FRONT", "BG"};
 
 	for (unsigned int i = 0; i < layerButtonNames.size(); i++)
 	{
@@ -559,6 +559,8 @@ void Editor::StopEdit()
 	game->SaveEditorSettings();
 	selectedEntity = nullptr;
 	propertyIndex = -1;
+
+	game->CheckDeleteEntities();
 
 	helper->OnEditorEnd();
 }
@@ -707,6 +709,10 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 				{
 					game->renderer.ToggleVisibility(DrawingLayer::FRONT);
 				}
+				else if (clickedLayerVisibleButton == "BG")
+				{
+					game->renderer.ToggleVisibility(DrawingLayer::BG);
+				}
 			}
 
 			for (unsigned int i = 0; i < layerVisibleButtons.size(); i++)
@@ -756,7 +762,7 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 			else
 			{
 				bool canSpawnAllEntities = true;
-				for (int i = 0; i < grabbedEntities.size(); i++)
+				for (size_t i = 0; i < grabbedEntities.size(); i++)
 				{
 					if (!grabbedEntities[i]->CanSpawnHere(glm::vec3(mouseX, mouseY, 0), *game, false))
 					{
@@ -767,7 +773,7 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 				// If the entity is allowed to spawn here, then place it there
 				if (canSpawnAllEntities)
 				{
-					for (int i = 0; i < grabbedEntities.size(); i++)
+					for (size_t i = 0; i < grabbedEntities.size(); i++)
 					{
 						grabbedEntities[i]->startPosition = grabbedEntities[i]->position;
 						grabbedEntities[i]->CalculateCollider();
@@ -796,11 +802,10 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 		{
 			bool foundTile = false;
 			glm::vec2 coordsToReplace = glm::vec2(0, 0);
-			glm::vec3 roundedPosition = RoundToInt(clickedWorldPosition);
 
 			std::vector<Tile*> tilesInLevel;
 			
-			for (unsigned int i = 0; i < game->entities.size(); i++)
+			for (size_t i = 0; i < game->entities.size(); i++)
 			{
 				if (game->entities[i]->etype == MODE_TILE)
 				{
@@ -809,7 +814,7 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 
 					if (!foundTile)
 					{
-						if (RoundToInt(game->entities[i]->GetPosition()) == roundedPosition &&
+						if (IsVec3Equals(game->entities[i]->GetPosition(), clickedWorldPosition) &&
 							game->entities[i]->layer == drawingLayer)
 						{
 							// Save the index of the tile
@@ -848,9 +853,9 @@ void Editor::LeftClick(glm::vec2 clickedScreenPosition, int mouseX, int mouseY, 
 			glm::vec2 coordsToCopy = glm::vec2(0, 0);
 			Tile* tile = nullptr;
 
-			for (unsigned int i = 0; i < game->entities.size(); i++)
+			for (size_t i = 0; i < game->entities.size(); i++)
 			{
-				if (RoundToInt(game->entities[i]->GetPosition()) == RoundToInt(clickedWorldPosition) &&
+				if (IsVec3Equals(game->entities[i]->GetPosition(), clickedWorldPosition) &&
 					game->entities[i]->layer == drawingLayer &&
 					game->entities[i]->etype == MODE_TILE)
 				{
@@ -904,8 +909,7 @@ void Editor::FillTiles(const glm::vec3& spawnPosition, int depth)
 		{
 			if (entity->etype == MODE_TILE)
 			{
-				Vector2 v = Vector2(entity->position.x, entity->position.y);
-				mapEntities[v.ToString()] = entity;
+				mapEntities[Vec3ToString(entity->position)] = entity;
 			}
 		}
 	}
@@ -926,10 +930,10 @@ void Editor::FillTiles(const glm::vec3& spawnPosition, int depth)
 
 	// TODO: Faster than a for loop, but technically still bad (allocating strings).
 	// Need a single map that can take a vector2 as a key, entity* as value
-	Vector2 v = Vector2(spawnPosition.x, spawnPosition.y);
-	if (mapEntities.count(v.ToString()) != 0)
+	const std::string vkey = Vec3ToString(spawnPosition);
+	if (mapEntities.count(vkey) != 0)
 	{
-		if (RoundToInt(mapEntities[v.ToString()]->position) == spawnPosition)
+		if (IsVec3Equals(mapEntities[vkey]->position, spawnPosition))
 		{
 			canPlaceTileHere = false;
 		}
@@ -1164,11 +1168,9 @@ void Editor::PlaceTile(const glm::vec2& clickedPosition)
 
 	glm::vec3 spawnPos = game->CalculateObjectSpawnPosition(clickedPosition, GRID_SIZE);
 
-	for (unsigned int i = 0; i < game->entities.size(); i++)
+	for (size_t i = 0; i < game->entities.size(); i++)
 	{
-		glm::vec3 entityPosition = RoundToInt(game->entities[i]->GetPosition());
-
-		if (entityPosition == spawnPos &&
+		if (IsVec3Equals(game->entities[i]->GetPosition(), spawnPos) &&
 			game->entities[i]->layer == drawingLayer &&
 			game->entities[i]->etype == MODE_TILE)
 		{
@@ -1221,8 +1223,8 @@ void Editor::MiddleClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm:
 	// TODO: Maybe assign this to a different button or something?
 	if (input[SDL_SCANCODE_LCTRL])
 	{
-		Vector2 worldPosition = Vector2(clickedPosition.x + game->renderer.camera.position.x,
-			clickedPosition.y + game->renderer.camera.position.y);
+		glm::vec3 worldPosition = glm::vec3(clickedPosition.x + game->renderer.camera.position.x,
+			clickedPosition.y + game->renderer.camera.position.y, 0);
 
 		SDL_Rect mouseRect;
 		mouseRect.x = worldPosition.x;
@@ -1259,7 +1261,7 @@ void Editor::RightClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::
 	// If we have grabbed an entity, return it to its old position and immediately exit
 	if (grabbedEntities.size() > 0)
 	{
-		for (int i = 0; i < grabbedEntities.size(); i++)
+		for (size_t i = 0; i < grabbedEntities.size(); i++)
 		{
 			grabbedEntities[i]->SetPosition(oldGrabbedPositions[i]);
 			grabbedEntities[i] = nullptr;
@@ -1346,6 +1348,7 @@ void Editor::RightClick(glm::vec2 clickedPosition, int mouseX, int mouseY, glm::
 
 void Editor::HandleGUIMode()
 {
+#if _DEBUG
 	int mouseX = 0;
 	int mouseY = 0;
 
@@ -1400,6 +1403,8 @@ void Editor::HandleGUIMode()
 		// Highlight the hovered object
 
 	}
+
+#endif
 }
 
 void Editor::HandleEdit()
@@ -1460,7 +1465,7 @@ void Editor::HandleEdit()
 		glm::vec3 diff = oldGrabbedPositions[0] - worldPosition;
 
 		// Apply the difference to every entity to get their new positions
-		for (int i = 0; i < grabbedEntities.size(); i++)
+		for (size_t i = 0; i < grabbedEntities.size(); i++)
 		{
 			glm::vec3 newPosition = oldGrabbedPositions[i] - diff;
 			grabbedEntities[i]->SetPosition(game->SnapToGrid(newPosition, grabbedEntities[i]->GetGridSize()));
@@ -1625,7 +1630,7 @@ void Editor::ClickedButton()
 	{
 		auto it = std::find(levelNames.begin(), levelNames.end(), game->currentLevel);
 
-		int index = 0;
+		size_t index = 0;
 		if (it != levelNames.end())
 		{
 			index = std::distance(levelNames.begin(), it);
@@ -2009,7 +2014,7 @@ std::string Editor::SaveLevelAsString()
 		std::vector<std::string> list = loadDataMap[game->entities[i]->etype];
 		list.insert(list.begin(), entityList.begin(), entityList.end());
 
-		for (int k = 0; k < list.size(); k++)
+		for (size_t k = 0; k < list.size(); k++)
 		{
 			// If the entity saved any of the variables in the list,
 			// then write those to the output file
@@ -2026,11 +2031,13 @@ std::string Editor::SaveLevelAsString()
 		// We must handle "path" as a special case
 		if (game->entities[i]->etype == "path")
 		{
+			std::cout << "STOI NODE 1" << std::endl;
 			int nodeCount = std::stoi(map["nodeCount"]);
 			for (int i = 0; i < nodeCount; i++)
 			{
 				level << map["nodeID_" + std::to_string(i)] << " ";
 			}
+			std::cout << "STOI NODE 2" << std::endl;
 		}
 
 		level << "\n";
@@ -2040,7 +2047,7 @@ std::string Editor::SaveLevelAsString()
 	game->background->Save(map);
 	std::vector<std::string> list = { "id", "type", "positionX", "positionY", "subtype" };
 
-	for (int k = 0; k < list.size(); k++)
+	for (size_t k = 0; k < list.size(); k++)
 	{
 		// If the entity saved any of the variables in the list,
 		// then write those to the output file
@@ -2069,7 +2076,7 @@ std::string Editor::SaveLevelAsString()
 	list.clear();
 	list = loadDataMap["camera"];
 
-	for (int k = 0; k < list.size(); k++)
+	for (size_t k = 0; k < list.size(); k++)
 	{
 		if (map.count(list[k]) != 0)
 		{
@@ -2253,7 +2260,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 		game->renderer.camera.startingZoom = 1.0f;
 
 		if (game->background == nullptr)
-			game->background = new Background("", Vector2(0, 0));
+			game->background = new Background("", glm::vec3(0, 0, 0));
 
 		// Remove all backgrounds
 		game->background->ResetBackground();
@@ -2307,8 +2314,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 
 		std::vector<std::string>* currentDataMap;
 
-		std::cout << "START LOADING LEVEL TIMER:  " << testTimer.GetTicks() << std::endl;
-		testTimer.Start(0);
+		game->SetDuration("Loading Level");
 
 		// Make sure to clear the list of taken IDs 
 		// at the start of loading a level
@@ -2316,17 +2322,10 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 		Entity::nextValidID = 0;
 
 		game->entities.reserve(lines.size());
-		int t = testTimer.GetTicks();
 
 		lineNumber = 0;
 		while (lineNumber < lines.size())
 		{
-			t = testTimer.GetTicks();
-			if (t > 20)
-			{
-				//std::cout << "At while start: " << t << std::endl;
-				testTimer.Start(0);
-			}
 
 			map.clear();
 			index = 0;
@@ -2337,8 +2336,8 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 			if (line.size() == 0)
 				continue;
 			
-			int wordNumber = 0;
-			for (int i = 0; i < line.size(); i++)
+			size_t wordNumber = 0;
+			for (size_t i = 0; i < line.size(); i++)
 			{				
 				if (line[i] == ' ')
 				{
@@ -2353,13 +2352,6 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 			}
 			tokens[wordNumber] = word;
 
-			t = testTimer.GetTicks();
-			if (t > 20)
-			{
-				//std::cout << "At token: " << t << std::endl;
-				testTimer.Start(0);
-			}
-
 			try
 			{
 				etype = tokens[indexOfType];
@@ -2371,14 +2363,14 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 					if (etype != "camera")
 					{
 						currentDataMap = &loadDataMap[STR_ENTITY];
-						for (int i = 0; i < currentDataMap->size(); i++)
+						for (size_t i = 0; i < currentDataMap->size(); i++)
 						{
 							map[(*currentDataMap)[i]] = tokens[index++];
 						}
 					}
 
 					currentDataMap = &loadDataMap[etype];
-					for (int i = 0; i < currentDataMap->size(); i++)
+					for (size_t i = 0; i < currentDataMap->size(); i++)
 					{
 						map[(*currentDataMap)[i]] = tokens[index++];
 					}
@@ -2386,8 +2378,8 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 
 				if (etype == "path")
 				{
-					int nodeCount = std::stoi(map["nodeCount"]);
-					for (int i = 0; i < nodeCount; i++)
+					size_t nodeCount = std::stoi(map["nodeCount"]);
+					for (size_t i = 0; i < nodeCount; i++)
 					{
 						map["nodeID_" + std::to_string(i)] = tokens[index++];
 					}
@@ -2395,6 +2387,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 
 				if (etype == "player" || etype == "Player")
 				{
+					std::cout << "STOI PLAYER 1" << std::endl;
 					positionX = std::stoi(tokens[indexOfPositionX]);
 					positionY = std::stoi(tokens[indexOfPositionY]);
 					// TODO: If 3D, get position Z too
@@ -2404,9 +2397,12 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 					{
 						game->player->Init(*game, "Player");
 					}
+
+					std::cout << "STOI PLAYER 2" << std::endl;
 				}
 				else if (etype == "tile")
 				{
+					std::cout << "STOI TILE 1" << std::endl;
 					Entity::nextValidID = std::stoi(tokens[indexOfID]);
 
 					int tilesheetIndex = std::stoi(map[STR_TILESHEET]);
@@ -2421,6 +2417,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 						newTile->jumpThru = true;
 
 					newTile->subtype = tilesheetIndex;
+					std::cout << "STOI TILE 2" << std::endl;
 				}
 				else if (etype == "cutscene-start")
 				{
@@ -2438,9 +2435,11 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 				}
 				else if (etype == "bg")
 				{
-					index = 2;					
+					index = 2;
+					std::cout << "STOI BG 1" << std::endl;
 					int bgX = std::stoi(tokens[index++]);
 					int bgY = std::stoi(tokens[index++]);
+					std::cout << "STOI BG 2" << std::endl;
 					std::string bgName = tokens[index++];
 					game->background->SpawnBackground(bgName, bgX, bgY, *game);
 				}
@@ -2457,7 +2456,12 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 				// if not handled by helper, load it as a normal entity
 				else if (!helper->CustomLoad(etype, tokens))
 				{
+
+					std::cout << "ETYPE " << etype << std::endl;
+					std::cout << "SUBTYPE " << subtype << std::endl;
+
 					Entity::nextValidID = std::stoi(tokens[indexOfID]);
+					std::cout << "STOI CUSTOM 1a" << std::endl;
 					positionX = std::stoi(tokens[indexOfPositionX]);
 					positionY = std::stoi(tokens[indexOfPositionY]);
 					subtype = tokens[indexOfSubtype];
@@ -2466,12 +2470,13 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 					if (subtype == "")
 						subtype = "0";
 
-					Entity* newEntity = game->SpawnEntity(etype,
-						glm::vec3(positionX,positionY, 0), std::stoi(subtype));
+					std::cout << "STOI CUSTOM 1b" << std::endl;
+					Entity* newEntity = game->SpawnEntity(etype, glm::vec3(positionX,positionY, 0), std::stoi(subtype));
 
 					if (newEntity != nullptr)
 					{
 						newEntity->Load(map, *game);
+						std::cout << "STOI CUSTOM 1c" << std::endl;
 						newEntity->Init(*game, game->entityTypes[etype][std::stoi(subtype)]);
 
 						// TODO: Use enums for etypes, look up strings in a table
@@ -2486,13 +2491,10 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 						std::cout << "LINE: " << lineNumber << std::endl;
 						std::cout << "INDEX: " << index << std::endl;
 					}
-				}
 
-				t = testTimer.GetTicks();
-				if (t > 20)
-				{
-					std::cout << "At while end: " << t << " " << etype << std::endl;
-					testTimer.Start(0);
+
+					std::cout << "STOI CUSTOM 2" << std::endl;
+
 				}
 
 			}
@@ -2507,8 +2509,7 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 			//ss.getline(lineChar, LINE_SIZE);
 		}
 
-		std::cout << "FINISH LOADING LEVEL TIMER: " << testTimer.GetTicks() << std::endl;
-		testTimer.Start(0);
+		game->PrintDuration("Loading Level");
 
 		// Switch the camera's target
 		if (game->renderer.camera.startingTargetID >= 0)
@@ -2542,6 +2543,8 @@ void Editor::CreateLevelFromVector(const std::vector<std::string>& lines)
 			}
 		}
 
+		//game->renderer.ConfigureInstanceArray(1000);
+
 		if (helper != nullptr)
 		{
 			helper->CreateLevelEnd();
@@ -2567,6 +2570,7 @@ void Editor::ClearLevelEntities()
 	game->entities.clear();
 	game->cameraBoundsEntities.clear();
 
+	game->draggedEntity = nullptr;
 	grabbedEntities.clear();
 	oldGrabbedPositions.clear();
 }
@@ -2592,13 +2596,19 @@ void Editor::InitLevelFromFile(const std::string& levelName)
 	if (levelName != "")
 		game->currentLevel = levelName;
 
-
-
 	// In Release builds, don't reload the level from file, store it in memory
 
 #if _DEBUG
 	std::cout << "load 1" << std::endl;
-	CreateLevelFromString(ReadLevelFromFile(levelName), levelName);
+
+	std::string levelData = ReadLevelFromFile(levelName);
+	if (levelData == "")
+	{
+		// TODO: If failed to load level, handle error somehow
+		return;
+	}
+
+	CreateLevelFromString(levelData, levelName);
 #else
 	std::cout << "load 2" << std::endl;
 	if (levelFilesMap.count(levelName) == 0)
@@ -2611,6 +2621,7 @@ void Editor::InitLevelFromFile(const std::string& levelName)
 
 	std::cout << "Loading level \"" + levelName + "\"" << std::endl;
 	CreateLevelFromVector(levelFilesMap[levelName]);
+	std::cout << "Loaded level \"" + levelName + "\"" << std::endl;
 
 	// Reset the undo/redo queue
 	levelStrings.clear();
@@ -2624,8 +2635,11 @@ void Editor::InitLevelFromFile(const std::string& levelName)
 	game->gui->ResetText();
 
 	// Play the cutscene for the current level, if any
+	std::cout << "Playing start cutscene" << std::endl;
 	if (game->levelStartCutscene != "")
 	{
+		game->cutsceneManager.baseLabel = game->cutsceneManager.JumpToLabel(game->levelStartCutscene);
+
 		if (levelName == "demo")
 		{
 			if (playOpeningDemoCutscene)

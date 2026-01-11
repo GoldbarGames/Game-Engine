@@ -32,3 +32,13 @@ void FileManager::AfterLoadLevelFromFile() const
 {
 
 }
+
+bool FileManager::FileExists(const std::string& path) const
+{
+#ifndef EMSCRIPTEN
+    fs::path fullPath = fs::current_path() / path;
+    return fs::exists(fullPath);
+#else
+    return false; // Emscripten build: no real filesystem access
+#endif
+}

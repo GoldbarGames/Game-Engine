@@ -27,6 +27,8 @@ class MenuManager;
 class FrameBuffer;
 class Dialog;
 
+class MainHelper;
+
 enum class GameState { NORMAL, EDIT_MODE, ON_MENU, RESET_LEVEL, LOAD_NEXT_LEVEL };
 
 class KINJO_API Game
@@ -35,12 +37,14 @@ private:
 	SDL_Surface* screenSurface = nullptr;
 	SDL_GLContext mainContext = nullptr;
 
+	SDL_Surface* createdScreenshot = nullptr;
+
 	float now = 0; // duration from game start to current frame
 	bool waitingForDebugDialog = false;
 
 	// Below are reserved for the main loop
 
-	const int updateInterval = 500; // update fps every X ms
+	const float updateInterval = 500; // update fps every X ms
 	float fpsSum = 0.0f; // 
 	float timeLeft = updateInterval; // time left before updating
 	int frames = 0; // number of frames counted
@@ -53,10 +57,25 @@ private:
 	const std::string guiFPS2 = "FPS: ";
 	const std::string guiTimer = "timer";
 
+	void Init();
+
 public:
 
 	bool use2DCamera = true;
 	bool sortByPosY = false;
+	bool renderAll = false;
+
+	const unsigned int bytesPerPixel = 3;
+	unsigned char* pixels640 = new unsigned char[640 * 360 * bytesPerPixel]; // 4 bytes for RGBA
+	unsigned char* pixels1280 = new unsigned char[1280 * 720 * bytesPerPixel]; // 4 bytes for RGBA
+	unsigned char* pixels1600 = new unsigned char[1600 * 900 * bytesPerPixel]; // 4 bytes for RGBA
+	unsigned char* pixels1920 = new unsigned char[1920 * 1080 * bytesPerPixel]; // 4 bytes for RGBA
+
+
+	std::string startingLevel = "title";
+	std::string startingMenu = "Title";
+
+	ColorF clearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 
 	Model modelChopper;
 
@@ -91,13 +110,15 @@ public:
 	NetworkManager* networkManager = nullptr;
 
 	std::vector<Entity*> entitiesToDelete;
+	bool useQuadTree = true;
 
 	SDL_Rect mouseRect;
-	uint32_t mouseState;
-	uint32_t previousMouseState;
 
-	int screenWidth = 1280;
-	int screenHeight = 720;
+	int initialWidth = 1280;
+	int initialHeight = 720;
+
+	int screenWidth = initialWidth;
+	int screenHeight = initialHeight;
 
 	bool debugMode = false;
 	bool editMode = false;
@@ -122,6 +143,9 @@ public:
 
 	void ReadEntityLists();
 
+	void OpenMenu(const std::string& menuName);
+	bool strictMenu = false;
+
 	// play this cutscene on level start
 	std::string levelStartCutscene = "";
 
@@ -131,6 +155,11 @@ public:
 
 	clock::time_point startOfGame;
 	clock::time_point previousTime;
+
+	// For testing / debugging speed of functions
+	std::unordered_map<std::string, clock::time_point> durations;
+	void PrintDuration(const std::string& label);
+	void SetDuration(const std::string& label);
 
 	std::unordered_map<std::string, MenuScreen*> allMenus;
 
@@ -169,7 +198,7 @@ public:
 	bool CheckInputs();
 	void CheckDeleteEntities();
 
-	void RefreshAnimator(Entity* newEntity, const std::string& entityName) const;
+	void RefreshAnimator(Entity* newEntity, const std::string& entityName, const std::string& customSubtype = "") const;
 
 	void SetScreenResolution(const unsigned int width, const unsigned int height);
 	Entity* CreateEntity(const std::string& entityName, const glm::vec3& position, int subtype) const;
@@ -255,6 +284,7 @@ public:
 	bool showTimer = false;
 	int indexScreenResolution = 0;
 
+
 	mutable std::vector<Entity*> entities;
 
 	std::vector<Entity*> lightSourcesInLevel;
@@ -265,20 +295,21 @@ public:
 	std::string gifFolderPath = "screenshots/gif/";
 	int gifFrameNumber = 0;
 
-	glm::vec3 ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos);
-
-	void OpenMenu(const std::string& menuName);
+	glm::vec3 ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos) const;
 
 	void ShouldDeleteEntity(int index);
 	void ShouldDeleteEntity(Entity* entity);
 
-	Game(const std::string& n, const std::string& title, const std::string& icon, bool is2D,
-		const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m, CutsceneHelper* ch, NetworkManager* net);
+	Game(const std::string& name, const std::string& title, const std::string& icon, bool is2D, MainHelper* helper);
+
+	Game(const std::string& name, const std::string& title, const std::string& icon, bool is2D,
+		const EntityFactory& e, const FileManager& f, GUI& g, MenuManager& m, CutsceneHelper* ch, NetworkManager* n);
 	~Game();
 
 	void InitSDL();
 	void EndSDL();
 	void SortEntities(std::vector<Entity*>& entityVector, bool sortByPosY = false);
+	void SortOneEntity(Entity* entity, std::vector<Entity*>& entityVector, bool sortByPosY=false);
 
 	// Spawn functions
 	Tile* CreateTile(const glm::vec2& frame, const int tilesheetIndex,
@@ -289,6 +320,7 @@ public:
 	Entity* SpawnPlayer(const glm::vec3& position);
 
 	Sprite* cursorSprite = nullptr;
+	glm::vec3 cursorScale = glm::vec3(1, 1, 1);
 
 	void TransitionMenu();
 	void TransitionLevel();
@@ -319,9 +351,14 @@ public:
 	void SaveGIF();
 	void EndGIF();
 
+	void CreateScreenshot();
+
+	void SaveCreatedScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension);
 	void SaveScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension);
 
 	Sprite* CreateSprite(const std::string& filepath, const int shaderName = 1);
+
+	void SetMouseCursor(const std::string& filepath="");
 
 };
 

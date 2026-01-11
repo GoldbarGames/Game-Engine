@@ -8,8 +8,11 @@ BaseButton::BaseButton() : Entity(glm::vec3(0,0,0))
 
 BaseButton::~BaseButton()
 {
-	if (image != nullptr)
-		delete_it(image);
+	for (size_t i = 0; i < images.size(); i++)
+	{
+		if (images[i] != nullptr)
+			delete_it(images[i]);
+	}
 
 	if (text != nullptr)
 		delete_it(text);
@@ -48,9 +51,12 @@ void BaseButton::SetColor(Color c)
 {
 	color = c;
 
-	if (image != nullptr)
+	for (unsigned int i = 0; i < images.size(); i++)
 	{
-		image->color = c;
+		if (images[i] != nullptr)
+		{
+			images[i]->color = c;
+		}
 	}
 
 	// We must be careful here to not set the text color
@@ -60,6 +66,11 @@ void BaseButton::SetColor(Color c)
 		Color txtCol = { text->color.r, text->color.g, text->color.b, c.a };
 		text->SetColor(txtCol);
 	}
+}
+
+Color BaseButton::GetImageColor(const unsigned int index)
+{
+	return (images.size() < index) ? images[index]->color : Color{ 255, 255, 255, 255 };
 }
 
 void BaseButton::SetOptionColors(Color c)
@@ -76,7 +87,7 @@ glm::vec3 BaseButton::AlignTextCenterY()
 glm::vec3 BaseButton::AlignTextTopY()
 {
 	const float textCenter = (text->GetTextHeight());
-	const float imageCenter = (image->frameHeight * scale.y) * 0.75f;
+	const float imageCenter = (images[0]->frameHeight * scale.y) * 0.75f;
 	text->SetPosition(position.x, position.y + textCenter - imageCenter);
 	return text->position;
 }
@@ -84,7 +95,7 @@ glm::vec3 BaseButton::AlignTextTopY()
 glm::vec3 BaseButton::AlignTextBottomY()
 {
 	const float textCenter = (text->GetTextHeight());
-	const float imageCenter = (image->frameHeight * scale.y) * 0.75f;
+	const float imageCenter = (images[0]->frameHeight * scale.y) * 0.75f;
 	text->SetPosition(position.x, position.y - textCenter + imageCenter);
 	return text->position;
 }

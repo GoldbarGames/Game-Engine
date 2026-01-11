@@ -8,7 +8,6 @@
 #include <memory>
 #include <unordered_map>
 #include "ImageDeleter.h"
-#include "Vector2.h"
 
 #include "Texture.h"
 #include <SDL2/SDL_ttf.h>
@@ -51,17 +50,21 @@ struct GlyphSurfaceData
 
 };
 
-class GlyphHashFunction
-{
-public:
-	std::size_t operator()(const GlyphSurfaceData& k) const
-	{
-		return ((std::hash<std::string>()(k.fontName)
-			^ (std::hash<char>()(k.glyph) << 1)) >> 1)
-			^ (std::hash<int>()(k.color.r) << 1)
-			^ (std::hash<int>()(k.color.g) << 1)
-			^ (std::hash<int>()(k.color.b) << 1)
-			^ (std::hash<int>()(k.color.a) << 1);
+struct GlyphHashFunction {
+	std::size_t operator()(const GlyphSurfaceData& k) const {
+		std::size_t hash = std::hash<std::string>{}(k.fontName);
+		hash = hash_combine(hash, std::hash<char>{}(k.glyph));
+		hash = hash_combine(hash, std::hash<int>{}(k.size));
+		hash = hash_combine(hash, std::hash<int>{}(k.color.r));
+		hash = hash_combine(hash, std::hash<int>{}(k.color.g));
+		hash = hash_combine(hash, std::hash<int>{}(k.color.b));
+		hash = hash_combine(hash, std::hash<int>{}(k.color.a));
+		return hash;
+	}
+private:
+	template <typename T>
+	std::size_t hash_combine(std::size_t seed, const T& v) const {
+		return seed ^ (std::hash<T>{}(v)+0x9e3779b9 + (seed << 6) + (seed >> 2));
 	}
 };
 
@@ -78,6 +81,7 @@ public:
 	Renderer* renderer = nullptr;
 	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath) const;
 	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath, std::unordered_map<std::string, std::string>& args) const;
+	void ClearCache(std::string const& imagePath);
 	Texture* GetImage(const std::string& imagePath) const;
 	Texture* GetTexture(TTF_Font* f, char c, int size);
 	Texture* GetTexture(TTF_Font* f, const std::string& txt, int wrapWidth=0);

@@ -56,7 +56,7 @@ void ParticleSystem::Update(Game& game)
 	}
 
 	// Update all particles
-	for (int i = 0; i < particles.size(); i++)
+	for (size_t i = 0; i < particles.size(); i++)
 	{
 		if (infos[i].active) // TODO: Only update if within screen
 		{
@@ -72,9 +72,9 @@ void ParticleSystem::Update(Game& game)
 			if (infos[i].lifeTimer.HasElapsed())
 			{
 				infos[i].active = false;
-				nextActiveIndex = std::min(i, nextActiveIndex);
+				nextActiveIndex = std::min(static_cast<int>(i), nextActiveIndex);
 			}
-		}
+		} 
 	}
 }
 

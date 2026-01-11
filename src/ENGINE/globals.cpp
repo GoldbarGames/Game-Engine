@@ -164,6 +164,11 @@ bool LerpVector4(glm::vec4& current, const glm::vec4& start, const glm::vec4& ta
 	return rFinished && gFinished && bFinished && aFinished;
 }
 
+float Lerp(const float min, const float max, const float dt)
+{
+	return ((max - min) * dt) + min;
+}
+
 bool LerpCoord(float& current, const float& start, const float& target, const float& t)
 {
 	if (current != target)
@@ -352,7 +357,7 @@ Color ParseColorHexadecimal(const std::string& text)
 	return color;
 }
 
-std::string ParseWord(const std::string& text, char limit, int& index)
+std::string ParseWord(const std::string& text, char limit, size_t& index)
 {
 	std::string word = "";	
 	size_t length = text.length();
@@ -436,9 +441,9 @@ std::unordered_map<std::string, std::string> GetMapStringsFromFile(const std::st
 
 	std::string key = "";
 	std::string value = "";
-	for (int i = 0; i < vector.size(); i++)
+	for (size_t i = 0; i < vector.size(); i++)
 	{
-		int index = 0;
+		size_t index = 0;
 		key = ParseWord(vector[i], limit, index);
 		value = ParseWord(vector[i], limit, index);
 		result[key] = value;
@@ -453,9 +458,9 @@ std::unordered_map<std::string, int> MapStringsToLineFromFile(const std::string&
 	std::unordered_map<std::string, int> result;
 
 	std::string key = "";
-	for (int i = 0; i < vector.size(); i++)
+	for (size_t i = 0; i < vector.size(); i++)
 	{
-		int index = 0;
+		size_t index = 0;
 		key = ParseWord(vector[i], limit, index);
 		result[key] = i + 1; // don't start from 0 (null-terminated string issues)
 	}
@@ -532,7 +537,7 @@ void ReadTranslationData()
 	
 	std::string baseWord = "";
 	std::string newWord = "";
-	int index = 0;
+	size_t index = 0;
 
 	for (int i = 0; i < Globals::languages.size(); i++)
 	{

@@ -3,11 +3,11 @@
 #pragma once
 
 #include <unordered_map>
-#include "Vector2.h"
 #include "leak_check.h"
 #include <SDL2/SDL.h>
 #include <vector>
 #include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 
 class Text;
 class Game;

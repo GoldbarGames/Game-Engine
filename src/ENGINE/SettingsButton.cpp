@@ -19,13 +19,13 @@ SettingsButton::SettingsButton(const std::string& n, const glm::vec2& pos, Game&
 
 	std::vector<std::string> optionNames;
 
-	std::vector<std::string> settingsNames = ReadStringsFromFile("data/settings.names");
+	std::vector<std::string> settingsNames = ReadStringsFromFile("data/config/settings.names");
 
 	bool foundOptionInList = false;
 
-	for (int i = 0; i < settingsNames.size(); i++)
+	for (size_t i = 0; i < settingsNames.size(); i++)
 	{
-		int index = 0;
+		size_t index = 0;
 		std::string optName = ParseWord(settingsNames[i], ':', index);
 
 		if (name == optName)
@@ -66,7 +66,7 @@ SettingsButton::SettingsButton(const std::string& n, const glm::vec2& pos, Game&
 	}
 
 	// Actually create all of the text items for each option
-	for (int i = 0; i < optionNames.size(); i++)
+	for (size_t i = 0; i < optionNames.size(); i++)
 	{
 		Text* text = new Text(game.headerFont, optionNames[i]);
 		text->SetPosition(position.x, position.y);
@@ -79,7 +79,7 @@ SettingsButton::SettingsButton(const std::string& n, const glm::vec2& pos, Game&
 
 SettingsButton::~SettingsButton()
 {
-	for (int i = 0; i < options.size(); i++)
+	for (size_t i = 0; i < options.size(); i++)
 	{
 		if (options[i] != nullptr)
 			delete_it(options[i]);

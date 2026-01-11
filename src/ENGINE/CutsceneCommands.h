@@ -42,7 +42,16 @@ public:
 	std::unordered_map<unsigned int, std::vector<int>> arrayVariables;
 	std::unordered_map<unsigned int, unsigned int> arrayNumbersPerSlot;
 
+	std::unordered_map<unsigned int, std::vector<std::string>> arrayStrVariables;
+	std::unordered_map<unsigned int, unsigned int> arrayStrNumbersPerSlot;
+
 	std::vector<std::string> includeFilepaths;
+
+	std::vector<std::string> loadCommands;
+
+	std::vector<std::vector<std::string>> midTextCommands;
+	int midTextCmdIndex = 0;
+	int midTextLine = -1;
 
 	// Imagine we want to create an array of 10 things, with a key of 123
 	// Slot #123 has 10 things in it: x x x x x x x x x x
@@ -73,10 +82,14 @@ public:
 
 	std::string textFontKey = "";
 	std::string choiceBGFilePath = "";
+	std::string choiceImageFilePath = "";
 	std::string pathPrefix = "";
 	int randomSeed = 0;
 	bool shouldOutput = false;
 	bool outputCommands = false;
+
+	int choiceOffsetY = 120;
+	int choicePosY = 400;
 
 	int arrayIndex = 0;
 	int vectorIndex = 0;

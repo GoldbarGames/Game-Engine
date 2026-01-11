@@ -15,6 +15,8 @@
 // - Figure out how to get these to be compatible with physical controllers
 // - Automatically translate text if not in English to the selected language
 
+class Game;
+
 struct KeyMapData
 {
 	SDL_Scancode defaultKey = SDL_SCANCODE_UNKNOWN;
@@ -49,10 +51,28 @@ public:
 	bool isPlayingBackInput = false;
 
 	std::vector<int> playbackInputs;
-	int playbackIndex = 0;
+	size_t playbackIndex = 0;
 
 	std::unordered_map<int, int> inputsThisFrame;
 	std::unordered_map<int, int> inputsLastFrame;
+
+	uint32_t mouseState = 0;
+	uint32_t previousMouseState = 0;
+
+	bool holdingLeft = false;
+	bool holdingMiddle = false;
+	bool holdingRight = false;
+
+	bool pressedLeft = false;
+	bool pressedMiddle = false;
+	bool pressedRight = false;
+
+	bool releasedLeft = false;
+	bool releasedMiddle = false;
+	bool releasedRight = false;
+
+	bool scrolledUp = false;
+	bool scrolledDown = false;
 
 	int nCount = 0;
 	int pCount = 0;
@@ -100,9 +120,11 @@ public:
 	bool GetKeyPressed(const std::string& keyName);
 	bool GetKeyReleased(const std::string& keyName);
 
-	glm::vec3 GetMouseWorldPosition();
+	const glm::vec3 GetMouseWorldPosition() const;
 
-	bool GetLeftClicked();
+	const bool GetLeftClicked() const;
+
+	glm::vec3 GetMouseWorldPos(const Game& game) const;
 };
 
 #endif

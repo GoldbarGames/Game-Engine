@@ -41,7 +41,7 @@ SpriteManager::~SpriteManager()
 
 	for (auto& [key, val] : animationStates)
 	{
-		for (int i = 0; i < val.size(); i++)
+		for (size_t i = 0; i < val.size(); i++)
 		{
 			if (val[i] != nullptr)
 				delete_it(val[i]);
@@ -57,6 +57,15 @@ void SpriteManager::Init(Renderer* r)
 {
 	renderer = r;
 	Animator::spriteManager = this;
+}
+
+void SpriteManager::ClearCache(std::string const& imagePath)
+{
+	auto it = images.find(imagePath);
+	if (it != images.end()) 
+	{
+		images.erase(it);
+	}
 }
 
 Texture* SpriteManager::GetImage(std::string const& imagePath) const
@@ -148,18 +157,18 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, const std::string& txt, int wrap
 	SDL_Surface* textSurface = nullptr;
 	SDL_Color textColor = { 255, 255, 255, 255 };
 
-	if (wrapWidth > 0)
+	if (textImages.count(txt) == 0)
 	{
-		textSurface = TTF_RenderText_Blended_Wrapped(f, txt.c_str(), textColor, wrapWidth);
-	}
-	else
-	{
-		textSurface = TTF_RenderText_Blended(f, txt.c_str(), textColor);
-	}
+		if (wrapWidth > 0)
+		{
+			textSurface = TTF_RenderText_Blended_Wrapped(f, txt.c_str(), textColor, wrapWidth);
+		}
+		else
+		{
+			textSurface = TTF_RenderText_Blended(f, txt.c_str(), textColor);
+		}
 
-	if (textSurface != nullptr)
-	{
-		if (textImages.count(txt) == 0)
+		if (textSurface != nullptr)
 		{
 			textTexture = new Texture(txt.c_str());
 			textTexture->LoadTexture(textSurface);
@@ -174,18 +183,16 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, const std::string& txt, int wrap
 			// (Unless "not rich text" means it only handles the regular style)
 
 			textImages[txt] = textTexture;
+			SDL_FreeSurface(textSurface);
 		}
 		else
 		{
-			textTexture = textImages[txt];
-		}		
-
-		if (textSurface != nullptr)
-			SDL_FreeSurface(textSurface);
+			std::cout << "ERROR loading SDL Surface for text \"" << txt << "\"" << std::endl;
+		}
 	}
 	else
 	{
-		std::cout << "ERROR loading SDL Surface" << std::endl;
+		textTexture = textImages[txt];
 	}
 
 	return textTexture;

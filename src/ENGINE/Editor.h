@@ -17,15 +17,11 @@
 #include "filesystem_types.h"
 #include "EditorHelper.h"
 
-class Door;
 class Entity;
-class Ladder;
 class Renderer;
-class NPC;
 class Path;
 class Text;
 class Dialog;
-class Platform;
 
 class KINJO_API Editor
 {
@@ -57,7 +53,7 @@ public:
 	// Variables for the Properties Inspector
 	Entity* selectedEntity = nullptr;
 	std::vector<Property*> properties;	
-	int propertyOptionIndex = 0;
+	size_t propertyOptionIndex = 0;
 
 	// Variables for the Grab Button
 	//Entity* grabbedEntity = nullptr;

@@ -1,6 +1,12 @@
 #include "GUI.h"
 #include "Game.h"
 
+#include "globals.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include <time.h>
+
 void GUI::Init(Game* g)
 {
 	game = g;
@@ -29,8 +35,111 @@ Text* GUI::GetText(const std::string& name)
 	return texts[textNames[name]];
 }
 
+std::string GUI::GetTimerString(uint32_t ticks)
+{
+	// For dates
+	//long long time = timer.GetTicks();
+	//texts[1]->SetText(asctime(gmtime(&time)));
+
+
+	const uint32_t seconds = (ticks / 1000) % 60;
+	const uint32_t minutes = ((ticks / 1000) / 60) % 60;
+	const uint32_t hours = (((ticks / 1000) / 60) / 60) % 24;
+
+	static std::string hour = "00";
+	static std::string minute = "00";
+	static std::string second = "00";
+	static uint32_t prevHours = 0;
+	static uint32_t prevMinutes = 0;
+	static uint32_t prevSeconds = 0;
+
+	if (prevHours != hours)
+	{
+		prevHours = hours;
+		if (hours < 10)
+			hour = "0" + std::to_string(hours);
+		else
+			hour = std::to_string(hours);
+	}
+
+	if (prevMinutes != minutes)
+	{
+		prevMinutes = minutes;
+		if (minutes < 10)
+			minute = "0" + std::to_string(minutes);
+		else
+			minute = std::to_string(minutes);
+	}
+
+	if (prevSeconds != seconds)
+	{
+		prevSeconds = seconds;
+		if (seconds < 10)
+			second = "0" + std::to_string(seconds);
+		else
+			second = std::to_string(seconds);
+	}
+
+	return hour + ":" + minute + ":" + second;
+}
+
 void GUI::Update()
 {
+	if (showTimer)
+	{
+		lastTimerValue = timer.GetTicks() * timerSpeed;
+
+		texts[1]->SetText(GetTimerString(lastTimerValue));
+		texts[1]->SetPosition((game->screenWidth) - (texts[1]->GetTextWidth() * 2), texts[1]->GetTextHeight());
+	}
+}
+
+void GUI::SetShaderVariables(const Sprite& sprite, const ShaderProgram* shader)
+{
+	float fadePoint, fadeR, fadeG, fadeB, fadeA, freq, maxColor;
+	glm::vec4 fadeColor;
+
+	switch (shader->GetName())
+	{
+	case 8: // ShaderName::Glow:
+	case 17:
+
+		freq = 0.002f;
+		fadePoint = abs(sin(game->renderer.now * freq));
+		fadeR = sprite.color.r > fadePoint ? (sprite.color.r / 255.0f) : fadePoint;
+		fadeG = sprite.color.g > fadePoint ? (sprite.color.g / 255.0f) : fadePoint;
+		fadeB = sprite.color.b > fadePoint ? (sprite.color.b / 255.0f) : fadePoint;
+		fadeA = sprite.color.a > fadePoint ? (sprite.color.a / 255.0f) : fadePoint;
+
+		fadeR = std::max(fadeR, 0.5f);
+		fadeG = std::max(fadeG, 0.5f);
+		fadeB = std::max(fadeB, 0.5f);
+		fadeA = std::max(fadeA, 0.5f);
+
+		fadeColor = glm::vec4(fadeR, fadeG, fadeB, fadeA);
+
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), game->renderer.now);
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
+		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
+		break;
+	case 13: //ShaderName::Motion:
+		// % is the number of seconds / tiles for the pattern
+		// NOTE: The tile must loop at the halfway mark to look correct
+		// TODO: Can this be improved to work for whole tiles?
+		freq = 1000;
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
+		break;
+	case 15:
+		freq = 0.0004f;
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
+		break;
+	case 11:
+		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), game->renderer.now);
+		break;
+	default:
+		break;
+	}
+
 
 }
 
@@ -44,7 +153,7 @@ void GUI::Render(const Renderer& renderer)
 	if (game->showFPS)
 		texts[0]->Render(renderer);
 
-	if (game->showTimer)
+	if (showTimer)
 		texts[1]->Render(renderer);
 
 	if (currentGUI != "")
@@ -152,7 +261,7 @@ void GUI::SaveData()
 	fout << data;
 	fout.close();
 
-	std::cout << "Saved GUI" << std::endl;
+	// std::cout << "Saved GUI" << std::endl;
 }
 
 // Replace all texts with any variables
@@ -163,13 +272,13 @@ void GUI::UpdateText(const std::string& key)
 		Text* text = texts[textNames[key]];
 		std::string txt = "";
 		Color textColor = { 255, 255, 255, 255 };
-		int letterIndex = 0;
+		size_t letterIndex = 0;
 
 		text->SetText("");
 		while (letterIndex < originalTexts[key].size())
 		{
 			txt = game->cutsceneManager.ParseText(originalTexts[key], letterIndex, textColor, text);
-			for (int i = 0; i < txt.size(); i++)
+			for (size_t i = 0; i < txt.size(); i++)
 			{
 				text->AddText(txt[i], textColor);
 			}
@@ -189,7 +298,7 @@ void GUI::LoadData(Game* g)
 	guiImages.clear();
 	guiTexts.clear();
 
-	int index = 0;
+	size_t index = 0;
 	std::string key = "";
 	std::string val = "";
 	std::string txt = "";
@@ -208,7 +317,7 @@ void GUI::LoadData(Game* g)
 		if (val != "_")
 		{
 			Color textColor = { 255, 255, 255, 255 };
-			int letterIndex = 0;
+			size_t letterIndex = 0;
 
 			//text->SetTextAsOneSprite(txt, textColor);
 			while (letterIndex < val.size())

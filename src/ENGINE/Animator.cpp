@@ -7,6 +7,8 @@
 #include "Timer.h"
 #include "AnimatorInfo.h"
 #include "SpriteManager.h"
+#include "Renderer.h"
+#include "Game.h"
 
 std::map<unsigned int, AnimatorInfo*> Animator::mapTypeToInfo;
 std::unordered_map<std::string, unsigned int> Animator::mapNamesToAnimType;
@@ -168,7 +170,7 @@ void Animator::Update(Entity& entity)
 		for (auto& nextState : stateMachine->conditions)
 		{
 			allConditionsTrue = true;
-			for (int i = 0; i < nextState.second.size(); i++)
+			for (size_t i = 0; i < nextState.second.size(); i++)
 			{
 				condition = &(nextState.second[i]);
 				if (condition->check == "==")
@@ -191,6 +193,17 @@ void Animator::Update(Entity& entity)
 					else
 					{
 						allConditionsTrue = false;
+					}
+				}
+				else if (condition->check == "gif")
+				{
+					if (spriteManager->renderer->game->savingGIF)
+					{
+						//allConditionsTrue = true;
+					}
+					else
+					{
+						//allConditionsTrue = false;
 					}
 				}
 				else

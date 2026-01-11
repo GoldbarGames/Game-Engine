@@ -16,13 +16,16 @@ public:
 	mutable std::unordered_map<std::string, SDL_Scancode> defaultKeys;
 	mutable std::unordered_map<std::string, uint8_t> defaultButtons;
 
+	int defaultFontSize = 24;
+
 	MenuManager();
 	~MenuManager();
 
 	virtual void TogglePause(Game& game, bool toggle) const;
 	virtual void Init(Game& game) const;
-	virtual int GetFontSize() const; // TODO: Remove this when we read fonts in from a file?
 	virtual void Update(Game& game) const;
+
+	virtual void CreateMenu(const std::string& menuName, Game& game) const = 0;
 };
 
 #endif

@@ -4,6 +4,9 @@
 
 #include "opengl_includes.h"
 #include "leak_check.h"
+
+#include <glm/mat4x4.hpp>
+
 enum class MeshType { Quad, Triangle, Line, Cube, Pyramid };
 
 class KINJO_API Mesh
@@ -17,8 +20,11 @@ public:
 		unsigned int v, unsigned int uvOffset, unsigned int normalOffset);
 
 	void BindMesh();
-	void RenderMesh();
+	void RenderMesh(unsigned int instanceAmount);
 	void ClearMesh();
+
+	GLuint GetVAO() const { return VAO; };
+
 
 private:
 	GLuint VAO, VBO, IBO;

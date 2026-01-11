@@ -10,13 +10,16 @@
 class KINJO_API Texture
 {
 public:
+	static int lastTextureID;
+	static int lastActiveTexture;
+
 	Texture(const std::string& path);
 	~Texture();
 
 	bool LoadTexture();
 	void LoadTexture(unsigned int& buffer, int w, int h);
 	void LoadTexture(SDL_Surface* surface, bool reset=false);
-	void UseTexture();
+	void UseTexture(int textureNum = GL_TEXTURE0);
 	void ClearTexture();
 	int GetWidth() { return width; }
 	int GetHeight() { return height; }

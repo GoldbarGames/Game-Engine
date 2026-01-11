@@ -3,13 +3,15 @@
 #include "Sprite.h"
 #include "Game.h"
 
-QuadTree::QuadTree() : QuadTree(0, 0, 0, 0)
+QuadTree::QuadTree() : QuadTree(0, 0, 0, 0, 0)
 {
    
 }
 
-QuadTree::QuadTree(int x, int y, int w, int h, int d)
+QuadTree::QuadTree(int i, int x, int y, int w, int h, int d)
 {
+    id = (d * 10) + i;
+
     children[0] = nullptr;
     children[1] = nullptr;
     children[2] = nullptr;
@@ -17,7 +19,7 @@ QuadTree::QuadTree(int x, int y, int w, int h, int d)
 
     depth = d;
 
-    SetCoords(x, y, w, h, 500);
+    SetCoords(x, y, w, h, 100);
 }
 
 void QuadTree::SetCoords(int x, int y, int w, int h, int s)
@@ -55,7 +57,7 @@ void QuadTree::RenderEntities(const Renderer& renderer, const std::vector<Entity
     if (debugSprite == nullptr)
         debugSprite = new Sprite(renderer.shaders[4]);
 
-    for (int i = 0; i < e.size(); i++)
+    for (size_t i = 0; i < e.size(); i++)
     {
         int colorIndex = i % 6;
         Uint8 c = 255;
@@ -144,8 +146,8 @@ void QuadTree::Render(const Renderer& renderer)
             break;
         }
 
-        debugSprite->pivot = glm::vec2(0, 0);
-        renderer.debugScale = glm::vec2(rect.w, rect.h);
+        debugSprite->pivot = glm::vec3(0, 0, 0);
+        renderer.debugScale = glm::vec3(rect.w, rect.h, 0);
         debugSprite->Render(glm::vec3(rect.x, rect.y, 0), renderer, renderer.debugScale);
 
         for (int i = 0; i < 4; i++)
@@ -170,6 +172,7 @@ std::vector<Entity*> QuadTree::GetEntities()
 void QuadTree::Reset()
 {
     entities.clear();
+    entities.reserve(MAX_ENTITIES);
 
     for (int i = 0; i < 4; i++)
     {
@@ -177,8 +180,13 @@ void QuadTree::Reset()
         {
             children[i]->Reset();
             children[i]->active = false;
-            //delete children[i];
-            //children[i] = nullptr;
+
+            // TODO: This is necessary, because otherwise entities get inserted into the wrong children
+            // (i.e. it acts like it's subdivided when it shouldn't divide yet.)
+            // Though it's more efficient if we don't constantly new/delete.
+            // So optimize this at some point.
+            delete children[i];
+            children[i] = nullptr;
         }            
     }
 }
@@ -189,11 +197,10 @@ void QuadTree::Insert(Entity* newEntity)
     if (newEntity == nullptr)
         return;
 
-    // If there are no child nodes, or the object cannot fit in them,
-    // then the object is added to the parent node.
+    // Attempt to insert the entity into a child node if it exists
     if (children[0] != nullptr)
     {
-        QuadTree* child = GetInsertedChild(newEntity->GetBounds());
+        QuadTree* child = GetChildContainingBounds(newEntity->GetBounds());
         if (child != nullptr)
         {
             child->Insert(newEntity);
@@ -201,12 +208,24 @@ void QuadTree::Insert(Entity* newEntity)
         }        
     }
 
+    // If there are no child nodes, or the object cannot fit in them,
+    // then the object is added to the parent node.
+
     entities.emplace_back(newEntity);
     newEntity->quadrant = this;
 
-    int MAX_ENTITIES = 4;
+    if (output)
+    {
+        std::cout << "Entity " << newEntity->id << " in quadtree " << id << " for " << entities.size() << " total" << std::endl;
+    }
+
     if (entities.size() > MAX_ENTITIES && !smallestSize)
     {
+        if (output)
+        {
+            std::cout << "Subdividing..." << std::endl;
+        }
+
         // Subdivide
         if (children[0] == nullptr)
         {
@@ -215,10 +234,10 @@ void QuadTree::Insert(Entity* newEntity)
             int x = rect.x;
             int y = rect.y;
 
-            children[0] = new QuadTree(x + subWidth, y, subWidth, subHeight, depth+1);
-            children[1] = new QuadTree(x, y, subWidth, subHeight, depth + 1);
-            children[2] = new QuadTree(x, y + subHeight, subWidth, subHeight, depth + 1);
-            children[3] = new QuadTree(x + subWidth, y + subHeight, subWidth, subHeight, depth + 1);
+            children[0] = new QuadTree(0, x + subWidth, y, subWidth, subHeight, depth+1);
+            children[1] = new QuadTree(1, x, y, subWidth, subHeight, depth + 1);
+            children[2] = new QuadTree(2, x, y + subHeight, subWidth, subHeight, depth + 1);
+            children[3] = new QuadTree(3, x + subWidth, y + subHeight, subWidth, subHeight, depth + 1);
         }
         else if (!children[0]->active)
         {
@@ -228,34 +247,37 @@ void QuadTree::Insert(Entity* newEntity)
             children[3]->active = true;
         }
 
-        int i = 0;
+        size_t i = 0;
         while (i < entities.size())
         {
-            QuadTree* child = GetInsertedChild(newEntity->GetBounds());
+            QuadTree* child = GetChildContainingBounds(newEntity->GetBounds());
             if (child != nullptr)
             {
-                child->Insert(entities[i]);         
-                std::vector<Entity*>::iterator it = entities.begin() + i;
-                entities.erase(it);
+                // If the entity is within the child bounds, add it to the child's list of entities
+                child->Insert(entities[i]);    
+
+                // Remove it from the parent node's list of entities
+                entities.erase(entities.begin() + i);
             }
-            else
-            {
-                i++;
-            }
+
+            // Else, keep it in the parent's list
+
             i++;
         }
     }
 
 }
 
-QuadTree* QuadTree::GetInsertedChild(const SDL_Rect* bounds)
+QuadTree* QuadTree::GetChildContainingBounds(const SDL_Rect* bounds)
 {
     QuadTree* child = nullptr;
 
+    // If the child nodes exist, check them
     if (children[0] != nullptr)
     {
         for (int i = 0; i < 4; i++)
         {
+            // If the bounds are within the child node, return the node
             if (HasIntersection(children[i]->rect, *bounds))
             {
                 child = children[i];
@@ -272,13 +294,13 @@ QuadTree* QuadTree::SearchTree(Entity* e)
 {
     QuadTree* result = nullptr;
 
-    for (int i = 0; i < entities.size(); i++)
+    for (size_t i = 0; i < entities.size(); i++)
     {
         if (entities[i] == e)
             return this;
     }
 
-    for (int i = 0; i < 4; i++)
+    for (size_t i = 0; i < 4; i++)
     {
         if (result != nullptr && children[i] != nullptr)
             result = children[i]->SearchTree(e);
@@ -290,7 +312,7 @@ QuadTree* QuadTree::SearchTree(Entity* e)
 // Returns all entities contained within a point by adding them to the (initially empty) vector
 void QuadTree::Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out, QuadTree* root)
 {
-    QuadTree* child = GetInsertedChild(bounds);
+    QuadTree* child = GetChildContainingBounds(bounds);
     if (child != nullptr)
     {
         child->Retrieve(bounds, out, root);
@@ -322,28 +344,25 @@ void QuadTree::Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out, QuadT
 
         QuadTree* tree = root;
 
-        tree = tree->GetInsertedChild(&leftBounds);
+        tree = root->GetChildContainingBounds(&leftBounds);
         if (tree != nullptr)
         {
             tree->Retrieve(&leftBounds, out, nullptr);
         }
 
-        tree = root;
-        tree = tree->GetInsertedChild(&rightBounds);
+        tree = root->GetChildContainingBounds(&rightBounds);
         if (tree != nullptr)
         {
             tree->Retrieve(&rightBounds, out, nullptr);
         }
 
-        tree = root;
-        tree = tree->GetInsertedChild(&topBounds);
+        tree = root->GetChildContainingBounds(&topBounds);
         if (tree != nullptr)
         {
             tree->Retrieve(&topBounds, out, nullptr);
         }
 
-        tree = root;
-        tree = tree->GetInsertedChild(&bottomBounds);
+        tree = root->GetChildContainingBounds(&bottomBounds);
         if (tree != nullptr)
         {
             tree->Retrieve(&bottomBounds, out, nullptr);
@@ -359,7 +378,7 @@ void QuadTree::Retrieve(const SDL_Rect* bounds, std::vector<Entity*>& out, QuadT
     return;
 }
 
-bool QuadTree::Contains(Vector2 point)
+bool QuadTree::Contains(glm::vec3 point)
 {
     return (point.x >= topLeft.x &&
         point.x <= botRight.x &&

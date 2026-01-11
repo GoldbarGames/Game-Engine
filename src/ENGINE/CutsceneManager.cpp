@@ -18,6 +18,7 @@ CutsceneManager::CutsceneManager()
 void CutsceneManager::Init(Game& g)
 {
 	game = &g;
+	prevPage = -1;
 
 	for (auto& [key, val] : tags)
 	{
@@ -52,17 +53,17 @@ void CutsceneManager::Init(Game& g)
 
 CutsceneManager::~CutsceneManager()
 {
-	for (int i = 0; i < labels.size(); i++)
+	for (size_t i = 0; i < labels.size(); i++)
 	{
 		//delete labels[i];
 	}
 
-	for (int i = 0; i < gosubStack.size(); i++)
+	for (size_t i = 0; i < gosubStack.size(); i++)
 	{
 		delete_it(gosubStack[i]);
 	}
 
-	for (int i = 0; i < backlog.size(); i++)
+	for (size_t i = 0; i < backlog.size(); i++)
 	{
 		delete_it(backlog[i]);
 	}
@@ -126,7 +127,7 @@ void CutsceneManager::ReadCutsceneFile()
 		std::vector<std::string> filesToRead;
 		filesToRead.emplace_back(filepath);
 
-		for (int i = 0; i < commands.includeFilepaths.size(); i++)
+		for (size_t i = 0; i < commands.includeFilepaths.size(); i++)
 		{
 			filesToRead.emplace_back(commands.includeFilepaths[i]);
 		}
@@ -208,9 +209,7 @@ void CutsceneManager::CheckKeysWhileReading()
 	{
 		if (!readingBacklog && !waitingForButton)
 		{
-			if ( ((input[readButton] || input[readButton2]) && inputTimer.HasElapsed()) 
-				|| isSkipping
-				|| (automaticallyRead && autoReaderTimer.HasElapsed()))
+			if ( ((input[readButton] || input[readButton2]) && inputTimer.HasElapsed()) || isSkipping)
 			{
 				clickedMidPage = true;
 			}
@@ -220,6 +219,8 @@ void CutsceneManager::CheckKeysWhileReading()
 
 void CutsceneManager::OpenBacklog()
 {
+	game->inputManager.scrolledUp = false;
+
 	if (!readingBacklog)
 	{
 		readingBacklog = true;
@@ -264,6 +265,8 @@ void CutsceneManager::OpenBacklog()
 
 void CutsceneManager::CloseBacklog()
 {
+	game->inputManager.scrolledDown = false;
+
 	if (readingBacklog && inputTimer.HasElapsed())
 	{
 		backlogIndex++;
@@ -374,7 +377,7 @@ void CutsceneManager::CheckKeys()
 				// TODO: Maybe do something on right click?
 			}
 
-			if (hoveredButton > -1 && clickedMouse)
+			if (hoveredButton > -1 && clickedMouse && inputTimer.HasElapsed())
 			{
 				if (hoveredButton == 998) // Scroll up
 				{
@@ -393,11 +396,11 @@ void CutsceneManager::CheckKeys()
 	{
 		if (readingBacklog)
 		{
-			if (input[SDL_SCANCODE_UP])
+			if (input[SDL_SCANCODE_UP] || game->inputManager.scrolledUp)
 			{
 				OpenBacklog();
 			}
-			else if (input[SDL_SCANCODE_DOWN])
+			else if (input[SDL_SCANCODE_DOWN] || game->inputManager.scrolledDown)
 			{
 				CloseBacklog();
 			}
@@ -405,10 +408,22 @@ void CutsceneManager::CheckKeys()
 		else if (input[readButton] || input[readButton2] || isSkipping
 			|| (automaticallyRead && autoReaderTimer.HasElapsed()))
 		{
-			ReadNextLine();
-			inputTimer.Start(inputTimeToWait);
+			if (automaticallyRead && autoWaitChannel > 0)
+			{
+				if (!game->soundManager.IsPlayingSound(autoWaitChannel))
+				{
+					ReadNextLine();
+					inputTimer.Start(inputTimeToWait);
+				}
+			}
+			else
+			{
+				ReadNextLine();
+				inputTimer.Start(inputTimeToWait);
+			}
+
 		}
-		else if (input[SDL_SCANCODE_UP])
+		else if (input[SDL_SCANCODE_UP] || game->inputManager.scrolledUp)
 		{
 			if (backlogEnabled)
 			{
@@ -820,8 +835,10 @@ void CutsceneManager::RenderTextbox(const Renderer& renderer)
 	renderer.overlaySprite->Render(glm::vec3(0, 0, 0), renderer, renderer.overlayScale);
 
 	// Render the textbox above everything
+	//renderer.game->SetDuration("RenderTextbox");
 	if (GetLabelName(currentLabel) != "title")
 		textbox->Render(renderer, game->screenWidth, game->screenHeight);
+	//renderer.game->PrintDuration("RenderTextbox");
 
 	if (!isCarryingOutCommands && !isReadingNextLine)
 	{
@@ -972,7 +989,7 @@ SceneLabel* CutsceneManager::JumpToLabel(const std::string& newLabelName)
 	return nullptr;
 }
 
-void CutsceneManager::PlayCutscene(const char* labelName)
+SceneLabel* CutsceneManager::PlayCutscene(const char* labelName)
 {
 	if (labelName != "" && labelName != "null")
 	{
@@ -987,7 +1004,7 @@ void CutsceneManager::PlayCutscene(const char* labelName)
 			if (currentLabel == nullptr)
 			{
 				watchingCutscene = false;
-			}
+			}			
 		}
 		else
 		{
@@ -997,7 +1014,13 @@ void CutsceneManager::PlayCutscene(const char* labelName)
 		}
 
 		ReadNextLine();
+
+		return newLabel;
 	}	
+	else
+	{
+		return nullptr;
+	}
 }
 
 void CutsceneManager::EndCutscene()
@@ -1009,7 +1032,7 @@ void CutsceneManager::EndCutscene()
 	isReadingNextLine = false;
 }
 
-void CutsceneManager::PushCurrentSceneDataToStack()
+void CutsceneManager::PushCurrentSceneDataToStack(const std::string& nextLabel)
 {
 	SceneData* newData = new SceneData();
 	newData->labelIndex = labelIndex;
@@ -1021,7 +1044,7 @@ void CutsceneManager::PushCurrentSceneDataToStack()
 #if _DEBUG
 	if (!isTravelling)
 	{
-		std::cout << "PUSH LABEL " << newData->labelName << std::endl;
+		std::cout << "Gosub from label *" << newData->labelName << " to label *" << nextLabel << std::endl;
 	}
 #endif
 
@@ -1043,11 +1066,18 @@ bool CutsceneManager::PopSceneDataFromStack(SceneData& data)
 		letterIndex = 0;
 		//currentText = data.lineText;
 
+		// Only display the next line if mid-line commands were executed
+		if (commands.midTextLine == lineIndex && commands.midTextLine > -1)
+		{
+			lineIndex++;
+			commands.midTextLine = -1;
+		}
+
 #if _DEBUG
 
 		if (!isTravelling)
 		{
-			std::cout << "POP LABEL " << data.labelName << std::endl;
+			std::cout << "Returning to label *" << data.labelName << std::endl;
 		}
 
 #endif
@@ -1106,10 +1136,34 @@ void CutsceneManager::ReadNextLine()
 		else
 		{
 			textbox->SetCursorPosition(false);
+
+			if (data[newIndex + 1] == '@')
+			{
+				commands.midTextCmdIndex++;
+				//std::cout << "MTCI: " << commands.midTextCmdIndex << std::endl;
+				if (commands.midTextCommands.size() > 0 && commands.midTextCommands.size() >= commands.midTextCmdIndex)
+				{
+					if (commands.midTextCommands[commands.midTextCmdIndex - 1].size() > 1)
+					{
+						commands.midTextLine = lineIndex;
+						for (int i = 0; i < commands.midTextCommands[commands.midTextCmdIndex - 1].size(); i++)
+						{
+							commands.ExecuteCommand(commands.midTextCommands[commands.midTextCmdIndex - 1][i]);
+							if (commands.midTextCommands.size() == 0)
+								break;
+						}
+
+						return;
+					}
+
+				}
+			}
+
+
 		}
 
 		lineIndex++;
-		if (lineIndex >= currentLabel->lineSize)
+		if (lineIndex > 0 && lineIndex >= currentLabel->lineSize - 1)
 		{			
 			if (labelIndex < labels.size() - 1)
 			{
@@ -1119,8 +1173,8 @@ void CutsceneManager::ReadNextLine()
 				}
 				else // go to the next label in sequence
 				{
-					std::cout << "NEXT LABEL " << GetLabelName(labels[labelIndex]) <<  std::endl;
 					labelIndex++;
+					std::cout << "FALLING INTO LABEL: " << GetLabelName(labels[labelIndex]) <<  std::endl;
 					currentLabel = JumpToLabel(GetLabelName(labels[labelIndex]));
 					lineIndex = -1;
 					ReadNextLine();
@@ -1187,9 +1241,13 @@ SceneLabel* CutsceneManager::GetCurrentLabel()
 		return nullptr;
 }
 
-SceneLine* CutsceneManager::GetCurrentLine()
+SceneLine* CutsceneManager::GetCurrentLine(SceneLabel* label)
 {
-	SceneLabel* label = GetCurrentLabel();
+	if (label == nullptr)
+	{
+		label = GetCurrentLabel();
+	}
+
 	if (label != nullptr)
 	{
 		if (lineIndex >= 0 && lineIndex < label->lineSize)
@@ -1327,8 +1385,8 @@ void CutsceneManager::UpdateText()
 			mouseY *= Camera::MULTIPLIER;
 
 			SDL_Rect mouseRect;
-			mouseRect.x = mouseX;
-			mouseRect.y = mouseY;
+			mouseRect.x = mouseX * (game->initialWidth / (float)game->screenWidth);
+			mouseRect.y = mouseY * (game->initialWidth / (float)game->screenWidth);
 			mouseRect.w = 1;
 			mouseRect.h = 1;
 
@@ -1357,7 +1415,8 @@ void CutsceneManager::UpdateText()
 
 					if (images[index] != nullptr)
 					{
-						if (HasIntersection(images[index]->GetTopLeftBounds(), mouseRect))
+						SDL_Rect b = images[index]->GetTopLeftBounds();
+						if (HasIntersection(b, mouseRect))
 						{
 							images[index]->SetColor({ 255, 255, 0, 255 });
 							hoveredButton = i;
@@ -1371,7 +1430,7 @@ void CutsceneManager::UpdateText()
 			}
 			else
 			{
-				for (int i = 0; i < activeButtons.size(); i++)
+				for (size_t i = 0; i < activeButtons.size(); i++)
 				{
 					int index = activeButtons[i];
 
@@ -1536,7 +1595,7 @@ void CutsceneManager::UpdateText()
 				{
 					if (lines[currentLabel->lineStart + lineIndex].commandsSize > 1)
 					{
-						textbox->shouldRender = false;
+						textbox->shouldRender = (currentPage == prevPage);
 					}
 
 					//std::cout << currentLabel->lines[lineIndex].commands[commandIndex] << std::endl;
@@ -1555,6 +1614,8 @@ void CutsceneManager::UpdateText()
 
 
 						std::string command = GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex);
+
+						//std::cout << command << std::endl;
 
 						if (!commands.ExecuteCommand(command))
 						{
@@ -1654,6 +1715,25 @@ void CutsceneManager::UpdateText()
 				{
 					isCarryingOutCommands = false;
 
+					prevPage = currentPage;
+
+					/* TODO: Get this working
+					if (textbox->speaker->txt == " " && currentLabel == baseLabel && !narrating)
+					{
+						narrating = true;
+						commands.ExecuteCommand("narrate");
+						std::cout << "NARRATING ON" << std::endl;
+					}
+					else
+					{
+						narrating = false;
+						std::cout << "NARRATING OFF" << std::endl;
+					}		
+					*/
+
+					
+					game->CreateScreenshot();
+
 					if (isTravelling) // don't read text when travelling
 					{
 						isReadingNextLine = false;
@@ -1674,6 +1754,8 @@ void CutsceneManager::UpdateText()
 
 				bool displayAllText = (msDelayBetweenGlyphs == 0) || clickedMidPage;
 
+				int waitGlyphs = 0;
+
 				do
 				{
 					if (currentLabel == nullptr)
@@ -1691,7 +1773,33 @@ void CutsceneManager::UpdateText()
 						commands.lineBreaks = 0;
 					}
 
-					int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
+					// calculate correct letter index when returning from custom labels during a mid-text-command
+					// (this didn't seem to work...)
+					/*
+					if (letterIndex == 1 && commands.midTextCmdIndex > 0)
+					{
+						int seenMid = 0;
+						int wrongIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
+						while (wrongIndex < lines[currentLabel->lineStart + lineIndex].textEnd)
+						{
+							wrongIndex++;
+							if (data[wrongIndex - 2] == '@')
+							{
+								seenMid++;
+								if (seenMid == commands.midTextCmdIndex)
+								{
+									letterIndex = wrongIndex - lines[currentLabel->lineStart + lineIndex].textStart;
+									break;
+								}
+							}
+						}
+					}
+					*/
+
+					baseLabel = currentLabel;
+					baseLineIndex = lineIndex;
+
+					size_t newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
 
 					if (newIndex >= lines[currentLabel->lineStart + lineIndex].textEnd)
 					{
@@ -1706,6 +1814,17 @@ void CutsceneManager::UpdateText()
 					{
 						game->soundManager.PlaySound(textSounds[GetLineSpeaker(GetCurrentLine())]);
 					}
+
+					waitGlyphs++;
+
+					// TODO: This likely won't work properly since we need a way to deal with branches and loops
+					// and also, it may accidentally voice lines that aren't narration ("...", "", or any dialogue)
+					/*
+					if (voiceNarration && waitGlyphs == 1)
+					{
+						narrationIndex++;
+						game->soundManager.PlaySound("voice/nar/" + std::to_string(narrationIndex) + ".ogg", 1);
+					}*/
 
 					if (result.size() > 1)
 					{
@@ -1739,13 +1858,15 @@ void CutsceneManager::UpdateText()
 						displayAllText = false;
 						clickedMidPage = false;
 
+						game->updateScreenTexture = true;
+
 						textbox->SetCursorPosition(data[newIndex + 1] != '@');
 						//textbox->clickToContinue->Update(*game);
 						//game->player->cutsceneInputTimer.Start(100);
 
 						if (automaticallyRead)
 						{
-							autoTimeToWait = (textbox->text->glyphs.size() * autoTimeToWaitPerGlyph);
+							autoTimeToWait = (waitGlyphs * autoTimeToWaitPerGlyph * 20);
 							autoReaderTimer.Start(autoTimeToWait);
 						}
 
@@ -1827,11 +1948,14 @@ void CutsceneManager::MakeChoice()
 
 		// Remove the sprite buttons from the screen
 		CutsceneFunctions::ClearSprite({ "", std::to_string(choiceSpriteStartNumber) }, commands);   // bg
-		CutsceneFunctions::ClearSprite({ "", std::to_string(choiceSpriteStartNumber + 1) }, commands); // question
+
 		for (int i = 0; i < activeButtons.size(); i++)
 		{
-			CutsceneFunctions::ClearSprite({ "", std::to_string(activeButtons[i]) }, commands);
+			CutsceneFunctions::ClearSprite({ "", std::to_string(choiceSpriteStartNumber + i + 1) }, commands); // box
+			CutsceneFunctions::ClearSprite({ "", std::to_string(activeButtons[i]) }, commands); // question
 		}
+
+		CutsceneFunctions::ClearSprite({ "", std::to_string(choiceSpriteStartNumber + activeButtons.size() + 1) }, commands); // box
 
 		int result = -198;
 		int responseNumber = 0;
@@ -1869,7 +1993,10 @@ void CutsceneManager::MakeChoice()
 		ClearPage();
 	}
 
-	activeButtons.clear();
+	if (shouldClearButtons)
+		activeButtons.clear();
+
+	shouldClearButtons = true;
 
 	inputTimer.Start(inputTimeToWait);
 }
@@ -1884,12 +2011,23 @@ void CutsceneManager::ClearPage()
 
 	backlog.push_back(new BacklogData(currentText, textbox->speaker->txt));
 
+	currentPage++;
+
 	// If backlog is full, remove the oldest entry
 	if (backlog.size() > backlogMaxSize)
 	{
 		delete_it(backlog[0]);
 		backlog.erase(backlog.begin());
 	}
+
+	// Clear the midTextCommands
+	commands.midTextCmdIndex = 0;  
+	for (size_t i = 0; i < commands.midTextCommands.size(); i++)
+	{
+		commands.midTextCommands[i].clear();
+	}
+	commands.midTextCommands.clear();
+	//std::cout << "MTCI: " << commands.midTextCmdIndex << std::endl;
 
 	// Clear the textbox
 	currentText = "";
@@ -1899,7 +2037,7 @@ void CutsceneManager::ClearPage()
 }
 
 // TODO: Color tags inside of brackets does not work (such as: text [#ff0000#Example#00ff00#Test])
-std::string CutsceneManager::ParseText(const std::string& originalString, int& letterIndex, Color& textColor, Text* text)
+std::string CutsceneManager::ParseText(const std::string& originalString, size_t& letterIndex, Color& textColor, Text* text)
 {
 	std::string result = "";
 
@@ -1909,7 +2047,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 		letterIndex++;
 
 		// Get everything until the next ] symbol
-		int varNameIndex = letterIndex;
+		size_t varNameIndex = letterIndex;
 		std::string word = ParseWord(originalString, ']', letterIndex);
 
 		// at this point we have the $variablename, check the first character to get the type
@@ -1937,7 +2075,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 
 			//letterIndex--;
 
-			for (int valueIndex = 0; valueIndex < variableValue.length(); valueIndex++)
+			for (size_t valueIndex = 0; valueIndex < variableValue.length(); valueIndex++)
 			{
 				result += variableValue[valueIndex];
 			}
@@ -1980,11 +2118,45 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 			letterIndex = finalColorIndex;
 		}
 	}
+	else if (originalString[letterIndex] == '_')
+	{
+		tags["i"]->active = !tags["i"]->active;
+
+		if (tags["b"]->active && tags["i"]->active)
+		{
+			text->SetFont(text->currentFontInfo->GetBoldItalicsFont());
+		}
+		else if (tags["i"]->active)
+		{
+			text->SetFont(text->currentFontInfo->GetItalicsFont());
+		}
+		else
+		{
+			text->SetFont(text->currentFontInfo->GetRegularFont());
+		}
+	}
+	else if (originalString[letterIndex] == '*')
+	{
+		tags["b"]->active = !tags["b"]->active;
+
+		if (tags["b"]->active && tags["i"]->active)
+		{
+			text->SetFont(text->currentFontInfo->GetBoldItalicsFont());
+		}
+		else if (tags["b"]->active)
+		{
+			text->SetFont(text->currentFontInfo->GetBoldFont());
+		}
+		else
+		{
+			text->SetFont(text->currentFontInfo->GetRegularFont());
+		}
+	}
 	else if (originalString[letterIndex] == '<')
 	{
 		bool active = (originalString[letterIndex + 1] != '/');
 
-		int tagIndex = active ? letterIndex + 1 : letterIndex + 2;
+		size_t tagIndex = active ? letterIndex + 1 : letterIndex + 2;
 
 		std::string tagName = "";
 		while (originalString[tagIndex] != '>')
@@ -2043,7 +2215,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 		else if (tagName == "anim")
 		{
 			std::string animName = "";
-			int animIndex = tagIndex + 1;
+			size_t animIndex = tagIndex + 1;
 			while (originalString[animIndex] != '<')
 			{
 				animName += originalString[animIndex];
@@ -2070,7 +2242,7 @@ std::string CutsceneManager::ParseText(const std::string& originalString, int& l
 		else if (tagName[0] == 's' && tagName.size() > 1)
 		{
 			std::string fontSize = "";
-			for (int i = 1; i < tagName.size(); i++)
+			for (size_t i = 1; i < tagName.size(); i++)
 			{
 				fontSize += tagName[i];
 			}
@@ -2153,9 +2325,9 @@ void CutsceneManager::LoadGlobalVariables()
 
 	std::string dataKey = "";
 	std::string dataValue = "";
-	int index = 0;
+	size_t index = 0;
 
-	for (int i = 0; i < globalDataStrings.size(); i++)
+	for (size_t i = 0; i < globalDataStrings.size(); i++)
 	{
 		index = 0;
 		dataKey = ParseWord(globalDataStrings[i], ' ', index);
@@ -2163,7 +2335,7 @@ void CutsceneManager::LoadGlobalVariables()
 		CutsceneFunctions::SetStringVariable({ "", dataKey, dataValue }, commands);
 	}
 
-	for (int i = 0; i < globalDataNumbers.size(); i++)
+	for (size_t i = 0; i < globalDataNumbers.size(); i++)
 	{
 		index = 0;
 		dataKey = ParseWord(globalDataNumbers[i], ' ', index);
@@ -2171,7 +2343,7 @@ void CutsceneManager::LoadGlobalVariables()
 		CutsceneFunctions::SetNumberVariable({ "", dataKey, dataValue, "no_alias" }, commands);
 	}
 
-	for (int i = 0; i < globalDataArrays.size(); i++)
+	for (size_t i = 0; i < globalDataArrays.size(); i++)
 	{
 		index = 0;
 		dataKey = ParseWord(globalDataArrays[i], ' ', index);
@@ -2183,17 +2355,17 @@ void CutsceneManager::LoadGlobalVariables()
 
 		std::vector<std::string> splitValues(begin, end);
 
-		unsigned int arrIndex = std::stoi(dataKey);
+		size_t arrIndex = std::stoi(dataKey);
 		commands.arrayVariables[arrIndex].clear();
 		commands.arrayVariables[arrIndex].reserve(splitValues.size());
 
-		for (int k = 0; k < splitValues.size(); k++)
+		for (size_t k = 0; k < splitValues.size(); k++)
 		{
 			commands.arrayVariables[arrIndex].emplace_back(std::stoi(splitValues[k]));
 		}
 	}
 
-	for (int i = 0; i < globalDataArraySlots.size(); i++)
+	for (size_t i = 0; i < globalDataArraySlots.size(); i++)
 	{
 		index = 0;
 		dataKey = ParseWord(globalDataArraySlots[i], ' ', index);
@@ -2266,7 +2438,7 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& va
 		if (value == "?")
 		{
 			std::string newValue = "";
-			for (int i = 0; i < commands.arrayVariables[key].size(); i++)
+			for (size_t i = 0; i < commands.arrayVariables[key].size(); i++)
 			{
 				newValue += std::to_string(commands.arrayVariables[key][i]) + " ";
 			}
@@ -2289,25 +2461,25 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& va
 	fout.open("saves/globals.sav");
 
 	fout << "@ GLOBAL_STRINGS" << std::endl;
-	for (int i = 0; i < globalDataStrings.size(); i++)
+	for (size_t i = 0; i < globalDataStrings.size(); i++)
 	{
 		fout << globalDataStrings[i];
 	}
 
 	fout << "@ GLOBAL_NUMBERS" << std::endl;
-	for (int i = 0; i < globalDataNumbers.size(); i++)
+	for (size_t i = 0; i < globalDataNumbers.size(); i++)
 	{
 		fout << globalDataNumbers[i];
 	}
 
 	fout << "@ GLOBAL_ARRAYS" << std::endl;
-	for (int i = 0; i < globalDataArrays.size(); i++)
+	for (size_t i = 0; i < globalDataArrays.size(); i++)
 	{
 		fout << globalDataArrays[i];
 	}
 
 	fout << "@ GLOBAL_ARRAYS_SLOTS" << std::endl;
-	for (int i = 0; i < globalDataArraySlots.size(); i++)
+	for (size_t i = 0; i < globalDataArraySlots.size(); i++)
 	{
 		fout << globalDataArraySlots[i];
 	}
@@ -2319,8 +2491,8 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& va
 void CutsceneManager::ModifyGlobalVariableVector(std::vector<string>& globalData, unsigned int key, const std::string& value)
 {
 	bool foundData = false;
-	int index = 0;
-	for (int i = 0; i < globalData.size(); i++)
+	size_t index = 0;
+	for (size_t i = 0; i < globalData.size(); i++)
 	{
 		index = 0;
 		if (ParseWord(globalData[i], ' ', index) == std::to_string(key))
@@ -2338,6 +2510,8 @@ void CutsceneManager::ModifyGlobalVariableVector(std::vector<string>& globalData
 		globalData.push_back(std::to_string(key) + " " + value + "\n");
 	}
 }
+
+
 
 
 //TODO: Regarding saving/loading...
@@ -2376,9 +2550,14 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 		{ SaveSections::LOCAL_STRINGS, "@ LOCAL_STRINGS"},
 		{ SaveSections::LOCAL_NUMBERS, "@ LOCAL_NUMBERS"},
 		{ SaveSections::LOCAL_OBJECTS, "@ LOCAL_OBJECTS"},
+		{ SaveSections::ARRAY_STRINGS, "@ ARRAY_STRINGS"},
+		{ SaveSections::ARRAY_NUMBERS, "@ ARRAY_NUMBERS"},
 		{ SaveSections::NAMES_TO_COLORS, "@ NAMES_TO_COLORS"},
+		{ SaveSections::ANIMATORS, "@ ANIMATORS"},
 		{ SaveSections::OTHER_STUFF, "@ OTHER_STUFF"}
 	};
+
+	std::string animstring = "";
 
 	for (auto const& x : sections)
 	{
@@ -2388,6 +2567,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 		{
 		case SaveSections::CONFIG_OPTIONS:
 			fout << "global_start " << globalStart << std::endl;
+			fout << "global_end " << globalEnd << std::endl;
 			break;
 		case SaveSections::STORY_DATA:
 
@@ -2449,7 +2629,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			// 2. Save string variables (keys and values)
 			for (auto const& var : commands.stringVariables)
 			{
-				if (var.first < globalStart && var.second != "")
+				if (!IsGlobal(var.first) && var.second != "")
 				{
 					fout << var.first  // key
 						<< " "
@@ -2462,12 +2642,70 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			// 3. Save number variables (keys and values)
 			for (auto const& var : commands.numberVariables)
 			{
-				if (var.first < globalStart)
+				if (!IsGlobal(var.first))
 				{
 					fout << var.first  // key
 						<< " "
 						<< var.second  // value 
 						<< std::endl;
+				}
+			}
+			break;
+		case SaveSections::ARRAY_NUMBERS:
+			// 3. Save number variables (keys and values)
+			for (auto const& var : commands.arrayVariables)
+			{
+				if (!IsGlobal(var.first))
+				{
+					fout << var.first << " " << var.second.size() << " ";
+
+					fout << commands.arrayNumbersPerSlot[var.first] << " ";
+
+					for (size_t i = 0; i < var.second.size(); i++)
+					{
+						fout << var.second[i] << " ";
+					}
+
+					fout << std::endl;
+				}
+			}
+			break;
+		case SaveSections::ARRAY_STRINGS:
+			// 3. Save number variables (keys and values)
+			for (auto const& var : commands.arrayStrVariables)
+			{
+				if (!IsGlobal(var.first))
+				{
+					fout << var.first << " " << var.second.size() << " ";
+
+					for (size_t i = 0; i < var.second.size(); i++)
+					{
+						fout << var.second[i] << " ";
+					}
+
+					fout << std::endl;
+				}
+			}
+			break;
+		case SaveSections::ANIMATORS:
+			// Save info for animators
+			for (auto const& var : images)
+			{
+				Entity* entity = var.second;
+				if (entity != nullptr && entity->GetAnimator() != nullptr)
+				{
+					animstring = "";
+
+					animstring = std::to_string(var.first) + " " + entity->GetAnimator()->path + 
+						" " + std::to_string(entity->GetAnimator()->shouldUpdate) + " "
+						+ entity->GetAnimator()->currentState->name + " ";
+
+					for (const auto& arg : entity->GetAnimator()->args)
+					{
+						animstring += arg.first + " " + arg.second + " ";
+					}
+
+					fout << animstring << std::endl;
 				}
 			}
 			break;
@@ -2477,7 +2715,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			{
 				Entity* entity = var.second;
 
-				if (entity != nullptr)
+				if (entity != nullptr && !saveIgnore.contains(var.first))
 				{
 					if (entity->etype == "text")
 					{
@@ -2548,7 +2786,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 							<< " "
 							<< ps->nextParticleSpriteFilename.size();
 
-						for (int i = 0; i < ps->nextParticleSpriteFilename.size(); i++)
+						for (size_t i = 0; i < ps->nextParticleSpriteFilename.size(); i++)
 						{
 							fout << " " << ps->nextParticleSpriteFilename[i];
 						}
@@ -2694,12 +2932,15 @@ void CutsceneManager::LoadGameData(const char* filename, const char* path)
 		{ "@ ALIAS_NUMBERS", SaveSections::ALIAS_NUMBERS},
 		{ "@ LOCAL_STRINGS", SaveSections::LOCAL_STRINGS},
 		{ "@ LOCAL_NUMBERS", SaveSections::LOCAL_NUMBERS},
+		{ "@ ARRAY_NUMBERS", SaveSections::ARRAY_NUMBERS},
+		{ "@ ARRAY_STRINGS", SaveSections::ARRAY_STRINGS},
 		{ "@ LOCAL_OBJECTS", SaveSections::LOCAL_OBJECTS},
 		{ "@ NAMES_TO_COLORS", SaveSections::NAMES_TO_COLORS},
+		{ "@ ANIMATORS", SaveSections::ANIMATORS},
 		{ "@ OTHER_STUFF",  SaveSections::OTHER_STUFF}
 	};
 
-	int index = 0;
+	size_t index = 0;
 	std::string currentSection = "";
 	std::string labelName = "";
 	SceneData* gosubData = nullptr;
@@ -2735,11 +2976,11 @@ void CutsceneManager::LoadGameData(const char* filename, const char* path)
 
 		// Replace all the bracketed underscores with spaces again
 		shouldReplace = false;
-		for (int i = 0; i < lineParams.size(); i++)
+		for (size_t i = 0; i < lineParams.size(); i++)
 		{
 			bool replaced = false;
 			shouldReplace = false;
-			for (int k = 0; k < lineParams[i].size(); k++)
+			for (size_t k = 0; k < lineParams[i].size(); k++)
 			{
 				if (shouldReplace && lineParams[i][k] == '`')
 				{
@@ -2777,12 +3018,24 @@ void CutsceneManager::LoadGameData(const char* filename, const char* path)
 				if (lineParams[0] == "global_start")
 					globalStart = std::stoi(lineParams[1]);
 
+				if (lineParams[0] == "global_end")
+					globalEnd = std::stoi(lineParams[1]);
+
 				break;
 			case SaveSections::STORY_DATA:
 				// These aren't actually stored in the cutscene manager,
 				// but we might want to use them to more accurately find the load point
 
 				labelName = lineParams[0];
+
+				if (lineParams.size() > 4)
+				{
+					SetSpeakerText(lineParams[4]);
+				}
+				else
+				{
+					SetSpeakerText("");
+				}
 
 				// TODO: Make sure the developer knows that this name shouldn't be used
 				if (labelName == "0")
@@ -2793,15 +3046,6 @@ void CutsceneManager::LoadGameData(const char* filename, const char* path)
 				lineIndex = std::stoi(lineParams[2]);
 				commandIndex = std::stoi(lineParams[3]);
 				isCarryingOutCommands = false;
-
-				if (lineParams.size() > 4)
-				{
-					SetSpeakerText(lineParams[4]);
-				}
-				else
-				{
-					SetSpeakerText("");
-				}
 
 				currentLabel = JumpToLabel(labelName.c_str());
 				if (currentLabel == nullptr)
@@ -2842,6 +3086,18 @@ void CutsceneManager::LoadGameData(const char* filename, const char* path)
 				break;
 			case SaveSections::LOCAL_NUMBERS:
 				commands.numberVariables[std::stoi(lineParams[0])] = std::stoi(lineParams[1]);
+				break;
+
+			case SaveSections::ARRAY_NUMBERS:
+
+				LoadArrayData(lineParams);
+				break;
+
+			case SaveSections::ARRAY_STRINGS:
+				//commands.numberVariables[std::stoi(lineParams[0])] = std::stoi(lineParams[1]);
+				break;
+			case SaveSections::ANIMATORS:
+				LoadAnimators(lineParams);
 				break;
 			case SaveSections::LOCAL_OBJECTS:
 				if (lineParams[1] == "text") // load text object
@@ -2892,13 +3148,13 @@ void CutsceneManager::LoadGameData(const char* filename, const char* path)
 					Entity* entity = images[std::stoi(lineParams[1])];
 
 					entity->rotation = glm::vec3(
-						std::stoi(lineParams[5]),
-						std::stoi(lineParams[6]),
-						std::stoi(lineParams[7]));
+						std::stof(lineParams[5]),
+						std::stof(lineParams[6]),
+						std::stof(lineParams[7]));
 
 					entity->scale = glm::vec2(
-						std::stoi(lineParams[8]),
-						std::stoi(lineParams[9]));
+						std::stof(lineParams[8]),
+						std::stof(lineParams[9]));
 
 					if (lineParams.size() > 10)
 					{
@@ -3007,4 +3263,51 @@ void CutsceneManager::LoadGame(const char* filename, const char* path)
 	// Because we can't fall through labels, it presents an empty textbox.
 	// So we read the next line to resume playing.
 	ReadNextLine();
+}
+
+void CutsceneManager::LoadArrayData(const std::vector<std::string>& lineParams)
+{
+	// var_num array_size data
+
+	unsigned int arrayIndex = std::stoi(lineParams[0]);
+	unsigned int arraySize = std::stoi(lineParams[1]);
+	unsigned int arraySlots = std::stoi(lineParams[2]);
+
+	// std::unordered_map<unsigned int, std::vector<int>> arrayVariables;
+	// std::unordered_map<unsigned int, unsigned int> arrayNumbersPerSlot;
+
+	commands.arrayNumbersPerSlot[arrayIndex] = arraySlots;
+	commands.arrayVariables[arrayIndex].clear();
+	for (size_t i = 0; i < arraySize; i++)
+	{
+		commands.arrayVariables[arrayIndex].emplace_back(std::stoi(lineParams[i + 3]));
+	}
+
+}
+
+
+void CutsceneManager::LoadAnimators(const std::vector<std::string>& lineParams)
+{
+	Entity* entity = images[std::stoi(lineParams[0])];
+	commands.ExecuteCommand("animation args clear");
+
+	bool animEnabled = (lineParams[2] == "1");
+	std::string animstr = "";
+
+	if (animEnabled)
+	{
+		for (size_t i = 4; i < lineParams.size(); i += 2)
+		{
+			animstr = "animation args " + lineParams[i] + " " + lineParams[i + 1];
+			commands.ExecuteCommand(animstr);
+		}
+
+		// entityID filepath initstate
+
+		animstr = "animation " + lineParams[0] + " set data bg " + lineParams[1] + " " + lineParams[3];
+		commands.ExecuteCommand(animstr);
+
+		animstr = "animation " + lineParams[0] + " enable";
+		commands.ExecuteCommand(animstr);
+	}
 }

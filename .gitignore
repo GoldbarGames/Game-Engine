@@ -67,3 +67,7 @@ sysinfo.txt
 
 # Windows
 Thumbs.db
+
+# Claude
+.claude/
+CLAUDE.md

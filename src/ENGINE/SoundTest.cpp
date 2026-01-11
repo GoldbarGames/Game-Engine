@@ -98,26 +98,26 @@ SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager),
 	dialog.text->GetSprite()->keepScaleRelativeToCamera = true;
 	dialog.input->GetSprite()->keepScaleRelativeToCamera = true;
 
-	std::vector<std::string> variables = ReadStringsFromFile("data/soundtest.vars");
+	std::vector<std::string> variables = ReadStringsFromFile("data/config/soundtest.vars");
 	
 	// NOTE: This should go before the currentBGM is set because we end up using it here.
 	if (variables.size() > 2)
 	{		
-		for (int v = 2; v < variables.size(); v++)
+		for (size_t v = 2; v < variables.size(); v++)
 		{
 			// We encounter a new loop here
 			if (variables[v][0] == '*')
 			{
 				// Read until the end of the line
 				currentBGM = "";
-				for (int k = 2; k < variables[v].size(); k++)
+				for (size_t k = 2; k < variables[v].size(); k++)
 				{
 					currentBGM += variables[v][k];
 				}
 			}
 			else if (variables[v].size() > 0) // otherwise, this is loop data
 			{
-				int index = 0;
+				size_t index = 0;
 
 				std::string n = ParseWord(variables[v], ' ', index);
 
@@ -149,7 +149,7 @@ SoundTest::~SoundTest()
 {
 	SaveData();
 
-	for (int i = 0; i < buttons.size(); i++)
+	for (size_t i = 0; i < buttons.size(); i++)
 	{
 		if (buttons[i] != nullptr)
 			delete_it(buttons[i]);
@@ -157,7 +157,7 @@ SoundTest::~SoundTest()
 
 	for (const auto& [key, val] : soundLoops)
 	{
-		for (int i = 0; i < soundLoops[key].size(); i++)
+		for (size_t i = 0; i < soundLoops[key].size(); i++)
 		{
 			if (soundLoops[key][i] != nullptr)
 				delete_it(soundLoops[key][i]);
@@ -177,7 +177,7 @@ void SoundTest::ScrollCurrentBGM(bool up)
 	}
 
 	int b = -1;
-	for (int i = 0; i < bgmList.size(); i++)
+	for (size_t i = 0; i < bgmList.size(); i++)
 	{
 		if (bgmList[i] == currentBGM)
 			b = i;
@@ -349,7 +349,7 @@ void SoundTest::AfterJumpDialog(const std::string& time)
 void SoundTest::SaveData()
 {
 	std::ofstream fout;
-	fout.open("data/soundtest.vars");
+	fout.open("data/config/soundtest.vars");
 	if (fout.is_open())
 	{
 		fout << currentDir << std::endl;
@@ -358,7 +358,7 @@ void SoundTest::SaveData()
 		for (const auto& [key, loops] : soundLoops)
 		{
 			fout << "* " << key << std::endl;
-			for (int i = 0; i < loops.size(); i++)
+			for (size_t i = 0; i < loops.size(); i++)
 			{
 				fout << loops[i]->name << " "
 					<< loops[i]->startTime << " "
@@ -644,7 +644,7 @@ void SoundTest::UpdateSoundMode(Game& game)
 						else
 							selectedLoop = i;
 
-						for (int k = 0; k < soundLoops[currentBGM].size(); k++)
+						for (size_t k = 0; k < soundLoops[currentBGM].size(); k++)
 						{
 							if (k == i)
 								soundLoops[currentBGM][k]->selectButton->color = { 64, 64, 64, 255 };
@@ -667,7 +667,7 @@ void SoundTest::UpdateSoundMode(Game& game)
 						int buttonX = 1600;
 						int buttonY = 100;
 
-						for (int k = 0; k < soundLoops[currentBGM].size(); k++)
+						for (size_t k = 0; k < soundLoops[currentBGM].size(); k++)
 						{
 							buttonX = 1600;
 							std::string loopString = std::to_string(k + 1) + ": ";
@@ -728,7 +728,7 @@ void SoundTest::Render(const Renderer& renderer)
 	timerText.Render(renderer);
 	songText.Render(renderer);
 
-	for (int i = 0; i < buttons.size(); i++)
+	for (size_t i = 0; i < buttons.size(); i++)
 	{
 		if (buttons[i] != nullptr)
 		{

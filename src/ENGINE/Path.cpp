@@ -148,7 +148,7 @@ void Path::Save(std::unordered_map<std::string, std::string>& map)
 
 	std::string key = "";
 
-	for (int i = 0; i < nodes.size(); i++)
+	for (size_t i = 0; i < nodes.size(); i++)
 	{
 		key = "nodeID_" + std::to_string(i);
 		map[key] = std::to_string(nodes[i]->id);

@@ -9,12 +9,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/vec2.hpp>
 
 #include "Entity.h"
 #include "globals.h"
 
 #include "Texture.h"
-#include "Vector2.h"
 
 #include "Glyph.h"
 #include "leak_check.h"
@@ -42,6 +42,8 @@ public:
 	std::string txt = "ERROR"; // this might get translated
 
 	FontInfo* currentFontInfo = nullptr;
+
+	static glm::vec2 defaultScale;
 
 	bool isRichText = false;
 
@@ -90,6 +92,7 @@ public:
 	void SetFont(TTF_Font* newFont);
 	void SetFontAndInfo(FontInfo* fInfo);
 	void SetColor(Color newColor);
+	void SetShader(ShaderProgram* shader);
 };
 
 #endif

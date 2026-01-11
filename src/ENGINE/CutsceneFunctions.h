@@ -24,6 +24,7 @@ namespace CutsceneFunctions
 	int KINJO_API MusicEffectCommand(CutsceneParameters parameters, CutsceneCommands& c);
 
 	// Stuff
+	int KINJO_API SettingChange(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API Wait(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API Textbox(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API Namebox(CutsceneParameters parameters, CutsceneCommands& c);
@@ -33,11 +34,20 @@ namespace CutsceneFunctions
 	int KINJO_API IncludeCommand(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API AssetPathCommand(CutsceneParameters parameters, CutsceneCommands& c);
 
+	int KINJO_API MidTextCommand(CutsceneParameters parameters, CutsceneCommands& c);
+
+	int KINJO_API Length(CutsceneParameters parameters, CutsceneCommands& c);
+
+	int KINJO_API MenuCommand(CutsceneParameters parameters, CutsceneCommands& c);
+
+	int KINJO_API ReadNextLine(CutsceneParameters parameters, CutsceneCommands& c);
+
 	// Variables
 	int KINJO_API SetNumberVariable(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API SetStringVariable(CutsceneParameters parameters, CutsceneCommands& c);
 
 	int KINJO_API CreateArrayVariable(CutsceneParameters parameters, CutsceneCommands& c);
+	int KINJO_API CreateArrayStringVariable(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API ConcatenateStringVariables(CutsceneParameters parameters, CutsceneCommands& c);
 
 	// Numeric Operations
@@ -70,6 +80,9 @@ namespace CutsceneFunctions
 	int KINJO_API ResetGame(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API SaveGame(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API LoadGame(CutsceneParameters parameters, CutsceneCommands& c);
+	int KINJO_API LoadCommand(CutsceneParameters parameters, CutsceneCommands& c);
+
+	int KINJO_API SaveIgnore(CutsceneParameters parameters, CutsceneCommands& c);
 
 	int KINJO_API SetResolution(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API DefineUserFunction(CutsceneParameters parameters, CutsceneCommands& c);

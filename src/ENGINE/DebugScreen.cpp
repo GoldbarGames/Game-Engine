@@ -35,7 +35,7 @@ DebugScreen::DebugScreen(Game& g)
 	CreateDebugText(DebugText::cameraPitch, 400, 650);
 	CreateDebugText(DebugText::cameraRoll, 400, 750);
 
-	std::vector<std::string> variables = ReadStringsFromFile("data/debug.vars");
+	std::vector<std::string> variables = ReadStringsFromFile("data/config/debug.vars");
 	for (int i = 0; i < variables.size(); i++)
 	{
 		InsertVariable(variables[i]);
@@ -51,7 +51,7 @@ DebugScreen::~DebugScreen()
 
 	std::ofstream fout;
 
-	fout.open("data/debug.vars");
+	fout.open("data/config/debug.vars");
 	if (fout.is_open())
 	{
 		for (int i = 0; i < cutsceneVariableNames.size(); i++)
@@ -72,19 +72,19 @@ DebugScreen::~DebugScreen()
 	if (onePixelSprite != nullptr)
 		delete_it(onePixelSprite);
 
-	for (int i = 0; i < variableTextLeft.size(); i++)
+	for (size_t i = 0; i < variableTextLeft.size(); i++)
 	{
 		if (variableTextLeft[i] != nullptr)
 			delete_it(variableTextLeft[i]);
 	}
 
-	for (int i = 0; i < variableTextCenter.size(); i++)
+	for (size_t i = 0; i < variableTextCenter.size(); i++)
 	{
 		if (variableTextCenter[i] != nullptr)
 			delete_it(variableTextCenter[i]);
 	}
 
-	for (int i = 0; i < variableTextRight.size(); i++)
+	for (size_t i = 0; i < variableTextRight.size(); i++)
 	{
 		if (variableTextRight[i] != nullptr)
 			delete_it(variableTextRight[i]);
@@ -174,7 +174,7 @@ bool DebugScreen::Update()
 void DebugScreen::InsertVariable(const std::string& variableName)
 {
 	bool found = false;
-	for (int i = 0; i < cutsceneVariableNames.size(); i++)
+	for (size_t i = 0; i < cutsceneVariableNames.size(); i++)
 	{
 		if (cutsceneVariableNames[i] == variableName)
 			found = true;
@@ -232,7 +232,7 @@ void DebugScreen::InsertVariable(const std::string& variableName)
 void DebugScreen::RemoveVariable(const std::string& variableName)
 {
 	int index = -1;
-	for (int i = 0; i < cutsceneVariableNames.size(); i++)
+	for (size_t i = 0; i < cutsceneVariableNames.size(); i++)
 	{
 		if (cutsceneVariableNames[i] == variableName)
 			index = i;
@@ -250,7 +250,7 @@ void DebugScreen::RemoveVariable(const std::string& variableName)
 		int startY = 200;
 		int distance = 50;
 
-		for (int i = 0; i < cutsceneVariableNames.size(); i++)
+		for (size_t i = 0; i < cutsceneVariableNames.size(); i++)
 		{
 			variableTextLeft[i]->SetPosition(100, startY + (distance * i));
 			variableTextCenter[i]->SetPosition(400, startY + (distance * i));
@@ -282,7 +282,7 @@ void DebugScreen::Render(const Renderer& renderer)
 			}
 
 			CutsceneCommands& cmds = renderer.game->cutsceneManager.commands;
-			for (int i = 0; i < cutsceneVariableNames.size(); i++)
+			for (size_t i = 0; i < cutsceneVariableNames.size(); i++)
 			{
 				// 1. Left cell is the name of the variable
 				if (variableTextLeft[i]->txt != cutsceneVariableNames[i])

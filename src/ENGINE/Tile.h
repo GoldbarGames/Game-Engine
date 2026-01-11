@@ -9,7 +9,6 @@
 #include <SDL2/SDL_image.h>
 #include "opengl_includes.h"
 
-#include "Vector2.h"
 #include "Entity.h"
 #include "leak_check.h"
 

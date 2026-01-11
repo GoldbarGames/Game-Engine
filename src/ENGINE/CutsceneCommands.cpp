@@ -36,11 +36,13 @@ CutsceneCommands::CutsceneCommands()
 
 	cmd_lut = {
 	{"~", &CutsceneFunctions::DoNothing},
+	{"doin", &CutsceneFunctions::MidTextCommand},
 	{"add", &CutsceneFunctions::AddNumberVariables},
 	{"assetpath", &CutsceneFunctions::AssetPathCommand},
 	{"align", &CutsceneFunctions::AlignCommand},
 	{"animation", &CutsceneFunctions::AnimationCommand},
 	{"array", &CutsceneFunctions::CreateArrayVariable },
+	{"arraystr", &CutsceneFunctions::CreateArrayStringVariable },
 	{"autochoice", &CutsceneFunctions::AutoChoice },
 	{"automode", &CutsceneFunctions::AutoMode},
 	{"autoreturn", &CutsceneFunctions::AutoReturn},
@@ -87,9 +89,12 @@ CutsceneCommands::CutsceneCommands()
 	{"jumpf", &CutsceneFunctions::JumpForward },
 	{"keybind", &CutsceneFunctions::BindKeyToLabel },
 	{"ld", &CutsceneFunctions::LoadSprite },
+	{"len", &CutsceneFunctions::Length },
 	{"loadgame",&CutsceneFunctions::LoadGame },
+	{"loadcmd",&CutsceneFunctions::LoadCommand },
 	{"lua", &CutsceneFunctions::LuaCommand},
 	{"me", &CutsceneFunctions::MusicEffectCommand},
+	{"menu", &CutsceneFunctions::MenuCommand},
 	{"mod", &CutsceneFunctions::ModNumberVariables},
 	{"mov", &CutsceneFunctions::MoveVariables},
 	{"mul", &CutsceneFunctions::MultiplyNumberVariables},
@@ -102,14 +107,17 @@ CutsceneCommands::CutsceneCommands()
 	{"quake", &CutsceneFunctions::Quake },
 	{"random", &CutsceneFunctions::RandomNumberVariable },
 	{"rect", &CutsceneFunctions::DrawRectCommand },
+	{"readnextline", &CutsceneFunctions::ReadNextLine},
 	{"reset", &CutsceneFunctions::ResetGame },
 	{"resolution", &CutsceneFunctions::SetResolution },
 	{"repeat", &CutsceneFunctions::RepeatCommand },
 	{"return", &CutsceneFunctions::ReturnFromSubroutine },
 	{"rclick", &CutsceneFunctions::RightClickSettings },
 	{"savegame",&CutsceneFunctions::SaveGame },
+	{"saveignore",&CutsceneFunctions::SaveIgnore },
 	{"screenshot",&CutsceneFunctions::ScreenshotCommand },
 	{"se", &CutsceneFunctions::SoundCommand },
+	{"setting", &CutsceneFunctions::SettingChange},
 	{"setnumvar", &CutsceneFunctions::SetNumberVariable },
 	{"setstrvar", &CutsceneFunctions::SetStringVariable },
 	{"shader", &CutsceneFunctions::CreateShader },
@@ -159,7 +167,7 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 	int finished = 1;
 	// Replace all the bracketed spaces with underscores
 	bool shouldReplace = false;
-	for (int i = 0; i < command.size(); i++)
+	for (size_t i = 0; i < command.size(); i++)
 	{
 		if (shouldReplace && command[i] == ' ')
 		{
@@ -185,7 +193,7 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 	// TODO: When an if-condition leads to a text command,
 	// because it removed the brackets [ ] it is interpreted
 	// as comma-delimited... what can we do to fix this?
-	for (int i = 0; i < command.size(); i++)
+	for (size_t i = 0; i < command.size(); i++)
 	{
 		if (command[i] == ',' && !ignoreComma)
 		{
@@ -246,11 +254,11 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 	{
 		// Replace all the bracketed underscores with spaces again
 		shouldReplace = false;
-		for (int i = 0; i < parameters.size(); i++)
+		for (size_t i = 0; i < parameters.size(); i++)
 		{
 			bool replaced = false;
 			shouldReplace = false;
-			for (int k = 0; k < parameters[i].size(); k++)
+			for (size_t k = 0; k < parameters[i].size(); k++)
 			{
 				if (shouldReplace && parameters[i][k] == '`')
 				{
@@ -277,7 +285,7 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 		// If travelling, ignore some commands
 		if (manager->isTravelling)
 		{
-			static std::vector<std::string> ignoreCommands = ReadStringsFromFile("data/commands.ignore");
+			static std::vector<std::string> ignoreCommands = ReadStringsFromFile("data/config/commands.ignore");
 
 			for (const auto& cmd : ignoreCommands)
 			{
@@ -322,7 +330,7 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 					else
 					{
 						std::cout << "ERROR " << errorCode << ": ";
-						for (int i = 0; i < parameters.size(); i++)
+						for (size_t i = 0; i < parameters.size(); i++)
 							std::cout << parameters[i] << " ";
 						std::cout << std::endl;
 					}
@@ -345,7 +353,7 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 
 				bool foundLabel = false;
 				std::string udFuncName = "";
-				for (int i = 0; i < manager->labels.size(); i++)
+				for (size_t i = 0; i < manager->labels.size(); i++)
 				{
 					udFuncName = manager->GetLabelName(manager->labels[i]);
 					//std::cout << udFuncName << std::endl;
@@ -356,16 +364,13 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 					}
 				}
 
-				if (udFuncName == "bgbn")
-					int test = 0;
-
 				if (foundLabel)
 				{
 					//			myfunction 123 [test] 456  <-- parameters
 					// defsub	myfunction %0  $45	  %33  <-- definition
 
 					// Grab parameters and place their values in the corresponding variables
-					for (int i = 0; i < userDefinedFunctions[udFuncName]->parameters.size(); i++)
+					for (size_t i = 0; i < userDefinedFunctions[udFuncName]->parameters.size(); i++)
 					{
 						const std::string& udParam = userDefinedFunctions[udFuncName]->parameters[i];
 						int index = GetNumAlias(udParam.substr(1, udParam.size() - 1));
@@ -418,10 +423,22 @@ std::string CutsceneCommands::ParseStringValue(const std::string& parameter)
 
 	// Get the variable number to store the result in
 	if (parameter[0] == '$')
+	{
 		parseStringValue = GetStringVariable(GetNumAlias(parameter.substr(1, parameter.size() - 1)));
-	else
-		parseStringValue = GetStringAlias(parameter);
+	}
+	else if (parameter[0] == '&')
+	{
+		if (GetArray(parameter))
+		{
+			parseStringValue = arrayStrVariables[arrayIndex][vectorIndex];
 
+		}
+	}
+	else
+	{
+		parseStringValue = GetStringAlias(parameter);
+	}
+		
 	// Remove any quotes (which allow for string literals with spaces)
 	parseStringValue.erase(std::remove(parseStringValue.begin(), parseStringValue.end(), '\"'), parseStringValue.end());
 
@@ -447,6 +464,7 @@ int CutsceneCommands::ParseNumberValue(const std::string& parameter)
 		if (GetArray(parameter))
 		{
 			parseNumberValue = arrayVariables[arrayIndex][vectorIndex];
+		
 		}
 	}
 	else
@@ -556,7 +574,7 @@ std::string CutsceneCommands::GetArrayName(const std::string& parameter)
 	int dimensions = std::count(parameter.begin(), parameter.end(), '[');
 	int currentDimension = 0;
 
-	for (int i = 1; i < parameter.size(); i++)
+	for (size_t i = 1; i < parameter.size(); i++)
 	{
 		if (parameter[i] == '[')
 		{

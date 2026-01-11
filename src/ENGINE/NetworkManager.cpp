@@ -2,6 +2,8 @@
 #include "Entity.h"
 #include "Game.h"
 
+#ifndef EMSCRIPTEN
+
 #include <curl/curl.h>
 #include <algorithm>
 #include <stdlib.h>
@@ -436,3 +438,5 @@ void NetworkManager::AddToMessage(const std::string& entity, int id, const std::
         messageToSend.push_back(value);
     }
 }
+
+#endif

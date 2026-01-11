@@ -17,7 +17,8 @@ class Renderer;
 
 enum class ShaderVariable { model, view, projection, texFrame, texOffset, spriteColor, fadeColor, currentTime, frequency, 
 	ambientIntensity, ambientColor, diffuseIntensity, lightDirection, specularIntensity, specularShine, eyePosition,
-	pointPosition, attenuationConstant, attenuationLinear, attenuationExponent, pointLightCount, spotLightCount, distanceToLight2D
+	pointPosition, attenuationConstant, attenuationLinear, attenuationExponent, pointLightCount, spotLightCount, distanceToLight2D,
+	textureWidth, textureHeight
 };
 enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, SolidColor, Grid, 
 	Grayscale, Sharpen, Blur, Edge, Test, Custom, Diffuse, Motion };
@@ -25,23 +26,25 @@ enum class ShaderName { Default, Add, Multiply, FadeInOut, Glow, GUI, NoAlpha, S
 class KINJO_API ShaderProgram
 {
 public:
-	ShaderProgram(const int n, const char* vertexFilePath, const char* fragmentFilePath);
+	ShaderProgram(const int n, const char* vertexFilePath, const char* fragmentFilePath, bool fromString=false);
 
 	~ShaderProgram();
+
+	static unsigned int lastProgramID;
 
 	void CreateFromString(const char* vertexCode, const char* fragmentCode);
 	void CreateFromFiles(const char* vertexFilePath, const char* fragmentFilePath);
 
 	std::string ReadFile(const char* filePath);
 
-	void UseShader();
+	void UseShader() const;
 	void ClearShader();
 
-	GLuint GetID() { return programID; }
+	GLuint GetID() const { return programID; }
 
 	GLuint GetUniformVariable(ShaderVariable variable) const;
 
-	const int& GetName() { return name; }
+	const int& GetName() const { return name; }
 	const std::string& GetNameString();
 	void SetNameString(const std::string& s) { nameString = s; };
 
