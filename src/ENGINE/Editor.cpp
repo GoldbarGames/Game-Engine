@@ -71,7 +71,8 @@ Editor::Editor(Game& g)
 	grid = new Sprite(game->renderer.shaders[1]);
 	//grid->SetScale(Vector2(game->screenWidth, game->screenHeight));
 
-	game->entities.clear();	
+	game->entities.clear();
+	game->entityById.clear();
 
 	SetLayer(DrawingLayer::BACK);
 
@@ -2566,8 +2567,9 @@ void Editor::ClearLevelEntities()
 			game->player = nullptr;
 		delete_it(game->entities[i]);
 	}
-		
+
 	game->entities.clear();
+	game->entityById.clear();
 	game->cameraBoundsEntities.clear();
 
 	game->draggedEntity = nullptr;

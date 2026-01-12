@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <algorithm>
 #include <iterator>
 #include <cmath>
 #include <vector>
@@ -398,6 +399,7 @@ void Game::Init()
 	initialStates = GetMapStringsFromFile("data/config/istates.dat");
 
 	entities.clear();
+	entityById.clear();
 
 	SetScreenResolution(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
 
@@ -699,6 +701,7 @@ void Game::InitOpenGL()
 	m->BindMesh();
 
 	renderer.CreateShaders(); // we must create the shaders at this point
+	renderer.InitBatchRendering();
 
 	m->ClearMesh();
 
@@ -905,6 +908,7 @@ Entity* Game::SpawnEntity(const std::string& entityName, const glm::vec3& positi
 		else
 		{
 			entities.emplace_back(entity);
+			entityById[entity->id] = entity;
 			return entity;
 		}
 	}
@@ -970,6 +974,7 @@ Tile* Game::SpawnTile(const glm::vec2& frame, const int tilesheetIndex,
 	tile->CalculateCollider();
 
 	entities.emplace_back(tile);
+	entityById[tile->id] = tile;
 
 	return tile;
 }
@@ -1009,10 +1014,11 @@ void Game::DeleteEntity(Entity* entity)
 	std::vector<Entity*>::iterator index = std::find(entities.begin(), entities.end(), entity);
 	if (index != entities.end())
 	{
+		entityById.erase(entity->id);
 		delete_it(*index);
 		entities.erase(index);
 		entitiesToDelete.erase(entitiesToDelete.begin());
-	}	
+	}
 	else
 	{
 		logger.LogEntity("Failed to delete entity", *entity);
@@ -1034,6 +1040,7 @@ void Game::DeleteEntity(int index)
 		}
 	}
 
+	entityById.erase(entities[index]->id);
 	delete_it(entities[index]);
 	entities.erase(entities.begin() + index);
 	entitiesToDelete.erase(entitiesToDelete.begin());
@@ -3144,7 +3151,10 @@ void Game::RenderNormally()
 				Entity* e = entitiesToRender[i];
 				if (e->active)
 				{
-					e->Render(renderer);
+					if (renderer.batchingEnabled)
+						e->RenderBatched(renderer);
+					else
+						e->Render(renderer);
 				}
 
 				if (debugMode)
@@ -3155,6 +3165,7 @@ void Game::RenderNormally()
 					}
 				}
 			}
+			renderer.EndBatch();
 		}
 		else
 		{
@@ -3180,7 +3191,10 @@ void Game::RenderNormally()
 
 			for (unsigned int i = 0; i < entitiesToRender.size(); i++)
 			{
-				entitiesToRender[i]->Render(renderer);
+				if (renderer.batchingEnabled)
+					entitiesToRender[i]->RenderBatched(renderer);
+				else
+					entitiesToRender[i]->Render(renderer);
 
 				if (debugMode)
 				{
@@ -3191,11 +3205,8 @@ void Game::RenderNormally()
 					}
 				}
 			}
+			renderer.EndBatch();
 		}
-
-
-
-
 
 
 		if (debugMode)
@@ -3213,12 +3224,16 @@ void Game::RenderNormally()
 		{
 			if (entities[i]->active)
 			{
-				entities[i]->Render(renderer);
+				if (renderer.batchingEnabled)
+					entities[i]->RenderBatched(renderer);
+				else
+					entities[i]->Render(renderer);
 			}
-			
+
 			if (debugMode)
 				entities[i]->RenderDebug(renderer);
 		}
+		renderer.EndBatch();
 	}
 
 	if (!use2DCamera && triangle3D != nullptr)
@@ -3264,19 +3279,8 @@ void Game::RenderScene()
 
 Entity* Game::GetEntityFromID(int id)
 {
-	// TODO: Implement a method in the Game class
-	// that allows for fast retrieval of an entity
-	// based on its ID (like using a map or something)
-
-	for (int i = 0; i < entities.size(); i++)
-	{
-		if (entities[i]->id == id)
-		{
-			return entities[i];
-		}
-	}
-
-	return nullptr;
+	auto it = entityById.find(static_cast<uint32_t>(id));
+	return (it != entityById.end()) ? it->second : nullptr;
 }
 
 // Sort only one entity within a vector
@@ -3396,48 +3400,27 @@ void Game::SetMouseCursor(const std::string& filepath)
 	}
 }
 
-// Implementation of insertion sort:
-// Splits the list into two portions - sorted and unsorted.
-// Then steps through the unsorted list, checking where the next one fits.
 void Game::SortEntities(std::vector<Entity*>& entityVector, bool sortByPosY)
 {
-	const int n = entityVector.size();
-	for (int i = 0; i < n; i++)
+	if (sortByPosY)
 	{
-		int j = i;
-		while (j > 0)
-		{
-			if (entityVector[j - 1]->layer > entityVector[j]->layer)
-			{
-				std::swap(entityVector[j], entityVector[j - 1]);
-			}
-			else if (entityVector[j - 1]->layer == entityVector[j]->layer)
-			{
-				if (sortByPosY)
-				{
-					if (entityVector[j - 1]->position.y > entityVector[j]->position.y)
-					{
-						std::swap(entityVector[j], entityVector[j - 1]);
-					}
-					else
-					{
-						if (entityVector[j - 1]->drawOrder > entityVector[j]->drawOrder)
-						{
-							std::swap(entityVector[j], entityVector[j - 1]);
-						}
-					}
-				}
-				else
-				{
-					if (entityVector[j - 1]->drawOrder > entityVector[j]->drawOrder)
-					{
-						std::swap(entityVector[j], entityVector[j - 1]);
-					}
-				}
-
-			}
-			j--;
-		}
+		std::sort(entityVector.begin(), entityVector.end(),
+			[](const Entity* a, const Entity* b) {
+				if (a->layer != b->layer)
+					return a->layer < b->layer;
+				if (a->position.y != b->position.y)
+					return a->position.y < b->position.y;
+				return a->drawOrder < b->drawOrder;
+			});
+	}
+	else
+	{
+		std::sort(entityVector.begin(), entityVector.end(),
+			[](const Entity* a, const Entity* b) {
+				if (a->layer != b->layer)
+					return a->layer < b->layer;
+				return a->drawOrder < b->drawOrder;
+			});
 	}
 }
 

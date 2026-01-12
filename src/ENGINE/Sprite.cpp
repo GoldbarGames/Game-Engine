@@ -597,6 +597,42 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	mesh->RenderMesh(renderer.instanceAmount);
 }
 
+bool Sprite::CanBatch() const
+{
+	// Can batch if: simple quad mesh, has texture, no mask, not hovered, camera-relative
+	return mesh == meshQuad && texture != nullptr && mask == nullptr && !isHovered
+		&& !keepPositionRelativeToCamera && !keepScaleRelativeToCamera;
+}
+
+void Sprite::RenderBatched(const glm::vec3& position, Renderer& renderer, const glm::vec2& scale, const glm::vec3& rotation)
+{
+	if (!CanBatch())
+	{
+		// Fall back to regular rendering
+		Render(position, renderer, scale, rotation);
+		return;
+	}
+
+	ShaderProgram* shaderToUse = (shader == nullptr) ? renderer.shaders[0] : shader;
+
+	// Check if we need to start a new batch
+	if (texture != renderer.currentBatchTexture || shaderToUse != renderer.currentBatchShader)
+	{
+		renderer.BeginBatch(texture, shaderToUse);
+	}
+
+	// Calculate model matrix
+	CalculateModel(position, rotation, glm::vec3(scale.x, scale.y, 1.0f), renderer);
+
+	// Calculate texture frame
+	const float height = (texture != nullptr) ? texture->GetHeight() : frameHeight;
+	const glm::vec2 texOffset = useCustomTexOffset ? customTexOffset : CalculateRenderFrame(renderer, 0);
+	const glm::vec2 texFrame = useCustomTexFrame ? customTexFrame : glm::vec2((1.0f / framesPerRow), frameHeight / height);
+
+	// Add to batch
+	renderer.AddToBatch(model, texOffset, texFrame, color);
+}
+
 bool Sprite::HasAnimationElapsed()
 {
 	return (previousFrame > currentFrame && playedOnce) || (endFrame - startFrame == 0) || (!shouldLoop && currentFrame == endFrame);

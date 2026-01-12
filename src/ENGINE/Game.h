@@ -5,6 +5,7 @@
 #include "filesystem_types.h"
 #include "GUI.h"
 #include <chrono>
+#include <unordered_map>
 #include "globals.h"
 #include "Timer.h"
 #include "QuadTree.h"
@@ -286,6 +287,7 @@ public:
 
 
 	mutable std::vector<Entity*> entities;
+	mutable std::unordered_map<uint32_t, Entity*> entityById;
 
 	std::vector<Entity*> lightSourcesInLevel;
 

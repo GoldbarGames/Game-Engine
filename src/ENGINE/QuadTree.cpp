@@ -3,6 +3,8 @@
 #include "Sprite.h"
 #include "Game.h"
 
+#include <algorithm>
+
 QuadTree::QuadTree() : QuadTree(0, 0, 0, 0, 0)
 {
    
@@ -247,23 +249,19 @@ void QuadTree::Insert(Entity* newEntity)
             children[3]->active = true;
         }
 
-        size_t i = 0;
-        while (i < entities.size())
+        // Partition entities: move those that fit in children to the end
+        auto it = std::partition(entities.begin(), entities.end(),
+            [this](Entity* entity) {
+                return GetChildContainingBounds(entity->GetBounds()) == nullptr;
+            });
+
+        // Insert partitioned entities into children, then remove from parent
+        for (auto moveIt = it; moveIt != entities.end(); ++moveIt)
         {
-            QuadTree* child = GetChildContainingBounds(newEntity->GetBounds());
-            if (child != nullptr)
-            {
-                // If the entity is within the child bounds, add it to the child's list of entities
-                child->Insert(entities[i]);    
-
-                // Remove it from the parent node's list of entities
-                entities.erase(entities.begin() + i);
-            }
-
-            // Else, keep it in the parent's list
-
-            i++;
+            QuadTree* child = GetChildContainingBounds((*moveIt)->GetBounds());
+            child->Insert(*moveIt);
         }
+        entities.erase(it, entities.end());
     }
 
 }

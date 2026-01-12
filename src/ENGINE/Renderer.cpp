@@ -2,8 +2,11 @@
 #include "Renderer.h"
 #include "Sprite.h"
 #include "Game.h"
+#include "Texture.h"
+#include "Mesh.h"
 #include <algorithm>
 #include <filesystem>
+#include <glm/gtc/type_ptr.hpp>
 
 ShaderProgram* Renderer::textShader;
 ShaderProgram* Renderer::tileShader;
@@ -195,6 +198,161 @@ Renderer::~Renderer()
 
 	if (overlaySprite != nullptr)
 		delete_it(overlaySprite);
+
+	if (batchMesh != nullptr)
+		delete_it(batchMesh);
+
+	if (instanceVBO != 0)
+		glDeleteBuffers(1, &instanceVBO);
+}
+
+void Renderer::InitBatchRendering()
+{
+	// Create shared quad mesh for batching
+	unsigned int quadIndices[] = {
+		0, 3, 1,
+		1, 3, 2,
+		2, 3, 0,
+		0, 1, 2
+	};
+
+	GLfloat quadVertices[] = {
+		// pos              // uv
+		-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
+		-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
+		1.0f, 1.0f, 0.0f,    0.0f, 1.0f
+	};
+
+	batchMesh = new Mesh();
+	batchMesh->CreateMesh(quadVertices, quadIndices, 20, 12, 5, 3, 0);
+
+	// Create instance VBO for model matrices, tex data, and colors
+	glGenBuffers(1, &instanceVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+	// Allocate space for matrices (mat4) + texData (vec4) + colors (vec4) per instance
+	size_t instanceDataSize = (sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4)) * MAX_BATCH_SIZE;
+	glBufferData(GL_ARRAY_BUFFER, instanceDataSize, nullptr, GL_DYNAMIC_DRAW);
+
+	// Set up instance attributes on the batch mesh VAO
+	glBindVertexArray(batchMesh->GetVAO());
+
+	// Model matrix takes 4 attribute slots (3, 4, 5, 6)
+	size_t matrixOffset = 0;
+	for (int i = 0; i < 4; i++)
+	{
+		glEnableVertexAttribArray(3 + i);
+		glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(matrixOffset + i * sizeof(glm::vec4)));
+		glVertexAttribDivisor(3 + i, 1);
+	}
+
+	// Tex data (offset + frame) at attribute 7
+	size_t texDataOffset = sizeof(glm::mat4) * MAX_BATCH_SIZE;
+	glEnableVertexAttribArray(7);
+	glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)texDataOffset);
+	glVertexAttribDivisor(7, 1);
+
+	// Color at attribute 8
+	size_t colorOffset = texDataOffset + sizeof(glm::vec4) * MAX_BATCH_SIZE;
+	glEnableVertexAttribArray(8);
+	glVertexAttribPointer(8, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)colorOffset);
+	glVertexAttribDivisor(8, 1);
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Reserve space for batch data
+	batchMatrices.reserve(MAX_BATCH_SIZE);
+	batchTexData.reserve(MAX_BATCH_SIZE);
+	batchColors.reserve(MAX_BATCH_SIZE);
+}
+
+void Renderer::BeginBatch(Texture* texture, ShaderProgram* shader)
+{
+	if (currentBatchTexture != nullptr || currentBatchShader != nullptr)
+	{
+		FlushBatch();
+	}
+	currentBatchTexture = texture;
+	currentBatchShader = shader;
+}
+
+void Renderer::AddToBatch(const glm::mat4& model, const glm::vec2& texOffset, const glm::vec2& texFrame, const Color& color)
+{
+	if (batchMatrices.size() >= MAX_BATCH_SIZE)
+	{
+		FlushBatch();
+	}
+
+	batchMatrices.push_back(model);
+	batchTexData.push_back(glm::vec4(texOffset.x, texOffset.y, texFrame.x, texFrame.y));
+	batchColors.push_back(glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f));
+}
+
+void Renderer::FlushBatch()
+{
+	if (batchMatrices.empty() || currentBatchShader == nullptr)
+	{
+		batchMatrices.clear();
+		batchTexData.clear();
+		batchColors.clear();
+		return;
+	}
+
+	currentBatchShader->UseShader();
+
+	// Set up common uniforms
+	glUniformMatrix4fv(currentBatchShader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
+		glm::value_ptr(camera.CalculateViewMatrix()));
+	glUniformMatrix4fv(currentBatchShader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
+		glm::value_ptr(camera.projection));
+	glUniform1f(currentBatchShader->GetUniformVariable(ShaderVariable::currentTime), now);
+	glUniform1f(currentBatchShader->GetUniformVariable(ShaderVariable::distanceToLight2D), 1.0f);
+
+	// Bind texture
+	if (currentBatchTexture != nullptr)
+	{
+		currentBatchTexture->UseTexture();
+	}
+
+	// Upload instance data
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+
+	size_t matrixDataSize = batchMatrices.size() * sizeof(glm::mat4);
+	size_t texDataSize = batchTexData.size() * sizeof(glm::vec4);
+	size_t colorDataSize = batchColors.size() * sizeof(glm::vec4);
+
+	// Upload matrices
+	glBufferSubData(GL_ARRAY_BUFFER, 0, matrixDataSize, batchMatrices.data());
+
+	// Upload tex data
+	size_t texDataOffset = sizeof(glm::mat4) * MAX_BATCH_SIZE;
+	glBufferSubData(GL_ARRAY_BUFFER, texDataOffset, texDataSize, batchTexData.data());
+
+	// Upload colors
+	size_t colorOffset = texDataOffset + sizeof(glm::vec4) * MAX_BATCH_SIZE;
+	glBufferSubData(GL_ARRAY_BUFFER, colorOffset, colorDataSize, batchColors.data());
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Draw instanced
+	glBindVertexArray(batchMesh->GetVAO());
+	glDrawElementsInstanced(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0, static_cast<GLsizei>(batchMatrices.size()));
+	glBindVertexArray(0);
+
+	drawCallsPerFrame++;
+
+	// Clear batch data
+	batchMatrices.clear();
+	batchTexData.clear();
+	batchColors.clear();
+}
+
+void Renderer::EndBatch()
+{
+	FlushBatch();
+	currentBatchTexture = nullptr;
+	currentBatchShader = nullptr;
 }
 
 void Renderer::RenderDebugRect(const SDL_Rect& targetRect, const glm::vec2& targetScale, Color color) const

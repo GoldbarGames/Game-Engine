@@ -113,6 +113,10 @@ public:
 	void Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec2& scale, const glm::vec3& rotation);
 	void Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec3& scale, const glm::vec3& rotation);
 
+	// Batched rendering - adds to renderer batch instead of immediate draw
+	bool CanBatch() const;
+	void RenderBatched(const glm::vec3& position, Renderer& renderer, const glm::vec2& scale, const glm::vec3& rotation = glm::vec3(0,0,0));
+
 	bool ShouldAnimate(float time);
 	void CreateMesh(MeshType meshType = MeshType::Quad);
 	

@@ -19,11 +19,15 @@
 #include "SpotLight.h"
 
 #include <glm/vec2.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
 
 class Sprite;
 class Game;
 class HealthComponent;
 class Renderable;
+class Texture;
+class Mesh;
 
 class KINJO_API Renderer
 {
@@ -94,6 +98,23 @@ public:
 	int instanceAmount = 0;
 	void ConfigureInstanceArray(unsigned int amount=100000);
 	glm::mat4* modelMatrices = nullptr;
+
+	// Instanced batch rendering
+	static const int MAX_BATCH_SIZE = 10000;
+	GLuint instanceVBO = 0;
+	Mesh* batchMesh = nullptr;
+	std::vector<glm::mat4> batchMatrices;
+	std::vector<glm::vec4> batchTexData;  // xy = texOffset, zw = texFrame
+	std::vector<glm::vec4> batchColors;
+	Texture* currentBatchTexture = nullptr;
+	ShaderProgram* currentBatchShader = nullptr;
+	bool batchingEnabled = true;
+
+	void InitBatchRendering();
+	void BeginBatch(Texture* texture, ShaderProgram* shader);
+	void AddToBatch(const glm::mat4& model, const glm::vec2& texOffset, const glm::vec2& texFrame, const Color& color);
+	void FlushBatch();
+	void EndBatch();
 
 	void Init(Game* g);
 	Renderer();
