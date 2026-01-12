@@ -164,9 +164,8 @@ void Entity::Unpause(uint32_t ticks)
 }
 
 void Entity::Update(Game& game)
-{	
+{
 	game.updateCalls++;
-	lastPosition = position;
 
 	currentSprite.color = color;
 
@@ -175,8 +174,13 @@ void Entity::Update(Game& game)
 
 	//if (shader != nullptr && currentSprite.shader != shader)
 	//	currentSprite.SetShader(shader);
-	
-	CalculateCollider();
+
+	// Only recalculate collider if position changed
+	if (position != lastPosition)
+	{
+		CalculateCollider();
+		lastPosition = position;
+	}
 }
 
 Animator* Entity::GetAnimator()

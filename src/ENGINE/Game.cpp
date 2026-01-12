@@ -401,6 +401,11 @@ void Game::Init()
 	entities.clear();
 	entityById.clear();
 
+	// Pre-allocate vectors to avoid per-frame reallocations
+	entities.reserve(1000);
+	entitiesToRender.reserve(500);
+	debugEntities.reserve(100);
+
 	SetScreenResolution(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
 
 
