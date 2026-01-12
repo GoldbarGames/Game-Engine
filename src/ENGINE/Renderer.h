@@ -99,22 +99,23 @@ public:
 	void ConfigureInstanceArray(unsigned int amount=100000);
 	glm::mat4* modelMatrices = nullptr;
 
-	// Instanced batch rendering
+	// Instanced batch rendering (mutable for const-correct batching in Sprite::Render)
 	static const int MAX_BATCH_SIZE = 10000;
 	GLuint instanceVBO = 0;
 	Mesh* batchMesh = nullptr;
-	std::vector<glm::mat4> batchMatrices;
-	std::vector<glm::vec4> batchTexData;  // xy = texOffset, zw = texFrame
-	std::vector<glm::vec4> batchColors;
-	Texture* currentBatchTexture = nullptr;
-	ShaderProgram* currentBatchShader = nullptr;
-	bool batchingEnabled = true;
+	mutable std::vector<glm::mat4> batchMatrices;
+	mutable std::vector<glm::vec4> batchTexData;  // xy = texOffset, zw = texFrame
+	mutable std::vector<glm::vec4> batchColors;
+	mutable Texture* currentBatchTexture = nullptr;
+	mutable ShaderProgram* currentBatchShader = nullptr;
+	ShaderProgram* instancedShader = nullptr;  // Dedicated shader for instanced batch rendering
+	bool batchingEnabled = false;  // Set to true after InitBatchRendering()
 
 	void InitBatchRendering();
-	void BeginBatch(Texture* texture, ShaderProgram* shader);
-	void AddToBatch(const glm::mat4& model, const glm::vec2& texOffset, const glm::vec2& texFrame, const Color& color);
-	void FlushBatch();
-	void EndBatch();
+	void BeginBatch(Texture* texture, ShaderProgram* shader) const;
+	void AddToBatch(const glm::mat4& model, const glm::vec2& texOffset, const glm::vec2& texFrame, const Color& color) const;
+	void FlushBatch() const;
+	void EndBatch() const;
 
 	void Init(Game* g);
 	Renderer();

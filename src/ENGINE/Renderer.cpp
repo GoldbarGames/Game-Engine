@@ -202,6 +202,9 @@ Renderer::~Renderer()
 	if (batchMesh != nullptr)
 		delete_it(batchMesh);
 
+	if (instancedShader != nullptr)
+		delete_it(instancedShader);
+
 	if (instanceVBO != 0)
 		glDeleteBuffers(1, &instanceVBO);
 }
@@ -236,6 +239,7 @@ void Renderer::InitBatchRendering()
 
 	// Set up instance attributes on the batch mesh VAO
 	glBindVertexArray(batchMesh->GetVAO());
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);  // Re-bind to ensure VBO is associated with attributes
 
 	// Model matrix takes 4 attribute slots (3, 4, 5, 6)
 	size_t matrixOffset = 0;
@@ -265,10 +269,46 @@ void Renderer::InitBatchRendering()
 	batchMatrices.reserve(MAX_BATCH_SIZE);
 	batchTexData.reserve(MAX_BATCH_SIZE);
 	batchColors.reserve(MAX_BATCH_SIZE);
+
+	// Create the instanced shader
+	std::string instancedVert = shaderFolder + "instanced.vert";
+	std::string instancedFrag = shaderFolder + "instanced.frag";
+	instancedShader = new ShaderProgram(-1, instancedVert.c_str(), instancedFrag.c_str());
+
+	// Check config file for batching setting
+	bool batchingConfigEnabled = true;  // Default to enabled
+	auto rendererConfig = GetMapStringsFromFile("data/config/renderer.dat");
+	if (rendererConfig.count("batchRendering") > 0)
+	{
+		batchingConfigEnabled = (rendererConfig["batchRendering"] == "1");
+	}
+
+	// Enable batching only if config allows AND everything was created successfully
+	if (batchingConfigEnabled && batchMesh != nullptr && instanceVBO != 0 && instancedShader != nullptr)
+	{
+		batchingEnabled = true;
+		std::cout << "Batch rendering enabled" << std::endl;
+	}
+	else
+	{
+		batchingEnabled = false;
+		if (!batchingConfigEnabled)
+		{
+			std::cout << "Batch rendering disabled by config" << std::endl;
+		}
+		else
+		{
+			std::cout << "Batch rendering initialization failed" << std::endl;
+		}
+	}
 }
 
-void Renderer::BeginBatch(Texture* texture, ShaderProgram* shader)
+void Renderer::BeginBatch(Texture* texture, ShaderProgram* shader) const
 {
+	// Skip if batching not initialized
+	if (!batchingEnabled || batchMesh == nullptr)
+		return;
+
 	if (currentBatchTexture != nullptr || currentBatchShader != nullptr)
 	{
 		FlushBatch();
@@ -277,8 +317,12 @@ void Renderer::BeginBatch(Texture* texture, ShaderProgram* shader)
 	currentBatchShader = shader;
 }
 
-void Renderer::AddToBatch(const glm::mat4& model, const glm::vec2& texOffset, const glm::vec2& texFrame, const Color& color)
+void Renderer::AddToBatch(const glm::mat4& model, const glm::vec2& texOffset, const glm::vec2& texFrame, const Color& color) const
 {
+	// Skip if batching not initialized
+	if (!batchingEnabled || batchMesh == nullptr)
+		return;
+
 	if (batchMatrices.size() >= MAX_BATCH_SIZE)
 	{
 		FlushBatch();
@@ -289,9 +333,9 @@ void Renderer::AddToBatch(const glm::mat4& model, const glm::vec2& texOffset, co
 	batchColors.push_back(glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f));
 }
 
-void Renderer::FlushBatch()
+void Renderer::FlushBatch() const
 {
-	if (batchMatrices.empty() || currentBatchShader == nullptr)
+	if (!batchingEnabled || batchMesh == nullptr || batchMatrices.empty() || instancedShader == nullptr || instanceVBO == 0)
 	{
 		batchMatrices.clear();
 		batchTexData.clear();
@@ -299,15 +343,14 @@ void Renderer::FlushBatch()
 		return;
 	}
 
-	currentBatchShader->UseShader();
+	instancedShader->UseShader();
 
-	// Set up common uniforms
-	glUniformMatrix4fv(currentBatchShader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
+	// Set up uniforms that exist in the instanced shader
+	glUniformMatrix4fv(instancedShader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
 		glm::value_ptr(camera.CalculateViewMatrix()));
-	glUniformMatrix4fv(currentBatchShader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
+	glUniformMatrix4fv(instancedShader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
 		glm::value_ptr(camera.projection));
-	glUniform1f(currentBatchShader->GetUniformVariable(ShaderVariable::currentTime), now);
-	glUniform1f(currentBatchShader->GetUniformVariable(ShaderVariable::distanceToLight2D), 1.0f);
+	glUniform1f(instancedShader->GetUniformVariable(ShaderVariable::distanceToLight2D), 1.0f);  // lightRatio
 
 	// Bind texture
 	if (currentBatchTexture != nullptr)
@@ -348,7 +391,7 @@ void Renderer::FlushBatch()
 	batchColors.clear();
 }
 
-void Renderer::EndBatch()
+void Renderer::EndBatch() const
 {
 	FlushBatch();
 	currentBatchTexture = nullptr;

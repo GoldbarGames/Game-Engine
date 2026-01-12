@@ -105,7 +105,6 @@ public:
 	virtual void Update(Game& game);
 	virtual void Render(const Renderer& renderer, float parallax);
 	virtual void Render(const Renderer& renderer);
-	virtual void RenderBatched(Renderer& renderer);
 	virtual void RenderDebug(const Renderer& renderer);
 
 	void CreateCollider(float x, float y, float w, float h);

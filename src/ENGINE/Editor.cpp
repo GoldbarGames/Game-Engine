@@ -459,6 +459,14 @@ void Editor::StartEdit()
 	grabbedEntities.clear();
 	oldGrabbedPositions.clear();
 
+	if (helper == nullptr)
+	{
+		std::cout << "WARNING: EditorHelper is null! Create a MyEditorHelper and pass &game to its constructor." << std::endl;
+		std::cout << "Editor cannot start without a helper. Returning to game." << std::endl;
+		game->editMode = false;
+		return;
+	}
+
 	helper->OnEditorStart();
 
 	previewMap[MODE_TILE] = game->CreateTile(glm::vec2(0, 0), 0,
@@ -563,7 +571,10 @@ void Editor::StopEdit()
 
 	game->CheckDeleteEntities();
 
-	helper->OnEditorEnd();
+	if (helper != nullptr)
+	{
+		helper->OnEditorEnd();
+	}
 }
 
 void Editor::RefreshTilePreview()
@@ -2580,6 +2591,10 @@ void Editor::ClearLevelEntities()
 //TODO: Display an error message if the file does not exist
 void Editor::InitLevelFromFile(const std::string& levelName)
 {
+	// Early return if no level name specified - don't clear entities
+	if (levelName.empty())
+		return;
+
 	for (auto& [key, val] : game->cutsceneManager.images)
 	{
 		if (val != nullptr)

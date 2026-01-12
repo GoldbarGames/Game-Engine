@@ -258,6 +258,10 @@ Game::Game(const std::string& name, const std::string& title, const std::string&
 	windowIconFilepath = icon;
 
 	cutsceneManager.commands.helper = ch;
+	if (cutsceneManager.commands.helper == nullptr)
+	{
+		std::cout << "WARNING: CutsceneHelper is null! Create a MyCutsceneHelper and pass it to the Game constructor." << std::endl;
+	}
 
 	Init();
 
@@ -470,7 +474,10 @@ void Game::Init()
 		renderer.light = new DirectionalLight(lColor, 1.0f, 1.0f, lDir);
 	}
 
-	cutsceneManager.commands.helper->SetFunctions(cutsceneManager.commands);
+	if (cutsceneManager.commands.helper != nullptr)
+	{
+		cutsceneManager.commands.helper->SetFunctions(cutsceneManager.commands);
+	}
 
 }
 
@@ -3156,10 +3163,7 @@ void Game::RenderNormally()
 				Entity* e = entitiesToRender[i];
 				if (e->active)
 				{
-					if (renderer.batchingEnabled)
-						e->RenderBatched(renderer);
-					else
-						e->Render(renderer);
+					e->Render(renderer);
 				}
 
 				if (debugMode)
@@ -3196,10 +3200,7 @@ void Game::RenderNormally()
 
 			for (unsigned int i = 0; i < entitiesToRender.size(); i++)
 			{
-				if (renderer.batchingEnabled)
-					entitiesToRender[i]->RenderBatched(renderer);
-				else
-					entitiesToRender[i]->Render(renderer);
+				entitiesToRender[i]->Render(renderer);
 
 				if (debugMode)
 				{
@@ -3229,10 +3230,7 @@ void Game::RenderNormally()
 		{
 			if (entities[i]->active)
 			{
-				if (renderer.batchingEnabled)
-					entities[i]->RenderBatched(renderer);
-				else
-					entities[i]->Render(renderer);
+				entities[i]->Render(renderer);
 			}
 
 			if (debugMode)

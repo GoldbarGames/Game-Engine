@@ -284,14 +284,6 @@ void Entity::Render(const Renderer& renderer)
 	Render(renderer, 0);
 }
 
-void Entity::RenderBatched(Renderer& renderer)
-{
-	if (renderer.IsVisible(layer))
-	{
-		currentSprite.RenderBatched(position, renderer, scale, rotation);
-	}
-}
-
 void Entity::Render(const Renderer& renderer, float parallax)
 {
 	if (renderer.IsVisible(layer))
