@@ -5,28 +5,61 @@
 
 void InputManager::Init()
 {
-	// Populate the keyboard keys
-	std::vector<std::string> initialValues = ReadStringsFromFile("data/config/keyboard.config");
-	for (size_t i = 0; i < initialValues.size(); i++)
+	std::vector<std::string> keyboardLines;
+	std::vector<std::string> controllerLines;
+
+	// Check for new merged input.config format (contains *keyboard* section)
+	if (FileExists("data/config/input.config"))
 	{
-		if (initialValues[i] != "")
+		std::vector<std::string> lines = ReadStringsFromFile("data/config/input.config");
+		std::string currentSection = "";
+
+		for (const auto& line : lines)
+		{
+			if (line == "*keyboard*")
+			{
+				currentSection = "keyboard";
+			}
+			else if (line == "*controller*")
+			{
+				currentSection = "controller";
+			}
+			else if (!line.empty())
+			{
+				if (currentSection == "keyboard")
+					keyboardLines.emplace_back(line);
+				else if (currentSection == "controller")
+					controllerLines.emplace_back(line);
+			}
+		}
+	}
+	else
+	{
+		// Fall back to old separate files
+		keyboardLines = ReadStringsFromFile("data/config/keyboard.config");
+		controllerLines = ReadStringsFromFile("data/config/controller.config");
+	}
+
+	// Populate the keyboard keys
+	for (size_t i = 0; i < keyboardLines.size(); i++)
+	{
+		if (keyboardLines[i] != "")
 		{
 			size_t k = 0;
-			int code = std::stoi(ParseWord(initialValues[i], ' ', k));
-			std::string name = initialValues[i].substr(k, initialValues[i].size() - k);
+			int code = std::stoi(ParseWord(keyboardLines[i], ' ', k));
+			std::string name = keyboardLines[i].substr(k, keyboardLines[i].size() - k);
 			keys[name].mappedKey = (SDL_Scancode)code;
 		}
 	}
 
 	// Populate the controller buttons
-	initialValues = ReadStringsFromFile("data/config/controller.config");
-	for (size_t i = 0; i < initialValues.size(); i++)
+	for (size_t i = 0; i < controllerLines.size(); i++)
 	{
-		if (initialValues[i] != "")
+		if (controllerLines[i] != "")
 		{
 			size_t k = 0;
-			int code = std::stoi(ParseWord(initialValues[i], ' ', k));
-			std::string name = initialValues[i].substr(k, initialValues[i].size() - k);
+			int code = std::stoi(ParseWord(controllerLines[i], ' ', k));
+			std::string name = controllerLines[i].substr(k, controllerLines[i].size() - k);
 			buttons[name].mappedButton = (SDL_GameControllerButton)code;
 		}
 	}
@@ -182,7 +215,15 @@ void InputManager::SaveRecordedInput()
 {
 	std::ofstream fout;
 
-	fout.open("data/config/inputs.dat");
+	// Try new replays folder first, fall back to old config location
+	if (FileExists("data/replays/inputs.dat") || !FileExists("data/config/inputs.dat"))
+	{
+		fout.open("data/replays/inputs.dat");
+	}
+	else
+	{
+		fout.open("data/config/inputs.dat");
+	}
 
 	for (const auto& input : recordedInputs)
 	{
@@ -218,20 +259,47 @@ void InputManager::SaveKeyMappingsToFile()
 {
 	std::ofstream fout;
 
-	fout.open("data/config/keyboard.config");
-
-	if (fout.is_open())
+	// Check if using new merged input.config format
+	if (FileExists("data/config/input.config"))
 	{
-		for (const auto& [key, val] : keys)
+		// Save both keyboard and controller to merged format
+		fout.open("data/config/input.config");
+		if (fout.is_open())
 		{
-			fout << val.mappedKey << " " << key << std::endl;
+			fout << "*keyboard*" << std::endl;
+			for (const auto& [key, val] : keys)
+			{
+				fout << val.mappedKey << " " << key << std::endl;
+			}
+			fout << std::endl;
+			fout << "*controller*" << std::endl;
+			for (const auto& [key, val] : buttons)
+			{
+				fout << (int)val.mappedButton << " " << key << std::endl;
+			}
+			fout.close();
 		}
-
-		fout.close();
+		else
+		{
+			std::cout << "ERROR: Could not save key mappings to file" << std::endl;
+		}
 	}
 	else
 	{
-		std::cout << "ERROR: Could not save keyboard mappings to file" << std::endl;
+		// Fall back to old separate file format
+		fout.open("data/config/keyboard.config");
+		if (fout.is_open())
+		{
+			for (const auto& [key, val] : keys)
+			{
+				fout << val.mappedKey << " " << key << std::endl;
+			}
+			fout.close();
+		}
+		else
+		{
+			std::cout << "ERROR: Could not save keyboard mappings to file" << std::endl;
+		}
 	}
 }
 
@@ -261,20 +329,47 @@ void InputManager::SaveButtonMappingsToFile()
 {
 	std::ofstream fout;
 
-	fout.open("data/config/controller.config");
-
-	if (fout.is_open())
+	// Check if using new merged input.config format
+	if (FileExists("data/config/input.config"))
 	{
-		for (const auto& [key, val] : buttons)
+		// Save both keyboard and controller to merged format
+		fout.open("data/config/input.config");
+		if (fout.is_open())
 		{
-			fout << val.mappedButton << " " << key << std::endl;
+			fout << "*keyboard*" << std::endl;
+			for (const auto& [key, val] : keys)
+			{
+				fout << val.mappedKey << " " << key << std::endl;
+			}
+			fout << std::endl;
+			fout << "*controller*" << std::endl;
+			for (const auto& [key, val] : buttons)
+			{
+				fout << (int)val.mappedButton << " " << key << std::endl;
+			}
+			fout.close();
 		}
-
-		fout.close();
+		else
+		{
+			std::cout << "ERROR: Could not save button mappings to file" << std::endl;
+		}
 	}
 	else
 	{
-		std::cout << "ERROR: Could not save button mappings to file" << std::endl;
+		// Fall back to old separate file format
+		fout.open("data/config/controller.config");
+		if (fout.is_open())
+		{
+			for (const auto& [key, val] : buttons)
+			{
+				fout << (int)val.mappedButton << " " << key << std::endl;
+			}
+			fout.close();
+		}
+		else
+		{
+			std::cout << "ERROR: Could not save button mappings to file" << std::endl;
+		}
 	}
 }
 

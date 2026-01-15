@@ -303,9 +303,61 @@ void GUI::LoadData(Game* g)
 	std::string val = "";
 	std::string txt = "";
 
-	std::vector<std::string> lines = ReadStringsFromFile("data/gui/texts.dat");
+	// Check if we have the new merged gui.dat format (contains *elements* section)
+	std::vector<std::string> guiLines = ReadStringsFromFile("data/gui/gui.dat");
+	bool useMergedFormat = false;
+	for (const auto& line : guiLines)
+	{
+		if (line == "*elements*")
+		{
+			useMergedFormat = true;
+			break;
+		}
+	}
 
-	for (const auto& line : lines)
+	std::vector<std::string> textLines;
+	std::vector<std::string> imageLines;
+	std::vector<std::string> elementLines;
+
+	if (useMergedFormat)
+	{
+		// New merged format: parse sections from gui.dat
+		std::string currentSection = "";
+		for (const auto& line : guiLines)
+		{
+			if (line == "*elements*")
+			{
+				currentSection = "elements";
+			}
+			else if (line == "*images*")
+			{
+				currentSection = "images";
+			}
+			else if (line == "*texts*")
+			{
+				currentSection = "texts";
+			}
+			else if (!line.empty())
+			{
+				if (currentSection == "elements")
+					elementLines.emplace_back(line);
+				else if (currentSection == "images")
+					imageLines.emplace_back(line);
+				else if (currentSection == "texts")
+					textLines.emplace_back(line);
+			}
+		}
+	}
+	else
+	{
+		// Old format: read from separate files
+		textLines = ReadStringsFromFile("data/gui/texts.dat");
+		imageLines = ReadStringsFromFile("data/gui/images.dat");
+		elementLines = guiLines;
+	}
+
+	// Process texts
+	for (const auto& line : textLines)
 	{
 		index = 0;
 		key = ParseWord(line, '`', index);
@@ -319,7 +371,6 @@ void GUI::LoadData(Game* g)
 			Color textColor = { 255, 255, 255, 255 };
 			size_t letterIndex = 0;
 
-			//text->SetTextAsOneSprite(txt, textColor);
 			while (letterIndex < val.size())
 			{
 				txt = game->cutsceneManager.ParseText(val, letterIndex, textColor, text);
@@ -342,8 +393,8 @@ void GUI::LoadData(Game* g)
 
 	ResetText();
 
-	lines = ReadStringsFromFile("data/gui/images.dat");
-	for (const auto& line : lines)
+	// Process images
+	for (const auto& line : imageLines)
 	{
 		index = 0;
 		key = ParseWord(line, '`', index);
@@ -359,10 +410,10 @@ void GUI::LoadData(Game* g)
 		imageNames[key] = images.size() - 1;
 	}
 
-	lines = ReadStringsFromFile("data/gui/gui.dat");
+	// Process elements (GUI layouts)
 	std::string current = "";
 
-	for (const auto& line : lines)
+	for (const auto& line : elementLines)
 	{
 		if (line[0] == '*') // new gui
 		{
@@ -475,7 +526,7 @@ void GUI::LoadData(Game* g)
 				}
 			}
 		}
-		
+
 	}
 
 }

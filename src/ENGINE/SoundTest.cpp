@@ -98,8 +98,13 @@ SoundTest::SoundTest(SoundManager& m) : dialog(&m.game->spriteManager),
 	dialog.text->GetSprite()->keepScaleRelativeToCamera = true;
 	dialog.input->GetSprite()->keepScaleRelativeToCamera = true;
 
-	std::vector<std::string> variables = ReadStringsFromFile("data/config/soundtest.vars");
-	
+	// Check for new lists folder first, fall back to old config location
+	std::vector<std::string> variables;
+	if (FileExists("data/lists/soundtest.list"))
+		variables = ReadStringsFromFile("data/lists/soundtest.list");
+	else
+		variables = ReadStringsFromFile("data/config/soundtest.vars");
+
 	// NOTE: This should go before the currentBGM is set because we end up using it here.
 	if (variables.size() > 2)
 	{		
@@ -349,7 +354,11 @@ void SoundTest::AfterJumpDialog(const std::string& time)
 void SoundTest::SaveData()
 {
 	std::ofstream fout;
-	fout.open("data/config/soundtest.vars");
+	// Save to new lists folder if it exists, otherwise old config location
+	if (FileExists("data/lists/soundtest.list") || !FileExists("data/config/soundtest.vars"))
+		fout.open("data/lists/soundtest.list");
+	else
+		fout.open("data/config/soundtest.vars");
 	if (fout.is_open())
 	{
 		fout << currentDir << std::endl;

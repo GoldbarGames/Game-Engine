@@ -399,7 +399,11 @@ void Game::Init()
 	// Initialize this AFTER OpenGL, Fonts, and Editor
 	soundManager.Init(this);
 
-	dirNames = ReadStringsFromFile("data/config/dirs.dat");
+	// Check for new lists folder first, fall back to old config location
+	if (FileExists("data/lists/dirs.list"))
+		dirNames = ReadStringsFromFile("data/lists/dirs.list");
+	else
+		dirNames = ReadStringsFromFile("data/config/dirs.dat");
 	initialStates = GetMapStringsFromFile("data/config/istates.dat");
 
 	entities.clear();

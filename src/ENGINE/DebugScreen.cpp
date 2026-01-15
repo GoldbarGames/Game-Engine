@@ -35,7 +35,12 @@ DebugScreen::DebugScreen(Game& g)
 	CreateDebugText(DebugText::cameraPitch, 400, 650);
 	CreateDebugText(DebugText::cameraRoll, 400, 750);
 
-	std::vector<std::string> variables = ReadStringsFromFile("data/config/debug.vars");
+	// Check for new lists folder first, fall back to old config location
+	std::vector<std::string> variables;
+	if (FileExists("data/lists/debug.list"))
+		variables = ReadStringsFromFile("data/lists/debug.list");
+	else
+		variables = ReadStringsFromFile("data/config/debug.vars");
 	for (int i = 0; i < variables.size(); i++)
 	{
 		InsertVariable(variables[i]);
@@ -51,7 +56,12 @@ DebugScreen::~DebugScreen()
 
 	std::ofstream fout;
 
-	fout.open("data/config/debug.vars");
+	// Save to new lists folder if it exists, otherwise old config location
+	if (FileExists("data/lists/debug.list") || !FileExists("data/config/debug.vars"))
+		fout.open("data/lists/debug.list");
+	else
+		fout.open("data/config/debug.vars");
+
 	if (fout.is_open())
 	{
 		for (int i = 0; i < cutsceneVariableNames.size(); i++)

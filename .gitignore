@@ -68,6 +68,10 @@ sysinfo.txt
 # Windows
 Thumbs.db
 
+utils/__pycache__/
+
 # Claude
 .claude/
 CLAUDE.md
+tmpclaude-*
+nul

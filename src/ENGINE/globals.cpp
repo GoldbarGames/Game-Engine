@@ -391,6 +391,12 @@ void ReplaceAll(std::string& s, const std::string& toReplace, const std::string&
 	}
 }
 
+bool FileExists(const std::string& filepath)
+{
+	std::ifstream fin(filepath);
+	return fin.good();
+}
+
 std::vector<std::string> ReadStringsFromFile(const std::string& filepath, bool startAtOne)
 {
 	std::vector<std::string> result;
