@@ -108,7 +108,10 @@ void CutsceneManager::ReadCutsceneFile()
 			data = "";
 			for (line; std::getline(fin, line); )
 			{
-				if (line[0] == '*')
+				// Remove trailing \r if present (Windows line endings)
+				if (!line.empty() && line.back() == '\r')
+					line.pop_back();
+				if (!line.empty() && line[0] == '*')
 					data += line + "*";
 				else
 					data += line + " ;";
@@ -142,7 +145,10 @@ void CutsceneManager::ReadCutsceneFile()
 			{
 				for (line; std::getline(fin, line); )
 				{
-					if (line[0] == '*')
+					// Remove trailing \r if present (Windows line endings)
+					if (!line.empty() && line.back() == '\r')
+						line.pop_back();
+					if (!line.empty() && line[0] == '*')
 						data += line + "*";
 					else
 						data += line + " ;";
@@ -2278,6 +2284,9 @@ void CutsceneManager::LoadGlobalVariables()
 	fin.open("saves/globals.sav");
 	for (std::string line; std::getline(fin, line); )
 	{
+		// Remove trailing \r if present (Windows line endings)
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
 		if (line == "@ GLOBAL_STRINGS")
 		{
 			globalSection = 1;
@@ -2390,6 +2399,9 @@ void CutsceneManager::SaveGlobalVariable(unsigned int key, const std::string& va
 	fin.open("saves/globals.sav");
 	for (std::string line; std::getline(fin, line); )
 	{
+		// Remove trailing \r if present (Windows line endings)
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
 		if (line == "@ GLOBAL_STRINGS")
 		{
 			globalSection = 1;
@@ -2715,7 +2727,7 @@ void CutsceneManager::SaveGame(const char* filename, const char* path)
 			{
 				Entity* entity = var.second;
 
-				if (entity != nullptr && !saveIgnore.contains(var.first))
+				if (entity != nullptr && saveIgnore.find(var.first) == saveIgnore.end())
 				{
 					if (entity->etype == "text")
 					{
@@ -2907,6 +2919,9 @@ void CutsceneManager::LoadGameData(const char* filename, const char* path)
 	fin.open(std::string(path) + filename);
 	for (std::string line; std::getline(fin, line); )
 	{
+		// Remove trailing \r if present (Windows line endings)
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
 		//data += line + "\n";
 		dataLines.push_back(line);
 	}

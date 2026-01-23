@@ -64,6 +64,12 @@ sysinfo.txt
 # Upgrade report
 *.htm
 *.html
+!shell.html
+
+# Emscripten/WebAssembly build
+build_wasm/
+emsdk/
+emsdk_env.bat
 
 # Windows
 Thumbs.db
@@ -75,3 +81,4 @@ utils/__pycache__/
 CLAUDE.md
 tmpclaude-*
 nul
+*.lnk

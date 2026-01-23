@@ -7,6 +7,11 @@
 #include <curl/curl.h>
 #include <algorithm>
 #include <stdlib.h>
+
+// Suppress C++20 deprecation warning for <ciso646> in nlohmann/json
+#ifndef _SILENCE_CXX20_CISO646_REMOVED_WARNING
+#define _SILENCE_CXX20_CISO646_REMOVED_WARNING
+#endif
 #include <nlohmann/json.hpp>
 
 void NetworkManager::Init(Protocol newProtocol)
@@ -437,6 +442,217 @@ void NetworkManager::AddToMessage(const std::string& entity, int id, const std::
         messageToSend.push_back(mapKeysToIndices[key]);
         messageToSend.push_back(value);
     }
+}
+
+#else
+
+// ============================================================================
+// Emscripten Implementation
+// Uses Fetch API for HTTP requests; TCP/UDP networking not supported in browser
+// ============================================================================
+
+#include <emscripten/fetch.h>
+
+NetworkManager::NetworkManager(const char* h, const char* p)
+{
+    host = h;
+    port = p;
+}
+
+NetworkManager::~NetworkManager()
+{
+    // Nothing to clean up in Emscripten version
+}
+
+void NetworkManager::Init(Protocol newProtocol)
+{
+    protocol = newProtocol;
+
+    // TCP/UDP sockets are not supported in browser environment
+    if (protocol != Protocol::None)
+    {
+        std::cout << "Warning: TCP/UDP networking is not supported in WebAssembly builds." << std::endl;
+        std::cout << "Use HTTP requests (curlGetRequest/curlPostRequest) instead." << std::endl;
+    }
+
+    // Read in the variables into the map (if files are available)
+    mapKeysToIndices = MapStringsToLineFromFile("data/network/vars.dat");
+    mapEntitiesToIndices = MapStringsToLineFromFile("data/network/entities.dat");
+    mapIndicesToKeys = ReadStringsFromFile("data/network/vars.dat", true);
+    mapIndicesToEntities = ReadStringsFromFile("data/network/entities.dat", true);
+}
+
+void NetworkManager::Update()
+{
+    // No-op for Emscripten - fetch requests are async
+}
+
+void NetworkManager::ReadMessage(Game& game)
+{
+    // Override in game-specific implementation
+}
+
+std::string NetworkManager::ConvertToData(const Entity& entity)
+{
+    std::string result = "";
+    result += "entity;";
+    result += entity.name + ";";
+    result += std::to_string(entity.position.x) + ";";
+    result += std::to_string(entity.position.y) + ";";
+    return result;
+}
+
+Entity NetworkManager::ConvertFromData(const char* data, int len)
+{
+    Entity newEntity(glm::vec3(0, 0, 0));
+    int section = 0;
+    std::string word = "";
+    for (int i = 0; i < len; i++)
+    {
+        if (data[i] == ';')
+        {
+            switch (section)
+            {
+            case 1:
+                newEntity.name = word;
+                break;
+            case 2:
+                newEntity.position.x = std::stoi(word);
+                break;
+            case 3:
+                newEntity.position.y = std::stoi(word);
+                break;
+            case 0:
+            default:
+                break;
+            }
+            section++;
+            word = "";
+        }
+        else
+        {
+            word += data[i];
+        }
+    }
+    return newEntity;
+}
+
+void NetworkManager::AddToMessage(const std::string& entity, int id, const std::string& key, int value, bool condition)
+{
+    if (condition)
+    {
+        messageToSend.push_back(mapEntitiesToIndices[entity]);
+        messageToSend.push_back(id);
+        messageToSend.push_back(mapKeysToIndices[key]);
+        messageToSend.push_back(value);
+    }
+}
+
+// Emscripten Fetch API callbacks and request storage
+namespace {
+    struct FetchUserData {
+        std::string* result;
+        bool* completed;
+    };
+
+    void onFetchSuccess(emscripten_fetch_t* fetch) {
+        FetchUserData* userData = (FetchUserData*)fetch->userData;
+        if (userData && userData->result) {
+            userData->result->assign(fetch->data, fetch->numBytes);
+        }
+        if (userData && userData->completed) {
+            *userData->completed = true;
+        }
+        std::cout << "Fetch succeeded: " << fetch->url << " (" << fetch->numBytes << " bytes)" << std::endl;
+        emscripten_fetch_close(fetch);
+        delete userData;
+    }
+
+    void onFetchError(emscripten_fetch_t* fetch) {
+        FetchUserData* userData = (FetchUserData*)fetch->userData;
+        if (userData && userData->completed) {
+            *userData->completed = true;
+        }
+        std::cout << "Fetch failed: " << fetch->url << " (status: " << fetch->status << ")" << std::endl;
+        emscripten_fetch_close(fetch);
+        delete userData;
+    }
+}
+
+std::string NetworkManager::curlPostRequest(const char* url, const char* data, const char* userpwd)
+{
+    // Note: Emscripten fetch is asynchronous. This function initiates the request
+    // but the result won't be immediately available. For synchronous behavior,
+    // consider using EM_ASM with XMLHttpRequest or restructure code for async.
+
+    std::cout << "Emscripten POST request to: " << url << std::endl;
+
+    emscripten_fetch_attr_t attr;
+    emscripten_fetch_attr_init(&attr);
+    strcpy(attr.requestMethod, "POST");
+    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    attr.onsuccess = onFetchSuccess;
+    attr.onerror = onFetchError;
+
+    // Set headers
+    const char* headers[] = {
+        "Content-Type", "application/json",
+        "Accept", "application/json",
+        nullptr
+    };
+    attr.requestHeaders = headers;
+
+    // Set request body
+    attr.requestData = data;
+    attr.requestDataSize = strlen(data);
+
+    // Create user data for callback
+    FetchUserData* userData = new FetchUserData();
+    userData->result = &messageReceived;
+    userData->completed = nullptr;
+    attr.userData = userData;
+
+    emscripten_fetch(&attr, url);
+
+    // Return empty string - result will be in messageReceived when complete
+    // For truly synchronous requests, you'd need to use EMSCRIPTEN_FETCH_SYNCHRONOUS
+    // but that requires SharedArrayBuffer and proper COOP/COEP headers
+    return "";
+}
+
+std::string NetworkManager::curlGetRequest(const char* url, const char* userpwd)
+{
+    std::cout << "Emscripten GET request to: " << url << std::endl;
+
+    emscripten_fetch_attr_t attr;
+    emscripten_fetch_attr_init(&attr);
+    strcpy(attr.requestMethod, "GET");
+    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    attr.onsuccess = onFetchSuccess;
+    attr.onerror = onFetchError;
+
+    // Set headers
+    const char* headers[] = {
+        "Accept", "application/json",
+        nullptr
+    };
+    attr.requestHeaders = headers;
+
+    // Create user data for callback
+    FetchUserData* userData = new FetchUserData();
+    userData->result = &messageReceived;
+    userData->completed = nullptr;
+    attr.userData = userData;
+
+    emscripten_fetch(&attr, url);
+
+    return "";
+}
+
+void NetworkManager::testGetCase()
+{
+    curlGetRequest("http://localhost:3000/api/cases", "");
+    // Result will be asynchronously stored in messageReceived
 }
 
 #endif

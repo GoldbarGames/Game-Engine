@@ -2,13 +2,15 @@
 #define MENUSCREEN_H
 #pragma once
 
+#include "leak_check.h"
 #include <vector>
 #include "glm/vec3.hpp"
 #include "MenuButton.h"
 #include "SpriteManager.h"
-#include "leak_check.h"
 
 class Entity;
+class MenuLoader;
+class MenuDataProvider;
 
 struct KINJO_API MenuAnimKeyframe
 {
@@ -46,8 +48,8 @@ struct KINJO_API MenuAnimation
 };
 
 class KINJO_API MenuScreen
-{	
-public:	
+{
+public:
 	std::string name = "";
 	BaseButton* selectedButton = nullptr;
 	std::vector<BaseButton*> buttons;
@@ -55,6 +57,7 @@ public:
 	std::vector<Entity*> images;
 
 	Game* _game = nullptr;
+	MenuLoader* menuLoader = nullptr;  // Optional loader for data-driven menus
 
 	BaseButton* lastButton = nullptr;
 
@@ -70,6 +73,10 @@ public:
 	// Should this menu be recreated each time it is opened?
 	// Set to true if this menu uses any variables
 	bool isDynamic = false;
+
+	// Was this menu loaded from a .menu file?
+	bool loadedFromFile = false;
+	std::string menuFilePath = "";
 
 
 	// Use mouse on this menu instead of a keyboard
@@ -108,6 +115,15 @@ public:
 	virtual bool PressSelectedButton(Game& game);
 
 	virtual void ResetMenu();
+
+	// Load menu layout from a .menu file
+	bool LoadFromFile(const std::string& filepath, Game& game, MenuDataProvider* dataProvider = nullptr);
+
+	// Process templates and slots after loading (call in CreateMenu for dynamic menus)
+	void ProcessDynamicContent(Game& game);
+
+	// Set the data provider for dynamic content
+	void SetDataProvider(MenuDataProvider* provider);
 
 	void HighlightSelectedButton(Game& game);
 	void UnhighlightSelectedButton(Game& game);

@@ -554,6 +554,9 @@ void ReadTranslationData()
 			Globals::translateMaps[" "][i] = " ";
 			for (std::string line; std::getline(fin, line); )
 			{
+				// Remove trailing \r if present (Windows line endings)
+				if (!line.empty() && line.back() == '\r')
+					line.pop_back();
 				index = 0;
 				baseWord = ParseWord(line, '`', index);
 				newWord = ParseWord(line, '\n', index);

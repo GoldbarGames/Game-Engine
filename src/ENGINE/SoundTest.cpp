@@ -172,14 +172,16 @@ SoundTest::~SoundTest()
 
 void SoundTest::ScrollCurrentBGM(bool up)
 {
-
 	std::vector<std::string> bgmList;
 
-	fs::path path = fs::current_path().append(currentDir);
+#ifndef EMSCRIPTEN
+	fs::path path = fs::current_path();
+	path = fs::path(path.string() + "/" + currentDir);
 	for (const auto& entry : fs::directory_iterator(path))
 	{
 		bgmList.emplace_back(entry.path().filename().string());
 	}
+#endif
 
 	int b = -1;
 	for (size_t i = 0; i < bgmList.size(); i++)

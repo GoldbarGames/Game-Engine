@@ -2,6 +2,10 @@
 #ifndef LEAK_CHECK_H
 #define LEAK_CHECK_H
 
+// Suppress C++20 deprecation warnings (e.g., <ciso646> in nlohmann/json)
+#ifndef _SILENCE_CXX20_CISO646_REMOVED_WARNING
+#define _SILENCE_CXX20_CISO646_REMOVED_WARNING
+#endif
 
 #if defined(_MSC_VER)
 //  Microsoft 
@@ -25,11 +29,35 @@
 #endif
 
 
-#ifndef _WIN32
+#ifdef EMSCRIPTEN
+// Emscripten: Filesystem operations should be guarded with #ifndef EMSCRIPTEN
+// Use a minimal stub namespace - real file ops use Emscripten's virtual FS
+#define __stdcall
+#include <string>
+namespace fs {
+    class path {
+    public:
+        std::string p;
+        path() {}
+        path(const std::string& s) : p(s) {}
+        path(const char* s) : p(s) {}
+        std::string string() const { return p; }
+        path operator/(const path& other) const { return path(p + "/" + other.p); }
+        path operator/(const std::string& other) const { return path(p + "/" + other); }
+    };
+    inline path current_path() { return path("."); }
+    inline bool exists(const path&) { return false; }
+    inline bool is_directory(const path&) { return false; }
+    inline bool is_regular_file(const path&) { return false; }
+    inline bool create_directories(const path&) { return false; }
+}
+#elif !defined(_WIN32)
+// Non-Windows native: Use ghc filesystem
 #define __stdcall
 #include <ghc/filesystem.hpp>
 namespace fs = ghc::filesystem;
 #else
+// Windows native: Use standard filesystem
 #include <filesystem>
 namespace fs = std::filesystem;
 #endif

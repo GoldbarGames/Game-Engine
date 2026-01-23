@@ -235,6 +235,9 @@ std::vector<AnimState*> SpriteManager::ReadAnimData(const std::string& dataFileP
 	std::string animData = "";
 	for (std::string line; std::getline(fin, line); )
 	{
+		// Remove trailing \r if present (Windows line endings)
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
 		animData += line + "\n";
 	}
 

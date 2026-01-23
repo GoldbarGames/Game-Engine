@@ -23,6 +23,108 @@ except ImportError:
     HAS_PIL = False
 
 
+class MenuTemplate:
+    """Template for repeating elements based on dynamic data"""
+    def __init__(self, name=""):
+        self.name = name
+        self.element_type = "button"  # "button", "text", "image"
+        self.data_source = ""  # Name of the data source (e.g., "spells", "inventory")
+        self.filter = ""  # Optional filter condition
+
+        # Layout settings
+        self.layout = "grid"  # "grid", "horizontal", "vertical"
+        self.columns = 3
+        self.start_x = 0
+        self.start_y = 0
+        self.spacing_x = 240
+        self.spacing_y = 320
+
+        # Element properties (can use {variable} placeholders)
+        self.text = "{name}"
+        self.filepath_pattern = ""
+        self.button_id = 0
+        self.width = 150
+        self.height = 40
+        self.scale_x = 1.0
+        self.scale_y = 1.0
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "type": self.element_type,
+            "data_source": self.data_source,
+            "filter": self.filter,
+            "layout": self.layout,
+            "columns": self.columns,
+            "start_x": self.start_x,
+            "start_y": self.start_y,
+            "spacing_x": self.spacing_x,
+            "spacing_y": self.spacing_y,
+            "text": self.text,
+            "filepath_pattern": self.filepath_pattern,
+            "button_id": self.button_id,
+            "width": self.width,
+            "height": self.height,
+            "scale_x": self.scale_x,
+            "scale_y": self.scale_y
+        }
+
+    @staticmethod
+    def from_dict(data):
+        t = MenuTemplate(data.get("name", ""))
+        t.element_type = data.get("type", "button")
+        t.data_source = data.get("data_source", "")
+        t.filter = data.get("filter", "")
+        t.layout = data.get("layout", "grid")
+        t.columns = data.get("columns", 3)
+        t.start_x = data.get("start_x", 0)
+        t.start_y = data.get("start_y", 0)
+        t.spacing_x = data.get("spacing_x", 240)
+        t.spacing_y = data.get("spacing_y", 320)
+        t.text = data.get("text", "{name}")
+        t.filepath_pattern = data.get("filepath_pattern", "")
+        t.button_id = data.get("button_id", 0)
+        t.width = data.get("width", 150)
+        t.height = data.get("height", 40)
+        t.scale_x = data.get("scale_x", 1.0)
+        t.scale_y = data.get("scale_y", 1.0)
+        return t
+
+
+class MenuSlot:
+    """Slot for C++ to inject dynamic content"""
+    def __init__(self, name=""):
+        self.name = name
+        self.x = 0
+        self.y = 0
+        self.layout = "vertical"  # "vertical", "horizontal", "grid"
+        self.columns = 1
+        self.spacing_x = 0
+        self.spacing_y = 120
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "x": self.x,
+            "y": self.y,
+            "layout": self.layout,
+            "columns": self.columns,
+            "spacing_x": self.spacing_x,
+            "spacing_y": self.spacing_y
+        }
+
+    @staticmethod
+    def from_dict(data):
+        s = MenuSlot(data.get("name", ""))
+        s.x = data.get("x", 0)
+        s.y = data.get("y", 0)
+        s.layout = data.get("layout", "vertical")
+        s.columns = data.get("columns", 1)
+        s.spacing_x = data.get("spacing_x", 0)
+        s.spacing_y = data.get("spacing_y", 120)
+        return s
+
+
 class AnimationKeyframe:
     """Represents a single keyframe in a menu animation"""
     def __init__(self, duration=500):
@@ -139,6 +241,18 @@ class MenuEditor:
         # Menu screens list
         self.menu_screens = []  # List of menu names
         self.current_menu_index = -1
+
+        # Templates and slots for dynamic content
+        self.templates = []
+        self.slots = []
+        self.selected_template = None
+        self.selected_slot = None
+
+        # Menu properties
+        self.can_escape_from = True
+        self.is_dynamic = False
+        self.use_mouse = False
+        self.remember_last_button = False
 
         # Canvas dimensions (typical game resolution)
         self.canvas_width = 1280
@@ -394,6 +508,38 @@ class MenuEditor:
         ttk.Button(exit_btn_frame, text="Del", command=lambda: self.delete_keyframe("exit")).pack(side=tk.LEFT, padx=2)
 
         anim_frame.columnconfigure(0, weight=1)
+
+        # Dynamic Content tab (Templates and Slots)
+        dynamic_frame = ttk.Frame(prop_notebook)
+        prop_notebook.add(dynamic_frame, text="Dynamic")
+
+        # Templates section
+        ttk.Label(dynamic_frame, text="Templates:").grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=2, pady=2)
+
+        self.templates_list = tk.Listbox(dynamic_frame, height=4, width=30)
+        self.templates_list.grid(row=1, column=0, columnspan=2, padx=2, pady=2, sticky=tk.W+tk.E)
+        self.templates_list.bind("<<ListboxSelect>>", self.on_template_select)
+
+        tmpl_btn_frame = ttk.Frame(dynamic_frame)
+        tmpl_btn_frame.grid(row=2, column=0, columnspan=2, pady=2)
+        ttk.Button(tmpl_btn_frame, text="Add", command=self.add_template).pack(side=tk.LEFT, padx=2)
+        ttk.Button(tmpl_btn_frame, text="Edit", command=self.edit_template).pack(side=tk.LEFT, padx=2)
+        ttk.Button(tmpl_btn_frame, text="Del", command=self.delete_template).pack(side=tk.LEFT, padx=2)
+
+        # Slots section
+        ttk.Label(dynamic_frame, text="Slots:").grid(row=3, column=0, columnspan=2, sticky=tk.W, padx=2, pady=2)
+
+        self.slots_list = tk.Listbox(dynamic_frame, height=4, width=30)
+        self.slots_list.grid(row=4, column=0, columnspan=2, padx=2, pady=2, sticky=tk.W+tk.E)
+        self.slots_list.bind("<<ListboxSelect>>", self.on_slot_select)
+
+        slot_btn_frame = ttk.Frame(dynamic_frame)
+        slot_btn_frame.grid(row=5, column=0, columnspan=2, pady=2)
+        ttk.Button(slot_btn_frame, text="Add", command=self.add_slot).pack(side=tk.LEFT, padx=2)
+        ttk.Button(slot_btn_frame, text="Edit", command=self.edit_slot).pack(side=tk.LEFT, padx=2)
+        ttk.Button(slot_btn_frame, text="Del", command=self.delete_slot).pack(side=tk.LEFT, padx=2)
+
+        dynamic_frame.columnconfigure(0, weight=1)
 
     def create_status_bar(self):
         status_frame = ttk.Frame(self.root)
@@ -1037,11 +1183,26 @@ class MenuEditor:
             self.canvas_width = data.get("width", 1280)
             self.canvas_height = data.get("height", 720)
             self.elements = [MenuElement.from_dict(e) for e in data.get("elements", [])]
+
+            # Load templates and slots
+            self.templates = [MenuTemplate.from_dict(t) for t in data.get("templates", [])]
+            self.slots = [MenuSlot.from_dict(s) for s in data.get("slots", [])]
+
+            # Load menu properties
+            self.can_escape_from = data.get("canEscapeFrom", True)
+            self.is_dynamic = data.get("isDynamic", False)
+            self.use_mouse = data.get("useMouse", False)
+            self.remember_last_button = data.get("rememberLastButton", False)
+
             self.set_zoom(self.canvas_scale)
             self.current_file = filepath
             self.selected_element = None
+            self.selected_template = None
+            self.selected_slot = None
             self.refresh_canvas()
             self.refresh_list()
+            self.refresh_templates_list()
+            self.refresh_slots_list()
             self.modified = False
             self.update_title()
             self.status_var.set(f"Loaded: {filepath}")
@@ -1073,8 +1234,21 @@ class MenuEditor:
                 "name": self.menu_name,
                 "width": self.canvas_width,
                 "height": self.canvas_height,
+                "canEscapeFrom": self.can_escape_from,
+                "isDynamic": self.is_dynamic,
+                "useMouse": self.use_mouse,
+                "rememberLastButton": self.remember_last_button,
                 "elements": [e.to_dict() for e in self.elements]
             }
+
+            # Add templates if any
+            if self.templates:
+                data["templates"] = [t.to_dict() for t in self.templates]
+
+            # Add slots if any
+            if self.slots:
+                data["slots"] = [s.to_dict() for s in self.slots]
+
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
             self.modified = False
@@ -1232,6 +1406,319 @@ class MenuEditor:
         if self.modified and not self.confirm_discard():
             return
         self.root.destroy()
+
+    # Template methods
+    def refresh_templates_list(self):
+        """Refresh the templates listbox"""
+        self.templates_list.delete(0, tk.END)
+        for t in self.templates:
+            self.templates_list.insert(tk.END, f"{t.name} ({t.data_source})")
+
+    def on_template_select(self, event):
+        """Handle template selection"""
+        selection = self.templates_list.curselection()
+        if selection:
+            self.selected_template = self.templates[selection[0]]
+
+    def add_template(self):
+        """Add a new template"""
+        dialog = TemplateDialog(self.root, "Add Template")
+        if dialog.result:
+            t = MenuTemplate(dialog.result["name"])
+            t.element_type = dialog.result["element_type"]
+            t.data_source = dialog.result["data_source"]
+            t.filter = dialog.result["filter"]
+            t.layout = dialog.result["layout"]
+            t.columns = dialog.result["columns"]
+            t.start_x = dialog.result["start_x"]
+            t.start_y = dialog.result["start_y"]
+            t.spacing_x = dialog.result["spacing_x"]
+            t.spacing_y = dialog.result["spacing_y"]
+            t.text = dialog.result["text"]
+            t.filepath_pattern = dialog.result["filepath_pattern"]
+            self.templates.append(t)
+            self.refresh_templates_list()
+            self.modified = True
+            self.update_title()
+
+    def edit_template(self):
+        """Edit the selected template"""
+        if not self.selected_template:
+            messagebox.showwarning("Warning", "Select a template to edit")
+            return
+
+        dialog = TemplateDialog(self.root, "Edit Template", self.selected_template)
+        if dialog.result:
+            t = self.selected_template
+            t.name = dialog.result["name"]
+            t.element_type = dialog.result["element_type"]
+            t.data_source = dialog.result["data_source"]
+            t.filter = dialog.result["filter"]
+            t.layout = dialog.result["layout"]
+            t.columns = dialog.result["columns"]
+            t.start_x = dialog.result["start_x"]
+            t.start_y = dialog.result["start_y"]
+            t.spacing_x = dialog.result["spacing_x"]
+            t.spacing_y = dialog.result["spacing_y"]
+            t.text = dialog.result["text"]
+            t.filepath_pattern = dialog.result["filepath_pattern"]
+            self.refresh_templates_list()
+            self.modified = True
+            self.update_title()
+
+    def delete_template(self):
+        """Delete the selected template"""
+        if self.selected_template:
+            if messagebox.askyesno("Confirm", f"Delete template '{self.selected_template.name}'?"):
+                self.templates.remove(self.selected_template)
+                self.selected_template = None
+                self.refresh_templates_list()
+                self.modified = True
+                self.update_title()
+
+    # Slot methods
+    def refresh_slots_list(self):
+        """Refresh the slots listbox"""
+        self.slots_list.delete(0, tk.END)
+        for s in self.slots:
+            self.slots_list.insert(tk.END, f"{s.name} ({s.layout})")
+
+    def on_slot_select(self, event):
+        """Handle slot selection"""
+        selection = self.slots_list.curselection()
+        if selection:
+            self.selected_slot = self.slots[selection[0]]
+
+    def add_slot(self):
+        """Add a new slot"""
+        dialog = SlotDialog(self.root, "Add Slot")
+        if dialog.result:
+            s = MenuSlot(dialog.result["name"])
+            s.x = dialog.result["x"]
+            s.y = dialog.result["y"]
+            s.layout = dialog.result["layout"]
+            s.columns = dialog.result["columns"]
+            s.spacing_x = dialog.result["spacing_x"]
+            s.spacing_y = dialog.result["spacing_y"]
+            self.slots.append(s)
+            self.refresh_slots_list()
+            self.modified = True
+            self.update_title()
+
+    def edit_slot(self):
+        """Edit the selected slot"""
+        if not self.selected_slot:
+            messagebox.showwarning("Warning", "Select a slot to edit")
+            return
+
+        dialog = SlotDialog(self.root, "Edit Slot", self.selected_slot)
+        if dialog.result:
+            s = self.selected_slot
+            s.name = dialog.result["name"]
+            s.x = dialog.result["x"]
+            s.y = dialog.result["y"]
+            s.layout = dialog.result["layout"]
+            s.columns = dialog.result["columns"]
+            s.spacing_x = dialog.result["spacing_x"]
+            s.spacing_y = dialog.result["spacing_y"]
+            self.refresh_slots_list()
+            self.modified = True
+            self.update_title()
+
+    def delete_slot(self):
+        """Delete the selected slot"""
+        if self.selected_slot:
+            if messagebox.askyesno("Confirm", f"Delete slot '{self.selected_slot.name}'?"):
+                self.slots.remove(self.selected_slot)
+                self.selected_slot = None
+                self.refresh_slots_list()
+                self.modified = True
+                self.update_title()
+
+
+class TemplateDialog:
+    """Dialog for editing menu templates"""
+    def __init__(self, parent, title, template=None):
+        self.result = None
+
+        dialog = tk.Toplevel(parent)
+        dialog.title(title)
+        dialog.geometry("400x450")
+        dialog.transient(parent)
+        dialog.grab_set()
+
+        row = 0
+
+        ttk.Label(dialog, text="Name:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.name_entry = ttk.Entry(dialog, width=25)
+        self.name_entry.grid(row=row, column=1, padx=5, pady=2)
+        self.name_entry.insert(0, template.name if template else "")
+
+        row += 1
+        ttk.Label(dialog, text="Element Type:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.type_combo = ttk.Combobox(dialog, values=["button", "text", "image"], width=22, state="readonly")
+        self.type_combo.grid(row=row, column=1, padx=5, pady=2)
+        self.type_combo.set(template.element_type if template else "button")
+
+        row += 1
+        ttk.Label(dialog, text="Data Source:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.datasource_entry = ttk.Entry(dialog, width=25)
+        self.datasource_entry.grid(row=row, column=1, padx=5, pady=2)
+        self.datasource_entry.insert(0, template.data_source if template else "")
+
+        row += 1
+        ttk.Label(dialog, text="Filter:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.filter_entry = ttk.Entry(dialog, width=25)
+        self.filter_entry.grid(row=row, column=1, padx=5, pady=2)
+        self.filter_entry.insert(0, template.filter if template else "")
+
+        row += 1
+        ttk.Label(dialog, text="Layout:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.layout_combo = ttk.Combobox(dialog, values=["grid", "horizontal", "vertical"], width=22, state="readonly")
+        self.layout_combo.grid(row=row, column=1, padx=5, pady=2)
+        self.layout_combo.set(template.layout if template else "grid")
+
+        row += 1
+        ttk.Label(dialog, text="Columns:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.columns_entry = ttk.Entry(dialog, width=10)
+        self.columns_entry.grid(row=row, column=1, padx=5, pady=2, sticky=tk.W)
+        self.columns_entry.insert(0, str(template.columns if template else 3))
+
+        row += 1
+        ttk.Label(dialog, text="Start X:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.startx_entry = ttk.Entry(dialog, width=10)
+        self.startx_entry.grid(row=row, column=1, padx=5, pady=2, sticky=tk.W)
+        self.startx_entry.insert(0, str(template.start_x if template else 0))
+
+        row += 1
+        ttk.Label(dialog, text="Start Y:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.starty_entry = ttk.Entry(dialog, width=10)
+        self.starty_entry.grid(row=row, column=1, padx=5, pady=2, sticky=tk.W)
+        self.starty_entry.insert(0, str(template.start_y if template else 0))
+
+        row += 1
+        ttk.Label(dialog, text="Spacing X:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.spacingx_entry = ttk.Entry(dialog, width=10)
+        self.spacingx_entry.grid(row=row, column=1, padx=5, pady=2, sticky=tk.W)
+        self.spacingx_entry.insert(0, str(template.spacing_x if template else 240))
+
+        row += 1
+        ttk.Label(dialog, text="Spacing Y:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.spacingy_entry = ttk.Entry(dialog, width=10)
+        self.spacingy_entry.grid(row=row, column=1, padx=5, pady=2, sticky=tk.W)
+        self.spacingy_entry.insert(0, str(template.spacing_y if template else 320))
+
+        row += 1
+        ttk.Label(dialog, text="Text Pattern:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.text_entry = ttk.Entry(dialog, width=25)
+        self.text_entry.grid(row=row, column=1, padx=5, pady=2)
+        self.text_entry.insert(0, template.text if template else "{name}")
+
+        row += 1
+        ttk.Label(dialog, text="Filepath Pattern:").grid(row=row, column=0, padx=5, pady=2, sticky=tk.W)
+        self.filepath_entry = ttk.Entry(dialog, width=25)
+        self.filepath_entry.grid(row=row, column=1, padx=5, pady=2)
+        self.filepath_entry.insert(0, template.filepath_pattern if template else "")
+
+        row += 1
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.grid(row=row, column=0, columnspan=2, pady=15)
+        ttk.Button(btn_frame, text="OK", command=lambda: self.on_ok(dialog)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Cancel", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
+
+        dialog.wait_window()
+
+    def on_ok(self, dialog):
+        self.result = {
+            "name": self.name_entry.get(),
+            "element_type": self.type_combo.get(),
+            "data_source": self.datasource_entry.get(),
+            "filter": self.filter_entry.get(),
+            "layout": self.layout_combo.get(),
+            "columns": int(self.columns_entry.get() or 3),
+            "start_x": float(self.startx_entry.get() or 0),
+            "start_y": float(self.starty_entry.get() or 0),
+            "spacing_x": float(self.spacingx_entry.get() or 240),
+            "spacing_y": float(self.spacingy_entry.get() or 320),
+            "text": self.text_entry.get(),
+            "filepath_pattern": self.filepath_entry.get()
+        }
+        dialog.destroy()
+
+
+class SlotDialog:
+    """Dialog for editing menu slots"""
+    def __init__(self, parent, title, slot=None):
+        self.result = None
+
+        dialog = tk.Toplevel(parent)
+        dialog.title(title)
+        dialog.geometry("300x280")
+        dialog.transient(parent)
+        dialog.grab_set()
+
+        row = 0
+
+        ttk.Label(dialog, text="Name:").grid(row=row, column=0, padx=5, pady=5, sticky=tk.W)
+        self.name_entry = ttk.Entry(dialog, width=20)
+        self.name_entry.grid(row=row, column=1, padx=5, pady=5)
+        self.name_entry.insert(0, slot.name if slot else "")
+
+        row += 1
+        ttk.Label(dialog, text="X:").grid(row=row, column=0, padx=5, pady=5, sticky=tk.W)
+        self.x_entry = ttk.Entry(dialog, width=10)
+        self.x_entry.grid(row=row, column=1, padx=5, pady=5, sticky=tk.W)
+        self.x_entry.insert(0, str(slot.x if slot else 0))
+
+        row += 1
+        ttk.Label(dialog, text="Y:").grid(row=row, column=0, padx=5, pady=5, sticky=tk.W)
+        self.y_entry = ttk.Entry(dialog, width=10)
+        self.y_entry.grid(row=row, column=1, padx=5, pady=5, sticky=tk.W)
+        self.y_entry.insert(0, str(slot.y if slot else 0))
+
+        row += 1
+        ttk.Label(dialog, text="Layout:").grid(row=row, column=0, padx=5, pady=5, sticky=tk.W)
+        self.layout_combo = ttk.Combobox(dialog, values=["vertical", "horizontal", "grid"], width=17, state="readonly")
+        self.layout_combo.grid(row=row, column=1, padx=5, pady=5)
+        self.layout_combo.set(slot.layout if slot else "vertical")
+
+        row += 1
+        ttk.Label(dialog, text="Columns:").grid(row=row, column=0, padx=5, pady=5, sticky=tk.W)
+        self.columns_entry = ttk.Entry(dialog, width=10)
+        self.columns_entry.grid(row=row, column=1, padx=5, pady=5, sticky=tk.W)
+        self.columns_entry.insert(0, str(slot.columns if slot else 1))
+
+        row += 1
+        ttk.Label(dialog, text="Spacing X:").grid(row=row, column=0, padx=5, pady=5, sticky=tk.W)
+        self.spacingx_entry = ttk.Entry(dialog, width=10)
+        self.spacingx_entry.grid(row=row, column=1, padx=5, pady=5, sticky=tk.W)
+        self.spacingx_entry.insert(0, str(slot.spacing_x if slot else 0))
+
+        row += 1
+        ttk.Label(dialog, text="Spacing Y:").grid(row=row, column=0, padx=5, pady=5, sticky=tk.W)
+        self.spacingy_entry = ttk.Entry(dialog, width=10)
+        self.spacingy_entry.grid(row=row, column=1, padx=5, pady=5, sticky=tk.W)
+        self.spacingy_entry.insert(0, str(slot.spacing_y if slot else 120))
+
+        row += 1
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.grid(row=row, column=0, columnspan=2, pady=15)
+        ttk.Button(btn_frame, text="OK", command=lambda: self.on_ok(dialog)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Cancel", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
+
+        dialog.wait_window()
+
+    def on_ok(self, dialog):
+        self.result = {
+            "name": self.name_entry.get(),
+            "x": float(self.x_entry.get() or 0),
+            "y": float(self.y_entry.get() or 0),
+            "layout": self.layout_combo.get(),
+            "columns": int(self.columns_entry.get() or 1),
+            "spacing_x": float(self.spacingx_entry.get() or 0),
+            "spacing_y": float(self.spacingy_entry.get() or 120)
+        }
+        dialog.destroy()
 
 
 class KeyframeDialog:

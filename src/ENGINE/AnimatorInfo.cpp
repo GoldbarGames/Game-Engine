@@ -43,6 +43,10 @@ AnimatorInfo::AnimatorInfo(const std::string& filePath)
 
 		for (std::string line; std::getline(fin, line); )
 		{
+			// Remove trailing \r if present (Windows line endings)
+			if (!line.empty() && line.back() == '\r')
+				line.pop_back();
+
 			if (line.size() == 0)
 				continue;
 

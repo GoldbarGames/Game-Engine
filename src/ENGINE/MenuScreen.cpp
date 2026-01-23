@@ -1,4 +1,5 @@
 #include "MenuScreen.h"
+#include "MenuLoader.h"
 #include "SettingsButton.h"
 #include "Game.h"
 #include "globals.h"
@@ -277,6 +278,91 @@ void MenuScreen::ResetMenu()
 MenuScreen::~MenuScreen()
 {
 	ResetMenu();
+
+	if (menuLoader != nullptr)
+	{
+		delete_it(menuLoader);
+	}
+}
+
+bool MenuScreen::LoadFromFile(const std::string& filepath, Game& game, MenuDataProvider* dataProvider)
+{
+	// Create menu loader if needed
+	if (menuLoader == nullptr)
+	{
+		menuLoader = new MenuLoader();
+	}
+
+	// Set data provider if provided
+	if (dataProvider)
+	{
+		menuLoader->SetDataProvider(dataProvider);
+	}
+
+	// Load the menu file
+	if (menuLoader->LoadMenu(*this, filepath, game))
+	{
+		loadedFromFile = true;
+		menuFilePath = filepath;
+
+		// Process templates and slots
+		ProcessDynamicContent(game);
+
+		// Auto-select first button if we have buttons
+		if (buttons.size() > 0)
+		{
+			selectedButton = buttons[lastButtonIndex];
+			selectedButton->isSelected = true;
+			selectedButton->Highlight(game);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+void MenuScreen::ProcessDynamicContent(Game& game)
+{
+	if (menuLoader == nullptr)
+		return;
+
+	// Process templates to create dynamic elements
+	menuLoader->ProcessTemplates(*this, game);
+
+	// Process slots (let data provider fill them)
+	menuLoader->ProcessSlots(*this, game);
+
+	// Re-run auto-navigation if we have buttons
+	if (buttons.size() > 0)
+	{
+		// Check if navigation should be auto-assigned
+		// This happens if no manual navigation was specified in the file
+		bool hasNavigation = false;
+		for (auto* btn : buttons)
+		{
+			if (btn->buttonPressedUp != nullptr || btn->buttonPressedDown != nullptr ||
+			    btn->buttonPressedLeft != nullptr || btn->buttonPressedRight != nullptr)
+			{
+				hasNavigation = true;
+				break;
+			}
+		}
+
+		if (!hasNavigation)
+		{
+			AssignButtons(true, true);
+		}
+	}
+}
+
+void MenuScreen::SetDataProvider(MenuDataProvider* provider)
+{
+	if (menuLoader == nullptr)
+	{
+		menuLoader = new MenuLoader();
+	}
+	menuLoader->SetDataProvider(provider);
 }
 
 void MenuScreen::HighlightSelectedButton(Game& game)

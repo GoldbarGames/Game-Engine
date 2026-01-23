@@ -200,6 +200,9 @@ std::string ShaderProgram::ReadFile(const char* filePath)
     while (!fileStream.eof())
     {
         std::getline(fileStream, line);
+        // Remove trailing \r if present (Windows line endings)
+        if (!line.empty() && line.back() == '\r')
+            line.pop_back();
         content.append(line + "\n");
     }
 

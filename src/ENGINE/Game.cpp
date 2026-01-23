@@ -54,6 +54,10 @@
 #include "RandomManager.h"
 
 #if USE_NETWORKING
+// Suppress C++20 deprecation warning for <ciso646> in nlohmann/json
+#ifndef _SILENCE_CXX20_CISO646_REMOVED_WARNING
+#define _SILENCE_CXX20_CISO646_REMOVED_WARNING
+#endif
 #include <nlohmann/json.hpp>
 #endif
 
@@ -602,7 +606,7 @@ void Game::InitOpenGL()
 	// The following lines must be done in exact order, or it will break!
 	emscripten_webgl_init_context_attributes(&attrs); // you MUST init the attributes before creating the context
 	
-	attrs.majorVersion = 3;
+	attrs.majorVersion = 2;  // WebGL 2 = OpenGL ES 3.0
 	attrs.minorVersion = 0;
 	attrs.alpha = true;
 	attrs.antialias = true;
@@ -1246,8 +1250,9 @@ void Game::StopTextInput(Dialog& dialog)
 		std::string functions = "";
 		ReadEntityLists();
 
-		fs::path path = fs::current_path();
 		std::vector<std::string> classNames;
+#ifndef EMSCRIPTEN
+		fs::path path = fs::current_path();
 		for (const auto& entry : fs::directory_iterator(path))
 		{
 			if (entry.path().extension().string() == ".h")
@@ -1256,6 +1261,7 @@ void Game::StopTextInput(Dialog& dialog)
 				classNames.push_back(s.substr(0, s.size() - 2));
 			}
 		}
+#endif
 
 		for (auto const& [key, val] : entityTypes)
 		{

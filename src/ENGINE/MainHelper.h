@@ -10,7 +10,9 @@
 #include "NetworkManager.h"
 
 #include <stdio.h>
+#ifdef _WIN32
 #include <conio.h>
+#endif
 
 class MainHelper
 {

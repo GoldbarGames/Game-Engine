@@ -360,6 +360,9 @@ void SoundManager::ReadMusicData(const std::string& dataFilePath)
 	std::string data = "";
 	for (std::string line; std::getline(fin, line); )
 	{
+		// Remove trailing \r if present (Windows line endings)
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
 		data += line + "\n";
 	}
 

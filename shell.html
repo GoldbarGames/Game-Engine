@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GameEngine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a2e;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        #canvas {
+            border: 2px solid #16213e;
+            background-color: #000;
+            cursor: default;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #eee;
+        }
+
+        #loading h2 {
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+
+        #progress-container {
+            width: 300px;
+            height: 20px;
+            background-color: #16213e;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #0f3460, #e94560);
+            transition: width 0.3s ease;
+        }
+
+        #progress-text {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        #error {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #e94560;
+            max-width: 80%;
+        }
+
+        #error h2 {
+            margin-bottom: 10px;
+        }
+
+        #fullscreen-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #0f3460;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        #fullscreen-btn:hover {
+            background-color: #e94560;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    </div>
+
+    <div id="loading">
+        <h2>Loading GameEngine...</h2>
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div id="progress-text">Initializing...</div>
+    </div>
+
+    <div id="error">
+        <h2>Error</h2>
+        <p id="error-message"></p>
+    </div>
+
+    <button id="fullscreen-btn">Fullscreen</button>
+
+    <script type="text/javascript">
+        // Canvas and loading state
+        var canvas = document.getElementById('canvas');
+        var loadingDiv = document.getElementById('loading');
+        var errorDiv = document.getElementById('error');
+        var progressBar = document.getElementById('progress-bar');
+        var progressText = document.getElementById('progress-text');
+        var fullscreenBtn = document.getElementById('fullscreen-btn');
+
+        // Set initial canvas size (will be overridden by engine)
+        canvas.width = 1280;
+        canvas.height = 720;
+
+        // Fullscreen toggle
+        fullscreenBtn.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                if (canvas.requestFullscreen) {
+                    canvas.requestFullscreen();
+                } else if (canvas.webkitRequestFullscreen) {
+                    canvas.webkitRequestFullscreen();
+                } else if (canvas.mozRequestFullScreen) {
+                    canvas.mozRequestFullScreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        // Prevent default behaviors that interfere with game
+        window.addEventListener('keydown', function(e) {
+            // Prevent arrow keys and space from scrolling
+            if ([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                e.preventDefault();
+            }
+        }, false);
+
+        // Show error message
+        function showError(message) {
+            loadingDiv.classList.add('hidden');
+            errorDiv.style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+
+        // Emscripten Module configuration
+        var Module = {
+            preRun: [],
+            postRun: [],
+
+            print: function(text) {
+                console.log(text);
+            },
+
+            printErr: function(text) {
+                console.error(text);
+            },
+
+            canvas: (function() {
+                return canvas;
+            })(),
+
+            setStatus: function(text) {
+                if (!text) {
+                    // Loading complete
+                    loadingDiv.classList.add('hidden');
+                    canvas.focus();
+                    return;
+                }
+
+                // Parse progress from status text
+                var match = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+                if (match) {
+                    var progress = parseInt(match[2]) / parseInt(match[4]) * 100;
+                    progressBar.style.width = progress + '%';
+                    progressText.textContent = match[1].trim();
+                } else {
+                    progressText.textContent = text;
+                }
+            },
+
+            monitorRunDependencies: function(left) {
+                if (left === 0) {
+                    Module.setStatus('');
+                }
+            },
+
+            onRuntimeInitialized: function() {
+                console.log('GameEngine runtime initialized');
+            },
+
+            onAbort: function(what) {
+                showError('Runtime error: ' + what);
+            }
+        };
+
+        // Handle WebGL context loss
+        canvas.addEventListener('webglcontextlost', function(e) {
+            showError('WebGL context lost. Please refresh the page.');
+            e.preventDefault();
+        }, false);
+
+        // Resume audio context on first user interaction (browser autoplay policy)
+        var audioResumed = false;
+        function resumeAudio() {
+            if (audioResumed) return;
+            audioResumed = true;
+
+            // Resume SDL audio context if it exists
+            if (typeof SDL !== 'undefined' && SDL.audioContext) {
+                if (SDL.audioContext.state === 'suspended') {
+                    SDL.audioContext.resume().then(function() {
+                        console.log('Audio context resumed');
+                    });
+                }
+            }
+
+            // Also try the Web Audio API context directly
+            if (typeof Module !== 'undefined' && Module.audioContext) {
+                if (Module.audioContext.state === 'suspended') {
+                    Module.audioContext.resume();
+                }
+            }
+        }
+
+        // Listen for user interaction to resume audio
+        ['click', 'touchstart', 'keydown'].forEach(function(event) {
+            document.addEventListener(event, resumeAudio, { once: false });
+        });
+
+        // Check for WebGL 2 support
+        (function() {
+            var testCanvas = document.createElement('canvas');
+            var gl = testCanvas.getContext('webgl2');
+            if (!gl) {
+                showError('WebGL 2 is not supported in your browser. Please use a modern browser like Chrome, Firefox, or Edge.');
+                return;
+            }
+        })();
+
+        Module.setStatus('Downloading...');
+
+        window.onerror = function(message, source, lineno, colno, error) {
+            showError('JavaScript error: ' + message);
+            return true;
+        };
+    </script>
+    {{{ SCRIPT }}}
+</body>
+</html>

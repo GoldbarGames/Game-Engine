@@ -1,0 +1,512 @@
+================================================================================
+                    EMSCRIPTEN / WEBASSEMBLY BUILD GUIDE
+                           GameEngine by Goldbar Games
+================================================================================
+
+This guide explains how to compile the GameEngine for web browsers using
+Emscripten, which compiles C++ to WebAssembly (WASM).
+
+================================================================================
+                            IMPORTANT NOTICE
+================================================================================
+
+The GameEngine compiles to a DLL on Windows, with game projects linking against
+it. However, WebAssembly does NOT support DLLs - everything must be compiled
+together into a single .wasm binary.
+
+This means:
+- You CANNOT just build the engine alone for WebAssembly
+- Each GAME PROJECT needs its own CMakeLists.txt
+- The game's CMakeLists.txt compiles BOTH engine AND game sources together
+
+FILES PROVIDED:
+- GameEngine/CMakeLists.txt          - Builds engine as static library (optional)
+- GameEngine/CMakeLists_Game_Template.txt - Template for game projects (COPY THIS)
+- GameEngine/shell.html              - HTML template for web builds
+- GameEngine/build_wasm.bat/.sh      - Build scripts
+
+See the "GAME PROJECT SETUP" section below for detailed instructions.
+
+================================================================================
+                              PREREQUISITES
+================================================================================
+
+1. Git (for cloning the Emscripten SDK)
+2. Python 3.x (required by Emscripten)
+3. CMake 3.13 or newer
+
+================================================================================
+                         INSTALLING EMSCRIPTEN SDK
+================================================================================
+
+WINDOWS:
+--------
+1. Open Command Prompt or PowerShell
+
+2. Clone the Emscripten SDK:
+   git clone https://github.com/emscripten-core/emsdk.git
+   cd emsdk
+
+3. Install and activate the latest version:
+   emsdk install latest
+   emsdk activate latest
+
+4. Set up environment variables (run this in EVERY new terminal session):
+   emsdk_env.bat
+
+5. Verify installation:
+   emcc --version
+
+
+LINUX / MACOS:
+--------------
+1. Open a terminal
+
+2. Clone the Emscripten SDK:
+   git clone https://github.com/emscripten-core/emsdk.git
+   cd emsdk
+
+3. Install and activate the latest version:
+   ./emsdk install latest
+   ./emsdk activate latest
+
+4. Set up environment variables (run this in EVERY new terminal session):
+   source ./emsdk_env.sh
+
+5. Verify installation:
+   emcc --version
+
+================================================================================
+                          GAME PROJECT SETUP
+================================================================================
+
+Since WebAssembly requires compiling everything together, each game project
+needs its own CMakeLists.txt that includes both engine and game sources.
+
+STEP 1: COPY THE TEMPLATE
+-------------------------
+Copy CMakeLists_Game_Template.txt from the engine directory to your game:
+
+   cp GameEngine/CMakeLists_Game_Template.txt YourGame/CMakeLists.txt
+
+STEP 2: EDIT THE CONFIGURATION
+------------------------------
+Open CMakeLists.txt and update the "GAME CONFIGURATION" section:
+
+   # Your game's name
+   set(GAME_NAME "YourGameName")
+
+   # Path to engine (relative to your game directory)
+   set(ENGINE_DIR "${CMAKE_SOURCE_DIR}/../GameEngine")
+
+   # List ALL your game's .cpp files
+   set(GAME_SOURCES
+       main.cpp
+       MyEntity.cpp
+       MyEntityFactory.cpp
+       # ... add all your source files
+   )
+
+   # Asset directories to include
+   set(ASSET_DIRS
+       data
+       assets
+       fonts
+   )
+
+STEP 3: COPY SHELL.HTML (OPTIONAL)
+----------------------------------
+For a custom HTML template, copy shell.html to your game directory:
+
+   cp GameEngine/shell.html YourGame/
+
+Then update SHELL_TEMPLATE in CMakeLists.txt:
+
+   set(SHELL_TEMPLATE "${CMAKE_SOURCE_DIR}/shell.html")
+
+STEP 4: BUILD
+-------------
+From your game directory:
+
+   mkdir build_wasm
+   cd build_wasm
+   emcmake cmake ..
+   emmake cmake --build .
+
+Output will be in: build_wasm/output/YourGameName.html
+
+
+EXAMPLE: WDK PROJECT
+--------------------
+See .claude/games/wdk/CMakeLists.txt for a complete working example.
+
+To build WDK:
+   cd .claude/games/wdk
+   mkdir build_wasm && cd build_wasm
+   emcmake cmake ..
+   emmake cmake --build .
+
+================================================================================
+                              BUILDING
+================================================================================
+
+USING BUILD SCRIPTS (RECOMMENDED):
+----------------------------------
+
+Windows:
+   build_wasm.bat           (Release build)
+   build_wasm.bat debug     (Debug build)
+
+Linux/macOS:
+   chmod +x build_wasm.sh   (first time only)
+   ./build_wasm.sh          (Release build)
+   ./build_wasm.sh debug    (Debug build)
+
+
+MANUAL BUILD:
+-------------
+1. Create a build directory:
+   mkdir build_wasm
+   cd build_wasm
+
+2. Run CMake with Emscripten:
+   emcmake cmake ..
+
+   For debug builds:
+   emcmake cmake .. -DCMAKE_BUILD_TYPE=Debug
+
+3. Build:
+   emmake cmake --build .
+
+4. Output files will be in: build_wasm/output/
+
+================================================================================
+                            OUTPUT FILES
+================================================================================
+
+After a successful build, you will have these files in build_wasm/output/:
+
+   GameEngine.html   - Main HTML page (uses shell.html template)
+   GameEngine.js     - JavaScript glue code
+   GameEngine.wasm   - WebAssembly binary
+   GameEngine.data   - Preloaded assets (if configured in CMakeLists.txt)
+
+================================================================================
+                          TESTING LOCALLY
+================================================================================
+
+WebAssembly requires a web server - you cannot just open the HTML file directly.
+
+USING PYTHON (RECOMMENDED):
+---------------------------
+1. Navigate to the output directory:
+   cd build_wasm/output
+
+2. Start a local server (use port 8080 if 8000 is blocked):
+   python -m http.server 8080
+
+3. Open your browser to:
+   http://localhost:8080/GameEngine.html
+
+
+USING NODE.JS:
+--------------
+1. Install http-server globally:
+   npm install -g http-server
+
+2. Navigate to output directory and run:
+   http-server -p 8080
+
+3. Open your browser to:
+   http://localhost:8080/GameEngine.html
+
+NOTE: Click anywhere on the page or press a key to enable audio (browser policy).
+
+================================================================================
+                           WEBGL SHADERS
+================================================================================
+
+IMPORTANT: WebGL requires GLSL ES 3.0 shaders, which differ from desktop OpenGL.
+
+1. Create the WebGL shaders directory:
+   data/shaders/webgl/
+
+2. Copy your existing shaders and modify them:
+
+   REQUIRED CHANGES:
+   -----------------
+   a) Add version directive at the TOP of every shader:
+      #version 300 es
+
+   b) Add precision qualifiers in fragment shaders:
+      precision mediump float;
+      precision mediump int;
+
+   c) Replace deprecated syntax:
+      - attribute -> in
+      - varying   -> out (vertex) / in (fragment)
+      - texture2D -> texture
+      - gl_FragColor -> declare your own: out vec4 fragColor;
+
+   EXAMPLE VERTEX SHADER (webgl/default.vert):
+   --------------------------------------------
+   #version 300 es
+   precision mediump float;
+
+   in vec3 aPosition;
+   in vec2 aTexCoord;
+
+   out vec2 vTexCoord;
+
+   uniform mat4 uModel;
+   uniform mat4 uView;
+   uniform mat4 uProjection;
+
+   void main() {
+       vTexCoord = aTexCoord;
+       gl_Position = uProjection * uView * uModel * vec4(aPosition, 1.0);
+   }
+
+   EXAMPLE FRAGMENT SHADER (webgl/default.frag):
+   ---------------------------------------------
+   #version 300 es
+   precision mediump float;
+
+   in vec2 vTexCoord;
+   out vec4 fragColor;
+
+   uniform sampler2D uTexture;
+
+   void main() {
+       fragColor = texture(uTexture, vTexCoord);
+   }
+
+================================================================================
+                          PRELOADING ASSETS
+================================================================================
+
+To include game assets in the build, edit CMakeLists.txt and uncomment/add
+the preload-file lines:
+
+   list(APPEND EM_LINK_FLAGS --preload-file=${CMAKE_SOURCE_DIR}/data@/data)
+   list(APPEND EM_LINK_FLAGS --preload-file=${CMAKE_SOURCE_DIR}/assets@/assets)
+   list(APPEND EM_LINK_FLAGS --preload-file=${CMAKE_SOURCE_DIR}/fonts@/fonts)
+   list(APPEND EM_LINK_FLAGS --preload-file=${CMAKE_SOURCE_DIR}/bgm@/bgm)
+   list(APPEND EM_LINK_FLAGS --preload-file=${CMAKE_SOURCE_DIR}/se@/se)
+   list(APPEND EM_LINK_FLAGS --preload-file=${CMAKE_SOURCE_DIR}/me@/me)
+
+AUDIO FILES - IMPORTANT:
+------------------------
+Make sure ALL audio folders are included! Common locations:
+   - bgm/           (background music)
+   - se/            (sound effects)
+   - me/            (music effects / jingles)
+   - assets/bgm/
+   - assets/arc/bgm/
+   - assets/arc/se/
+   - assets/arc/me/
+
+Use conditional includes in CMakeLists.txt:
+   if(EXISTS "${CMAKE_SOURCE_DIR}/bgm")
+       list(APPEND EM_LINK_FLAGS --preload-file=${CMAKE_SOURCE_DIR}/bgm@/bgm)
+   endif()
+
+The format is: --preload-file=<local-path>@<virtual-path>
+
+This packages assets into GameEngine.data, which is loaded at runtime.
+
+================================================================================
+                             DEPLOYMENT
+================================================================================
+
+To deploy your game on a web server:
+
+1. Upload these files to your server:
+   - GameEngine.html (or rename to index.html)
+   - GameEngine.js
+   - GameEngine.wasm
+   - GameEngine.data (if you have preloaded assets)
+
+2. Ensure your server sends correct MIME types:
+   - .wasm -> application/wasm
+   - .js   -> application/javascript
+
+3. For SharedArrayBuffer support (needed for some features), add these headers:
+   Cross-Origin-Opener-Policy: same-origin
+   Cross-Origin-Embedder-Policy: require-corp
+
+================================================================================
+                            TROUBLESHOOTING
+================================================================================
+
+BUILD ERRORS:
+-------------
+Problem: "emcc not found"
+Solution: Run emsdk_env.bat from INSIDE the emsdk folder, not from outside.
+          cd C:\path\to\emsdk
+          emsdk_env.bat
+
+Problem: "ninja not found" or "cmake not found"
+Solution: Install Ninja build system. On Windows, download from:
+          https://github.com/ninja-build/ninja/releases
+          Add the ninja.exe location to your PATH.
+
+Problem: "CMake Error: Could not find toolchain"
+Solution: Use 'emcmake cmake' instead of just 'cmake'
+
+Problem: Undefined symbols / linking errors
+Solution: Check that all #ifdef EMSCRIPTEN guards are correct in source files
+
+Problem: C4996 error about <ciso646> being removed in C++20 (nlohmann/json)
+Solution: Define _SILENCE_CXX20_CISO646_REMOVED_WARNING before including any
+          STL headers. This is already handled in leak_check.h - make sure
+          leak_check.h is the FIRST include in your header files.
+
+Problem: std::set::contains() not found
+Solution: This is a C++20 feature. Use set.find(x) != set.end() instead.
+
+
+RUNTIME ERRORS:
+---------------
+Problem: Black screen / nothing renders
+Solution: Check browser console (F12) for WebGL errors. Ensure shaders are in
+          data/shaders/webgl/ and use GLSL ES 3.0 syntax.
+
+Problem: "WebGL 2 not supported" or "WebGL version 3" errors
+Solution: WebGL only supports version 1 and 2 (not 3). Use a modern browser
+          (Chrome, Firefox, Edge). Safari has limited support.
+          In code, use: attrs.majorVersion = 2; (not 3)
+
+Problem: "Failed to load resource" for .data file
+Solution: Ensure GameEngine.data is in the same directory as the HTML file.
+
+Problem: Memory errors / crashes
+Solution: Increase memory limit in CMakeLists.txt:
+          -sINITIAL_MEMORY=256MB -sMAXIMUM_MEMORY=512MB
+
+Problem: std::stoi "invalid argument" crash when loading levels
+Solution: This is usually caused by Windows line endings (\r\n) in data files.
+          The engine's file reading functions strip \r characters, but if you
+          added new file reading code, make sure to handle \r:
+
+          for (std::string line; std::getline(fin, line); ) {
+              if (!line.empty() && line.back() == '\r')
+                  line.pop_back();  // Remove Windows \r
+              // ... process line
+          }
+
+Problem: Audio not playing
+Solution: Two common causes:
+          1. Audio files not preloaded - make sure bgm/, se/, me/ folders are
+             included in CMakeLists.txt with --preload-file flags
+          2. Browser autoplay policy - browsers block audio until user interacts
+             with the page. The shell.html template handles this automatically
+             by resuming the audio context on first click/keypress.
+
+Problem: Port 8000 blocked when running local server
+Solution: Use a different port: python -m http.server 8080
+
+
+PERFORMANCE:
+------------
+- Use Release builds for deployment (debug builds are much slower)
+- Use -O2 or -O3 optimization levels
+- Reduce texture sizes for faster loading
+- Consider using texture compression (basis/ktx2)
+
+================================================================================
+                         AUDIO IN WEB BUILDS
+================================================================================
+
+BROWSER AUTOPLAY POLICY:
+------------------------
+Modern browsers block audio from playing until the user interacts with the page
+(click, tap, or keypress). The shell.html template automatically handles this
+by resuming the SDL audio context when the user first interacts.
+
+If you're using a custom shell.html, add this JavaScript:
+
+   var audioResumed = false;
+   function resumeAudio() {
+       if (audioResumed) return;
+       audioResumed = true;
+       if (typeof SDL !== 'undefined' && SDL.audioContext) {
+           if (SDL.audioContext.state === 'suspended') {
+               SDL.audioContext.resume();
+           }
+       }
+   }
+   ['click', 'touchstart', 'keydown'].forEach(function(event) {
+       document.addEventListener(event, resumeAudio, { once: false });
+   });
+
+SUPPORTED AUDIO FORMATS:
+------------------------
+- OGG Vorbis (recommended)
+- MP3
+- WAV
+
+================================================================================
+                       WINDOWS LINE ENDINGS
+================================================================================
+
+Data files created on Windows have \r\n line endings. When these are read in
+Emscripten, the \r characters can cause parsing errors (e.g., std::stoi fails).
+
+The engine's file reading functions have been updated to strip \r characters.
+If you add new file reading code, always handle Windows line endings:
+
+   for (std::string line; std::getline(fin, line); ) {
+       // Remove trailing \r if present (Windows line endings)
+       if (!line.empty() && line.back() == '\r')
+           line.pop_back();
+       // ... process line
+   }
+
+================================================================================
+                              LIMITATIONS
+================================================================================
+
+The following features are NOT available in WebAssembly builds:
+
+1. TCP/UDP Networking (SDL_net)
+   - Use HTTP requests via curlGetRequest/curlPostRequest instead
+   - These use the browser's Fetch API (asynchronous)
+
+2. File System Access
+   - No direct access to user's file system
+   - Use preloaded assets or IndexedDB for persistence
+   - Directory iteration (fs::directory_iterator) not available
+
+3. Native Dialogs
+   - File open/save dialogs not available
+   - Use HTML5 file input or drag-and-drop instead
+
+4. Some OpenGL Features
+   - Geometry shaders not supported
+   - Some texture formats not available
+   - WebGL 2.0 only (equivalent to OpenGL ES 3.0)
+   - Check WebGL 2.0 specification for details
+
+5. Some C++ Features
+   - <conio.h> not available (Windows-only header)
+   - <filesystem> has limited support - use #ifndef EMSCRIPTEN guards
+   - std::set::contains() requires C++20 - use find() != end() instead
+
+================================================================================
+                             RESOURCES
+================================================================================
+
+Emscripten Documentation:
+   https://emscripten.org/docs/
+
+WebGL 2.0 Reference:
+   https://www.khronos.org/registry/webgl/specs/latest/2.0/
+
+GLSL ES 3.0 Reference:
+   https://www.khronos.org/registry/OpenGL/specs/es/3.0/GLSL_ES_Specification_3.00.pdf
+
+SDL2 + Emscripten:
+   https://wiki.libsdl.org/SDL2/README/emscripten
+
+================================================================================

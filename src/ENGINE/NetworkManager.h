@@ -81,15 +81,44 @@ public:
 
 
 #else
-	
+
+// Emscripten stub implementation
+// SDL_net is not available in browser; networking uses Fetch API instead
+
 enum class Protocol { None, TCP_Client, TCP_Server, UDP_Client, UDP_Server };
 
-class KINJO_API NetworkManager {
+class KINJO_API NetworkManager
+{
+public:
+	Protocol protocol = Protocol::None;
+	const char* host;
+	const char* port;
+
+	std::string messageToSend = "";
+	std::string messageReceived = "";
+
 	NetworkManager(const char* h, const char* p);
 	~NetworkManager();
-	virtual void ReadMessage(Game& game);		
-};
 
+	virtual void Init(Protocol newProtocol);
+	virtual void Update();
+	virtual void ReadMessage(Game& game);
+
+	virtual std::string ConvertToData(const Entity& entity);
+	virtual Entity ConvertFromData(const char* data, int len);
+
+	void AddToMessage(const std::string& entity, int id, const std::string& key, int value, bool condition);
+	std::unordered_map<std::string, int> mapKeysToIndices;
+	std::unordered_map<std::string, int> mapEntitiesToIndices;
+
+	std::vector<std::string> mapIndicesToKeys;
+	std::vector<std::string> mapIndicesToEntities;
+
+	// HTTP requests using Emscripten Fetch API
+	std::string curlPostRequest(const char* url, const char* data, const char* userpwd);
+	std::string curlGetRequest(const char* url, const char* userpwd);
+	void testGetCase();
+};
 
 #endif
 

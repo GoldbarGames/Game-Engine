@@ -324,7 +324,7 @@ void Editor::UpdateLevelFiles()
 	
 }
 
-std::string Editor::ReadLoadingData(const std::string& filepath, 
+std::string Editor::ReadLoadingData(const std::string& filepath,
 	std::unordered_map <std::string, std::vector<std::string>>& map)
 {
 	std::ifstream fin;
@@ -333,6 +333,9 @@ std::string Editor::ReadLoadingData(const std::string& filepath,
 	std::string loadingData = "";
 	for (std::string line; std::getline(fin, line); )
 	{
+		// Remove trailing \r if present (Windows line endings)
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
 		loadingData += line + "\n";
 	}
 
@@ -2187,6 +2190,9 @@ std::string Editor::ReadLevelFromFile(std::string levelName)
 		std::string level = "";
 		for (std::string line; std::getline(fin, line); )
 		{
+			// Remove trailing \r if present (Windows line endings)
+			if (!line.empty() && line.back() == '\r')
+				line.pop_back();
 			level += line + "\n";
 		}
 
@@ -2210,6 +2216,7 @@ void Editor::GetLevelList()
 {
 	levelNames.clear();
 
+#ifndef EMSCRIPTEN
 	std::string levelsFolder = "data/levels/";
 
 	fs::path path = fs::current_path().append(levelsFolder);
@@ -2222,6 +2229,7 @@ void Editor::GetLevelList()
 			levelNames.push_back(levelName);
 		}
 	}
+#endif
 }
 
 void Editor::CreateLevelFromString(const std::string& level, const std::string& levelName)
@@ -2237,15 +2245,21 @@ void Editor::CreateLevelFromString(const std::string& level, const std::string& 
 	{
 		if (level[index] == '\n')
 		{
+			// Remove trailing \r if present (Windows line endings)
+			if (!line.empty() && line.back() == '\r')
+				line.pop_back();
 			lines.push_back(line);
 			line = "";
 		}
-		else
+		else if (level[index] != '\r')  // Skip \r characters entirely
 		{
 			line += level[index];
 		}
 		index++;
 	}
+	// Handle last line
+	if (!line.empty() && line.back() == '\r')
+		line.pop_back();
 	lines.push_back(line);
 
 	levelFilesMap[levelName] = lines;
