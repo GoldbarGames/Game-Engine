@@ -21,12 +21,16 @@
 #       └── fonts/                     # Fonts
 #
 # USAGE:
-#   cd YourGame
-#   mkdir build_wasm && cd build_wasm
-#   emcmake cmake ..
-#   emmake make
+#   1. Copy local_config.cmake.example to local_config.cmake
+#   2. Edit local_config.cmake with your library paths
+#   3. Build:
+#      cd YourGame
+#      mkdir build_wasm && cd build_wasm
+#      emcmake cmake ..
+#      emmake cmake --build .
 #
-# Or create a build script similar to build_wasm.bat/sh in the engine directory.
+# Alternatively, pass paths via command line or environment variables:
+#   emcmake cmake .. -DGLM_DIR=/path/to/glm -DNLOHMANN_JSON_DIR=/path/to/nlohmann
 
 cmake_minimum_required(VERSION 3.13)
 
@@ -82,8 +86,41 @@ if(NOT EMSCRIPTEN)
     message(FATAL_ERROR "This CMakeLists.txt is designed for Emscripten builds only. Use Visual Studio for native Windows builds.")
 endif()
 
+# Load local configuration file if it exists (not committed to git)
+if(EXISTS "${CMAKE_SOURCE_DIR}/local_config.cmake")
+    include("${CMAKE_SOURCE_DIR}/local_config.cmake")
+    message(STATUS "Loaded local_config.cmake")
+endif()
+
+# External library paths - can be set via:
+# 1. local_config.cmake file (recommended)
+# 2. Command line: -DGLM_DIR=/path/to/glm
+# 3. Environment variables: GLM_DIR, NLOHMANN_JSON_DIR
+if(NOT GLM_DIR)
+    set(GLM_DIR "$ENV{GLM_DIR}" CACHE PATH "Path to GLM library")
+endif()
+if(NOT NLOHMANN_JSON_DIR)
+    set(NLOHMANN_JSON_DIR "$ENV{NLOHMANN_JSON_DIR}" CACHE PATH "Path to nlohmann/json")
+endif()
+
+if(NOT GLM_DIR OR NOT EXISTS "${GLM_DIR}")
+    message(FATAL_ERROR "GLM_DIR not set or does not exist.\n"
+        "Option 1: Copy local_config.cmake.example to local_config.cmake and edit it\n"
+        "Option 2: emcmake cmake .. -DGLM_DIR=/path/to/glm\n"
+        "Option 3: Set GLM_DIR environment variable")
+endif()
+
+if(NOT NLOHMANN_JSON_DIR OR NOT EXISTS "${NLOHMANN_JSON_DIR}")
+    message(FATAL_ERROR "NLOHMANN_JSON_DIR not set or does not exist.\n"
+        "Option 1: Copy local_config.cmake.example to local_config.cmake and edit it\n"
+        "Option 2: emcmake cmake .. -DNLOHMANN_JSON_DIR=/path/to/nlohmann\n"
+        "Option 3: Set NLOHMANN_JSON_DIR environment variable")
+endif()
+
 message(STATUS "Building ${GAME_NAME} for Emscripten/WebAssembly")
 message(STATUS "Engine directory: ${ENGINE_DIR}")
+message(STATUS "GLM_DIR: ${GLM_DIR}")
+message(STATUS "NLOHMANN_JSON_DIR: ${NLOHMANN_JSON_DIR}")
 
 # Collect engine source files
 file(GLOB_RECURSE ENGINE_SOURCES
@@ -99,6 +136,8 @@ target_include_directories(${GAME_NAME} PRIVATE
     ${ENGINE_DIR}/src
     ${ENGINE_DIR}/src/ENGINE
     ${CMAKE_SOURCE_DIR}
+    ${GLM_DIR}
+    ${NLOHMANN_JSON_DIR}
 )
 
 # Define EMSCRIPTEN macro

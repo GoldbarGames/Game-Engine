@@ -118,6 +118,9 @@ public:
 	void EndBatch() const;
 
 	void Init(Game* g);
+	void SetDepthTestEnabled(bool enabled) const;
+	void SetDepthBias(float factor, float units) const;
+	void ClearDepthBias() const;
 	Renderer();
 	~Renderer();
 };

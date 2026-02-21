@@ -124,7 +124,29 @@ Then update SHELL_TEMPLATE in CMakeLists.txt:
 
    set(SHELL_TEMPLATE "${CMAKE_SOURCE_DIR}/shell.html")
 
-STEP 4: BUILD
+STEP 4: CONFIGURE LIBRARY PATHS
+-------------------------------
+The build needs paths to GLM and nlohmann/json libraries.
+
+OPTION A - Config File (Recommended):
+   1. Copy local_config.cmake.example to local_config.cmake
+   2. Edit local_config.cmake with your paths:
+      set(GLM_DIR "C:/path/to/glm-0.9.9.6")
+      set(NLOHMANN_JSON_DIR "C:/path/to/nlohmann")
+
+OPTION B - Command Line:
+   emcmake cmake .. -DGLM_DIR=/path/to/glm -DNLOHMANN_JSON_DIR=/path/to/nlohmann
+
+OPTION C - Environment Variables:
+   set GLM_DIR=C:\path\to\glm-0.9.9.6         (Windows)
+   set NLOHMANN_JSON_DIR=C:\path\to\nlohmann  (Windows)
+
+   export GLM_DIR=/path/to/glm                (Linux/macOS)
+   export NLOHMANN_JSON_DIR=/path/to/nlohmann (Linux/macOS)
+
+Note: local_config.cmake is gitignored - your paths stay private.
+
+STEP 5: BUILD
 -------------
 From your game directory:
 

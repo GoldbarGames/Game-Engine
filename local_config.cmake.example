@@ -1,0 +1,12 @@
+# Local configuration for Emscripten builds
+# Copy this file to local_config.cmake and edit the paths below.
+# local_config.cmake is ignored by git - your paths stay private.
+
+# Path to GLM library (OpenGL Mathematics)
+# Download from: https://github.com/g-truc/glm/releases
+set(GLM_DIR "C:/path/to/glm-0.9.9.6")
+
+# Path to nlohmann/json library
+# Download from: https://github.com/nlohmann/json/releases
+# Just need the single include directory containing nlohmann/json.hpp
+set(NLOHMANN_JSON_DIR "C:/path/to/nlohmann")

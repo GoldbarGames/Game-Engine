@@ -57,33 +57,37 @@ void Texture::LoadTexture(SDL_Surface* surface, bool reset)
 {
 	if (reset)
 		glDeleteTextures(1, &textureID);
-	
-	glGenTextures(1, &textureID);	
+
+	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_2D, textureID);
-	//std::cout << textureID << std::endl;
 
-	int Mode = GL_RGB;
+	// Convert surface to RGBA format to handle BGR/RGB and indexed color issues
+	SDL_Surface* convertedSurface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA32, 0);
+	if (convertedSurface == nullptr)
+	{
+		std::cout << "WARNING: Could not convert surface to RGBA, using original format" << std::endl;
+		convertedSurface = surface;
+	}
 
-	if (surface->format->BytesPerPixel == 4) 
-	{
-		Mode = GL_RGBA;
-	}
-	else if (surface->format->BytesPerPixel == 1)
-	{
-		Mode = GL_DEPTH_COMPONENT;
-	}
+	int Mode = GL_RGBA;
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	width = surface->w;
-	height = surface->h;
+	width = convertedSurface->w;
+	height = convertedSurface->h;
 
-	glTexImage2D(GL_TEXTURE_2D, 0, Mode, width, height, 0, Mode, GL_UNSIGNED_BYTE, surface->pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, Mode, width, height, 0, Mode, GL_UNSIGNED_BYTE, convertedSurface->pixels);
 
 	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Free the converted surface if we created one
+	if (convertedSurface != surface)
+	{
+		SDL_FreeSurface(convertedSurface);
+	}
 }
 
 void Texture::UseTexture(int textureNum)

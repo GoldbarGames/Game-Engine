@@ -15,6 +15,7 @@ Mesh* Sprite::meshQuad = nullptr;
 Mesh* Sprite::meshTri = nullptr;
 Mesh* Sprite::meshLine = nullptr;
 Mesh* Sprite::meshPyramid = nullptr;
+Mesh* Sprite::meshCube = nullptr;
 std::string Sprite::selectedColor = "clear";
 
 unsigned int Sprite::Size()
@@ -180,6 +181,74 @@ void Sprite::CreateMesh(MeshType meshType)
 
 			mesh = meshPyramid;
 
+		}
+		else if (meshType == MeshType::Cube)
+		{
+			if (meshCube == nullptr)
+			{
+				// 24 vertices (4 per face, 6 faces)
+				// Format: x, y, z, u, v, nx, ny, nz
+				// Cube goes from -1 to 1 on all axes (like the quad)
+				// Top face (y=1) shows the main texture
+				GLfloat cubeVertices[] = {
+					// Top face (y = 1) - main visible face, normal points up
+					-1.0f,  1.0f, -1.0f,   1.0f, 0.0f,   0.0f, 1.0f, 0.0f,  // 0
+					 1.0f,  1.0f, -1.0f,   0.0f, 0.0f,   0.0f, 1.0f, 0.0f,  // 1
+					 1.0f,  1.0f,  1.0f,   0.0f, 1.0f,   0.0f, 1.0f, 0.0f,  // 2
+					-1.0f,  1.0f,  1.0f,   1.0f, 1.0f,   0.0f, 1.0f, 0.0f,  // 3
+
+					// Bottom face (y = -1) - usually not visible
+					-1.0f, -1.0f, -1.0f,   0.0f, 0.0f,   0.0f, -1.0f, 0.0f, // 4
+					 1.0f, -1.0f, -1.0f,   1.0f, 0.0f,   0.0f, -1.0f, 0.0f, // 5
+					 1.0f, -1.0f,  1.0f,   1.0f, 1.0f,   0.0f, -1.0f, 0.0f, // 6
+					-1.0f, -1.0f,  1.0f,   0.0f, 1.0f,   0.0f, -1.0f, 0.0f, // 7
+
+					// Front face (z = 1) - visible from front
+					-1.0f, -1.0f,  1.0f,   1.0f, 0.0f,   0.0f, 0.0f, 1.0f,  // 8
+					 1.0f, -1.0f,  1.0f,   0.0f, 0.0f,   0.0f, 0.0f, 1.0f,  // 9
+					 1.0f,  1.0f,  1.0f,   0.0f, 1.0f,   0.0f, 0.0f, 1.0f,  // 10
+					-1.0f,  1.0f,  1.0f,   1.0f, 1.0f,   0.0f, 0.0f, 1.0f,  // 11
+
+					// Back face (z = -1)
+					-1.0f, -1.0f, -1.0f,   0.0f, 0.0f,   0.0f, 0.0f, -1.0f, // 12
+					 1.0f, -1.0f, -1.0f,   1.0f, 0.0f,   0.0f, 0.0f, -1.0f, // 13
+					 1.0f,  1.0f, -1.0f,   1.0f, 1.0f,   0.0f, 0.0f, -1.0f, // 14
+					-1.0f,  1.0f, -1.0f,   0.0f, 1.0f,   0.0f, 0.0f, -1.0f, // 15
+
+					// Right face (x = 1)
+					 1.0f, -1.0f, -1.0f,   0.0f, 0.0f,   1.0f, 0.0f, 0.0f,  // 16
+					 1.0f, -1.0f,  1.0f,   1.0f, 0.0f,   1.0f, 0.0f, 0.0f,  // 17
+					 1.0f,  1.0f,  1.0f,   1.0f, 1.0f,   1.0f, 0.0f, 0.0f,  // 18
+					 1.0f,  1.0f, -1.0f,   0.0f, 1.0f,   1.0f, 0.0f, 0.0f,  // 19
+
+					// Left face (x = -1)
+					-1.0f, -1.0f, -1.0f,   1.0f, 0.0f,  -1.0f, 0.0f, 0.0f,  // 20
+					-1.0f, -1.0f,  1.0f,   0.0f, 0.0f,  -1.0f, 0.0f, 0.0f,  // 21
+					-1.0f,  1.0f,  1.0f,   0.0f, 1.0f,  -1.0f, 0.0f, 0.0f,  // 22
+					-1.0f,  1.0f, -1.0f,   1.0f, 1.0f,  -1.0f, 0.0f, 0.0f   // 23
+				};
+
+				// 36 indices (6 faces * 2 triangles * 3 vertices)
+				unsigned int cubeIndices[] = {
+					// Top face
+					0, 1, 2,   0, 2, 3,
+					// Bottom face
+					4, 6, 5,   4, 7, 6,
+					// Front face
+					8, 9, 10,  8, 10, 11,
+					// Back face
+					12, 14, 13,  12, 15, 14,
+					// Right face
+					16, 17, 18,  16, 18, 19,
+					// Left face
+					20, 22, 21,  20, 23, 22
+				};
+
+				meshCube = new Mesh();
+				meshCube->CreateMesh(cubeVertices, cubeIndices, 24 * 8, 36, 8, 3, 5);
+			}
+
+			mesh = meshCube;
 		}
 	}
 }
@@ -464,8 +533,9 @@ void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const
 		// Translate, Rotate, Scale
 
 		//const float z = renderer.guiCamera.useOrthoCamera ? -2.0f : renderer.guiCamera.position.z + position.z;
-		const float optsRelative[2] = { -2.0f, renderer.guiCamera.position.z + position.z };
-		const float optsAbsolute[2] = { -2.0f, position.z };
+		// Note: array index [0] = perspective (useOrthoCamera=false), [1] = ortho (useOrthoCamera=true)
+		const float optsRelative[2] = { renderer.guiCamera.position.z + position.z, -2.0f };
+		const float optsAbsolute[2] = { position.z, -2.0f };
 
 		// Position
 		if (keepPositionRelativeToCamera)

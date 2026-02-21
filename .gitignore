@@ -70,6 +70,7 @@ sysinfo.txt
 build_wasm/
 emsdk/
 emsdk_env.bat
+local_config.cmake
 
 # Windows
 Thumbs.db

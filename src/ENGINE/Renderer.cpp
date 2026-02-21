@@ -53,6 +53,31 @@ void Renderer::Init(Game* g)
 	guiCamera.isGUI = true;
 }
 
+void Renderer::SetDepthTestEnabled(bool enabled) const
+{
+	if (enabled)
+	{
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+	}
+	else
+	{
+		glDisable(GL_DEPTH_TEST);
+	}
+}
+
+void Renderer::SetDepthBias(float factor, float units) const
+{
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(factor, units);
+}
+
+void Renderer::ClearDepthBias() const
+{
+	glDisable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(0, 0);
+}
+
 void Renderer::HotReload()
 {
 #ifndef EMSCRIPTEN

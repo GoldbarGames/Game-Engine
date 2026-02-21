@@ -3126,9 +3126,13 @@ break;
 
 void Game::RenderNormally()
 {
-	if (!use2DCamera)
+	if (!use2DCamera && useDepthTesting)
 	{
 		glEnable(GL_DEPTH_TEST);
+	}
+	else
+	{
+		glDisable(GL_DEPTH_TEST);
 	}
 
 	gui->RenderStart();
@@ -3417,14 +3421,30 @@ void Game::SortEntities(std::vector<Entity*>& entityVector, bool sortByPosY)
 {
 	if (sortByPosY)
 	{
-		std::sort(entityVector.begin(), entityVector.end(),
-			[](const Entity* a, const Entity* b) {
-				if (a->layer != b->layer)
-					return a->layer < b->layer;
-				if (a->position.y != b->position.y)
-					return a->position.y < b->position.y;
-				return a->drawOrder < b->drawOrder;
-			});
+		if (sortYDescending)
+		{
+			// Isometric view: higher Y renders first (further from camera)
+			std::sort(entityVector.begin(), entityVector.end(),
+				[](const Entity* a, const Entity* b) {
+					if (a->layer != b->layer)
+						return a->layer < b->layer;
+					if (a->position.y != b->position.y)
+						return a->position.y > b->position.y;  // Higher Y first
+					return a->drawOrder < b->drawOrder;
+				});
+		}
+		else
+		{
+			// Standard 2D: lower Y renders first
+			std::sort(entityVector.begin(), entityVector.end(),
+				[](const Entity* a, const Entity* b) {
+					if (a->layer != b->layer)
+						return a->layer < b->layer;
+					if (a->position.y != b->position.y)
+						return a->position.y < b->position.y;
+					return a->drawOrder < b->drawOrder;
+				});
+		}
 	}
 	else
 	{

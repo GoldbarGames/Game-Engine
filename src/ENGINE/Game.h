@@ -64,6 +64,8 @@ public:
 
 	bool use2DCamera = true;
 	bool sortByPosY = false;
+	bool sortYDescending = false;  // If true, higher Y renders first (for isometric view)
+	bool useDepthTesting = true;   // If false, use painter's algorithm instead of Z-buffer
 	bool renderAll = false;
 
 	const unsigned int bytesPerPixel = 3;
