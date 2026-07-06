@@ -65,6 +65,10 @@ public:
 	Color color { 255, 255, 255, 255 };
 	static std::string selectedColor;
 
+	// Render fullbright, ignoring scene lighting (skyboxes, glows, suns).
+	// Drives the "emissive" uniform in shaders that declare it.
+	bool unlit = false;
+
 	bool isHovered = false;
 	ShaderProgram* hoverShader = nullptr;
 
@@ -114,6 +118,13 @@ public:
 	void Render(const glm::vec3& position, const Renderer& renderer, const glm::vec2& scale, const glm::vec3& rotation=glm::vec3(0,0,0));
 	void Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec2& scale, const glm::vec3& rotation);
 	void Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec3& scale, const glm::vec3& rotation);
+
+	// 3D world-space render: scale is in world units (a unit-radius sphere
+	// mesh scaled by (r, r, r) has world radius r). Converts internally to
+	// the 2D path's texture-relative scale convention, so 3D entities don't
+	// need the "-radius / textureWidth" gymnastics.
+	void RenderWorld(const glm::vec3& position, const glm::vec3& worldScale,
+		const glm::vec3& rotation, const Renderer& renderer);
 
 	// Check if this sprite can use batched rendering
 	bool CanBatch() const;

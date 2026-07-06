@@ -6,6 +6,7 @@
 #include "GUI.h"
 #include <chrono>
 #include <unordered_map>
+#include <unordered_set>
 #include "globals.h"
 #include "Timer.h"
 #include "QuadTree.h"
@@ -206,6 +207,15 @@ public:
 
 	void PopulateQuadTree();
 	void PopulateOctree();
+
+	// 3D sphere-trigger system: entities with colliderRadius3D > 0 are
+	// tested sphere-vs-sphere (octree broadphase) each frame; both entities
+	// of an overlapping pair receive OnTriggerEnter/Stay/Exit with the other
+	// as the argument. Runs after PopulateOctree when useOctree is enabled.
+	void CheckTriggers3D();
+
+	// Currently-overlapping 3D trigger pairs, keyed by the two entity ids
+	std::unordered_set<uint64_t> activeTriggerPairs3D;
 
 	void CalcDt();
 	bool CheckInputs();

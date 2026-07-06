@@ -58,6 +58,39 @@ void Mesh::BindMesh()
     glBindVertexArray(VAO);
 }
 
+void Mesh::SetInstances(const glm::mat4* matrices, unsigned int count, bool dynamic)
+{
+    instanceCount = count;
+    if (count == 0)
+        return;
+
+    glBindVertexArray(VAO);
+
+    bool firstUpload = (instanceVBO == 0);
+    if (firstUpload)
+        glGenBuffers(1, &instanceVBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, count * sizeof(glm::mat4), matrices,
+        dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+
+    if (firstUpload)
+    {
+        // A mat4 attribute occupies four consecutive vec4 locations (3-6),
+        // advancing once per instance
+        for (int i = 0; i < 4; i++)
+        {
+            glEnableVertexAttribArray(3 + i);
+            glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                (void*)(i * sizeof(glm::vec4)));
+            glVertexAttribDivisor(3 + i, 1);
+        }
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
 
 void Mesh::RenderMesh(unsigned int instanceAmount)
 {
@@ -66,16 +99,13 @@ void Mesh::RenderMesh(unsigned int instanceAmount)
         glBindVertexArray(VAO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-        // TODO: Also we need to calculate the model matrix 
-
-        // TODO: The error could be that during Config() it only sets up game.entities when there are other entities,
-        // and so when we try to render the mesh for one of those, it doesn't know what to do.
-        // glDrawElementsInstanced(mode, indexCount, GL_UNSIGNED_INT, 0, instanceAmount);
-
-        //if (instanceAmount > 0)
-        //    glDrawElementsInstanced(mode, indexCount, GL_UNSIGNED_INT, 0, instanceAmount);
-        //else
-        glDrawElements(mode, indexCount, GL_UNSIGNED_INT, 0);
+        // Meshes with instance matrices (SetInstances) draw all instances in
+        // one call; instanceAmount can override with a smaller count
+        unsigned int instances = (instanceAmount > 0) ? instanceAmount : instanceCount;
+        if (instances > 0)
+            glDrawElementsInstanced(mode, indexCount, GL_UNSIGNED_INT, 0, instances);
+        else
+            glDrawElements(mode, indexCount, GL_UNSIGNED_INT, 0);
 
         // Unbind the VAO BEFORE the element buffer: unbinding
         // GL_ELEMENT_ARRAY_BUFFER while the VAO is still bound would strip
@@ -105,5 +135,12 @@ void Mesh::ClearMesh()
         IBO = 0;
     }
 
+    if (instanceVBO != 0)
+    {
+        glDeleteBuffers(1, &instanceVBO);
+        instanceVBO = 0;
+    }
+
+    instanceCount = 0;
     indexCount = 0;
 }

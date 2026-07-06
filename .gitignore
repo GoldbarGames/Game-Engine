@@ -84,6 +84,7 @@ CLAUDE.md
 tmpclaude-*
 nul
 *.lnk
+*.log
 links/
 docs/
 # Per-user machine-specific paths for the project generator (see utils/templates/paths.json)

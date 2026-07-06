@@ -23,11 +23,21 @@ public:
 	void RenderMesh(unsigned int instanceAmount);
 	void ClearMesh();
 
+	// Instanced rendering: upload per-instance model matrices to attribute
+	// locations 3-6 (mat4 = 4 vec4 attributes, divisor 1 — pair with a
+	// shader like instanced.vert). Once set, RenderMesh draws every instance
+	// in a single glDrawElementsInstanced call. Call again to update
+	// (pass dynamic = true if updating often); count 0 disables instancing.
+	void SetInstances(const glm::mat4* matrices, unsigned int count, bool dynamic = false);
+	unsigned int GetInstanceCount() const { return instanceCount; }
+
 	GLuint GetVAO() const { return VAO; };
 
 
 private:
 	GLuint VAO, VBO, IBO;
+	GLuint instanceVBO = 0;
+	unsigned int instanceCount = 0;
 	GLsizei indexCount;
 	GLenum mode = GL_TRIANGLES;
 };

@@ -84,6 +84,42 @@ void Camera::SetupPerspective(float fovDegrees, float nearClip, float farClip)
 	Update();
 }
 
+glm::vec3 Camera::WorldToScreenPoint(const glm::vec3& worldPos,
+	float screenWidth, float screenHeight) const
+{
+	glm::vec4 clip = projection * CalculateViewMatrix() * glm::vec4(worldPos, 1.0f);
+
+	// Behind the camera; x/y are meaningless here
+	if (clip.w <= 0.0f)
+		return glm::vec3(0.0f, 0.0f, clip.w);
+
+	glm::vec3 ndc = glm::vec3(clip) / clip.w;
+
+	// +ndc.y is screen-up, screen coordinates grow downward from the top-left
+	float sx = (ndc.x * 0.5f + 0.5f) * screenWidth;
+	float sy = (0.5f - ndc.y * 0.5f) * screenHeight;
+	return glm::vec3(sx, sy, clip.w);
+}
+
+void Camera::ScreenPointToRay(float screenX, float screenY,
+	float screenWidth, float screenHeight,
+	glm::vec3& rayOrigin, glm::vec3& rayDirection) const
+{
+	// Screen (top-left origin) -> NDC; +ndc.y is screen-up, so the vertical
+	// axis flips here
+	float nx = (screenX / screenWidth) * 2.0f - 1.0f;
+	float ny = 1.0f - (screenY / screenHeight) * 2.0f;
+
+	glm::mat4 inv = glm::inverse(projection * CalculateViewMatrix());
+	glm::vec4 p0 = inv * glm::vec4(nx, ny, -1.0f, 1.0f);  // near plane
+	glm::vec4 p1 = inv * glm::vec4(nx, ny, 1.0f, 1.0f);   // far plane
+	p0 /= p0.w;
+	p1 /= p1.w;
+
+	rayOrigin = glm::vec3(p0);
+	rayDirection = glm::normalize(glm::vec3(p1) - glm::vec3(p0));
+}
+
 void Camera::SwitchTarget(const Entity& newTarget)
 {
 	switchingTarget = true;

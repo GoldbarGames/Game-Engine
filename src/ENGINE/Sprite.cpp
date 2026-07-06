@@ -656,6 +656,21 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	Render(position, speed, renderer, glm::vec3(scale.x, scale.y, 1.0f), rotation);
 }
 
+void Sprite::RenderWorld(const glm::vec3& position, const glm::vec3& worldScale,
+	const glm::vec3& rotation, const Renderer& renderer)
+{
+	// CalculateModel's final scale is
+	// (-scale.x * texW / framesPerRow, scale.y * texH / numberRows, scale.z),
+	// so invert that here to make the model matrix scale exactly worldScale
+	const float texW = (texture != nullptr) ? (float)texture->GetWidth() : 1.0f;
+	const float texH = (texture != nullptr) ? (float)texture->GetHeight() : 1.0f;
+
+	glm::vec3 scale(-worldScale.x * framesPerRow / texW,
+		worldScale.y * numberRows / texH,
+		worldScale.z);
+	Render(position, 0, renderer, scale, rotation);
+}
+
 // NOTE: This function expects a center-coordinate rectangle to be rendered,
 // so if you pass in a top-left rectangle, you'll see something wrong
 void Sprite::Render(const glm::vec3& position, int speed, const Renderer& renderer, const glm::vec3& scale, const glm::vec3& rotation)
@@ -744,6 +759,13 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
 	glUniform4fv(shaderToUse->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(spriteColor));
 	glUniform1f(shaderToUse->GetUniformVariable(ShaderVariable::currentTime), renderer.now);
+
+	// Unlit surfaces (skyboxes, billboards, emissive suns) skip lighting.
+	// Shaders opt in by declaring "uniform float emissive". Must be set for
+	// every sprite because uniforms persist in the program between draws.
+	GLint emissiveLoc = glGetUniformLocation(shaderToUse->GetID(), "emissive");
+	if (emissiveLoc != -1)
+		glUniform1f(emissiveLoc, unlit ? 1.0f : 0.0f);
 
 	renderer.game->gui->SetShaderVariables(*this, shaderToUse);
 

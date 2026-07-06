@@ -90,6 +90,14 @@ public:
 	// (default off so nothing existing changes; set boundsRadius3D too)
 	bool cullable3D = false;
 
+	// Opt-in 3D sphere trigger: > 0 makes this entity participate in the
+	// engine's sphere-vs-sphere trigger system (Game::CheckTriggers3D,
+	// octree broadphase). Both entities of an overlapping pair receive
+	// OnTriggerEnter/Stay/Exit with the other as the argument. Keep this a
+	// TIGHT collision radius (boundsRadius3D is the padded culling radius,
+	// and must be >= this for the broadphase to see the entity).
+	float colliderRadius3D = 0.0f;
+
 	Entity(const glm::vec3& pos, Sprite* sprite);
 
 	glm::vec2 GetScale() const;

@@ -1469,6 +1469,12 @@ bool Game::CheckInputs()
 		inputManager.buttonsReleased[key] = false;
 	}
 
+	// Mouse wheel state only lasts one frame (set again below if a new
+	// SDL_MOUSEWHEEL event arrives; previously it lingered until a cutscene
+	// cleared it, forcing games to consume-and-clear manually)
+	inputManager.scrolledUp = false;
+	inputManager.scrolledDown = false;
+
 	// Check for inputs
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
@@ -1549,7 +1555,81 @@ void Game::CheckDeleteEntities()
 	if (useOctree)
 	{
 		PopulateOctree();
+		CheckTriggers3D();
 	}
+}
+
+void Game::CheckTriggers3D()
+{
+	// Gather this frame's overlapping pairs (octree broadphase, then a
+	// precise sphere-vs-sphere test). Pair keys are the two entity ids.
+	std::unordered_set<uint64_t> currentPairs;
+	std::unordered_map<uint32_t, Entity*> colliderById;
+	std::vector<Entity*> candidates;
+
+	for (Entity* e : entities)
+	{
+		if (!e->active || e->colliderRadius3D <= 0.0f)
+			continue;
+
+		colliderById[e->id] = e;
+
+		candidates.clear();
+		octree.RetrieveSphere(e->position, e->colliderRadius3D, candidates);
+
+		for (Entity* other : candidates)
+		{
+			if (other == e || !other->active || other->colliderRadius3D <= 0.0f)
+				continue;
+
+			uint64_t a = e->id, b = other->id;
+			uint64_t key = (a < b) ? ((a << 32) | b) : ((b << 32) | a);
+			if (currentPairs.count(key))
+				continue;
+
+			float rr = e->colliderRadius3D + other->colliderRadius3D;
+			glm::vec3 d = e->position - other->position;
+			if (glm::dot(d, d) < rr * rr)
+				currentPairs.insert(key);
+		}
+	}
+
+	// New pairs get Enter, persisting pairs get Stay - on BOTH entities
+	for (uint64_t key : currentPairs)
+	{
+		Entity* a = colliderById[(uint32_t)(key >> 32)];
+		Entity* b = colliderById[(uint32_t)(key & 0xFFFFFFFF)];
+
+		if (activeTriggerPairs3D.count(key) == 0)
+		{
+			a->OnTriggerEnter(*b, *this);
+			b->OnTriggerEnter(*a, *this);
+		}
+		else
+		{
+			a->OnTriggerStay(*b, *this);
+			b->OnTriggerStay(*a, *this);
+		}
+	}
+
+	// Vanished pairs get Exit. Entities are re-resolved by id through this
+	// frame's collider map, so a pair member that was deleted or deactivated
+	// since last frame simply skips the callback (no dangling pointers).
+	for (uint64_t key : activeTriggerPairs3D)
+	{
+		if (currentPairs.count(key) == 0)
+		{
+			auto itA = colliderById.find((uint32_t)(key >> 32));
+			auto itB = colliderById.find((uint32_t)(key & 0xFFFFFFFF));
+			if (itA != colliderById.end() && itB != colliderById.end())
+			{
+				itA->second->OnTriggerExit(*itB->second, *this);
+				itB->second->OnTriggerExit(*itA->second, *this);
+			}
+		}
+	}
+
+	activeTriggerPairs3D = std::move(currentPairs);
 }
 
 void Game::HandleEditMode()

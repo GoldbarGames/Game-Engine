@@ -64,6 +64,23 @@ public:
 	// Convenience method to set up a working 3D perspective camera
 	void SetupPerspective(float fovDegrees = 60.0f, float nearClip = 0.1f, float farClip = 5000.0f);
 
+	// Projects a world-space point to screen coordinates with a top-left
+	// origin (like mouse coordinates). Returns (screenX, screenY, clip.w):
+	// the point is in front of the camera only when .z > 0 (when .z <= 0
+	// the x/y components are meaningless). Pass the coordinate space size
+	// you want to map to (window pixels, or GUI units = 2x window).
+	// NOTE: +ndc.y is screen-up even though the 3D projection is Y-flipped;
+	// this method encapsulates that so callers never deal with it.
+	glm::vec3 WorldToScreenPoint(const glm::vec3& worldPos,
+		float screenWidth, float screenHeight) const;
+
+	// Builds a 3D picking ray from a screen position with a top-left origin
+	// (like mouse coordinates), in window pixels. Outputs the ray origin on
+	// the near plane and its normalized direction.
+	void ScreenPointToRay(float screenX, float screenY,
+		float screenWidth, float screenHeight,
+		glm::vec3& rayOrigin, glm::vec3& rayDirection) const;
+
 	static float MULTIPLIER;
 
 	glm::mat4 projection = glm::mat4();
