@@ -1,0 +1,17 @@
+#pragma once
+#include "MyEntity.h"
+class NewEntityType : public MyEntity
+{
+public:
+	NewEntityType(const glm::vec3& pos);
+	~NewEntityType();
+
+	void Update(Game& game);
+
+	void GetProperties(std::vector<Property*>& properties);
+
+	void Save(std::unordered_map<std::string, std::string>& map);
+	void Load(std::unordered_map<std::string, std::string>& map, Game& game);
+
+	static Entity* __stdcall Create(const glm::vec3& pos) { return new NewEntityType(pos); };
+};

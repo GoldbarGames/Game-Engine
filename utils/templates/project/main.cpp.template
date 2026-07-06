@@ -1,0 +1,59 @@
+// {{PROJECT_NAME}} - created with the Game Engine New Project tool
+
+#include <ENGINE/leak_check.h>
+#include <ENGINE/Game.h>
+
+#include <memory>
+
+#include "MyGUI.h"
+#include "MyEntityFactory.h"
+#include "MyFileManager.h"
+#include "MyMenuManager.h"
+#include "MyCutsceneHelper.h"
+#include "MyEditorHelper.h"
+
+#ifdef EMSCRIPTEN
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#endif
+
+int main(int argc, char *args[])
+{
+	std::cout << "Starting {{PROJECT_NAME}}!" << std::endl;
+#ifdef _WIN32
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
+	{
+		// For your own custom entity types
+		EntityFactory* e = MyEntityFactory::Get();
+		auto gui = std::make_unique<MyGUI>();
+		auto f = std::make_unique<MyFileManager>();
+		auto m = std::make_unique<MyMenuManager>();
+		auto cmd = std::make_unique<MyCutsceneHelper>();
+
+		std::cout << "Creating Game" << std::endl;
+
+		Game game("{{GAME_FOLDER}}", "{{WINDOW_TITLE}}", "{{ICON}}", true, *e, *f, *gui, *m, cmd.get(), nullptr);
+
+		game.startingLevel = "";  // Empty if loading levels manually
+		game.startingMenu = "";   // Empty to skip the title menu
+
+		// Set up cutscene helper
+		game.cutsceneManager.commands.helper = cmd.get();
+		game.cutsceneManager.commands.helper->SetFunctions(game.cutsceneManager.commands);
+
+		// Set up editor helper
+		auto editorHelper = std::make_unique<MyEditorHelper>(&game);
+
+		// Your custom initialization here...
+
+		game.BeforeMainLoop();
+	}
+
+#if _DEBUG && _WIN32
+	_CrtDumpMemoryLeaks();
+#endif
+
+	return 0;
+}

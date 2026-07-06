@@ -1,0 +1,94 @@
+{
+  "_comment": "Drives both project generation (Create) and auditing (Validate). 'render' files have {{PLACEHOLDERS}} substituted; 'copy_dirs' are copied verbatim; 'empty_dirs' are created so the engine has somewhere to write. 'validate' is what a project must contain to be considered complete.",
+
+  "render": [
+    { "template": "main.cpp.template",            "output": "main.cpp" },
+    { "template": "MyEntity.h.template",           "output": "MyEntity.h" },
+    { "template": "MyEntity.cpp.template",         "output": "MyEntity.cpp" },
+    { "template": "MyEntityFactory.h.template",    "output": "MyEntityFactory.h" },
+    { "template": "MyEntityFactory.cpp.template",  "output": "MyEntityFactory.cpp" },
+    { "template": "MyFileManager.h.template",      "output": "MyFileManager.h" },
+    { "template": "MyFileManager.cpp.template",    "output": "MyFileManager.cpp" },
+    { "template": "MyGUI.h.template",              "output": "MyGUI.h" },
+    { "template": "MyGUI.cpp.template",            "output": "MyGUI.cpp" },
+    { "template": "MyMenuManager.h.template",      "output": "MyMenuManager.h" },
+    { "template": "MyMenuManager.cpp.template",    "output": "MyMenuManager.cpp" },
+    { "template": "MyCutsceneHelper.h.template",   "output": "MyCutsceneHelper.h" },
+    { "template": "MyEditorHelper.h.template",     "output": "MyEditorHelper.h" },
+    { "template": "project.vcxproj.template",      "output": "{{PROJECT_NAME}}.vcxproj" },
+    { "template": ".gitignore.template",           "output": ".gitignore" }
+  ],
+
+  "wasm_render": [
+    { "template": "build_wasm.bat.template",            "output": "build_wasm.bat" },
+    { "template": "CMakeLists.txt.template",            "output": "CMakeLists.txt" },
+    { "template": "local_config.cmake.example.template", "output": "local_config.cmake.example" }
+  ],
+
+  "copy_dirs": [ "data", "assets" ],
+
+  "empty_dirs": [
+    "assets/bg",
+    "assets/gui",
+    "assets/sprites",
+    "assets/tiles",
+    "data/levels",
+    "data/cutscenes/english",
+    "fonts",
+    "bgm",
+    "se",
+    "logs",
+    "saves",
+    "screenshots"
+  ],
+
+  "validate": {
+    "required_dirs": [
+      "assets",
+      "assets/editor",
+      "assets/bg",
+      "assets/gui",
+      "assets/sprites",
+      "assets/tiles",
+      "data",
+      "data/config",
+      "data/gui",
+      "data/shaders",
+      "data/levels",
+      "data/cutscenes",
+      "data/editor",
+      "fonts"
+    ],
+    "required_files": [
+      "main.cpp",
+      "MyEntity.h", "MyEntity.cpp",
+      "MyEntityFactory.h", "MyEntityFactory.cpp",
+      "MyFileManager.h", "MyFileManager.cpp",
+      "MyGUI.h", "MyGUI.cpp",
+      "MyMenuManager.h", "MyMenuManager.cpp",
+      "MyCutsceneHelper.h",
+      "MyEditorHelper.h",
+      "data/config/shaders.dat",
+      "data/config/settings.config",
+      "data/config/renderer.dat",
+      "data/shaders/shader.vert", "data/shaders/shader.frag",
+      "data/shaders/gui.vert", "data/shaders/gui.frag",
+      "data/shaders/tile.vert", "data/shaders/tile.frag",
+      "data/shaders/color.vert", "data/shaders/color.frag",
+      "data/shaders/instanced.vert", "data/shaders/instanced.frag",
+      "data/editor/NewEntityType-h.template",
+      "data/editor/NewEntityType-cpp.template",
+      "data/editor/MyEntityFactory-cpp.template",
+      "data/editor/newlevel.template",
+      "assets/editor/rect-outline.png",
+      "assets/editor/1pixel.png"
+    ],
+    "require_vcxproj": true,
+    "check_shaders_dat": true,
+    "optional_files": [
+      "build_wasm.bat",
+      "CMakeLists.txt",
+      "local_config.cmake.example"
+    ]
+  }
+}

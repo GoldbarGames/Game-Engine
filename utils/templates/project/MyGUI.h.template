@@ -1,0 +1,13 @@
+#ifndef MYGUI_H
+#define MYGUI_H
+#pragma once
+
+#include <ENGINE/GUI.h>
+
+class MyGUI : public GUI
+{
+public:
+	void Update() override;
+};
+
+#endif

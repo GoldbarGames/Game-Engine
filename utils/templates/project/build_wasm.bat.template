@@ -1,0 +1,57 @@
+@echo off
+REM Build script for {{WINDOW_TITLE}} - WebAssembly
+REM
+REM Prerequisites:
+REM   1. Install Emscripten SDK
+REM   2. Run emsdk_env.bat to set up environment
+REM   3. Copy local_config.cmake.example to local_config.cmake and edit the paths
+REM
+REM Usage:
+REM   build_wasm.bat [debug|release]
+
+REM Check for emcc
+emcc --version >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: Emscripten compiler ^(emcc^) not found in PATH.
+    echo Please install the Emscripten SDK and run emsdk_env.bat first.
+    exit /b 1
+)
+
+set BUILD_TYPE=Release
+if /i "%1"=="debug" set BUILD_TYPE=Debug
+
+echo Building {{WINDOW_TITLE}} for WebAssembly ^(%BUILD_TYPE%^)...
+echo.
+
+set BUILD_DIR=build_wasm
+if not exist %BUILD_DIR% mkdir %BUILD_DIR%
+cd %BUILD_DIR%
+
+echo Running CMake...
+call emcmake cmake .. -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: CMake configuration failed.
+    cd ..
+    exit /b 1
+)
+
+echo.
+echo Building...
+call emmake cmake --build . --config %BUILD_TYPE%
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: Build failed.
+    cd ..
+    exit /b 1
+)
+
+cd ..
+
+echo.
+echo Build complete!
+echo Output files are in: %BUILD_DIR%\output\
+echo.
+echo To test locally:
+echo   cd %BUILD_DIR%\output
+echo   python -m http.server 8000
+echo.
+echo Then open http://localhost:8000/{{PROJECT_NAME}}.html

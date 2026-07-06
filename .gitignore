@@ -75,6 +75,7 @@ local_config.cmake
 # Windows
 Thumbs.db
 
+# Utils
 utils/__pycache__/
 
 # Claude
@@ -83,3 +84,11 @@ CLAUDE.md
 tmpclaude-*
 nul
 *.lnk
+links/
+docs/
+# Per-user machine-specific paths for the project generator (see utils/templates/paths.json)
+utils/templates/paths.local.json
+
+# Python cache and shell temp artifacts
+utils/__pycache__/
+utils/tmpclaude-*

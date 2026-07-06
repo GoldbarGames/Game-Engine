@@ -1,0 +1,16 @@
+#ifndef MYCUTSCENEHELPER_H
+#define MYCUTSCENEHELPER_H
+#pragma once
+
+#include <ENGINE/CutsceneHelper.h>
+
+class MyCutsceneHelper : public CutsceneHelper
+{
+public:
+	MyCutsceneHelper() {}
+	~MyCutsceneHelper() {}
+
+	void SetFunctions(CutsceneCommands& commands) {}
+};
+
+#endif

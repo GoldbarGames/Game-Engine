@@ -1,0 +1,37 @@
+#include "MyEntity.h"
+#include <ENGINE/Renderer.h>
+
+MyEntity::MyEntity(const glm::vec3& pos) : Entity(pos)
+{
+
+}
+
+MyEntity::MyEntity(const glm::vec3& pos, Sprite* sprite) : Entity(pos, sprite)
+{
+
+}
+
+MyEntity::~MyEntity()
+{
+
+}
+
+void MyEntity::Update(Game& game)
+{
+	Entity::Update(game);
+}
+
+void MyEntity::OnTriggerStay(Entity& other, Game& game)
+{
+
+}
+
+void MyEntity::OnTriggerEnter(Entity& other, Game& game)
+{
+
+}
+
+void MyEntity::OnTriggerExit(Entity& other, Game& game)
+{
+
+}

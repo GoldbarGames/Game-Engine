@@ -30,6 +30,7 @@ class EditorLauncher:
         frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
         editors = [
+            ("New Project", "newProjectEditor.py", "Scaffold a new game project (+ validate existing ones)"),
             ("Config Editor", "configEditor.py", "Edit key=value config files (.dat, .config)"),
             ("Background Editor", "bgEditor.py", "Edit parallax backgrounds (bg.dat)"),
             ("List Editor", "listEditor.py", "Edit simple list files (one item per line)"),

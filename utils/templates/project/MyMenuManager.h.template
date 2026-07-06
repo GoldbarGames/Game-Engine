@@ -1,0 +1,16 @@
+#ifndef MYMENUMANAGER_H
+#define MYMENUMANAGER_H
+#pragma once
+
+#include <ENGINE/MenuManager.h>
+
+class MyMenuManager : public MenuManager
+{
+public:
+	void TogglePause(Game& game, bool toggle) const;
+	void Init(Game& game) const;
+	void Update(Game& game) const;
+	void CreateMenu(const std::string& menuName, Game& game) const;
+};
+
+#endif

@@ -1,0 +1,21 @@
+#ifndef MYENTITY_H
+#define MYENTITY_H
+#pragma once
+
+#include <ENGINE/Entity.h>
+
+class MyEntity : public Entity
+{
+public:
+	MyEntity(const glm::vec3& pos);
+	MyEntity(const glm::vec3& pos, Sprite* sprite);
+	~MyEntity();
+
+	void Update(Game& game);
+
+	virtual void OnTriggerStay(Entity& other, Game& game);
+	virtual void OnTriggerEnter(Entity& other, Game& game);
+	virtual void OnTriggerExit(Entity& other, Game& game);
+};
+
+#endif

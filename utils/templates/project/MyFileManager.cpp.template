@@ -1,0 +1,27 @@
+#include "MyFileManager.h"
+#include <ENGINE/Game.h>
+
+void MyFileManager::SaveFile(const std::string& filename) const
+{
+	// TODO: Implement save game
+}
+
+void MyFileManager::LoadFile(const std::string& filename) const
+{
+	// TODO: Implement load game
+}
+
+void MyFileManager::AfterLoadLevelFromFile() const
+{
+	// Called after a level is loaded
+}
+
+void MyFileManager::SaveVariables() const
+{
+	// Save game variables
+}
+
+void MyFileManager::ResetVariables() const
+{
+	// Reset game variables
+}

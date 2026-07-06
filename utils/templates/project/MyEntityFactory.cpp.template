@@ -1,0 +1,10 @@
+#include "MyEntityFactory.h"
+
+// Include your entity headers here, e.g.:
+// #include "Player.h"
+
+MyEntityFactory::MyEntityFactory() : EntityFactory()
+{
+	// Register your entity types here, e.g.:
+	// Register("player", &Player::Create);
+}

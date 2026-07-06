@@ -1,0 +1,13 @@
+#ifndef MYEDITORHELPER_H
+#define MYEDITORHELPER_H
+#pragma once
+
+#include <ENGINE/EditorHelper.h>
+
+class MyEditorHelper : public EditorHelper
+{
+public:
+	MyEditorHelper(Game* game) : EditorHelper(game) {}
+};
+
+#endif

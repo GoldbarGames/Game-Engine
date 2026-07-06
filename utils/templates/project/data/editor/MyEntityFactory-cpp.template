@@ -1,0 +1,7 @@
+#include "MyEntityFactory.h"
+$includes$
+
+MyEntityFactory::MyEntityFactory() : EntityFactory()
+{
+$functions$
+}
