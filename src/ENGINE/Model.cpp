@@ -43,7 +43,7 @@ void Model::RenderModel()
 			textureList[materialIndex]->UseTexture();
 		}
 
-		meshList[i]->RenderMesh();
+		meshList[i]->RenderMesh(0);
 	}
 }
 

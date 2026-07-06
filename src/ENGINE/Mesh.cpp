@@ -76,9 +76,12 @@ void Mesh::RenderMesh(unsigned int instanceAmount)
         //    glDrawElementsInstanced(mode, indexCount, GL_UNSIGNED_INT, 0, instanceAmount);
         //else
         glDrawElements(mode, indexCount, GL_UNSIGNED_INT, 0);
-        
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        // Unbind the VAO BEFORE the element buffer: unbinding
+        // GL_ELEMENT_ARRAY_BUFFER while the VAO is still bound would strip
+        // the IBO association from the VAO state itself
         glBindVertexArray(0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 }
 

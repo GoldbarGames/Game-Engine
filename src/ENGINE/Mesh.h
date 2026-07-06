@@ -7,7 +7,7 @@
 
 #include <glm/mat4x4.hpp>
 
-enum class MeshType { Quad, Triangle, Line, Cube, Pyramid };
+enum class MeshType { Quad, Triangle, Line, Cube, Pyramid, Sphere };
 
 class KINJO_API Mesh
 {

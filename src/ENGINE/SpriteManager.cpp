@@ -140,7 +140,7 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, char c, int size)
 		std::string path = "";
 		path += data.glyph;
 		textTexture = new Texture(path);
-		textTexture->LoadTexture(textSurface);
+		textTexture->LoadTexture(textSurface, false, Texture::Filter::Smooth);
 
 		glyphTextures[data] = textTexture;
 
@@ -171,7 +171,7 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, const std::string& txt, int wrap
 		if (textSurface != nullptr)
 		{
 			textTexture = new Texture(txt.c_str());
-			textTexture->LoadTexture(textSurface);
+			textTexture->LoadTexture(textSurface, false, Texture::Filter::Smooth);
 
 			// TODO: Include the font name in the key.
 			// In order to do this, we must pass in currentFontInfo

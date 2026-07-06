@@ -61,6 +61,9 @@ public:
 	void ResetProjection();
 	void ResetCamera();
 
+	// Convenience method to set up a working 3D perspective camera
+	void SetupPerspective(float fovDegrees = 60.0f, float nearClip = 0.1f, float farClip = 5000.0f);
+
 	static float MULTIPLIER;
 
 	glm::mat4 projection = glm::mat4();
@@ -77,6 +80,12 @@ public:
 	float yaw = 0;
 	float pitch = 0;
 	float roll = 0;
+
+	// 3D perspective camera settings
+	float fov = 60.0f;        // Field of view in degrees
+	float nearPlane = 0.1f;   // Near clipping plane
+	float farPlane = 5000.0f; // Far clipping plane
+	bool flipY = true;        // Flip Y axis for OpenGL coordinate system
 	float startScreenWidth = 1280;
 	float startScreenHeight = 720;
 	const Entity* target = nullptr;

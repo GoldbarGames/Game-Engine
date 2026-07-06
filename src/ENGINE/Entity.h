@@ -82,6 +82,14 @@ public:
 
 	virtual ~Entity();
 	Entity(const glm::vec3& pos);
+	// 3D spatial bounds (world-space radius) used by the Octree for
+	// sphere/frustum queries; 0 = treat as a point
+	float boundsRadius3D = 0.0f;
+
+	// Opt-in: allow the renderer to frustum-cull this entity in 3D mode
+	// (default off so nothing existing changes; set boundsRadius3D too)
+	bool cullable3D = false;
+
 	Entity(const glm::vec3& pos, Sprite* sprite);
 
 	glm::vec2 GetScale() const;

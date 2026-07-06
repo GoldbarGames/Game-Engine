@@ -9,6 +9,7 @@
 #include "globals.h"
 #include "Timer.h"
 #include "QuadTree.h"
+#include "Octree.h"
 #include "CutsceneManager.h"
 #include "RandomManager.h"
 #include "SoundManager.h"
@@ -115,6 +116,13 @@ public:
 	std::vector<Entity*> entitiesToDelete;
 	bool useQuadTree = true;
 
+	// 3D spatial partition (Octree) - opt-in counterpart of the quadtree for
+	// perspective-camera games. When enabled, the octree is rebuilt each
+	// frame with all active entities, and entities flagged cullable3D are
+	// frustum-culled during 3D rendering.
+	bool useOctree = false;
+	glm::vec3 octreeHalfSize = glm::vec3(5000, 5000, 5000);
+
 	SDL_Rect mouseRect;
 
 	int initialWidth = 1280;
@@ -131,6 +139,7 @@ public:
 	GUI* gui;
 	Mesh* cubeMesh;
 	QuadTree quadTree;
+	Octree octree;
 
 	Entity* draggedEntity = nullptr;
 
@@ -196,6 +205,7 @@ public:
 	void GetMenuInput();
 
 	void PopulateQuadTree();
+	void PopulateOctree();
 
 	void CalcDt();
 	bool CheckInputs();

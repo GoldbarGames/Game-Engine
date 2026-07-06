@@ -54,6 +54,7 @@ public:
 	static Mesh* meshLine;
 	static Mesh* meshPyramid;
 	static Mesh* meshCube;
+	static Mesh* meshSphere;
 
 	ShaderProgram* shader = nullptr;
 	Texture* texture = nullptr;

@@ -39,6 +39,16 @@ Renderer::Renderer()
 	layersVisible[DrawingLayer::BG] = true;
 	layersVisible[DrawingLayer::INVISIBLE] = false;
 
+	// Initialize point and spot light arrays to nullptr
+	for (int i = 0; i < MAX_POINT_LIGHTS; i++)
+	{
+		pointLights[i] = nullptr;
+	}
+	for (int i = 0; i < MAX_SPOT_LIGHTS; i++)
+	{
+		spotLights[i] = nullptr;
+	}
+
 	timerOverlayColor.Start(1);
 	reloadTimer.Start(1000);
 }

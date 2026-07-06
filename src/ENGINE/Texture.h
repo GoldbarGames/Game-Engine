@@ -18,7 +18,12 @@ public:
 
 	bool LoadTexture();
 	void LoadTexture(unsigned int& buffer, int w, int h);
-	void LoadTexture(SDL_Surface* surface, bool reset=false);
+	// Point = nearest-neighbor, crisp pixel art (default; no mipmaps).
+	// Smooth = linear + trilinear mipmaps, for text and continuously
+	// scaled content (fixes grainy/choppy glyphs when scaled down).
+	enum class Filter { Point, Smooth };
+
+	void LoadTexture(SDL_Surface* surface, bool reset=false, Filter filter=Filter::Point);
 	void UseTexture(int textureNum = GL_TEXTURE0);
 	void ClearTexture();
 	int GetWidth() { return width; }

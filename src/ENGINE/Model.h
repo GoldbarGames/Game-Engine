@@ -6,9 +6,14 @@
 
 #ifdef USE_ASSIMP
 
+// leak_check.h redefines 'new', which breaks assimp's operator new
+// declarations - suspend the macro around the assimp headers
+#pragma push_macro("new")
+#undef new
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#pragma pop_macro("new")
 
 #endif
 

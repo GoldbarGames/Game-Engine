@@ -65,6 +65,25 @@ void Camera::ResetCamera()
 	ResetProjection();
 }
 
+void Camera::SetupPerspective(float fovDegrees, float nearClip, float farClip)
+{
+	// Store settings
+	useOrthoCamera = false;
+	fov = fovDegrees;
+	nearPlane = nearClip;
+	farPlane = farClip;
+	flipY = true;
+
+	// Calculate and set projection matrix
+	float aspectRatio = startScreenWidth / startScreenHeight;
+	projection = glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
+	projection[1][1] *= -1.0f;  // Y-flip for OpenGL
+
+	// Initialize camera orientation vectors
+	shouldUpdate = true;
+	Update();
+}
+
 void Camera::SwitchTarget(const Entity& newTarget)
 {
 	switchingTarget = true;
@@ -431,8 +450,13 @@ void Camera::ResetProjection()
 	}
 	else
 	{
+		// Use fov (degrees), proper positive aspect ratio, and near/far planes
 		float aspectRatio = startScreenWidth / startScreenHeight;
-		projection = glm::perspective(angle, -aspectRatio, 0.001f, 10000.0f);
+		projection = glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
+		if (flipY)
+		{
+			projection[1][1] *= -1.0f;  // Y-flip for OpenGL
+		}
 	}
 }
 
@@ -468,8 +492,13 @@ void Camera::Zoom(float amount, float screenWidth, float screenHeight)
 	}
 	else
 	{
-		float aspectRatio = 1280.0f / 720.0f;
-		projection = glm::perspective(angle, -aspectRatio, 0.001f, 10000.0f);
+		// Use fov (degrees), proper positive aspect ratio, and near/far planes
+		float aspectRatio = screenWidth / screenHeight;
+		projection = glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
+		if (flipY)
+		{
+			projection[1][1] *= -1.0f;  // Y-flip for OpenGL
+		}
 	}
 }
 

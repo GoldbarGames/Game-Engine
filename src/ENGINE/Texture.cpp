@@ -53,7 +53,7 @@ void Texture::LoadTexture(unsigned int& buffer, int w, int h)
 	textureID = buffer;
 }
 
-void Texture::LoadTexture(SDL_Surface* surface, bool reset)
+void Texture::LoadTexture(SDL_Surface* surface, bool reset, Filter filter)
 {
 	if (reset)
 		glDeleteTextures(1, &textureID);
@@ -73,15 +73,29 @@ void Texture::LoadTexture(SDL_Surface* surface, bool reset)
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	if (filter == Filter::Smooth)
+	{
+		// Trilinear minification actually uses the mipmaps generated below;
+		// GL_NEAREST ignored them, which made scaled-down text grainy
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+	else
+	{
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	}
 
 	width = convertedSurface->w;
 	height = convertedSurface->h;
 
 	glTexImage2D(GL_TEXTURE_2D, 0, Mode, width, height, 0, Mode, GL_UNSIGNED_BYTE, convertedSurface->pixels);
 
-	glGenerateMipmap(GL_TEXTURE_2D);
+	// Mipmaps only for Smooth textures (Point/NEAREST never samples them)
+	if (filter == Filter::Smooth)
+	{
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
 
 	// Free the converted surface if we created one
 	if (convertedSurface != surface)

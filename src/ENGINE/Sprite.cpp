@@ -7,6 +7,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <vector>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 using std::string;
 
@@ -16,6 +22,7 @@ Mesh* Sprite::meshTri = nullptr;
 Mesh* Sprite::meshLine = nullptr;
 Mesh* Sprite::meshPyramid = nullptr;
 Mesh* Sprite::meshCube = nullptr;
+Mesh* Sprite::meshSphere = nullptr;
 std::string Sprite::selectedColor = "clear";
 
 unsigned int Sprite::Size()
@@ -53,7 +60,10 @@ unsigned int Sprite::Size()
 
 void Sprite::CreateMesh(MeshType meshType)
 {
-	if (mesh == nullptr)
+	// Always honor the requested mesh type. The default constructor already
+	// assigns the quad mesh, so guarding on mesh == nullptr here would make
+	// later calls (e.g. CreateMesh(MeshType::Sphere)) silently do nothing.
+	// All types share static meshes, so re-assigning is cheap and idempotent.
 	{
 		if (meshType == MeshType::Quad)
 		{
@@ -249,6 +259,76 @@ void Sprite::CreateMesh(MeshType meshType)
 			}
 
 			mesh = meshCube;
+		}
+		else if (meshType == MeshType::Sphere)
+		{
+			if (meshSphere == nullptr)
+			{
+				// Generate UV sphere
+				const int stacks = 16;  // latitude divisions
+				const int slices = 32;  // longitude divisions
+				const float radius = 1.0f;
+
+				std::vector<GLfloat> sphereVertices;
+				std::vector<unsigned int> sphereIndices;
+
+				// Generate vertices
+				for (int i = 0; i <= stacks; i++)
+				{
+					float phi = (float)M_PI * i / stacks;  // 0 to PI
+					float y = radius * cos(phi);
+					float r = radius * sin(phi);
+
+					for (int j = 0; j <= slices; j++)
+					{
+						float theta = 2.0f * (float)M_PI * j / slices;  // 0 to 2PI
+						float x = r * cos(theta);
+						float z = r * sin(theta);
+
+						// Position
+						sphereVertices.push_back(x);
+						sphereVertices.push_back(y);
+						sphereVertices.push_back(z);
+
+						// UV coordinates
+						float u = (float)j / slices;
+						float v = (float)i / stacks;
+						sphereVertices.push_back(u);
+						sphereVertices.push_back(v);
+
+						// Normal (same as position for unit sphere)
+						sphereVertices.push_back(x);
+						sphereVertices.push_back(y);
+						sphereVertices.push_back(z);
+					}
+				}
+
+				// Generate indices (counter-clockwise winding for front faces)
+				for (int i = 0; i < stacks; i++)
+				{
+					for (int j = 0; j < slices; j++)
+					{
+						int first = i * (slices + 1) + j;
+						int second = first + slices + 1;
+
+						// Two triangles per quad (counter-clockwise winding)
+						sphereIndices.push_back(first);
+						sphereIndices.push_back(first + 1);
+						sphereIndices.push_back(second);
+
+						sphereIndices.push_back(second);
+						sphereIndices.push_back(first + 1);
+						sphereIndices.push_back(second + 1);
+					}
+				}
+
+				meshSphere = new Mesh();
+				meshSphere->CreateMesh(sphereVertices.data(), sphereIndices.data(),
+					(unsigned int)sphereVertices.size(), (unsigned int)sphereIndices.size(),
+					8, 3, 5);
+			}
+
+			mesh = meshSphere;
 		}
 	}
 }
@@ -632,22 +712,31 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	glUniform2fv(shaderToUse->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
 
 	// Calculate 2D lighting
-	const float maxDistanceToLight = 10 * Globals::TILE_SIZE;
-	const float maxDistanceSquared = maxDistanceToLight * maxDistanceToLight;
 	float lightRatio = 1.0f;
 
-	// Only check lights within range using squared distance (avoids sqrt)
-	for (const auto& lightSource : renderer.game->lightSourcesInLevel)
+	// If point lights are active, use 0 lightRatio (shader will use point lights for cave effect)
+	if (renderer.pointLightCount > 0)
 	{
-		const glm::vec3 diff = position - lightSource->position;
-		const float distanceSquared = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
+		lightRatio = 0.0f;
+	}
+	else
+	{
+		const float maxDistanceToLight = 10 * Globals::TILE_SIZE;
+		const float maxDistanceSquared = maxDistanceToLight * maxDistanceToLight;
 
-		// Skip lights outside max range
-		if (distanceSquared >= maxDistanceSquared)
-			continue;
+		// Only check lights within range using squared distance (avoids sqrt)
+		for (const auto& lightSource : renderer.game->lightSourcesInLevel)
+		{
+			const glm::vec3 diff = position - lightSource->position;
+			const float distanceSquared = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
 
-		const float distance = std::sqrt(distanceSquared);
-		lightRatio += 1.0f - (distance / maxDistanceToLight);
+			// Skip lights outside max range
+			if (distanceSquared >= maxDistanceSquared)
+				continue;
+
+			const float distance = std::sqrt(distanceSquared);
+			lightRatio += 1.0f - (distance / maxDistanceToLight);
+		}
 	}
 
 	glUniform1f(shaderToUse->GetUniformVariable(ShaderVariable::distanceToLight2D), lightRatio);

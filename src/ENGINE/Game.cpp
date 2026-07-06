@@ -336,6 +336,9 @@ Game::~Game()
 	if (Sprite::meshQuad != nullptr)
 		delete_it(Sprite::meshQuad);
 
+	if (Sprite::meshSphere != nullptr)
+		delete_it(Sprite::meshSphere);
+
 	SaveEditorSettings();
 
 	if (editor != nullptr)
@@ -457,15 +460,15 @@ void Game::Init()
 		renderer.spotLights[0] = new SpotLight(lColor2, 0.4f, 0.2f, pos2, attenuation, lDir, 20.0f);
 		renderer.spotLightCount++;
 
-		// shaders[5] = Diffuse
-		triangle3D = new Sprite(renderer.shaders[5], MeshType::Pyramid);
-		triangle3D->color = { 255, 0, 0, 255 };
-
-		// Shiny Material
-		triangle3D->material = &shinyMaterial;
-
-		// Dull Material
-		//triangle3D->material = &dullMaterial;
+		// Debug test pyramid, disabled: it grabbed renderer.shaders[5] (a
+		// slot games may define in shaders.dat for their own shaders) and
+		// was force-rendered every frame in 3D mode at (0,800,300) x200.
+		// If a game's shader 5 uses instanced attributes, the pyramid mesh
+		// has no instance data and renders as giant garbage triangles.
+		//triangle3D = new Sprite(renderer.shaders[5], MeshType::Pyramid);
+		//triangle3D->color = { 255, 0, 0, 255 };
+		//triangle3D->material = &shinyMaterial;   // Shiny Material
+		//triangle3D->material = &dullMaterial;    // Dull Material
 
 		//cutsceneManager.commands.ExecuteCommand("shader pyramid data/shaders/default.vert data/shaders/pyramid.frag");
 		//triangle3D->SetShader(cutsceneManager.commands.customShaders["pyramid"]);
@@ -1542,6 +1545,11 @@ void Game::CheckDeleteEntities()
 	}	
 
 	PopulateQuadTree();
+
+	if (useOctree)
+	{
+		PopulateOctree();
+	}
 }
 
 void Game::HandleEditMode()
@@ -2689,7 +2697,10 @@ void Game::Update()
 
 			//SetDuration("UpdateEntities");
 
-			if (useQuadTree)
+			// The quadtree's bounds are 2D ortho-camera rectangles; under a
+			// perspective camera they are meaningless and culling updates by
+			// them freezes off-screen entities. Only cull in ortho mode.
+			if (useQuadTree && renderer.camera.useOrthoCamera)
 			{
 				std::vector<Entity*> entitiesToUpdate;
 				quadTree.Retrieve(&cameraBounds, entitiesToUpdate, &quadTree);
@@ -2748,6 +2759,20 @@ glm::vec3 Game::ConvertFromScreenSpaceToWorldSpace(const glm::vec2& pos) const
 	midResult /= midResult.w;
 
 	return glm::vec3(midResult);
+}
+
+void Game::PopulateOctree()
+{
+	octree.Reset();
+	octree.SetBounds(glm::vec3(0, 0, 0), octreeHalfSize);
+
+	for (size_t i = 0; i < entities.size(); i++)
+	{
+		if (entities[i]->active)
+		{
+			octree.Insert(entities[i]);
+		}
+	}
 }
 
 void Game::PopulateQuadTree()
@@ -3240,10 +3265,32 @@ void Game::RenderNormally()
 	}
 	else
 	{
+		// 3D path: optionally frustum-cull entities that opted in via
+		// cullable3D (with boundsRadius3D set). Everything else renders.
+		bool frustumCull = useOctree && !renderer.camera.useOrthoCamera;
+		static std::vector<Entity*> visibleSet;
+		if (frustumCull)
+		{
+			visibleSet.clear();
+			octree.RetrieveFrustum(
+				renderer.camera.projection * renderer.camera.CalculateViewMatrix(),
+				visibleSet);
+		}
+
 		for (unsigned int i = 0; i < entities.size(); i++)
 		{
 			if (entities[i]->active)
 			{
+				if (frustumCull && entities[i]->cullable3D)
+				{
+					bool visible = false;
+					for (Entity* v : visibleSet)
+					{
+						if (v == entities[i]) { visible = true; break; }
+					}
+					if (!visible)
+						continue;
+				}
 				entities[i]->Render(renderer);
 			}
 
