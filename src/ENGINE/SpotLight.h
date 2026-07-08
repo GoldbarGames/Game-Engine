@@ -17,7 +17,7 @@ public:
 		float con, float lin, float exp, float edg);
 	~SpotLight();
 
-	void UseLight(const ShaderProgram& shader);
+	void UseLight(const ShaderProgram& shader, int index = 0) override;
 
 };
 

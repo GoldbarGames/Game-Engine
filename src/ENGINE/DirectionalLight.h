@@ -15,7 +15,7 @@ public:
 		float xdir, float ydir, float zdir);
 	~DirectionalLight();
 
-	void UseLight(const ShaderProgram& shader);
+	void UseLight(const ShaderProgram& shader, int index = 0) override;
 
 };
 

@@ -16,7 +16,7 @@ DirectionalLight::DirectionalLight(glm::vec3 col, float ai, float di, glm::vec3 
 	direction = dir;
 }
 
-void DirectionalLight::UseLight(const ShaderProgram& shader)
+void DirectionalLight::UseLight(const ShaderProgram& shader, int index)
 {
 	/*
 	glUniform3f(shader.GetUniformVariable(ShaderVariable::ambientColor), color.x, color.y, color.z);

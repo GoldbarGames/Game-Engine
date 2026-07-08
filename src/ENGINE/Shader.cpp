@@ -138,7 +138,7 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
     }
 
 
-    for (int i = 0; i < MAX_POINT_LIGHTS; i++)
+    for (int i = 0; i < MAX_SPOT_LIGHTS; i++)
     {
         char locBuff[100] = { '\0' };
 
@@ -150,7 +150,7 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
         uniformSpotLight[i].uniformDiffuseIntensity = glGetUniformLocation(programID, locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].base.position", i);
-        uniformSpotLight[i].uniformColor = glGetUniformLocation(programID, locBuff);
+        uniformSpotLight[i].uniformPosition = glGetUniformLocation(programID, locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].base.constant", i);
         uniformSpotLight[i].uniformConstant = glGetUniformLocation(programID, locBuff);

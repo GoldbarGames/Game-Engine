@@ -21,7 +21,7 @@ SpotLight::SpotLight(float red, float green, float blue, float aIntensity, float
 	float con, float lin, float exp, float edg) : PointLight(red, green, blue, 
 		aIntensity, dIntensity, xpos, ypos, zpos, con, lin, exp)
 {
-	direction = glm::vec3(xpos, ypos, zpos);
+	direction = glm::vec3(xdir, ydir, zdir);
 	edge = edg;
 	procEdge = cosf(glm::radians(edge));
 }
@@ -31,18 +31,18 @@ SpotLight::~SpotLight()
 
 }
 
-void SpotLight::UseLight(const ShaderProgram& shader)
+void SpotLight::UseLight(const ShaderProgram& shader, int index)
 {
-	glUniform3f(shader.uniformSpotLight[0].uniformColor, color.x, color.y, color.z);
-	glUniform1f(shader.uniformSpotLight[0].uniformAmbientIntensity, ambientIntensity);
-	glUniform1f(shader.uniformSpotLight[0].uniformDiffuseIntensity, diffuseIntensity);
+	glUniform3f(shader.uniformSpotLight[index].uniformColor, color.x, color.y, color.z);
+	glUniform1f(shader.uniformSpotLight[index].uniformAmbientIntensity, ambientIntensity);
+	glUniform1f(shader.uniformSpotLight[index].uniformDiffuseIntensity, diffuseIntensity);
 
-	glUniform3f(shader.uniformSpotLight[0].uniformPosition, position.x, position.y, position.z);
-	glUniform1f(shader.uniformSpotLight[0].uniformConstant, constant);
-	glUniform1f(shader.uniformSpotLight[0].uniformLinear, linear);
-	glUniform1f(shader.uniformSpotLight[0].uniformExponent, exponent);
+	glUniform3f(shader.uniformSpotLight[index].uniformPosition, position.x, position.y, position.z);
+	glUniform1f(shader.uniformSpotLight[index].uniformConstant, constant);
+	glUniform1f(shader.uniformSpotLight[index].uniformLinear, linear);
+	glUniform1f(shader.uniformSpotLight[index].uniformExponent, exponent);
 
-	glUniform3f(shader.uniformSpotLight[0].uniformDirection, direction.x, direction.y, direction.z);
-	glUniform1f(shader.uniformSpotLight[0].uniformEdge, procEdge);
+	glUniform3f(shader.uniformSpotLight[index].uniformDirection, direction.x, direction.y, direction.z);
+	glUniform1f(shader.uniformSpotLight[index].uniformEdge, procEdge);
 
 }

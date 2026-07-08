@@ -561,32 +561,34 @@ void Renderer::UseLight(const ShaderProgram& shader) const
 		light->UseLight(shader);
 	}
 
+	// Slot filler for empty entries inside the active count: black light,
+	// constant attenuation 1 (never left as all-zero uniforms — a zero
+	// attenuation constant divides by zero in the shader and goes NaN/fullbright)
+	static PointLight disabledPointLight(glm::vec3(0.0f), 0.0f, 0.0f, glm::vec3(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	static SpotLight disabledSpotLight(glm::vec3(0.0f), 0.0f, 0.0f, glm::vec3(0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), 0.0f);
+
 	// For point lights
-	if (pointLights != nullptr)
+	if (pointLightCount > MAX_POINT_LIGHTS)
+		pointLightCount = MAX_POINT_LIGHTS;
+
+	glUniform1i(shader.GetUniformVariable(ShaderVariable::pointLightCount), pointLightCount);
+
+	for (size_t i = 0; i < pointLightCount; i++)
 	{
-		if (pointLightCount > MAX_POINT_LIGHTS)
-			pointLightCount = MAX_POINT_LIGHTS;
-
-		glUniform1i(shader.GetUniformVariable(ShaderVariable::pointLightCount), pointLightCount);
-
-		for (size_t i = 0; i < pointLightCount; i++)
-		{
-			pointLights[i]->UseLight(shader);
-		}
+		PointLight* p = (pointLights[i] != nullptr) ? pointLights[i] : &disabledPointLight;
+		p->UseLight(shader, (int)i);
 	}
 
 	// For spot lights
-	if (spotLights != nullptr)
+	if (spotLightCount > MAX_SPOT_LIGHTS)
+		spotLightCount = MAX_SPOT_LIGHTS;
+
+	glUniform1i(shader.GetUniformVariable(ShaderVariable::spotLightCount), spotLightCount);
+
+	for (size_t i = 0; i < spotLightCount; i++)
 	{
-		if (pointLightCount > MAX_SPOT_LIGHTS)
-			pointLightCount = MAX_SPOT_LIGHTS;
-
-		glUniform1i(shader.GetUniformVariable(ShaderVariable::spotLightCount), spotLightCount);
-
-		for (size_t i = 0; i < spotLightCount; i++)
-		{
-			spotLights[i]->UseLight(shader);
-		}
+		SpotLight* s = (spotLights[i] != nullptr) ? spotLights[i] : &disabledSpotLight;
+		s->UseLight(shader, (int)i);
 	}
 }
 

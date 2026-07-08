@@ -30,14 +30,14 @@ PointLight::~PointLight()
 
 }
 
-void PointLight::UseLight(const ShaderProgram& shader)
+void PointLight::UseLight(const ShaderProgram& shader, int index)
 {
-	glUniform3f(shader.uniformPointLight[0].uniformColor, color.x, color.y, color.z);
-	glUniform1f(shader.uniformPointLight[0].uniformAmbientIntensity, ambientIntensity);
-	glUniform1f(shader.uniformPointLight[0].uniformDiffuseIntensity, diffuseIntensity);
+	glUniform3f(shader.uniformPointLight[index].uniformColor, color.x, color.y, color.z);
+	glUniform1f(shader.uniformPointLight[index].uniformAmbientIntensity, ambientIntensity);
+	glUniform1f(shader.uniformPointLight[index].uniformDiffuseIntensity, diffuseIntensity);
 
-	glUniform3f(shader.uniformPointLight[0].uniformPosition, position.x, position.y, position.z);
-	glUniform1f(shader.uniformPointLight[0].uniformConstant, constant);
-	glUniform1f(shader.uniformPointLight[0].uniformLinear, linear);
-	glUniform1f(shader.uniformPointLight[0].uniformExponent, exponent);
+	glUniform3f(shader.uniformPointLight[index].uniformPosition, position.x, position.y, position.z);
+	glUniform1f(shader.uniformPointLight[index].uniformConstant, constant);
+	glUniform1f(shader.uniformPointLight[index].uniformLinear, linear);
+	glUniform1f(shader.uniformPointLight[index].uniformExponent, exponent);
 }

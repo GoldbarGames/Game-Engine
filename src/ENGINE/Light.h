@@ -19,7 +19,7 @@ public:
 	Light(float red, float green, float blue, float aIntensity,  float dIntensity);
 	~Light();
 
-	virtual void UseLight(const ShaderProgram& shader);
+	virtual void UseLight(const ShaderProgram& shader, int index = 0);
 
 };
 

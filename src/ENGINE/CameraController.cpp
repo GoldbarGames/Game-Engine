@@ -83,7 +83,8 @@ void FollowCameraController::Update(Camera& cam, const glm::vec3& targetPos,
 	if (dist < minDistance) dist = minDistance;
 
 	// Visually above = negative world Y (the 3D projection's Y flip)
-	glm::vec3 desiredPos = targetPos + glm::vec3(0, -dist, 0);
+	glm::vec3 desiredPos = useWorldOffset ? targetPos + worldOffset
+		: targetPos + glm::vec3(0, -dist, 0);
 
 	if (blend < 1.0f)
 	{

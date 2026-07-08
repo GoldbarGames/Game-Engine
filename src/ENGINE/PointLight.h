@@ -16,7 +16,7 @@ public:
 		float xpos, float ypos, float zpos, float con, float lin, float exp);
 	~PointLight();
 
-	void UseLight(const ShaderProgram& shader);
+	void UseLight(const ShaderProgram& shader, int index = 0) override;
 
 };
 

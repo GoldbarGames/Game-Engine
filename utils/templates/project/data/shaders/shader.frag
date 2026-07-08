@@ -1,6 +1,6 @@
 #version 330
 
-const int MAX_POINT_LIGHTS = 3;
+const int MAX_POINT_LIGHTS = 8;
 
 in vec2 TexCoord;
 in vec3 FragPos;

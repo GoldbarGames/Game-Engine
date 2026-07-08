@@ -64,6 +64,12 @@ public:
 	float zoomInFactor = 0.8f;        // per ZoomIn/ZoomOut step
 	float zoomOutFactor = 1.25f;
 
+	// Alternative framing: place the camera at a fixed world-space offset
+	// from the target instead of the zoom/radius model above. Lets 2.5D
+	// games keep their exact FollowTarget framing while gaining the glide.
+	bool useWorldOffset = false;
+	glm::vec3 worldOffset = glm::vec3(0, 0, 0);
+
 	// Capture the camera's current pose as the start of a glide (call when
 	// entering follow mode or switching targets)
 	void StartTransition(const Camera& cam);

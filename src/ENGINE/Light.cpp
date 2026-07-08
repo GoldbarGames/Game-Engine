@@ -22,7 +22,7 @@ Light::Light(glm::vec3 col, float ai, float di)
 }
 
 
-void Light::UseLight(const ShaderProgram& shader)
+void Light::UseLight(const ShaderProgram& shader, int index)
 {
 	glUniform3f(shader.uniformDirectionalLight.uniformColor, color.x, color.y, color.z);
 	glUniform1f(shader.uniformDirectionalLight.uniformAmbientIntensity, ambientIntensity);
