@@ -74,6 +74,11 @@ public:
 	// entering follow mode or switching targets)
 	void StartTransition(const Camera& cam);
 
+	// True while a StartTransition glide is still in progress. Lets games
+	// run a one-shot glide (e.g. jump to a newly focused body) and hand
+	// control back to a free camera when it lands.
+	bool IsTransitioning() const { return blend < 1.0f; }
+
 	void ZoomIn();
 	void ZoomOut();
 

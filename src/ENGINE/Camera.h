@@ -44,6 +44,11 @@ public:
 	glm::vec3 dragStartPos = glm::vec3(0, 0, 0);
 	glm::vec3 lastMousePos = glm::vec3(0, 0, 0);
 
+	// The up reference Update() derives the camera basis from. Default is
+	// (0,1,0); Z-vertical worlds (2.5D games orbiting about world z) need
+	// their vertical here or the view rolls when yawed off-axis.
+	void SetWorldUp(const glm::vec3& u) { worldUp = u; }
+
 	Camera();
 	Camera(glm::vec3 startPos, glm::vec3 startUp, float startYaw, float startPitch,
 		float startMovementSpeed, float startTurnSpeed, float startZoom,

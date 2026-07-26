@@ -329,9 +329,11 @@ void CutsceneManager::CheckKeys()
 			mouseX *= Camera::MULTIPLIER;
 			mouseY *= Camera::MULTIPLIER;
 
+			// Map into the fixed design GUI space (see the other mouseRect below)
+			// so backlog scroll buttons stay hit-testable at any resolution.
 			SDL_Rect mouseRect;
-			mouseRect.x = mouseX;
-			mouseRect.y = mouseY;
+			mouseRect.x = mouseX * (game->designWidth / (float)game->screenWidth);
+			mouseRect.y = mouseY * (game->designHeight / (float)game->screenHeight);
 			mouseRect.w = 1;
 			mouseRect.h = 1;
 
@@ -1127,11 +1129,23 @@ void CutsceneManager::ReadNextLine()
 
 	if (currentLabel != nullptr)
 	{
+		// Guard: if the label's lines are exhausted - e.g. it ends on a
+		// command with no following text line - end the cutscene cleanly
+		// instead of indexing past the lines vector (which crashed with
+		// "vector subscript out of range"). lineIndex == -1 is the valid
+		// pre-first-line sentinel, so only guard the UPPER bound.
+		if (lineIndex >= currentLabel->lineSize
+			|| currentLabel->lineStart + lineIndex >= (int)lines.size())
+		{
+			EndCutscene();
+			return;
+		}
+
 		//TODO: Save this data somehow
 		if (lineIndex >= 0 && lineIndex < currentLabel->lineSize)
 		{
 			seenLabelsToMostRecentLine[labelIndex] = lineIndex;
-		}			
+		}
 
 		// Only clear the text (and name) if we encounter a slash
 		int newIndex = letterIndex + lines[currentLabel->lineStart + lineIndex].textStart;
@@ -1390,9 +1404,14 @@ void CutsceneManager::UpdateText()
 			mouseX *= Camera::MULTIPLIER;
 			mouseY *= Camera::MULTIPLIER;
 
+			// Map the (MULTIPLIER-scaled) window mouse into the fixed GUI space
+			// the script's hotspots live in (designWidth*MULTIPLIER). Using the
+			// DESIGN resolution here (not the live window size) keeps hotspots
+			// aligned at any resolution; with initialWidth==screenWidth this
+			// ratio was 1 and hotspots broke once the window != the design size.
 			SDL_Rect mouseRect;
-			mouseRect.x = mouseX * (game->initialWidth / (float)game->screenWidth);
-			mouseRect.y = mouseY * (game->initialWidth / (float)game->screenWidth);
+			mouseRect.x = mouseX * (game->designWidth / (float)game->screenWidth);
+			mouseRect.y = mouseY * (game->designHeight / (float)game->screenHeight);
 			mouseRect.w = 1;
 			mouseRect.h = 1;
 

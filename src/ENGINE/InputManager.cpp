@@ -71,6 +71,10 @@ void InputManager::StopPlayback()
 	isPlayingBackInput = false;
 	playbackInputs.clear();
 	playbackIndex = 0;
+	playbackTargetCount = -1;
+	playbackEndIndex = 0;
+	inputsThisFrame.clear();
+	inputsLastFrame.clear();
 }
 
 void InputManager::StartPlayback(const std::string& filepath)
@@ -80,6 +84,9 @@ void InputManager::StartPlayback(const std::string& filepath)
 	playbackInputs.reserve(10000);
 	playbackIndex = 0;
 	pCount = 0;
+	playbackTargetCount = -1;
+	playbackEndIndex = 0;
+	playbackFrameCount = 0;
 
 	std::ifstream fin;
 	std::string s = "";
@@ -426,23 +433,40 @@ void InputManager::StartUpdate()
 	}
 	else if (isPlayingBackInput)
 	{
+		// Safety net: a malformed or stuck replay must not hang forever
+		playbackFrameCount++;
+		if (playbackMaxFrames > 0 && playbackFrameCount > playbackMaxFrames)
+		{
+			std::cout << "ERROR: Playback aborted after " << playbackMaxFrames
+				<< " frames (max exceeded)" << std::endl;
+			StopPlayback();
+			return;
+		}
+
 		pCount++; // the number of frames the button has been pressed
 
-		static int pTargetCount = -1;
-		static int endIndex = 0;
-
 		// We don't yet know the target count for this button press
-		if (pTargetCount < 0)
+		if (playbackTargetCount < 0)
 		{
-			endIndex = playbackIndex;
+			playbackEndIndex = playbackIndex;
 			for (size_t i = playbackIndex; i < playbackInputs.size(); i++)
 			{
 				if (playbackInputs[i] < 0) // found the count
 				{
-					pTargetCount = -1 * playbackInputs[i];
-					endIndex = i;
+					playbackTargetCount = -1 * playbackInputs[i];
+					playbackEndIndex = i;
 					break;
 				}
+			}
+
+			// Malformed file: a segment with no frame count would never
+			// advance - end the playback instead of spinning forever
+			if (playbackTargetCount < 0)
+			{
+				std::cout << "ERROR: Playback aborted - no frame count after index "
+					<< playbackIndex << " (malformed replay file)" << std::endl;
+				StopPlayback();
+				return;
 			}
 
 			// Save the inputs that are being held last frame
@@ -454,25 +478,23 @@ void InputManager::StartUpdate()
 
 			// Save the inputs that are being held this frame
 			inputsThisFrame.clear();
-			for (int k = playbackIndex; k < endIndex; k++)
+			for (int k = playbackIndex; k < playbackEndIndex; k++)
 			{
 				inputsThisFrame[playbackInputs[k]] = 1;
 			}
 		}
 
-		if (pCount > pTargetCount)
+		if (pCount > playbackTargetCount)
 		{
 			pCount = 0;
-			pTargetCount = -1;
-			playbackIndex = endIndex + 1; // always the number after the count
+			playbackTargetCount = -1;
+			playbackIndex = playbackEndIndex + 1; // always the number after the count
 
 			if (playbackIndex >= playbackInputs.size())
 			{
 				StopPlayback();
 			}
 		}
-
-
 	}
 }
 

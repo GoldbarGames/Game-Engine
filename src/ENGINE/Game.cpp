@@ -37,6 +37,7 @@
 #include "Timer.h"
 #include "MenuScreen.h"
 #include "Renderer.h"
+#include "Scene3D.h"
 #include "Light.h"
 #include "DirectionalLight.h"
 #include "PointLight.h"
@@ -185,8 +186,21 @@ int Game::MainLoop()
 	}
 
 	//SetDuration("Update");
-	Update();
+	// Turbo mode for automated tests: several update passes per rendered
+	// frame; each pass sees the same per-frame dt so gameplay (and
+	// frame-based input playback) is identical to running at 1x
+	for (int u = 0; u < updatesPerFrame && !shouldQuit; u++)
+	{
+		Update();
+	}
 	//PrintDuration("Update");
+
+	// Automated test runs end the game when input playback is done
+	if (quitWhenPlaybackEnds && !inputManager.isPlayingBackInput)
+	{
+		std::cout << "Playback finished - quitting" << std::endl;
+		shouldQuit = true;
+	}
 
 	//SetDuration("Render");
 	Render();
@@ -356,6 +370,35 @@ Game::~Game()
 
 void Game::Init()
 {
+	// Apply the saved window resolution BEFORE creating the window, so the game
+	// opens directly at the right size instead of booting at the default and
+	// resizing once LoadSettings runs (that caused a visible resolution jump on
+	// startup). Mirrors the index map in SettingsButton::ExecuteSelectedOption.
+	{
+		std::ifstream sfin("data/config/settings.config");
+		std::string tok;
+		int resIndex = -1;
+		while (sfin >> tok)
+		{
+			if (tok == "screen_resolution") { sfin >> resIndex; break; }
+		}
+		int w = 0, h = 0;
+		switch (resIndex)
+		{
+		case 0: w = 640;  h = 360;  break;
+		case 1: w = 1280; h = 720;  break;
+		case 2: w = 1600; h = 900;  break;
+		case 3: w = 1920; h = 1080; break;
+		default: break;  // no/unknown setting -> keep the engine defaults
+		}
+		if (w > 0)
+		{
+			initialWidth = w;  initialHeight = h;
+			screenWidth = w;   screenHeight = h;
+			indexScreenResolution = resIndex;
+		}
+	}
+
 	fileManager->Init(*this);
 
 	InitSDL();
@@ -373,8 +416,8 @@ void Game::Init()
 	// Initialize the font before all text
 
 	// TODO: Load all fonts from a file (fonts.list)
-	theFont = CreateFont("SazanamiGothic", menuManager->defaultFontSize);
-	headerFont = CreateFont("SazanamiGothic", menuManager->defaultFontSize * 2);
+	theFont = CreateFont(menuManager->defaultFontName, menuManager->defaultFontSize);
+	headerFont = CreateFont(menuManager->defaultFontName, menuManager->defaultFontSize * 2);
 
 	soundManager.ReadMusicData("data/config/bgm.dat");
 
@@ -421,7 +464,10 @@ void Game::Init()
 	entitiesToRender.reserve(500);
 	debugEntities.reserve(100);
 
-	SetScreenResolution(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight);
+	// Size framebuffers/viewport to the ACTUAL window resolution (the cameras'
+	// startScreenWidth/Height are the fixed design resolution now, so don't use
+	// them here or the window would shrink to the design size).
+	SetScreenResolution(screenWidth, screenHeight);
 
 
 	// Initialize GUI (do this AFTER fonts and resolution)
@@ -472,10 +518,6 @@ void Game::Init()
 
 		//cutsceneManager.commands.ExecuteCommand("shader pyramid data/shaders/default.vert data/shaders/pyramid.frag");
 		//triangle3D->SetShader(cutsceneManager.commands.customShaders["pyramid"]);
-
-#ifdef USE_ASSIMP
-		modelChopper.LoadModel("assets/models/chopper/chopper.obj");
-#endif
 
 	}
 	else
@@ -532,10 +574,24 @@ FontInfo* Game::CreateFont(const std::string& fontName, int size)
 	std::string key = fontName + std::to_string(size);
 	if (fonts.count(key) == 0)
 	{
-		fonts[key] = new FontInfo("fonts/" + fontName + "/" + fontName + "-Regular.ttf", size);
-		fonts[key]->SetBoldFont("fonts/" + fontName + "/" + fontName + "-Bold.ttf");
-		fonts[key]->SetItalicsFont("fonts/" + fontName + "/" + fontName + "-Italic.ttf");
-		fonts[key]->SetBoldItalicsFont("fonts/" + fontName + "/" + fontName + "-BoldItalic.ttf");
+		// Fonts may ship as .ttf or .otf - use whichever Regular exists
+		// (SDL_RWFromFile also sees Emscripten's preloaded filesystem)
+		std::string base = "fonts/" + fontName + "/" + fontName;
+		std::string ext = ".ttf";
+		SDL_RWops* probe = SDL_RWFromFile((base + "-Regular.ttf").c_str(), "rb");
+		if (probe == nullptr)
+		{
+			ext = ".otf";
+		}
+		else
+		{
+			SDL_RWclose(probe);
+		}
+
+		fonts[key] = new FontInfo(base + "-Regular" + ext, size);
+		fonts[key]->SetBoldFont(base + "-Bold" + ext);
+		fonts[key]->SetItalicsFont(base + "-Italic" + ext);
+		fonts[key]->SetBoldItalicsFont(base + "-BoldItalic" + ext);
 	}
 
 	return fonts[key];
@@ -704,13 +760,18 @@ void Game::InitOpenGL()
 
 	SDL_GL_SwapWindow(window);
 
+	// Build the cameras from the fixed DESIGN resolution, not the live window
+	// size. This keeps guiProjection (and the ortho/perspective projections) in
+	// a constant 2D coordinate space that 2D content is authored for; the
+	// framebuffers stay at the native window size and the final blit scales the
+	// design-space render up to fill the window at any resolution.
 	renderer.camera = Camera(glm::vec3(0.0f, 0.0f, 1000.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
-		screenWidth, screenHeight, use2DCamera);
+		designWidth, designHeight, use2DCamera);
 
 	renderer.guiCamera = Camera(glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 0.0f, 0.5f, 0.5f, 1.0f,
-		screenWidth, screenHeight, use2DCamera);
+		designWidth, designHeight, use2DCamera);
 
 	renderer.guiCamera.shouldUpdate = true;
 	renderer.guiCamera.useOrthoCamera = true;
@@ -1793,14 +1854,16 @@ void Game::LoadSettings()
 			}
 
 		}
-		else if (tokens[0] == "fullscreen")
+		// SaveSettings writes this as "windowed" (value = isFullscreen); accept
+		// both spellings so the setting actually round-trips.
+		else if (tokens[0] == "fullscreen" || tokens[0] == "windowed")
 		{
 			isFullscreen = std::stoi(tokens[1]);
 
 			if (isFullscreen)
 				SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 			else
-				SDL_SetWindowFullscreen(window, 0);	
+				SDL_SetWindowFullscreen(window, 0);
 
 			if (hasSettingsButton)
 			{
@@ -2072,7 +2135,8 @@ bool Game::HandleEvent(SDL_Event& event)
 				break;
 			case SDLK_2: // toggle Editor mode
 
-				if (!soundMode && !guiMode)
+				// A 3D game owns its own scene editor; don't also drive the 2D one.
+				if (!soundMode && !guiMode && !prefer3DEditor)
 				{
 					if (openedMenus.size() > 0)
 					{
@@ -2731,6 +2795,13 @@ void Game::Update()
 		HandleEditMode();
 		updateNormalStuff = false;
 	}
+	else if (editing3D)
+	{
+		// A 3D game's own scene editor is active (driven from gui->Update()
+		// above); freeze the cutscene/normal update so clicks and keys edit
+		// the scene instead of advancing dialogue.
+		updateNormalStuff = false;
+	}
 	else if (guiMode)
 	{
 		editor->HandleGUIMode();
@@ -2934,6 +3005,11 @@ void Game::Render()
 
 
 	
+	// Shadow maps: render scene depth from the sun's POV (outdoor) and from the
+	// strongest point light (indoor cube map) before the main pass.
+	Scene3D::Get().RenderShadowDepth(*this, renderer);
+	Scene3D::Get().RenderPointShadowDepth(*this, renderer);
+
 	// zero pass
 	glBindFramebuffer(GL_FRAMEBUFFER, mainFrameBuffer->framebufferObject);
 
@@ -3020,7 +3096,37 @@ void Game::Render()
 
 	RenderQuake(screenPos);
 
-	mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+	// Toon post-process outline: when a 3D scene with cel-shading is active,
+	// composite the main (3D) framebuffer through a depth-edge shader that draws
+	// a solid outline at every depth discontinuity - works for all geometry.
+	Scene3D& scene3d = Scene3D::Get();
+	bool celEdge = scene3d.active && scene3d.celShading && scene3d.outlineEnabled
+		&& scene3d.EdgeShader() != nullptr && mainFrameBuffer->depthTexture != 0;
+	if (celEdge)
+	{
+		ShaderProgram* prevShader = mainFrameBuffer->sprite->GetShader();
+		ShaderProgram* edge = scene3d.EdgeShader();
+		mainFrameBuffer->sprite->SetShader(edge);
+		edge->UseShader();
+		GLuint eid = edge->GetID();
+		glUniform1i(glGetUniformLocation(eid, "depthTex"), 1);
+		glUniform2f(glGetUniformLocation(eid, "texelSize"), 1.0f / screenWidth, 1.0f / screenHeight);
+		glUniform1f(glGetUniformLocation(eid, "nearPlane"), 0.1f);
+		glUniform1f(glGetUniformLocation(eid, "farPlane"), 5000.0f);
+		glUniform1f(glGetUniformLocation(eid, "edgeThreshold"), scene3d.outlineDepthThreshold);
+		glUniform1f(glGetUniformLocation(eid, "thickness"), scene3d.outlineWidth);
+		glUniform3fv(glGetUniformLocation(eid, "outlineColor"), 1, glm::value_ptr(scene3d.outlineColor));
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, mainFrameBuffer->depthTexture);
+		glActiveTexture(GL_TEXTURE0);
+
+		mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+		mainFrameBuffer->sprite->SetShader(prevShader);
+	}
+	else
+	{
+		mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+	}
 
 	if (renderSecondCutsceneBuffer)
 	{
@@ -3231,7 +3337,11 @@ break;
 
 void Game::RenderNormally()
 {
-	if (!use2DCamera && useDepthTesting)
+	// useDepthTesting alone decides: 2D games that switch to a perspective
+	// camera at runtime (2.5D mode) set it true while use2DCamera stays
+	// true - gating on use2DCamera silently disabled the depth buffer for
+	// them every frame, leaving pure painter's-algorithm draw order
+	if (useDepthTesting)
 	{
 		glEnable(GL_DEPTH_TEST);
 	}
@@ -3378,6 +3488,10 @@ void Game::RenderNormally()
 				entities[i]->RenderDebug(renderer);
 		}
 		renderer.EndBatch();
+
+		// Transparent 3D-scene models (glass/ice) draw last, back-to-front,
+		// while depth testing is still enabled (RenderScene turns it off).
+		Scene3D::Get().RenderTransparentModels(*this, renderer);
 	}
 
 	if (!use2DCamera && triangle3D != nullptr)

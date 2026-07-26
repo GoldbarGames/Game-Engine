@@ -79,6 +79,18 @@ void Texture::LoadTexture(SDL_Surface* surface, bool reset, Filter filter)
 		// GL_NEAREST ignored them, which made scaled-down text grainy
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+#ifdef GL_TEXTURE_MAX_ANISOTROPY_EXT
+		// Trilinear alone smears surfaces seen at oblique angles (2.5D floors);
+		// anisotropic sampling keeps them sharp into the distance
+		GLfloat maxAniso = 0.0f;
+		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
+		if (maxAniso > 1.0f)
+		{
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
+				maxAniso < 8.0f ? maxAniso : 8.0f);
+		}
+#endif
 	}
 	else
 	{

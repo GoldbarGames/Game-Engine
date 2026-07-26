@@ -2,15 +2,17 @@
 #include "Renderer.h"
 #include "Entity.h"
 #include "Game.h"
+#include "MenuManager.h"
 
 Textbox::Textbox(SpriteManager& m, Renderer& r)
 {
 	spriteManager = &m;
 	renderer = &r;
 
-	//TODO: Allow for this font to be defined via a file at startup
-	fontInfoText = renderer->game->CreateFont("SazanamiGothic", 96);
-	fontInfoSpeaker = renderer->game->CreateFont("SazanamiGothic", 96);
+	// Use the game's configured default font (a hardcoded "SazanamiGothic"
+	// here crashed any game that doesn't ship that font)
+	fontInfoText = renderer->game->CreateFont(renderer->game->menuManager->defaultFontName, 96);
+	fontInfoSpeaker = renderer->game->CreateFont(renderer->game->menuManager->defaultFontName, 96);
 
 	// These values can all be changed from the cutscene definition file at startup,
 	// although they will give errors here if they cannot find the images

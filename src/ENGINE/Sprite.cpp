@@ -22,6 +22,7 @@ Mesh* Sprite::meshTri = nullptr;
 Mesh* Sprite::meshLine = nullptr;
 Mesh* Sprite::meshPyramid = nullptr;
 Mesh* Sprite::meshCube = nullptr;
+Mesh* Sprite::meshCubeTile = nullptr;
 Mesh* Sprite::meshSphere = nullptr;
 std::string Sprite::selectedColor = "clear";
 
@@ -259,6 +260,72 @@ void Sprite::CreateMesh(MeshType meshType)
 			}
 
 			mesh = meshCube;
+		}
+		else if (meshType == MeshType::CubeTile)
+		{
+			if (meshCubeTile == nullptr)
+			{
+				// Same geometry as Cube, oriented for grid tiles whose
+				// vertical axis is local z. With real depth testing the
+				// NEAREST face of each quad pair wins, so faces are textured
+				// and lit naturally: the +z quad (camera side - the walkable
+				// top) shows the full texture; side faces sample the
+				// texture's bottom quarter (v 0.75..1) upright, with the
+				// strip's top at z=-1 (visual up = world -z).
+				// Format: x, y, z, u, v, nx, ny, nz
+				GLfloat cubeTileVertices[] = {
+					// y=1 quad: SOUTH side, faces the camera (normal +y)
+					-1.0f,  1.0f, -1.0f,   1.0f, 0.75f,   0.0f, 1.0f, 0.0f,  // 0
+					 1.0f,  1.0f, -1.0f,   0.0f, 0.75f,   0.0f, 1.0f, 0.0f,  // 1
+					 1.0f,  1.0f,  1.0f,   0.0f, 1.0f,    0.0f, 1.0f, 0.0f,  // 2
+					-1.0f,  1.0f,  1.0f,   1.0f, 1.0f,    0.0f, 1.0f, 0.0f,  // 3
+
+					// y=-1 quad: NORTH side (normal -y)
+					-1.0f, -1.0f, -1.0f,   0.0f, 0.75f,   0.0f, -1.0f, 0.0f, // 4
+					 1.0f, -1.0f, -1.0f,   1.0f, 0.75f,   0.0f, -1.0f, 0.0f, // 5
+					 1.0f, -1.0f,  1.0f,   1.0f, 1.0f,    0.0f, -1.0f, 0.0f, // 6
+					-1.0f, -1.0f,  1.0f,   0.0f, 1.0f,    0.0f, -1.0f, 0.0f, // 7
+
+					// z=1 quad: the walkable TOP (camera side) - full texture
+					-1.0f, -1.0f,  1.0f,   1.0f, 0.0f,    0.0f, 0.0f, 1.0f,  // 8
+					 1.0f, -1.0f,  1.0f,   0.0f, 0.0f,    0.0f, 0.0f, 1.0f,  // 9
+					 1.0f,  1.0f,  1.0f,   0.0f, 1.0f,    0.0f, 0.0f, 1.0f,  // 10
+					-1.0f,  1.0f,  1.0f,   1.0f, 1.0f,    0.0f, 0.0f, 1.0f,  // 11
+
+					// z=-1 quad: underside (normal -z, rarely visible)
+					-1.0f, -1.0f, -1.0f,   0.0f, 0.75f,   0.0f, 0.0f, -1.0f, // 12
+					 1.0f, -1.0f, -1.0f,   1.0f, 0.75f,   0.0f, 0.0f, -1.0f, // 13
+					 1.0f,  1.0f, -1.0f,   1.0f, 1.0f,    0.0f, 0.0f, -1.0f, // 14
+					-1.0f,  1.0f, -1.0f,   0.0f, 1.0f,    0.0f, 0.0f, -1.0f, // 15
+
+					// x=1 quad: EAST side (normal +x)
+					 1.0f, -1.0f, -1.0f,   0.0f, 0.75f,   1.0f, 0.0f, 0.0f,  // 16
+					 1.0f, -1.0f,  1.0f,   0.0f, 1.0f,    1.0f, 0.0f, 0.0f,  // 17
+					 1.0f,  1.0f,  1.0f,   1.0f, 1.0f,    1.0f, 0.0f, 0.0f,  // 18
+					 1.0f,  1.0f, -1.0f,   1.0f, 0.75f,   1.0f, 0.0f, 0.0f,  // 19
+
+					// x=-1 quad: WEST side (normal -x)
+					-1.0f, -1.0f, -1.0f,   1.0f, 0.75f,  -1.0f, 0.0f, 0.0f,  // 20
+					-1.0f, -1.0f,  1.0f,   1.0f, 1.0f,   -1.0f, 0.0f, 0.0f,  // 21
+					-1.0f,  1.0f,  1.0f,   0.0f, 1.0f,   -1.0f, 0.0f, 0.0f,  // 22
+					-1.0f,  1.0f, -1.0f,   0.0f, 0.75f,  -1.0f, 0.0f, 0.0f   // 23
+				};
+
+				// Same winding as the Cube mesh
+				unsigned int cubeTileIndices[] = {
+					0, 1, 2,   0, 2, 3,
+					4, 6, 5,   4, 7, 6,
+					8, 9, 10,  8, 10, 11,
+					12, 14, 13,  12, 15, 14,
+					16, 17, 18,  16, 18, 19,
+					20, 22, 21,  20, 23, 22
+				};
+
+				meshCubeTile = new Mesh();
+				meshCubeTile->CreateMesh(cubeTileVertices, cubeTileIndices, 24 * 8, 36, 8, 3, 5);
+			}
+
+			mesh = meshCubeTile;
 		}
 		else if (meshType == MeshType::Sphere)
 		{

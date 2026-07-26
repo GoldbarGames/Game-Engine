@@ -18,6 +18,14 @@ class KINJO_API Skybox : public Entity
 public:
 	float skyRadius = 3000.0f;
 
+	// Optional cross-fade to a second panorama: when blendToNext > 0 and
+	// nextTexture is set, the sphere is drawn a second time with nextTexture at
+	// alpha = blendToNext, over the base texture - so the sky can transition
+	// smoothly (e.g. a time-of-day system fading dusk into night). The base
+	// sprite's colour (tint) applies to both layers.
+	Texture* nextTexture = nullptr;
+	float blendToNext = 0.0f;
+
 	// Higher-resolution sphere than the engine's shared 16x32 mesh,
 	// for a smoother sky at close range (shared by all skyboxes)
 	static Mesh* meshSkySphere;

@@ -848,11 +848,11 @@ namespace CutsceneFunctions
 
 			std::string choiceQuestion = c.ParseStringValue(parameters[index]);
 
-			const int xpos = c.manager->game->initialWidth;
+			const int xpos = c.manager->game->designWidth;
 			const std::string xposStr = std::to_string(xpos);
 
 			LoadSprite({ "ld", std::to_string(spriteNumber), c.choiceBGFilePath,
-				xposStr, std::to_string(c.manager->game->initialHeight) }, c);
+				xposStr, std::to_string(c.manager->game->designHeight) }, c);
 
 			int posY = c.choicePosY; // *(c.manager->game->screenWidth / (float)c.manager->game->initialWidth);
 			const std::string posYStr = std::to_string(posY);
@@ -1632,8 +1632,10 @@ namespace CutsceneFunctions
 		{
 			c.manager->ClearAllSprites();
 
-			// TODO: This needs to be the INITIAL width/height of the screen to scale properly
-			pos = glm::vec3(c.manager->game->initialWidth, c.manager->game->initialHeight, c.manager->game->renderer.guiCamera.position.z);
+			// Background is centred in the GUI/ortho space, which is built from
+			// the DESIGN resolution (not the window size), so use that or the
+			// bg lands off-centre when the window != design resolution.
+			pos = glm::vec3(c.manager->game->designWidth, c.manager->game->designHeight, c.manager->game->renderer.guiCamera.position.z);
 
 			newImage.SetPosition(pos);
 

@@ -18,6 +18,10 @@ public:
 
 	int defaultFontSize = 24;
 
+	// Default UI font, loaded as fonts/<name>/<name>-Regular.ttf|.otf
+	// (games set this in their MenuManager subclass before Game construction)
+	std::string defaultFontName = "SazanamiGothic";
+
 	MenuManager();
 	~MenuManager();
 

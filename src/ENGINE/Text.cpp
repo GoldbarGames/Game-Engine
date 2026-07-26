@@ -592,24 +592,21 @@ void Text::SetPosition(const float x, const float y)
 
 		for (size_t i = 0; i < glyphs.size(); i++)
 		{
-			currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
-			glyphs[i]->position = currentPosition;
+			// Each glyph texture is now a proper cell as wide as the glyph's
+			// advance. The quad is centre-anchored, so place the glyph at the
+			// CENTRE of its cell (currentPosition = the cell's left edge) rather
+			// than at the cell's right edge. Advancing to the right edge (the
+			// old behaviour) only lined up when every glyph was the same width
+			// (monospace/CJK); proportional fonts came out unevenly spaced.
+			float w = glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
+			glyphs[i]->position = glm::vec3(currentPosition.x + w * 0.5f,
+				currentPosition.y, currentPosition.z);
+			currentPosition.x += w;
 
 			if (i > 0 && i == lineNumToIndex[lineNumber])
 			{
 				lineNumber++;
-				currentPosition.x = position.x;
-
-				if (glyphs[i]->letter != '\n')
-				{
-					currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
-				}
-				else // TODO: Not sure if this will always work properly in the future
-				{
-					// This fixes an indentation issue with line breaks
-					currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x;
-				}
-
+				currentPosition.x = position.x;   // start of the next line
 				currentPosition.y += glyphs[i]->sprite.frameHeight * glyphs[i]->scale.y * Camera::MULTIPLIER;
 			}
 		}
@@ -647,11 +644,14 @@ void Text::SetPosition(const float x, const float y)
 			lineNumber = 0;
 
 			for (size_t i = 0; i < glyphs.size(); i++)
-			{			
-				currentPosition.x += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
-
+			{
+				// Centre the glyph within its cell (see the LEFT case), then
+				// shift the whole line left by half its width to centre it.
+				float w = glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
 				glyphs[i]->position = currentPosition;
+				glyphs[i]->position.x += w * 0.5f;
 				glyphs[i]->position.x -= lineWidths[lineNumber] / Camera::MULTIPLIER;
+				currentPosition.x += w;
 
 				if (i > 0 && i == lineNumToIndex[lineNumber])
 				{

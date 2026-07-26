@@ -68,7 +68,7 @@ void SpriteManager::ClearCache(std::string const& imagePath)
 	}
 }
 
-Texture* SpriteManager::GetImage(std::string const& imagePath) const
+Texture* SpriteManager::GetImage(std::string const& imagePath, Texture::Filter filter) const
 {
 	if (images.count(imagePath) == 0)
 	{
@@ -115,7 +115,7 @@ Texture* SpriteManager::GetImage(std::string const& imagePath) const
 
 		Texture* newTexture = new Texture(imagePath.c_str());
 
-		newTexture->LoadTexture(surface);
+		newTexture->LoadTexture(surface, false, filter);
 		images[imagePath] = newTexture;
 
 		SDL_FreeSurface(surface);
@@ -136,14 +136,54 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, char c, int size)
 	{
 		SDL_Surface* textSurface = TTF_RenderGlyph_Blended(f, data.glyph, data.color);
 
-		Texture* textTexture = nullptr;
-		std::string path = "";
-		path += data.glyph;
-		textTexture = new Texture(path);
-		textTexture->LoadTexture(textSurface, false, Texture::Filter::Smooth);
+		// Rich text lays glyphs out by their texture size, so each glyph
+		// texture must be a proper "cell": as wide as the glyph's ADVANCE (pen
+		// movement, including side bearings) and as tall as the font's line
+		// height, with the ink placed at its left bearing / baseline. Rendering
+		// the raw ink bitmap (its old behavior) only worked for monospace/CJK
+		// fonts where ink width ~= advance; proportional fonts (e.g. Aileron)
+		// came out cramped and vertically misaligned. Building the cell here
+		// makes the layout correct for ANY font without touching Text.cpp.
+		int minx = 0, maxx = 0, miny = 0, maxy = 0, advance = 0;
+		bool haveMetrics = (TTF_GlyphMetrics(f, data.glyph,
+			&minx, &maxx, &miny, &maxy, &advance) == 0);
+		int lineHeight = TTF_FontHeight(f);
+
+		SDL_Surface* cell = nullptr;
+		// TTF_RenderGlyph_Blended already returns a surface that is FULL line
+		// height and baseline-aligned vertically (only the WIDTH is ink-tight,
+		// starting at the glyph's left ink edge). So we only need to widen it to
+		// the glyph's ADVANCE, placing the ink at its left side-bearing (minx).
+		// Do NOT shift it vertically - that clips the bottom of every glyph.
+		if (haveMetrics && advance > 0 && textSurface != nullptr
+			&& advance >= textSurface->w)
+		{
+			cell = SDL_CreateRGBSurfaceWithFormat(0, advance, textSurface->h, 32,
+				SDL_PIXELFORMAT_RGBA32);
+			if (cell != nullptr)
+			{
+				SDL_FillRect(cell, nullptr, SDL_MapRGBA(cell->format, 0, 0, 0, 0));
+				// Copy the ink (with its alpha) in at the left bearing; clamp so
+				// it can't spill past the cell (negative bearing / overhang).
+				// Don't blend against the empty transparent background.
+				int dx = minx;
+				if (dx < 0) dx = 0;
+				if (dx + textSurface->w > advance) dx = advance - textSurface->w;
+				if (dx < 0) dx = 0;
+				SDL_SetSurfaceBlendMode(textSurface, SDL_BLENDMODE_NONE);
+				SDL_Rect dst = { dx, 0, 0, 0 };
+				SDL_BlitSurface(textSurface, nullptr, cell, &dst);
+			}
+		}
+
+		Texture* textTexture = new Texture(std::string(1, data.glyph));
+		textTexture->LoadTexture(cell != nullptr ? cell : textSurface,
+			false, Texture::Filter::Smooth);
 
 		glyphTextures[data] = textTexture;
 
+		if (cell != nullptr)
+			SDL_FreeSurface(cell);
 		if (textSurface != nullptr)
 			SDL_FreeSurface(textSurface);
 	}

@@ -82,7 +82,10 @@ public:
 	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath) const;
 	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath, std::unordered_map<std::string, std::string>& args) const;
 	void ClearCache(std::string const& imagePath);
-	Texture* GetImage(const std::string& imagePath) const;
+	// filter applies only on first load; the cached texture keeps whichever
+	// filter it was created with, so load an image consistently everywhere
+	Texture* GetImage(const std::string& imagePath,
+		Texture::Filter filter = Texture::Filter::Point) const;
 	Texture* GetTexture(TTF_Font* f, char c, int size);
 	Texture* GetTexture(TTF_Font* f, const std::string& txt, int wrapWidth=0);
 	void Init(Renderer* r);

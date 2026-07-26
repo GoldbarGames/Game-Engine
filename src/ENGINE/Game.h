@@ -82,8 +82,6 @@ public:
 
 	ColorF clearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 
-	Model modelChopper;
-
 	Mesh* CreateQuadMesh();
 	Mesh* CreateCubeMesh();
 
@@ -132,10 +130,26 @@ public:
 	int screenWidth = initialWidth;
 	int screenHeight = initialHeight;
 
+	// Fixed "design" resolution that all 2D/GUI content is authored against.
+	// The cameras' ortho/gui projections are built from this, NOT the actual
+	// window size, so content fills the screen at any resolution (the final
+	// framebuffer blit scales the design-space render up to the window). Keep
+	// the aspect ratio matching your target displays (16:9 here).
+	int designWidth = 1280;
+	int designHeight = 720;
+
 	bool debugMode = false;
 	bool editMode = false;
 	bool soundMode = false;
-	bool guiMode = false; 
+	bool guiMode = false;
+
+	// When a game renders 3D scenes it manages its own 3D scene editor and the
+	// built-in 2D level editor should stay out of the way. Set by the game;
+	// suppresses the SDLK_2 2D-editor toggle so the game's 3D editor owns it.
+	bool prefer3DEditor = false;
+	// Set by the game while its 3D scene editor is active: freezes the normal
+	// cutscene/gameplay update so mouse/keys drive editing, not dialogue.
+	bool editing3D = false;
 
 	GUI* gui;
 	Mesh* cubeMesh;
@@ -281,6 +295,16 @@ public:
 
 	float timeScale = 1.0f;
 	float dtUnscaled = 0;
+
+	// Run this many Update() passes per rendered frame (default 1). Each
+	// pass sees a normal frame's dt, so gameplay and frame-based input
+	// playback behave identically to 1x - the game just runs N times
+	// faster in wall-clock time. Used for fast replay regression tests.
+	int updatesPerFrame = 1;
+
+	// Quit the game automatically when input playback finishes or aborts
+	// (set alongside InputManager::StartPlayback for automated test runs)
+	bool quitWhenPlaybackEnds = false;
 
 	// Automatically take a screenshot every X seconds
 	int autoScreenshots = 0;

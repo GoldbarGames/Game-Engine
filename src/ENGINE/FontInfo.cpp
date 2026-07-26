@@ -1,6 +1,7 @@
 #include "FontInfo.h"
 #include <SDL2/SDL_ttf.h>
 #include <stdexcept>
+#include <iostream>
 
 FontInfo::FontInfo(const std::string& f, int s)
 {
@@ -9,7 +10,13 @@ FontInfo::FontInfo(const std::string& f, int s)
 	pathRegular = f;
 
 	if (regular == nullptr)
+	{
+		// Log before throwing: Emscripten builds run with exceptions
+		// disabled, so the throw aborts with an opaque "Uncaught <ptr>"
+		// and this line is the only clue about which font failed
+		std::cout << "FATAL: failed to open font " << f << std::endl;
 		throw std::invalid_argument(std::string("Tried to create font with a null pointer: ") + f.c_str());
+	}
 }
 
 FontInfo::~FontInfo()

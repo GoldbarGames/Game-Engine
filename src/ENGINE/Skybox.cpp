@@ -3,7 +3,9 @@
 #include "Renderer.h"
 #include "Sprite.h"
 #include "SpriteManager.h"
+#include "Texture.h"
 #include "Mesh.h"
+#include "opengl_includes.h"
 #include <cmath>
 #include <vector>
 #include <iostream>
@@ -95,9 +97,39 @@ void Skybox::Update(Game& game)
 
 void Skybox::Render(const Renderer& renderer)
 {
-	if (GetSprite() == nullptr || GetSprite()->texture == nullptr)
+	Sprite* s = GetSprite();
+	if (s == nullptr || s->texture == nullptr)
 		return;
 
-	// There is no backface culling, so the sphere is visible from inside
-	GetSprite()->RenderWorld(position, glm::vec3(skyRadius), rotation, renderer);
+	// There is no backface culling, so the sphere is visible from inside.
+	// Pass 1: the base panorama (tint in colour.rgb, fully opaque).
+	const Color baseColor = s->color;
+	s->color.a = 255;
+	s->RenderWorld(position, glm::vec3(skyRadius), rotation, renderer);
+
+	// Pass 2: cross-fade toward the next panorama. Same geometry, so allow
+	// equal-depth overwrite (LEQUAL) without writing depth, and blend by the
+	// next layer's alpha. Restore state afterwards.
+	if (blendToNext > 0.0f && nextTexture != nullptr)
+	{
+		float b = blendToNext; if (b > 1.0f) b = 1.0f;
+		Texture* baseTex = s->texture;
+		s->texture = nextTexture;
+		s->color.a = (Uint8)(b * 255.0f);
+
+		const GLboolean blendWas = glIsEnabled(GL_BLEND);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDepthFunc(GL_LEQUAL);
+		glDepthMask(GL_FALSE);
+
+		s->RenderWorld(position, glm::vec3(skyRadius), rotation, renderer);
+
+		glDepthMask(GL_TRUE);
+		glDepthFunc(GL_LESS);
+		if (!blendWas) glDisable(GL_BLEND);
+		s->texture = baseTex;
+	}
+
+	s->color = baseColor;
 }

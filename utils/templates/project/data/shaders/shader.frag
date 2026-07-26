@@ -51,6 +51,11 @@ void main()
 	vec4 texColor = texture(theTexture, TexCoord.xy);
 	vec4 finalColor = texColor * spriteColor;
 
+	// Transparent pixels must not write depth: an invisible quad otherwise
+	// occludes everything drawn behind it later
+	if (finalColor.a < 0.1)
+		discard;
+
 	// If lightRatio is very low, we're in cave mode (point lights provide illumination)
 	// Otherwise use normal lightRatio for 2D mode
 	vec3 totalLight = lightRatio < 0.1 ? vec3(0.0) : vec3(lightRatio);

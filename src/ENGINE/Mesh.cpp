@@ -15,8 +15,8 @@ Mesh::~Mesh()
 }
 
 void Mesh::CreateMesh(GLfloat* vertices, unsigned int* indices,
-    unsigned int numOfVertices, unsigned int numOfIndices, unsigned int v, 
-    unsigned int uvOffset, unsigned int normalOffset)
+    unsigned int numOfVertices, unsigned int numOfIndices, unsigned int v,
+    unsigned int uvOffset, unsigned int normalOffset, int tangentOffset)
 {
     indexCount = numOfIndices;
 
@@ -41,11 +41,18 @@ void Mesh::CreateMesh(GLfloat* vertices, unsigned int* indices,
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * v, (void*)(sizeof(vertices[0]) * uvOffset));
     glEnableVertexAttribArray(1);
 
-    // Normals  - offset2, every v numbers is a new vertex
-    if (v == 8)
+    // Normals - present whenever a normal offset is given (stride 8 or 11)
+    if (normalOffset > 0)
     {
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * v, (void*)(sizeof(vertices[0]) * normalOffset));
         glEnableVertexAttribArray(2);
+    }
+
+    // Tangent (location 7, avoids the instancing mat4 slots 3-6)
+    if (tangentOffset >= 0)
+    {
+        glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * v, (void*)(sizeof(vertices[0]) * tangentOffset));
+        glEnableVertexAttribArray(7);
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);

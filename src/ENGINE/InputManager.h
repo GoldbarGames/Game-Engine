@@ -53,6 +53,17 @@ public:
 	std::vector<int> playbackInputs;
 	size_t playbackIndex = 0;
 
+	// Per-playback segment state (members, not statics - a playback that
+	// ends mid-segment must not poison the next one)
+	int playbackTargetCount = -1;
+	int playbackEndIndex = 0;
+
+	// Safety net for automated tests: abort playback after this many
+	// frames (0 = no limit) so a malformed or stuck replay can't hang
+	// a test run forever
+	int playbackMaxFrames = 0;
+	int playbackFrameCount = 0;
+
 	std::unordered_map<int, int> inputsThisFrame;
 	std::unordered_map<int, int> inputsLastFrame;
 
