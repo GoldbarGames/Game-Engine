@@ -32,6 +32,17 @@ public:
 
 	static unsigned int lastProgramID;
 
+	// Desktop GLSL version (e.g. 460 or 330) the context actually granted; file
+	// shaders have their "#version" line rewritten to this at load so a single
+	// set of .vert/.frag files works whether we get a 4.6 or a 3.3 context.
+	// Left at 330 and NOT applied on Emscripten (the web path keeps its own
+	// GLSL ES handling untouched). Default 330.
+	static int glslVersion;
+	static void SetGLSLVersion(int v) { glslVersion = v; }
+	// Rewrite the leading "#version ..." line of a shader source to the desktop
+	// context version (no-op on Emscripten / if no #version line is present).
+	static std::string ApplyVersion(const std::string& src);
+
 	void CreateFromString(const char* vertexCode, const char* fragmentCode);
 	void CreateFromFiles(const char* vertexFilePath, const char* fragmentFilePath);
 

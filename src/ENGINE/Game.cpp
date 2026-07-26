@@ -683,34 +683,48 @@ void Game::InitOpenGL()
 
 #else
 	
-	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
-	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_MAJOR_VERSION failed. " + std::string(SDL_GetError()));
-	}
-
-	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_MINOR_VERSION failed. " + std::string(SDL_GetError()));
-	}
-
-	// Set our OpenGL version.
-	// SDL_GL_CONTEXT_CORE gives us only the newer version, deprecated functions are disabled
+	// Desktop: prefer a modern 4.6 core context (unlocks GL 4.x features), and
+	// fall back to 3.3 core for older GPUs/drivers. 3.3 is the floor - our shaders
+	// need GLSL 330+. The version we actually get drives the "#version" line the
+	// shader loader injects (see ShaderProgram::ApplyVersion).
+	// SDL_GL_CONTEXT_CORE gives us only the newer version; deprecated functions off.
 	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE) != 0)
 	{
 		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_MASK failed. " + std::string(SDL_GetError()));
 	}
 
-	std::cout << "Creating context..." << std::endl;
-
-	// Set up OpenGL context - CALL THIS AFTER SETTING THE ATTRIBUTES!
-	// If you call in the wrong order, won't display correctly on many devices!
-	mainContext = SDL_GL_CreateContext(window);
+	const int tryMajor[] = { 4, 3 };
+	const int tryMinor[] = { 6, 3 };
+	mainContext = nullptr;
+	for (int t = 0; t < 2 && mainContext == nullptr; t++)
+	{
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, tryMajor[t]);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, tryMinor[t]);
+		std::cout << "Creating GL " << tryMajor[t] << "." << tryMinor[t] << " core context..." << std::endl;
+		mainContext = SDL_GL_CreateContext(window);
+		if (mainContext == nullptr)
+			logger.Log("GL " + std::to_string(tryMajor[t]) + "." + std::to_string(tryMinor[t])
+				+ " context unavailable: " + std::string(SDL_GetError()));
+	}
+	if (mainContext == nullptr)
+		logger.Log("ERROR: could not create any desktop GL context. " + std::string(SDL_GetError()));
 
 	if (SDL_GL_MakeCurrent(window, mainContext) != 0)
 	{
 		std::cout << "Context failed..." << std::endl;
 		logger.Log("ERROR: SDL_GL_MakeCurrent failed. " + std::string(SDL_GetError()));
+	}
+
+	// Record the achieved GLSL version (GL X.Y -> GLSL X*100+Y*10, floored at
+	// 330) so file shaders get their "#version" rewritten to match this context.
+	{
+		int glMaj = 3, glMin = 3;
+		glGetIntegerv(GL_MAJOR_VERSION, &glMaj);
+		glGetIntegerv(GL_MINOR_VERSION, &glMin);
+		int glsl = glMaj * 100 + glMin * 10;
+		if (glsl < 330) glsl = 330;
+		ShaderProgram::SetGLSLVersion(glsl);
+		std::cout << "Desktop GL " << glMaj << "." << glMin << " -> GLSL " << glsl << std::endl;
 	}
 
 	// Turn on double buffering with a 24bit Z buffer.

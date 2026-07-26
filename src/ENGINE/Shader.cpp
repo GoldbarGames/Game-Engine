@@ -174,10 +174,33 @@ GLuint ShaderProgram::GetUniformVariable(ShaderVariable variable) const
     return uniformVariables[variable];
 }
 
+int ShaderProgram::glslVersion = 330;
+
+std::string ShaderProgram::ApplyVersion(const std::string& src)
+{
+#ifdef __EMSCRIPTEN__
+    // Web keeps its existing GLSL ES handling (FULL_ES3); don't rewrite.
+    return src;
+#else
+    // Rewrite the first "#version ..." line to the context's version, e.g.
+    // "#version 460 core", so 330-authored files can use 4.x features when the
+    // GPU grants a 4.x context (and still work on the 3.3 fallback).
+    std::string ver = "#version " + std::to_string(glslVersion) + " core";
+    size_t pos = src.find("#version");
+    if (pos == std::string::npos)
+        return ver + "\n" + src;                 // no directive: prepend one
+    size_t eol = src.find('\n', pos);
+    if (eol == std::string::npos) eol = src.size();
+    std::string out = src;
+    out.replace(pos, eol - pos, ver);            // replace up to (not incl.) newline
+    return out;
+#endif
+}
+
 void ShaderProgram::CreateFromFiles(const char* vertexFilePath, const char* fragmentFilePath)
 {
-    std::string vertexString = ReadFile(vertexFilePath);
-    std::string fragmentString = ReadFile(fragmentFilePath);
+    std::string vertexString = ApplyVersion(ReadFile(vertexFilePath));
+    std::string fragmentString = ApplyVersion(ReadFile(fragmentFilePath));
 
     const char* vertexCode = vertexString.c_str();
     const char* fragmentCode = fragmentString.c_str();
