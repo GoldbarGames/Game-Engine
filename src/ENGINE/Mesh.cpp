@@ -81,20 +81,32 @@ void Mesh::SetInstances(const glm::mat4* matrices, unsigned int count, bool dyna
     glBufferData(GL_ARRAY_BUFFER, count * sizeof(glm::mat4), matrices,
         dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 
-    if (firstUpload)
+    // (Re)enable the instance attributes every call: ClearInstances() disables
+    // them again after the draw, so a mesh that is also drawn non-instanced
+    // (shadow pass) never keeps the per-instance divisors on locations 3-6.
+    (void)firstUpload;
+    // A mat4 attribute occupies four consecutive vec4 locations (3-6),
+    // advancing once per instance
+    for (int i = 0; i < 4; i++)
     {
-        // A mat4 attribute occupies four consecutive vec4 locations (3-6),
-        // advancing once per instance
-        for (int i = 0; i < 4; i++)
-        {
-            glEnableVertexAttribArray(3 + i);
-            glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                (void*)(i * sizeof(glm::vec4)));
-            glVertexAttribDivisor(3 + i, 1);
-        }
+        glEnableVertexAttribArray(3 + i);
+        glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+            (void*)(i * sizeof(glm::vec4)));
+        glVertexAttribDivisor(3 + i, 1);
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
+void Mesh::ClearInstances()
+{
+    instanceCount = 0;
+    if (instanceVBO == 0)
+        return;
+    glBindVertexArray(VAO);
+    for (int i = 0; i < 4; i++)
+        glDisableVertexAttribArray(3 + i);
     glBindVertexArray(0);
 }
 

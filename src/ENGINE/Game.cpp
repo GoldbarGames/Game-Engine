@@ -87,6 +87,46 @@ void operator delete(void* p)
 }
 */
 
+#if defined(_DEBUG) && !defined(__EMSCRIPTEN__)
+// GL 4.3+ debug output: the driver hands us the exact offending call with a
+// readable message + severity, replacing the engine's sticky-glGetError chasing.
+// Installed after glewInit when the context is >= 4.3 (debug desktop builds only;
+// web / release desktop are untouched). See ApplyVersion/[[engine-gl-version]].
+static void GLAPIENTRY GLDebugCallback(GLenum source, GLenum type, GLuint id,
+	GLenum severity, GLsizei /*length*/, const GLchar* message, const void* /*user*/)
+{
+	// Mute low-value driver chatter (e.g. NVIDIA "buffer will use VIDEO memory").
+	if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;
+	if (id == 131185 || id == 131218 || id == 131204) return;
+
+	const char* src = "?";
+	switch (source)
+	{
+		case GL_DEBUG_SOURCE_API:             src = "API";      break;
+		case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   src = "WinSys";   break;
+		case GL_DEBUG_SOURCE_SHADER_COMPILER: src = "Shader";   break;
+		case GL_DEBUG_SOURCE_THIRD_PARTY:     src = "3rdParty"; break;
+		case GL_DEBUG_SOURCE_APPLICATION:     src = "App";      break;
+		case GL_DEBUG_SOURCE_OTHER:           src = "Other";    break;
+	}
+	const char* typ = "?";
+	switch (type)
+	{
+		case GL_DEBUG_TYPE_ERROR:               typ = "ERROR";       break;
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typ = "DEPRECATED";  break;
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typ = "UNDEFINED";   break;
+		case GL_DEBUG_TYPE_PORTABILITY:         typ = "PORTABILITY"; break;
+		case GL_DEBUG_TYPE_PERFORMANCE:         typ = "PERF";        break;
+		case GL_DEBUG_TYPE_MARKER:              typ = "MARKER";      break;
+		case GL_DEBUG_TYPE_OTHER:               typ = "OTHER";       break;
+	}
+	const char* sev = (severity == GL_DEBUG_SEVERITY_HIGH)   ? "HIGH"
+	                : (severity == GL_DEBUG_SEVERITY_MEDIUM) ? "MED" : "LOW";
+	std::cout << "[GL " << sev << "/" << src << "/" << typ << " #" << id << "] "
+		<< message << std::endl;
+}
+#endif
+
 void WebGLMainLoop(Game* game)
 {
 	game->MainLoop();
@@ -693,6 +733,12 @@ void Game::InitOpenGL()
 		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_MASK failed. " + std::string(SDL_GetError()));
 	}
 
+	// Debug builds ask for a debug-capable context so GL 4.3+ debug output
+	// (glDebugMessageCallback, installed after glewInit) fires reliably.
+#ifdef _DEBUG
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+#endif
+
 	const int tryMajor[] = { 4, 3 };
 	const int tryMinor[] = { 6, 3 };
 	mainContext = nullptr;
@@ -761,6 +807,26 @@ void Game::InitOpenGL()
 	glewInit();
 	glAlphaFunc(GL_GREATER, 0.1f);
 	glEnable(GL_ALPHA_TEST);
+
+#if defined(_DEBUG) && !defined(__EMSCRIPTEN__)
+	// GL 4.3+ debug output (desktop debug builds): route driver diagnostics to
+	// stdout via GLDebugCallback. No-op on the 3.3 fallback (< 4.3).
+	{
+		int dMaj = 0, dMin = 0;
+		glGetIntegerv(GL_MAJOR_VERSION, &dMaj);
+		glGetIntegerv(GL_MINOR_VERSION, &dMin);
+		if ((dMaj * 10 + dMin) >= 43 && glDebugMessageCallback != nullptr)
+		{
+			glEnable(GL_DEBUG_OUTPUT);
+			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);   // report on the offending call's stack
+			glDebugMessageCallback(GLDebugCallback, nullptr);
+			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION,
+				0, nullptr, GL_FALSE);
+			std::cout << "GL debug output enabled (" << dMaj << "." << dMin << ")" << std::endl;
+		}
+	}
+#endif
 #endif
 
 	glEnable(GL_DEPTH_TEST);
@@ -3019,6 +3085,10 @@ void Game::Render()
 
 
 	
+	// Refresh the shared camera UBO (view+projection) + instance groups once per
+	// frame, before any 3D pass reads them.
+	Scene3D::Get().UpdateCameraUBO(renderer);
+
 	// Shadow maps: render scene depth from the sun's POV (outdoor) and from the
 	// strongest point light (indoor cube map) before the main pass.
 	Scene3D::Get().RenderShadowDepth(*this, renderer);

@@ -37,6 +37,11 @@ public:
 	// in a single glDrawElementsInstanced call. Call again to update
 	// (pass dynamic = true if updating often); count 0 disables instancing.
 	void SetInstances(const glm::mat4* matrices, unsigned int count, bool dynamic = false);
+	// Fully restore the mesh to non-instanced state: disable the instance
+	// attribute arrays (3-6) on the VAO and zero the instance count. Call after
+	// an instanced draw when the SAME mesh is also drawn non-instanced elsewhere
+	// (e.g. the shadow depth pass) so it doesn't inherit the instance divisors.
+	void ClearInstances();
 	unsigned int GetInstanceCount() const { return instanceCount; }
 
 	GLuint GetVAO() const { return VAO; };

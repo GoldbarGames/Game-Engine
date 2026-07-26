@@ -17,6 +17,9 @@
 #include <cmath>
 #include <algorithm>
 #include <filesystem>
+#include <map>
+#include <tuple>
+#include <vector>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
@@ -35,8 +38,29 @@ void Scene3DModel::Update(Game& game)
 	Entity::Update(game);
 }
 
+glm::mat4 Scene3DModel::ModelMatrix() const
+{
+	glm::mat4 model(1.0f);
+	model = glm::translate(model, position);
+	// Yaw about vertical (-Y), then pitch about X, then roll about Z.
+	model = glm::rotate(model, glm::radians(yawDeg), glm::vec3(0, -1, 0));
+	model = glm::rotate(model, glm::radians(pitchDeg), glm::vec3(1, 0, 0));
+	model = glm::rotate(model, glm::radians(rollDeg), glm::vec3(0, 0, 1));
+	model = glm::scale(model, EffectiveScale());
+	return model;
+}
+
 void Scene3DModel::Render(const Renderer& renderer)
 {
+	// Instanced grouping (rebuilt each frame): duplicate opaque props draw once,
+	// from their group leader; the other members skip this pass.
+	if (instanceMember)
+		return;
+	if (instanceGroupIndex >= 0)
+	{
+		Scene3D::Get().DrawInstancedGroup(renderer, instanceGroupIndex);
+		return;
+	}
 	// Transparent models (material opacity < 1) are drawn later, back-to-front,
 	// in Scene3D::RenderTransparentModels - skip them in the normal opaque pass.
 	if (material != nullptr && material->IsTransparent())
@@ -53,14 +77,7 @@ void Scene3DModel::DrawGeometry(const Renderer& renderer)
 		return;
 	}
 
-	glm::mat4 model(1.0f);
-	model = glm::translate(model, position);
-	// Yaw about vertical (-Y), then pitch about X, then roll about Z.
-	model = glm::rotate(model, glm::radians(yawDeg), glm::vec3(0, -1, 0));
-	model = glm::rotate(model, glm::radians(pitchDeg), glm::vec3(1, 0, 0));
-	model = glm::rotate(model, glm::radians(rollDeg), glm::vec3(0, 0, 1));
-	model = glm::scale(model, EffectiveScale());
-
+	glm::mat4 model = ModelMatrix();
 	glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
 
 	Scene3D& scene = Scene3D::Get();
@@ -69,10 +86,8 @@ void Scene3DModel::DrawGeometry(const Renderer& renderer)
 	shader->UseShader();
 	GLuint id = shader->GetID();
 	glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(model));
-	glUniformMatrix4fv(glGetUniformLocation(id, "view"), 1, GL_FALSE,
-		glm::value_ptr(renderer.camera.CalculateViewMatrix()));
-	glUniformMatrix4fv(glGetUniformLocation(id, "projection"), 1, GL_FALSE,
-		glm::value_ptr(renderer.camera.projection));
+	// view/projection now come from the shared Camera UBO (binding 0), uploaded
+	// once per frame by Scene3D::UpdateCameraUBO - not re-set on every draw.
 	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
 
 	// normalMatrix (computed above) corrects normals under non-uniform scale.
@@ -171,21 +186,216 @@ void Scene3D::RenderTransparentModels(Game& game, const Renderer& renderer)
 	glDepthMask(GL_TRUE);
 }
 
+// ---------------------------------------------------- shared camera UBO
+
+void Scene3D::EnsureCameraUBO()
+{
+	if (cameraUBO != 0)
+		return;
+
+	const GLsizeiptr bytes = 2 * sizeof(glm::mat4);   // view + projection (std140)
+	bool dsa = false;
+#ifndef __EMSCRIPTEN__
+	dsa = (ShaderProgram::glslVersion >= 450);        // Direct State Access = GL 4.5+
+	if (dsa)
+	{
+		glCreateBuffers(1, &cameraUBO);
+		glNamedBufferData(cameraUBO, bytes, nullptr, GL_DYNAMIC_DRAW);
+	}
+#endif
+	if (!dsa)
+	{
+		glGenBuffers(1, &cameraUBO);
+		glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
+		glBufferData(GL_UNIFORM_BUFFER, bytes, nullptr, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+	// Bind the buffer to binding point 0 (sticky); shaders link "Camera" -> 0.
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, cameraUBO);
+}
+
+void Scene3D::BindCameraBlock(ShaderProgram* program) const
+{
+	if (program == nullptr)
+		return;
+	GLuint id = program->GetID();
+	GLuint idx = glGetUniformBlockIndex(id, "Camera");
+	if (idx != GL_INVALID_INDEX)
+		glUniformBlockBinding(id, idx, 0);
+}
+
+void Scene3D::UpdateCameraUBO(const Renderer& renderer)
+{
+	if (renderer.camera.useOrthoCamera)
+		return;                     // 2D frames don't use the 3D camera block
+	EnsureCameraUBO();
+
+	glm::mat4 view = renderer.camera.CalculateViewMatrix();
+	glm::mat4 proj = renderer.camera.projection;
+	const GLsizeiptr mat = sizeof(glm::mat4);
+
+	bool dsa = false;
+#ifndef __EMSCRIPTEN__
+	dsa = (ShaderProgram::glslVersion >= 450);
+	if (dsa)
+	{
+		glNamedBufferSubData(cameraUBO, 0, mat, glm::value_ptr(view));
+		glNamedBufferSubData(cameraUBO, mat, mat, glm::value_ptr(proj));
+	}
+#endif
+	if (!dsa)
+	{
+		glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, mat, glm::value_ptr(view));
+		glBufferSubData(GL_UNIFORM_BUFFER, mat, mat, glm::value_ptr(proj));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+
+	RebuildInstanceGroups();
+}
+
+// ---------------------------------------------------- instanced opaque props
+
+void Scene3D::RebuildInstanceGroups()
+{
+	instanceGroups.clear();
+	for (Scene3DModel* m : models)
+	{
+		if (m == nullptr) continue;
+		m->instanceGroupIndex = -1;
+		m->instanceMember = false;
+	}
+	if (!instancingEnabled)
+		return;
+
+	// Bucket opaque, non-water, loaded props that share geometry + texture +
+	// material. Only groups of 2+ are worth an instanced draw.
+	std::map<std::tuple<std::string, std::string, const SceneMaterial*>,
+		std::vector<Scene3DModel*>> buckets;
+	for (Scene3DModel* m : models)
+	{
+		if (m == nullptr || !m->loaded || m->texture == nullptr) continue;
+		if (m->IsWater()) continue;
+		if (m->material != nullptr && m->material->IsTransparent()) continue;
+		if (m->model3D.meshList.empty()) continue;
+		buckets[std::make_tuple(m->objPath, m->texPath, m->material)].push_back(m);
+	}
+	for (auto& kv : buckets)
+	{
+		if (kv.second.size() < 2)
+			continue;                       // singleton: renders normally
+		int idx = (int)instanceGroups.size();
+		instanceGroups.push_back(kv.second);
+		kv.second[0]->instanceGroupIndex = idx;   // leader draws the whole group
+		for (size_t i = 1; i < kv.second.size(); i++)
+			kv.second[i]->instanceMember = true;  // members skip their own draw
+	}
+}
+
+void Scene3D::DrawInstancedGroup(const Renderer& renderer, int groupIndex)
+{
+#ifdef USE_ASSIMP
+	if (groupIndex < 0 || groupIndex >= (int)instanceGroups.size())
+		return;
+	const std::vector<Scene3DModel*>& group = instanceGroups[groupIndex];
+	if (group.empty() || instancedShader == nullptr)
+		return;
+	Scene3DModel* leader = group[0];
+	if (!leader->loaded || leader->texture == nullptr || leader->model3D.meshList.empty()
+		|| renderer.camera.useOrthoCamera)
+		return;
+
+	// Per-instance model matrices (rebuilt each frame so editor moves show up).
+	std::vector<glm::mat4> mats;
+	mats.reserve(group.size());
+	for (Scene3DModel* m : group)
+		mats.push_back(m->ModelMatrix());
+
+	const SceneMaterial& mat = leader->material ? *leader->material : MaterialLibrary::Get().Default();
+
+	instancedShader->UseShader();
+	GLuint id = instancedShader->GetID();
+	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
+	glUniform3fv(glGetUniformLocation(id, "viewPos"), 1, glm::value_ptr(renderer.camera.position));
+	glUniform1i(glGetUniformLocation(id, "toon"), celShading ? 1 : 0);
+	glUniform1f(glGetUniformLocation(id, "uTime"), renderer.now * 0.001f);
+
+	// Material uniforms (matches Scene3DModel::DrawGeometry; groups are non-water).
+	glUniform3fv(glGetUniformLocation(id, "matTint"), 1, glm::value_ptr(mat.tint));
+	glUniform3fv(glGetUniformLocation(id, "matEmissive"), 1, glm::value_ptr(mat.emissive));
+	glUniform1f(glGetUniformLocation(id, "matFresnel"), mat.fresnel);
+	glUniform2fv(glGetUniformLocation(id, "matUVTile"), 1, glm::value_ptr(mat.uvTile));
+	glUniform1f(glGetUniformLocation(id, "matNormalStrength"), mat.normalStrength);
+	glUniform1i(glGetUniformLocation(id, "matNormalMode"), (int)mat.normalMode);
+	glUniform1i(glGetUniformLocation(id, "matLighting"), (int)mat.lighting);
+	glUniform1f(glGetUniformLocation(id, "matSpecular"), mat.specular);
+	glUniform1f(glGetUniformLocation(id, "matShininess"), mat.shininess);
+	glUniform1f(glGetUniformLocation(id, "matMetallic"), mat.metallic);
+	glUniform1f(glGetUniformLocation(id, "matRoughness"), mat.roughness);
+	glUniform1f(glGetUniformLocation(id, "matOpacity"), mat.opacity);
+
+	if (mat.normalMap != nullptr)
+	{
+		glUniform1i(glGetUniformLocation(id, "matHasNormal"), 1);
+		glUniform1i(glGetUniformLocation(id, "normalMap"), 1);
+		mat.normalMap->UseTexture(GL_TEXTURE1);
+		glActiveTexture(GL_TEXTURE0);
+	}
+	else
+	{
+		glUniform1i(glGetUniformLocation(id, "matHasNormal"), 0);
+	}
+
+	ApplyLighting(id);
+	leader->texture->UseTexture();
+
+	// Upload the instance matrices to the leader's mesh(es), draw all instances in
+	// one call, then reset the instance count so later passes (shadow/outline that
+	// call RenderMesh(0) on this same mesh) still draw non-instanced.
+	for (Mesh* mesh : leader->model3D.meshList)
+	{
+		mesh->SetInstances(mats.data(), (unsigned int)mats.size(), true);
+		mesh->RenderMesh(0);
+		mesh->ClearInstances();   // restore pristine VAO for the shadow/other passes
+	}
+	renderer.drawCallsPerFrame++;
+#endif
+}
+
 void Scene3D::EnsureShadowMap()
 {
 	if (shadowFBO != 0)
 		return;
 	glGenFramebuffers(1, &shadowFBO);
-	glGenTextures(1, &shadowDepthTex);
-	glBindTexture(GL_TEXTURE_2D, shadowDepthTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadowMapSize, shadowMapSize,
-		0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
 	float border[4] = { 1.0f, 1.0f, 1.0f, 1.0f };   // outside frustum = far = lit
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
+	bool dsa = false;
+#ifndef __EMSCRIPTEN__
+	dsa = (ShaderProgram::glslVersion >= 450);       // Direct State Access = GL 4.5+
+	if (dsa)
+	{
+		// No bind-to-edit: create + immutable storage + params by texture name.
+		glCreateTextures(GL_TEXTURE_2D, 1, &shadowDepthTex);
+		glTextureStorage2D(shadowDepthTex, 1, GL_DEPTH_COMPONENT24, shadowMapSize, shadowMapSize);
+		glTextureParameteri(shadowDepthTex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTextureParameteri(shadowDepthTex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameteri(shadowDepthTex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTextureParameteri(shadowDepthTex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glTextureParameterfv(shadowDepthTex, GL_TEXTURE_BORDER_COLOR, border);
+	}
+#endif
+	if (!dsa)
+	{
+		glGenTextures(1, &shadowDepthTex);
+		glBindTexture(GL_TEXTURE_2D, shadowDepthTex);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadowMapSize, shadowMapSize,
+			0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
+	}
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowDepthTex, 0);
 	glDrawBuffer(GL_NONE);
@@ -309,19 +519,45 @@ void Scene3D::EnsurePointShadowMaps()
 {
 	if (pointShadowFBO == 0)
 		glGenFramebuffers(1, &pointShadowFBO);
-	for (int c = 0; c < kMaxPointShadows; c++)
+
+	bool useArray = false;
+#ifndef __EMSCRIPTEN__
+	useArray = (ShaderProgram::glslVersion >= 400);
+	if (useArray)
 	{
-		if (pointShadowCubes[c] != 0) continue;
-		glGenTextures(1, &pointShadowCubes[c]);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowCubes[c]);
-		for (int i = 0; i < 6; i++)
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT24,
-				pointShadowSize, pointShadowSize, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		// One cube-map ARRAY: kMaxPointShadows cubes (6 faces each) as layers.
+		if (pointShadowArrayTex == 0)
+		{
+			glGenTextures(1, &pointShadowArrayTex);
+			glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowArrayTex);
+			glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, GL_DEPTH_COMPONENT24,
+				pointShadowSize, pointShadowSize, 6 * kMaxPointShadows,
+				0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+			glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
+		}
+	}
+#endif
+	if (!useArray)
+	{
+		for (int c = 0; c < kMaxPointShadowsFallback; c++)
+		{
+			if (pointShadowCubes[c] != 0) continue;
+			glGenTextures(1, &pointShadowCubes[c]);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowCubes[c]);
+			for (int i = 0; i < 6; i++)
+				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT24,
+					pointShadowSize, pointShadowSize, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		}
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, pointShadowFBO);
 	glDrawBuffer(GL_NONE);
@@ -340,8 +576,17 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 	if (dirLight.diffuse > 0.02f)
 		return;
 
+	// A GL 4.x desktop context uses a cube-map ARRAY (up to kMaxPointShadows
+	// casters, dynamic layer index); the 3.3/web fallback uses separate cubes
+	// constant-indexed in the shader, so it caps at kMaxPointShadowsFallback.
+	bool useArray = false;
+#ifndef __EMSCRIPTEN__
+	useArray = (ShaderProgram::glslVersion >= 400);
+#endif
+	const int maxCasters = useArray ? kMaxPointShadows : kMaxPointShadowsFallback;
+
 	// Choose the casters: a specific named light (only that one), else AUTO = all
-	// enabled point lights, strongest first, up to kMaxPointShadows.
+	// enabled point lights, strongest first, up to maxCasters.
 	std::vector<int> casters;
 	if (!shadowCasterLight.empty())
 	{
@@ -360,7 +605,7 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 		});
 		for (int idx : on)
 		{
-			if ((int)casters.size() >= kMaxPointShadows) break;
+			if ((int)casters.size() >= maxCasters) break;
 			casters.push_back(idx);
 		}
 	}
@@ -428,8 +673,15 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 
 		for (int face = 0; face < 6; face++)
 		{
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-				GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, pointShadowCubes[s], 0);
+#ifndef __EMSCRIPTEN__
+			if (useArray)
+				// cube s occupies array layers [s*6 .. s*6+5]; layer index = s in the shader
+				glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+					pointShadowArrayTex, 0, s * 6 + face);
+			else
+#endif
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+					GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, pointShadowCubes[s], 0);
 			glClear(GL_DEPTH_BUFFER_BIT);
 			glm::mat4 vp = proj * views[face];
 			glUniformMatrix4fv(glGetUniformLocation(id, "viewProj"), 1, GL_FALSE, glm::value_ptr(vp));
@@ -549,10 +801,7 @@ void Character3D::DrawQuad(const Renderer& renderer, Texture* tex, float forward
 	shader->UseShader();
 	GLuint id = shader->GetID();
 	glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(m));
-	glUniformMatrix4fv(glGetUniformLocation(id, "view"), 1, GL_FALSE,
-		glm::value_ptr(renderer.camera.CalculateViewMatrix()));
-	glUniformMatrix4fv(glGetUniformLocation(id, "projection"), 1, GL_FALSE,
-		glm::value_ptr(renderer.camera.projection));
+	// view/projection from the shared Camera UBO (binding 0); see UpdateCameraUBO.
 	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
 
 	Scene3D::Get().ApplyLighting(id);
@@ -631,10 +880,19 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	if (shader == nullptr)
 	{
 		shader = new ShaderProgram(-1, "data/shaders/scene3d.vert", "data/shaders/scene3d.frag");
+		BindCameraBlock(shader);
 	}
 	if (billboardShader == nullptr)
 	{
 		billboardShader = new ShaderProgram(-1, "data/shaders/billboard3d.vert", "data/shaders/billboard3d.frag");
+		BindCameraBlock(billboardShader);
+	}
+	if (instancedShader == nullptr)
+	{
+		// Instanced variant of the model shader (dup opaque props). Shares
+		// scene3d.frag; reads the per-instance model matrix from attributes.
+		instancedShader = new ShaderProgram(-1, "data/shaders/scene3d_instanced.vert", "data/shaders/scene3d.frag");
+		BindCameraBlock(instancedShader);
 	}
 	if (edgeShader == nullptr)
 	{
@@ -1088,31 +1346,65 @@ void Scene3D::ApplyLighting(unsigned int shaderID) const
 	// shadows). shadowStrength is shared with the sun shadow.
 	if (pointShadowActive && pointShadowsEnabled && pointShadowCount > 0)
 	{
-		float psPos[kMaxPointShadows * 3], psFar[kMaxPointShadows];
-		int psIdx[kMaxPointShadows], psUnit[kMaxPointShadows];
-		int n = 0;
-		for (int s = 0; s < pointShadowCount; s++)
+		bool useArray = false;
+#ifndef __EMSCRIPTEN__
+		useArray = (ShaderProgram::glslVersion >= 400);
+#endif
+#ifndef __EMSCRIPTEN__
+		if (useArray)
 		{
-			if (pointShadowCubes[s] == 0 || packedForSlot[s] < 0) continue;
-			glActiveTexture(GL_TEXTURE4 + n);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowCubes[s]);
-			psUnit[n] = 4 + n;
-			psPos[n * 3 + 0] = pointShadowPositions[s].x;
-			psPos[n * 3 + 1] = pointShadowPositions[s].y;
-			psPos[n * 3 + 2] = pointShadowPositions[s].z;
-			psFar[n] = pointShadowFars[s];
-			psIdx[n] = packedForSlot[s];
-			n++;
-		}
-		glActiveTexture(GL_TEXTURE0);
-		glUniform1i(glGetUniformLocation(id, "pointShadowCount"), n);
-		if (n > 0)
-		{
-			glUniform1iv(glGetUniformLocation(id, "pointShadowMaps"), n, psUnit);
-			glUniform3fv(glGetUniformLocation(id, "pointShadowPositions"), n, psPos);
-			glUniform1fv(glGetUniformLocation(id, "pointShadowFars"), n, psFar);
-			glUniform1iv(glGetUniformLocation(id, "pointShadowLightIdx"), n, psIdx);
+			// GL4 cube-map array: shader samples layer == caster slot, so upload
+			// slots directly (no compaction) to keep layer/index aligned.
+			float psPos[kMaxPointShadows * 3], psFar[kMaxPointShadows];
+			int psIdx[kMaxPointShadows];
+			for (int s = 0; s < pointShadowCount; s++)
+			{
+				psPos[s * 3 + 0] = pointShadowPositions[s].x;
+				psPos[s * 3 + 1] = pointShadowPositions[s].y;
+				psPos[s * 3 + 2] = pointShadowPositions[s].z;
+				psFar[s] = pointShadowFars[s];
+				psIdx[s] = packedForSlot[s];
+			}
+			glActiveTexture(GL_TEXTURE4);
+			glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowArrayTex);
+			glActiveTexture(GL_TEXTURE0);
+			glUniform1i(glGetUniformLocation(id, "pointShadowArray"), 4);
+			glUniform1i(glGetUniformLocation(id, "pointShadowCount"), pointShadowCount);
+			glUniform3fv(glGetUniformLocation(id, "pointShadowPositions"), pointShadowCount, psPos);
+			glUniform1fv(glGetUniformLocation(id, "pointShadowFars"), pointShadowCount, psFar);
+			glUniform1iv(glGetUniformLocation(id, "pointShadowLightIdx"), pointShadowCount, psIdx);
 			glUniform1f(glGetUniformLocation(id, "shadowStrength"), shadowStrength);
+		}
+		else
+#endif
+		{
+			// Fallback: bind each caster's cube to units 4,5,6,... (compacted).
+			float psPos[kMaxPointShadowsFallback * 3], psFar[kMaxPointShadowsFallback];
+			int psIdx[kMaxPointShadowsFallback], psUnit[kMaxPointShadowsFallback];
+			int n = 0;
+			for (int s = 0; s < pointShadowCount && n < kMaxPointShadowsFallback; s++)
+			{
+				if (pointShadowCubes[s] == 0 || packedForSlot[s] < 0) continue;
+				glActiveTexture(GL_TEXTURE4 + n);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowCubes[s]);
+				psUnit[n] = 4 + n;
+				psPos[n * 3 + 0] = pointShadowPositions[s].x;
+				psPos[n * 3 + 1] = pointShadowPositions[s].y;
+				psPos[n * 3 + 2] = pointShadowPositions[s].z;
+				psFar[n] = pointShadowFars[s];
+				psIdx[n] = packedForSlot[s];
+				n++;
+			}
+			glActiveTexture(GL_TEXTURE0);
+			glUniform1i(glGetUniformLocation(id, "pointShadowCount"), n);
+			if (n > 0)
+			{
+				glUniform1iv(glGetUniformLocation(id, "pointShadowMaps"), n, psUnit);
+				glUniform3fv(glGetUniformLocation(id, "pointShadowPositions"), n, psPos);
+				glUniform1fv(glGetUniformLocation(id, "pointShadowFars"), n, psFar);
+				glUniform1iv(glGetUniformLocation(id, "pointShadowLightIdx"), n, psIdx);
+				glUniform1f(glGetUniformLocation(id, "shadowStrength"), shadowStrength);
+			}
 		}
 	}
 	else

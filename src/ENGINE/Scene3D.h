@@ -126,6 +126,15 @@ public:
 	bool hasLocalBounds = false;
 	glm::vec3 aabbMin = glm::vec3(0), aabbMax = glm::vec3(0);   // world-space, for picking
 
+	// Instanced-draw grouping (rebuilt each frame by Scene3D::RebuildInstanceGroups):
+	// duplicate opaque props sharing obj+texture+material draw in one instanced call.
+	// leader: index into Scene3D::instanceGroups; member: drawn by its leader (skip).
+	int instanceGroupIndex = -1;
+	bool instanceMember = false;
+
+	// The full model transform (translate * yaw * pitch * roll * scale).
+	glm::mat4 ModelMatrix() const;
+
 	Scene3DModel(const glm::vec3& pos);
 
 	void Update(Game& game) override;
@@ -297,6 +306,19 @@ public:
 	// shaders share the same light uniform names.
 	void ApplyLighting(unsigned int shaderID) const;
 
+	// Refresh the shared camera UBO (view+projection, std140 binding 0) and
+	// rebuild the per-frame instance groups. Call once per frame before the 3D
+	// draws (Game::Render does). See scene3d.vert / scene3d_instanced.vert.
+	void UpdateCameraUBO(const Renderer& renderer);
+
+	// Draw one instance group (duplicate opaque props) in a single instanced
+	// call. Called by the group leader's Scene3DModel::Render.
+	void DrawInstancedGroup(const Renderer& renderer, int groupIndex);
+
+	// Batch duplicate opaque props (same obj+texture+material) into one
+	// instanced draw. On by default; toggle for A/B testing or debugging.
+	bool instancingEnabled = true;
+
 	// Runtime light control (by the name given in the .scene file). All
 	// return false if no light of that name exists.
 	bool SetLightOn(const std::string& name, bool on);
@@ -417,9 +439,21 @@ private:
 	std::vector<std::string> cameraOrder;  // first entry = default view
 	ShaderProgram* shader = nullptr;         // scene models
 	ShaderProgram* billboardShader = nullptr;  // characters
+	ShaderProgram* instancedShader = nullptr;  // scene models, instanced (dup props)
 	ShaderProgram* edgeShader = nullptr;       // post-process depth-edge outline
 	ShaderProgram* shadowDepthShader = nullptr;  // sun's-POV depth pass
 	unsigned int shadowFBO = 0, shadowDepthTex = 0;
+
+	// Shared camera matrices (std140 UBO, binding point 0): view + projection,
+	// uploaded once per frame instead of per draw. Core GL 3.1 / ES 3.0.
+	unsigned int cameraUBO = 0;
+	void EnsureCameraUBO();
+	// Link a program's "Camera" uniform block to binding point 0 (no-op if absent).
+	void BindCameraBlock(ShaderProgram* program) const;
+
+	// Per-frame instance groups (>=2 duplicate opaque props each); group[0] leads.
+	std::vector<std::vector<Scene3DModel*>> instanceGroups;
+	void RebuildInstanceGroups();
 	int shadowMapSize = 2048;
 	glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);
 	bool shadowActive = false;    // was the shadow map rendered this frame?
@@ -429,16 +463,21 @@ private:
 	// at once, each into its own cube. Depth is re-rendered only when the scene
 	// changes (static caching), and each cube's depth pass culls out-of-range
 	// geometry - so several lamp shadows in a mostly-static room are nearly free.
-	static const int kMaxPointShadows = 4;
+	// On a GL 4.x context: one cube-map ARRAY holds up to kMaxPointShadows cubes,
+	// sampled with a runtime layer index (no fixed-sampler cap). On the 3.3/web
+	// fallback: up to kMaxPointShadowsFallback separate cubes, constant-indexed.
+	static const int kMaxPointShadows = 8;           // GL4 cube-array capacity
+	static const int kMaxPointShadowsFallback = 4;   // 3.3/web separate-cube cap
 	ShaderProgram* pointShadowShader = nullptr;
 	unsigned int pointShadowFBO = 0;
-	unsigned int pointShadowCubes[kMaxPointShadows] = { 0, 0, 0, 0 };
+	unsigned int pointShadowCubes[kMaxPointShadowsFallback] = { 0, 0, 0, 0 };
+	unsigned int pointShadowArrayTex = 0;            // GL4: GL_TEXTURE_CUBE_MAP_ARRAY
 	int pointShadowSize = 1024;
-	int pointShadowCount = 0;                       // active casters this frame
+	int pointShadowCount = 0;                        // active casters this frame
 	glm::vec3 pointShadowPositions[kMaxPointShadows];
-	float pointShadowFars[kMaxPointShadows] = { 0, 0, 0, 0 };
+	float pointShadowFars[kMaxPointShadows] = { 0 };
 	bool pointShadowActive = false;
-	double pointShadowSig = 0.0;                    // cache key (moved -> re-render)
+	double pointShadowSig = 0.0;                     // cache key (moved -> re-render)
 	bool pointShadowEverRendered = false;
 	void EnsurePointShadowMaps();
 	Mesh* billboardQuad = nullptr;           // shared unit quad

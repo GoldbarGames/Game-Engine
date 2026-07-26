@@ -184,8 +184,12 @@ std::string ShaderProgram::ApplyVersion(const std::string& src)
 #else
     // Rewrite the first "#version ..." line to the context's version, e.g.
     // "#version 460 core", so 330-authored files can use 4.x features when the
-    // GPU grants a 4.x context (and still work on the 3.3 fallback).
+    // GPU grants a 4.x context (and still work on the 3.3 fallback). Also inject
+    // a capability define so shaders can #ifdef GL 4.x-only paths (e.g.
+    // samplerCubeArray). Defines must follow the #version line.
     std::string ver = "#version " + std::to_string(glslVersion) + " core";
+    if (glslVersion >= 400)
+        ver += "\n#define KINJO_GL4";
     size_t pos = src.find("#version");
     if (pos == std::string::npos)
         return ver + "\n" + src;                 // no directive: prepend one
