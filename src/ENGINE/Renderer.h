@@ -117,6 +117,17 @@ public:
 	void FlushBatch() const;
 	void EndBatch() const;
 
+	// Is the instanced-draw machinery (shader + quad + buffer) usable? Text uses
+	// this to decide whether to batch a glyph run or fall back to per-glyph draws.
+	bool GlyphBatchReady() const;
+	// Draw a run of glyphs that all share one font-atlas texture in ONE instanced
+	// call, using the GUI camera. Each entry: model matrix (from the glyph's own
+	// CalculateModel), texData = vec4(uvOffset.xy, uvSize.xy), and color. This is a
+	// dedicated path (NOT the sprite auto-batch), so normal sprite rendering is
+	// unaffected. Used by Text::Render for ASCII-atlas rich text.
+	void DrawGlyphBatch(Texture* atlas, const std::vector<glm::mat4>& models,
+		const std::vector<glm::vec4>& texData, const std::vector<glm::vec4>& colors) const;
+
 	void Init(Game* g);
 	void SetDepthTestEnabled(bool enabled) const;
 	void SetDepthBias(float factor, float units) const;

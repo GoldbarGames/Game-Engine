@@ -191,6 +191,113 @@ Texture* SpriteManager::GetTexture(TTF_Font* f, char c, int size)
 	return glyphTextures[data];
 }
 
+FontAtlas* SpriteManager::GetFontAtlas(TTF_Font* f, int size)
+{
+	if (f == nullptr)
+		return nullptr;
+
+	// Key by family + style + size so different fonts (Aileron vs SazanamiGothic)
+	// never collide - the style name alone ("Regular") is shared across families.
+	const char* fam = TTF_FontFaceFamilyName(f);
+	const char* sty = TTF_FontFaceStyleName(f);
+	std::string key = std::string(fam ? fam : "?") + "|" + std::string(sty ? sty : "?")
+		+ "|" + std::to_string(size);
+	auto found = fontAtlases.find(key);
+	if (found != fontAtlases.end())
+		return &found->second;
+
+	const int first = 32, last = 126;      // printable ASCII
+	const int gutter = 2;                  // transparent margin so filtering can't bleed
+	const int lineHeight = TTF_FontHeight(f);
+	SDL_Color white = { 255, 255, 255, 255 };
+
+	// Pass 1: build each glyph's advance-width cell surface (same construction as
+	// the per-glyph GetTexture path) and track the widest advance for the grid.
+	struct Cell { char c; SDL_Surface* surf; int advance; };
+	std::vector<Cell> cells;
+	int maxAdvance = 1;
+	for (int ch = first; ch <= last; ch++)
+	{
+		SDL_Surface* ink = TTF_RenderGlyph_Blended(f, (Uint16)ch, white);
+		int minx = 0, maxx = 0, miny = 0, maxy = 0, advance = 0;
+		bool haveMetrics = (TTF_GlyphMetrics(f, (Uint16)ch, &minx, &maxx, &miny, &maxy, &advance) == 0);
+
+		SDL_Surface* cell = nullptr;
+		if (haveMetrics && advance > 0 && ink != nullptr && advance >= ink->w)
+		{
+			cell = SDL_CreateRGBSurfaceWithFormat(0, advance, ink->h, 32, SDL_PIXELFORMAT_RGBA32);
+			if (cell != nullptr)
+			{
+				SDL_FillRect(cell, nullptr, SDL_MapRGBA(cell->format, 0, 0, 0, 0));
+				int dx = minx;
+				if (dx < 0) dx = 0;
+				if (dx + ink->w > advance) dx = advance - ink->w;
+				if (dx < 0) dx = 0;
+				SDL_SetSurfaceBlendMode(ink, SDL_BLENDMODE_NONE);
+				SDL_Rect dst = { dx, 0, 0, 0 };
+				SDL_BlitSurface(ink, nullptr, cell, &dst);
+			}
+		}
+
+		SDL_Surface* use = (cell != nullptr) ? cell : ink;   // raw ink for rare overhang glyphs
+		if (use == nullptr)
+			continue;
+		int adv = (advance > 0) ? advance : use->w;
+		cells.push_back({ (char)ch, use, adv });
+		if (adv > maxAdvance) maxAdvance = adv;
+		if (cell != nullptr && ink != nullptr)
+			SDL_FreeSurface(ink);            // ink was copied into the cell
+	}
+	if (cells.empty())
+		return nullptr;
+
+	// Pass 2: pack the cells into a uniform grid (16 columns) with gutters.
+	const int cols = 16;
+	const int slotW = maxAdvance + gutter;
+	const int slotH = lineHeight + gutter;
+	const int rows = ((int)cells.size() + cols - 1) / cols;
+	const int atlasW = cols * slotW;
+	const int atlasH = rows * slotH;
+
+	SDL_Surface* atlas = SDL_CreateRGBSurfaceWithFormat(0, atlasW, atlasH, 32, SDL_PIXELFORMAT_RGBA32);
+	if (atlas == nullptr)
+	{
+		for (Cell& c : cells) SDL_FreeSurface(c.surf);
+		return nullptr;
+	}
+	SDL_FillRect(atlas, nullptr, SDL_MapRGBA(atlas->format, 0, 0, 0, 0));
+
+	FontAtlas fa;
+	fa.lineHeight = lineHeight;
+	for (size_t i = 0; i < cells.size(); i++)
+	{
+		int x = (int)(i % cols) * slotW;
+		int y = (int)(i / cols) * slotH;
+		SDL_SetSurfaceBlendMode(cells[i].surf, SDL_BLENDMODE_NONE);
+		SDL_Rect dst = { x, y, 0, 0 };
+		SDL_BlitSurface(cells[i].surf, nullptr, atlas, &dst);
+
+		GlyphUV uv;
+		uv.u0 = (float)x / atlasW;
+		uv.v0 = (float)y / atlasH;
+		uv.u1 = (float)(x + cells[i].advance) / atlasW;
+		uv.v1 = (float)(y + lineHeight) / atlasH;
+		uv.cellW = cells[i].advance;
+		uv.cellH = lineHeight;
+		fa.glyphs[cells[i].c] = uv;
+
+		SDL_FreeSurface(cells[i].surf);
+	}
+
+	Texture* tex = new Texture("__fontatlas__");
+	tex->LoadTexture(atlas, false, Texture::Filter::Smooth);
+	fa.texture = tex;
+	SDL_FreeSurface(atlas);
+
+	fontAtlases[key] = fa;
+	return &fontAtlases[key];
+}
+
 Texture* SpriteManager::GetTexture(TTF_Font* f, const std::string& txt, int wrapWidth)
 {
 	Texture* textTexture = nullptr;

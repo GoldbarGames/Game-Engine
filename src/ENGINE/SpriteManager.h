@@ -68,6 +68,25 @@ private:
 	}
 };
 
+// One glyph's placement inside a font atlas: its UV sub-rect + the rendered cell
+// size (advance width x line height) that text layout advances by.
+struct GlyphUV
+{
+	float u0 = 0, v0 = 0, u1 = 0, v1 = 0;
+	int cellW = 0, cellH = 0;
+};
+
+// All printable-ASCII glyphs of one (font, size) packed into a single texture, so
+// a whole Latin string can be drawn in ONE batched draw call instead of one draw
+// per glyph. Non-ASCII glyphs are NOT in the atlas and fall back to the per-glyph
+// path (SpriteManager::GetTexture) - see the glyph-atlas plan.
+struct FontAtlas
+{
+	Texture* texture = nullptr;                 // owns the packed atlas texture
+	std::unordered_map<char, GlyphUV> glyphs;
+	int lineHeight = 0;
+};
+
 class Renderer;
 
 class KINJO_API SpriteManager
@@ -77,7 +96,11 @@ private:
 	mutable std::unordered_map<std::string, std::vector<AnimState*>> animationStates;
 	std::unordered_map<GlyphSurfaceData, Texture*, GlyphHashFunction> glyphTextures;
 	std::unordered_map<std::string, Texture*> textImages;
+	std::unordered_map<std::string, FontAtlas> fontAtlases;   // key: fontName + "|" + size
 public:
+	// Build (once) and return the ASCII glyph atlas for this font+size, or nullptr
+	// if it can't be built. Glyphs not covered fall back to per-glyph GetTexture.
+	FontAtlas* GetFontAtlas(TTF_Font* f, int size);
 	Renderer* renderer = nullptr;
 	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath) const;
 	std::vector<AnimState*> ReadAnimData(const std::string& dataFilePath, std::unordered_map<std::string, std::string>& args) const;

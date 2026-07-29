@@ -3,6 +3,7 @@
 #include "Sprite.h"
 #include "FontInfo.h"
 #include "Animator.h"
+#include "SpriteManager.h"
 
 glm::vec2 Text::defaultScale = glm::vec2(1.0f, 1.0f);
 
@@ -396,16 +397,63 @@ void Text::Render(const Renderer& renderer)
 	{
 		if (isRichText)
 		{
-			for (int i = 0; i < glyphs.size(); i++)
+			// Fast path: if every glyph lives in this font's ASCII atlas (and none
+			// is per-glyph animated), draw the whole run in ONE instanced call
+			// instead of one draw per glyph. Non-ASCII / animated text falls back
+			// to the per-glyph loop below (unchanged). See the glyph-atlas plan.
+			FontAtlas* atlas = (currentFontInfo != nullptr)
+				? Animator::spriteManager->GetFontAtlas(font, currentFontInfo->GetFontSize())
+				: nullptr;
+			bool batchable = atlas != nullptr && renderer.GlyphBatchReady() && !glyphs.empty();
+			if (batchable)
 			{
-				if (glyphs[i]->animator != nullptr)
+				for (Glyph* g : glyphs)
 				{
-					glyphs[i]->sprite.Render(glyphs[i]->position,
-						glyphs[i]->animator->GetSpeed(), renderer, glyphs[i]->scale, rotation);
+					if (g->animator != nullptr) { batchable = false; break; }
+					if (g->letter == '\n') continue;                 // skip (invisible)
+					if (atlas->glyphs.find(g->letter) == atlas->glyphs.end())
+					{ batchable = false; break; }
 				}
-				else
+			}
+
+			if (batchable)
+			{
+				std::vector<glm::mat4> models;
+				std::vector<glm::vec4> texData, colors;
+				models.reserve(glyphs.size());
+				texData.reserve(glyphs.size());
+				colors.reserve(glyphs.size());
+				for (Glyph* g : glyphs)
 				{
-					glyphs[i]->sprite.Render(glyphs[i]->position, 0, renderer, glyphs[i]->scale, rotation);
+					if (g->letter == '\n')
+						continue;
+					// The glyph's own cell texture still drives CalculateModel's
+					// size/transform (its cell == the atlas cell), so positioning is
+					// identical to the per-glyph path; only the sampled texture + UV
+					// change to the atlas.
+					g->sprite.CalculateModel(g->position, rotation,
+						glm::vec3(g->scale.x, g->scale.y, 1.0f), renderer);
+					models.push_back(g->sprite.model);
+					const GlyphUV& uv = atlas->glyphs[g->letter];
+					texData.push_back(glm::vec4(uv.u0, uv.v0, uv.u1 - uv.u0, uv.v1 - uv.v0));
+					colors.push_back(glm::vec4(g->sprite.color.r / 255.0f, g->sprite.color.g / 255.0f,
+						g->sprite.color.b / 255.0f, g->sprite.color.a / 255.0f));
+				}
+				renderer.DrawGlyphBatch(atlas->texture, models, texData, colors);
+			}
+			else
+			{
+				for (int i = 0; i < glyphs.size(); i++)
+				{
+					if (glyphs[i]->animator != nullptr)
+					{
+						glyphs[i]->sprite.Render(glyphs[i]->position,
+							glyphs[i]->animator->GetSpeed(), renderer, glyphs[i]->scale, rotation);
+					}
+					else
+					{
+						glyphs[i]->sprite.Render(glyphs[i]->position, 0, renderer, glyphs[i]->scale, rotation);
+					}
 				}
 			}
 		}

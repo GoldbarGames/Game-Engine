@@ -426,6 +426,48 @@ void Renderer::FlushBatch() const
 	batchColors.clear();
 }
 
+bool Renderer::GlyphBatchReady() const
+{
+	return instancedShader != nullptr && instancedShader->GetID() != 0
+		&& batchMesh != nullptr && instanceVBO != 0;
+}
+
+void Renderer::DrawGlyphBatch(Texture* atlas, const std::vector<glm::mat4>& models,
+	const std::vector<glm::vec4>& texData, const std::vector<glm::vec4>& colors) const
+{
+	if (!GlyphBatchReady() || atlas == nullptr || models.empty())
+		return;
+
+	size_t count = models.size();
+	if (count > (size_t)MAX_BATCH_SIZE) count = MAX_BATCH_SIZE;
+
+	instancedShader->UseShader();
+	// Match the per-glyph immediate path exactly (Sprite::Render): camera-relative
+	// text uses the GUI camera's VIEW but the main camera's guiProjection.
+	glUniformMatrix4fv(instancedShader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
+		glm::value_ptr(guiCamera.CalculateViewMatrix()));
+	glUniformMatrix4fv(instancedShader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
+		glm::value_ptr(camera.guiProjection));
+	glUniform1f(instancedShader->GetUniformVariable(ShaderVariable::distanceToLight2D), 1.0f);
+
+	atlas->UseTexture();
+
+	// Same interleaved-by-block layout FlushBatch uses (matrices | texData | colors).
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(glm::mat4), models.data());
+	size_t texDataOffset = sizeof(glm::mat4) * MAX_BATCH_SIZE;
+	glBufferSubData(GL_ARRAY_BUFFER, texDataOffset, count * sizeof(glm::vec4), texData.data());
+	size_t colorOffset = texDataOffset + sizeof(glm::vec4) * MAX_BATCH_SIZE;
+	glBufferSubData(GL_ARRAY_BUFFER, colorOffset, count * sizeof(glm::vec4), colors.data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindVertexArray(batchMesh->GetVAO());
+	glDrawElementsInstanced(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0, (GLsizei)count);
+	glBindVertexArray(0);
+
+	drawCallsPerFrame++;
+}
+
 void Renderer::EndBatch() const
 {
 	FlushBatch();
