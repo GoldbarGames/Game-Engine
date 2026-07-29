@@ -218,6 +218,8 @@ public:
 	bool CameraButtonClick(Game& game, float sx, float sy);
 	// If (sx,sy) hits a camera-list row, jump there and return true.
 	bool CameraListClick(Game& game, float sx, float sy);
+	// If (sx,sy) hits the OBJECTS / CAMERAS tab, switch the panel and return true.
+	bool ListTabClick(Game& game, float sx, float sy);
 private:
 
 	// Action buttons: DELETE, ADD (model dropdown), NEW (new scene), LOAD
@@ -276,6 +278,17 @@ private:
 	// row is its own Text placed at an explicit Y, so hit-testing uses the
 	// exact same row positions as rendering (no reliance on internal line
 	// spacing, which the text metrics can't predict reliably).
+	// The object list and camera list share one right-side panel, switched by two
+	// tabs at the top, so a long object list (e.g. campus) can't push the camera
+	// list off-screen. Only the active tab's list renders + is hit-tested.
+	enum class ListTab { Objects, Cameras };
+	ListTab listTab = ListTab::Objects;
+	Text* tabBtnText[2] = { nullptr, nullptr };
+	float tabBtnX[2] = { 0, 0 }, tabBtnY[2] = { 0, 0 };
+	float tabBtnW[2] = { 0, 0 }, tabBtnH[2] = { 0, 0 };
+	bool tabBtnLaidOut = false;
+	void RenderListTabs(Game& game, const Renderer& renderer);
+
 	struct ListEntry { SelType type; int index; };
 	std::vector<ListEntry> listEntries;
 	std::vector<Text*> listRows;

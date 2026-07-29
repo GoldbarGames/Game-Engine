@@ -213,9 +213,25 @@ public:
 	float outlineWidth = 3.0f;                     // outline thickness in pixels
 	float outlineDepthThreshold = 4.0f;            // edge sensitivity (smaller = more edges)
 	glm::vec3 outlineColor = glm::vec3(0.0f);      // solid black by default
+	// Whether character sprites participate in the toon outline. When false, the
+	// billboards render with depth WRITES off (still depth-TESTED, so scene models
+	// still occlude them) so they don't appear in the depth texture the outline
+	// reads - i.e. props get outlined, characters render as clean sprites. Only
+	// matters while the outline is active (celShading && outlineEnabled).
+	bool outlineCharacters = true;
 	// Full-screen depth-edge outline shader (created on first scene load), run
 	// by Game's composite pass. Public getter.
 	ShaderProgram* EdgeShader() const { return edgeShader; }
+
+	// Shader files Scene3D loads for the 3D passes. A game may repoint these at
+	// its own shaders (e.g. a realistic PBR set instead of the toon default)
+	// BEFORE the first scene loads. The default files support both looks: leave
+	// celShading off for smooth Phong/PBR, on for banded toon + outline.
+	std::string modelShaderVert     = "data/shaders/scene3d.vert";
+	std::string modelShaderFrag     = "data/shaders/scene3d.frag";
+	std::string billboardShaderVert = "data/shaders/billboard3d.vert";
+	std::string billboardShaderFrag = "data/shaders/billboard3d.frag";
+	std::string instancedShaderVert = "data/shaders/scene3d_instanced.vert";
 
 	// Test harness: when true, close the game as soon as the test cutscene
 	// ends (set by main.cpp in --test3d mode). Avoids relying on a script
@@ -457,6 +473,8 @@ private:
 	int shadowMapSize = 2048;
 	glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);
 	bool shadowActive = false;    // was the shadow map rendered this frame?
+	double shadowSig = 0.0;       // cache key (sun dir + casters); moved -> re-render
+	bool shadowEverRendered = false;
 	void EnsureShadowMap();
 
 	// Omnidirectional (cube) shadow maps: up to kMaxPointShadows point lights cast

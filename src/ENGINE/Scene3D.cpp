@@ -421,6 +421,34 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	if (shadowDepthShader == nullptr)
 		return;
 
+	// --- static caching (mirrors the point-shadow cache): only re-render the
+	// shadow map when the sun direction or a caster (a height-having model or a
+	// character) actually moved. In a still, time-frozen scene the depth pass runs
+	// once then is skipped every subsequent frame. ---
+	double sig = L.x * 101.1 + L.y * 211.3 + L.z * 307.7;
+	for (Scene3DModel* m : models)
+	{
+		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater())
+			continue;
+		if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
+			continue;
+		glm::vec3 s = m->EffectiveScale();
+		sig += m->position.x * 1.1 + m->position.y * 2.3 + m->position.z * 3.7
+			+ m->yawDeg * 0.017 + m->pitchDeg * 0.013 + m->rollDeg * 0.011
+			+ (s.x + s.y + s.z) * 5.3;
+	}
+	for (Character3D* ch : characters)
+		if (ch != nullptr)
+			sig += ch->position.x * 1.3 + ch->position.y * 2.1 + ch->position.z * 4.3;
+
+	if (shadowEverRendered && sig == shadowSig)
+	{
+		shadowActive = true;   // reuse the cached shadow map; no depth work this frame
+		return;
+	}
+	shadowSig = sig;
+	shadowEverRendered = true;
+
 	// Orthographic light frustum covering the scene (centred on the origin, a
 	// little below ground so it spans the props' height; up is -Y).
 	const float R = 3200.0f;                 // half-size of the covered area
@@ -816,12 +844,30 @@ void Character3D::Render(const Renderer& renderer)
 	if (renderer.camera.useOrthoCamera)
 		return;
 
+	// When the game keeps characters out of the toon outline, also render to the
+	// framebuffer's "is-character" mask (draw buffer 1) so the outline post-process
+	// can skip these pixels. billboard3d.frag writes oMask=1.0. Characters still
+	// write depth normally, so occlusion + depth sorting are unaffected.
+	Scene3D& scene = Scene3D::Get();
+	bool maskChar = scene.celShading && scene.outlineEnabled && !scene.outlineCharacters;
+	if (maskChar)
+	{
+		GLenum bufs[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+		glDrawBuffers(2, bufs);
+	}
+
 	// Body (or combined sprite) first, then head layered on top. Both are
 	// full-canvas overlays that align by transparency; the head is pulled
 	// slightly toward the camera so it isn't z-culled by the coplanar body.
 	DrawQuad(renderer, bodyTex, 0.0f);
 	if (headTex != nullptr)
 		DrawQuad(renderer, headTex, 1.5f);
+
+	if (maskChar)
+	{
+		GLenum bufs[1] = { GL_COLOR_ATTACHMENT0 };
+		glDrawBuffers(1, bufs);
+	}
 }
 
 // --------------------------------------------------------------- manager
@@ -879,19 +925,19 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	// unlit alpha-cutout for character billboards
 	if (shader == nullptr)
 	{
-		shader = new ShaderProgram(-1, "data/shaders/scene3d.vert", "data/shaders/scene3d.frag");
+		shader = new ShaderProgram(-1, modelShaderVert.c_str(), modelShaderFrag.c_str());
 		BindCameraBlock(shader);
 	}
 	if (billboardShader == nullptr)
 	{
-		billboardShader = new ShaderProgram(-1, "data/shaders/billboard3d.vert", "data/shaders/billboard3d.frag");
+		billboardShader = new ShaderProgram(-1, billboardShaderVert.c_str(), billboardShaderFrag.c_str());
 		BindCameraBlock(billboardShader);
 	}
 	if (instancedShader == nullptr)
 	{
-		// Instanced variant of the model shader (dup opaque props). Shares
-		// scene3d.frag; reads the per-instance model matrix from attributes.
-		instancedShader = new ShaderProgram(-1, "data/shaders/scene3d_instanced.vert", "data/shaders/scene3d.frag");
+		// Instanced variant of the model shader (dup opaque props). Shares the
+		// model fragment shader; reads the per-instance model matrix from attribs.
+		instancedShader = new ShaderProgram(-1, instancedShaderVert.c_str(), modelShaderFrag.c_str());
 		BindCameraBlock(instancedShader);
 	}
 	if (edgeShader == nullptr)

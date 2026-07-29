@@ -3097,9 +3097,26 @@ void Game::Render()
 	// zero pass
 	glBindFramebuffer(GL_FRAMEBUFFER, mainFrameBuffer->framebufferObject);
 
+	// While a cel-shaded 3D scene is up, the character-outline mask (draw buffer 1)
+	// must be cleared to 0 too, so include it in the clear then revert to
+	// color-only for the opaque pass (characters re-enable it while they draw).
+	bool outlineActive = Scene3D::Get().active && Scene3D::Get().celShading
+		&& Scene3D::Get().outlineEnabled;
+	if (outlineActive)
+	{
+		GLenum bufs2[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+		glDrawBuffers(2, bufs2);
+	}
+
 	//glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	if (outlineActive)
+	{
+		GLenum bufs1[1] = { GL_COLOR_ATTACHMENT0 };
+		glDrawBuffers(1, bufs1);
+	}
 
 	//SetDuration("RenderNormally");
 	RenderNormally();
@@ -3200,8 +3217,11 @@ void Game::Render()
 		glUniform1f(glGetUniformLocation(eid, "edgeThreshold"), scene3d.outlineDepthThreshold);
 		glUniform1f(glGetUniformLocation(eid, "thickness"), scene3d.outlineWidth);
 		glUniform3fv(glGetUniformLocation(eid, "outlineColor"), 1, glm::value_ptr(scene3d.outlineColor));
+		glUniform1i(glGetUniformLocation(eid, "maskTex"), 2);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, mainFrameBuffer->depthTexture);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, mainFrameBuffer->maskTexture);
 		glActiveTexture(GL_TEXTURE0);
 
 		mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);

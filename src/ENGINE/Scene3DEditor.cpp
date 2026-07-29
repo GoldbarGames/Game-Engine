@@ -111,6 +111,9 @@ namespace
 	// Explicit GUI-space row pitch: rows are both drawn and hit-tested at this
 	// spacing, so a click always maps to the row the user sees.
 	const float kListRowGui = 52.0f;
+	// The OBJECTS/CAMERAS tab bar occupies the top row (kListTopGui); the active
+	// list's rows start one row below it.
+	const float kListContentTop = kListTopGui + kListRowGui;
 
 	// Move / Rotate / Scale button bar (GUI-space layout). Fixed, compact
 	// button size with large labels.
@@ -318,6 +321,8 @@ void Scene3DEditor::Update(Game& game)
 		openDropdown = DropKind::None;              // close on any click
 		leftPressed = false;                        // consumed
 	}
+	if (leftPressed && !rightHeld && ListTabClick(game, (float)mx, (float)my))
+		leftPressed = false;   // consumed (switch OBJECTS/CAMERAS panel)
 	if (leftPressed && !rightHeld && ListClick(game, (float)mx, (float)my))
 		leftPressed = false;   // consumed
 	if (leftPressed && !rightHeld && CameraListClick(game, (float)mx, (float)my))
@@ -670,14 +675,11 @@ void Scene3DEditor::BuildObjectList(Game& game)
 {
 	Scene3D& scene = Scene3D::Get();
 
-	// Build the entry list (header + models + characters) and a label per row.
+	// Build the entry list (models + characters) and a label per row. The OBJECTS
+	// tab labels the panel, so there's no separate header row.
 	listEntries.clear();
 	std::vector<std::string> labels;
 	std::vector<bool> selected;
-
-	listEntries.push_back({ SelType::None, -1 });      // header
-	labels.push_back("SCENE OBJECTS");
-	selected.push_back(false);
 
 	const auto& models = scene.GetModels();
 	for (size_t i = 0; i < models.size(); i++)
@@ -712,11 +714,10 @@ void Scene3DEditor::BuildObjectList(Game& game)
 			listRows.push_back(t);
 		}
 		Text* t = listRows[i];
-		Color col = (i == 0) ? Color{ 150, 200, 255, 255 }
-			: (selected[i] ? Color{ 255, 235, 120, 255 } : Color{ 225, 225, 225, 255 });
+		Color col = selected[i] ? Color{ 255, 235, 120, 255 } : Color{ 225, 225, 225, 255 };
 		t->SetText(labels[i], col);
 		t->SetScale(glm::vec2(kListScale, kListScale));
-		t->SetPosition(listX, kListTopGui + (float)i * kListRowGui);
+		t->SetPosition(listX, kListContentTop + (float)i * kListRowGui);
 	}
 	// Hide any leftover rows from a previous, longer scene.
 	for (size_t i = labels.size(); i < listRows.size(); i++)
@@ -727,23 +728,23 @@ void Scene3DEditor::BuildObjectList(Game& game)
 
 bool Scene3DEditor::ListClick(Game& game, float sx, float sy)
 {
-	if (listEntries.empty())
+	if (listTab != ListTab::Objects || listEntries.empty())
 		return false;
 
 	// Map window-pixel mouse to the fixed design GUI space (window px may be a
 	// higher resolution than the design space the UI is laid out in).
 	float gx = sx * (game.designWidth * Camera::MULTIPLIER) / (float)game.screenWidth;
 	float gy = sy * (game.designHeight * Camera::MULTIPLIER) / (float)game.screenHeight;
-	if (gx < listX || gx > listX + kListWidthGui || gy < kListTopGui)
+	if (gx < listX || gx > listX + kListWidthGui || gy < kListContentTop)
 		return false;
 
-	int row = (int)((gy - kListTopGui) / kListRowGui);
+	int row = (int)((gy - kListContentTop) / kListRowGui);
 	if (row < 0 || row >= (int)listEntries.size())
 		return false;
 
 	const ListEntry& e = listEntries[row];
 	if (e.type == SelType::None)
-		return false;  // header
+		return false;  // safety (no header rows anymore)
 
 	selType = e.type;
 	selIndex = e.index;
@@ -773,8 +774,8 @@ void Scene3DEditor::RenderListZoomButtons(Game& game, const Renderer& renderer)
 	for (size_t i = 0; i < listEntries.size(); i++)
 	{
 		if (listEntries[i].type == SelType::None)
-			continue;   // header row: no zoom button
-		float by = kListTopGui + (float)i * kListRowGui + 4.0f;
+			continue;   // safety: no header rows anymore
+		float by = kListContentTop + (float)i * kListRowGui + 4.0f;
 		bool sel = (listEntries[i].type == selType && listEntries[i].index == selIndex);
 		glm::vec4 bg = sel ? glm::vec4(0.20f, 0.42f, 0.55f, 0.9f)
 			: glm::vec4(0.20f, 0.26f, 0.34f, 0.8f);
@@ -918,18 +919,24 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 	if (infoText == nullptr)
 		RefreshInfoText(game);
 
-	// Object list panel (right-side column of all models + characters)
+	// Right-side panel: OBJECTS / CAMERAS tabs, then only the active tab's list
+	// (they share the same space, so a long object list never hides the cameras).
 	EnsureObjectList(game);
-	for (size_t i = 0; i < listRows.size(); i++)
-		if (listRows[i] != nullptr && listRows[i]->shouldRender)
-			listRows[i]->Render(renderer);
-	RenderListZoomButtons(game, renderer);
-
-	// Camera list (below the object list, same right column)
 	EnsureCameraList(game);
-	for (size_t i = 0; i < camListRows.size(); i++)
-		if (camListRows[i] != nullptr && camListRows[i]->shouldRender)
-			camListRows[i]->Render(renderer);
+	RenderListTabs(game, renderer);
+	if (listTab == ListTab::Objects)
+	{
+		for (size_t i = 0; i < listRows.size(); i++)
+			if (listRows[i] != nullptr && listRows[i]->shouldRender)
+				listRows[i]->Render(renderer);
+		RenderListZoomButtons(game, renderer);
+	}
+	else
+	{
+		for (size_t i = 0; i < camListRows.size(); i++)
+			if (camListRows[i] != nullptr && camListRows[i]->shouldRender)
+				camListRows[i]->Render(renderer);
+	}
 
 	// Button bars (transform modes, actions, axis lock), the open dropdown, and
 	// the new-scene / clue-tag prompt. Actions must render before the axis row
@@ -1439,13 +1446,74 @@ bool Scene3DEditor::CameraButtonClick(Game& game, float sx, float sy)
 
 // ------------------------------------------------------ camera list panel
 
+// ------------------------------------------------- object/camera list tabs
+
+void Scene3DEditor::RenderListTabs(Game& game, const Renderer& renderer)
+{
+	const char* names[2] = { "OBJECTS", "CAMERAS" };
+	for (int i = 0; i < 2; i++)
+	{
+		if (tabBtnText[i] == nullptr)
+		{
+			tabBtnText[i] = new Text(EnsureFont(game));
+			tabBtnText[i]->isRichText = true;
+			tabBtnText[i]->GetSprite()->keepPositionRelativeToCamera = true;
+			tabBtnText[i]->GetSprite()->keepScaleRelativeToCamera = true;
+		}
+	}
+
+	// Two side-by-side tabs spanning the list column, sitting on the top row.
+	const float lx = game.designWidth * Camera::MULTIPLIER - kListWidthGui - kListMarginGui;
+	const float gap = 8.0f;
+	const float w = (kListWidthGui - gap) * 0.5f;
+	const float h = kListRowGui - 8.0f;
+	for (int i = 0; i < 2; i++)
+	{
+		tabBtnX[i] = lx + (float)i * (w + gap);
+		tabBtnY[i] = kListTopGui;
+		tabBtnW[i] = w;
+		tabBtnH[i] = h;
+	}
+	tabBtnLaidOut = true;
+
+	for (int i = 0; i < 2; i++)
+	{
+		bool activeTab = (i == 0) ? (listTab == ListTab::Objects)
+			: (listTab == ListTab::Cameras);
+		glm::vec4 bg = activeTab ? glm::vec4(0.20f, 0.42f, 0.55f, 0.95f)
+			: glm::vec4(0.15f, 0.19f, 0.25f, 0.85f);
+		DrawFilledRect(game, renderer, tabBtnX[i], tabBtnY[i], tabBtnW[i], tabBtnH[i], bg);
+		Color tc = activeTab ? Color{ 255, 245, 180, 255 } : Color{ 175, 190, 205, 255 };
+		tabBtnText[i]->SetText(names[i], tc);
+		tabBtnText[i]->SetScale(glm::vec2(kListScale, kListScale));
+		tabBtnText[i]->SetPosition(tabBtnX[i] + 18.0f, tabBtnY[i] + 4.0f);
+		tabBtnText[i]->Render(renderer);
+	}
+}
+
+bool Scene3DEditor::ListTabClick(Game& game, float sx, float sy)
+{
+	if (!tabBtnLaidOut)
+		return false;
+	float gx = sx * (game.designWidth * Camera::MULTIPLIER) / (float)game.screenWidth;
+	float gy = sy * (game.designHeight * Camera::MULTIPLIER) / (float)game.screenHeight;
+	for (int i = 0; i < 2; i++)
+	{
+		if (gx >= tabBtnX[i] && gx <= tabBtnX[i] + tabBtnW[i]
+			&& gy >= tabBtnY[i] && gy <= tabBtnY[i] + tabBtnH[i])
+		{
+			listTab = (i == 0) ? ListTab::Objects : ListTab::Cameras;
+			return true;
+		}
+	}
+	return false;
+}
+
 void Scene3DEditor::EnsureCameraList(Game& game)
 {
 	Scene3D& scene = Scene3D::Get();
-	// Rebuild when the camera set, the selection, or the object-list length
-	// (which sets our Y offset) changes.
-	std::string key = std::to_string(scene.CameraOrder().size()) + "|" + currentCamName
-		+ "|" + std::to_string(listEntries.size());
+	// Rebuild when the camera set or the current-camera highlight changes.
+	std::string key = std::to_string(scene.CameraOrder().size()) + "|" + currentCamName;
 	if (camListRows.empty() || key != camListMarkerKey)
 	{
 		BuildCameraList(game);
@@ -1462,10 +1530,7 @@ void Scene3DEditor::BuildCameraList(Game& game)
 	std::vector<Color> colors;
 	camListRowCam.clear();
 
-	labels.push_back("SCENE CAMERAS");
-	colors.push_back(Color{ 150, 200, 255, 255 });
-	camListRowCam.push_back("");   // header
-
+	// No header row - the CAMERAS tab labels this list.
 	for (size_t i = 0; i < order.size(); i++)
 	{
 		bool sel = (order[i] == currentCamName);
@@ -1476,9 +1541,10 @@ void Scene3DEditor::BuildCameraList(Game& game)
 		camListRowCam.push_back(order[i]);
 	}
 
-	// Same right-side column as the object list, placed below it.
+	// Same right-side column as the object list, in the SAME space (tabs switch
+	// between them), so a long object list never pushes the cameras off-screen.
 	camListX = game.designWidth * Camera::MULTIPLIER - kListWidthGui - kListMarginGui;
-	camListTop = kListTopGui + (float)listEntries.size() * kListRowGui + 40.0f;
+	camListTop = kListContentTop;
 
 	for (size_t i = 0; i < labels.size(); i++)
 	{
@@ -1503,7 +1569,7 @@ void Scene3DEditor::BuildCameraList(Game& game)
 
 bool Scene3DEditor::CameraListClick(Game& game, float sx, float sy)
 {
-	if (camListRowCam.empty())
+	if (listTab != ListTab::Cameras || camListRowCam.empty())
 		return false;
 	float gx = sx * (game.designWidth * Camera::MULTIPLIER) / (float)game.screenWidth;
 	float gy = sy * (game.designHeight * Camera::MULTIPLIER) / (float)game.screenHeight;
@@ -1511,8 +1577,8 @@ bool Scene3DEditor::CameraListClick(Game& game, float sx, float sy)
 		return false;
 
 	int row = (int)((gy - camListTop) / kListRowGui);
-	if (row < 1 || row >= (int)camListRowCam.size())
-		return false;   // row 0 is the header
+	if (row < 0 || row >= (int)camListRowCam.size())
+		return false;
 
 	JumpToCameraByName(game, camListRowCam[row]);
 	statusMsg = "Camera: " + camListRowCam[row];

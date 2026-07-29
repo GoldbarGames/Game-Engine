@@ -101,11 +101,25 @@ void Skybox::Render(const Renderer& renderer)
 	if (s == nullptr || s->texture == nullptr)
 		return;
 
+	// Center the sky on the camera at RENDER time. Skybox::Update also does this,
+	// but it can lag (updated before the camera moves) or be skipped entirely
+	// during camera glides / editor fly - letting the camera drift off the sphere
+	// so its far hemisphere clips the far plane and leaves a black hole. Doing it
+	// here guarantees the surface is always exactly skyRadius from the eye.
+	position = renderer.camera.position;
+
+	// Keep the sphere safely inside the far plane no matter what a scene sets, so
+	// it can never be clipped away (the far margin was only ~800u here).
+	float r = skyRadius;
+	const float maxR = renderer.camera.farPlane * 0.9f;
+	if (maxR > 0.0f && r > maxR)
+		r = maxR;
+
 	// There is no backface culling, so the sphere is visible from inside.
 	// Pass 1: the base panorama (tint in colour.rgb, fully opaque).
 	const Color baseColor = s->color;
 	s->color.a = 255;
-	s->RenderWorld(position, glm::vec3(skyRadius), rotation, renderer);
+	s->RenderWorld(position, glm::vec3(r), rotation, renderer);
 
 	// Pass 2: cross-fade toward the next panorama. Same geometry, so allow
 	// equal-depth overwrite (LEQUAL) without writing depth, and blend by the
@@ -123,7 +137,7 @@ void Skybox::Render(const Renderer& renderer)
 		glDepthFunc(GL_LEQUAL);
 		glDepthMask(GL_FALSE);
 
-		s->RenderWorld(position, glm::vec3(skyRadius), rotation, renderer);
+		s->RenderWorld(position, glm::vec3(r), rotation, renderer);
 
 		glDepthMask(GL_TRUE);
 		glDepthFunc(GL_LESS);

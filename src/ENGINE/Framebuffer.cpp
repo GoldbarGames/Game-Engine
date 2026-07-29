@@ -30,6 +30,21 @@ FrameBuffer::FrameBuffer(const Renderer& renderer, int screenWidth, int screenHe
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
 
+	// "Is-character" mask (R8), color attachment 1. Only written when a pass
+	// enables draw buffer 1 (the character billboards); the default draw-buffer
+	// state writes attachment 0 only, so this stays dormant for 2D content and
+	// non-character 3D geometry. The toon-outline post-process samples it to skip
+	// character sprites (see scene3d_edge.frag / Game::Render / Character3D::Render).
+	glGenTextures(1, &maskTexture);
+	glBindTexture(GL_TEXTURE_2D, maskTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, screenWidth, screenHeight, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, maskTexture, 0);
+
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		std::cout << "ERROR::FRAMEBUFFER:: " << glCheckFramebufferStatus(GL_FRAMEBUFFER) << std::endl;
@@ -42,6 +57,8 @@ FrameBuffer::~FrameBuffer()
 {
 	if (depthTexture != 0)
 		glDeleteTextures(1, &depthTexture);
+	if (maskTexture != 0)
+		glDeleteTextures(1, &maskTexture);
 	if (framebufferObject != 0)
 		glDeleteFramebuffers(1, &framebufferObject);
 
