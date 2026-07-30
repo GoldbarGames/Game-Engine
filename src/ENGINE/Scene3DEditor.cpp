@@ -128,7 +128,7 @@ namespace
 	const float kBtnWFactor = 0.62f;
 	const float kBtnHFactor = 0.44f;
 	const char* kModeNames[3] = { "MOVE", "ROTATE", "SCALE" };
-	const char* kActNames[7] = { "DELETE", "ADD", "NEW", "LOAD", "TAG", "MAT", "SHADOW" };
+	const char* kActNames[8] = { "DELETE", "ADD", "NEW", "LOAD", "TAG", "MAT", "SHADOW", "WEATHER" };
 	const char* kAxisNames[4] = { "FREE", "X", "Y", "Z" };
 	const char* kResetNames[3] = { "RESET POS", "RESET ROT", "RESET SCALE" };
 	const char* kCamNames[4] = { "SAVE CAM", "NEW CAM", "SET DEF", "DEL CAM" };
@@ -1206,8 +1206,9 @@ void Scene3DEditor::RenderAxisButtons(Game& game, const Renderer& renderer)
 		}
 	}
 
-	// Row below the action buttons (which laid out actBtnY/actBtnH first).
-	float rowY = actBtnLaidOut ? (actBtnY[0] + actBtnH[0] + kBtnGap) : (kBtnY + 220.0f);
+	// Row below the action buttons (which laid out actBtnBottomY first); this
+	// tracks the LAST action row so a wrapped SHADOW/WEATHER line pushes us down.
+	float rowY = actBtnLaidOut ? (actBtnBottomY + kBtnGap) : (kBtnY + 220.0f);
 	float h = axisBtnText[0]->GetTextHeight() * kBtnHFactor + 2.0f * kBtnPadY;
 	float x = kBtnX;
 	for (int i = 0; i < kNumAxes; i++)
@@ -1926,19 +1927,37 @@ void Scene3DEditor::RenderActionButtons(Game& game, const Renderer& renderer)
 		actBtnText[6]->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
 	}
 
+	// WEATHER button (index 7): dynamic label with the scene's weather state.
+	{
+		Scene3D::WeatherType w = Scene3D::Get().GetWeather();
+		const char* wn = (w == Scene3D::WeatherType::Rain) ? "RAIN"
+			: (w == Scene3D::WeatherType::Snow) ? "SNOW" : "NONE";
+		actBtnText[7]->SetText(std::string("WEATHER: ") + wn, { 255, 255, 255, 255 });
+		actBtnText[7]->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
+	}
+
 	// Second row, just below the mode buttons (which laid out btnY/btnH first).
+	// The row WRAPS to a new line before it reaches the right-side object/camera
+	// list panel, so the wide dynamic buttons (SHADOW/WEATHER) never cover it.
 	float rowY = btnY[0] + btnH[0] + kBtnGap;
 	float h = actBtnText[0]->GetTextHeight() * kBtnHFactor + 2.0f * kBtnPadY;
+	float maxX = game.designWidth * Camera::MULTIPLIER - kListWidthGui - kListMarginGui;
 	float x = kBtnX;
 	for (int i = 0; i < kNumActions; i++)
 	{
-		float tw = actBtnText[i]->GetTextWidth() * kBtnWFactor;
+		float w = actBtnText[i]->GetTextWidth() * kBtnWFactor + 2.0f * kBtnPadX;
+		if (x > kBtnX && x + w > maxX)   // wouldn't fit -> wrap to the next row
+		{
+			x = kBtnX;
+			rowY += h + kBtnGap;
+		}
 		actBtnX[i] = x;
 		actBtnY[i] = rowY;
-		actBtnW[i] = tw + 2.0f * kBtnPadX;
+		actBtnW[i] = w;
 		actBtnH[i] = h;
 		x += actBtnW[i] + kBtnGap;
 	}
+	actBtnBottomY = rowY + h;   // bottom of the last (possibly wrapped) row
 	actBtnLaidOut = true;
 
 	// 0 DELETE (red when a selection exists), 1 ADD (green, bright when open),
@@ -1958,6 +1977,9 @@ void Scene3DEditor::RenderActionButtons(Game& game, const Renderer& renderer)
 			: (selType == SelType::Model ? glm::vec4(0.16f, 0.40f, 0.42f, 0.85f) : glm::vec4(0.16f, 0.24f, 0.24f, 0.7f)),
 		// 6 SHADOW (indigo; scene-global point-light shadow caster)
 		glm::vec4(0.30f, 0.24f, 0.52f, 0.9f),
+		// 7 WEATHER (steel blue-grey; scene-global rain/snow)
+		Scene3D::Get().GetWeather() != Scene3D::WeatherType::None
+			? glm::vec4(0.28f, 0.42f, 0.58f, 0.95f) : glm::vec4(0.22f, 0.30f, 0.40f, 0.85f),
 	};
 	for (int i = 0; i < kNumActions; i++)
 	{
@@ -2038,6 +2060,26 @@ bool Scene3DEditor::ActionButtonClick(Game& game, float sx, float sy)
 				statusMsg = "Shadow caster: " +
 					(sc.shadowCasterLight.empty() ? std::string("AUTO (all lights)") : sc.shadowCasterLight)
 					+ "  (F5 to save)";
+				statusFrames = 180;
+				CommitEdit();
+				break;
+			}
+			case 7:
+			{
+				// Cycle the scene weather: NONE -> RAIN -> SNOW -> NONE. Saved with
+				// the scene (the "weather" .scene line), so it becomes the default
+				// on load. Keeps the current intensity (defaults to full).
+				Scene3D& sc = Scene3D::Get();
+				float inten = sc.GetWeatherIntensity();
+				if (inten <= 0.0f) inten = 1.0f;
+				Scene3D::WeatherType w = sc.GetWeather();
+				Scene3D::WeatherType next = (w == Scene3D::WeatherType::None) ? Scene3D::WeatherType::Rain
+					: (w == Scene3D::WeatherType::Rain) ? Scene3D::WeatherType::Snow
+					: Scene3D::WeatherType::None;
+				sc.SetWeather(next, inten);
+				const char* wn = (next == Scene3D::WeatherType::Rain) ? "RAIN"
+					: (next == Scene3D::WeatherType::Snow) ? "SNOW" : "NONE";
+				statusMsg = std::string("Weather: ") + wn + "  (F5 to save)";
 				statusFrames = 180;
 				CommitEdit();
 				break;

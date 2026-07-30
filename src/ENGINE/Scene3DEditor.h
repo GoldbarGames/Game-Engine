@@ -223,12 +223,16 @@ public:
 private:
 
 	// Action buttons: DELETE, ADD (model dropdown), NEW (new scene), LOAD
-	// (scene dropdown), TAG (attach an interaction tag to the selected model).
-	static const int kNumActions = 7;
+	// (scene dropdown), TAG, MAT, SHADOW (scene-global point-light caster),
+	// WEATHER (scene-global rain/snow/none).
+	static const int kNumActions = 8;
 	Text* actBtnText[kNumActions] = { nullptr, nullptr, nullptr, nullptr };
 	float actBtnX[kNumActions] = { 0, 0, 0, 0 }, actBtnY[kNumActions] = { 0, 0, 0, 0 };
 	float actBtnW[kNumActions] = { 0, 0, 0, 0 }, actBtnH[kNumActions] = { 0, 0, 0, 0 };
 	bool actBtnLaidOut = false;
+	// Bottom Y of the LAST action-button row (the row wraps to a second line when
+	// it would reach the right-side list panel). The bars below key off this.
+	float actBtnBottomY = 0.0f;
 	void RenderActionButtons(Game& game, const Renderer& renderer);
 	void DeleteSelected(Game& game);
 

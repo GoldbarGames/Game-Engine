@@ -3596,6 +3596,10 @@ void Game::RenderNormally()
 		// Transparent 3D-scene models (glass/ice) draw last, back-to-front,
 		// while depth testing is still enabled (RenderScene turns it off).
 		Scene3D::Get().RenderTransparentModels(*this, renderer);
+
+		// Weather particles (rain/snow) after all geometry: depth-tested so
+		// props occlude them, depth-write off so the outline pass ignores them.
+		Scene3D::Get().RenderWeather(*this, renderer);
 	}
 
 	if (!use2DCamera && triangle3D != nullptr)

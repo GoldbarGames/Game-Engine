@@ -232,6 +232,8 @@ public:
 	std::string billboardShaderVert = "data/shaders/billboard3d.vert";
 	std::string billboardShaderFrag = "data/shaders/billboard3d.frag";
 	std::string instancedShaderVert = "data/shaders/scene3d_instanced.vert";
+	std::string weatherShaderVert   = "data/shaders/weather.vert";
+	std::string weatherShaderFrag   = "data/shaders/weather.frag";
 
 	// Test harness: when true, close the game as soon as the test cutscene
 	// ends (set by main.cpp in --test3d mode). Avoids relying on a script
@@ -372,6 +374,28 @@ public:
 	// Pass an empty toPath (or blend 0) for a single static panorama.
 	void SetSkyCrossfade(Game& game, const std::string& fromPath,
 		const std::string& toPath, float blend);
+
+	// --- weather particles (rain / snow) ------------------------------
+	// A GPU-instanced falling-particle volume that follows the camera. Rain =
+	// fast blue-grey streaks along the fall direction; Snow = slow camera-facing
+	// flakes with a sideways sway. Simulated in Update, drawn by RenderWeather
+	// (after the opaque + transparent 3D passes, depth-tested, depth-write off).
+	// Authored per scene via the "weather rain|snow [intensity]" .scene token,
+	// or set at runtime with SetWeather. The cloudy sky is a game-side concern
+	// (DB2's TimeOfDaySky reacts to GetWeather()).
+	enum class WeatherType { None, Rain, Snow };
+	void SetWeather(WeatherType type, float intensity = 1.0f);
+	WeatherType GetWeather() const { return weatherType; }
+	float GetWeatherIntensity() const { return weatherIntensity; }
+	// Draw the weather particles. Call once per frame after RenderTransparentModels
+	// (Game::Render does), while the perspective depth buffer is still bound.
+	void RenderWeather(Game& game, const Renderer& renderer);
+
+	// A global weather override (a debug/CLI flag or a story-wide storm): when set
+	// to anything but None it is (re)applied after every scene load, overriding the
+	// scene's own authored weather. Leave None so scenes use their authored weather.
+	WeatherType forcedWeather = WeatherType::None;
+	float forcedWeatherIntensity = 1.0f;
 
 	// --- 3D scene editor support ---------------------------------------
 	// Live object lists so the editor can ray-pick, display info, and move
@@ -545,6 +569,18 @@ private:
 	// Recompute the solid-footprint list from all current solid models (after
 	// an add/remove edit).
 	void RebuildSolids();
+
+	// --- weather particles ---------------------------------------------
+	WeatherType weatherType = WeatherType::None;
+	float weatherIntensity = 1.0f;
+	static const int kMaxWeatherParticles = 8000;
+	std::vector<glm::vec4> weatherParticles;   // xyz = world pos, w = random seed
+	bool weatherInit = false;                  // volume seeded around the camera?
+	ShaderProgram* weatherShader = nullptr;
+	unsigned int weatherVAO = 0, weatherQuadVBO = 0, weatherInstVBO = 0;
+	unsigned int snowTex = 0, rainTex = 0;     // procedurally generated sprites
+	void EnsureWeatherResources();             // lazily build VAO/VBOs + textures
+	void UpdateWeather(const glm::vec3& camPos, float dtSec);  // advance + wrap
 };
 
 #endif

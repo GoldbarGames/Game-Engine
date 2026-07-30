@@ -15,6 +15,7 @@
 #include <sstream>
 #include <iostream>
 #include <cmath>
+#include <cstdlib>
 #include <algorithm>
 #include <filesystem>
 #include <map>
@@ -184,6 +185,222 @@ void Scene3D::RenderTransparentModels(Game& game, const Renderer& renderer)
 	for (Scene3DModel* m : transparent)
 		m->DrawGeometry(renderer);
 	glDepthMask(GL_TRUE);
+}
+
+// ------------------------------------------------------- weather particles
+
+void Scene3D::SetWeather(WeatherType type, float intensity)
+{
+	weatherType = type;
+	weatherIntensity = glm::clamp(intensity, 0.0f, 1.0f);
+	weatherInit = false;   // reseed the particle volume on the next Update
+}
+
+void Scene3D::EnsureWeatherResources()
+{
+	if (weatherVAO != 0)
+		return;
+
+	// A unit quad, corners in [-0.5, 0.5] with 0..1 UVs (two triangles, no EBO).
+	const GLfloat quad[] = {
+		// corner.xy      uv
+		-0.5f, -0.5f,   0.0f, 0.0f,
+		 0.5f, -0.5f,   1.0f, 0.0f,
+		 0.5f,  0.5f,   1.0f, 1.0f,
+		-0.5f, -0.5f,   0.0f, 0.0f,
+		 0.5f,  0.5f,   1.0f, 1.0f,
+		-0.5f,  0.5f,   0.0f, 1.0f,
+	};
+
+	glGenVertexArrays(1, &weatherVAO);
+	glBindVertexArray(weatherVAO);
+
+	glGenBuffers(1, &weatherQuadVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, weatherQuadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);   // corner
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)0);
+	glEnableVertexAttribArray(1);   // uv
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+
+	// Per-instance buffer: vec4 (world pos xyz + random seed w), streamed each frame.
+	glGenBuffers(1, &weatherInstVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, weatherInstVBO);
+	glBufferData(GL_ARRAY_BUFFER, kMaxWeatherParticles * sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
+	glVertexAttribDivisor(3, 1);
+
+	glBindVertexArray(0);
+
+	// Procedural particle sprites (white RGBA with a soft alpha falloff), so
+	// weather needs no art asset. Snow = soft round dot; rain = a tapered vertical
+	// streak (bright core, fading toward the ends and side edges).
+	auto uploadTex = [](unsigned int& id, int w, int h, const std::vector<unsigned char>& px)
+	{
+		glGenTextures(1, &id);
+		glBindTexture(GL_TEXTURE_2D, id);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	};
+
+	{
+		const int S = 32;
+		std::vector<unsigned char> px(S * S * 4);
+		for (int y = 0; y < S; y++)
+			for (int x = 0; x < S; x++)
+			{
+				float dx = (x + 0.5f) / S - 0.5f;
+				float dy = (y + 0.5f) / S - 0.5f;
+				float d = std::sqrt(dx * dx + dy * dy) / 0.5f;   // 0 center .. 1 edge
+				float a = std::exp(-d * d * 4.0f);               // gaussian falloff
+				if (a < 0.0f) a = 0.0f;
+				int i = (y * S + x) * 4;
+				px[i] = px[i + 1] = px[i + 2] = 255;
+				px[i + 3] = (unsigned char)(a * 255.0f);
+			}
+		uploadTex(snowTex, S, S, px);
+	}
+	{
+		const int W = 8, H = 64;
+		std::vector<unsigned char> px(W * H * 4);
+		const float PI = 3.14159265f;
+		for (int y = 0; y < H; y++)
+			for (int x = 0; x < W; x++)
+			{
+				float u = (x + 0.5f) / W;   // 0..1 across width
+				float v = (y + 0.5f) / H;   // 0..1 along length
+				float core = 1.0f - std::fabs(u - 0.5f) * 2.0f;   // bright center column
+				core = std::pow(core < 0.0f ? 0.0f : core, 1.5f);
+				float taper = std::sin(v * PI);                    // fade the two ends
+				float a = core * (0.35f + 0.65f * taper);
+				int i = (y * W + x) * 4;
+				px[i] = px[i + 1] = px[i + 2] = 255;
+				px[i + 3] = (unsigned char)((a < 0.0f ? 0.0f : (a > 1.0f ? 1.0f : a)) * 255.0f);
+			}
+		uploadTex(rainTex, W, H, px);
+	}
+}
+
+void Scene3D::UpdateWeather(const glm::vec3& camPos, float dtSec)
+{
+	// The volume is a box centered on the camera; particles fall and wrap so the
+	// density stays constant around the player regardless of where they move.
+	const float R = 1600.0f;     // half extent in X/Z
+	const float topH = 1800.0f;  // how far ABOVE the camera the volume reaches (up = -Y)
+	const float botM = 600.0f;   // how far below before a particle recycles
+
+	auto frand = []() { return (float)std::rand() / (float)RAND_MAX; };
+	auto rr = [&](float a, float b) { return a + (b - a) * frand(); };
+
+	const bool snow = (weatherType == WeatherType::Snow);
+	int want = (int)(kMaxWeatherParticles * (snow ? 0.45f : 1.0f) * weatherIntensity);
+	if (want < 0) want = 0;
+	if (want > kMaxWeatherParticles) want = kMaxWeatherParticles;
+
+	if (!weatherInit || (int)weatherParticles.size() != want)
+	{
+		weatherParticles.resize(want);
+		for (int i = 0; i < want; i++)
+			weatherParticles[i] = glm::vec4(camPos.x + rr(-R, R),
+			                                camPos.y + rr(-topH, botM),   // fill the column
+			                                camPos.z + rr(-R, R), frand());
+		weatherInit = true;
+	}
+
+	const float fall  = snow ? 260.0f : 2600.0f;   // units/sec (up = -Y, so +Y is down)
+	const float windX = snow ? 55.0f  : 190.0f;
+	const float windZ = snow ? 35.0f  : 70.0f;
+
+	for (glm::vec4& p : weatherParticles)
+	{
+		p.y += fall * dtSec;
+		p.x += windX * dtSec;
+		p.z += windZ * dtSec;
+
+		if (p.y > camPos.y + botM)   // fell below -> respawn at the top with fresh X/Z
+		{
+			p.y = camPos.y - topH;
+			p.x = camPos.x + rr(-R, R);
+			p.z = camPos.z + rr(-R, R);
+			p.w = frand();
+		}
+		// Keep the volume centered on the (possibly moving) camera by wrapping X/Z.
+		if (p.x < camPos.x - R) p.x += 2.0f * R; else if (p.x > camPos.x + R) p.x -= 2.0f * R;
+		if (p.z < camPos.z - R) p.z += 2.0f * R; else if (p.z > camPos.z + R) p.z -= 2.0f * R;
+	}
+}
+
+void Scene3D::RenderWeather(Game& game, const Renderer& renderer)
+{
+	if (!active || weatherType == WeatherType::None || renderer.camera.useOrthoCamera)
+		return;
+	if (weatherParticles.empty())
+		return;
+
+	EnsureWeatherResources();
+	if (weatherShader == nullptr || weatherVAO == 0)
+		return;
+
+	// Stream this frame's particle positions into the instance buffer.
+	glBindBuffer(GL_ARRAY_BUFFER, weatherInstVBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0,
+		weatherParticles.size() * sizeof(glm::vec4), weatherParticles.data());
+
+	weatherShader->UseShader();
+	GLuint id = weatherShader->GetID();
+	const bool rain = (weatherType == WeatherType::Rain);
+
+	glUniform1i(glGetUniformLocation(id, "uMode"), rain ? 1 : 0);
+	glUniform1f(glGetUniformLocation(id, "uTime"), renderer.now * 0.001f);
+	glm::vec3 cp = renderer.camera.position;
+	glUniform3f(glGetUniformLocation(id, "uCamPos"), cp.x, cp.y, cp.z);
+
+	// Fall direction (down = +Y) with a little wind lean; used to orient rain streaks.
+	glm::vec3 fdir = rain ? glm::normalize(glm::vec3(0.07f, 1.0f, 0.025f)) : glm::vec3(0, 1, 0);
+	glUniform3f(glGetUniformLocation(id, "uFallDir"), fdir.x, fdir.y, fdir.z);
+
+	if (rain)
+	{
+		glUniform1f(glGetUniformLocation(id, "uSize"), 3.0f);      // streak width
+		glUniform1f(glGetUniformLocation(id, "uLength"), 95.0f);   // streak length
+		glUniform1f(glGetUniformLocation(id, "uSway"), 0.0f);
+		glUniform4f(glGetUniformLocation(id, "uColor"), 0.62f, 0.70f, 0.82f, 0.5f);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, rainTex);
+	}
+	else
+	{
+		glUniform1f(glGetUniformLocation(id, "uSize"), 13.0f);     // flake size
+		glUniform1f(glGetUniformLocation(id, "uLength"), 13.0f);
+		glUniform1f(glGetUniformLocation(id, "uSway"), 55.0f);     // sideways drift amplitude
+		glUniform4f(glGetUniformLocation(id, "uColor"), 1.0f, 1.0f, 1.0f, 0.85f);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, snowTex);
+	}
+	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
+
+	// Depth test ON (geometry occludes particles) but depth-write OFF (so they
+	// don't z-fight each other and are ignored by the toon outline's depth read).
+	GLboolean prevDepthMask = GL_TRUE;
+	glGetBooleanv(GL_DEPTH_WRITEMASK, &prevDepthMask);
+	GLboolean prevBlend = glIsEnabled(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glBindVertexArray(weatherVAO);
+	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, (GLsizei)weatherParticles.size());
+	glBindVertexArray(0);
+
+	glDepthMask(prevDepthMask);
+	if (!prevBlend) glDisable(GL_BLEND);
+	renderer.drawCallsPerFrame++;
 }
 
 // ---------------------------------------------------- shared camera UBO
@@ -440,6 +657,13 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	for (Character3D* ch : characters)
 		if (ch != nullptr)
 			sig += ch->position.x * 1.3 + ch->position.y * 2.1 + ch->position.z * 4.3;
+	// Character shadows are cast from camera-facing billboards (see below), so the
+	// shadow map must refresh as the camera orbits. Fold the camera position into
+	// the signature - but only when there are characters, so a character-free scene
+	// still caches its (camera-independent) prop shadows across camera moves.
+	if (!characters.empty())
+		sig += renderer.camera.position.x * 0.71 + renderer.camera.position.y * 0.93
+		     + renderer.camera.position.z * 1.29;
 
 	if (shadowEverRendered && sig == shadowSig)
 	{
@@ -498,24 +722,29 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 			mesh->RenderMesh(0);
 	}
 
-	// Character casters: an upright sprite quad whose width runs across the sun,
-	// so the light sees the full silhouette (person-shaped shadow).
+	// Character casters: orient the shadow quad EXACTLY like the visible billboard
+	// (yaw-only, facing the camera - see Character3D::DrawQuad), not facing the sun.
+	// A billboard is a flat cutout; casting its shadow from the same orientation the
+	// player sees makes the shadow rotate in sync with the sprite as the camera
+	// orbits. (Facing the sun instead kept the shadow locked while the sprite turned,
+	// which looked wrong.)
 	glm::vec3 worldUp(0.0f, -1.0f, 0.0f);
-	glm::vec3 sunH(L.x, 0.0f, L.z);
-	if (glm::length(sunH) < 1e-4f) sunH = glm::vec3(0, 0, 1);
-	sunH = glm::normalize(sunH);
-	glm::vec3 right = glm::normalize(glm::cross(sunH, worldUp));
 	for (Character3D* ch : characters)
 	{
 		if (ch == nullptr || ch->quad == nullptr || ch->bodyTex == nullptr)
 			continue;
+		glm::vec3 toCam = renderer.camera.position - ch->position;
+		toCam.y = 0.0f;  // yaw-only, matches DrawQuad
+		if (glm::length(toCam) < 1e-4f) toCam = glm::vec3(0, 0, 1);
+		toCam = glm::normalize(toCam);
+		glm::vec3 right = glm::normalize(glm::cross(toCam, worldUp));
 		float aspect = (ch->bodyTex->GetHeight() > 0)
 			? (float)ch->bodyTex->GetWidth() / (float)ch->bodyTex->GetHeight() : 0.5f;
 		float width = ch->worldHeight * aspect;
 		glm::mat4 model(1.0f);
 		model[0] = glm::vec4(right * width, 0.0f);
 		model[1] = glm::vec4(worldUp * ch->worldHeight, 0.0f);
-		model[2] = glm::vec4(sunH, 0.0f);
+		model[2] = glm::vec4(toCam, 0.0f);
 		model[3] = glm::vec4(ch->position, 1.0f);
 		glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		ch->bodyTex->UseTexture();
@@ -662,6 +891,12 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 	for (Character3D* ch : characters)
 		if (ch)
 			sig += ch->position.x * 1.3 + ch->position.y * 2.1 + ch->position.z * 4.3;
+	// Character shadows cast from camera-facing billboards (see below) -> refresh the
+	// cubes as the camera orbits, but only when characters are present (a scene with
+	// only props keeps caching its camera-independent shadows).
+	if (!characters.empty())
+		sig += renderer.camera.position.x * 0.71 + renderer.camera.position.y * 0.93
+		     + renderer.camera.position.z * 1.29;
 
 	if (pointShadowEverRendered && sig == pointShadowSig)
 	{
@@ -739,25 +974,26 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 					mesh->RenderMesh(0);
 			}
 
-			// Characters: upright sprite quad facing the light (alpha silhouette),
-			// range-culled by the light's reach.
+			// Characters: orient the shadow quad like the visible billboard (yaw-only,
+			// facing the camera - see Character3D::DrawQuad), so the cast shadow tracks
+			// the sprite as the camera orbits. Range-culled by the light's reach.
 			for (Character3D* ch : characters)
 			{
 				if (ch == nullptr || ch->quad == nullptr || ch->bodyTex == nullptr)
 					continue;
 				if (glm::length(ch->position - P) - ch->worldHeight * 0.5f > farP)
 					continue;
-				glm::vec3 toLight = P - ch->position; toLight.y = 0.0f;
-				if (glm::length(toLight) < 1e-4f) toLight = glm::vec3(0, 0, 1);
-				toLight = glm::normalize(toLight);
-				glm::vec3 right = glm::normalize(glm::cross(toLight, worldUp));
+				glm::vec3 toCam = renderer.camera.position - ch->position; toCam.y = 0.0f;
+				if (glm::length(toCam) < 1e-4f) toCam = glm::vec3(0, 0, 1);
+				toCam = glm::normalize(toCam);
+				glm::vec3 right = glm::normalize(glm::cross(toCam, worldUp));
 				float aspect = (ch->bodyTex->GetHeight() > 0)
 					? (float)ch->bodyTex->GetWidth() / (float)ch->bodyTex->GetHeight() : 0.5f;
 				float width = ch->worldHeight * aspect;
 				glm::mat4 model(1.0f);
 				model[0] = glm::vec4(right * width, 0.0f);
 				model[1] = glm::vec4(worldUp * ch->worldHeight, 0.0f);
-				model[2] = glm::vec4(toLight, 0.0f);
+				model[2] = glm::vec4(toCam, 0.0f);
 				model[3] = glm::vec4(ch->position, 1.0f);
 				glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(model));
 				ch->bodyTex->UseTexture();
@@ -952,6 +1188,11 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	{
 		pointShadowShader = new ShaderProgram(-1, "data/shaders/point_shadow_depth.vert", "data/shaders/point_shadow_depth.frag");
 	}
+	if (weatherShader == nullptr)
+	{
+		weatherShader = new ShaderProgram(-1, weatherShaderVert.c_str(), weatherShaderFrag.c_str());
+		BindCameraBlock(weatherShader);
+	}
 
 	// (Re)load the material library so "mat <name>" tokens can resolve.
 	MaterialLibrary::Get().Load(game);
@@ -964,6 +1205,9 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	shadowCasterLight.clear();   // reset the caster override per scene
 	pointShadowEverRendered = false;   // force the point-shadow cubes to re-render
 	skyTexPath.clear();   // a scene without a "sky" line has none
+	weatherType = WeatherType::None;   // a scene without a "weather" line has none
+	weatherIntensity = 1.0f;
+	weatherInit = false;               // reseed the volume for the new scene
 
 	// Shared unit billboard quad: x[-0.5,0.5], y[0,1] (base at origin), z=0,
 	// with dummy normals so Mesh::CreateMesh's stride-8 layout is satisfied
@@ -1177,6 +1421,20 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 				game.entities.push_back(ch);
 			}
 		}
+		else if (tag == "weather")
+		{
+			// weather <rain|snow> [intensity 0..1]  - a camera-following particle
+			// volume of falling rain streaks or drifting snow.
+			std::string kind;
+			float intensity = 1.0f;
+			ss >> kind;
+			if (ss >> intensity) {}   // optional
+			if (kind == "rain")      weatherType = WeatherType::Rain;
+			else if (kind == "snow") weatherType = WeatherType::Snow;
+			else                     weatherType = WeatherType::None;
+			weatherIntensity = glm::clamp(intensity, 0.0f, 1.0f);
+			weatherInit = false;
+		}
 	}
 
 	// Now that every solid is known (order-independent), push each character
@@ -1209,6 +1467,15 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	sceneEverLoaded = true;
 	currentScene = sceneName;
 	gliding = false;
+
+	// A global weather override (debug/CLI flag or story-wide storm) wins over the
+	// scene's authored weather.
+	if (forcedWeather != WeatherType::None)
+	{
+		weatherType = forcedWeather;
+		weatherIntensity = forcedWeatherIntensity;
+		weatherInit = false;
+	}
 
 	if (jumpCamera && !cameraOrder.empty())
 	{
@@ -1687,6 +1954,11 @@ void Scene3D::WriteScene(std::ostream& out) const
 	// Which point light casts shadows (empty = auto-pick the strongest).
 	if (!shadowCasterLight.empty())
 		out << "shadowlight " << shadowCasterLight << "\n";
+
+	// Weather (rain / snow), if authored on this scene.
+	if (weatherType != WeatherType::None)
+		out << "weather " << (weatherType == WeatherType::Rain ? "rain" : "snow")
+			<< " " << weatherIntensity << "\n";
 	out << "\n";
 
 	// Cameras (preserve load order; the first is the default view)
@@ -2345,6 +2617,10 @@ void Scene3D::Update(Game& game)
 			}
 		}
 	}
+
+	// Advance the weather particle volume (keeps it centered on the camera).
+	if (weatherType != WeatherType::None)
+		UpdateWeather(game.renderer.camera.position, dtSec);
 }
 
 void Scene3D::AddOrUpdateCamera(const std::string& name, const CamPose& pose)
