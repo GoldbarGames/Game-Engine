@@ -417,13 +417,15 @@ void InputManager::StartUpdate()
 	holdingRight = (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT));
 	holdingMiddle = (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE));
 
-	pressedLeft = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
-	pressedRight = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_RIGHT));
-	pressedMiddle = !(previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE));
+	// rising edge: held now, not held last frame
+	pressedLeft = holdingLeft && !(previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
+	pressedRight = holdingRight && !(previousMouseState & SDL_BUTTON(SDL_BUTTON_RIGHT));
+	pressedMiddle = holdingMiddle && !(previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE));
 
-	releasedLeft = !holdingLeft && !pressedLeft;
-	releasedRight = !holdingRight && !pressedRight;
-	releasedMiddle = !holdingMiddle && !pressedMiddle;
+	// falling edge: not held now, held last frame
+	releasedLeft = !holdingLeft && (previousMouseState & SDL_BUTTON(SDL_BUTTON_LEFT));
+	releasedRight = !holdingRight && (previousMouseState & SDL_BUTTON(SDL_BUTTON_RIGHT));
+	releasedMiddle = !holdingMiddle && (previousMouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE));
 
 	// Check every key at the beginning of the Update loop
 	// in order to see if it had been pressed or released last frame.

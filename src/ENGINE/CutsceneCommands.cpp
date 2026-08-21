@@ -55,6 +55,7 @@ CutsceneCommands::CutsceneCommands()
 	{"btnwait", &CutsceneFunctions::WaitForButton },
 	{"btnlabel", &CutsceneFunctions::ButtonLabelCommand},
 	{"camera", &CutsceneFunctions::CameraFunction},
+	{"scene3d", &CutsceneFunctions::Scene3DCommand},
 	{"controls", &CutsceneFunctions::ControlBindings},
 	{"choice", &CutsceneFunctions::DisplayChoice },
 	{"cl", &CutsceneFunctions::ClearSprite },
@@ -302,6 +303,11 @@ int CutsceneCommands::ExecuteCommand(std::string command)
 		}
 
 		bool commandFound = false;
+
+		// SIMULATE: while fast-forwarding to rebuild state, skip commands with only
+		// audio/visual/timing side-effects (keep state commands). Reports "handled".
+		if (manager->simulating && manager->SimulateSuppressed(parameters[0]))
+			return 1;
 
 		// Check for functions built into the engine
 		if (!commandFound && cmd_lut.count(parameters[0]) != 0)

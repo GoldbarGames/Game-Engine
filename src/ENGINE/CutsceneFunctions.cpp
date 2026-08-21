@@ -14,6 +14,7 @@
 #include "Renderer.h"
 #include "ParticleSystem.h"
 #include "SoundTest.h"
+#include "Scene3D.h"
 
 //#include <Windows.h>
 
@@ -914,7 +915,65 @@ namespace CutsceneFunctions
 			}
 
 			c.manager->atChoice = true;
-			if (c.manager->autoChoice == 0)
+			bool headless = c.manager->game != nullptr && c.manager->game->autoScreenshotsMax > 0;
+
+			// SIMULATE ("Both" mode): a choice's identity is (label it's shown in,
+			// Nth choice reached within that label). If the loaded scenario has a
+			// scripted pick for THIS identity, auto-pick it silently and keep
+			// fast-forwarding. Otherwise PAUSE the fast-forward and hand off to the
+			// real choice UI - MakeChoice() records whatever the player clicks and
+			// resumes the simulate once they do.
+			bool scriptedPickFound = false;
+			int scriptedOption = 0;
+			if (c.manager->simulating)
+			{
+				SceneLabel* curLabel = c.manager->GetCurrentLabel();
+				if (c.manager->simulateChoiceCounterLabel != curLabel)
+				{
+					c.manager->simulateChoiceCounter = 0;
+					c.manager->simulateChoiceCounterLabel = curLabel;
+				}
+				const std::string label = c.manager->GetLabelName(curLabel);
+				const int nth = c.manager->simulateChoiceCounter++;
+
+				for (const auto& sc : c.manager->simulateScriptedChoices)
+				{
+					if (sc.label == label && sc.nth == nth)
+					{
+						scriptedOption = sc.optionIndex;
+						scriptedPickFound = true;
+						break;
+					}
+				}
+
+				if (!scriptedPickFound)
+				{
+					std::cout << "Simulate: PAUSED at choice - identity (" << label
+						<< ", " << nth << "); supply --simchoice " << label << ":"
+						<< nth << ":<option> to script it" << std::endl;
+					c.manager->simulating = false;
+					c.manager->awaitingInteractiveChoice = true;
+					c.manager->pendingChoiceLabel = label;
+					c.manager->pendingChoiceNth = nth;
+					c.manager->inputTimer.Start(c.manager->inputTimeToWait);
+					return 0;
+				}
+			}
+
+			// Wait for the player only in normal play. During TRAVEL or a headless
+			// capture run (autoScreenshotsMax>0), auto-pick the first option so an
+			// automated playthrough never stalls on a choice; `autochoice` overrides.
+			if (scriptedPickFound)
+			{
+				// Record it too, so re-saving after a mixed scripted/interactive
+				// run preserves the WHOLE path, not just the newly-interactive part.
+				c.manager->recordedChoices.push_back(
+					{ c.manager->GetLabelName(c.manager->GetCurrentLabel()),
+						c.manager->simulateChoiceCounter - 1, scriptedOption });
+				c.manager->buttonIndex = scriptedOption;
+				c.manager->MakeChoice();
+			}
+			else if (c.manager->autoChoice == 0 && !c.manager->isTravelling && !headless)
 			{
 				c.manager->inputTimer.Start(c.manager->inputTimeToWait);
 			}
@@ -995,7 +1054,21 @@ namespace CutsceneFunctions
 	}
 
 	int GoToLabel(CutsceneParameters parameters, CutsceneCommands& c)
-	{		
+	{
+		// SIMULATE loop-breaking: skip gotos that keep revisiting the same
+		// label (menu cycles); falling through past the goto continues the
+		// authored file-order path instead.
+		if (c.manager->simulating)
+		{
+			std::string tgt = c.ParseStringValue(parameters[1]);
+			if (!tgt.empty() && tgt[0] == '*') tgt = tgt.substr(1);
+			if (++c.manager->simulateGotoVisits[tgt] > 3)
+			{
+				std::cout << "Simulate: breaking goto loop to '" << tgt << "'" << std::endl;
+				return 0;
+			}
+		}
+
 		if (parameters[1][0] == '*') // remove leading * if there is one
 		{
 			c.manager->lastJumpedLabel = c.manager->PlayCutscene(c.ParseStringValue(parameters[1].substr(1, parameters[1].size() - 1)).c_str());
@@ -2423,6 +2496,113 @@ namespace CutsceneFunctions
 		return 0;
 	}
 
+	// Built-in `scene3d` command - promoted verbatim from DB2's game-side handler
+	// (which was already fully generic: every subcommand only calls Scene3D APIs).
+	// Games can override/extend by re-registering cmd_lut["scene3d"] in their
+	// CutsceneHelper::SetFunctions.
+	int Scene3DCommand(CutsceneParameters parameters, CutsceneCommands& c)
+	{
+		Game* game = c.manager->game;
+		if (game == nullptr || parameters.size() < 2)
+			return 0;
+
+		const std::string& sub = parameters[1];
+
+		if (sub == "load" && parameters.size() > 2)
+		{
+			Scene3D::Get().Load(*game, c.ParseStringValue(parameters[2]));
+			// Drop any stale 2D bg so it doesn't cover the fresh 3D scene. A later
+			// `bg` command can still overlay this scene (e.g. a screen shot), and
+			// `cl bg` reveals the 3D scene again - no unload/reload needed.
+			c.manager->ClearBackground();
+		}
+		else if (sub == "cam" && parameters.size() > 2)
+		{
+			Scene3D::Get().JumpToCamera(*game, c.ParseStringValue(parameters[2]));
+		}
+		else if (sub == "glide" && parameters.size() > 2)
+		{
+			// scene3d glide <camName> [seconds]  (default 0.9s)
+			float seconds = (parameters.size() > 3) ? (float)c.ParseNumberValue(parameters[3]) : 0.9f;
+			Scene3D::Get().GlideToCamera(c.ParseStringValue(parameters[2]), seconds);
+		}
+		else if (sub == "focus" && parameters.size() > 2)
+		{
+			// scene3d focus <charName> [seconds] [distance] - whole figure centered
+			float seconds = (parameters.size() > 3) ? (float)c.ParseNumberValue(parameters[3]) : 0.9f;
+			float distance = (parameters.size() > 4) ? (float)c.ParseNumberValue(parameters[4]) : 0.0f;
+			Scene3D::Get().FocusCharacter(*game, c.ParseStringValue(parameters[2]), seconds, false, distance);
+		}
+		else if (sub == "closeup" && parameters.size() > 2)
+		{
+			// scene3d closeup <charName> [seconds] - upper-body dialogue shot
+			// (waist to just above the head), auto-fit to the character.
+			float seconds = (parameters.size() > 3) ? (float)c.ParseNumberValue(parameters[3]) : 0.9f;
+			Scene3D::Get().FocusCharacter(*game, c.ParseStringValue(parameters[2]), seconds, true, 0.0f);
+		}
+		else if (sub == "light" && parameters.size() > 3)
+		{
+			// scene3d light <name> <action> [args]
+			//   on | off
+			//   intensity <v>
+			//   fade <v> <seconds>
+			//   color <r> <g> <b>
+			//   move <x> <y> <z>
+			// Lighting values are fractional (intensities, 0-1 colors), and
+			// ParseNumberValue is int-only, so parse the literals as floats here
+			// (falls back to 0 on non-numeric input).
+			auto pf = [](const std::string& s) -> float
+			{
+				try { return std::stof(s); } catch (...) { return 0.0f; }
+			};
+
+			std::string lname = c.ParseStringValue(parameters[2]);
+			std::string action = parameters[3];
+
+			if (action == "on")
+				Scene3D::Get().SetLightOn(lname, true);
+			else if (action == "off")
+				Scene3D::Get().SetLightOn(lname, false);
+			else if (action == "intensity" && parameters.size() > 4)
+				Scene3D::Get().SetLightIntensity(lname, pf(parameters[4]));
+			else if (action == "fade" && parameters.size() > 5)
+				Scene3D::Get().FadeLightIntensity(lname, pf(parameters[4]), pf(parameters[5]));
+			else if (action == "color" && parameters.size() > 6)
+				Scene3D::Get().SetLightColor(lname,
+					glm::vec3(pf(parameters[4]), pf(parameters[5]), pf(parameters[6])));
+			else if (action == "move" && parameters.size() > 6)
+				Scene3D::Get().SetLightPosition(lname,
+					glm::vec3(pf(parameters[4]), pf(parameters[5]), pf(parameters[6])));
+			else
+				game->logger.Log("scene3d light: bad action " + action);
+		}
+		else if (sub == "characters" && parameters.size() > 2)
+		{
+			// scene3d characters on|off - show/hide the scene's baked 3D cast.
+			// Turn OFF to use the scene as a pure backdrop while 2D VN sprites
+			// do the acting.
+			Scene3D::Get().renderCharacters = (parameters[2] != "off");
+		}
+		else if (sub == "off")
+		{
+			Scene3D::Get().Unload(*game);
+		}
+		else if (sub == "quit")
+		{
+			// Test-only: hard-stop the game when a test section finishes, so
+			// iteration doesn't wait on a timeout (and sections don't fall
+			// through into each other the way a bare "end" does).
+			Scene3D::Get().Unload(*game);
+			game->shouldQuit = true;
+		}
+		else
+		{
+			game->logger.Log("scene3d: unknown subcommand " + sub);
+		}
+
+		return 0;
+	}
+
 	int CameraFunction(CutsceneParameters parameters, CutsceneCommands& c)
 	{
 		if (parameters[1] == "target")
@@ -3370,11 +3550,17 @@ namespace CutsceneFunctions
 		if (parameters[1] == "off" || parameters[1] == "stop" || parameters[1] == "end")
 		{
 			c.manager->isTravelling = false;
+			c.manager->travelPaceMs = 0.0f;
 		}
 		else
 		{
 			c.manager->isTravelling = true;
 			c.manager->endTravelLabel = c.ParseStringValue(parameters[2]);
+			// Optional 3rd arg: ms-per-box PACED travel (renders each box). Absent/0 =
+			// the classic instant skip.
+			c.manager->travelPaceMs = (parameters.size() > 3)
+				? (float)c.ParseNumberValue(parameters[3]) : 0.0f;
+			c.manager->travelPaceTimer.Start(c.manager->travelPaceMs);
 			std::string startLabel = c.ParseStringValue(parameters[1]);
 			GoToLabel({ "", startLabel }, c);
 		}

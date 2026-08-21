@@ -93,6 +93,35 @@ int Text::GetTextHeight()
 	return height;
 }
 
+float Text::GetRenderedWidth()
+{
+	// Sum each glyph's true rendered advance, exactly as PositionText / Render do.
+	if (isRichText)
+	{
+		float w = 0.0f;
+		for (size_t i = 0; i < glyphs.size(); i++)
+			w += glyphs[i]->sprite.frameWidth * glyphs[i]->scale.x * Camera::MULTIPLIER;
+		return w;
+	}
+	if (currentSprite.texture != nullptr)
+		return (float)currentSprite.frameWidth * scale.x * Camera::MULTIPLIER;
+	return 0.0f;
+}
+
+float Text::GetRenderedHeight()
+{
+	// Single-line height from the first glyph's rendered cell.
+	if (isRichText)
+	{
+		if (glyphs.size() > 0)
+			return glyphs[0]->sprite.frameHeight * glyphs[0]->scale.y * Camera::MULTIPLIER;
+		return 0.0f;
+	}
+	if (currentSprite.texture != nullptr)
+		return (float)currentSprite.frameHeight * scale.y * Camera::MULTIPLIER;
+	return 0.0f;
+}
+
 glm::vec3 Text::GetLastGlyphPosition()
 {
 	if (isRichText && glyphs.size() > 0)

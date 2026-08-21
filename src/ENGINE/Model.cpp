@@ -12,12 +12,52 @@ Model::~Model()
 
 }
 
+// ---------------------------------------------------------------------------
+// Process-lifetime mesh cache: the same OBJ is loaded ONCE and its GPU meshes
+// are shared by every Model that asks for it afterward (three cheap vector
+// copies instead of a full assimp parse). Safe because nothing ever frees a
+// Model's meshes (~Model is empty and ClearModel has no callers) - meshes
+// live for the process. Without this, a tile-built scene with hundreds of
+// `model` lines re-parsed the same box.obj hundreds of times and froze the
+// boot for tens of seconds (found 2026-08-16, Eggwhite russet rebuild).
+// NOTE: editing an .obj on disk needs a game restart to be picked up.
+#include <map>
+namespace
+{
+	std::map<std::string, Model*> gModelCache;
+
+	Model* CacheLookup(const std::string& filename)
+	{
+		auto it = gModelCache.find(filename);
+		return it == gModelCache.end() ? nullptr : it->second;
+	}
+
+	void CacheStore(const std::string& filename, const Model& loaded)
+	{
+		if (loaded.meshList.empty())
+			return;   // never cache a failed load
+		Model* proto = new Model();
+		proto->meshList = loaded.meshList;
+		proto->textureList = loaded.textureList;
+		proto->meshToTexture = loaded.meshToTexture;
+		gModelCache[filename] = proto;
+	}
+}
+
 #ifdef USE_ASSIMP
 
 #ifdef MODEL_VIA_ASSIMP
 
 void Model::LoadModel(const std::string& filename)
 {
+	if (Model* cached = CacheLookup(filename))
+	{
+		meshList = cached->meshList;
+		textureList = cached->textureList;
+		meshToTexture = cached->meshToTexture;
+		return;
+	}
+
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(filename, aiProcess_Triangulate
 		| aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
@@ -33,6 +73,7 @@ void Model::LoadModel(const std::string& filename)
 
 	LoadMaterials(scene);
 
+	CacheStore(filename, *this);
 }
 
 #else  // built-in OBJ fallback (Emscripten - no assimp port)
@@ -44,7 +85,15 @@ void Model::LoadModel(const std::string& filename)
 
 void Model::LoadModel(const std::string& filename)
 {
+	if (Model* cached = CacheLookup(filename))
+	{
+		meshList = cached->meshList;
+		textureList = cached->textureList;
+		meshToTexture = cached->meshToTexture;
+		return;
+	}
 	LoadObjModel(filename);
+	CacheStore(filename, *this);
 }
 
 void Model::LoadObjModel(const std::string& filename)

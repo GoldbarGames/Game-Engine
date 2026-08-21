@@ -48,6 +48,18 @@ struct ScenePointLight
 	float range = 300.0f;      // world units to full falloff
 	float intensity = 1.0f;
 	LightFade fade;
+	// Strobe (emergency lights / alarms): flashHz > 0 blinks the light on/off that
+	// many times per second; flashPhase (0..1) offsets the cycle - pair a red light
+	// at phase 0 with a blue one at phase 0.5 to alternate. flashPeak holds the
+	// authored intensity so the strobe restores it each "on".
+	float flashHz = 0.0f;
+	float flashPhase = 0.0f;
+	float flashPeak = 1.0f;
+	// Availability guard (.scene "if <guard>"): when set, ObjectGuards toggles
+	// guardHidden each frame so the light turns off with its object (e.g. a
+	// police car that only appears once a story flag is set).
+	std::string guard;
+	bool guardHidden = false;
 };
 
 // Spot light (.scene "spot" line): a cone. Angles are half-angles in deg.
@@ -107,13 +119,27 @@ public:
 	// Source spec (kept so the editor can re-serialize the .scene file) and
 	// a world-space AABB (recomputed on load / when moved) for ray-picking.
 	std::string objPath, texPath;
+	// Runtime scratch: this model currently has its winter bare-branch mesh loaded
+	// (deciduous material in winter) instead of its authored objPath mesh. Not
+	// serialized - objPath keeps the authored (summer) mesh for the .scene file.
+	bool bareMesh = false;
 	bool solid = false;
+	// Walkable top: characters can stand on (and step/fall onto) this model's
+	// upper surface. Authored via the .scene "walk" flag. Powers
+	// Scene3D::GetGroundHeight for floors, stairs and multi-level rooms.
+	bool walkable = false;
 	// Game-agnostic interaction tag: an arbitrary label a game can attach to a
 	// model (a clue id, a door name, a pickup type, ...). Authored via the
 	// .scene "model ... tag <VALUE>" field or the editor's TAG button. The
 	// engine only stores and serializes it; games decide what it means.
 	std::string interactionTag;
 	bool tagTriggered = false;    // runtime scratch: game flag (e.g. already used)
+	// Availability guard (the .scene "if <expr>" token): a game-evaluated condition
+	// (world-state flags / choices / time). The engine only stores it; a game system
+	// evaluates it each frame and sets guardHidden, and every render/pick pass skips
+	// models where guardHidden is true. Empty guard = always shown.
+	std::string guard;
+	bool guardHidden = false;
 	// Surface material (specular / normal map / lighting model / ...). Named via
 	// the .scene "mat <name>" token, resolved to a MaterialLibrary entry on
 	// load. null = the library's default matte material.
@@ -219,6 +245,24 @@ public:
 	// reads - i.e. props get outlined, characters render as clean sprites. Only
 	// matters while the outline is active (celShading && outlineEnabled).
 	bool outlineCharacters = true;
+	// Whether the scene's baked 3D characters render at all. Set false to use the
+	// scene purely as a cutscene BACKDROP while the VN's own 2D character sprites do
+	// the acting (otherwise a baked character and its 2D sprite would both show). Reset
+	// to true on every Load. Toggled from script via `scene3d characters on|off`.
+	bool renderCharacters = true;
+	// When non-empty, ONLY the character with this charName renders (and casts
+	// shadows) - a focused moment like a debate/cross-examination. Overrides
+	// renderCharacters. Reset to "" on every Load.
+	std::string soloCharacter = "";
+	// Whether a given baked character should be drawn now (honours soloCharacter,
+	// else renderCharacters). Used by the render + shadow passes.
+	bool CharVisible(const Character3D* ch) const;
+
+	// Runtime "focus spotlight" that lights one character (a debate / dramatic
+	// confrontation). on=true aims a warm spot down onto <charName> from above and
+	// toward the camera; on=false disables it. It's an EXTRA light on top of the
+	// scene's own, reset off on Load.
+	void SpotlightCharacter(Game& game, const std::string& charName, bool on);
 	// Full-screen depth-edge outline shader (created on first scene load), run
 	// by Game's composite pass. Public getter.
 	ShaderProgram* EdgeShader() const { return edgeShader; }
@@ -250,6 +294,17 @@ public:
 		glm::vec3 position = glm::vec3(0, 0, 0);
 		float pitch = 0.0f;
 		float yaw = 90.0f;
+	};
+
+	// A named stand-point in the scene (the ".scene" "slot" token). The character
+	// schedule places a character AT a named anchor rather than at raw coordinates,
+	// so scenes describe WHERE someone can stand and the schedule decides WHO. Not
+	// an entity - just data the loader/editor/schedule read.
+	struct SceneAnchor
+	{
+		std::string name;
+		glm::vec3 position = glm::vec3(0, 0, 0);
+		float yaw = 0.0f;               // facing (degrees), for the placed character
 	};
 
 	// Load a scene file, spawn its models, switch to 3D rendering, and
@@ -295,12 +350,18 @@ public:
 	void RenderPointShadowDepth(Game& game, const Renderer& renderer);
 	// Names of the scene's point lights, in order (for the editor's cycle button).
 	std::vector<std::string> PointLightNames() const;
+	// Mutable access to the point lights (ObjectGuards toggles their guardHidden).
+	std::vector<ScenePointLight>& GetPointLights();
 
 	// Hard-cut the camera to a named pose. Returns false if unknown.
 	bool JumpToCamera(Game& game, const std::string& camName);
 
 	// Start a smooth glide (smoothstep, shortest-path yaw) to a named pose.
 	bool GlideToCamera(const std::string& camName, float seconds);
+
+	// Smoothly glide the camera to an explicit pose (e.g. save the current view,
+	// glide to a character closeup, then glide back to the saved pose).
+	void GlideToPose(const CamPose& pose, float seconds);
 
 	// Smoothly frame a named character. closeup=false frames the whole
 	// figure centered; closeup=true frames an upper-body dialogue shot
@@ -310,11 +371,38 @@ public:
 	bool FocusCharacter(Game& game, const std::string& charName,
 		float seconds, bool closeup = false, float distanceOverride = 0.0f);
 
+	// Smoothly frame a world-space AABB (e.g. a prop being inspected): dolly the
+	// camera in along its current horizontal view direction so the box fits the
+	// view, aiming at the box center. fillFrac (0..1) is how much of the view the
+	// box should fill (smaller = more margin around it). Stays on the camera's
+	// current side (dolly, don't teleport around). Returns false if the box is
+	// degenerate (zero size).
+	bool FocusBounds(Game& game, const glm::vec3& aabbMin, const glm::vec3& aabbMax,
+		float seconds, float fillFrac = 0.7f);
+
 	// Push a floor point (x,z; y ignored) out of every solid model's
 	// footprint until it clears them all, treating the point as a circle of
 	// the given radius. Reusable for future character movement. No-op if the
 	// point is already clear or there are no solids.
 	void ResolveAgainstSolids(glm::vec3& pos, float radius) const;
+
+	// Y-aware variant: a solid only blocks when its vertical extent overlaps
+	// the character's body span - feet at pos.y up to pos.y - bodyHeight
+	// (up = -Y) - and its top rises more than maxStepUp above the feet
+	// (lower tops are climbable steps, resolved by GetGroundHeight instead).
+	void ResolveAgainstSolids(glm::vec3& pos, float radius,
+		float bodyHeight, float maxStepUp) const;
+
+	// Highest walkable surface at pos's XZ that is no more than maxStepUp
+	// above the feet (any distance below counts - that's a fall). Returns
+	// false if no walkable ground is under the point. Scenes with no
+	// "walk"-flagged models always return false - callers keep their own
+	// fallback (e.g. a flat y = 0).
+	bool GetGroundHeight(const glm::vec3& pos, float maxStepUp, float& outY) const;
+
+	// True when this scene has any "walk"-flagged surfaces (multi-level map);
+	// false = flat scene, movement code keeps its own ground convention.
+	bool HasWalkableGround() const { return !grounds.empty(); }
 
 	// Advance an in-progress glide; call every frame while active.
 	void Update(Game& game);
@@ -380,10 +468,11 @@ public:
 	// fast blue-grey streaks along the fall direction; Snow = slow camera-facing
 	// flakes with a sideways sway. Simulated in Update, drawn by RenderWeather
 	// (after the opaque + transparent 3D passes, depth-tested, depth-write off).
-	// Authored per scene via the "weather rain|snow [intensity]" .scene token,
+	// Authored per scene via the "weather rain|snow|storm [intensity]" .scene token,
 	// or set at runtime with SetWeather. The cloudy sky is a game-side concern
-	// (DB2's TimeOfDaySky reacts to GetWeather()).
-	enum class WeatherType { None, Rain, Snow };
+	// (DB2's TimeOfDaySky reacts to GetWeather()). Storm = heavy rain plus dynamic
+	// lightning flashes (a full-screen additive flash) and delayed thunder audio.
+	enum class WeatherType { None, Rain, Snow, Storm };
 	void SetWeather(WeatherType type, float intensity = 1.0f);
 	WeatherType GetWeather() const { return weatherType; }
 	float GetWeatherIntensity() const { return weatherIntensity; }
@@ -391,11 +480,62 @@ public:
 	// (Game::Render does), while the perspective depth buffer is still bound.
 	void RenderWeather(Game& game, const Renderer& renderer);
 
+	// --- fountain particle jet -----------------------------------------
+	// A point emitter that sprays water droplets UP from `pos`, arcing back down
+	// under gravity (a real fountain). Authored per scene via the ".scene" token
+	// `fountain <x> <y> <z> [jetSpeed] [fallDist] [spread]`, or set at runtime.
+	// Reuses the weather particle billboard shader for rendering.
+	void SetFountain(const glm::vec3& pos, float jetSpeed = 480.0f,
+		float fallDist = 175.0f, float spread = 60.0f);
+	void ClearFountain() { hasFountain = false; }
+	bool HasFountain() const { return hasFountain; }
+	// Per-parameter access so the editor can tune the jet live.
+	glm::vec3 GetFountainPos() const { return fountainPos; }
+	void  SetFountainPos(const glm::vec3& p) { fountainPos = p; fountainInit = false; }
+	float GetFountainJetSpeed() const { return fountainJetSpeed; }
+	void  SetFountainJetSpeed(float v) { fountainJetSpeed = v; }
+	float GetFountainFallDist() const { return fountainFallDist; }
+	void  SetFountainFallDist(float v) { fountainFallDist = v; }
+	float GetFountainSpread() const { return fountainSpread; }
+	void  SetFountainSpread(float v) { fountainSpread = v; }
+	float GetFountainDropSize() const { return fountainDropSize; }
+	void  SetFountainDropSize(float v) { fountainDropSize = v; }
+	int   GetFountainCount() const { return fountainCount; }
+	void  SetFountainCount(int c) { fountainCount = c < 1 ? 1 : c; fountainInit = false; }
+	// Droplet elongation: 0 = round dots, higher = longer streaks stretched along
+	// each droplet's velocity (rain-like water).
+	float GetFountainStretch() const { return fountainStretch; }
+	void  SetFountainStretch(float v) { fountainStretch = v < 0.0f ? 0.0f : v; }
+	// Advance + draw. RenderFountain is called by Game::Render right after
+	// RenderWeather (same depth-tested, depth-write-off transparent slot).
+	void RenderFountain(Game& game, const Renderer& renderer);
+
+	// --- seasonal foliage ----------------------------------------------
+	// Swaps the texture of every model whose material is `seasonal` (grass /
+	// foliage) to a per-season variant: "<base>_spring/_autumn/_winter.png" (found
+	// next to the base texture); SUMMER or a missing variant uses the base texture.
+	// Authored via the ".scene" token `season <spring|summer|autumn|winter>`.
+	enum class Season { Summer, Spring, Autumn, Winter };
+	void SetSeason(Game& game, Season s);
+	Season GetSeason() const { return season; }
+
 	// A global weather override (a debug/CLI flag or a story-wide storm): when set
 	// to anything but None it is (re)applied after every scene load, overriding the
 	// scene's own authored weather. Leave None so scenes use their authored weather.
 	WeatherType forcedWeather = WeatherType::None;
 	float forcedWeatherIntensity = 1.0f;
+
+	// --- storm lightning & thunder -------------------------------------
+	// Only active while weatherType == Storm. Sound effect played (after a
+	// distance-based delay) when lightning strikes; set to "" to run the storm
+	// silently. Games can also tune the strike cadence.
+	std::string thunderSound = "assets/se/thunder.wav";
+	int thunderChannel = 6;         // SDL_mixer channel (0..7) thunder plays on
+	float lightningMinGap = 3.5f;   // seconds between strikes (at intensity 1)
+	float lightningMaxGap = 12.0f;
+	// Current full-screen flash brightness (0 = none). Exposed so a game could
+	// react (e.g. briefly brighten its own 2D layer) if it wants.
+	float GetLightningFlash() const { return flashIntensity; }
 
 	// --- 3D scene editor support ---------------------------------------
 	// Live object lists so the editor can ray-pick, display info, and move
@@ -422,6 +562,15 @@ public:
 	bool RemoveModel(Game& game, int index);
 	bool RemoveCharacter(Game& game, int index);
 
+	// Spawn a "layered" character (folder + body/head pose sprites) at runtime,
+	// added to the scene + entities. Lets the character schedule place NPCs from
+	// the world model instead of baking them into the .scene. Returns the entity.
+	Character3D* AddCharacter(Game& game, const std::string& name, const std::string& folder,
+		const std::string& bodyPose, const std::string& headExpr,
+		const glm::vec3& pos, float height);
+	// Remove a specific character entity (schedule despawn). false if not present.
+	bool RemoveCharacter(Game& game, Character3D* ch);
+
 	// Serialize the current scene (models, characters, lighting, cameras)
 	// back to its .scene file, preserving the load order. Returns false on
 	// write failure. Used by the editor's Save.
@@ -441,6 +590,16 @@ public:
 	bool SetDefaultCamera(const std::string& name);
 	// Remove a named camera. Returns false if unknown or it's the last one.
 	bool RemoveCamera(const std::string& name);
+
+	// --- named anchors (schedule stand-points; the "slot" .scene token) -----
+	// Read access for the schedule / editor; the non-const overload lets the
+	// editor add / move / rename anchors in place.
+	const std::vector<SceneAnchor>& Anchors() const { return anchors; }
+	std::vector<SceneAnchor>& Anchors() { return anchors; }
+	// Look up an anchor's world position + facing by name. false if unknown.
+	bool GetAnchor(const std::string& name, glm::vec3& outPos, float& outYaw) const;
+	// Remove the anchor at the given index (as listed by Anchors()). false if OOB.
+	bool RemoveAnchorAt(int index);
 
 	// Names (no extension) of every data/scenes/*.scene, for the load dropdown.
 	std::vector<std::string> GetSceneList() const;
@@ -464,19 +623,31 @@ private:
 	std::string skyTexPath;          // kept for re-serialization
 	float skyRadiusVal = 4000.0f;
 
-	// Solid model footprints (world-space XZ boxes) that characters are
-	// pushed out of. Treated as infinite vertical columns (floor furniture).
-	struct SolidBox { float minX, maxX, minZ, maxZ; };
+	// Solid model footprints (world-space boxes) that characters are pushed
+	// out of. minY/maxY are the world vertical extent (visual up = -Y, so
+	// minY is the TOP). The 2-arg ResolveAgainstSolids overload ignores Y
+	// (infinite columns, the historical behavior); the 4-arg overload only
+	// blocks when the box overlaps the character's body span.
+	struct SolidBox { float minX, maxX, minZ, maxZ, minY, maxY; };
 	std::vector<SolidBox> solids;
+
+	// Walkable-top footprints ("walk"-flagged models): XZ box + the world y
+	// of the surface a character stands on (topY = box minY; up = -Y).
+	struct GroundBox { float minX, maxX, minZ, maxZ, topY; };
+	std::vector<GroundBox> grounds;
 
 	// Current scene's lighting (all reset per Load)
 	glm::vec3 ambientColor = glm::vec3(0.08f, 0.08f, 0.10f);
 	SceneDirLight dirLight;
 	std::vector<ScenePointLight> pointLights;
 	std::vector<SceneSpotLight> spotLights;
+	// Runtime focus spotlight (SpotlightCharacter), applied on top of the above.
+	SceneSpotLight focusSpot;
+	bool focusSpotOn = false;
 
 	std::map<std::string, CamPose> cameras;
 	std::vector<std::string> cameraOrder;  // first entry = default view
+	std::vector<SceneAnchor> anchors;      // named stand-points ("slot" token)
 	ShaderProgram* shader = nullptr;         // scene models
 	ShaderProgram* billboardShader = nullptr;  // characters
 	ShaderProgram* instancedShader = nullptr;  // scene models, instanced (dup props)
@@ -542,7 +713,6 @@ private:
 
 	void EnterPerspective(Game& game);
 	void RestoreOrtho(Game& game);
-	void GlideToPose(const CamPose& pose, float seconds);  // arbitrary target
 	Character3D* FindCharacter(const std::string& name) const;
 	float perspFovDeg = 60.0f;  // must match EnterPerspective's SetupPerspective
 	Texture* ResolveTexture(Game& game, const std::string& folder,
@@ -557,18 +727,24 @@ private:
 		const std::string& bodyPath, const std::string& headPath) const;
 
 	// Parse an OBJ's vertices for a local AABB, transform by the model's
-	// (translate * yaw * scale), and return the world XZ footprint. Returns
-	// false if the OBJ can't be read.
+	// (translate * yaw * scale*scaleAxis), and return the world footprint
+	// (XZ box + Y extent). Returns false if the OBJ can't be read.
 	bool ComputeSolidBox(const std::string& objPath, const glm::vec3& pos,
-		float yawDeg, float scale, SolidBox& out) const;
+		float yawDeg, float scale, const glm::vec3& scaleAxis, SolidBox& out) const;
 
 	// Read an OBJ's vertex positions into a local-space AABB (for pick bounds).
 	bool ReadObjLocalAABB(const std::string& objPath,
 		glm::vec3& lo, glm::vec3& hi) const;
 
-	// Recompute the solid-footprint list from all current solid models (after
-	// an add/remove edit).
+public:
+	// Recompute the solid-footprint (and walkable-ground) lists from all
+	// current models - call after any add/remove/flag edit (the editor's tile
+	// mode does this directly).
 	void RebuildSolids();
+private:
+
+	// --- seasonal foliage ----------------------------------------------
+	Season season = Season::Summer;   // Summer = base textures (no season token)
 
 	// --- weather particles ---------------------------------------------
 	WeatherType weatherType = WeatherType::None;
@@ -581,6 +757,41 @@ private:
 	unsigned int snowTex = 0, rainTex = 0;     // procedurally generated sprites
 	void EnsureWeatherResources();             // lazily build VAO/VBOs + textures
 	void UpdateWeather(const glm::vec3& camPos, float dtSec);  // advance + wrap
+
+	// Free-running clock (seconds) driving point-light strobes (flashHz).
+	float flashClock = 0.0f;
+
+	// --- storm lightning & thunder -------------------------------------
+	float lightningTimer = 0.0f;    // seconds until the next strike
+	float flashIntensity = 0.0f;    // current flash brightness, decays each frame
+	float reflashTimer = -1.0f;     // pending secondary flicker (< 0 = none)
+	float reflashMag = 0.0f;
+	float thunderTimer = -1.0f;     // pending thunder sound-out (< 0 = none)
+	bool  stormSeeded = false;      // first-strike delay armed for this storm?
+	std::string flashShaderVert = "data/shaders/flash.vert";
+	std::string flashShaderFrag = "data/shaders/flash.frag";
+	ShaderProgram* flashShader = nullptr;
+	unsigned int flashVAO = 0;                  // empty VAO for the full-screen tri
+	void UpdateLightning(Game& game, float dtSec);   // strike timing, flash, thunder
+	void RenderLightningFlash(const Renderer& renderer);  // full-screen additive flash
+
+	// --- fountain particle jet -----------------------------------------
+	bool hasFountain = false;
+	glm::vec3 fountainPos = glm::vec3(0.0f);   // nozzle (world); droplets spray up from here
+	float fountainJetSpeed = 480.0f;           // initial up-speed (units/s; up = -Y)
+	float fountainGravity = 900.0f;            // downward accel (units/s^2)
+	float fountainFallDist = 175.0f;           // respawn once a droplet falls this far below the nozzle
+	float fountainSpread = 60.0f;              // horizontal launch-velocity spread (the dome shape)
+	float fountainDropSize = 9.0f;
+	int   fountainCount = 340;
+	float fountainStretch = 3.5f;              // 0 = dot; >0 = streak length (x dropSize) along velocity
+	std::vector<glm::vec4> fountainParticles;  // xyz = world pos, w = seed (streamed to the instance buf)
+	std::vector<glm::vec3> fountainVel;        // per-particle velocity (CPU sim + streamed for streaks)
+	bool  fountainInit = false;
+	unsigned int fountainVAO = 0, fountainInstVBO = 0, fountainVelVBO = 0;  // own VAO: quad + pos + velocity
+	void EnsureFountainResources();            // build the fountain VAO (shares the weather quad/textures)
+	void FountainRespawn(int i, bool stagger); // (re)launch particle i from the nozzle
+	void UpdateFountain(float dtSec);          // integrate gravity + arcs, recycle
 };
 
 #endif

@@ -62,6 +62,18 @@ public:
 	// walls, ceilings) where an inverted-hull silhouette is ill-defined and
 	// looks wrong; props keep it. Only consulted when Scene3D::celShading is on.
 	bool outline = true;
+
+	// Seasonal: a model using this material swaps its texture to a per-season
+	// variant (base "_spring/_autumn/_winter" before the extension) when the scene
+	// season changes; summer / a missing variant uses the base texture. Set on
+	// grass/foliage materials via the "seasonal" material token.
+	bool seasonal = false;
+
+	// Deciduous: a model using this material sheds its leaves in winter - the
+	// season swap replaces its mesh with a bare-branch variant ("<obj>_bare.obj")
+	// instead of (or in addition to) the texture swap. Set on the deciduous
+	// tree-canopy material via the "deciduous" token; evergreens leave it off.
+	bool deciduous = false;
 };
 
 // Named material registry, loaded once from a data file. Singleton like

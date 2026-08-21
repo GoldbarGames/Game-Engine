@@ -253,6 +253,15 @@ int Game::MainLoop()
 	}
 
 #if _DEBUG
+	// Latch the scene gate EVERY frame (not just at shot ticks): a scene that shows
+	// only briefly during fast/paced travel would otherwise slip between ticks.
+	if (!autoScreenshotsAfterScene.empty() && !autoScreenshotsArmed
+		&& Scene3D::Get().active
+		&& Scene3D::Get().currentScene == autoScreenshotsAfterScene)
+	{
+		autoScreenshotsArmed = true;
+	}
+
 	if (savingGIF)
 	{
 		if (autoGIFsDuration > 0 && autoGifDurationTimer.HasElapsed())
@@ -269,7 +278,19 @@ int Game::MainLoop()
 	{
 		screenshotTimer.Start(autoScreenshots);
 
-		SaveScreenshot("screenshots/auto/", "", ".png");
+		// Capture once the scene gate has latched (see above), or immediately if no
+		// gate was set.
+		bool armed = autoScreenshotsAfterScene.empty() || autoScreenshotsArmed;
+		if (armed)
+		{
+			SaveScreenshot("screenshots/auto/", "", ".png");
+
+			// Self-bounding capture run: quit once we've taken the requested number of
+			// shots so a headless test runs only as long as it needs to.
+			autoScreenshotsTaken++;
+			if (autoScreenshotsMax > 0 && autoScreenshotsTaken >= autoScreenshotsMax)
+				shouldQuit = true;
+		}
 	}
 #endif
 
@@ -1940,6 +1961,11 @@ void Game::LoadSettings()
 		{
 			isFullscreen = std::stoi(tokens[1]);
 
+			// A --windowed launch override wins over the saved setting (headless
+			// capture needs a real window, not exclusive fullscreen).
+			if (forceWindowed)
+				isFullscreen = 0;
+
 			if (isFullscreen)
 				SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 			else
@@ -2910,7 +2936,23 @@ void Game::Update()
 
 			if (cutsceneManager.watchingCutscene)
 			{
-				cutsceneManager.Update();
+				// SIMULATE: a dev "jump with correct state" fast-forwards the script to a
+				// target label. Each Update advances ~one box; loop it here so the whole
+				// replay finishes in ONE real frame instead of one box per frame. Stops
+				// when the target is reached (simulating cleared) or a big safety budget.
+				if (cutsceneManager.simulating)
+				{
+					int guard = 0;
+					while (cutsceneManager.simulating && cutsceneManager.watchingCutscene
+						&& ++guard < 200000)
+					{
+						cutsceneManager.Update();
+					}
+				}
+				else
+				{
+					cutsceneManager.Update();
+				}
 			}
 			else
 			{
@@ -3457,7 +3499,7 @@ void Game::RenderNormally()
 	gui->RenderStart();
 
 	// Render all backgrounds and their layers
-	
+
 	if (background != nullptr)
 	{
 		background->Render(renderer);
@@ -3600,6 +3642,8 @@ void Game::RenderNormally()
 		// Weather particles (rain/snow) after all geometry: depth-tested so
 		// props occlude them, depth-write off so the outline pass ignores them.
 		Scene3D::Get().RenderWeather(*this, renderer);
+		// Fountain spray droplets (same transparent, depth-tested slot).
+		Scene3D::Get().RenderFountain(*this, renderer);
 	}
 
 	if (!use2DCamera && triangle3D != nullptr)

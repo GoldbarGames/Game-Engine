@@ -1,1 +1,9 @@
-
+*title
+*debug
+test`scale`2,2`pos`400,150,0
+In Check`pos`200,400,0
+TurnText`pos`200,300,0
+*cantsee
+Nosee`pos`200,200,0
+*level
+LevelName`pos`900,1300,0

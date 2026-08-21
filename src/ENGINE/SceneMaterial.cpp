@@ -95,6 +95,8 @@ bool MaterialLibrary::Load(Game& game, const std::string& path)
 		else if (tok == "roughness")  { std::string v; ss >> v; cur.roughness = pf(v); }
 		else if (tok == "opacity")    { std::string v; ss >> v; cur.opacity = pf(v); }
 		else if (tok == "outline")    { std::string v; ss >> v; cur.outline = !(v == "off" || v == "0" || v == "false"); }
+		else if (tok == "seasonal")   { cur.seasonal = true; }
+		else if (tok == "deciduous")  { cur.deciduous = true; cur.seasonal = true; }
 	}
 	flush();
 

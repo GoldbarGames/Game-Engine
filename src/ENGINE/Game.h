@@ -306,9 +306,26 @@ public:
 	// (set alongside InputManager::StartPlayback for automated test runs)
 	bool quitWhenPlaybackEnds = false;
 
-	// Automatically take a screenshot every X seconds
+	// Automatically take a screenshot every X milliseconds
 	int autoScreenshots = 0;
 	Timer screenshotTimer;
+	// If > 0, quit the game after this many auto-screenshots have been taken
+	// (a self-bounding headless-capture run). 0 = keep capturing indefinitely.
+	int autoScreenshotsMax = 0;
+	int autoScreenshotsTaken = 0;
+	// If set, auto-screenshots don't begin until the named 3D scene is active
+	// (`Scene3D::currentScene`). Lets a headless capture race through a cutscene
+	// (instant text) and only start shooting once it reaches the beat of interest,
+	// instead of wasting shots on boot / earlier scenes. Empty = capture immediately.
+	// LATCHES: once the scene is seen for even one frame, capturing stays on (so a
+	// brief scene during fast travel can't slip between the periodic shot ticks).
+	std::string autoScreenshotsAfterScene;
+	bool autoScreenshotsArmed = false;
+	// Force a windowed (non-fullscreen) window regardless of the saved settings.
+	// Used by headless capture so the window stays visible/rendering (exclusive
+	// fullscreen minimizes + stops rendering when it loses focus, corrupting the
+	// readback). Does not change the on-disk settings.
+	bool forceWindowed = false;
 
 	// Automatically record GIFs every X seconds for Y seconds
 	int autoGIFsDelay = 0;

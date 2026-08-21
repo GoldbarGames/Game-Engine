@@ -331,6 +331,63 @@ public:
 	bool isTravelling = false;
 	std::string endTravelLabel = "";
 
+	// SIMULATE: a headless fast-forward that REBUILDS game state up to a target
+	// label (a dev "jump with correct state" - see DevSim). Built on the travel
+	// fast-path (executes every command, so flags/clues/scene/seen-dialogue update),
+	// plus: audio/visual/wait commands are suppressed (SimulateSuppressed), story
+	// handoffs are passed through, and it stops at the target so normal play resumes
+	// there. isTravelling drives the advance while this is on; endTravelLabel == the
+	// target.
+	//
+	// Choices ("Both" mode): a choice's identity is (label it's displayed in, Nth
+	// choice within that label - 0-based, counting only choices actually reached).
+	// `simulateScriptedChoices` optionally pre-supplies a pick for a given identity
+	// (a recorded/scripted path); if none is found for the choice just reached,
+	// the fast-forward PAUSES (simulating cleared, isTravelling left on) and the
+	// normal choice UI waits for a real click, exactly like ordinary play - then
+	// resumes automatically once the player picks. Every choice actually made
+	// during a simulate run (scripted or interactive) is appended to
+	// `recordedChoices`, so the run can be saved as a new scenario afterward.
+	bool simulating = false;
+	long simulateIterations = 0;        // safety budget (reset when a simulate starts)
+
+	// Simulate loop-breaking: gotos re-visiting a label more than a few times
+	// during one fast-forward are SKIPPED (fall through past the goto), so
+	// menu cycles like ghost_save -> goto ghost_menu can't trap the travel.
+	// Cleared when a simulate starts.
+	std::map<std::string, int> simulateGotoVisits;
+
+	struct ScenarioChoice { std::string label; int nth = 0; int optionIndex = 0; };
+	std::vector<ScenarioChoice> simulateScriptedChoices;   // loaded scenario: scripted picks
+	std::vector<ScenarioChoice> recordedChoices;           // every pick made this simulate run
+
+	// Set by DisplayChoice when it pauses for a real click; consumed by MakeChoice
+	// once the player picks, to record the choice and resume the fast-forward.
+	bool awaitingInteractiveChoice = false;
+	std::string pendingChoiceLabel;
+	int pendingChoiceNth = 0;
+
+	// Nth-choice-within-label counter, reset whenever the current label changes.
+	int simulateChoiceCounter = 0;
+	SceneLabel* simulateChoiceCounterLabel = nullptr;
+
+	// Commands to skip while simulating (no visible/audio side-effects; state only).
+	// Games can EXTEND the built-in suppression set with their own presentational
+	// commands (e.g. Eggwhite's `battle`/`freeroam`, which would end the cutscene
+	// mid-replay), or UN-suppress a built-in entry via simulateAllow (e.g. allow
+	// `scene3d` so the landing label's scene actually exists when play resumes -
+	// useful when a game's target labels don't reload their own scene the way
+	// DB2's do). simulateAllow wins over both sets.
+	std::set<std::string> simulateSuppressExtra;
+	std::set<std::string> simulateAllow;
+	bool SimulateSuppressed(const std::string& cmd) const;
+	// Paced travel: when > 0, travel does NOT skip instantly - it shows each text box
+	// in full (instant text) for this many ms, then advances, RENDERING the whole way.
+	// Turns `travel` into a watchable/screenshot-able fast playthrough for testing.
+	// 0 = the classic instant skip (no rendering). Set as the 3rd `travel` argument.
+	float travelPaceMs = 0.0f;
+	Timer travelPaceTimer;
+
 	std::string backlogBtnUp = "";
 	std::string backlogBtnDown = "";
 	int backlogBtnUpX = 0;
@@ -346,6 +403,9 @@ public:
 	void ExecuteDefineBlock(const char* configName);
 	void Update();
 	void Render(const Renderer& renderer);
+	// Remove the 2D background image (index 0) so a live 3D scene shows through it.
+	// Called when a 3D scene loads (so a stale `bg` can't cover it) and via `cl bg`.
+	void ClearBackground();
 	void RenderTextbox(const Renderer& renderer);
 	SceneLabel* JumpToLabel(const std::string& newLabelName);
 	SceneLabel* PlayCutscene(const char* labelName);

@@ -60,6 +60,12 @@ public:
 
 	int GetTextWidth();
 	int GetTextHeight();
+	// True ON-SCREEN size (GUI units) of the laid-out rich text: each glyph's
+	// rendered cell (frameWidth/Height * scale * Camera::MULTIPLIER), matching
+	// what Render actually draws. Unlike GetTextWidth/Height (raw texture pixels),
+	// this needs no fudge factor - use it to centre text in a rect. Single line.
+	float GetRenderedWidth();
+	float GetRenderedHeight();
 	glm::vec3 GetLastGlyphPosition();
 
 	std::string GetTextString();

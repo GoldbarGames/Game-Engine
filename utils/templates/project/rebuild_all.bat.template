@@ -1,0 +1,30 @@
+@echo off
+setlocal
+REM ==========================================================================
+REM  Rebuild the engine THEN this game (stops if the engine fails).
+REM  Engine batch lives at the solution root (..\rebuild_engine.bat); the game
+REM  is whatever project this folder is named (see rebuild_game.bat).
+REM
+REM  Usage:   rebuild_all.bat  [Debug|Release]  [x64|Win32]   (defaults: Debug x64)
+REM ==========================================================================
+
+echo ============================================================
+echo  [1/2] Engine
+echo ============================================================
+call "%~dp0..\rebuild_engine.bat" %*
+if errorlevel 1 (
+    echo.
+    echo Aborting: engine build failed, skipping the game.
+    exit /b 1
+)
+
+echo.
+echo ============================================================
+echo  [2/2] Game
+echo ============================================================
+call "%~dp0rebuild_game.bat" %*
+if errorlevel 1 exit /b 1
+
+echo.
+echo *** ALL BUILDS SUCCEEDED ***
+endlocal & exit /b 0

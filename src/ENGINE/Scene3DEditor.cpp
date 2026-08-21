@@ -15,6 +15,9 @@
 #include <cstdio>
 #include <sstream>
 #include <string>
+#include <algorithm>
+#include <filesystem>
+#include "SceneMaterial.h"
 
 namespace
 {
@@ -99,11 +102,15 @@ namespace
 	// scaled down by kOverlayScale for crisp, legible text - same approach the
 	// VN textbox uses.
 	const int kOverlayFontSize = 96;
-	const float kOverlayScale = 1.0f;
+	// NOTE: scales recalibrated 2026-08-18 for the glyph-atlas text metrics
+	// (rendered size ~84*scale/glyph wide, ~96*scale tall; GetTextWidth cells
+	// are ~59px/glyph). The old 1.2/1.0/0.8 scales predate the atlas and drew
+	// text ~2.5x bigger than the button/row rects laid out for it.
+	const float kOverlayScale = 0.21f;
 
 	// The object list holds many rows, so it renders smaller than the main
 	// overlay to fit them all on screen. It sits in a right-side column.
-	const float kListScale = 0.8f;
+	const float kListScale = 0.16f;
 	const float kListWidthGui = 460.0f;   // also the clickable column width
 	const float kListTopGui = 120.0f;
 	const float kListMarginGui = 24.0f;
@@ -120,15 +127,18 @@ namespace
 	const float kBtnX = 24.0f;
 	const float kBtnY = 190.0f;
 	const float kBtnGap = 16.0f;
-	const float kBtnTextScale = 1.2f;
+	const float kBtnTextScale = 0.22f;
 	const float kBtnPadX = 16.0f;
 	const float kBtnPadY = 10.0f;
 	// GetTextWidth/Height sum padded glyph textures, so the laid-out text is a
 	// fixed fraction of them; these factors convert to on-screen GUI units.
-	const float kBtnWFactor = 0.62f;
+	const float kBtnWFactor = 0.80f;
 	const float kBtnHFactor = 0.44f;
 	const char* kModeNames[3] = { "MOVE", "ROTATE", "SCALE" };
-	const char* kActNames[8] = { "DELETE", "ADD", "NEW", "LOAD", "TAG", "MAT", "SHADOW", "WEATHER" };
+	const char* kActNames[14] = { "DELETE", "CLONE", "ADD", "NEW", "LOAD", "TAG", "MAT", "SHADOW", "WEATHER", "FOUNTAIN", "SEASON", "SLOT", "MAP", "TILE" };
+// Half-size of an anchor's pick / selection box (anchors are points, so give them a
+// small cube to click and frame).
+static const float kAnchorHalf = 26.0f;
 	const char* kAxisNames[4] = { "FREE", "X", "Y", "Z" };
 	const char* kResetNames[3] = { "RESET POS", "RESET ROT", "RESET SCALE" };
 	const char* kCamNames[4] = { "SAVE CAM", "NEW CAM", "SET DEF", "DEL CAM" };
@@ -148,6 +158,44 @@ namespace
 	};
 	const int kWaterPropCount = 7;
 
+	// Editable fountain-jet properties (FOUNTAIN panel). Order matches the
+	// read/write switch in RenderFountainButtons / FountainButtonClick.
+	struct FountainPropDef { const char* name; float step; float lo; float hi; };
+	const FountainPropDef kFountainProps[] = {
+		{ "JET SPEED", 20.0f, 100.0f, 900.0f },
+		{ "FALL DIST", 10.0f,  40.0f, 500.0f },
+		{ "SPREAD",     5.0f,   0.0f, 200.0f },
+		{ "DROP SIZE",  1.0f,   2.0f,  30.0f },
+		{ "COUNT",     20.0f,  20.0f, 900.0f },
+		{ "STRETCH",    0.5f,   0.0f,  12.0f },   // 0 = round dots, higher = longer streaks
+	};
+
+	// Read/write fountain property i through Scene3D's accessors (COUNT is int).
+	float GetFountainProp(Scene3D& s, int i)
+	{
+		switch (i)
+		{
+		case 0:  return s.GetFountainJetSpeed();
+		case 1:  return s.GetFountainFallDist();
+		case 2:  return s.GetFountainSpread();
+		case 3:  return s.GetFountainDropSize();
+		case 4:  return (float)s.GetFountainCount();
+		default: return s.GetFountainStretch();
+		}
+	}
+	void SetFountainProp(Scene3D& s, int i, float v)
+	{
+		switch (i)
+		{
+		case 0:  s.SetFountainJetSpeed(v); break;
+		case 1:  s.SetFountainFallDist(v); break;
+		case 2:  s.SetFountainSpread(v); break;
+		case 3:  s.SetFountainDropSize(v); break;
+		case 4:  s.SetFountainCount((int)(v + 0.5f)); break;
+		default: s.SetFountainStretch(v); break;
+		}
+	}
+
 	// Pointer to the WaterSurface field for property index i.
 	float* WaterField(WaterSurface& w, int i)
 	{
@@ -163,10 +211,19 @@ namespace
 		}
 	}
 
+	// Centre a button's label inside its rect. Text glyphs are centre-anchored,
+	// so SetPosition fixes the label's LEFT edge (x) and its VERTICAL CENTRE (y);
+	// GetRenderedWidth/Height give the true on-screen text extent (no fudge
+	// factor), so the label lands dead-centre both ways.
+	void CenterLabel(Text* t, float bx, float by, float bw, float bh)
+	{
+		t->SetPosition(bx + (bw - t->GetRenderedWidth()) * 0.5f, by + bh * 0.5f);
+	}
+
 	// "Add model" dropdown geometry.
 	const float kDropRowGui = 48.0f;
 	const float kDropWidthGui = 380.0f;
-	const float kDropScale = 0.7f;
+	const float kDropScale = 0.17f;
 }
 
 void Scene3DEditor::Toggle(Game& game)
@@ -269,6 +326,24 @@ void Scene3DEditor::Update(Game& game)
 	bool wheelUp = game.inputManager.scrolledUp;
 	bool wheelDown = game.inputManager.scrolledDown;
 
+	// Mouse-wheel over the object list SCROLLS it (and is then consumed, so the
+	// camera doesn't also dolly). The panel spans listX..+width, from the tab row
+	// down. listX is recomputed here so it's valid before the first Render.
+	if ((wheelUp || wheelDown) && listTab == ListTab::Objects)
+	{
+		float lx = game.designWidth * Camera::MULTIPLIER - kListWidthGui - kListMarginGui;
+		float gx = mx * (game.designWidth * Camera::MULTIPLIER) / w;
+		float gy = my * (game.designHeight * Camera::MULTIPLIER) / h;
+		if (gx >= lx && gx <= lx + kListWidthGui && gy >= kListTopGui)
+		{
+			listScroll += (wheelDown ? 3 : -3);   // 3 rows per wheel notch
+			int maxS = ListMaxScroll(game);
+			if (listScroll > maxS) listScroll = maxS;
+			if (listScroll < 0) listScroll = 0;
+			wheelUp = wheelDown = false;           // consumed
+		}
+	}
+
 	// --- camera: a zoom-to-object glide takes precedence over the fly camera,
 	// but any manual camera input (movement key / right-drag) cancels it. ---
 	bool moveKey = keys[SDL_SCANCODE_W] || keys[SDL_SCANCODE_A] || keys[SDL_SCANCODE_S]
@@ -301,6 +376,11 @@ void Scene3DEditor::Update(Game& game)
 
 	// Click priority: mode buttons, action buttons, add-dropdown, object list,
 	// then the 3D scene.
+	// The open minimap swallows clicks that land inside it (it covers the lower
+	// button bars / info panel). The MAP toggle and top button rows sit above the
+	// panel, so they still pass through to ActionButtonClick below.
+	if (leftPressed && !rightHeld && MinimapClick(game, (float)mx, (float)my))
+		leftPressed = false;   // consumed by the map overlay
 	if (leftPressed && !rightHeld && ModeButtonClick(game, (float)mx, (float)my))
 		leftPressed = false;   // consumed
 	if (leftPressed && !rightHeld && AxisButtonClick(game, (float)mx, (float)my))
@@ -312,6 +392,8 @@ void Scene3DEditor::Update(Game& game)
 	if (leftPressed && !rightHeld && EditButtonClick(game, (float)mx, (float)my))
 		leftPressed = false;   // consumed
 	if (leftPressed && !rightHeld && WaterButtonClick(game, (float)mx, (float)my))
+		leftPressed = false;   // consumed
+	if (leftPressed && !rightHeld && FountainButtonClick(game, (float)mx, (float)my))
 		leftPressed = false;   // consumed
 	if (leftPressed && !rightHeld && ActionButtonClick(game, (float)mx, (float)my))
 		leftPressed = false;   // consumed
@@ -327,6 +409,14 @@ void Scene3DEditor::Update(Game& game)
 		leftPressed = false;   // consumed
 	if (leftPressed && !rightHeld && CameraListClick(game, (float)mx, (float)my))
 		leftPressed = false;   // consumed
+
+	if (tileMode)
+	{
+		// Grid tile editing replaces selection/drag entirely (UI buttons above
+		// already consumed their clicks).
+		UpdateTileMode(game, leftPressed && !rightHeld, mx, my, w, h, mb);
+		leftPressed = false;   // never falls through to PickAt/drag
+	}
 
 	if (leftPressed && !rightHeld)
 	{
@@ -516,15 +606,19 @@ void Scene3DEditor::Update(Game& game)
 	}
 	revertWasDown = revertDown;
 
+	// Delete/Backspace = same as the DELETE button. Suppressed while typing a
+	// name so Backspace edits the text instead of deleting the selection.
 	bool deleteDown = (keys[SDL_SCANCODE_DELETE] != 0) || (keys[SDL_SCANCODE_BACKSPACE] != 0);
-	if (deleteDown && !deleteWasDown && HasSelection())
-	{
-		// Deletion changes the underlying vectors; for v1 keep it simple and
-		// just clear the selection (true removal would require Scene3D support).
-		statusMsg = "(delete not supported yet)";
-		statusFrames = 150;
-	}
+	if (deleteDown && !deleteWasDown && HasSelection() && !namingScene)
+		DeleteSelected(game);
 	deleteWasDown = deleteDown;
+
+	// Ctrl+D = CLONE (same as the button).
+	static bool cloneWasDown = false;
+	bool cloneDown = ctrl && keys[SDL_SCANCODE_D] != 0;
+	if (cloneDown && !cloneWasDown && HasSelection() && !namingScene)
+		CloneSelected(game);
+	cloneWasDown = cloneDown;
 }
 
 void Scene3DEditor::PickAt(Game& game, float sx, float sy)
@@ -564,6 +658,20 @@ void Scene3DEditor::PickAt(Game& game, float sx, float sy)
 		}
 	}
 
+	const auto& anchors = scene.Anchors();
+	for (size_t i = 0; i < anchors.size(); i++)
+	{
+		glm::vec3 c = anchors[i].position;
+		glm::vec3 h(kAnchorHalf);
+		float t;
+		if (RayAABB(ro, rd, c - h, c + h, t) && t < bestT)
+		{
+			bestT = t;
+			bestType = SelType::Anchor;
+			bestIndex = (int)i;
+		}
+	}
+
 	selType = bestType;
 	selIndex = bestIndex;
 	RefreshInfoText(game);
@@ -576,6 +684,8 @@ glm::vec3 Scene3DEditor::SelectedPosition(Game& game) const
 		return scene.GetModels()[selIndex]->position;
 	if (selType == SelType::Character && selIndex >= 0 && selIndex < (int)scene.GetCharacters().size())
 		return scene.GetCharacters()[selIndex]->position;
+	if (selType == SelType::Anchor && selIndex >= 0 && selIndex < (int)scene.Anchors().size())
+		return scene.Anchors()[selIndex].position;
 	return glm::vec3(0.0f);
 }
 
@@ -592,6 +702,10 @@ void Scene3DEditor::SetSelectedPosition(Game& game, const glm::vec3& p)
 	{
 		scene.GetCharacters()[selIndex]->position = p;
 	}
+	else if (selType == SelType::Anchor && selIndex >= 0 && selIndex < (int)scene.Anchors().size())
+	{
+		scene.Anchors()[selIndex].position = p;
+	}
 }
 
 bool Scene3DEditor::SelectedAABB(Game& game, glm::vec3& outMin, glm::vec3& outMax) const
@@ -606,6 +720,13 @@ bool Scene3DEditor::SelectedAABB(Game& game, glm::vec3& outMin, glm::vec3& outMa
 	if (selType == SelType::Character && selIndex >= 0 && selIndex < (int)scene.GetCharacters().size())
 	{
 		CharacterAABB(scene.GetCharacters()[selIndex], outMin, outMax);
+		return true;
+	}
+	if (selType == SelType::Anchor && selIndex >= 0 && selIndex < (int)scene.Anchors().size())
+	{
+		glm::vec3 c = scene.Anchors()[selIndex].position;
+		outMin = c - glm::vec3(kAnchorHalf);
+		outMax = c + glm::vec3(kAnchorHalf);
 		return true;
 	}
 	return false;
@@ -655,6 +776,20 @@ void Scene3DEditor::ZoomToSelected(Game& game)
 
 // ------------------------------------------------------------ object list
 
+// Rows that fit in the panel at once (the list scrolls; only these are drawn).
+int Scene3DEditor::ListVisibleRows(Game& game) const
+{
+	int n = (int)((game.designHeight * Camera::MULTIPLIER - kListContentTop) / kListRowGui) + 1;
+	return n > 1 ? n : 1;
+}
+
+int Scene3DEditor::ListMaxScroll(Game& game) const
+{
+	int total = (int)(Scene3D::Get().GetModels().size() + Scene3D::Get().GetCharacters().size());
+	int m = total - ListVisibleRows(game);
+	return m > 0 ? m : 0;
+}
+
 void Scene3DEditor::EnsureObjectList(Game& game)
 {
 	Scene3D& scene = Scene3D::Get();
@@ -663,12 +798,28 @@ void Scene3DEditor::EnsureObjectList(Game& game)
 
 	// Rebuild only when the object set changes or the selection moves (so the
 	// "> " marker follows). Cheap - happens on selection change, not per frame.
-	if (listRows.empty() || listBuiltCount != count || key != lastListMarkerKey)
+	bool selChanged = (key != lastListMarkerKey);
+	if (listRows.empty() || listBuiltCount != count || selChanged)
 	{
 		BuildObjectList(game);
 		listBuiltCount = count;
 		lastListMarkerKey = key;
+
+		// When the selection moves (e.g. clicking an object in the 3D view), scroll
+		// the list so the selected row is visible. Only on a real selection change,
+		// so manual wheel-scrolling isn't fought every frame.
+		if (selChanged && selType != SelType::None)
+		{
+			int selRow = (selType == SelType::Model)
+				? selIndex : (int)scene.GetModels().size() + selIndex;
+			int vis = ListVisibleRows(game);
+			if (selRow < listScroll) listScroll = selRow;
+			else if (selRow >= listScroll + vis) listScroll = selRow - vis + 1;
+		}
 	}
+	int maxS = ListMaxScroll(game);
+	if (listScroll > maxS) listScroll = maxS;
+	if (listScroll < 0) listScroll = 0;
 }
 
 void Scene3DEditor::BuildObjectList(Game& game)
@@ -695,6 +846,14 @@ void Scene3DEditor::BuildObjectList(Game& game)
 		bool sel = (selType == SelType::Character && selIndex == (int)i);
 		listEntries.push_back({ SelType::Character, (int)i });
 		labels.push_back((sel ? "> " : "  ") + chars[i]->charName);
+		selected.push_back(sel);
+	}
+	const auto& anchors = scene.Anchors();
+	for (size_t i = 0; i < anchors.size(); i++)
+	{
+		bool sel = (selType == SelType::Anchor && selIndex == (int)i);
+		listEntries.push_back({ SelType::Anchor, (int)i });
+		labels.push_back((sel ? "> " : "  ") + std::string("[slot] ") + anchors[i].name);
 		selected.push_back(sel);
 	}
 
@@ -738,7 +897,11 @@ bool Scene3DEditor::ListClick(Game& game, float sx, float sy)
 	if (gx < listX || gx > listX + kListWidthGui || gy < kListContentTop)
 		return false;
 
-	int row = (int)((gy - kListContentTop) / kListRowGui);
+	// The clicked on-screen slot maps to listScroll + slot in the full list.
+	int slot = (int)((gy - kListContentTop) / kListRowGui);
+	if (slot < 0 || slot >= ListVisibleRows(game))
+		return false;
+	int row = listScroll + slot;
 	if (row < 0 || row >= (int)listEntries.size())
 		return false;
 
@@ -766,24 +929,51 @@ void Scene3DEditor::RenderListZoomButtons(Game& game, const Renderer& renderer)
 		zoomMarkerText->isRichText = true;
 		zoomMarkerText->GetSprite()->keepPositionRelativeToCamera = true;
 		zoomMarkerText->GetSprite()->keepScaleRelativeToCamera = true;
+		// The label is the same on every row and never changes, so build its
+		// glyphs ONCE. SetText rebuilds all glyph sprites; calling it per row per
+		// frame is what tanked editor FPS once a scene had many objects.
+		zoomMarkerText->SetText("ZOOM", { 220, 235, 255, 255 });
+		zoomMarkerText->SetScale(glm::vec2(0.15f, 0.15f));
 	}
 
+	// Only the scrolled window of rows is drawn (off-screen rows aren't visible or
+	// clickable, and drawing a button per object every frame is what cost the FPS).
+	const int visRows = ListVisibleRows(game);
+	const int total = (int)listEntries.size();
 	const float bx = listX + kListWidthGui - kZoomBtnGui;
 	const float bw = kZoomBtnGui - 8.0f;
 	const float bh = kListRowGui - 12.0f;
-	for (size_t i = 0; i < listEntries.size(); i++)
+	for (int s = 0; s < visRows; s++)
 	{
-		if (listEntries[i].type == SelType::None)
-			continue;   // safety: no header rows anymore
-		float by = kListContentTop + (float)i * kListRowGui + 4.0f;
-		bool sel = (listEntries[i].type == selType && listEntries[i].index == selIndex);
+		int idx = listScroll + s;
+		if (idx >= total) break;
+		if (listEntries[idx].type == SelType::None)
+			continue;
+		float by = kListContentTop + (float)s * kListRowGui + 4.0f;
+		bool sel = (listEntries[idx].type == selType && listEntries[idx].index == selIndex);
 		glm::vec4 bg = sel ? glm::vec4(0.20f, 0.42f, 0.55f, 0.9f)
 			: glm::vec4(0.20f, 0.26f, 0.34f, 0.8f);
 		DrawFilledRect(game, renderer, bx, by, bw, bh, bg);
-		zoomMarkerText->SetText("ZOOM", { 220, 235, 255, 255 });
-		zoomMarkerText->SetScale(glm::vec2(0.7f, 0.7f));
-		zoomMarkerText->SetPosition(bx + 12.0f, by + 6.0f);
+		CenterLabel(zoomMarkerText, bx, by, bw, bh);
 		zoomMarkerText->Render(renderer);
+	}
+
+	// Scrollbar (only when the list overflows): a track on the panel's left edge
+	// plus a thumb sized/positioned by the scroll. Purely a visual indicator.
+	if (total > visRows)
+	{
+		const float trackX = listX - 10.0f;
+		const float trackY = kListContentTop;
+		const float trackW = 6.0f;
+		const float trackH = (float)visRows * kListRowGui;
+		DrawFilledRect(game, renderer, trackX, trackY, trackW, trackH,
+			glm::vec4(0.10f, 0.12f, 0.16f, 0.7f));
+		float thumbH = trackH * (float)visRows / (float)total;
+		if (thumbH < 18.0f) thumbH = 18.0f;
+		float frac = (float)listScroll / (float)(total - visRows);
+		float thumbY = trackY + frac * (trackH - thumbH);
+		DrawFilledRect(game, renderer, trackX, thumbY, trackW, thumbH,
+			glm::vec4(0.45f, 0.55f, 0.68f, 0.95f));
 	}
 }
 
@@ -833,6 +1023,14 @@ void Scene3DEditor::RefreshInfoText(Game& game)
 			+ "pos (" + F(p.x) + ", " + F(p.y) + ", " + F(p.z) + ")\n"
 			+ "height " + F(c->worldHeight);
 	}
+	else if (selType == SelType::Anchor && selIndex >= 0 && selIndex < (int)scene.Anchors().size())
+	{
+		const Scene3D::SceneAnchor& a = scene.Anchors()[selIndex];
+		glm::vec3 p = a.position;
+		info = "SLOT  " + a.name + "\n"
+			+ "pos (" + F(p.x) + ", " + F(p.y) + ", " + F(p.z) + ")\n"
+			+ "facing yaw " + F(a.yaw);
+	}
 	else
 	{
 		info = "(nothing selected)";
@@ -864,6 +1062,10 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 
 	Scene3D& scene = Scene3D::Get();
 
+	// Tile-mode hover highlight (grid cell under the mouse).
+	if (tileMode)
+		RenderTileHighlight(game, renderer);
+
 	// Selection box + move gizmo (drawn on top, depth test off).
 	if (HasSelection())
 	{
@@ -873,11 +1075,17 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 			Scene3DModel* m = scene.GetModels()[selIndex];
 			bmin = m->aabbMin; bmax = m->aabbMax; origin = m->position;
 		}
-		else
+		else if (selType == SelType::Character)
 		{
 			Character3D* c = scene.GetCharacters()[selIndex];
 			CharacterAABB(c, bmin, bmax);
 			origin = c->position;
+		}
+		else // Anchor
+		{
+			origin = scene.Anchors()[selIndex].position;
+			bmin = origin - glm::vec3(kAnchorHalf);
+			bmax = origin + glm::vec3(kAnchorHalf);
 		}
 
 		// 12 edges of the AABB (yellow)
@@ -914,6 +1122,27 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 		axisLine(glm::vec3(0, 0, 1), glm::vec4(0.35f, 0.5f, 1.0f, 1.0f), lockAxis == 2);
 	}
 
+	// Anchor markers (schedule stand-points): a small cyan post + base cross + a
+	// tick pointing the placed character's facing, drawn for every anchor so the
+	// designer can see and click them. The selected one also gets the yellow box.
+	{
+		const auto& anchors = scene.Anchors();
+		std::vector<glm::vec3> seg;
+		for (const Scene3D::SceneAnchor& a : anchors)
+		{
+			glm::vec3 p = a.position;
+			glm::vec3 top = p + glm::vec3(0.0f, -70.0f, 0.0f);   // up = -Y
+			seg.push_back(p);   seg.push_back(top);              // post
+			seg.push_back(p - glm::vec3(kAnchorHalf, 0, 0)); seg.push_back(p + glm::vec3(kAnchorHalf, 0, 0));
+			seg.push_back(p - glm::vec3(0, 0, kAnchorHalf)); seg.push_back(p + glm::vec3(0, 0, kAnchorHalf));
+			float yr = glm::radians(a.yaw);                      // facing tick at the top
+			glm::vec3 dir(std::sin(yr), 0.0f, -std::cos(yr));
+			seg.push_back(top); seg.push_back(top + dir * 34.0f);
+		}
+		if (!seg.empty())
+			DrawLines(game, renderer, seg, glm::vec4(0.2f, 0.95f, 1.0f, 1.0f));
+	}
+
 	// Info panel: created here, but positioned + rendered AFTER the button bars
 	// below (they set infoPanelY, which depends on whether the water panel shows).
 	if (infoText == nullptr)
@@ -926,9 +1155,20 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 	RenderListTabs(game, renderer);
 	if (listTab == ListTab::Objects)
 	{
-		for (size_t i = 0; i < listRows.size(); i++)
-			if (listRows[i] != nullptr && listRows[i]->shouldRender)
-				listRows[i]->Render(renderer);
+		// Only the scrolled window of rows is drawn (keeps a big scene cheap). Each
+		// visible row is repositioned to its on-screen slot for the current scroll.
+		int visRows = ListVisibleRows(game);
+		int total = (int)listRows.size();
+		if (listScroll > ListMaxScroll(game)) listScroll = ListMaxScroll(game);
+		if (listScroll < 0) listScroll = 0;
+		for (int s = 0; s < visRows; s++)
+		{
+			int idx = listScroll + s;
+			if (idx >= total) break;
+			if (listRows[idx] == nullptr || !listRows[idx]->shouldRender) continue;
+			listRows[idx]->SetPosition(listX, kListContentTop + (float)s * kListRowGui);
+			listRows[idx]->Render(renderer);
+		}
 		RenderListZoomButtons(game, renderer);
 	}
 	else
@@ -948,6 +1188,7 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 	RenderCameraButtons(game, renderer);
 	RenderEditButtons(game, renderer);
 	RenderWaterButtons(game, renderer);
+	RenderFountainButtons(game, renderer);
 
 	// Object-details text, below the button bars (infoPanelY is now current).
 	// Hidden while a water object is selected - the water panel fills that space
@@ -957,6 +1198,9 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 		infoText->SetPosition(24.0f, infoPanelY);
 		infoText->Render(renderer);
 	}
+
+	// Aerial minimap overlay (on top of the button bars / info panel it covers).
+	RenderMinimap(game, renderer);
 
 	RenderDropdown(game, renderer);
 	RenderNamePrompt(game, renderer);
@@ -970,10 +1214,20 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 		dirtyText->GetSprite()->keepScaleRelativeToCamera = true;
 	}
 	{
-		bool dirty = IsDirty();
-		dirtyText->SetText(dirty ? "UNSAVED CHANGES  (F5 to save)" : "no unsaved changes",
-			dirty ? Color{ 255, 170, 60, 255 } : Color{ 120, 200, 120, 255 });
-		dirtyText->SetScale(glm::vec2(0.8f, 0.8f));
+		// Dirty = the last committed snapshot differs from the last saved one - a
+		// cheap compare of two ALREADY-serialized strings, instead of re-serializing
+		// the whole scene every frame (that was ~4ms/frame at 139 objects). While a
+		// drag is in progress the commit hasn't happened yet, so show dirty
+		// optimistically (CommitEdit corrects it on release). SetText only runs when
+		// the state actually flips (it rebuilds glyph sprites).
+		bool dirty = dragging ? true : (baselineSnapshot != savedSnapshot);
+		if ((int)dirty != dirtyShown)
+		{
+			dirtyText->SetText(dirty ? "UNSAVED CHANGES  (F5 to save)" : "no unsaved changes",
+				dirty ? Color{ 255, 170, 60, 255 } : Color{ 120, 200, 120, 255 });
+			dirtyText->SetScale(glm::vec2(0.19f, 0.19f));
+			dirtyShown = (int)dirty;
+		}
 		float gw = game.designWidth * Camera::MULTIPLIER;
 		// Approx rendered half-width: GetTextWidth()*kBtnWFactor at scale 0.8.
 		dirtyText->SetPosition(gw * 0.5f - dirtyText->GetTextWidth() * (kBtnWFactor * 0.8f * 0.5f), 20.0f);
@@ -1167,7 +1421,7 @@ void Scene3DEditor::RenderModeButtons(Game& game, const Renderer& renderer)
 		glm::vec4 bg = active ? glm::vec4(0.20f, 0.45f, 0.85f, 0.9f)
 			: glm::vec4(0.14f, 0.14f, 0.16f, 0.8f);
 		DrawFilledRect(game, renderer, btnX[i], btnY[i], btnW[i], btnH[i], bg);
-		modeButtonText[i]->SetPosition(btnX[i] + kBtnPadX, btnY[i] + kBtnPadY);
+		CenterLabel(modeButtonText[i], btnX[i], btnY[i], btnW[i], btnH[i]);
 		modeButtonText[i]->Render(renderer);
 	}
 }
@@ -1236,7 +1490,7 @@ void Scene3DEditor::RenderAxisButtons(Game& game, const Renderer& renderer)
 		bool active = (lockAxis == i - 1);
 		glm::vec4 bg = active ? activeCol[i] : glm::vec4(0.14f, 0.14f, 0.16f, 0.8f);
 		DrawFilledRect(game, renderer, axisBtnX[i], axisBtnY[i], axisBtnW[i], axisBtnH[i], bg);
-		axisBtnText[i]->SetPosition(axisBtnX[i] + kBtnPadX, axisBtnY[i] + kBtnPadY);
+		CenterLabel(axisBtnText[i], axisBtnX[i], axisBtnY[i], axisBtnW[i], axisBtnH[i]);
 		axisBtnText[i]->Render(renderer);
 	}
 }
@@ -1332,7 +1586,7 @@ void Scene3DEditor::RenderResetButtons(Game& game, const Renderer& renderer)
 		// Amber-ish; the reset buttons are momentary (no persistent state).
 		glm::vec4 bg = glm::vec4(0.45f, 0.34f, 0.14f, 0.85f);
 		DrawFilledRect(game, renderer, resetBtnX[i], resetBtnY[i], resetBtnW[i], resetBtnH[i], bg);
-		resetBtnText[i]->SetPosition(resetBtnX[i] + kBtnPadX, resetBtnY[i] + kBtnPadY);
+		CenterLabel(resetBtnText[i], resetBtnX[i], resetBtnY[i], resetBtnW[i], resetBtnH[i]);
 		resetBtnText[i]->Render(renderer);
 	}
 }
@@ -1487,7 +1741,7 @@ void Scene3DEditor::RenderListTabs(Game& game, const Renderer& renderer)
 		Color tc = activeTab ? Color{ 255, 245, 180, 255 } : Color{ 175, 190, 205, 255 };
 		tabBtnText[i]->SetText(names[i], tc);
 		tabBtnText[i]->SetScale(glm::vec2(kListScale, kListScale));
-		tabBtnText[i]->SetPosition(tabBtnX[i] + 18.0f, tabBtnY[i] + 4.0f);
+		CenterLabel(tabBtnText[i], tabBtnX[i], tabBtnY[i], tabBtnW[i], tabBtnH[i]);
 		tabBtnText[i]->Render(renderer);
 	}
 }
@@ -1601,6 +1855,7 @@ void Scene3DEditor::ResetHistory()
 	baselineSnapshot = Scene3D::Get().SerializeToString();
 	savedSnapshot = baselineSnapshot;
 	historyScene = Scene3D::Get().currentScene;
+	listScroll = 0;   // start a freshly-loaded scene's list at the top
 }
 
 void Scene3DEditor::CommitEdit()
@@ -1732,7 +1987,7 @@ void Scene3DEditor::RenderEditButtons(Game& game, const Renderer& renderer)
 		glm::vec4 bg = (i == 2) ? glm::vec4(0.45f, 0.20f, 0.20f, 0.85f)
 			: (avail ? glm::vec4(0.24f, 0.24f, 0.30f, 0.9f) : glm::vec4(0.14f, 0.14f, 0.16f, 0.6f));
 		DrawFilledRect(game, renderer, editBtnX[i], editBtnY[i], editBtnW[i], editBtnH[i], bg);
-		editBtnText[i]->SetPosition(editBtnX[i] + kBtnPadX, editBtnY[i] + kBtnPadY);
+		CenterLabel(editBtnText[i], editBtnX[i], editBtnY[i], editBtnW[i], editBtnH[i]);
 		editBtnText[i]->Render(renderer);
 	}
 }
@@ -1801,9 +2056,9 @@ void Scene3DEditor::RenderWaterButtons(Game& game, const Renderer& renderer)
 			glm::vec4(0.40f, 0.22f, 0.22f, 0.92f));
 		DrawFilledRect(game, renderer, waterPlusX, rowY, waterBtnW, waterRowH,
 			glm::vec4(0.18f, 0.36f, 0.28f, 0.92f));
-		waterMinusText->SetPosition(waterMinusX + kBtnPadX, rowY + kBtnPadY);
+		CenterLabel(waterMinusText, waterMinusX, rowY, waterBtnW, waterRowH);
 		waterMinusText->Render(renderer);
-		waterPlusText->SetPosition(waterPlusX + kBtnPadX, rowY + kBtnPadY);
+		CenterLabel(waterPlusText, waterPlusX, rowY, waterBtnW, waterRowH);
 		waterPlusText->Render(renderer);
 
 		// NAME: VALUE  (SetText resets scale, so set scale after each SetText)
@@ -1811,7 +2066,9 @@ void Scene3DEditor::RenderWaterButtons(Game& game, const Renderer& renderer)
 		snprintf(buf, sizeof(buf), "%s: %.2f", kWaterProps[i].name, *WaterField(w->water, i));
 		waterLabelText->SetText(buf, { 235, 240, 245, 255 });
 		waterLabelText->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
-		waterLabelText->SetPosition(labelX, rowY + kBtnPadY);
+		// Left-aligned readout, but vertically centred to line up with the row's
+		// [-]/[+] buttons (text is vertically centre-anchored).
+		waterLabelText->SetPosition(labelX, rowY + waterRowH * 0.5f);
 		waterLabelText->Render(renderer);
 	}
 	waterPanelLaidOut = true;
@@ -1858,6 +2115,107 @@ bool Scene3DEditor::WaterButtonClick(Game& game, float sx, float sy)
 	return false;
 }
 
+// ------------------------------------------------- fountain-jet tuning bar
+
+void Scene3DEditor::RenderFountainButtons(Game& game, const Renderer& renderer)
+{
+	Scene3D& sc = Scene3D::Get();
+	// Shares the water panel's space, so only show it when there's a fountain AND
+	// no water object is selected.
+	if (!sc.HasFountain() || SelectedWater(game) != nullptr)
+	{
+		fountainPanelLaidOut = false;
+		return;
+	}
+
+	auto ensure = [&](Text*& t) {
+		if (t == nullptr)
+		{
+			t = new Text(EnsureFont(game));
+			t->isRichText = true;
+			t->GetSprite()->keepPositionRelativeToCamera = true;
+			t->GetSprite()->keepScaleRelativeToCamera = true;
+		}
+	};
+	ensure(fountainMinusText); ensure(fountainPlusText);
+	ensure(fountainLabelText); ensure(fountainHeaderText);
+
+	fountainMinusText->SetText("  -  ", { 255, 255, 255, 255 });
+	fountainPlusText->SetText("  +  ", { 255, 255, 255, 255 });
+	fountainMinusText->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
+	fountainPlusText->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
+	fountainBtnW = fountainMinusText->GetTextWidth() * kBtnWFactor + 2.0f * kBtnPadX;
+	fountainRowH = fountainMinusText->GetTextHeight() * kBtnHFactor + 2.0f * kBtnPadY;
+	fountainMinusX = kBtnX;
+	fountainPlusX = fountainMinusX + fountainBtnW + kBtnGap;
+	const float labelX = fountainPlusX + fountainBtnW + kBtnGap + 8.0f;
+	const float rowPitch = fountainRowH + 8.0f;
+
+	float topY = editBtnLaidOut ? (editBtnY[0] + editBtnH[0] + kBtnGap) : (kBtnY + 520.0f);
+	fountainHeaderText->SetText("FOUNTAIN PROPERTIES", { 150, 220, 255, 255 });
+	fountainHeaderText->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
+	fountainHeaderText->SetPosition(kBtnX, topY);
+	fountainHeaderText->Render(renderer);
+
+	float rowY0 = topY + fountainRowH + 6.0f;
+	for (int i = 0; i < kNumFountainProps; i++)
+	{
+		float rowY = rowY0 + (float)i * rowPitch;
+		fountainRowY[i] = rowY;
+
+		DrawFilledRect(game, renderer, fountainMinusX, rowY, fountainBtnW, fountainRowH,
+			glm::vec4(0.40f, 0.22f, 0.22f, 0.92f));
+		DrawFilledRect(game, renderer, fountainPlusX, rowY, fountainBtnW, fountainRowH,
+			glm::vec4(0.18f, 0.36f, 0.28f, 0.92f));
+		CenterLabel(fountainMinusText, fountainMinusX, rowY, fountainBtnW, fountainRowH);
+		fountainMinusText->Render(renderer);
+		CenterLabel(fountainPlusText, fountainPlusX, rowY, fountainBtnW, fountainRowH);
+		fountainPlusText->Render(renderer);
+
+		char buf[96];
+		snprintf(buf, sizeof(buf), "%s: %g", kFountainProps[i].name, GetFountainProp(sc, i));
+		fountainLabelText->SetText(buf, { 235, 240, 245, 255 });
+		fountainLabelText->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
+		fountainLabelText->SetPosition(labelX, rowY + fountainRowH * 0.5f);
+		fountainLabelText->Render(renderer);
+	}
+	fountainPanelLaidOut = true;
+	infoPanelY = rowY0 + (float)kNumFountainProps * rowPitch + kBtnGap;
+}
+
+bool Scene3DEditor::FountainButtonClick(Game& game, float sx, float sy)
+{
+	if (!fountainPanelLaidOut)
+		return false;
+	float gx = sx * (game.designWidth * Camera::MULTIPLIER) / (float)game.screenWidth;
+	float gy = sy * (game.designHeight * Camera::MULTIPLIER) / (float)game.screenHeight;
+	Scene3D& sc = Scene3D::Get();
+
+	for (int i = 0; i < kNumFountainProps; i++)
+	{
+		if (gy < fountainRowY[i] || gy > fountainRowY[i] + fountainRowH)
+			continue;
+		bool onMinus = (gx >= fountainMinusX && gx <= fountainMinusX + fountainBtnW);
+		bool onPlus  = (gx >= fountainPlusX  && gx <= fountainPlusX  + fountainBtnW);
+		if (!onMinus && !onPlus)
+			return false;
+
+		const FountainPropDef& pd = kFountainProps[i];
+		float nv = GetFountainProp(sc, i) + (onMinus ? -pd.step : pd.step);
+		if (nv < pd.lo) nv = pd.lo;
+		if (nv > pd.hi) nv = pd.hi;
+		SetFountainProp(sc, i, nv);
+
+		char msg[96];
+		snprintf(msg, sizeof(msg), "%s = %g  (F5 to save)", pd.name, nv);
+		statusMsg = msg;
+		statusFrames = 120;
+		CommitEdit();
+		return true;
+	}
+	return false;
+}
+
 void Scene3DEditor::RenderCameraButtons(Game& game, const Renderer& renderer)
 {
 	for (int i = 0; i < kNumCamBtns; i++)
@@ -1896,7 +2254,7 @@ void Scene3DEditor::RenderCameraButtons(Game& game, const Renderer& renderer)
 		glm::vec4 bg = (i == 0 && naming) ? glm::vec4(0.18f, 0.62f, 0.62f, 0.95f)
 			: glm::vec4(0.14f, 0.34f, 0.40f, 0.85f);
 		DrawFilledRect(game, renderer, camBtnX[i], camBtnY[i], camBtnW[i], camBtnH[i], bg);
-		camBtnText[i]->SetPosition(camBtnX[i] + kBtnPadX, camBtnY[i] + kBtnPadY);
+		CenterLabel(camBtnText[i], camBtnX[i], camBtnY[i], camBtnW[i], camBtnH[i]);
 		camBtnText[i]->Render(renderer);
 	}
 }
@@ -1922,18 +2280,36 @@ void Scene3DEditor::RenderActionButtons(Game& game, const Renderer& renderer)
 	// (AUTO = auto-pick the strongest). SetText resets scale, so re-apply it.
 	{
 		const std::string& caster = Scene3D::Get().shadowCasterLight;
-		actBtnText[6]->SetText("SHADOW: " + (caster.empty() ? std::string("AUTO") : caster),
+		actBtnText[7]->SetText("SHADOW: " + (caster.empty() ? std::string("AUTO") : caster),
 			{ 255, 255, 255, 255 });
-		actBtnText[6]->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
+		actBtnText[7]->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
 	}
 
 	// WEATHER button (index 7): dynamic label with the scene's weather state.
 	{
 		Scene3D::WeatherType w = Scene3D::Get().GetWeather();
 		const char* wn = (w == Scene3D::WeatherType::Rain) ? "RAIN"
-			: (w == Scene3D::WeatherType::Snow) ? "SNOW" : "NONE";
-		actBtnText[7]->SetText(std::string("WEATHER: ") + wn, { 255, 255, 255, 255 });
-		actBtnText[7]->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
+			: (w == Scene3D::WeatherType::Snow) ? "SNOW"
+			: (w == Scene3D::WeatherType::Storm) ? "STORM" : "NONE";
+		actBtnText[8]->SetText(std::string("WEATHER: ") + wn, { 255, 255, 255, 255 });
+		actBtnText[8]->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
+	}
+
+	// FOUNTAIN button (index 8): on/off; while on, the tuning panel appears below.
+	{
+		actBtnText[9]->SetText(Scene3D::Get().HasFountain() ? "FOUNTAIN: ON" : "FOUNTAIN: OFF",
+			{ 255, 255, 255, 255 });
+		actBtnText[9]->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
+	}
+
+	// SEASON button (index 9): cycles the foliage season.
+	{
+		Scene3D::Season se = Scene3D::Get().GetSeason();
+		const char* sn = (se == Scene3D::Season::Spring) ? "SPRING"
+			: (se == Scene3D::Season::Autumn) ? "AUTUMN"
+			: (se == Scene3D::Season::Winter) ? "WINTER" : "SUMMER";
+		actBtnText[10]->SetText(std::string("SEASON: ") + sn, { 255, 255, 255, 255 });
+		actBtnText[10]->SetScale(glm::vec2(kBtnTextScale, kBtnTextScale));
 	}
 
 	// Second row, just below the mode buttons (which laid out btnY/btnH first).
@@ -1967,6 +2343,8 @@ void Scene3DEditor::RenderActionButtons(Game& game, const Renderer& renderer)
 	bool naming = namingScene && promptMode == PromptMode::NewScene;
 	glm::vec4 bgs[kNumActions] = {
 		HasSelection() ? glm::vec4(0.70f, 0.20f, 0.20f, 0.9f) : glm::vec4(0.20f, 0.14f, 0.14f, 0.7f),
+		// CLONE (violet; bright when something is selected to duplicate)
+		HasSelection() ? glm::vec4(0.55f, 0.35f, 0.75f, 0.9f) : glm::vec4(0.20f, 0.16f, 0.26f, 0.7f),
 		openDropdown == DropKind::AddModel ? glm::vec4(0.20f, 0.62f, 0.30f, 0.95f) : glm::vec4(0.15f, 0.42f, 0.22f, 0.85f),
 		naming ? glm::vec4(0.80f, 0.60f, 0.15f, 0.95f) : glm::vec4(0.45f, 0.36f, 0.14f, 0.85f),
 		openDropdown == DropKind::LoadScene ? glm::vec4(0.25f, 0.45f, 0.85f, 0.95f) : glm::vec4(0.18f, 0.30f, 0.55f, 0.85f),
@@ -1980,11 +2358,23 @@ void Scene3DEditor::RenderActionButtons(Game& game, const Renderer& renderer)
 		// 7 WEATHER (steel blue-grey; scene-global rain/snow)
 		Scene3D::Get().GetWeather() != Scene3D::WeatherType::None
 			? glm::vec4(0.28f, 0.42f, 0.58f, 0.95f) : glm::vec4(0.22f, 0.30f, 0.40f, 0.85f),
+		// 8 FOUNTAIN (cyan; scene-global water jet)
+		Scene3D::Get().HasFountain()
+			? glm::vec4(0.16f, 0.52f, 0.60f, 0.95f) : glm::vec4(0.16f, 0.30f, 0.34f, 0.85f),
+		// 9 SEASON (green; foliage season)
+		Scene3D::Get().GetSeason() != Scene3D::Season::Summer
+			? glm::vec4(0.28f, 0.50f, 0.24f, 0.95f) : glm::vec4(0.24f, 0.34f, 0.22f, 0.85f),
+		// 10 SLOT (orange; add a named schedule anchor at the camera's ground target)
+		glm::vec4(0.62f, 0.40f, 0.16f, 0.9f),
+		// 11 MAP (slate; bright while the aerial minimap is shown)
+		showMinimap ? glm::vec4(0.30f, 0.46f, 0.56f, 0.95f) : glm::vec4(0.22f, 0.30f, 0.38f, 0.85f),
+		// 12 TILE (teal; bright while tile mode is on)
+		tileMode ? glm::vec4(0.15f, 0.60f, 0.55f, 0.95f) : glm::vec4(0.12f, 0.34f, 0.32f, 0.85f),
 	};
 	for (int i = 0; i < kNumActions; i++)
 	{
 		DrawFilledRect(game, renderer, actBtnX[i], actBtnY[i], actBtnW[i], actBtnH[i], bgs[i]);
-		actBtnText[i]->SetPosition(actBtnX[i] + kBtnPadX, actBtnY[i] + kBtnPadY);
+		CenterLabel(actBtnText[i], actBtnX[i], actBtnY[i], actBtnW[i], actBtnH[i]);
 		actBtnText[i]->Render(renderer);
 	}
 }
@@ -2008,17 +2398,20 @@ bool Scene3DEditor::ActionButtonClick(Game& game, float sx, float sy)
 				DeleteSelected(game);
 				break;
 			case 1:
+				CloneSelected(game);
+				break;
+			case 2:
 				if (openDropdown == DropKind::AddModel) openDropdown = DropKind::None;
 				else OpenAddDropdown(game);
 				break;
-			case 2:
+			case 3:
 				StartNaming(PromptMode::NewScene);
 				break;
-			case 3:
+			case 4:
 				if (openDropdown == DropKind::LoadScene) openDropdown = DropKind::None;
 				else OpenLoadDropdown(game);
 				break;
-			case 4:
+			case 5:
 				// Attach an interaction tag to the selected model (models only).
 				if (selType == SelType::Model)
 					StartNaming(PromptMode::Tag);
@@ -2028,7 +2421,7 @@ bool Scene3DEditor::ActionButtonClick(Game& game, float sx, float sy)
 					statusFrames = 150;
 				}
 				break;
-			case 5:
+			case 6:
 				// Assign a material to the selected model (models only).
 				if (selType != SelType::Model)
 				{
@@ -2040,7 +2433,7 @@ bool Scene3DEditor::ActionButtonClick(Game& game, float sx, float sy)
 				else
 					OpenMatDropdown(game);
 				break;
-			case 6:
+			case 7:
 			{
 				// Cycle the point-light shadow caster: AUTO -> each point light -> AUTO.
 				Scene3D& sc = Scene3D::Get();
@@ -2064,7 +2457,7 @@ bool Scene3DEditor::ActionButtonClick(Game& game, float sx, float sy)
 				CommitEdit();
 				break;
 			}
-			case 7:
+			case 8:
 			{
 				// Cycle the scene weather: NONE -> RAIN -> SNOW -> NONE. Saved with
 				// the scene (the "weather" .scene line), so it becomes the default
@@ -2075,15 +2468,120 @@ bool Scene3DEditor::ActionButtonClick(Game& game, float sx, float sy)
 				Scene3D::WeatherType w = sc.GetWeather();
 				Scene3D::WeatherType next = (w == Scene3D::WeatherType::None) ? Scene3D::WeatherType::Rain
 					: (w == Scene3D::WeatherType::Rain) ? Scene3D::WeatherType::Snow
+					: (w == Scene3D::WeatherType::Snow) ? Scene3D::WeatherType::Storm
 					: Scene3D::WeatherType::None;
 				sc.SetWeather(next, inten);
 				const char* wn = (next == Scene3D::WeatherType::Rain) ? "RAIN"
-					: (next == Scene3D::WeatherType::Snow) ? "SNOW" : "NONE";
+					: (next == Scene3D::WeatherType::Snow) ? "SNOW"
+					: (next == Scene3D::WeatherType::Storm) ? "STORM" : "NONE";
 				statusMsg = std::string("Weather: ") + wn + "  (F5 to save)";
 				statusFrames = 180;
 				CommitEdit();
 				break;
 			}
+			case 9:
+			{
+				// Toggle the scene fountain. When adding, place the nozzle at the
+				// TOP of the selected object (up = -Y, so aabbMin.y is the top), or
+				// near the origin if nothing is selected. Tune it in the panel below.
+				Scene3D& sc = Scene3D::Get();
+				if (sc.HasFountain())
+				{
+					sc.ClearFountain();
+					statusMsg = "Fountain removed  (F5 to save)";
+				}
+				else
+				{
+					glm::vec3 pos(0.0f, -100.0f, 0.0f);
+					if (selType == SelType::Model && selIndex >= 0
+						&& selIndex < (int)sc.GetModels().size())
+					{
+						Scene3DModel* m = sc.GetModels()[selIndex];
+						pos = glm::vec3(m->position.x, m->aabbMin.y, m->position.z);
+					}
+					sc.SetFountain(pos);
+					statusMsg = "Fountain added at selection top  (F5 to save)";
+				}
+				statusFrames = 200;
+				CommitEdit();
+				break;
+			}
+			case 10:
+			{
+				// Cycle the foliage season (swaps grass/leaf textures): SUMMER ->
+				// SPRING -> AUTUMN -> WINTER -> SUMMER. Saved with the scene.
+				Scene3D& sc = Scene3D::Get();
+				Scene3D::Season cur = sc.GetSeason();
+				Scene3D::Season next = (cur == Scene3D::Season::Summer) ? Scene3D::Season::Spring
+					: (cur == Scene3D::Season::Spring) ? Scene3D::Season::Autumn
+					: (cur == Scene3D::Season::Autumn) ? Scene3D::Season::Winter
+					: Scene3D::Season::Summer;
+				sc.SetSeason(game, next);
+				const char* sn = (next == Scene3D::Season::Spring) ? "SPRING"
+					: (next == Scene3D::Season::Autumn) ? "AUTUMN"
+					: (next == Scene3D::Season::Winter) ? "WINTER" : "SUMMER";
+				statusMsg = std::string("Season: ") + sn + "  (F5 to save)";
+				statusFrames = 180;
+				CommitEdit();
+				break;
+			}
+			case 11:
+			{
+				// Add a named schedule anchor (stand-point). Place it where the camera
+				// centre-ray meets the ground plane (y=0), else 300u ahead. Auto-name
+				// slot1, slot2, ... Select it so it can be dragged/renamed immediately.
+				Scene3D& sc = Scene3D::Get();
+				Camera& cam = game.renderer.camera;
+				glm::vec3 ro, rd;
+				cam.ScreenPointToRay(game.screenWidth * 0.5f, game.screenHeight * 0.5f,
+					(float)game.screenWidth, (float)game.screenHeight, ro, rd);
+				float t = 300.0f;
+				if (std::fabs(rd.y) > 1e-4f)
+				{
+					float tp = -ro.y / rd.y;      // intersect the ground plane
+					if (tp > 1.0f && tp < 8000.0f) t = tp;
+				}
+				glm::vec3 pos = ro + rd * t;
+
+				int n = (int)sc.Anchors().size() + 1;
+				std::string name;
+				for (;; n++)                       // first slotN not already taken
+				{
+					name = "slot" + std::to_string(n);
+					bool taken = false;
+					for (const Scene3D::SceneAnchor& a : sc.Anchors())
+						if (a.name == name) { taken = true; break; }
+					if (!taken) break;
+				}
+				Scene3D::SceneAnchor a;
+				a.name = name;
+				a.position = pos;
+				sc.Anchors().push_back(a);
+				selType = SelType::Anchor;
+				selIndex = (int)sc.Anchors().size() - 1;
+				RefreshInfoText(game);
+				statusMsg = "Added " + name + "  (drag to place, F5 to save)";
+				statusFrames = 200;
+				CommitEdit();
+				break;
+			}
+			case 12:
+				// Toggle the aerial minimap overlay (display-only; no scene change).
+				showMinimap = !showMinimap;
+				statusMsg = showMinimap ? "Aerial map ON" : "Aerial map OFF";
+				statusFrames = 120;
+				break;
+			case 13:
+				// Grid-snapped tile editing (see the header). Drops the normal
+				// selection so the two edit models can't fight.
+				tileMode = !tileMode;
+				if (tileMode) Deselect(game);
+				hoverValid = false;
+				statusMsg = tileMode
+					? "TILE mode: hover=eyedropper, L-click=cycle type, R-click=add/remove"
+					: "Tile mode OFF";
+				statusFrames = 240;
+				break;
 			}
 			return true;
 		}
@@ -2097,6 +2595,7 @@ void Scene3DEditor::DeleteSelected(Game& game)
 		return;
 	Scene3D& scene = Scene3D::Get();
 	bool ok = (selType == SelType::Model) ? scene.RemoveModel(game, selIndex)
+		: (selType == SelType::Anchor) ? scene.RemoveAnchorAt(selIndex)
 		: scene.RemoveCharacter(game, selIndex);
 	if (ok)
 	{
@@ -2106,6 +2605,209 @@ void Scene3DEditor::DeleteSelected(Game& game)
 		statusFrames = 150;
 		CommitEdit();
 	}
+}
+
+void Scene3DEditor::CloneSelected(Game& game)
+{
+	if (selType != SelType::Model || selIndex < 0)
+	{
+		statusMsg = "Select a model to clone";
+		statusFrames = 150;
+		return;
+	}
+	Scene3D& scene = Scene3D::Get();
+	Scene3DModel* src = scene.GetModels()[selIndex];
+
+	// One tile over so the copy is visibly separate (and grid-friendly).
+	glm::vec3 pos = src->position + glm::vec3(100.0f, 0.0f, 0.0f);
+	Scene3D::ModelDef def{ src->objPath, src->texPath, src->solid };
+	Scene3DModel* nm = scene.AddModelInstance(game, def, pos);
+	if (nm == nullptr)
+		return;
+	nm->yawDeg = src->yawDeg;
+	nm->pitchDeg = src->pitchDeg;
+	nm->rollDeg = src->rollDeg;
+	nm->modelScale = src->modelScale;
+	nm->scaleAxis = src->scaleAxis;
+	nm->materialName = src->materialName;
+	nm->material = src->material;
+	nm->walkable = src->walkable;
+	nm->water = src->water;
+	nm->guard = src->guard;
+	// interactionTag deliberately NOT copied - tags are usually unique lookups
+	// (torch_1, volcano_door, ...); a silent duplicate would break their logic.
+	scene.RecomputeModelBounds(nm);
+	scene.RebuildSolids();
+
+	// Select the clone so it can be dragged into place immediately.
+	selType = SelType::Model;
+	selIndex = (int)scene.GetModels().size() - 1;
+	RefreshInfoText(game);
+	CommitEdit();
+	statusMsg = src->interactionTag.empty()
+		? "Cloned (drag to place)"
+		: "Cloned WITHOUT its tag (tags stay unique) - drag to place";
+	statusFrames = 200;
+}
+
+// --------------------------------------------------------- aerial minimap
+
+bool Scene3DEditor::MinimapClick(Game& game, float sx, float sy)
+{
+	if (!showMinimap)
+		return false;
+	float gx = sx * (game.designWidth * Camera::MULTIPLIER) / (float)game.screenWidth;
+	float gy = sy * (game.designHeight * Camera::MULTIPLIER) / (float)game.screenHeight;
+	return (gx >= minimapX && gx <= minimapX + minimapW
+		&& gy >= minimapY && gy <= minimapY + minimapH);
+}
+
+void Scene3DEditor::RenderMinimap(Game& game, const Renderer& renderer)
+{
+	if (!showMinimap)
+		return;
+	Scene3D& scene = Scene3D::Get();
+
+	const float gw = game.designWidth * Camera::MULTIPLIER;
+	const float gh = game.designHeight * Camera::MULTIPLIER;
+
+	// Panel: below the top action-button rows (so the MAP button stays uncovered)
+	// and left of the object list (so the list stays visible).
+	float listLeft = gw - kListWidthGui - kListMarginGui;
+	float panelX = kBtnX;
+	float panelTop = (actBtnLaidOut ? actBtnBottomY : 200.0f) + kBtnGap + 12.0f;
+	float panelRight = listLeft - kListMarginGui;
+	float panelBottom = gh - 40.0f;
+	float panelW = panelRight - panelX;
+	float panelH = panelBottom - panelTop;
+	if (panelW < 120.0f || panelH < 120.0f)
+		return;
+	minimapX = panelX; minimapY = panelTop; minimapW = panelW; minimapH = panelH;
+
+	// Frame + backdrop (a light border rect behind a dark fill).
+	DrawFilledRect(game, renderer, panelX - 2, panelTop - 2, panelW + 4, panelH + 4,
+		glm::vec4(0.45f, 0.55f, 0.62f, 0.9f));
+	DrawFilledRect(game, renderer, panelX, panelTop, panelW, panelH,
+		glm::vec4(0.05f, 0.06f, 0.08f, 0.94f));
+
+	// World XZ bounds over everything worth showing (+ the live camera so its
+	// marker is always on-map).
+	float minX = 1e9f, maxX = -1e9f, minZ = 1e9f, maxZ = -1e9f;
+	auto addPt = [&](float x, float z) {
+		minX = std::min(minX, x); maxX = std::max(maxX, x);
+		minZ = std::min(minZ, z); maxZ = std::max(maxZ, z);
+	};
+	for (Scene3DModel* m : scene.GetModels())
+		if (m != nullptr) { addPt(m->aabbMin.x, m->aabbMin.z); addPt(m->aabbMax.x, m->aabbMax.z); }
+	for (const Scene3D::SceneAnchor& a : scene.Anchors())
+		addPt(a.position.x, a.position.z);
+	for (Character3D* c : scene.GetCharacters())
+		if (c != nullptr) addPt(c->position.x, c->position.z);
+	glm::vec3 camp = game.renderer.camera.position;
+	addPt(camp.x, camp.z);
+	if (minX > maxX) { minX = -500; maxX = 500; minZ = -500; maxZ = 500; }   // empty scene
+
+	// Pad the bounds a touch, then fit uniformly (preserve aspect) into the inner
+	// region below a title strip.
+	float span = std::max(maxX - minX, maxZ - minZ);
+	float pad = 0.06f * span + 40.0f;
+	minX -= pad; maxX += pad; minZ -= pad; maxZ += pad;
+	float wSpanX = maxX - minX, wSpanZ = maxZ - minZ;
+
+	const float titleH = 46.0f;
+	float innerX = panelX + 14.0f, innerY = panelTop + titleH;
+	float innerW = panelW - 28.0f, innerH = panelH - titleH - 14.0f;
+	float sc = std::min(innerW / wSpanX, innerH / wSpanZ);
+	float offX = innerX + (innerW - wSpanX * sc) * 0.5f;
+	float offY = innerY + (innerH - wSpanZ * sc) * 0.5f;
+	auto toX = [&](float wx) { return offX + (wx - minX) * sc; };   // world +X -> right
+	auto toY = [&](float wz) { return offY + (wz - minZ) * sc; };   // world +Z -> down
+	auto dot = [&](float cx, float cy, float half, const glm::vec4& col) {
+		DrawFilledRect(game, renderer, cx - half, cy - half, 2 * half, 2 * half, col);
+	};
+
+	// Models: translucent footprints so overlaps read and small props aren't hidden
+	// by a big floor. Water bluish; guard-hidden dimmed. Selected drawn last, bright.
+	int selModel = (selType == SelType::Model) ? selIndex : -1;
+	const auto& models = scene.GetModels();
+	for (int pass = 0; pass < 2; pass++)
+	{
+		for (int i = 0; i < (int)models.size(); i++)
+		{
+			Scene3DModel* m = models[i];
+			if (m == nullptr) continue;
+			bool sel = (i == selModel);
+			if ((pass == 0) == sel) continue;   // pass 0: others, pass 1: selection on top
+			float x0 = toX(m->aabbMin.x), x1 = toX(m->aabbMax.x);
+			float y0 = toY(m->aabbMin.z), y1 = toY(m->aabbMax.z);
+			if (x1 < x0) std::swap(x0, x1);
+			if (y1 < y0) std::swap(y0, y1);
+			float w = std::max(x1 - x0, 2.0f), h = std::max(y1 - y0, 2.0f);
+			glm::vec4 col = sel ? glm::vec4(1.0f, 0.92f, 0.25f, 0.95f)
+				: m->IsWater() ? glm::vec4(0.25f, 0.5f, 0.85f, 0.5f)
+				: m->guardHidden ? glm::vec4(0.4f, 0.4f, 0.45f, 0.28f)
+				: glm::vec4(0.62f, 0.66f, 0.72f, 0.55f);
+			DrawFilledRect(game, renderer, x0, y0, w, h, col);
+		}
+	}
+
+	// Saved cameras (cyan), anchors (orange), characters (magenta) - on top of props.
+	for (const std::string& cn : scene.CameraOrder())
+	{
+		Scene3D::CamPose cp;
+		if (scene.GetCameraPose(cn, cp))
+			dot(toX(cp.position.x), toY(cp.position.z), 4.0f, glm::vec4(0.2f, 0.85f, 0.95f, 0.95f));
+	}
+	for (const Scene3D::SceneAnchor& a : scene.Anchors())
+		dot(toX(a.position.x), toY(a.position.z), 5.0f, glm::vec4(0.95f, 0.62f, 0.18f, 0.95f));
+	for (Character3D* c : scene.GetCharacters())
+		if (c != nullptr)
+			dot(toX(c->position.x), toY(c->position.z), 5.0f, glm::vec4(0.9f, 0.35f, 0.85f, 0.95f));
+
+	// Live fly-camera: a green marker plus a short heading trail. The camera looks
+	// along -front (lookAt target = position - front); front is derived from yaw as
+	// (cos yaw, -, sin yaw) on the horizontal plane, so the view heading is -that.
+	float cxm = toX(camp.x), cym = toY(camp.z);
+	float yr = glm::radians(game.renderer.camera.yaw);
+	glm::vec2 vdir(-std::cos(yr), -std::sin(yr));
+	if (glm::length(vdir) > 1e-4f)
+	{
+		vdir = glm::normalize(vdir);
+		for (int s = 1; s <= 5; s++)
+			dot(cxm + vdir.x * s * 6.0f, cym + vdir.y * s * 6.0f, 2.0f, glm::vec4(0.5f, 1.0f, 0.55f, 0.85f));
+	}
+	dot(cxm, cym, 6.0f, glm::vec4(0.3f, 1.0f, 0.4f, 1.0f));
+
+	// Title (scene name) + a compact legend, cached so SetText only runs on change.
+	if (minimapTitle == nullptr)
+	{
+		minimapTitle = new Text(EnsureFont(game));
+		minimapTitle->isRichText = true;
+		minimapTitle->GetSprite()->keepPositionRelativeToCamera = true;
+		minimapTitle->GetSprite()->keepScaleRelativeToCamera = true;
+	}
+	std::string title = "AERIAL MAP  -  " + (scene.currentScene.empty() ? std::string("(scene)") : scene.currentScene);
+	if (minimapTitleCache != title)
+	{
+		minimapTitle->SetText(title, { 220, 235, 245, 255 });
+		minimapTitle->SetScale(glm::vec2(kOverlayScale, kOverlayScale));
+		minimapTitleCache = title;
+	}
+	minimapTitle->SetPosition(panelX + 14.0f, panelTop + 10.0f);
+	minimapTitle->Render(renderer);
+
+	if (minimapLegend == nullptr)
+	{
+		minimapLegend = new Text(EnsureFont(game));
+		minimapLegend->isRichText = true;
+		minimapLegend->GetSprite()->keepPositionRelativeToCamera = true;
+		minimapLegend->GetSprite()->keepScaleRelativeToCamera = true;
+		minimapLegend->SetText("grey=prop  yellow=selected  blue=water  cyan=camera  orange=slot  magenta=character  green=YOU",
+			{ 170, 185, 195, 255 });
+		minimapLegend->SetScale(glm::vec2(kOverlayScale * 0.85f, kOverlayScale * 0.85f));
+	}
+	minimapLegend->SetPosition(panelX + 14.0f, panelBottom - 26.0f);
+	minimapLegend->Render(renderer);
 }
 
 int Scene3DEditor::DropdownCount() const
@@ -2142,7 +2844,7 @@ void Scene3DEditor::OpenAddDropdown(Game& game)
 {
 	addPalette = Scene3D::Get().GetModelPalette();
 	openDropdown = DropKind::AddModel;
-	dropdownAnchor = 1;
+	dropdownAnchor = 2;
 	std::vector<std::string> labels;
 	for (const auto& d : addPalette) labels.push_back(BaseName(d.obj));
 	FillDropdownRows(dropdownRows, labels, EnsureFont(game), kDropScale);
@@ -2152,7 +2854,7 @@ void Scene3DEditor::OpenLoadDropdown(Game& game)
 {
 	sceneList = Scene3D::Get().GetSceneList();
 	openDropdown = DropKind::LoadScene;
-	dropdownAnchor = 3;
+	dropdownAnchor = 4;
 	FillDropdownRows(dropdownRows, sceneList, EnsureFont(game), kDropScale);
 }
 
@@ -2163,7 +2865,7 @@ void Scene3DEditor::OpenMatDropdown(Game& game)
 	for (const std::string& n : MaterialLibrary::Get().Names())
 		matList.push_back(n);
 	openDropdown = DropKind::MatSelect;
-	dropdownAnchor = 5;
+	dropdownAnchor = 6;
 	FillDropdownRows(dropdownRows, matList, EnsureFont(game), kDropScale);
 }
 
@@ -2425,4 +3127,346 @@ void Scene3DEditor::RenderNamePrompt(Game& game, const Renderer& renderer)
 void Scene3DEditor::Deselect(Game& game)
 {
 	ClearSelection();
+}
+
+// ------------------------------------------------------------------ tile mode
+// Grid-snapped tile editing for scenes built from 100-unit box tiles (e.g.
+// Eggwhite's generated volcano). See the header comment on tileMode.
+
+namespace
+{
+	// Slab ray-vs-AABB returning the entry distance (0 when starting inside).
+	bool TileRayAABB(const glm::vec3& ro, const glm::vec3& rd,
+		const glm::vec3& lo, const glm::vec3& hi, float& outT)
+	{
+		float tmin = -1e12f, tmax = 1e12f;
+		for (int a = 0; a < 3; a++)
+		{
+			if (std::fabs(rd[a]) < 1e-9f)
+			{
+				if (ro[a] < lo[a] || ro[a] > hi[a]) return false;
+				continue;
+			}
+			float t1 = (lo[a] - ro[a]) / rd[a];
+			float t2 = (hi[a] - ro[a]) / rd[a];
+			if (t1 > t2) std::swap(t1, t2);
+			tmin = std::max(tmin, t1);
+			tmax = std::min(tmax, t2);
+			if (tmin > tmax) return false;
+		}
+		if (tmax < 0.0f) return false;
+		outT = std::max(tmin, 0.0f);
+		return true;
+	}
+
+	// "assets/textures/gen/russet_ground_16x12.png" -> "russet_ground"
+	std::string TileBaseName(const std::string& texPath)
+	{
+		size_t slash = texPath.find_last_of("/\\");
+		std::string n = (slash == std::string::npos) ? texPath : texPath.substr(slash + 1);
+		size_t dot = n.find_last_of('.');
+		if (dot != std::string::npos) n = n.substr(0, dot);
+		// strip a trailing _<digits>x<digits>
+		size_t us = n.find_last_of('_');
+		if (us != std::string::npos)
+		{
+			std::string suf = n.substr(us + 1);
+			size_t x = suf.find('x');
+			if (x != std::string::npos && x > 0 && x + 1 < suf.size()
+				&& suf.find_first_not_of("0123456789", 0) == x
+				&& suf.find_first_not_of("0123456789", x + 1) == std::string::npos)
+				n = n.substr(0, us);
+		}
+		return n;
+	}
+
+	// Best single-tile texture for a (possibly merged-sheet) texture path:
+	// prefer <dir>/<base>_1x1.png, else the path unchanged.
+	std::string SingleTileTexture(const std::string& texPath)
+	{
+		std::string base = TileBaseName(texPath);
+		size_t slash = texPath.find_last_of("/\\");
+		std::string dir = (slash == std::string::npos) ? "" : texPath.substr(0, slash + 1);
+		std::string one = dir + base + "_1x1.png";
+		if (one != texPath)
+		{
+			try { if (std::filesystem::exists(one)) return one; }
+			catch (...) {}
+		}
+		return texPath;
+	}
+
+	bool TileEditable(const Scene3DModel* m)
+	{
+		return m != nullptr && !m->guardHidden
+			&& m->interactionTag.empty()
+			&& std::fabs(m->yawDeg) < 0.5f
+			&& std::fabs(m->pitchDeg) < 0.5f
+			&& std::fabs(m->rollDeg) < 0.5f;
+	}
+}
+
+void Scene3DEditor::UpdateTileMode(Game& game, bool leftPressed, int mx, int my,
+	float w, float h, Uint32 mb)
+{
+	Scene3D& scene = Scene3D::Get();
+	Camera& cam = game.renderer.camera;
+
+	// --- hover: nearest box-tile model under the mouse ray -------------
+	glm::vec3 ro, rd;
+	cam.ScreenPointToRay((float)mx, (float)my, w, h, ro, rd);
+	hoverValid = false;
+	hoverModelIndex = -1;
+	float bestT = 1e12f;
+	const std::vector<Scene3DModel*>& models = scene.GetModels();
+	for (int i = 0; i < (int)models.size(); i++)
+	{
+		Scene3DModel* m = models[i];
+		if (m == nullptr || m->guardHidden) continue;
+		if (m->objPath.find("box.obj") == std::string::npos) continue;
+		float t;
+		if (!TileRayAABB(ro, rd, m->aabbMin, m->aabbMax, t)) continue;
+		if (t < bestT) { bestT = t; hoverModelIndex = i; }
+	}
+
+	glm::vec3 hit;
+	if (hoverModelIndex >= 0)
+	{
+		hit = ro + rd * bestT;
+		Scene3DModel* m = models[hoverModelIndex];
+		hoverTopY = m->aabbMin.y;      // up = -Y: min y = the top face
+		tilePlaneY = hoverTopY;        // adds on empty cells use this height
+		if (TileEditable(m))
+		{
+			// Eyedropper: the hovered tile's profile becomes the add-brush.
+			brush.obj = m->objPath;
+			brush.tex = SingleTileTexture(m->texPath);
+			brush.mat = m->materialName;
+			brush.sy = m->scaleAxis.y * m->modelScale;
+			brush.yOfs = m->position.y - hoverTopY;
+			brush.solid = m->solid;
+			brush.walk = m->walkable;
+			brush.has = true;
+		}
+	}
+	else
+	{
+		// Nothing hit: hover the sticky horizontal plane (the last tile's top),
+		// so adds extend a floor outward at the same level.
+		if (std::fabs(rd.y) < 1e-6f) return;
+		float t = (tilePlaneY - ro.y) / rd.y;
+		if (t <= 0.0f) return;
+		hit = ro + rd * t;
+		hoverTopY = tilePlaneY;
+	}
+	hoverCellX = (int)std::floor((hit.x + 50.0f) / 100.0f);
+	hoverCellZ = (int)std::floor((hit.z + 50.0f) / 100.0f);
+	hoverValid = true;
+
+	// --- clicks --------------------------------------------------------
+	bool rightDown = (mb & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
+	bool rightPressedNow = rightDown && !rightWasDown;
+	bool rightReleased = !rightDown && rightWasDown;
+	if (rightPressedNow) { rPressX = mx; rPressY = my; }
+	rightWasDown = rightDown;
+
+	if (leftPressed && hoverModelIndex >= 0)
+		TileRetexture(game);
+	// Right CLICK (press+release with barely any motion) = add/remove; a
+	// right-DRAG stays camera look, exactly as outside tile mode.
+	else if (rightReleased && std::abs(mx - rPressX) + std::abs(my - rPressY) < 8)
+		TileAddOrRemove(game);
+}
+
+int Scene3DEditor::EnsureSingleTile(Game& game, int modelIndex)
+{
+	Scene3D& scene = Scene3D::Get();
+	const std::vector<Scene3DModel*>& models = scene.GetModels();
+	Scene3DModel* m = models[modelIndex];
+
+	float sizeX = m->aabbMax.x - m->aabbMin.x;
+	float sizeZ = m->aabbMax.z - m->aabbMin.z;
+	if (sizeX <= 150.0f && sizeZ <= 150.0f)
+		return modelIndex;   // already a single tile
+
+	int nx = (int)std::lround(sizeX / 100.0f);
+	int nz = (int)std::lround(sizeZ / 100.0f);
+	if (nx < 1 || nz < 1 || nx * nz > 512)
+	{
+		statusMsg = "Model too odd to tile-split";
+		statusFrames = 150;
+		return -1;
+	}
+
+	std::string tex = SingleTileTexture(m->texPath);
+	std::string obj = m->objPath;
+	std::string mat = m->materialName;
+	float sy = m->scaleAxis.y * m->modelScale;
+	float yPos = m->position.y;
+	bool solid = m->solid, walk = m->walkable;
+	float x0 = m->aabbMin.x, z0 = m->aabbMin.z;
+
+	// Remove the merged box FIRST (keeps indices simple), then lay the tiles.
+	scene.RemoveModel(game, modelIndex);
+
+	for (int i = 0; i < nx; i++)
+	{
+		for (int j = 0; j < nz; j++)
+		{
+			glm::vec3 p(x0 + (i + 0.5f) * 100.0f, yPos, z0 + (j + 0.5f) * 100.0f);
+			Scene3D::ModelDef def{ obj, tex, solid };
+			Scene3DModel* nm = scene.AddModelInstance(game, def, p);
+			if (nm == nullptr) continue;
+			nm->scaleAxis = glm::vec3(1.0f, sy, 1.0f);
+			nm->walkable = walk;
+			nm->materialName = mat;
+			nm->material = mat.empty() ? nullptr : MaterialLibrary::Get().Find(mat);
+			scene.RecomputeModelBounds(nm);
+		}
+	}
+	scene.RebuildSolids();
+
+	// Find the new tile at the hovered cell.
+	const std::vector<Scene3DModel*>& after = scene.GetModels();
+	float cx = hoverCellX * 100.0f, cz = hoverCellZ * 100.0f;
+	for (int i = 0; i < (int)after.size(); i++)
+	{
+		Scene3DModel* t = after[i];
+		if (t == nullptr || t->objPath != obj) continue;
+		if (std::fabs(t->position.x - cx) < 1.0f && std::fabs(t->position.z - cz) < 1.0f
+			&& std::fabs(t->position.y - yPos) < 1.0f)
+			return i;
+	}
+	return -1;
+}
+
+void Scene3DEditor::TileRetexture(Game& game)
+{
+	Scene3D& scene = Scene3D::Get();
+	Scene3DModel* m = scene.GetModels()[hoverModelIndex];
+	if (!TileEditable(m))
+	{
+		statusMsg = "Tagged/rotated prop - edit it in normal mode";
+		statusFrames = 150;
+		return;
+	}
+
+	int idx = EnsureSingleTile(game, hoverModelIndex);
+	if (idx < 0) return;
+	m = scene.GetModels()[idx];
+
+	// Distinct tile types in this scene, keyed by texture base name.
+	std::vector<std::string> bases;
+	for (Scene3DModel* o : scene.GetModels())
+	{
+		if (o == nullptr || o->objPath.find("box.obj") == std::string::npos) continue;
+		if (!o->interactionTag.empty()) continue;
+		std::string b = TileBaseName(o->texPath);
+		if (std::find(bases.begin(), bases.end(), b) == bases.end())
+			bases.push_back(b);
+	}
+	std::sort(bases.begin(), bases.end());
+	if (bases.size() < 2)
+	{
+		statusMsg = "Only one tile type in this scene";
+		statusFrames = 150;
+		return;
+	}
+
+	std::string cur = TileBaseName(m->texPath);
+	size_t ci = 0;
+	for (size_t i = 0; i < bases.size(); i++) if (bases[i] == cur) ci = i;
+	const std::string& next = bases[(ci + 1) % bases.size()];
+
+	// Adopt the target type's full profile from a representative tile.
+	Scene3DModel* rep = nullptr;
+	for (Scene3DModel* o : scene.GetModels())
+	{
+		if (o == m || o == nullptr) continue;
+		if (o->objPath.find("box.obj") == std::string::npos) continue;
+		if (!o->interactionTag.empty()) continue;
+		if (TileBaseName(o->texPath) == next) { rep = o; break; }
+	}
+	if (rep != nullptr)
+	{
+		m->texPath = SingleTileTexture(rep->texPath);
+		m->materialName = rep->materialName;
+		m->material = rep->material;
+		m->solid = rep->solid;
+		m->walkable = rep->walkable;
+	}
+	else
+	{
+		m->texPath = SingleTileTexture(m->texPath);
+	}
+	m->texture = game.spriteManager.GetImage(m->texPath, Texture::Filter::Smooth);
+	scene.RebuildSolids();
+	CommitEdit();
+	statusMsg = "Tile -> " + next;
+	statusFrames = 120;
+}
+
+void Scene3DEditor::TileAddOrRemove(Game& game)
+{
+	Scene3D& scene = Scene3D::Get();
+	if (hoverModelIndex >= 0)
+	{
+		Scene3DModel* m = scene.GetModels()[hoverModelIndex];
+		if (!TileEditable(m))
+		{
+			statusMsg = "Tagged/rotated prop - delete it in normal mode";
+			statusFrames = 150;
+			return;
+		}
+		int idx = EnsureSingleTile(game, hoverModelIndex);
+		if (idx < 0) return;
+		scene.RemoveModel(game, idx);
+		hoverModelIndex = -1;
+		CommitEdit();
+		statusMsg = "Tile removed";
+		statusFrames = 90;
+		return;
+	}
+
+	if (!brush.has)
+	{
+		statusMsg = "Hover a tile first to copy its type (eyedropper)";
+		statusFrames = 150;
+		return;
+	}
+	glm::vec3 pos(hoverCellX * 100.0f, tilePlaneY + brush.yOfs, hoverCellZ * 100.0f);
+	Scene3D::ModelDef def{ brush.obj, brush.tex, brush.solid };
+	Scene3DModel* nm = scene.AddModelInstance(game, def, pos);
+	if (nm == nullptr) return;
+	nm->scaleAxis = glm::vec3(1.0f, brush.sy, 1.0f);
+	nm->walkable = brush.walk;
+	nm->materialName = brush.mat;
+	nm->material = brush.mat.empty() ? nullptr : MaterialLibrary::Get().Find(brush.mat);
+	scene.RecomputeModelBounds(nm);
+	scene.RebuildSolids();
+	CommitEdit();
+	statusMsg = "Tile added (" + TileBaseName(brush.tex) + ")";
+	statusFrames = 90;
+}
+
+void Scene3DEditor::RenderTileHighlight(Game& game, const Renderer& renderer)
+{
+	if (!hoverValid)
+		return;
+	float cx = hoverCellX * 100.0f, cz = hoverCellZ * 100.0f;
+	float y = hoverTopY - 3.0f;   // a hair above the surface (up = -Y)
+	std::vector<glm::vec3> segs = {
+		{ cx - 50, y, cz - 50 }, { cx + 50, y, cz - 50 },
+		{ cx + 50, y, cz - 50 }, { cx + 50, y, cz + 50 },
+		{ cx + 50, y, cz + 50 }, { cx - 50, y, cz + 50 },
+		{ cx - 50, y, cz + 50 }, { cx - 50, y, cz - 50 },
+		// a small cross so the cell reads even over busy textures
+		{ cx - 15, y, cz }, { cx + 15, y, cz },
+		{ cx, y, cz - 15 }, { cx, y, cz + 15 },
+	};
+	// Yellow = occupied (edit/remove), green = empty (add here).
+	glm::vec4 color = (hoverModelIndex >= 0)
+		? glm::vec4(1.0f, 0.9f, 0.2f, 1.0f)
+		: glm::vec4(0.3f, 1.0f, 0.4f, 1.0f);
+	DrawLines(game, renderer, segs, color);
 }

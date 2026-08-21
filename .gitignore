@@ -75,6 +75,10 @@ local_config.cmake
 # Windows
 Thumbs.db
 
+# Fonts
+*.otf
+*.ttf
+
 # Utils
 utils/__pycache__/
 

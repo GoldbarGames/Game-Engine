@@ -95,6 +95,14 @@ namespace CutsceneFunctions
 
 	int KINJO_API TimerFunction(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API CameraFunction(CutsceneParameters parameters, CutsceneCommands& c);
+	// Built-in `scene3d` command (engine-native since 2026-08-16; previously every
+	// game had to register its own copy, and forgetting it made all scene loads
+	// silently no-op - see Eggwhite's first playtest). Subcommands: load, cam,
+	// glide, focus, closeup, light, characters, off, quit. A game can override or
+	// extend it by re-registering cmd_lut["scene3d"] in its CutsceneHelper's
+	// SetFunctions (which runs after the built-ins are registered) - DB2 does
+	// exactly that with an extended version.
+	int KINJO_API Scene3DCommand(CutsceneParameters parameters, CutsceneCommands& c);
 
 	int KINJO_API WindowFunction(CutsceneParameters parameters, CutsceneCommands& c);
 	int KINJO_API ControlBindings(CutsceneParameters parameters, CutsceneCommands& c);

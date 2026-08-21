@@ -28,6 +28,17 @@ class KINJO_API Scene3DEditor
 public:
 	bool active = false;
 
+	// TILE mode (toggled by the TILE action button): grid-snapped tile editing
+	// for scenes built from 100-unit box tiles. Hovering highlights the cell
+	// under the mouse; LEFT click cycles an existing tile's type (texture +
+	// material + solid/walk flags, adopted from the scene's own tile types);
+	// RIGHT click removes the hovered tile, or adds one on an empty cell using
+	// the last-hovered tile as the brush (hover = eyedropper). Everything
+	// snaps to the 100-unit grid - free placement is impossible in this mode.
+	// Merged multi-tile boxes (the generator's greedy rects) are split into
+	// single tiles automatically on first edit.
+	bool tileMode = false;
+
 	// Flip the editor on/off. No-op unless a Scene3D is currently active.
 	// On enter it seeds the fly camera from the current view.
 	void Toggle(Game& game);
@@ -58,7 +69,7 @@ public:
 	bool DropdownClick(Game& game, float sx, float sy);
 
 private:
-	enum class SelType { None, Model, Character };
+	enum class SelType { None, Model, Character, Anchor };
 	SelType selType = SelType::None;
 	int selIndex = -1;
 
@@ -182,6 +193,7 @@ private:
 	std::vector<std::string> undoStack, redoStack;
 	std::string baselineSnapshot, savedSnapshot, historyScene;
 	Text* dirtyText = nullptr;
+	int dirtyShown = -1;       // last dirty state pushed to dirtyText (avoids per-frame SetText)
 	void ResetHistory();       // clear stacks, re-baseline (load / new / revert)
 	void CommitEdit();         // push the baseline if the scene actually changed
 	void Undo(Game& game);
@@ -202,12 +214,26 @@ private:
 	void RenderWaterButtons(Game& game, const Renderer& renderer);
 	Scene3DModel* SelectedWater(Game& game) const;   // selection if it's water, else null
 
+	// Fountain tuning panel, shown when the scene has a fountain (and no water is
+	// selected, so it shares the water panel's space). Same [ - ] [ + ] rows.
+	static const int kNumFountainProps = 6;
+	float fountainRowY[kNumFountainProps] = { 0 };
+	float fountainMinusX = 0, fountainPlusX = 0, fountainBtnW = 0, fountainRowH = 0;
+	bool fountainPanelLaidOut = false;
+	Text* fountainMinusText = nullptr;
+	Text* fountainPlusText = nullptr;
+	Text* fountainLabelText = nullptr;
+	Text* fountainHeaderText = nullptr;
+	void RenderFountainButtons(Game& game, const Renderer& renderer);
+
 	// Top of the object-details info panel; kept below the button bars so the
 	// buttons never cover the text. Updated by RenderEditButtons.
 	float infoPanelY = 560.0f;
 public:
 	// If (sx,sy) hits a water tuning button, apply it and return true.
 	bool WaterButtonClick(Game& game, float sx, float sy);
+	// If (sx,sy) hits a fountain tuning button, apply it and return true.
+	bool FountainButtonClick(Game& game, float sx, float sy);
 	// If (sx,sy) hits UNDO/REDO/RELOAD, run it and return true.
 	bool EditButtonClick(Game& game, float sx, float sy);
 	// If (sx,sy) hits a FREE/X/Y/Z button, set the lock axis and return true.
@@ -220,12 +246,15 @@ public:
 	bool CameraListClick(Game& game, float sx, float sy);
 	// If (sx,sy) hits the OBJECTS / CAMERAS tab, switch the panel and return true.
 	bool ListTabClick(Game& game, float sx, float sy);
+	// True if (sx,sy) falls inside the open minimap panel (so the click is swallowed).
+	bool MinimapClick(Game& game, float sx, float sy);
 private:
 
 	// Action buttons: DELETE, ADD (model dropdown), NEW (new scene), LOAD
 	// (scene dropdown), TAG, MAT, SHADOW (scene-global point-light caster),
-	// WEATHER (scene-global rain/snow/none).
-	static const int kNumActions = 8;
+	// WEATHER (scene-global rain/snow/none), SLOT (add a named anchor),
+	// MAP (toggle the aerial minimap).
+	static const int kNumActions = 14;
 	Text* actBtnText[kNumActions] = { nullptr, nullptr, nullptr, nullptr };
 	float actBtnX[kNumActions] = { 0, 0, 0, 0 }, actBtnY[kNumActions] = { 0, 0, 0, 0 };
 	float actBtnW[kNumActions] = { 0, 0, 0, 0 }, actBtnH[kNumActions] = { 0, 0, 0, 0 };
@@ -235,6 +264,22 @@ private:
 	float actBtnBottomY = 0.0f;
 	void RenderActionButtons(Game& game, const Renderer& renderer);
 	void DeleteSelected(Game& game);
+	// Duplicate the selected MODEL one tile over (+100 x), copying transform,
+	// texture, material, flags and guard (not the interaction tag - tags are
+	// usually unique lookups). Selects the clone. CLONE button / Ctrl+D.
+	void CloneSelected(Game& game);
+
+	// Aerial minimap: a top-down radar of the scene, toggled by the MAP button.
+	// Plots every model's footprint (world XZ) plus markers for anchors,
+	// characters, saved cameras, and the live fly-camera (with a heading nub).
+	// Display-only; while open, clicks inside the panel are swallowed (MinimapClick)
+	// so they don't fall through to the buttons/objects it covers.
+	bool showMinimap = false;
+	float minimapX = 0, minimapY = 0, minimapW = 0, minimapH = 0;   // panel rect (cached for hit-test)
+	Text* minimapTitle = nullptr;
+	std::string minimapTitleCache;
+	Text* minimapLegend = nullptr;
+	void RenderMinimap(Game& game, const Renderer& renderer);
 
 	// A single dropdown, listing either model types (to add) or scenes (to
 	// load). Only one open at a time; it hangs under its anchor button.
@@ -298,7 +343,12 @@ private:
 	std::vector<Text*> listRows;
 	float listX = 0.0f;      // GUI-space left edge (depends on resolution)
 	int listBuiltCount = -1;
+	int listScroll = 0;      // first visible row (mouse-wheel scrolls the list)
 	std::string lastListMarkerKey;
+	// Rows that fit in the panel at once, and the max scroll offset, for the
+	// current resolution + object count.
+	int ListVisibleRows(Game& game) const;
+	int ListMaxScroll(Game& game) const;
 	void EnsureObjectList(Game& game);
 	void BuildObjectList(Game& game);
 	// Per-row "zoom" button drawn at each object row's right edge (a separate
@@ -315,6 +365,31 @@ private:
 	glm::vec3 glideFromPos = glm::vec3(0), glideToPos = glm::vec3(0);
 	float glideFromPitch = 0, glideToPitch = 0, glideFromYaw = 0, glideToYaw = 0;
 	void ZoomToSelected(Game& game);
+
+	// --- tile mode internals -------------------------------------------
+	bool rightWasDown = false;
+	int rPressX = 0, rPressY = 0;
+	bool hoverValid = false;
+	int hoverCellX = 0, hoverCellZ = 0;
+	int hoverModelIndex = -1;
+	float hoverTopY = 0.0f;
+	float tilePlaneY = 0.0f;   // sticky plane for empty-cell hover/adds
+	struct TileBrush
+	{
+		std::string obj, tex, mat;
+		float sy = 0.2f;       // vertical scale (total)
+		float yOfs = 20.0f;    // model y relative to the tile TOP
+		bool solid = false, walk = true, has = false;
+	};
+	TileBrush brush;
+	void UpdateTileMode(Game& game, bool leftPressed, int mx, int my,
+		float w, float h, Uint32 mb);
+	void TileRetexture(Game& game);
+	void TileAddOrRemove(Game& game);
+	// Split a merged multi-tile box into 1x1 tiles; returns the index of the
+	// resulting tile at the hovered cell (or the input if already single).
+	int EnsureSingleTile(Game& game, int modelIndex);
+	void RenderTileHighlight(Game& game, const Renderer& renderer);
 
 	// Selection helpers
 	bool HasSelection() const { return selType != SelType::None && selIndex >= 0; }

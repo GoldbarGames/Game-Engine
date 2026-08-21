@@ -3,12 +3,14 @@
 #include "Game.h"
 #include "globals.h"
 #include <iterator>
+#include <set>
 #include "Logger.h"
 #include "SoundManager.h"
 #include "Textbox.h"
 #include "DebugScreen.h"
 #include "ParticleSystem.h"
 #include "CutsceneFunctions.h"
+#include "Scene3D.h"
 
 CutsceneManager::CutsceneManager()
 {
@@ -414,9 +416,17 @@ void CutsceneManager::CheckKeys()
 			}
 		}
 		else if (input[readButton] || input[readButton2] || isSkipping
-			|| (automaticallyRead && autoReaderTimer.HasElapsed()))
+			|| (automaticallyRead && autoReaderTimer.HasElapsed())
+			|| (isTravelling && travelPaceMs > 0.0f && travelPaceTimer.HasElapsed()))
 		{
-			if (automaticallyRead && autoWaitChannel > 0)
+			// Paced travel: box is fully shown (instant text); pause elapsed -> next box.
+			if (isTravelling && travelPaceMs > 0.0f)
+			{
+				travelPaceTimer.Start(travelPaceMs);
+				ReadNextLine();
+				inputTimer.Start(inputTimeToWait);
+			}
+			else if (automaticallyRead && autoWaitChannel > 0)
 			{
 				if (!game->soundManager.IsPlayingSound(autoWaitChannel))
 				{
@@ -854,6 +864,13 @@ void CutsceneManager::RenderTextbox(const Renderer& renderer)
 	}
 }
 
+void CutsceneManager::ClearBackground()
+{
+	auto it = images.find(0);
+	if (it != images.end() && it->second != nullptr)
+		delete_it(it->second);
+}
+
 void CutsceneManager::Render(const Renderer& renderer)
 {
 	if (watchingCutscene && renderCutscene)
@@ -870,7 +887,14 @@ void CutsceneManager::Render(const Renderer& renderer)
 			}
 
 			if (imageIterator->second != nullptr)
+			{
+				// The 2D bg (index 0) composites ON TOP of the 3D scene, so it can
+				// overlay a live Scene3D on demand (e.g. a computer-screen shot over
+				// the 3D room). To SHOW the 3D scene as the backdrop, just leave no bg:
+				// `scene3d load` clears any stale bg (ClearBackground) so a leftover
+				// one doesn't cover the fresh 3D scene, and `cl bg` reveals it again.
 				imageIterator->second->Render(renderer);
+			}
 		}
 
 		// If we did not yet render the textbox, render it at the end
@@ -1029,6 +1053,42 @@ SceneLabel* CutsceneManager::PlayCutscene(const char* labelName)
 	{
 		return nullptr;
 	}
+}
+
+bool CutsceneManager::SimulateSuppressed(const std::string& cmd) const
+{
+	// Commands with only visible/audio/timing side-effects (no game STATE). During a
+	// simulate fast-forward we skip these; state commands (variables, flow, flag,
+	// clue, scene3d, choice, name, unlock/lock/hide, etc.) still run. `handoff` is
+	// skipped so its EndCutscene doesn't stop the fast-forward mid-prologue.
+	static const std::set<std::string> kSuppressed = {
+		// audio
+		"bgm", "se", "me", "textsound",
+		// waits / timing / skip toggles / delayed (doin) commands
+		"wait", "click", "ctc", "timer", "textspeed", "skip", "autoskip", "automode", "doin",
+		// visual effects / screen
+		"effect", "fade", "quake", "filter", "particle", "print", "rect", "screenshot",
+		"cursorimage", "shader", "framebuffer", "window", "resolution", "align",
+		// sprites / 2D backgrounds (the target beat re-sets its own)
+		"ld", "cl", "bg", "flip", "sprite",
+		// 3D scene loads/cameras: skip them ALL during the fast-forward - loading
+		// every intermediate scene is the slow part, and the TARGET label loads its
+		// own scene when normal play resumes there. (State lives in flags/clues, not
+		// the loaded scene.)
+		"scene3d",
+		// story handoff to gameplay (would end the cutscene)
+		"handoff",
+		// narration/voice typewriter subroutines: these are user-defined defsubs that
+		// drive a real-time typewriter/voice effect via `doin 1 [narrate2 ...]` recursion.
+		// Suppressing them at the dispatch gate skips the whole delay loop; the dialogue
+		// LINES themselves are still read (and marked seen) by ReadNextLine.
+		"narrate", "narrate2", "voice",
+	};
+	if (simulateAllow.count(cmd) != 0)
+		return false;
+	if (simulateSuppressExtra.count(cmd) != 0)
+		return true;
+	return kSuppressed.count(cmd) != 0;
 }
 
 void CutsceneManager::EndCutscene()
@@ -1302,7 +1362,10 @@ void CutsceneManager::Update()
 		if (GetLabelName(labels[labelIndex]) == endTravelLabel)
 		{
 			isTravelling = false;
+			travelPaceMs = 0.0f;
 			autoChoice = 0;
+			simulating = false;   // reached the simulate target: resume normal play here
+			std::cout << "Simulate: ARRIVED at " << endTravelLabel << std::endl;
 		}
 	}
 
@@ -1384,13 +1447,22 @@ void CutsceneManager::UpdateText()
 	isSkipping = input[skipButton] || input[skipButton2] || autoskip;
 	if (disableSkip)
 		isSkipping = false;
+	// Classic (instant) travel rides the skip path; PACED travel does NOT - it renders
+	// each box and advances on travelPaceTimer instead (handled in CheckKeys / below).
 	if (isTravelling)
-		isSkipping = true;
+		isSkipping = (travelPaceMs <= 0.0f);   // paced travel must NOT skip (even if autoskip is on)
 
 	//std::cout << "Label: " << command << std::endl;
 
 	//TODO: Fix this? it no longer works properly with the corrected dt
 	msGlyphTime += (float)game->dt;
+
+	// SIMULATE: blaze the whole fast-forward in ONE frame. The per-box do-while is
+	// bounded by msGlyphTime (~one frame of dt), so normally only ~one box advances
+	// per frame - far too slow to replay the whole game. A huge budget lets it run
+	// straight to the target label (the endTravelLabel check stops it there).
+	if (simulating)
+		msGlyphTime = 1.0e7f;
 
 	// If waiting for a button press... 
 	// (the delay is so that the player doesn't press a button too quickly)
@@ -1566,8 +1638,8 @@ void CutsceneManager::UpdateText()
 		// render the textbox when not waiting
 		textbox->isReading = (msGlyphTime > 0);
 
-		if (isSkipping)
-			msDelayBetweenGlyphs = 0.0f;
+		if (isSkipping || (isTravelling && travelPaceMs > 0.0f))
+			msDelayBetweenGlyphs = 0.0f;   // paced travel shows each box in full at once
 		else
 			msDelayBetweenGlyphs = msInitialDelayBetweenGlyphs;
 
@@ -1627,6 +1699,17 @@ void CutsceneManager::UpdateText()
 					printNumber = 0;
 					do
 					{
+						// SIMULATE safety: never hang a frame if the target is unreachable
+						// or the flow loops - bail out of the fast-forward after a big budget.
+						if (simulating && ++simulateIterations > 2000000)
+						{
+							std::cout << "SIMULATE: budget exhausted before reaching '"
+								<< endTravelLabel << "' - aborting." << std::endl;
+							simulating = false;
+							isTravelling = false;
+							msGlyphTime = 0.0f;
+							break;
+						}
 
 #if _DEBUG
 						if (input[SDL_SCANCODE_TAB] && inputTimer.HasElapsed())
@@ -1647,6 +1730,13 @@ void CutsceneManager::UpdateText()
 							unfinishedCommands.push_back(GetCommand(lines[currentLabel->lineStart + lineIndex], commandIndex));
 						}
 						commandIndex++;
+
+						// A command may have handed control back to gameplay by ending the
+						// cutscene (e.g. a story "handoff" to free-roam investigation). Stop
+						// processing immediately so we don't read on into the next beat this
+						// same frame - Update() won't be called again until a cutscene resumes.
+						if (!watchingCutscene)
+							return;
 
 						if (!isTravelling)
 						{
@@ -1684,6 +1774,28 @@ void CutsceneManager::UpdateText()
 							if (commandIndex >= lines[currentLabel->lineStart + lineIndex].commandsSize)
 							{
 
+								// PACED travel: don't blaze the whole cutscene in one update -
+								// advance at most one line per pace tick so it's watchable /
+								// screenshot-able. Break (box stays shown) until the pace elapses.
+								if (isTravelling && travelPaceMs > 0.0f)
+								{
+									if (!travelPaceTimer.HasElapsed())
+										break;
+									travelPaceTimer.Start((uint32_t)travelPaceMs);
+								}
+
+								// SIMULATE: DisplayChoice already paused this choice for a real
+								// click (no scripted pick matched) and cleared `simulating`, but
+								// `isTravelling` stays on so we still get here. BREAK instead of
+								// force-picking - otherwise this fallback silently resolves the
+								// choice to option 0 before the pause ever takes effect. The outer
+								// per-frame Update() (now single-stepped, not fast-forwarding)
+								// picks up normally at its top-level waitingForButton/click check.
+								if (waitingForButton && awaitingInteractiveChoice)
+								{
+									break;
+								}
+
 								// We must call MakeChoice here because it will never be reached otherwise
 								if (waitingForButton)
 								{
@@ -1711,6 +1823,8 @@ void CutsceneManager::UpdateText()
 								isTravelling = false;
 								autoChoice = 0;
 								printNumber = 1;
+								simulating = false;   // reached simulate target: resume normal play
+								std::cout << "Simulate: ARRIVED at " << endTravelLabel << std::endl;
 							}
 						}
 
@@ -1759,7 +1873,7 @@ void CutsceneManager::UpdateText()
 					
 					game->CreateScreenshot();
 
-					if (isTravelling) // don't read text when travelling
+					if (isTravelling && travelPaceMs <= 0.0f) // instant travel: skip the text
 					{
 						isReadingNextLine = false;
 					}
@@ -1967,6 +2081,17 @@ void CutsceneManager::MakeChoice()
 	if (atChoice) // TODO: Maybe a way to toggle this via script to auto clear sprites?
 	{
 		atChoice = false;
+
+		// SIMULATE: this choice was paused for a real click (no scripted pick
+		// matched). Record what got picked and resume the fast-forward.
+		if (awaitingInteractiveChoice)
+		{
+			awaitingInteractiveChoice = false;
+			recordedChoices.push_back({ pendingChoiceLabel, pendingChoiceNth, (int)buttonIndex });
+			if (isTravelling)
+				simulating = true;
+		}
+
 		isCarryingOutCommands = true;
 		isReadingNextLine = true;
 		textbox->isReading = true;

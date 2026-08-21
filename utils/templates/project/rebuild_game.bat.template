@@ -1,0 +1,68 @@
+@echo off
+setlocal EnableDelayedExpansion
+REM ==========================================================================
+REM  Rebuild THIS game  ->  <sln>\x64\Debug\<GameFolder>.exe
+REM
+REM  GAME-AGNOSTIC: the MSBuild project/target is taken from THIS folder's name
+REM  and the solution is the .sln one level up, so you can drop this file into
+REM  any game project folder under GameEngine\ and it builds that game.
+REM
+REM  Builds through the .sln so $(SolutionDir) resolves the glm / glew include
+REM  paths (a direct .vcxproj build fails on 'glm/vec2.hpp'). Links against the
+REM  engine import lib - run ..\rebuild_engine.bat first if you changed engine code.
+REM
+REM  CPU-safe: -m:1 -p:CL_MPCount=1 forces a single cl.exe.
+REM
+REM  Usage:   rebuild_game.bat  [Debug|Release]  [x64|Win32]   (defaults: Debug x64)
+REM ==========================================================================
+
+REM --- this folder's name = the MSBuild project/target name ---
+set "HERE=%~dp0"
+set "HERE=%HERE:~0,-1%"
+for %%I in ("%HERE%") do set "GAME=%%~nxI"
+
+REM --- the solution is the (first) .sln one level up ---
+set "SLN="
+for %%S in ("%~dp0..\*.sln") do if not defined SLN set "SLN=%%~fS"
+if not defined SLN (
+    echo ERROR: No .sln found in "%~dp0.."
+    exit /b 1
+)
+
+set "CONFIG=%~1"
+if "%CONFIG%"=="" set "CONFIG=Debug"
+set "PLATFORM=%~2"
+if "%PLATFORM%"=="" set "PLATFORM=x64"
+
+REM --- locate MSBuild: known VS2022 path first, else vswhere -----------------
+set "MSBUILD=C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
+if not exist "%MSBUILD%" (
+    set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+    if exist "!VSWHERE!" (
+        for /f "usebackq delims=" %%i in (`"!VSWHERE!" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe`) do set "MSBUILD=%%i"
+    )
+)
+if not exist "%MSBUILD%" (
+    echo ERROR: Could not find MSBuild.exe - edit the MSBUILD path in this script.
+    exit /b 1
+)
+
+echo.
+echo Building %GAME%   [%CONFIG% ^| %PLATFORM%]  (single-core)
+echo   sln: %SLN%
+echo.
+
+REM  :Rebuild forces a full recompile+relink. An incremental build after an
+REM  ENGINE rebuild is a no-op (no game sources changed), which leaves the
+REM  exe older than the new GameEngine.dll - the launcher's ABI guard keeps
+REM  warning and the stale-ABI crash risk stays real.
+"%MSBUILD%" "%SLN%" -t:%GAME%:Rebuild -p:Configuration=%CONFIG% -p:Platform=%PLATFORM% -m:1 -p:CL_MPCount=1 -nologo -v:minimal
+set "RC=%ERRORLEVEL%"
+
+echo.
+if "%RC%"=="0" (
+    echo *** %GAME% BUILD SUCCEEDED ***  ^-^>  %PLATFORM%\%CONFIG%\%GAME%.exe
+) else (
+    echo *** %GAME% BUILD FAILED  ^(exit %RC%^) ***
+)
+endlocal & exit /b %RC%

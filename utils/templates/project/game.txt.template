@@ -1,0 +1,57 @@
+*ignorethisline
+
+x ============================================================================
+x {{PROJECT_NAME}} - main cutscene script. The engine loads
+x data/cutscenes/english/{{GAME_FOLDER}}.txt automatically (the filename must
+x match the game folder name passed to Game(...) in main.cpp).
+x
+x To boot into this script at launch: set  game.startingLevel = "title3d";
+x in main.cpp - data/levels/title3d.lvl ships with this project and contains a
+x single cutscene-start entity that plays the *start label below.
+x
+x Lines starting with x are comments. A dialogue line is text in backticks
+x ending with \ (page break) or @ (wait for click, same page).
+x
+x THE #1 SCRIPT-AUTHORING TRAP: a label's LAST line's commands are silently
+x SKIPPED by the engine's label-fall-through. A label ending on a bare
+x command (goto/battle/end/choice show/anything) never executes it - the
+x story just falls through into the next label with no error. ALWAYS follow
+x a label-ending command with a throwaway text line:  `...`\
+x (it never displays when the command jumps or ends the cutscene). This bit
+x two shipped games before it was documented - see CLAUDE.md gotcha #11.
+x ============================================================================
+
+*start
+
+x --- VN presentation setup - REQUIRED before the first dialogue line, and
+x --- easy to get wrong (the engine's defaults render an INVISIBLE textbox):
+x ---   assetpath: image paths in this script resolve relative to this prefix;
+x ---              without it they load from "" and fail silently.
+x ---   textbox/namebox sprite + positions: must be set explicitly.
+x --- Positions are in GUI units (design resolution x2 - e.g. 2560x1440 for a
+x --- 1280x720 design). Values below match the other shipped games.
+assetpath assets/
+textbox sprite gui/textbox1.png
+namebox sprite gui/namebox1.png
+textbox position 1280 1230
+textbox text position 150 1095
+namebox position 490 1015
+textbox wrapWidth 1000
+
+x --- Demo dialogue: replace with your opening scene. `name` sets the speaker
+x --- shown in the namebox (use  name  with no argument for narration).
+name Narrator
+`Welcome to {{WINDOW_TITLE}}. This line proves the dialogue system renders.`\
+
+name Guide
+`Edit data/cutscenes/english/{{GAME_FOLDER}}.txt to write your story.`@` Backtick text, \ ends a page, @ waits for a click mid-page.`\
+
+x --- For a 3D scene mid-cutscene:  scene3d load example3d  (see the shipped
+x --- data/scenes/example3d.scene) followed by  scene3d cam main
+x --- `scene3d` is built into the engine (load/cam/glide/focus/closeup/light/
+x --- characters/off/quit) - no game-side handler needed; override
+x --- cmd_lut["scene3d"] in your CutsceneHelper only to extend it.
+x --- End the cutscene (the `...` line after it is REQUIRED - see the
+x --- last-line-skip trap in the header comment):
+end
+`...`\

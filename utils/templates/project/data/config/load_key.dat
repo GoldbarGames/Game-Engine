@@ -1,0 +1,8 @@
+entity: id type positionX positionY rotationZ
+cutscene-trigger: cutsceneLabel rectWidth rectHeight
+tile: drawOrder layer passableState tilesheet frameX frameY
+cameraBounds: colliderOffsetX colliderOffsetY colliderScaleX colliderScaleY
+path: shouldLoop nodeCount
+Piece: subtype name
+particle: subtype sprite sx sy vx vy timeToSpawn maxNumber timeToLive
+particlesystem: subtype sprite sx sy vx vy timeToSpawn maxNumber timeToLive

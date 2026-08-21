@@ -1,0 +1,79 @@
+@echo off
+rem ---------------------------------------------------------------------------
+rem  Launch {{WINDOW_TITLE}} without Visual Studio. Just double-click this file
+rem  (it lives in the game folder).
+rem
+rem  It does two things the raw .exe can't do on its own:
+rem    1. Adds the engine's output folder to PATH so Windows finds the
+rem       runtime DLLs (ENGINE.dll, SDL2*.dll, glew, ...).
+rem    2. Sets the working directory to THIS folder, so the game finds its
+rem       relative asset paths (data\, assets\, fonts\).
+rem
+rem  Usage:
+rem    run_game.bat                start the Debug build
+rem    run_game.bat release        use the Release build instead
+rem    run_game.bat --some-flag    any other argument is passed straight
+rem                                through to the game exe (e.g. your own
+rem                                --level/--scene/--windowed style flags)
+rem  (arguments combine in any order)
+rem ---------------------------------------------------------------------------
+
+setlocal EnableDelayedExpansion
+
+set "CONFIG=Debug"
+set "EXTRA_ARGS="
+for %%A in (%*) do (
+    if /I "%%A"=="release" ( set "CONFIG=Release"
+    ) else ( set "EXTRA_ARGS=!EXTRA_ARGS! %%A" )
+)
+
+rem Working directory = the folder this .bat is in (game root)
+cd /d "%~dp0"
+
+rem Engine runtime DLLs + the solution-build exe live in the shared solution
+rem output folder (<sln>\x64\<config>\) - this game folder sits one level
+rem under the solution root, same layout rebuild_game.bat assumes.
+set "ENGINE_DLLS=%~dp0..\x64\%CONFIG%"
+set "PATH=%ENGINE_DLLS%;%PATH%"
+
+rem The game exe can land in TWO places: building the raw .vcxproj writes
+rem <game>\x64\<cfg>\, while solution builds (rebuild_game.bat, VS) write
+rem the shared <sln>\x64\<cfg>\. Run whichever is NEWEST, so a rebuild via
+rem either path clears the ABI guard below.
+set "GAME_EXE=x64\%CONFIG%\{{PROJECT_NAME}}.exe"
+set "SLN_EXE=%ENGINE_DLLS%\{{PROJECT_NAME}}.exe"
+if exist "%SLN_EXE%" (
+    if not exist "%GAME_EXE%" (
+        set "GAME_EXE=%SLN_EXE%"
+    ) else (
+        for /f %%T in ('powershell -NoProfile -Command "(Get-Item '%SLN_EXE%').LastWriteTime -gt (Get-Item '%GAME_EXE%').LastWriteTime"') do if /I "%%T"=="True" set "GAME_EXE=%SLN_EXE%"
+    )
+)
+
+if not exist "%GAME_EXE%" (
+    echo Could not find %GAME_EXE%
+    echo Build the %CONFIG% ^| x64 configuration first ^(rebuild_game.bat^).
+    pause
+    exit /b 1
+)
+
+rem ABI-mismatch guard: an engine DLL rebuilt AFTER this game's exe means
+rem the game must be rebuilt too, or it will crash at startup with an
+rem access violation (this has happened when another project rebuilds the
+rem engine). Warn instead of crashing mysteriously.
+set "ENGINE_DLL=%ENGINE_DLLS%\GameEngine.dll"
+if exist "%ENGINE_DLL%" (
+    for /f %%T in ('powershell -NoProfile -Command "(Get-Item '%ENGINE_DLL%').LastWriteTime -gt (Get-Item '%GAME_EXE%').LastWriteTime"') do set "ENGINE_NEWER=%%T"
+)
+if /I "%ENGINE_NEWER%"=="True" (
+    echo.
+    echo  *** WARNING: the engine DLL is NEWER than {{PROJECT_NAME}}.exe. ***
+    echo  The game likely needs a rebuild or it will crash on startup.
+    echo  Rebuild the %CONFIG% ^| x64 configuration, then run this again.
+    echo.
+    echo  Press any key to try launching anyway, or close this window.
+    pause >nul
+)
+
+start "{{WINDOW_TITLE}}" "%GAME_EXE%" %EXTRA_ARGS%
+endlocal

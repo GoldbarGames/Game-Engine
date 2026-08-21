@@ -163,6 +163,21 @@ def generate_project(name, window_title=None, game_folder=None, icon="icon.png",
         os.makedirs(os.path.join(project_dir, d), exist_ok=True)
         log("  + " + d + "/")
 
+    # 4) Register in GameEngine.sln so MSBuild -t:<Name> works right away
+    #    (rebuild_game.bat / Build Monitor) - a .vcxproj that isn't in the
+    #    .sln cannot be built through the solution at all. Only when the
+    #    project was generated INTO the solution root; anywhere else the .sln
+    #    couldn't build it anyway.
+    sln_path = os.path.join(os.path.dirname(os.path.dirname(SCRIPT_DIR)), "GameEngine.sln")
+    if (os.path.isfile(sln_path)
+            and os.path.normcase(os.path.abspath(dest_dir))
+                == os.path.normcase(os.path.dirname(os.path.abspath(sln_path)))):
+        import slnRegistry
+        ok, message = slnRegistry.register_project(sln_path, project_dir)
+        log(("  + " if ok else "  ! ") + message)
+    else:
+        log("  (outside the solution root - not registered in GameEngine.sln)")
+
     log("")
     log("GUID: " + ctx["PROJECT_GUID"])
     return project_dir

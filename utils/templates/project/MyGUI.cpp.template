@@ -1,24 +1,50 @@
 #include "MyGUI.h"
 #include <ENGINE/Game.h>
 #include <ENGINE/Renderer.h>
+#include <ENGINE/Scene3D.h>
 
 void MyGUI::Update()
 {
 	GUI::Update();
 
+	if (game == nullptr)
+		return;
+
+	// REQUIRED for any Scene3D-based (3D) game: the engine does NOT drive
+	// Scene3D on its own - every project must tick it once per frame, or
+	// autoLoadScene, `scene3d load`, camera glides, shadows and weather all
+	// silently never run (a classic blank-screen cause). Costs nothing while
+	// no scene is active, so it's safe to leave in for pure-2D games too.
+	Scene3D::Get().Update(*game);
+
 	// One-time setup runs on the first frame, after LoadTitleScreen() has reset
 	// the camera. This is the correct place to configure a perspective camera for
 	// 3D / 2.5D games (see CLAUDE.md "3D camera setup").
 	static bool initialized = false;
-	if (!initialized && game != nullptr)
+	if (!initialized)
 	{
 		initialized = true;
 
-		// Example perspective camera setup (uncomment for 3D / 2.5D):
+		// 3D scenes: prefer authoring cameras in the .scene file (see
+		// data/scenes/example3d.scene, which documents the camera convention)
+		// and loading with Scene3D::Get().autoLoadScene = "example3d";
+		//
+		// If you drive the camera manually instead, know the ENGINE CAMERA
+		// CONVENTION (getting it wrong renders a silent blank screen):
+		//   - The view matrix looks along MINUS front: yaw 270 faces +Z,
+		//     yaw 90 faces -Z.
+		//   - Visual down is +Y (the world is -Y-up): a camera above the
+		//     ground sits at NEGATIVE y and needs NEGATIVE pitch to look down.
+		//   - Assigning position/pitch/yaw does NOT refresh the orientation
+		//     vectors - call camera.Update() afterward.
+		//
+		// Example (400 above the ground, 300 back from content at +Z,
+		// tilted down 30 degrees):
 		// Camera& cam = game->renderer.camera;
-		// cam.position = glm::vec3(0, 300, 400);
-		// cam.pitch = 40.0f;
-		// cam.yaw = 90.0f;
+		// cam.position = glm::vec3(0, -400, -300);
+		// cam.pitch = -30.0f;
+		// cam.yaw = 270.0f;
 		// cam.SetupPerspective(60.0f, 0.1f, 5000.0f);  // fov, near, far
+		// cam.Update();
 	}
 }

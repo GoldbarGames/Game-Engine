@@ -575,6 +575,15 @@ void Sprite::SetTexture(Texture* t)
 	//TODO: This only works if there is only one row, but that is okay for now
 	numberFramesInTexture = 1;
 	framesPerRow = 1;
+	numberRows = 1;
+
+	// The texture - and thus the quad's pixel size - just changed. Invalidate the
+	// CalculateModel cache so the model matrix is REBUILT for the new dimensions.
+	// Otherwise, if this sprite is next drawn at the SAME position + scale (e.g. a
+	// menu button whose label text changed but whose row didn't move), the cached
+	// model from the OLD texture is reused and the new text is stretched to fit the
+	// old quad - the cause of the "buttons all different sizes / stretched" bug.
+	lastScale = glm::vec3(-1.0e30f);
 }
 
 const std::string& Sprite::GetFileName()

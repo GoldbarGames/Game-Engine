@@ -12,7 +12,7 @@ class EditorLauncher:
     def __init__(self, root):
         self.root = root
         self.root.title("Game Engine Utils")
-        self.root.geometry("400x400")
+        self.root.geometry("420x440")
         self.root.resizable(False, False)
 
         # Get the directory where this script is located
@@ -31,6 +31,7 @@ class EditorLauncher:
 
         editors = [
             ("New Project", "newProjectEditor.py", "Scaffold a new game project (+ validate existing ones)"),
+            ("Build Monitor", "buildMonitor.py", "See when each game was last built; rebuild games/engine"),
             ("Config Editor", "configEditor.py", "Edit key=value config files (.dat, .config)"),
             ("Background Editor", "bgEditor.py", "Edit parallax backgrounds (bg.dat)"),
             ("List Editor", "listEditor.py", "Edit simple list files (one item per line)"),

@@ -1,0 +1,32 @@
+# example3d.scene - a known-good reference 3D scene every new project ships
+# with. Load it to prove the 3D pipeline works before authoring your own:
+#     Scene3D::Get().autoLoadScene = "example3d";
+# (and make sure MyGUI::Update calls Scene3D::Get().Update(*game) every frame
+# - the generated template already does; the engine does NOT drive it itself.)
+# If this scene shows a lit ground plane with a box on it, your project's 3D
+# stack (shaders, camera, per-frame update) is wired correctly. Then copy this
+# file as a starting point, or delete it.
+#
+# THE CAMERA CONVENTION - the #1 new-3D-project gotcha. Getting it wrong
+# renders a silent blank screen (the camera stares at empty space):
+#   camera <name> <x> <y> <z> <pitch> <yaw>
+#   - The engine looks along MINUS front: yaw 270 faces +Z, yaw 90 faces -Z.
+#     So a yaw-270 camera must sit at SMALLER z than the content it films;
+#     a yaw-90 camera at LARGER z.
+#   - Visual down is +Y (the world is -Y-up): a camera above the ground sits
+#     at NEGATIVE y and needs NEGATIVE pitch to look down at it.
+# The camera below: 400 above the ground, 300 on the -Z side of content
+# centered at z=300, facing +Z (yaw 270), tilted down 30 degrees (pitch -30).
+# Working examples across projects follow this shape - if your scene is
+# blank, check these two signs first.
+
+ambient 0.35 0.35 0.38
+light 0.5 1.0 0.25 1.0 0.9 0.85 0.8
+
+camera main 0 -400 -300 -30 270
+
+# Greybox content: a 600x600 ground plane (scaled x2) and a 100-unit box on
+# it, using the 1-pixel white placeholder texture. `solid` gives the box a
+# collision footprint for character movement.
+model assets/models/common/plane.obj assets/editor/1pixel.png 0 0 300 0 2
+model assets/models/common/box.obj assets/editor/1pixel.png 0 0 300 0 1 solid

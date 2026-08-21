@@ -1,0 +1,4 @@
+*samepage*
+nextpage: bool endOfPage == true ;
+*nextpage*
+samepage: bool endOfPage == false ;

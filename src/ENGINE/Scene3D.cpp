@@ -53,6 +53,8 @@ glm::mat4 Scene3DModel::ModelMatrix() const
 
 void Scene3DModel::Render(const Renderer& renderer)
 {
+	if (guardHidden)   // availability guard says this object isn't present now
+		return;
 	// Instanced grouping (rebuilt each frame): duplicate opaque props draw once,
 	// from their group leader; the other members skip this pass.
 	if (instanceMember)
@@ -166,7 +168,7 @@ void Scene3D::RenderTransparentModels(Game& game, const Renderer& renderer)
 
 	std::vector<Scene3DModel*> transparent;
 	for (Scene3DModel* m : models)
-		if (m->material != nullptr && m->material->IsTransparent())
+		if (m->material != nullptr && m->material->IsTransparent() && !m->guardHidden)
 			transparent.push_back(m);
 	if (transparent.empty())
 		return;
@@ -194,6 +196,10 @@ void Scene3D::SetWeather(WeatherType type, float intensity)
 	weatherType = type;
 	weatherIntensity = glm::clamp(intensity, 0.0f, 1.0f);
 	weatherInit = false;   // reseed the particle volume on the next Update
+	// Rearm the lightning system for a fresh storm (idle for non-storm weather).
+	stormSeeded = false;
+	flashIntensity = 0.0f;
+	reflashTimer = thunderTimer = -1.0f;
 }
 
 void Scene3D::EnsureWeatherResources()
@@ -353,7 +359,9 @@ void Scene3D::RenderWeather(Game& game, const Renderer& renderer)
 
 	weatherShader->UseShader();
 	GLuint id = weatherShader->GetID();
-	const bool rain = (weatherType == WeatherType::Rain);
+	// A storm renders the same fast rain streaks as plain rain (the lightning /
+	// thunder ride on top); only snow takes the flake path.
+	const bool rain = (weatherType != WeatherType::Snow);
 
 	glUniform1i(glGetUniformLocation(id, "uMode"), rain ? 1 : 0);
 	glUniform1f(glGetUniformLocation(id, "uTime"), renderer.now * 0.001f);
@@ -400,6 +408,354 @@ void Scene3D::RenderWeather(Game& game, const Renderer& renderer)
 
 	glDepthMask(prevDepthMask);
 	if (!prevBlend) glDisable(GL_BLEND);
+	renderer.drawCallsPerFrame++;
+
+	// Lightning flash goes on last, over the rain and everything else.
+	if (weatherType == WeatherType::Storm && flashIntensity > 0.001f)
+		RenderLightningFlash(renderer);
+}
+
+// ----------------------------------------------------- fountain particle jet
+
+void Scene3D::SetFountain(const glm::vec3& pos, float jetSpeed, float fallDist, float spread)
+{
+	fountainPos = pos;
+	fountainJetSpeed = jetSpeed;
+	fountainFallDist = fallDist;
+	fountainSpread = spread;
+	hasFountain = true;
+	fountainInit = false;   // reseed the droplets
+}
+
+void Scene3D::FountainRespawn(int i, bool stagger)
+{
+	auto frand = []() { return (float)std::rand() / (float)RAND_MAX; };
+	auto rr = [&](float a, float b) { return a + (b - a) * frand(); };
+
+	// Launch from a small nozzle disk, upward (-Y) with a horizontal spread so the
+	// jets fan into a dome that falls back into the basin.
+	const float nozzleR = 6.0f;
+	float ang = rr(0.0f, 6.2831853f);
+	glm::vec3 pos = fountainPos
+		+ glm::vec3(std::cos(ang) * rr(0.0f, nozzleR), 0.0f, std::sin(ang) * rr(0.0f, nozzleR));
+	glm::vec3 vel(rr(-fountainSpread, fountainSpread),
+	              -fountainJetSpeed * rr(0.80f, 1.05f),
+	              rr(-fountainSpread, fountainSpread));
+
+	if (stagger)
+	{
+		// Advance to a random point along the ballistic arc so the whole jet is
+		// full on the very first frame (no all-at-the-nozzle pop-in).
+		float tmax = (2.0f * fountainJetSpeed) / fountainGravity;   // ~up+down flight time
+		float t = rr(0.0f, tmax);
+		pos += vel * t;
+		pos.y += 0.5f * fountainGravity * t * t;
+		vel.y += fountainGravity * t;
+	}
+
+	fountainParticles[i] = glm::vec4(pos, frand());
+	fountainVel[i] = vel;
+}
+
+void Scene3D::UpdateFountain(float dtSec)
+{
+	if (!hasFountain)
+		return;
+	if (fountainCount < 1) fountainCount = 1;
+
+	if (!fountainInit || (int)fountainParticles.size() != fountainCount)
+	{
+		fountainParticles.resize(fountainCount);
+		fountainVel.resize(fountainCount);
+		for (int i = 0; i < fountainCount; i++)
+			FountainRespawn(i, true);
+		fountainInit = true;
+	}
+
+	const float respawnY = fountainPos.y + fountainFallDist;   // basin/pool level
+	for (int i = 0; i < fountainCount; i++)
+	{
+		fountainVel[i].y += fountainGravity * dtSec;            // gravity (down = +Y)
+		glm::vec3 p(fountainParticles[i]);
+		p += fountainVel[i] * dtSec;
+		if (p.y > respawnY)                                    // fell back down -> relaunch
+			FountainRespawn(i, false);
+		else
+			fountainParticles[i] = glm::vec4(p, fountainParticles[i].w);
+	}
+}
+
+void Scene3D::EnsureFountainResources()
+{
+	if (fountainVAO != 0)
+		return;
+	EnsureWeatherResources();   // builds the shared unit quad (weatherQuadVBO) + snow/rain textures
+	if (weatherQuadVBO == 0)
+		return;
+
+	const int kMaxFountain = 1024;
+	glGenVertexArrays(1, &fountainVAO);
+	glBindVertexArray(fountainVAO);
+
+	// Shared unit quad (corner.xy @0, uv @1) from the weather resources.
+	glBindBuffer(GL_ARRAY_BUFFER, weatherQuadVBO);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+
+	// Per-instance position (vec4 = xyz + seed) @3.
+	glGenBuffers(1, &fountainInstVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, fountainInstVBO);
+	glBufferData(GL_ARRAY_BUFFER, kMaxFountain * sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
+	glVertexAttribDivisor(3, 1);
+
+	// Per-instance velocity (vec3) @4 - streaks orient along it (uMode 2).
+	glGenBuffers(1, &fountainVelVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, fountainVelVBO);
+	glBufferData(GL_ARRAY_BUFFER, kMaxFountain * sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	glVertexAttribDivisor(4, 1);
+
+	glBindVertexArray(0);
+}
+
+void Scene3D::RenderFountain(Game& game, const Renderer& renderer)
+{
+	if (!active || !hasFountain || renderer.camera.useOrthoCamera)
+		return;
+	if (fountainParticles.empty())
+		return;
+
+	EnsureFountainResources();   // own VAO (has per-particle velocity); reuses weather shader/textures
+	if (weatherShader == nullptr || fountainVAO == 0)
+		return;
+
+	size_t cnt = fountainParticles.size() < fountainVel.size()
+		? fountainParticles.size() : fountainVel.size();
+	if (cnt > 1024) cnt = 1024;
+	GLsizei n = (GLsizei)cnt;
+
+	glBindVertexArray(fountainVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, fountainInstVBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, n * sizeof(glm::vec4), fountainParticles.data());
+	glBindBuffer(GL_ARRAY_BUFFER, fountainVelVBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, n * sizeof(glm::vec3), fountainVel.data());
+
+	weatherShader->UseShader();
+	GLuint id = weatherShader->GetID();
+	const bool streak = (fountainStretch > 0.01f);
+	glUniform1i(glGetUniformLocation(id, "uMode"), streak ? 2 : 0);   // 2 = per-velocity streak, 0 = dot
+	glUniform1f(glGetUniformLocation(id, "uTime"), renderer.now * 0.001f);
+	glm::vec3 cp = renderer.camera.position;
+	glUniform3f(glGetUniformLocation(id, "uCamPos"), cp.x, cp.y, cp.z);
+	glUniform3f(glGetUniformLocation(id, "uFallDir"), 0.0f, 1.0f, 0.0f);
+	glUniform1f(glGetUniformLocation(id, "uSize"), streak ? fountainDropSize * 0.6f : fountainDropSize);
+	glUniform1f(glGetUniformLocation(id, "uLength"), fountainDropSize * (streak ? fountainStretch : 1.0f));
+	glUniform1f(glGetUniformLocation(id, "uSway"), 0.0f);
+	glUniform4f(glGetUniformLocation(id, "uColor"), 0.78f, 0.88f, 1.0f, 0.9f);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, streak ? rainTex : snowTex);   // tapered streak vs round dot
+	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
+
+	GLboolean prevDepthMask = GL_TRUE;
+	glGetBooleanv(GL_DEPTH_WRITEMASK, &prevDepthMask);
+	GLboolean prevBlend = glIsEnabled(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, n);
+	glBindVertexArray(0);
+
+	glDepthMask(prevDepthMask);
+	if (!prevBlend) glDisable(GL_BLEND);
+	renderer.drawCallsPerFrame++;
+}
+
+// ----------------------------------------------------- seasonal foliage
+
+void Scene3D::SetSeason(Game& game, Season s)
+{
+	season = s;
+	const char* suffix = (s == Season::Spring) ? "_spring"
+		: (s == Season::Autumn) ? "_autumn"
+		: (s == Season::Winter) ? "_winter" : "";   // Summer = base texture
+
+	for (Scene3DModel* m : models)
+	{
+		if (m == nullptr || m->material == nullptr || !m->material->seasonal)
+			continue;
+
+		std::string path = m->texPath;   // base = summer / default look
+		if (s != Season::Summer && suffix[0] != '\0')
+		{
+			// Insert the season suffix before the extension: grass.png -> grass_autumn.png
+			size_t dot = m->texPath.find_last_of('.');
+			std::string variant = (dot == std::string::npos)
+				? (m->texPath + suffix)
+				: (m->texPath.substr(0, dot) + suffix + m->texPath.substr(dot));
+			// Only swap if that variant actually exists (else keep the base look -
+			// e.g. evergreen pines have only a winter variant). GetImage would
+			// otherwise substitute a white placeholder for a missing file.
+			std::ifstream f(variant);
+			if (f.good())
+				path = variant;
+		}
+		Texture* t = game.spriteManager.GetImage(path, Texture::Filter::Smooth);
+		if (t != nullptr)
+			m->texture = t;
+
+		// Deciduous trees shed their leaves: in winter swap the canopy MESH to a
+		// bare-branch variant ("<obj>_bare.obj"); any other season restores the
+		// authored (leafy) mesh. objPath is left as the authored summer mesh so the
+		// .scene file still serializes the leafy tree.
+		if (m->material->deciduous)
+		{
+			bool wantBare = (s == Season::Winter);
+			if (wantBare != m->bareMesh)
+			{
+				std::string meshPath = m->objPath;   // restore target (leafy)
+				bool toBare = false;
+				if (wantBare)
+				{
+					size_t d = m->objPath.find_last_of('.');
+					std::string bare = (d == std::string::npos)
+						? (m->objPath + "_bare")
+						: (m->objPath.substr(0, d) + "_bare" + m->objPath.substr(d));
+					std::ifstream bf(bare);
+					if (bf.good()) { meshPath = bare; toBare = true; }
+				}
+				// Only reload when we actually have a mesh change to make (skip if
+				// winter was requested but no _bare variant exists - keep the leafy
+				// mesh, texture already switched to the frosty winter variant).
+				if (toBare || !wantBare)
+				{
+#ifdef USE_ASSIMP
+					for (Mesh* mesh : m->model3D.meshList)
+						if (mesh != nullptr) delete_it(mesh);
+					m->model3D.meshList.clear();
+					m->model3D.LoadModel(meshPath);
+					m->loaded = !m->model3D.meshList.empty();
+#endif
+					m->hasLocalBounds = ReadObjLocalAABB(meshPath, m->localMin, m->localMax);
+					RecomputeModelBounds(m);
+					m->bareMesh = toBare;
+				}
+			}
+		}
+	}
+}
+
+// --------------------------------------------------- storm lightning
+
+void Scene3D::UpdateLightning(Game& game, float dtSec)
+{
+	auto frand = []() { return (float)std::rand() / (float)RAND_MAX; };
+	auto rr = [&](float a, float b) { return a + (b - a) * frand(); };
+
+	// Fade any active flash quickly (a bright pop that dies in ~0.15s).
+	if (flashIntensity > 0.0f)
+	{
+		flashIntensity -= dtSec / 0.15f;
+		if (flashIntensity < 0.0f) flashIntensity = 0.0f;
+	}
+
+	// A secondary flicker a beat after the main strike (real lightning rarely
+	// flashes just once).
+	if (reflashTimer >= 0.0f)
+	{
+		reflashTimer -= dtSec;
+		if (reflashTimer <= 0.0f)
+		{
+			flashIntensity = glm::max(flashIntensity, reflashMag);
+			reflashTimer = -1.0f;
+		}
+	}
+
+	// Thunder trails the flash by its travel time (sound is slow), so a distant
+	// bolt cracks seconds later while a near one is almost instant.
+	if (thunderTimer >= 0.0f)
+	{
+		thunderTimer -= dtSec;
+		if (thunderTimer <= 0.0f)
+		{
+			thunderTimer = -1.0f;
+			// PlaySound no-ops on channel < 0, so pass an explicit channel.
+			if (!thunderSound.empty())
+				game.soundManager.PlaySound(thunderSound, thunderChannel);
+		}
+	}
+
+	// Arm the first strike a moment into the storm, then keep counting down.
+	const float intens = glm::clamp(weatherIntensity, 0.05f, 1.0f);
+	if (!stormSeeded)
+	{
+		lightningTimer = rr(0.8f, 2.5f);
+		stormSeeded = true;
+	}
+
+	lightningTimer -= dtSec;
+	if (lightningTimer > 0.0f)
+		return;
+
+	// --- strike! ---
+	// Brighter, more frequent flashes at higher intensity.
+	flashIntensity = rr(0.75f, 1.0f);
+	// Maybe a quick second flicker.
+	if (frand() < 0.6f)
+	{
+		reflashTimer = rr(0.06f, 0.16f);
+		reflashMag = rr(0.4f, 0.75f);
+	}
+	// Thunder delay = "distance": near strikes (short delay) are the loud ones.
+	thunderTimer = rr(0.25f, 2.75f);
+
+	// Schedule the next strike; denser as intensity rises.
+	float gap = rr(lightningMinGap, lightningMaxGap) * glm::mix(1.6f, 0.6f, intens);
+	if (gap < 1.0f) gap = 1.0f;
+	lightningTimer = gap;
+}
+
+void Scene3D::RenderLightningFlash(const Renderer& renderer)
+{
+	if (flashShader == nullptr)
+	{
+		flashShader = new ShaderProgram(-1, flashShaderVert.c_str(), flashShaderFrag.c_str());
+	}
+	if (flashVAO == 0)
+		glGenVertexArrays(1, &flashVAO);   // attribute-less full-screen triangle
+	if (flashShader == nullptr || flashVAO == 0)
+		return;
+
+	flashShader->UseShader();
+	GLuint id = flashShader->GetID();
+	// A cool-white flash; alpha carries the intensity. Gamma the curve a touch so
+	// the pop reads punchy rather than a flat wash.
+	float a = flashIntensity;
+	a = a * a * (3.0f - 2.0f * a);   // smoothstep
+	glUniform3f(glGetUniformLocation(id, "uFlashColor"), 0.80f, 0.85f, 1.0f);
+	// Lighter than before: the scene surfaces now brighten on their own (see
+	// ApplyLighting's lightningFlash), so this overlay just lifts the sky/haze.
+	glUniform1f(glGetUniformLocation(id, "uFlashIntensity"), a * 0.35f);
+
+	GLboolean prevDepthTest = glIsEnabled(GL_DEPTH_TEST);
+	GLboolean prevBlend = glIsEnabled(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE);   // additive: brighten whatever is on screen
+
+	glBindVertexArray(flashVAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	if (!prevBlend) glDisable(GL_BLEND);
+	if (prevDepthTest) glEnable(GL_DEPTH_TEST);
 	renderer.drawCallsPerFrame++;
 }
 
@@ -492,6 +848,7 @@ void Scene3D::RebuildInstanceGroups()
 	for (Scene3DModel* m : models)
 	{
 		if (m == nullptr || !m->loaded || m->texture == nullptr) continue;
+		if (m->guardHidden) continue;   // availability guard: not present -> not drawn
 		if (m->IsWater()) continue;
 		if (m->material != nullptr && m->material->IsTransparent()) continue;
 		if (m->model3D.meshList.empty()) continue;
@@ -645,8 +1002,8 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	double sig = L.x * 101.1 + L.y * 211.3 + L.z * 307.7;
 	for (Scene3DModel* m : models)
 	{
-		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater())
-			continue;
+		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
+			continue;   // guardHidden in the sig -> shadow re-renders when it appears/hides
 		if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
 			continue;
 		glm::vec3 s = m->EffectiveScale();
@@ -706,7 +1063,7 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	// lakebed) and not the water surface.
 	for (Scene3DModel* m : models)
 	{
-		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater())
+		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
 			continue;
 		if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
 			continue;
@@ -731,6 +1088,8 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	glm::vec3 worldUp(0.0f, -1.0f, 0.0f);
 	for (Character3D* ch : characters)
 	{
+		if (!CharVisible(ch))   // hidden (backdrop or non-solo): cast no shadow
+			continue;
 		if (ch == nullptr || ch->quad == nullptr || ch->bodyTex == nullptr)
 			continue;
 		glm::vec3 toCam = renderer.camera.position - ch->position;
@@ -770,6 +1129,11 @@ std::vector<std::string> Scene3D::PointLightNames() const
 	for (const ScenePointLight& p : pointLights)
 		names.push_back(p.name);
 	return names;
+}
+
+std::vector<ScenePointLight>& Scene3D::GetPointLights()
+{
+	return pointLights;
 }
 
 void Scene3D::EnsurePointShadowMaps()
@@ -855,7 +1219,7 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 	{
 		std::vector<int> on;
 		for (size_t i = 0; i < pointLights.size(); i++)
-			if (pointLights[i].on) on.push_back((int)i);
+			if (pointLights[i].on && !pointLights[i].guardHidden) on.push_back((int)i);
 		std::sort(on.begin(), on.end(), [&](int a, int b) {
 			return pointLights[a].intensity * pointLights[a].range
 			     > pointLights[b].intensity * pointLights[b].range;
@@ -886,7 +1250,7 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 		sig += (casters[s] + 1) * 7919.0
 			+ pointShadowPositions[s].x * 1.1 + pointShadowPositions[s].y * 2.3 + pointShadowPositions[s].z * 3.7;
 	for (Scene3DModel* m : models)
-		if (m && m->loaded && !m->IsWater())
+		if (m && m->loaded && !m->IsWater() && !m->guardHidden)
 			sig += m->position.x * 1.7 + m->position.y * 2.9 + m->position.z * 3.1;
 	for (Character3D* ch : characters)
 		if (ch)
@@ -954,7 +1318,7 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 			// on a lit surface).
 			for (Scene3DModel* m : models)
 			{
-				if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater())
+				if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
 					continue;
 				if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
 					continue;
@@ -979,6 +1343,8 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 			// the sprite as the camera orbits. Range-culled by the light's reach.
 			for (Character3D* ch : characters)
 			{
+				if (!CharVisible(ch))   // hidden (backdrop or non-solo): cast no shadow
+					continue;
 				if (ch == nullptr || ch->quad == nullptr || ch->bodyTex == nullptr)
 					continue;
 				if (glm::length(ch->position - P) - ch->worldHeight * 0.5f > farP)
@@ -1075,9 +1441,51 @@ void Character3D::DrawQuad(const Renderer& renderer, Texture* tex, float forward
 	renderer.drawCallsPerFrame++;
 }
 
+bool Scene3D::CharVisible(const Character3D* ch) const
+{
+	if (ch == nullptr) return false;
+	if (!soloCharacter.empty())
+		return ch->charName == soloCharacter;   // focused moment: only the opponent
+	return renderCharacters;
+}
+
+void Scene3D::SpotlightCharacter(Game& game, const std::string& charName, bool on)
+{
+	focusSpotOn = false;
+	if (!on)
+		return;
+	Character3D* ch = FindCharacter(charName);
+	if (ch == nullptr)
+		return;
+
+	// up = -Y. position is the feet; light the torso from above + toward the camera.
+	const float h = ch->worldHeight;
+	glm::vec3 chest = ch->position + glm::vec3(0.0f, -0.6f * h, 0.0f);
+	glm::vec3 toCam(game.renderer.camera.position.x - chest.x, 0.0f,
+		game.renderer.camera.position.z - chest.z);
+	if (glm::length(toCam) < 1e-3f) toCam = glm::vec3(0, 0, 1);
+	toCam = glm::normalize(toCam);
+	glm::vec3 spotPos = chest + glm::vec3(0.0f, -1.6f * h, 0.0f) + toCam * (0.7f * h);
+
+	focusSpot.pos = spotPos;
+	focusSpot.dir = glm::normalize(chest - spotPos);
+	focusSpot.color = glm::vec3(1.0f, 0.96f, 0.86f);   // warm white
+	focusSpot.range = 4.0f * h;
+	focusSpot.intensity = 3.4f;
+	focusSpot.innerDeg = 15.0f;
+	focusSpot.outerDeg = 30.0f;
+	focusSpot.on = true;
+	focusSpotOn = true;
+}
+
 void Character3D::Render(const Renderer& renderer)
 {
 	if (renderer.camera.useOrthoCamera)
+		return;
+
+	// Scene used as a cutscene backdrop with its 3D cast suppressed (2D VN sprites
+	// act instead), or a solo-focused moment (only the opponent) - skip if hidden.
+	if (!Scene3D::Get().CharVisible(this))
 		return;
 
 	// When the game keeps characters out of the toon outline, also render to the
@@ -1153,9 +1561,16 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 		models.clear();
 		characters.clear();
 		solids.clear();
+	grounds.clear();
 		cameras.clear();
 		cameraOrder.clear();
+		anchors.clear();
 	}
+
+	// A fresh scene always shows its cast (a prior cutscene may have hidden it).
+	renderCharacters = true;
+	soloCharacter = "";
+	focusSpotOn = false;
 
 	// Dedicated shaders (all the VN shaders are 2D): lit for scene models,
 	// unlit alpha-cutout for character billboards
@@ -1208,6 +1623,12 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	weatherType = WeatherType::None;   // a scene without a "weather" line has none
 	weatherIntensity = 1.0f;
 	weatherInit = false;               // reseed the volume for the new scene
+	stormSeeded = false;               // rearm lightning for the new scene
+	flashIntensity = 0.0f;
+	reflashTimer = thunderTimer = -1.0f;
+	hasFountain = false;               // a scene without a "fountain" line has none
+	fountainInit = false;
+	season = Season::Summer;           // a scene without a "season" line = summer
 
 	// Shared unit billboard quad: x[-0.5,0.5], y[0,1] (base at origin), z=0,
 	// with dummy normals so Mesh::CreateMesh's stride-8 layout is satisfied
@@ -1258,6 +1679,8 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 			{
 				if (flag == "solid")
 					m->solid = true;
+				else if (flag == "walk")
+					m->walkable = true;
 				else if (flag == "tag" || flag == "clue")   // "clue" = back-compat
 					ss >> m->interactionTag;
 				else if (flag == "rot")            // rot <pitch> <roll> (extra axes)
@@ -1269,6 +1692,13 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 				else if (flag == "water")          // water <amp> <scale> <shore> <choppy> <spec> <shin> <opacity>
 					ss >> m->water.amplitude >> m->water.waveScale >> m->water.shoreFade
 					   >> m->water.choppy >> m->water.specular >> m->water.shininess >> m->water.opacity;
+				else if (flag == "if")             // if <guard...>  - availability guard
+				{                                  //   (rest of line; may contain spaces)
+					std::string g;
+					std::getline(ss, g);
+					size_t a = g.find_first_not_of(" \t");
+					m->guard = (a == std::string::npos) ? "" : g.substr(a);
+				}
 			}
 			if (!m->materialName.empty())
 				m->material = MaterialLibrary::Get().Find(m->materialName);
@@ -1293,13 +1723,15 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 			if (m->solid)
 			{
 				SolidBox box;
-				if (ComputeSolidBox(objPath, pos, yaw, scale, box))
-				{
+				if (ComputeSolidBox(objPath, pos, yaw, scale, m->scaleAxis, box))
 					solids.push_back(box);
-					std::cout << "Scene3D: solid " << objPath << " footprint x["
-						<< box.minX << "," << box.maxX << "] z["
-						<< box.minZ << "," << box.maxZ << "]" << std::endl;
-				}
+			}
+			// Walkable top: characters stand on this surface (GetGroundHeight)
+			if (m->walkable)
+			{
+				SolidBox box;
+				if (ComputeSolidBox(objPath, pos, yaw, scale, m->scaleAxis, box))
+					grounds.push_back({ box.minX, box.maxX, box.minZ, box.maxZ, box.minY });
 			}
 		}
 		else if (tag == "camera")
@@ -1310,6 +1742,16 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 				>> pose.pitch >> pose.yaw;
 			cameras[camName] = pose;
 			cameraOrder.push_back(camName);
+		}
+		else if (tag == "slot")
+		{
+			// slot <name> <x> <y> <z> [yaw]  - a named stand-point where the
+			// character schedule can place a character (yaw optional, default 0).
+			SceneAnchor a;
+			ss >> a.name >> a.position.x >> a.position.y >> a.position.z;
+			if (!(ss >> a.yaw))
+				a.yaw = 0.0f;
+			anchors.push_back(a);
 		}
 		else if (tag == "ambient")
 		{
@@ -1342,11 +1784,28 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 		}
 		else if (tag == "point")
 		{
-			// point <name> <x> <y> <z> <r> <g> <b> <range> <intensity>
+			// point <name> <x> <y> <z> <r> <g> <b> <range> <intensity> [flash <hz> [phase]]
 			ScenePointLight p;
 			ss >> p.name >> p.pos.x >> p.pos.y >> p.pos.z
 				>> p.color.r >> p.color.g >> p.color.b
 				>> p.range >> p.intensity;
+			p.flashPeak = p.intensity;
+			// optional trailing modifiers, in order: "flash <hz> <phase>" then
+			// "if <guard...>" (a strobe and/or an availability guard).
+			std::string kw;
+			while (ss >> kw)
+			{
+				if (kw == "flash")
+					ss >> p.flashHz >> p.flashPhase;
+				else if (kw == "if")
+				{
+					std::string g;
+					std::getline(ss, g);
+					size_t a = g.find_first_not_of(" \t");
+					p.guard = (a == std::string::npos) ? "" : g.substr(a);
+					break;   // guard consumes the rest of the line
+				}
+			}
 			pointLights.push_back(p);
 		}
 		else if (tag == "spot")
@@ -1372,10 +1831,6 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 			std::string charName, mode;
 			ss >> charName >> mode;
 
-			Character3D* ch = nullptr;
-
-			std::string bodyPath, headPath;
-
 			if (mode == "layered")
 			{
 				std::string folder, bodyPose, headExpr;
@@ -1383,36 +1838,24 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 				float height = 220.0f;
 				ss >> folder >> bodyPose >> headExpr
 					>> pos.x >> pos.y >> pos.z >> height;
-
-				ch = new Character3D(pos);
-				ch->worldHeight = height;
-				ch->bodyTex = ResolveTexture(game, folder, "body", bodyPose, &bodyPath);
-				ch->headTex = ResolveTexture(game, folder, "head", headExpr, &headPath);
-				ch->mode = "layered";
-				ch->folder = folder;
-				ch->bodyPose = bodyPose;
-				ch->headExpr = headExpr;
+				AddCharacter(game, charName, folder, bodyPose, headExpr, pos, height);
 			}
 			else if (mode == "combined")
 			{
-				std::string spritePath;
+				std::string spritePath, bodyPath;
 				glm::vec3 pos;
 				float height = 220.0f;
 				ss >> spritePath >> pos.x >> pos.y >> pos.z >> height;
 
-				ch = new Character3D(pos);
+				Character3D* ch = new Character3D(pos);
 				ch->worldHeight = height;
 				ch->bodyTex = game.spriteManager.GetImage(spritePath, Texture::Filter::Smooth);
 				ch->headTex = nullptr;  // combined sprites need no layering
 				bodyPath = spritePath;
 				ch->mode = "combined";
 				ch->spritePath = spritePath;
-			}
-
-			if (ch != nullptr)
-			{
 				ch->charName = charName;
-				ComputeFigureBounds(ch, bodyPath, headPath);
+				ComputeFigureBounds(ch, bodyPath, std::string());
 				ch->shader = billboardShader;
 				ch->quad = billboardQuad;
 				if (ch->bodyTex == nullptr)
@@ -1423,17 +1866,52 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 		}
 		else if (tag == "weather")
 		{
-			// weather <rain|snow> [intensity 0..1]  - a camera-following particle
-			// volume of falling rain streaks or drifting snow.
+			// weather <rain|snow|storm> [intensity 0..1]  - a camera-following
+			// particle volume of falling rain streaks or drifting snow. "storm"
+			// is heavy rain plus dynamic lightning flashes and delayed thunder.
 			std::string kind;
 			float intensity = 1.0f;
 			ss >> kind;
 			if (ss >> intensity) {}   // optional
-			if (kind == "rain")      weatherType = WeatherType::Rain;
-			else if (kind == "snow") weatherType = WeatherType::Snow;
-			else                     weatherType = WeatherType::None;
+			if (kind == "rain")       weatherType = WeatherType::Rain;
+			else if (kind == "snow")  weatherType = WeatherType::Snow;
+			else if (kind == "storm") weatherType = WeatherType::Storm;
+			else                      weatherType = WeatherType::None;
 			weatherIntensity = glm::clamp(intensity, 0.0f, 1.0f);
 			weatherInit = false;
+			stormSeeded = false;
+			flashIntensity = 0.0f;
+			reflashTimer = thunderTimer = -1.0f;
+		}
+		else if (tag == "fountain")
+		{
+			// fountain <x> <y> <z> [jetSpeed] [fallDist] [spread] [dropSize] [count] [stretch]
+			// - a point emitter that sprays droplets up from (x,y,z) and lets them
+			// arc back down. The trailing params are optional (editor-tunable).
+			glm::vec3 p(0.0f);
+			float jet = 480.0f, fall = 175.0f, spread = 60.0f, dropSize = 9.0f, stretch = 3.5f;
+			int count = 340;
+			ss >> p.x >> p.y >> p.z;
+			if (ss >> jet) {}
+			if (ss >> fall) {}
+			if (ss >> spread) {}
+			if (ss >> dropSize) {}
+			if (ss >> count) {}
+			if (ss >> stretch) {}
+			SetFountain(p, jet, fall, spread);
+			SetFountainDropSize(dropSize);
+			SetFountainCount(count);
+			SetFountainStretch(stretch);
+		}
+		else if (tag == "season")
+		{
+			// season <spring|summer|autumn|winter> - swaps seasonal-material
+			// textures. Stored now; applied after all models finish loading.
+			std::string kind;
+			ss >> kind;
+			season = (kind == "spring") ? Season::Spring
+				: (kind == "autumn") ? Season::Autumn
+				: (kind == "winter") ? Season::Winter : Season::Summer;
 		}
 	}
 
@@ -1476,6 +1954,11 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 		weatherIntensity = forcedWeatherIntensity;
 		weatherInit = false;
 	}
+
+	// Apply the authored season now that all models (and their materials) are
+	// loaded, swapping seasonal-material textures to the season's variant.
+	if (season != Season::Summer)
+		SetSeason(game, season);
 
 	if (jumpCamera && !cameraOrder.empty())
 	{
@@ -1610,6 +2093,10 @@ void Scene3D::ApplyLighting(unsigned int shaderID) const
 	glUniform3fv(glGetUniformLocation(id, "dirLightColor"), 1, glm::value_ptr(dirLight.color));
 	glUniform1f(glGetUniformLocation(id, "dirLightDiffuse"), dirLight.diffuse);
 
+	// Storm lightning: a scene-wide flash of sky light (0 unless a strike is active).
+	glUniform1f(glGetUniformLocation(id, "lightningFlash"), flashIntensity);
+	glUniform3f(glGetUniformLocation(id, "lightningColor"), 0.80f, 0.85f, 1.0f);
+
 	// Sun shadow map (bound to unit 3; unit 0 = albedo, 1 = normal map).
 	if (shadowActive && shadowsEnabled && shadowDepthTex != 0)
 	{
@@ -1636,7 +2123,7 @@ void Scene3D::ApplyLighting(unsigned int shaderID) const
 	for (int s = 0; s < kMaxPointShadows; s++) packedForSlot[s] = -1;
 	for (const ScenePointLight& p : pointLights)
 	{
-		if (!p.on || pc >= MAX_POINTS) continue;
+		if (!p.on || p.guardHidden || pc >= MAX_POINTS) continue;
 		pPos[pc * 3 + 0] = p.pos.x; pPos[pc * 3 + 1] = p.pos.y; pPos[pc * 3 + 2] = p.pos.z;
 		pCol[pc * 3 + 0] = p.color.r; pCol[pc * 3 + 1] = p.color.g; pCol[pc * 3 + 2] = p.color.b;
 		pRange[pc] = p.range; pInt[pc] = p.intensity;
@@ -1729,9 +2216,9 @@ void Scene3D::ApplyLighting(unsigned int shaderID) const
 	float sPos[MAX_SPOTS * 3], sDir[MAX_SPOTS * 3], sCol[MAX_SPOTS * 3];
 	float sRange[MAX_SPOTS], sInt[MAX_SPOTS], sCosIn[MAX_SPOTS], sCosOut[MAX_SPOTS];
 	int sc = 0;
-	for (const SceneSpotLight& s : spotLights)
+	auto packSpot = [&](const SceneSpotLight& s)
 	{
-		if (!s.on || sc >= MAX_SPOTS) continue;
+		if (!s.on || sc >= MAX_SPOTS) return;
 		sPos[sc * 3 + 0] = s.pos.x; sPos[sc * 3 + 1] = s.pos.y; sPos[sc * 3 + 2] = s.pos.z;
 		glm::vec3 d = glm::normalize(s.dir);
 		sDir[sc * 3 + 0] = d.x; sDir[sc * 3 + 1] = d.y; sDir[sc * 3 + 2] = d.z;
@@ -1740,7 +2227,9 @@ void Scene3D::ApplyLighting(unsigned int shaderID) const
 		sCosIn[sc] = cosf(glm::radians(s.innerDeg));
 		sCosOut[sc] = cosf(glm::radians(s.outerDeg));
 		sc++;
-	}
+	};
+	for (const SceneSpotLight& s : spotLights) packSpot(s);
+	if (focusSpotOn) packSpot(focusSpot);   // runtime focus/debate spotlight
 	glUniform1i(glGetUniformLocation(id, "spotCount"), sc);
 	if (sc > 0)
 	{
@@ -1825,6 +2314,7 @@ Scene3DModel* Scene3D::PickModel(Game& game, float sx, float sy) const
 	float bestT = 1e30f;
 	for (Scene3DModel* m : models)
 	{
+		if (m->guardHidden) continue;   // hidden by its availability guard: not pickable
 		const glm::vec3& lo = m->aabbMin;
 		const glm::vec3& hi = m->aabbMax;
 		float tmin = -1e30f, tmax = 1e30f;
@@ -1891,6 +2381,8 @@ void Scene3D::WriteScene(std::ostream& out) const
 			<< m->yawDeg << " " << m->modelScale;
 		if (m->solid)
 			out << " solid";
+		if (m->walkable)
+			out << " walk";
 		if (!m->interactionTag.empty())
 			out << " tag " << m->interactionTag;
 		if (m->pitchDeg != 0.0f || m->rollDeg != 0.0f)
@@ -1903,6 +2395,9 @@ void Scene3D::WriteScene(std::ostream& out) const
 			out << " water " << m->water.amplitude << " " << m->water.waveScale << " "
 				<< m->water.shoreFade << " " << m->water.choppy << " " << m->water.specular
 				<< " " << m->water.shininess << " " << m->water.opacity;
+		// "if <guard>" must be LAST (parse reads the rest of the line into the guard).
+		if (!m->guard.empty())
+			out << " if " << m->guard;
 		out << "\n";
 	}
 	out << "\n";
@@ -1955,10 +2450,22 @@ void Scene3D::WriteScene(std::ostream& out) const
 	if (!shadowCasterLight.empty())
 		out << "shadowlight " << shadowCasterLight << "\n";
 
-	// Weather (rain / snow), if authored on this scene.
+	// Weather (rain / snow / storm), if authored on this scene.
 	if (weatherType != WeatherType::None)
-		out << "weather " << (weatherType == WeatherType::Rain ? "rain" : "snow")
-			<< " " << weatherIntensity << "\n";
+	{
+		const char* kind = weatherType == WeatherType::Rain ? "rain"
+			: weatherType == WeatherType::Snow ? "snow" : "storm";
+		out << "weather " << kind << " " << weatherIntensity << "\n";
+	}
+	// Fountain spray, if authored on this scene.
+	if (hasFountain)
+		out << "fountain " << fountainPos.x << " " << fountainPos.y << " " << fountainPos.z
+			<< " " << fountainJetSpeed << " " << fountainFallDist << " " << fountainSpread
+			<< " " << fountainDropSize << " " << fountainCount << " " << fountainStretch << "\n";
+	// Season (foliage texture set), if not the default summer.
+	if (season != Season::Summer)
+		out << "season " << (season == Season::Spring ? "spring"
+			: season == Season::Autumn ? "autumn" : "winter") << "\n";
 	out << "\n";
 
 	// Cameras (preserve load order; the first is the default view)
@@ -1972,6 +2479,15 @@ void Scene3D::WriteScene(std::ostream& out) const
 			<< " " << c.position.z << " " << c.pitch << " " << c.yaw << "\n";
 	}
 
+	// Named anchors (schedule stand-points). yaw omitted when 0.
+	for (const SceneAnchor& a : anchors)
+	{
+		out << "slot " << a.name << " " << a.position.x << " " << a.position.y
+			<< " " << a.position.z;
+		if (a.yaw != 0.0f)
+			out << " " << a.yaw;
+		out << "\n";
+	}
 }
 
 std::string Scene3D::SerializeToString() const
@@ -2037,13 +2553,18 @@ bool Scene3D::NewScene(Game& game, const std::string& name)
 void Scene3D::RebuildSolids()
 {
 	solids.clear();
+	grounds.clear();
 	for (Scene3DModel* m : models)
 	{
-		if (!m->solid)
+		if (!m->solid && !m->walkable)
 			continue;
 		SolidBox box;
-		if (ComputeSolidBox(m->objPath, m->position, m->yawDeg, m->modelScale, box))
+		if (!ComputeSolidBox(m->objPath, m->position, m->yawDeg, m->modelScale, m->scaleAxis, box))
+			continue;
+		if (m->solid)
 			solids.push_back(box);
+		if (m->walkable)
+			grounds.push_back({ box.minX, box.maxX, box.minZ, box.maxZ, box.minY });
 	}
 }
 
@@ -2184,8 +2705,61 @@ bool Scene3D::RemoveCharacter(Game& game, int index)
 	return true;
 }
 
+Character3D* Scene3D::AddCharacter(Game& game, const std::string& name, const std::string& folder,
+	const std::string& bodyPose, const std::string& headExpr, const glm::vec3& pos, float height)
+{
+	std::string bodyPath, headPath;
+	Character3D* ch = new Character3D(pos);
+	ch->worldHeight = height;
+	ch->bodyTex = ResolveTexture(game, folder, "body", bodyPose, &bodyPath);
+	ch->headTex = ResolveTexture(game, folder, "head", headExpr, &headPath);
+	ch->mode = "layered";
+	ch->folder = folder;
+	ch->bodyPose = bodyPose;
+	ch->headExpr = headExpr;
+	ch->charName = name;
+	ComputeFigureBounds(ch, bodyPath, headPath);
+	ch->shader = billboardShader;
+	ch->quad = billboardQuad;
+	if (ch->bodyTex == nullptr)
+		std::cout << "Scene3D: character " << name << " has no body texture (folder " << folder << ")" << std::endl;
+	characters.push_back(ch);
+	game.entities.push_back(ch);
+	return ch;
+}
+
+bool Scene3D::RemoveCharacter(Game& game, Character3D* ch)
+{
+	for (size_t i = 0; i < characters.size(); i++)
+		if (characters[i] == ch)
+			return RemoveCharacter(game, (int)i);
+	return false;
+}
+
+bool Scene3D::GetAnchor(const std::string& name, glm::vec3& outPos, float& outYaw) const
+{
+	for (const SceneAnchor& a : anchors)
+	{
+		if (a.name == name)
+		{
+			outPos = a.position;
+			outYaw = a.yaw;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Scene3D::RemoveAnchorAt(int index)
+{
+	if (index < 0 || index >= (int)anchors.size())
+		return false;
+	anchors.erase(anchors.begin() + index);
+	return true;
+}
+
 bool Scene3D::ComputeSolidBox(const std::string& objPath, const glm::vec3& pos,
-	float yawDeg, float scale, SolidBox& out) const
+	float yawDeg, float scale, const glm::vec3& scaleAxis, SolidBox& out) const
 {
 	// Local-space AABB from the OBJ's vertex positions
 	glm::vec3 lo, hi;
@@ -2200,10 +2774,10 @@ bool Scene3D::ComputeSolidBox(const std::string& objPath, const glm::vec3& pos,
 	glm::mat4 m(1.0f);
 	m = glm::translate(m, pos);
 	m = glm::rotate(m, glm::radians(yawDeg), glm::vec3(0, -1, 0));
-	m = glm::scale(m, glm::vec3(scale));
+	m = glm::scale(m, glm::vec3(scale) * scaleAxis);
 
-	out.minX = out.minZ = 1e9f;
-	out.maxX = out.maxZ = -1e9f;
+	out.minX = out.minZ = out.minY = 1e9f;
+	out.maxX = out.maxZ = out.maxY = -1e9f;
 	for (int i = 0; i < 8; i++)
 	{
 		glm::vec3 c(
@@ -2215,11 +2789,21 @@ bool Scene3D::ComputeSolidBox(const std::string& objPath, const glm::vec3& pos,
 		out.maxX = glm::max(out.maxX, w.x);
 		out.minZ = glm::min(out.minZ, w.z);
 		out.maxZ = glm::max(out.maxZ, w.z);
+		out.minY = glm::min(out.minY, w.y);
+		out.maxY = glm::max(out.maxY, w.y);
 	}
 	return true;
 }
 
 void Scene3D::ResolveAgainstSolids(glm::vec3& pos, float radius) const
+{
+	// Historical behavior: solids are infinite vertical columns (bodyHeight
+	// sentinel < 0 disables the Y overlap test).
+	ResolveAgainstSolids(pos, radius, -1.0f, 0.0f);
+}
+
+void Scene3D::ResolveAgainstSolids(glm::vec3& pos, float radius,
+	float bodyHeight, float maxStepUp) const
 {
 	if (solids.empty())
 		return;
@@ -2232,6 +2816,18 @@ void Scene3D::ResolveAgainstSolids(glm::vec3& pos, float radius) const
 		bool moved = false;
 		for (const SolidBox& b : solids)
 		{
+			// Y-aware mode: skip boxes that don't overlap the body span
+			// (feet at pos.y, head at pos.y - bodyHeight; up = -Y), and
+			// boxes whose top is within step range (climbable, handled by
+			// GetGroundHeight rather than a wall push).
+			if (bodyHeight >= 0.0f)
+			{
+				bool risesAboveStep = b.minY < pos.y - maxStepUp;
+				bool belowHead = b.maxY > pos.y - bodyHeight;
+				if (!risesAboveStep || !belowHead)
+					continue;
+			}
+
 			float minX = b.minX - radius, maxX = b.maxX + radius;
 			float minZ = b.minZ - radius, maxZ = b.maxZ + radius;
 			if (pos.x <= minX || pos.x >= maxX || pos.z <= minZ || pos.z >= maxZ)
@@ -2253,6 +2849,31 @@ void Scene3D::ResolveAgainstSolids(glm::vec3& pos, float radius) const
 		if (!moved)
 			break;
 	}
+}
+
+bool Scene3D::GetGroundHeight(const glm::vec3& pos, float maxStepUp, float& outY) const
+{
+	// Up = -Y: a surface is "no more than maxStepUp above the feet" when its
+	// topY >= pos.y - maxStepUp; anything below the feet is a fall target.
+	// Among the eligible surfaces under this XZ point, the smallest y (the
+	// highest surface) wins.
+	bool found = false;
+	float best = 1e9f;
+	for (const GroundBox& g : grounds)
+	{
+		if (pos.x < g.minX || pos.x > g.maxX || pos.z < g.minZ || pos.z > g.maxZ)
+			continue;
+		if (g.topY < pos.y - maxStepUp)
+			continue;   // too high to step onto
+		if (g.topY < best)
+		{
+			best = g.topY;
+			found = true;
+		}
+	}
+	if (found)
+		outY = best;
+	return found;
 }
 
 // --- runtime light control (find the named light in point then spot) ---
@@ -2385,6 +3006,7 @@ void Scene3D::Unload(Game& game)
 	models.clear();
 	characters.clear();
 	solids.clear();
+	grounds.clear();
 	cameras.clear();
 	cameraOrder.clear();
 	active = false;
@@ -2514,6 +3136,53 @@ bool Scene3D::FocusCharacter(Game& game, const std::string& charName,
 	return true;
 }
 
+bool Scene3D::FocusBounds(Game& game, const glm::vec3& aabbMin, const glm::vec3& aabbMax,
+	float seconds, float fillFrac)
+{
+	glm::vec3 size = aabbMax - aabbMin;
+	if (size.x < 0.01f && size.y < 0.01f && size.z < 0.01f)
+		return false;   // degenerate / bounds not computed
+
+	glm::vec3 center = (aabbMin + aabbMax) * 0.5f;
+
+	// Fit both the vertical extent (in the vertical FOV) and the horizontal
+	// extent (in the wider horizontal FOV, scaled by aspect); take whichever
+	// needs the greater distance so the whole box stays in frame.
+	float vHalf = glm::radians(perspFovDeg * 0.5f);
+	float tanV = tanf(vHalf);
+	float aspect = (game.screenHeight > 0)
+		? (float)game.screenWidth / (float)game.screenHeight : 1.777f;
+	float vExtent = size.y;
+	float hExtent = sqrtf(size.x * size.x + size.z * size.z);  // loose horizontal diagonal
+	float distV = (vExtent * 0.5f) / tanV;
+	float distH = (hExtent * 0.5f) / (aspect * tanV);
+	float dist = std::max(distV, distH);
+	if (fillFrac > 0.05f) dist /= fillFrac;   // pull back so the box fills ~fillFrac
+	if (dist < 1.0f) dist = 1.0f;
+
+	// Keep the horizontal side the camera is currently on (dolly toward the box).
+	glm::vec3 camPos = game.renderer.camera.position;
+	glm::vec3 sideXZ(camPos.x - center.x, 0.0f, camPos.z - center.z);
+	if (glm::length(sideXZ) < 0.001f)
+		sideXZ = glm::vec3(0, 0, 1);
+	sideXZ = glm::normalize(sideXZ);
+
+	// Level, eye-line shot at the box center.
+	CamPose pose;
+	pose.position = center + sideXZ * dist;
+	pose.position.y = center.y;
+
+	glm::vec3 front = glm::normalize(pose.position - center);
+	pose.pitch = glm::degrees(asinf(glm::clamp(front.y, -1.0f, 1.0f)));
+	pose.yaw = glm::degrees(atan2f(front.z, front.x));
+
+	GlideToPose(pose, seconds);
+	focusCharName = "";   // not a character glide: skip the character centering verifier
+	std::cout << "Scene3D: focus bounds over " << glideSeconds << "s, dist " << dist
+		<< ", pose yaw " << pose.yaw << " pitch " << pose.pitch << std::endl;
+	return true;
+}
+
 void Scene3D::Update(Game& game)
 {
 	// Interactive edit launch: load the requested scene once (the game is
@@ -2556,6 +3225,19 @@ void Scene3D::Update(Game& game)
 	};
 	for (ScenePointLight& p : pointLights) stepFade(p.intensity, p.on, p.fade);
 	for (SceneSpotLight& s : spotLights)   stepFade(s.intensity, s.on, s.fade);
+
+	// Strobe any flashing point lights (police/emergency). A square wave overrides
+	// the intensity: full for the first half of the cycle, near-off for the second.
+	// Two lights at opposite phase (0 and 0.5) alternate (e.g. red then blue).
+	flashClock += dtSec;
+	for (ScenePointLight& p : pointLights)
+	{
+		if (p.flashHz <= 0.0f || p.guardHidden) continue;
+		float ph = flashClock * p.flashHz + p.flashPhase;
+		ph -= std::floor(ph);                      // fract -> 0..1
+		p.intensity = p.flashPeak * (ph < 0.5f ? 1.0f : 0.04f);
+		p.on = true;
+	}
 
 	// Advance an in-progress camera glide
 	if (gliding)
@@ -2621,6 +3303,14 @@ void Scene3D::Update(Game& game)
 	// Advance the weather particle volume (keeps it centered on the camera).
 	if (weatherType != WeatherType::None)
 		UpdateWeather(game.renderer.camera.position, dtSec);
+
+	// Storm: drive the lightning strike timing, flash decay, and delayed thunder.
+	if (weatherType == WeatherType::Storm)
+		UpdateLightning(game, dtSec);
+
+	// Fountain spray (ballistic droplets).
+	if (hasFountain)
+		UpdateFountain(dtSec);
 }
 
 void Scene3D::AddOrUpdateCamera(const std::string& name, const CamPose& pose)
@@ -2682,6 +3372,45 @@ bool Scene3D::JumpToCamera(Game& game, const std::string& camName)
 	std::cout << "Scene3D: camera '" << camName << "' pos ("
 		<< cam.position.x << "," << cam.position.y << "," << cam.position.z
 		<< ") pitch " << cam.pitch << " yaw " << cam.yaw << std::endl;
+
+	// Wrong-facing-camera guard: the view matrix looks along MINUS front
+	// (Camera::CalculateViewMatrix), which trips up scene authors deriving
+	// poses from the front-vector formula - yaw 90 faces -Z (270 faces +Z),
+	// and pitch must be NEGATIVE to look down (visual down = +Y). A camera
+	// aimed away from every model renders a silent blank screen that has cost
+	// hours to diagnose; one dot product per model on camera jumps makes it a
+	// loud console warning instead.
+	if (!models.empty())
+	{
+		const float yawR = glm::radians((float)cam.yaw);
+		const float pitchR = glm::radians((float)cam.pitch);
+		const glm::vec3 lookDir(-cosf(yawR) * cosf(pitchR),
+			-sinf(pitchR),
+			-sinf(yawR) * cosf(pitchR));
+
+		bool anyInFront = false;
+		for (Scene3DModel* m : models)
+		{
+			if (m == nullptr || m->guardHidden)
+				continue;
+			if (glm::dot(m->position - cam.position, lookDir) > 0.0f)
+			{
+				anyInFront = true;
+				break;
+			}
+		}
+
+		if (!anyInFront)
+		{
+			std::cout << "Scene3D: WARNING - camera '" << camName << "' faces AWAY from all "
+				<< models.size() << " models; nothing will render (blank screen). "
+				<< "The engine looks along MINUS front: yaw 90 faces -Z, yaw 270 faces +Z, "
+				<< "and pitch must be NEGATIVE to look down (visual down = +Y). "
+				<< "Check this camera's pitch/yaw signs and which side of the content it sits on."
+				<< std::endl;
+		}
+	}
+
 	return true;
 }
 
