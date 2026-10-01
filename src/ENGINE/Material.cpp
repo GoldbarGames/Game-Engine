@@ -1,7 +1,7 @@
 #include "Material.h"
+#include "render/RenderDevice.h"
 #include "Material.h"
 
-#include "opengl_includes.h"
 
 Material::Material()
 {
@@ -22,6 +22,6 @@ Material::~Material()
 
 void Material::UseMaterial(int specularIntensityLocation, int shineLocation)
 {
-	glUniform1f(specularIntensityLocation, specularIntensity);
-	glUniform1f(shineLocation, shine);
+	Device().SetUniform((int)(specularIntensityLocation), (float)(specularIntensity));
+	Device().SetUniform((int)(shineLocation), (float)(shine));
 }

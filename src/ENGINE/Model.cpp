@@ -32,6 +32,26 @@ namespace
 		return it == gModelCache.end() ? nullptr : it->second;
 	}
 
+	struct Bounds { float lo[3]; float hi[3]; };
+	std::map<std::string, Bounds> gBoundsCache;
+}
+
+bool Model::LoadedBounds(const std::string& filename, float lo[3], float hi[3])
+{
+	auto it = gBoundsCache.find(filename);
+	if (it == gBoundsCache.end())
+		return false;
+	for (int k = 0; k < 3; k++)
+	{
+		lo[k] = it->second.lo[k];
+		hi[k] = it->second.hi[k];
+	}
+	return true;
+}
+
+namespace
+{
+
 	void CacheStore(const std::string& filename, const Model& loaded)
 	{
 		if (loaded.meshList.empty())
@@ -48,6 +68,185 @@ namespace
 
 #ifdef MODEL_VIA_ASSIMP
 
+// ---------------------------------------------------------------------------
+// On-disk mesh cache. Assimp's OBJ import (parse + JoinIdenticalVertices +
+// smooth normals + tangents) is the whole cost of loading a model, and in a
+// Debug build it runs at a few hundred KB/s: eight 1.6 MB character frames
+// took 3.5 s, and under the debugger over a minute (found 2026-09-05, the
+// Blender maid in Cruise Ship Cleanup). The first import of a file writes its
+// finished vertex/index arrays to cache/<path>.kmesh; every later load reads
+// that back in milliseconds and never touches assimp. The cache is keyed on
+// the source file's size and modification time, so editing an .obj (or
+// regenerating it) invalidates its entry on its own.
+// ---------------------------------------------------------------------------
+#include <chrono>
+#include <cstdint>
+#include <fstream>
+
+namespace
+{
+	struct RawMesh
+	{
+		std::vector<float> vertices;       // stride 11: pos uv normal tangent
+		std::vector<unsigned int> indices;
+		unsigned int material = 0;
+	};
+
+	struct RawModel
+	{
+		std::vector<RawMesh> meshes;
+		std::vector<std::string> textures;   // per material; "" = none (white)
+	};
+
+	// The model being collected by LoadNode/LoadMesh/LoadMaterials. A file
+	// static rather than a member so Model.h (and the DLL's ABI) stay as they
+	// were.
+	RawModel* gCollect = nullptr;
+
+	const uint32_t kCacheMagic = 0x31484D4B;   // "KMH1"
+
+	std::string CachePath(const std::string& filename)
+	{
+		std::string f = filename;
+		for (char& c : f)
+		{
+			if (c == '\\') c = '/';
+			else if (c == ':') c = '_';
+		}
+		while (f.rfind("./", 0) == 0)
+			f = f.substr(2);
+		return "cache/" + f + ".kmesh";
+	}
+
+	bool SourceStamp(const std::string& filename, uint64_t& size, int64_t& mtime)
+	{
+		try
+		{
+			size = (uint64_t)fs::file_size(filename);
+			mtime = (int64_t)fs::last_write_time(filename).time_since_epoch().count();
+			return true;
+		}
+		catch (...)
+		{
+			return false;
+		}
+	}
+
+	template <typename T>
+	void Put(std::ofstream& out, const T& v)
+	{
+		out.write((const char*)&v, sizeof(T));
+	}
+
+	template <typename T>
+	bool Get(std::ifstream& in, T& v)
+	{
+		in.read((char*)&v, sizeof(T));
+		return in.good();
+	}
+
+	bool ReadCache(const std::string& filename, RawModel& raw)
+	{
+		uint64_t size = 0;
+		int64_t mtime = 0;
+		if (!SourceStamp(filename, size, mtime))
+			return false;
+
+		std::ifstream in(CachePath(filename), std::ios::binary);
+		if (!in.is_open())
+			return false;
+
+		uint32_t magic = 0;
+		uint64_t cSize = 0;
+		int64_t cTime = 0;
+		if (!Get(in, magic) || magic != kCacheMagic)
+			return false;
+		if (!Get(in, cSize) || !Get(in, cTime) || cSize != size || cTime != mtime)
+			return false;   // the source changed since this was written
+
+		uint32_t nMeshes = 0, nTex = 0;
+		if (!Get(in, nMeshes) || nMeshes > 100000)
+			return false;
+		raw.meshes.resize(nMeshes);
+		for (uint32_t i = 0; i < nMeshes; i++)
+		{
+			RawMesh& m = raw.meshes[i];
+			uint64_t nv = 0, ni = 0;
+			if (!Get(in, m.material) || !Get(in, nv) || !Get(in, ni))
+				return false;
+			if (nv > (1ull << 28) || ni > (1ull << 28))
+				return false;
+			m.vertices.resize((size_t)nv);
+			m.indices.resize((size_t)ni);
+			if (nv)
+				in.read((char*)m.vertices.data(), (std::streamsize)(nv * sizeof(float)));
+			if (ni)
+				in.read((char*)m.indices.data(), (std::streamsize)(ni * sizeof(unsigned int)));
+			if (!in.good())
+				return false;
+		}
+		if (!Get(in, nTex) || nTex > 100000)
+			return false;
+		raw.textures.resize(nTex);
+		for (uint32_t i = 0; i < nTex; i++)
+		{
+			uint32_t len = 0;
+			if (!Get(in, len) || len > 4096)
+				return false;
+			raw.textures[i].resize(len);
+			if (len)
+				in.read(&raw.textures[i][0], len);
+			if (!in.good())
+				return false;
+		}
+		return !raw.meshes.empty();
+	}
+
+	void WriteCache(const std::string& filename, const RawModel& raw)
+	{
+		uint64_t size = 0;
+		int64_t mtime = 0;
+		if (!SourceStamp(filename, size, mtime))
+			return;
+
+		const std::string path = CachePath(filename);
+		try
+		{
+			fs::create_directories(fs::path(path).parent_path());
+		}
+		catch (...)
+		{
+			return;
+		}
+
+		std::ofstream out(path, std::ios::binary | std::ios::trunc);
+		if (!out.is_open())
+			return;
+
+		Put(out, kCacheMagic);
+		Put(out, size);
+		Put(out, mtime);
+		Put(out, (uint32_t)raw.meshes.size());
+		for (const RawMesh& m : raw.meshes)
+		{
+			Put(out, m.material);
+			Put(out, (uint64_t)m.vertices.size());
+			Put(out, (uint64_t)m.indices.size());
+			if (!m.vertices.empty())
+				out.write((const char*)m.vertices.data(), (std::streamsize)(m.vertices.size() * sizeof(float)));
+			if (!m.indices.empty())
+				out.write((const char*)m.indices.data(), (std::streamsize)(m.indices.size() * sizeof(unsigned int)));
+		}
+		Put(out, (uint32_t)raw.textures.size());
+		for (const std::string& t : raw.textures)
+		{
+			Put(out, (uint32_t)t.size());
+			if (!t.empty())
+				out.write(t.data(), (std::streamsize)t.size());
+		}
+	}
+}
+
 void Model::LoadModel(const std::string& filename)
 {
 	if (Model* cached = CacheLookup(filename))
@@ -58,20 +257,86 @@ void Model::LoadModel(const std::string& filename)
 		return;
 	}
 
-	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(filename, aiProcess_Triangulate
-		| aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
-		| aiProcess_CalcTangentSpace);   // tangents for the scene3d normal-map path
-
-	if (!scene)
+	const auto t0 = std::chrono::steady_clock::now();
+	RawModel raw;
+	const bool fromDisk = ReadCache(filename, raw);
+	if (!fromDisk)
 	{
-		std::cout << "Model " << filename << " failed to load: " << importer.GetErrorString() << std::endl;
-		return;
+		Assimp::Importer importer;
+		const aiScene* scene = importer.ReadFile(filename, aiProcess_Triangulate
+			| aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
+			| aiProcess_CalcTangentSpace);   // tangents for the scene3d normal-map path
+
+		if (!scene)
+		{
+			std::cout << "Model " << filename << " failed to load: " << importer.GetErrorString() << std::endl;
+			return;
+		}
+
+		gCollect = &raw;
+		LoadNode(scene->mRootNode, scene);
+		LoadMaterials(scene);
+		gCollect = nullptr;
+
+		WriteCache(filename, raw);
 	}
 
-	LoadNode(scene->mRootNode, scene);
+	// Upload: one GPU mesh per collected mesh, one texture per material.
+	Bounds b = { { 1e9f, 1e9f, 1e9f }, { -1e9f, -1e9f, -1e9f } };
+	bool anyVertex = false;
+	for (const RawMesh& m : raw.meshes)
+	{
+		if (m.vertices.empty() || m.indices.empty())
+			continue;
+		for (size_t i = 0; i + 2 < m.vertices.size(); i += 11)
+		{
+			for (int k = 0; k < 3; k++)
+			{
+				if (m.vertices[i + k] < b.lo[k]) b.lo[k] = m.vertices[i + k];
+				if (m.vertices[i + k] > b.hi[k]) b.hi[k] = m.vertices[i + k];
+			}
+			anyVertex = true;
+		}
+		Mesh* newMesh = new Mesh();
+		// stride 11 = pos(3) + uv(2) + normal(3) + tangent(3); tangent at offset 8.
+		newMesh->CreateMesh((float*)m.vertices.data(), (unsigned int*)m.indices.data(),
+			(unsigned int)m.vertices.size(), (unsigned int)m.indices.size(), 11, 3, 5, 8);
+		meshList.push_back(newMesh);
+		meshToTexture.push_back(m.material);
+	}
+	if (anyVertex)
+		gBoundsCache[filename] = b;
+	textureList.resize(raw.textures.size());
+	for (size_t i = 0; i < raw.textures.size(); i++)
+	{
+		textureList[i] = nullptr;
+		if (!raw.textures[i].empty())
+		{
+			// Direct to our own folder, by basename.
+			const std::string& p = raw.textures[i];
+			const size_t idx = p.find_last_of("/\\");
+			const std::string texPath = "textures/"
+				+ (idx == std::string::npos ? p : p.substr(idx + 1));
+			textureList[i] = new Texture(texPath);
+			if (!textureList[i]->LoadTexture())
+			{
+				delete_it(textureList[i]);
+			}
+		}
+		if (!textureList[i])
+		{
+			textureList[i] = new Texture("assets/gui/white.png");
+			textureList[i]->LoadTexture();
+		}
+	}
 
-	LoadMaterials(scene);
+	const double ms = std::chrono::duration<double, std::milli>(
+		std::chrono::steady_clock::now() - t0).count();
+	if (ms > 20.0 || !fromDisk)
+	{
+		std::cout << "Model " << filename << (fromDisk ? " read from cache in "
+			: " imported (cache written) in ") << (int)ms << " ms" << std::endl;
+	}
 
 	CacheStore(filename, *this);
 }
@@ -314,9 +579,17 @@ void Model::LoadNode(aiNode* node, const aiScene* scene)
 
 void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 {
-	std::vector<float> vertices;
-	std::vector<unsigned int> indices;
-	 
+	// Collects into the RawModel LoadModel is building (which also feeds the
+	// on-disk cache); LoadModel uploads it afterward.
+	if (gCollect == nullptr)
+		return;
+	gCollect->meshes.push_back(RawMesh());
+	RawMesh& out = gCollect->meshes.back();
+	std::vector<float>& vertices = out.vertices;
+	std::vector<unsigned int>& indices = out.indices;
+	vertices.reserve((size_t)mesh->mNumVertices * 11);
+	indices.reserve((size_t)mesh->mNumFaces * 3);
+
 	for (size_t i = 0; i < mesh->mNumVertices; i++)
 	{
 		// Insert the position
@@ -354,49 +627,26 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 		}
 	}
 
-	Mesh* newMesh = new Mesh();
-	// stride 11 = pos(3) + uv(2) + normal(3) + tangent(3); tangent at offset 8.
-	newMesh->CreateMesh(&vertices[0], &indices[0], vertices.size(), indices.size(), 11, 3, 5, 8);
-	meshList.push_back(newMesh);
-	meshToTexture.push_back(mesh->mMaterialIndex);
+	out.material = mesh->mMaterialIndex;
 }
 
 void Model::LoadMaterials(const aiScene* scene)
 {
-	textureList.resize(scene->mNumMaterials);
+	// Records each material's diffuse texture path (empty = none); LoadModel
+	// turns them into Textures, from the cache or from here alike.
+	if (gCollect == nullptr)
+		return;
+	gCollect->textures.assign(scene->mNumMaterials, std::string());
 
 	for (size_t i = 0; i < scene->mNumMaterials; i++)
 	{
 		aiMaterial* material = scene->mMaterials[i];
-		textureList[i] = nullptr;
-
 		if (material->GetTextureCount(aiTextureType_DIFFUSE))
 		{
 			aiString path;
 			if (material->GetTexture(aiTextureType_DIFFUSE, 0, &path) == aiReturn_SUCCESS)
-			{
-				// Use relative paths instead of absolute
-				int idx = std::string(path.data).rfind('\\');
-				std::string filename = std::string(path.data).substr(idx + 1);
-
-				// Direct to our own folder
-				std::string texPath = "textures/" + filename;
-				textureList[i] = new Texture(texPath);
-
-				// If we fail to load the texture...
-				if (!textureList[i]->LoadTexture())
-				{
-					delete_it(textureList[i]);
-				}
-			}
+				gCollect->textures[i] = std::string(path.data);
 		}
-
-		if (!textureList[i])
-		{
-			textureList[i] = new Texture("assets/gui/white.png");
-			textureList[i]->LoadTexture();
-		}
-
 	}
 }
 

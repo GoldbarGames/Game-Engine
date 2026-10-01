@@ -1,4 +1,5 @@
 #include "Scene3D.h"
+#include "render/RenderDevice.h"
 #include "Game.h"
 #include "Renderer.h"
 #include "Camera.h"
@@ -8,7 +9,6 @@
 #include "Shader.h"
 #include "Mesh.h"
 #include "Skybox.h"
-#include "opengl_includes.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <fstream>
@@ -23,6 +23,15 @@
 #include <vector>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <cstddef>
+#include "UniformBlocks.h"
+#include "UniformBufferCache.h"
+#include "RenderState.h"
+#include "TransientBuffer.h"
+
+#include "Scene3DInternal.h"
+
+using Scene3DInternal::ProgramHasBlock;
 
 // ---------------------------------------------------------------- models
 
@@ -87,64 +96,20 @@ void Scene3DModel::DrawGeometry(const Renderer& renderer)
 	const SceneMaterial& mat = material ? *material : MaterialLibrary::Get().Default();
 
 	shader->UseShader();
-	GLuint id = shader->GetID();
-	glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(model));
-	// view/projection now come from the shared Camera UBO (binding 0), uploaded
-	// once per frame by Scene3D::UpdateCameraUBO - not re-set on every draw.
-	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
+	renderer.BindWorldCameraBlock();   // view/projection: Camera block
+	unsigned int id = shader->GetID();
+	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "model")), model);
+	Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(id), "theTexture")), (int)(0));
 
 	// normalMatrix (computed above) corrects normals under non-uniform scale.
-	glUniformMatrix3fv(glGetUniformLocation(id, "normalMatrix"), 1, GL_FALSE,
-		glm::value_ptr(normalMatrix));
-	glUniform3fv(glGetUniformLocation(id, "viewPos"), 1,
-		glm::value_ptr(renderer.camera.position));
-	glUniform1i(glGetUniformLocation(id, "toon"), scene.celShading ? 1 : 0);
-	// Seconds since start, for animated materials (water ripples).
-	glUniform1f(glGetUniformLocation(id, "uTime"), renderer.now * 0.001f);
+	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "normalMatrix")), normalMatrix);
 
-	// Material uniforms (mat resolved above; default matte material as fallback).
-	glUniform3fv(glGetUniformLocation(id, "matTint"), 1, glm::value_ptr(mat.tint));
-	glUniform3fv(glGetUniformLocation(id, "matEmissive"), 1, glm::value_ptr(mat.emissive));
-	glUniform1f(glGetUniformLocation(id, "matFresnel"), mat.fresnel);
-	glUniform2fv(glGetUniformLocation(id, "matUVTile"), 1, glm::value_ptr(mat.uvTile));
-	glUniform1f(glGetUniformLocation(id, "matNormalStrength"), mat.normalStrength);
-	glUniform1i(glGetUniformLocation(id, "matNormalMode"), (int)mat.normalMode);
-	glUniform1i(glGetUniformLocation(id, "matLighting"), (int)mat.lighting);
-	glUniform1f(glGetUniformLocation(id, "matSpecular"), mat.specular);
-	glUniform1f(glGetUniformLocation(id, "matShininess"), mat.shininess);
-	glUniform1f(glGetUniformLocation(id, "matMetallic"), mat.metallic);
-	glUniform1f(glGetUniformLocation(id, "matRoughness"), mat.roughness);
-	glUniform1f(glGetUniformLocation(id, "matOpacity"), mat.opacity);
-
-	// Per-surface water tuning (drives the vertex waves + fragment water look).
-	// Overrides the material's specular/shininess/opacity so lakes sharing one
-	// water material can still be tuned individually in the editor.
-	if (mat.lighting == LightingModel::Water)
-	{
-		glUniform1f(glGetUniformLocation(id, "uWaterAmp"), water.amplitude);
-		glUniform1f(glGetUniformLocation(id, "uWaterWaveScale"), water.waveScale);
-		glUniform1f(glGetUniformLocation(id, "uWaterShoreFade"), water.shoreFade);
-		glUniform1f(glGetUniformLocation(id, "uWaterChoppy"), water.choppy);
-		glUniform1f(glGetUniformLocation(id, "matSpecular"), water.specular);
-		glUniform1f(glGetUniformLocation(id, "matShininess"), water.shininess);
-		glUniform1f(glGetUniformLocation(id, "matOpacity"), water.opacity);
-	}
-
-	// Bind the normal map to unit 1 (if any), then restore unit 0 so the rest
-	// of the pipeline's single-unit texture caching stays consistent.
-	if (mat.normalMap != nullptr)
-	{
-		glUniform1i(glGetUniformLocation(id, "matHasNormal"), 1);
-		glUniform1i(glGetUniformLocation(id, "normalMap"), 1);
-		mat.normalMap->UseTexture(GL_TEXTURE1);
-		glActiveTexture(GL_TEXTURE0);
-	}
-	else
-	{
-		glUniform1i(glGetUniformLocation(id, "matHasNormal"), 0);
-	}
-
-	Scene3D::Get().ApplyLighting(id);
+	// Material block (mat resolved above; default matte material as fallback).
+	// Water models pass their per-surface tuning, which overrides the
+	// material's specular/shininess/opacity so lakes sharing one water
+	// material can still be tuned individually in the editor.
+	scene.ApplyMaterial(id, mat, &water);
+	scene.ApplyLighting(id, renderer);
 
 	texture->UseTexture();
 
@@ -183,398 +148,11 @@ void Scene3D::RenderTransparentModels(Game& game, const Renderer& renderer)
 			return da > db;   // farthest first
 		});
 
-	glDepthMask(GL_FALSE);   // don't write depth; keep depth TEST on
+	RenderState glass = CurrentRenderState();
+	glass.depthWrite = false;   // don't write depth; keep depth TEST on
+	ScopedRenderState scope(glass);
 	for (Scene3DModel* m : transparent)
 		m->DrawGeometry(renderer);
-	glDepthMask(GL_TRUE);
-}
-
-// ------------------------------------------------------- weather particles
-
-void Scene3D::SetWeather(WeatherType type, float intensity)
-{
-	weatherType = type;
-	weatherIntensity = glm::clamp(intensity, 0.0f, 1.0f);
-	weatherInit = false;   // reseed the particle volume on the next Update
-	// Rearm the lightning system for a fresh storm (idle for non-storm weather).
-	stormSeeded = false;
-	flashIntensity = 0.0f;
-	reflashTimer = thunderTimer = -1.0f;
-}
-
-void Scene3D::EnsureWeatherResources()
-{
-	if (weatherVAO != 0)
-		return;
-
-	// A unit quad, corners in [-0.5, 0.5] with 0..1 UVs (two triangles, no EBO).
-	const GLfloat quad[] = {
-		// corner.xy      uv
-		-0.5f, -0.5f,   0.0f, 0.0f,
-		 0.5f, -0.5f,   1.0f, 0.0f,
-		 0.5f,  0.5f,   1.0f, 1.0f,
-		-0.5f, -0.5f,   0.0f, 0.0f,
-		 0.5f,  0.5f,   1.0f, 1.0f,
-		-0.5f,  0.5f,   0.0f, 1.0f,
-	};
-
-	glGenVertexArrays(1, &weatherVAO);
-	glBindVertexArray(weatherVAO);
-
-	glGenBuffers(1, &weatherQuadVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, weatherQuadVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);   // corner
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)0);
-	glEnableVertexAttribArray(1);   // uv
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-
-	// Per-instance buffer: vec4 (world pos xyz + random seed w), streamed each frame.
-	glGenBuffers(1, &weatherInstVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, weatherInstVBO);
-	glBufferData(GL_ARRAY_BUFFER, kMaxWeatherParticles * sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
-	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
-	glVertexAttribDivisor(3, 1);
-
-	glBindVertexArray(0);
-
-	// Procedural particle sprites (white RGBA with a soft alpha falloff), so
-	// weather needs no art asset. Snow = soft round dot; rain = a tapered vertical
-	// streak (bright core, fading toward the ends and side edges).
-	auto uploadTex = [](unsigned int& id, int w, int h, const std::vector<unsigned char>& px)
-	{
-		glGenTextures(1, &id);
-		glBindTexture(GL_TEXTURE_2D, id);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glBindTexture(GL_TEXTURE_2D, 0);
-	};
-
-	{
-		const int S = 32;
-		std::vector<unsigned char> px(S * S * 4);
-		for (int y = 0; y < S; y++)
-			for (int x = 0; x < S; x++)
-			{
-				float dx = (x + 0.5f) / S - 0.5f;
-				float dy = (y + 0.5f) / S - 0.5f;
-				float d = std::sqrt(dx * dx + dy * dy) / 0.5f;   // 0 center .. 1 edge
-				float a = std::exp(-d * d * 4.0f);               // gaussian falloff
-				if (a < 0.0f) a = 0.0f;
-				int i = (y * S + x) * 4;
-				px[i] = px[i + 1] = px[i + 2] = 255;
-				px[i + 3] = (unsigned char)(a * 255.0f);
-			}
-		uploadTex(snowTex, S, S, px);
-	}
-	{
-		const int W = 8, H = 64;
-		std::vector<unsigned char> px(W * H * 4);
-		const float PI = 3.14159265f;
-		for (int y = 0; y < H; y++)
-			for (int x = 0; x < W; x++)
-			{
-				float u = (x + 0.5f) / W;   // 0..1 across width
-				float v = (y + 0.5f) / H;   // 0..1 along length
-				float core = 1.0f - std::fabs(u - 0.5f) * 2.0f;   // bright center column
-				core = std::pow(core < 0.0f ? 0.0f : core, 1.5f);
-				float taper = std::sin(v * PI);                    // fade the two ends
-				float a = core * (0.35f + 0.65f * taper);
-				int i = (y * W + x) * 4;
-				px[i] = px[i + 1] = px[i + 2] = 255;
-				px[i + 3] = (unsigned char)((a < 0.0f ? 0.0f : (a > 1.0f ? 1.0f : a)) * 255.0f);
-			}
-		uploadTex(rainTex, W, H, px);
-	}
-}
-
-void Scene3D::UpdateWeather(const glm::vec3& camPos, float dtSec)
-{
-	// The volume is a box centered on the camera; particles fall and wrap so the
-	// density stays constant around the player regardless of where they move.
-	const float R = 1600.0f;     // half extent in X/Z
-	const float topH = 1800.0f;  // how far ABOVE the camera the volume reaches (up = -Y)
-	const float botM = 600.0f;   // how far below before a particle recycles
-
-	auto frand = []() { return (float)std::rand() / (float)RAND_MAX; };
-	auto rr = [&](float a, float b) { return a + (b - a) * frand(); };
-
-	const bool snow = (weatherType == WeatherType::Snow);
-	int want = (int)(kMaxWeatherParticles * (snow ? 0.45f : 1.0f) * weatherIntensity);
-	if (want < 0) want = 0;
-	if (want > kMaxWeatherParticles) want = kMaxWeatherParticles;
-
-	if (!weatherInit || (int)weatherParticles.size() != want)
-	{
-		weatherParticles.resize(want);
-		for (int i = 0; i < want; i++)
-			weatherParticles[i] = glm::vec4(camPos.x + rr(-R, R),
-			                                camPos.y + rr(-topH, botM),   // fill the column
-			                                camPos.z + rr(-R, R), frand());
-		weatherInit = true;
-	}
-
-	const float fall  = snow ? 260.0f : 2600.0f;   // units/sec (up = -Y, so +Y is down)
-	const float windX = snow ? 55.0f  : 190.0f;
-	const float windZ = snow ? 35.0f  : 70.0f;
-
-	for (glm::vec4& p : weatherParticles)
-	{
-		p.y += fall * dtSec;
-		p.x += windX * dtSec;
-		p.z += windZ * dtSec;
-
-		if (p.y > camPos.y + botM)   // fell below -> respawn at the top with fresh X/Z
-		{
-			p.y = camPos.y - topH;
-			p.x = camPos.x + rr(-R, R);
-			p.z = camPos.z + rr(-R, R);
-			p.w = frand();
-		}
-		// Keep the volume centered on the (possibly moving) camera by wrapping X/Z.
-		if (p.x < camPos.x - R) p.x += 2.0f * R; else if (p.x > camPos.x + R) p.x -= 2.0f * R;
-		if (p.z < camPos.z - R) p.z += 2.0f * R; else if (p.z > camPos.z + R) p.z -= 2.0f * R;
-	}
-}
-
-void Scene3D::RenderWeather(Game& game, const Renderer& renderer)
-{
-	if (!active || weatherType == WeatherType::None || renderer.camera.useOrthoCamera)
-		return;
-	if (weatherParticles.empty())
-		return;
-
-	EnsureWeatherResources();
-	if (weatherShader == nullptr || weatherVAO == 0)
-		return;
-
-	// Stream this frame's particle positions into the instance buffer.
-	glBindBuffer(GL_ARRAY_BUFFER, weatherInstVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0,
-		weatherParticles.size() * sizeof(glm::vec4), weatherParticles.data());
-
-	weatherShader->UseShader();
-	GLuint id = weatherShader->GetID();
-	// A storm renders the same fast rain streaks as plain rain (the lightning /
-	// thunder ride on top); only snow takes the flake path.
-	const bool rain = (weatherType != WeatherType::Snow);
-
-	glUniform1i(glGetUniformLocation(id, "uMode"), rain ? 1 : 0);
-	glUniform1f(glGetUniformLocation(id, "uTime"), renderer.now * 0.001f);
-	glm::vec3 cp = renderer.camera.position;
-	glUniform3f(glGetUniformLocation(id, "uCamPos"), cp.x, cp.y, cp.z);
-
-	// Fall direction (down = +Y) with a little wind lean; used to orient rain streaks.
-	glm::vec3 fdir = rain ? glm::normalize(glm::vec3(0.07f, 1.0f, 0.025f)) : glm::vec3(0, 1, 0);
-	glUniform3f(glGetUniformLocation(id, "uFallDir"), fdir.x, fdir.y, fdir.z);
-
-	if (rain)
-	{
-		glUniform1f(glGetUniformLocation(id, "uSize"), 3.0f);      // streak width
-		glUniform1f(glGetUniformLocation(id, "uLength"), 95.0f);   // streak length
-		glUniform1f(glGetUniformLocation(id, "uSway"), 0.0f);
-		glUniform4f(glGetUniformLocation(id, "uColor"), 0.62f, 0.70f, 0.82f, 0.5f);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, rainTex);
-	}
-	else
-	{
-		glUniform1f(glGetUniformLocation(id, "uSize"), 13.0f);     // flake size
-		glUniform1f(glGetUniformLocation(id, "uLength"), 13.0f);
-		glUniform1f(glGetUniformLocation(id, "uSway"), 55.0f);     // sideways drift amplitude
-		glUniform4f(glGetUniformLocation(id, "uColor"), 1.0f, 1.0f, 1.0f, 0.85f);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, snowTex);
-	}
-	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
-
-	// Depth test ON (geometry occludes particles) but depth-write OFF (so they
-	// don't z-fight each other and are ignored by the toon outline's depth read).
-	GLboolean prevDepthMask = GL_TRUE;
-	glGetBooleanv(GL_DEPTH_WRITEMASK, &prevDepthMask);
-	GLboolean prevBlend = glIsEnabled(GL_BLEND);
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glBindVertexArray(weatherVAO);
-	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, (GLsizei)weatherParticles.size());
-	glBindVertexArray(0);
-
-	glDepthMask(prevDepthMask);
-	if (!prevBlend) glDisable(GL_BLEND);
-	renderer.drawCallsPerFrame++;
-
-	// Lightning flash goes on last, over the rain and everything else.
-	if (weatherType == WeatherType::Storm && flashIntensity > 0.001f)
-		RenderLightningFlash(renderer);
-}
-
-// ----------------------------------------------------- fountain particle jet
-
-void Scene3D::SetFountain(const glm::vec3& pos, float jetSpeed, float fallDist, float spread)
-{
-	fountainPos = pos;
-	fountainJetSpeed = jetSpeed;
-	fountainFallDist = fallDist;
-	fountainSpread = spread;
-	hasFountain = true;
-	fountainInit = false;   // reseed the droplets
-}
-
-void Scene3D::FountainRespawn(int i, bool stagger)
-{
-	auto frand = []() { return (float)std::rand() / (float)RAND_MAX; };
-	auto rr = [&](float a, float b) { return a + (b - a) * frand(); };
-
-	// Launch from a small nozzle disk, upward (-Y) with a horizontal spread so the
-	// jets fan into a dome that falls back into the basin.
-	const float nozzleR = 6.0f;
-	float ang = rr(0.0f, 6.2831853f);
-	glm::vec3 pos = fountainPos
-		+ glm::vec3(std::cos(ang) * rr(0.0f, nozzleR), 0.0f, std::sin(ang) * rr(0.0f, nozzleR));
-	glm::vec3 vel(rr(-fountainSpread, fountainSpread),
-	              -fountainJetSpeed * rr(0.80f, 1.05f),
-	              rr(-fountainSpread, fountainSpread));
-
-	if (stagger)
-	{
-		// Advance to a random point along the ballistic arc so the whole jet is
-		// full on the very first frame (no all-at-the-nozzle pop-in).
-		float tmax = (2.0f * fountainJetSpeed) / fountainGravity;   // ~up+down flight time
-		float t = rr(0.0f, tmax);
-		pos += vel * t;
-		pos.y += 0.5f * fountainGravity * t * t;
-		vel.y += fountainGravity * t;
-	}
-
-	fountainParticles[i] = glm::vec4(pos, frand());
-	fountainVel[i] = vel;
-}
-
-void Scene3D::UpdateFountain(float dtSec)
-{
-	if (!hasFountain)
-		return;
-	if (fountainCount < 1) fountainCount = 1;
-
-	if (!fountainInit || (int)fountainParticles.size() != fountainCount)
-	{
-		fountainParticles.resize(fountainCount);
-		fountainVel.resize(fountainCount);
-		for (int i = 0; i < fountainCount; i++)
-			FountainRespawn(i, true);
-		fountainInit = true;
-	}
-
-	const float respawnY = fountainPos.y + fountainFallDist;   // basin/pool level
-	for (int i = 0; i < fountainCount; i++)
-	{
-		fountainVel[i].y += fountainGravity * dtSec;            // gravity (down = +Y)
-		glm::vec3 p(fountainParticles[i]);
-		p += fountainVel[i] * dtSec;
-		if (p.y > respawnY)                                    // fell back down -> relaunch
-			FountainRespawn(i, false);
-		else
-			fountainParticles[i] = glm::vec4(p, fountainParticles[i].w);
-	}
-}
-
-void Scene3D::EnsureFountainResources()
-{
-	if (fountainVAO != 0)
-		return;
-	EnsureWeatherResources();   // builds the shared unit quad (weatherQuadVBO) + snow/rain textures
-	if (weatherQuadVBO == 0)
-		return;
-
-	const int kMaxFountain = 1024;
-	glGenVertexArrays(1, &fountainVAO);
-	glBindVertexArray(fountainVAO);
-
-	// Shared unit quad (corner.xy @0, uv @1) from the weather resources.
-	glBindBuffer(GL_ARRAY_BUFFER, weatherQuadVBO);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-
-	// Per-instance position (vec4 = xyz + seed) @3.
-	glGenBuffers(1, &fountainInstVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, fountainInstVBO);
-	glBufferData(GL_ARRAY_BUFFER, kMaxFountain * sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
-	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
-	glVertexAttribDivisor(3, 1);
-
-	// Per-instance velocity (vec3) @4 - streaks orient along it (uMode 2).
-	glGenBuffers(1, &fountainVelVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, fountainVelVBO);
-	glBufferData(GL_ARRAY_BUFFER, kMaxFountain * sizeof(glm::vec3), nullptr, GL_DYNAMIC_DRAW);
-	glEnableVertexAttribArray(4);
-	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	glVertexAttribDivisor(4, 1);
-
-	glBindVertexArray(0);
-}
-
-void Scene3D::RenderFountain(Game& game, const Renderer& renderer)
-{
-	if (!active || !hasFountain || renderer.camera.useOrthoCamera)
-		return;
-	if (fountainParticles.empty())
-		return;
-
-	EnsureFountainResources();   // own VAO (has per-particle velocity); reuses weather shader/textures
-	if (weatherShader == nullptr || fountainVAO == 0)
-		return;
-
-	size_t cnt = fountainParticles.size() < fountainVel.size()
-		? fountainParticles.size() : fountainVel.size();
-	if (cnt > 1024) cnt = 1024;
-	GLsizei n = (GLsizei)cnt;
-
-	glBindVertexArray(fountainVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, fountainInstVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, n * sizeof(glm::vec4), fountainParticles.data());
-	glBindBuffer(GL_ARRAY_BUFFER, fountainVelVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, n * sizeof(glm::vec3), fountainVel.data());
-
-	weatherShader->UseShader();
-	GLuint id = weatherShader->GetID();
-	const bool streak = (fountainStretch > 0.01f);
-	glUniform1i(glGetUniformLocation(id, "uMode"), streak ? 2 : 0);   // 2 = per-velocity streak, 0 = dot
-	glUniform1f(glGetUniformLocation(id, "uTime"), renderer.now * 0.001f);
-	glm::vec3 cp = renderer.camera.position;
-	glUniform3f(glGetUniformLocation(id, "uCamPos"), cp.x, cp.y, cp.z);
-	glUniform3f(glGetUniformLocation(id, "uFallDir"), 0.0f, 1.0f, 0.0f);
-	glUniform1f(glGetUniformLocation(id, "uSize"), streak ? fountainDropSize * 0.6f : fountainDropSize);
-	glUniform1f(glGetUniformLocation(id, "uLength"), fountainDropSize * (streak ? fountainStretch : 1.0f));
-	glUniform1f(glGetUniformLocation(id, "uSway"), 0.0f);
-	glUniform4f(glGetUniformLocation(id, "uColor"), 0.78f, 0.88f, 1.0f, 0.9f);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, streak ? rainTex : snowTex);   // tapered streak vs round dot
-	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
-
-	GLboolean prevDepthMask = GL_TRUE;
-	glGetBooleanv(GL_DEPTH_WRITEMASK, &prevDepthMask);
-	GLboolean prevBlend = glIsEnabled(GL_BLEND);
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glDrawArraysInstanced(GL_TRIANGLES, 0, 6, n);
-	glBindVertexArray(0);
-
-	glDepthMask(prevDepthMask);
-	if (!prevBlend) glDisable(GL_BLEND);
-	renderer.drawCallsPerFrame++;
 }
 
 // ----------------------------------------------------- seasonal foliage
@@ -651,178 +229,29 @@ void Scene3D::SetSeason(Game& game, Season s)
 	}
 }
 
-// --------------------------------------------------- storm lightning
+// ------------------------------------------------- toon outline shader
 
-void Scene3D::UpdateLightning(Game& game, float dtSec)
+// Built on first use rather than only by Load - see the note in Scene3D.h.
+ShaderProgram* Scene3D::EdgeShader()
 {
-	auto frand = []() { return (float)std::rand() / (float)RAND_MAX; };
-	auto rr = [&](float a, float b) { return a + (b - a) * frand(); };
-
-	// Fade any active flash quickly (a bright pop that dies in ~0.15s).
-	if (flashIntensity > 0.0f)
+	if (edgeShader == nullptr)
 	{
-		flashIntensity -= dtSec / 0.15f;
-		if (flashIntensity < 0.0f) flashIntensity = 0.0f;
+		edgeShader = new ShaderProgram(-1, "data/shaders/scene3d_edge.vert",
+			"data/shaders/scene3d_edge.frag");
 	}
-
-	// A secondary flicker a beat after the main strike (real lightning rarely
-	// flashes just once).
-	if (reflashTimer >= 0.0f)
-	{
-		reflashTimer -= dtSec;
-		if (reflashTimer <= 0.0f)
-		{
-			flashIntensity = glm::max(flashIntensity, reflashMag);
-			reflashTimer = -1.0f;
-		}
-	}
-
-	// Thunder trails the flash by its travel time (sound is slow), so a distant
-	// bolt cracks seconds later while a near one is almost instant.
-	if (thunderTimer >= 0.0f)
-	{
-		thunderTimer -= dtSec;
-		if (thunderTimer <= 0.0f)
-		{
-			thunderTimer = -1.0f;
-			// PlaySound no-ops on channel < 0, so pass an explicit channel.
-			if (!thunderSound.empty())
-				game.soundManager.PlaySound(thunderSound, thunderChannel);
-		}
-	}
-
-	// Arm the first strike a moment into the storm, then keep counting down.
-	const float intens = glm::clamp(weatherIntensity, 0.05f, 1.0f);
-	if (!stormSeeded)
-	{
-		lightningTimer = rr(0.8f, 2.5f);
-		stormSeeded = true;
-	}
-
-	lightningTimer -= dtSec;
-	if (lightningTimer > 0.0f)
-		return;
-
-	// --- strike! ---
-	// Brighter, more frequent flashes at higher intensity.
-	flashIntensity = rr(0.75f, 1.0f);
-	// Maybe a quick second flicker.
-	if (frand() < 0.6f)
-	{
-		reflashTimer = rr(0.06f, 0.16f);
-		reflashMag = rr(0.4f, 0.75f);
-	}
-	// Thunder delay = "distance": near strikes (short delay) are the loud ones.
-	thunderTimer = rr(0.25f, 2.75f);
-
-	// Schedule the next strike; denser as intensity rises.
-	float gap = rr(lightningMinGap, lightningMaxGap) * glm::mix(1.6f, 0.6f, intens);
-	if (gap < 1.0f) gap = 1.0f;
-	lightningTimer = gap;
+	return edgeShader;
 }
 
-void Scene3D::RenderLightningFlash(const Renderer& renderer)
-{
-	if (flashShader == nullptr)
-	{
-		flashShader = new ShaderProgram(-1, flashShaderVert.c_str(), flashShaderFrag.c_str());
-	}
-	if (flashVAO == 0)
-		glGenVertexArrays(1, &flashVAO);   // attribute-less full-screen triangle
-	if (flashShader == nullptr || flashVAO == 0)
-		return;
-
-	flashShader->UseShader();
-	GLuint id = flashShader->GetID();
-	// A cool-white flash; alpha carries the intensity. Gamma the curve a touch so
-	// the pop reads punchy rather than a flat wash.
-	float a = flashIntensity;
-	a = a * a * (3.0f - 2.0f * a);   // smoothstep
-	glUniform3f(glGetUniformLocation(id, "uFlashColor"), 0.80f, 0.85f, 1.0f);
-	// Lighter than before: the scene surfaces now brighten on their own (see
-	// ApplyLighting's lightningFlash), so this overlay just lifts the sky/haze.
-	glUniform1f(glGetUniformLocation(id, "uFlashIntensity"), a * 0.35f);
-
-	GLboolean prevDepthTest = glIsEnabled(GL_DEPTH_TEST);
-	GLboolean prevBlend = glIsEnabled(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE);   // additive: brighten whatever is on screen
-
-	glBindVertexArray(flashVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-	glBindVertexArray(0);
-
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	if (!prevBlend) glDisable(GL_BLEND);
-	if (prevDepthTest) glEnable(GL_DEPTH_TEST);
-	renderer.drawCallsPerFrame++;
-}
-
-// ---------------------------------------------------- shared camera UBO
-
-void Scene3D::EnsureCameraUBO()
-{
-	if (cameraUBO != 0)
-		return;
-
-	const GLsizeiptr bytes = 2 * sizeof(glm::mat4);   // view + projection (std140)
-	bool dsa = false;
-#ifndef __EMSCRIPTEN__
-	dsa = (ShaderProgram::glslVersion >= 450);        // Direct State Access = GL 4.5+
-	if (dsa)
-	{
-		glCreateBuffers(1, &cameraUBO);
-		glNamedBufferData(cameraUBO, bytes, nullptr, GL_DYNAMIC_DRAW);
-	}
-#endif
-	if (!dsa)
-	{
-		glGenBuffers(1, &cameraUBO);
-		glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
-		glBufferData(GL_UNIFORM_BUFFER, bytes, nullptr, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-	}
-	// Bind the buffer to binding point 0 (sticky); shaders link "Camera" -> 0.
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, cameraUBO);
-}
-
-void Scene3D::BindCameraBlock(ShaderProgram* program) const
-{
-	if (program == nullptr)
-		return;
-	GLuint id = program->GetID();
-	GLuint idx = glGetUniformBlockIndex(id, "Camera");
-	if (idx != GL_INVALID_INDEX)
-		glUniformBlockBinding(id, idx, 0);
-}
+// ---------------------------------------------------- shared camera block
 
 void Scene3D::UpdateCameraUBO(const Renderer& renderer)
 {
 	if (renderer.camera.useOrthoCamera)
 		return;                     // 2D frames don't use the 3D camera block
-	EnsureCameraUBO();
-
-	glm::mat4 view = renderer.camera.CalculateViewMatrix();
-	glm::mat4 proj = renderer.camera.projection;
-	const GLsizeiptr mat = sizeof(glm::mat4);
-
-	bool dsa = false;
-#ifndef __EMSCRIPTEN__
-	dsa = (ShaderProgram::glslVersion >= 450);
-	if (dsa)
-	{
-		glNamedBufferSubData(cameraUBO, 0, mat, glm::value_ptr(view));
-		glNamedBufferSubData(cameraUBO, mat, mat, glm::value_ptr(proj));
-	}
-#endif
-	if (!dsa)
-	{
-		glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, mat, glm::value_ptr(view));
-		glBufferSubData(GL_UNIFORM_BUFFER, mat, mat, glm::value_ptr(proj));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-	}
+	// The Camera block itself is the renderer's now (Renderer::BindCameraBlock);
+	// every Scene3D draw binds the world camera before drawing, so nothing here
+	// relies on binding point 0 staying put between draws.
+	renderer.BindWorldCameraBlock();
 
 	RebuildInstanceGroups();
 }
@@ -888,39 +317,13 @@ void Scene3D::DrawInstancedGroup(const Renderer& renderer, int groupIndex)
 	const SceneMaterial& mat = leader->material ? *leader->material : MaterialLibrary::Get().Default();
 
 	instancedShader->UseShader();
-	GLuint id = instancedShader->GetID();
-	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
-	glUniform3fv(glGetUniformLocation(id, "viewPos"), 1, glm::value_ptr(renderer.camera.position));
-	glUniform1i(glGetUniformLocation(id, "toon"), celShading ? 1 : 0);
-	glUniform1f(glGetUniformLocation(id, "uTime"), renderer.now * 0.001f);
+	renderer.BindWorldCameraBlock();
+	unsigned int id = instancedShader->GetID();
+	Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(id), "theTexture")), (int)(0));
 
-	// Material uniforms (matches Scene3DModel::DrawGeometry; groups are non-water).
-	glUniform3fv(glGetUniformLocation(id, "matTint"), 1, glm::value_ptr(mat.tint));
-	glUniform3fv(glGetUniformLocation(id, "matEmissive"), 1, glm::value_ptr(mat.emissive));
-	glUniform1f(glGetUniformLocation(id, "matFresnel"), mat.fresnel);
-	glUniform2fv(glGetUniformLocation(id, "matUVTile"), 1, glm::value_ptr(mat.uvTile));
-	glUniform1f(glGetUniformLocation(id, "matNormalStrength"), mat.normalStrength);
-	glUniform1i(glGetUniformLocation(id, "matNormalMode"), (int)mat.normalMode);
-	glUniform1i(glGetUniformLocation(id, "matLighting"), (int)mat.lighting);
-	glUniform1f(glGetUniformLocation(id, "matSpecular"), mat.specular);
-	glUniform1f(glGetUniformLocation(id, "matShininess"), mat.shininess);
-	glUniform1f(glGetUniformLocation(id, "matMetallic"), mat.metallic);
-	glUniform1f(glGetUniformLocation(id, "matRoughness"), mat.roughness);
-	glUniform1f(glGetUniformLocation(id, "matOpacity"), mat.opacity);
-
-	if (mat.normalMap != nullptr)
-	{
-		glUniform1i(glGetUniformLocation(id, "matHasNormal"), 1);
-		glUniform1i(glGetUniformLocation(id, "normalMap"), 1);
-		mat.normalMap->UseTexture(GL_TEXTURE1);
-		glActiveTexture(GL_TEXTURE0);
-	}
-	else
-	{
-		glUniform1i(glGetUniformLocation(id, "matHasNormal"), 0);
-	}
-
-	ApplyLighting(id);
+	// Same material + lighting as Scene3DModel::DrawGeometry (groups are non-water).
+	ApplyMaterial(id, mat, nullptr);
+	ApplyLighting(id, renderer);
 	leader->texture->UseTexture();
 
 	// Upload the instance matrices to the leader's mesh(es), draw all instances in
@@ -928,198 +331,11 @@ void Scene3D::DrawInstancedGroup(const Renderer& renderer, int groupIndex)
 	// call RenderMesh(0) on this same mesh) still draw non-instanced.
 	for (Mesh* mesh : leader->model3D.meshList)
 	{
-		mesh->SetInstances(mats.data(), (unsigned int)mats.size(), true);
+		mesh->SetInstancesTransient(mats.data(), (unsigned int)mats.size());
 		mesh->RenderMesh(0);
 		mesh->ClearInstances();   // restore pristine VAO for the shadow/other passes
 	}
 	renderer.drawCallsPerFrame++;
-#endif
-}
-
-void Scene3D::EnsureShadowMap()
-{
-	if (shadowFBO != 0)
-		return;
-	glGenFramebuffers(1, &shadowFBO);
-
-	float border[4] = { 1.0f, 1.0f, 1.0f, 1.0f };   // outside frustum = far = lit
-	bool dsa = false;
-#ifndef __EMSCRIPTEN__
-	dsa = (ShaderProgram::glslVersion >= 450);       // Direct State Access = GL 4.5+
-	if (dsa)
-	{
-		// No bind-to-edit: create + immutable storage + params by texture name.
-		glCreateTextures(GL_TEXTURE_2D, 1, &shadowDepthTex);
-		glTextureStorage2D(shadowDepthTex, 1, GL_DEPTH_COMPONENT24, shadowMapSize, shadowMapSize);
-		glTextureParameteri(shadowDepthTex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTextureParameteri(shadowDepthTex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTextureParameteri(shadowDepthTex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTextureParameteri(shadowDepthTex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		glTextureParameterfv(shadowDepthTex, GL_TEXTURE_BORDER_COLOR, border);
-	}
-#endif
-	if (!dsa)
-	{
-		glGenTextures(1, &shadowDepthTex);
-		glBindTexture(GL_TEXTURE_2D, shadowDepthTex);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadowMapSize, shadowMapSize,
-			0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
-	}
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowDepthTex, 0);
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
-{
-#ifdef USE_ASSIMP
-	shadowActive = false;
-	if (!active || !shadowsEnabled || renderer.camera.useOrthoCamera)
-		return;
-	if (dirLight.diffuse <= 0.02f)   // no sun (night / point-lit room) -> no shadows
-		return;
-
-	glm::vec3 L = dirLight.dir;
-	if (glm::length(L) < 1e-4f) return;
-	L = glm::normalize(L);   // direction the sunlight travels (into the scene)
-
-	EnsureShadowMap();
-	if (shadowDepthShader == nullptr)
-		return;
-
-	// --- static caching (mirrors the point-shadow cache): only re-render the
-	// shadow map when the sun direction or a caster (a height-having model or a
-	// character) actually moved. In a still, time-frozen scene the depth pass runs
-	// once then is skipped every subsequent frame. ---
-	double sig = L.x * 101.1 + L.y * 211.3 + L.z * 307.7;
-	for (Scene3DModel* m : models)
-	{
-		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
-			continue;   // guardHidden in the sig -> shadow re-renders when it appears/hides
-		if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
-			continue;
-		glm::vec3 s = m->EffectiveScale();
-		sig += m->position.x * 1.1 + m->position.y * 2.3 + m->position.z * 3.7
-			+ m->yawDeg * 0.017 + m->pitchDeg * 0.013 + m->rollDeg * 0.011
-			+ (s.x + s.y + s.z) * 5.3;
-	}
-	for (Character3D* ch : characters)
-		if (ch != nullptr)
-			sig += ch->position.x * 1.3 + ch->position.y * 2.1 + ch->position.z * 4.3;
-	// Character shadows are cast from camera-facing billboards (see below), so the
-	// shadow map must refresh as the camera orbits. Fold the camera position into
-	// the signature - but only when there are characters, so a character-free scene
-	// still caches its (camera-independent) prop shadows across camera moves.
-	if (!characters.empty())
-		sig += renderer.camera.position.x * 0.71 + renderer.camera.position.y * 0.93
-		     + renderer.camera.position.z * 1.29;
-
-	if (shadowEverRendered && sig == shadowSig)
-	{
-		shadowActive = true;   // reuse the cached shadow map; no depth work this frame
-		return;
-	}
-	shadowSig = sig;
-	shadowEverRendered = true;
-
-	// Orthographic light frustum covering the scene (centred on the origin, a
-	// little below ground so it spans the props' height; up is -Y).
-	const float R = 3200.0f;                 // half-size of the covered area
-	glm::vec3 center(0.0f, -150.0f, 0.0f);
-	glm::vec3 eye = center - L * (R * 1.6f);
-	glm::vec3 up = (std::fabs(L.y) > 0.97f) ? glm::vec3(0, 0, 1) : glm::vec3(0, -1, 0);
-	glm::mat4 lightView = glm::lookAt(eye, center, up);
-	glm::mat4 lightProj = glm::ortho(-R, R, -R, R, 1.0f, R * 3.5f);
-	lightSpaceMatrix = lightProj * lightView;
-
-	glViewport(0, 0, shadowMapSize, shadowMapSize);
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-	// Depth writes only happen with the depth test ENABLED; at the start of a
-	// frame it may be off (left by the 2D/GUI pass), which would leave the shadow
-	// map empty (no shadows at all). Force just the depth state here - do NOT
-	// touch GL_BLEND (the frame's final compositing needs it; disabling it here
-	// blacked out the screen).
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	glDepthMask(GL_TRUE);
-	glClear(GL_DEPTH_BUFFER_BIT);
-
-	shadowDepthShader->UseShader();
-	GLuint id = shadowDepthShader->GetID();
-	glUniformMatrix4fv(glGetUniformLocation(id, "lightSpace"), 1, GL_FALSE,
-		glm::value_ptr(lightSpaceMatrix));
-	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
-	glUniform1f(glGetUniformLocation(id, "alphaCutoff"), 0.5f);
-
-	// Casters: models with real vertical extent (skips flat ground/sidewalks/
-	// lakebed) and not the water surface.
-	for (Scene3DModel* m : models)
-	{
-		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
-			continue;
-		if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
-			continue;
-		glm::mat4 model(1.0f);
-		model = glm::translate(model, m->position);
-		model = glm::rotate(model, glm::radians(m->yawDeg), glm::vec3(0, -1, 0));
-		model = glm::rotate(model, glm::radians(m->pitchDeg), glm::vec3(1, 0, 0));
-		model = glm::rotate(model, glm::radians(m->rollDeg), glm::vec3(0, 0, 1));
-		model = glm::scale(model, m->EffectiveScale());
-		glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		m->texture->UseTexture();
-		for (Mesh* mesh : m->model3D.meshList)
-			mesh->RenderMesh(0);
-	}
-
-	// Character casters: orient the shadow quad EXACTLY like the visible billboard
-	// (yaw-only, facing the camera - see Character3D::DrawQuad), not facing the sun.
-	// A billboard is a flat cutout; casting its shadow from the same orientation the
-	// player sees makes the shadow rotate in sync with the sprite as the camera
-	// orbits. (Facing the sun instead kept the shadow locked while the sprite turned,
-	// which looked wrong.)
-	glm::vec3 worldUp(0.0f, -1.0f, 0.0f);
-	for (Character3D* ch : characters)
-	{
-		if (!CharVisible(ch))   // hidden (backdrop or non-solo): cast no shadow
-			continue;
-		if (ch == nullptr || ch->quad == nullptr || ch->bodyTex == nullptr)
-			continue;
-		glm::vec3 toCam = renderer.camera.position - ch->position;
-		toCam.y = 0.0f;  // yaw-only, matches DrawQuad
-		if (glm::length(toCam) < 1e-4f) toCam = glm::vec3(0, 0, 1);
-		toCam = glm::normalize(toCam);
-		glm::vec3 right = glm::normalize(glm::cross(toCam, worldUp));
-		float aspect = (ch->bodyTex->GetHeight() > 0)
-			? (float)ch->bodyTex->GetWidth() / (float)ch->bodyTex->GetHeight() : 0.5f;
-		float width = ch->worldHeight * aspect;
-		glm::mat4 model(1.0f);
-		model[0] = glm::vec4(right * width, 0.0f);
-		model[1] = glm::vec4(worldUp * ch->worldHeight, 0.0f);
-		model[2] = glm::vec4(toCam, 0.0f);
-		model[3] = glm::vec4(ch->position, 1.0f);
-		glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		ch->bodyTex->UseTexture();
-		ch->quad->RenderMesh(0);
-		if (ch->headTex != nullptr)
-		{
-			ch->headTex->UseTexture();
-			ch->quad->RenderMesh(0);
-		}
-	}
-
-	// Restore the default framebuffer + full viewport; Game::Render rebinds the
-	// main scene framebuffer next.
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, game.screenWidth, game.screenHeight);
-	shadowActive = true;
 #endif
 }
 
@@ -1134,249 +350,6 @@ std::vector<std::string> Scene3D::PointLightNames() const
 std::vector<ScenePointLight>& Scene3D::GetPointLights()
 {
 	return pointLights;
-}
-
-void Scene3D::EnsurePointShadowMaps()
-{
-	if (pointShadowFBO == 0)
-		glGenFramebuffers(1, &pointShadowFBO);
-
-	bool useArray = false;
-#ifndef __EMSCRIPTEN__
-	useArray = (ShaderProgram::glslVersion >= 400);
-	if (useArray)
-	{
-		// One cube-map ARRAY: kMaxPointShadows cubes (6 faces each) as layers.
-		if (pointShadowArrayTex == 0)
-		{
-			glGenTextures(1, &pointShadowArrayTex);
-			glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowArrayTex);
-			glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, GL_DEPTH_COMPONENT24,
-				pointShadowSize, pointShadowSize, 6 * kMaxPointShadows,
-				0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-			glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
-		}
-	}
-#endif
-	if (!useArray)
-	{
-		for (int c = 0; c < kMaxPointShadowsFallback; c++)
-		{
-			if (pointShadowCubes[c] != 0) continue;
-			glGenTextures(1, &pointShadowCubes[c]);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowCubes[c]);
-			for (int i = 0; i < 6; i++)
-				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT24,
-					pointShadowSize, pointShadowSize, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		}
-	}
-	glBindFramebuffer(GL_FRAMEBUFFER, pointShadowFBO);
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-}
-
-void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
-{
-#ifdef USE_ASSIMP
-	pointShadowActive = false;
-	if (!active || !pointShadowsEnabled || renderer.camera.useOrthoCamera)
-		return;
-	// Only indoors: an outdoor scene with a sun uses the directional shadow map.
-	if (dirLight.diffuse > 0.02f)
-		return;
-
-	// A GL 4.x desktop context uses a cube-map ARRAY (up to kMaxPointShadows
-	// casters, dynamic layer index); the 3.3/web fallback uses separate cubes
-	// constant-indexed in the shader, so it caps at kMaxPointShadowsFallback.
-	bool useArray = false;
-#ifndef __EMSCRIPTEN__
-	useArray = (ShaderProgram::glslVersion >= 400);
-#endif
-	const int maxCasters = useArray ? kMaxPointShadows : kMaxPointShadowsFallback;
-
-	// Choose the casters: a specific named light (only that one), else AUTO = all
-	// enabled point lights, strongest first, up to maxCasters.
-	std::vector<int> casters;
-	if (!shadowCasterLight.empty())
-	{
-		for (size_t i = 0; i < pointLights.size(); i++)
-			if (pointLights[i].on && pointLights[i].name == shadowCasterLight)
-			{ casters.push_back((int)i); break; }
-	}
-	else
-	{
-		std::vector<int> on;
-		for (size_t i = 0; i < pointLights.size(); i++)
-			if (pointLights[i].on && !pointLights[i].guardHidden) on.push_back((int)i);
-		std::sort(on.begin(), on.end(), [&](int a, int b) {
-			return pointLights[a].intensity * pointLights[a].range
-			     > pointLights[b].intensity * pointLights[b].range;
-		});
-		for (int idx : on)
-		{
-			if ((int)casters.size() >= maxCasters) break;
-			casters.push_back(idx);
-		}
-	}
-	if (casters.empty()) return;
-
-	EnsurePointShadowMaps();
-	if (pointShadowShader == nullptr) return;
-
-	pointShadowCount = (int)casters.size();
-	for (int s = 0; s < pointShadowCount; s++)
-	{
-		pointShadowPositions[s] = pointLights[casters[s]].pos;
-		pointShadowFars[s] = pointLights[casters[s]].range;
-	}
-
-	// --- static caching: only re-render the cubes when something that affects
-	// them has moved (caster lights, props, or characters). In a still room the
-	// depth passes run once then are skipped every subsequent frame. ---
-	double sig = pointShadowCount * 1000003.0;
-	for (int s = 0; s < pointShadowCount; s++)
-		sig += (casters[s] + 1) * 7919.0
-			+ pointShadowPositions[s].x * 1.1 + pointShadowPositions[s].y * 2.3 + pointShadowPositions[s].z * 3.7;
-	for (Scene3DModel* m : models)
-		if (m && m->loaded && !m->IsWater() && !m->guardHidden)
-			sig += m->position.x * 1.7 + m->position.y * 2.9 + m->position.z * 3.1;
-	for (Character3D* ch : characters)
-		if (ch)
-			sig += ch->position.x * 1.3 + ch->position.y * 2.1 + ch->position.z * 4.3;
-	// Character shadows cast from camera-facing billboards (see below) -> refresh the
-	// cubes as the camera orbits, but only when characters are present (a scene with
-	// only props keeps caching its camera-independent shadows).
-	if (!characters.empty())
-		sig += renderer.camera.position.x * 0.71 + renderer.camera.position.y * 0.93
-		     + renderer.camera.position.z * 1.29;
-
-	if (pointShadowEverRendered && sig == pointShadowSig)
-	{
-		pointShadowActive = true;   // reuse the cached cubes; no depth work this frame
-		return;
-	}
-	pointShadowSig = sig;
-	pointShadowEverRendered = true;
-
-	pointShadowShader->UseShader();
-	GLuint id = pointShadowShader->GetID();
-	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
-	glUniform1f(glGetUniformLocation(id, "alphaCutoff"), 0.5f);
-
-	glViewport(0, 0, pointShadowSize, pointShadowSize);
-	glBindFramebuffer(GL_FRAMEBUFFER, pointShadowFBO);
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	glDepthMask(GL_TRUE);
-
-	const glm::vec3 worldUp(0, -1, 0);
-	for (int s = 0; s < pointShadowCount; s++)
-	{
-		const glm::vec3 P = pointShadowPositions[s];
-		const float farP = pointShadowFars[s];
-		glm::mat4 proj = glm::perspective(glm::radians(90.0f), 1.0f, 5.0f, farP);
-		glm::mat4 views[6] = {
-			glm::lookAt(P, P + glm::vec3( 1, 0, 0), glm::vec3(0, -1,  0)),
-			glm::lookAt(P, P + glm::vec3(-1, 0, 0), glm::vec3(0, -1,  0)),
-			glm::lookAt(P, P + glm::vec3( 0, 1, 0), glm::vec3(0,  0,  1)),
-			glm::lookAt(P, P + glm::vec3( 0,-1, 0), glm::vec3(0,  0, -1)),
-			glm::lookAt(P, P + glm::vec3( 0, 0, 1), glm::vec3(0, -1,  0)),
-			glm::lookAt(P, P + glm::vec3( 0, 0,-1), glm::vec3(0, -1,  0)),
-		};
-		glUniform3fv(glGetUniformLocation(id, "lightPos"), 1, glm::value_ptr(P));
-		glUniform1f(glGetUniformLocation(id, "farPlane"), farP);
-
-		for (int face = 0; face < 6; face++)
-		{
-#ifndef __EMSCRIPTEN__
-			if (useArray)
-				// cube s occupies array layers [s*6 .. s*6+5]; layer index = s in the shader
-				glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-					pointShadowArrayTex, 0, s * 6 + face);
-			else
-#endif
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-					GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, pointShadowCubes[s], 0);
-			glClear(GL_DEPTH_BUFFER_BIT);
-			glm::mat4 vp = proj * views[face];
-			glUniformMatrix4fv(glGetUniformLocation(id, "viewProj"), 1, GL_FALSE, glm::value_ptr(vp));
-
-			// Models with real height, RANGE-CULLED: skip anything whose bounding
-			// sphere is entirely beyond this light's reach (its shadow can't land
-			// on a lit surface).
-			for (Scene3DModel* m : models)
-			{
-				if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
-					continue;
-				if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
-					continue;
-				glm::vec3 c = (m->aabbMin + m->aabbMax) * 0.5f;
-				float r = glm::length(m->aabbMax - m->aabbMin) * 0.5f;
-				if (glm::length(c - P) - r > farP)
-					continue;
-				glm::mat4 model(1.0f);
-				model = glm::translate(model, m->position);
-				model = glm::rotate(model, glm::radians(m->yawDeg), glm::vec3(0, -1, 0));
-				model = glm::rotate(model, glm::radians(m->pitchDeg), glm::vec3(1, 0, 0));
-				model = glm::rotate(model, glm::radians(m->rollDeg), glm::vec3(0, 0, 1));
-				model = glm::scale(model, m->EffectiveScale());
-				glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(model));
-				m->texture->UseTexture();
-				for (Mesh* mesh : m->model3D.meshList)
-					mesh->RenderMesh(0);
-			}
-
-			// Characters: orient the shadow quad like the visible billboard (yaw-only,
-			// facing the camera - see Character3D::DrawQuad), so the cast shadow tracks
-			// the sprite as the camera orbits. Range-culled by the light's reach.
-			for (Character3D* ch : characters)
-			{
-				if (!CharVisible(ch))   // hidden (backdrop or non-solo): cast no shadow
-					continue;
-				if (ch == nullptr || ch->quad == nullptr || ch->bodyTex == nullptr)
-					continue;
-				if (glm::length(ch->position - P) - ch->worldHeight * 0.5f > farP)
-					continue;
-				glm::vec3 toCam = renderer.camera.position - ch->position; toCam.y = 0.0f;
-				if (glm::length(toCam) < 1e-4f) toCam = glm::vec3(0, 0, 1);
-				toCam = glm::normalize(toCam);
-				glm::vec3 right = glm::normalize(glm::cross(toCam, worldUp));
-				float aspect = (ch->bodyTex->GetHeight() > 0)
-					? (float)ch->bodyTex->GetWidth() / (float)ch->bodyTex->GetHeight() : 0.5f;
-				float width = ch->worldHeight * aspect;
-				glm::mat4 model(1.0f);
-				model[0] = glm::vec4(right * width, 0.0f);
-				model[1] = glm::vec4(worldUp * ch->worldHeight, 0.0f);
-				model[2] = glm::vec4(toCam, 0.0f);
-				model[3] = glm::vec4(ch->position, 1.0f);
-				glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(model));
-				ch->bodyTex->UseTexture();
-				ch->quad->RenderMesh(0);
-				if (ch->headTex != nullptr)
-				{
-					ch->headTex->UseTexture();
-					ch->quad->RenderMesh(0);
-				}
-			}
-		}
-	}
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, game.screenWidth, game.screenHeight);
-	pointShadowActive = true;
-#endif
 }
 
 // ------------------------------------------------------------ characters
@@ -1429,12 +402,12 @@ void Character3D::DrawQuad(const Renderer& renderer, Texture* tex, float forward
 	m[3] = glm::vec4(position + toCam * forwardBias, 1.0f);
 
 	shader->UseShader();
-	GLuint id = shader->GetID();
-	glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(m));
-	// view/projection from the shared Camera UBO (binding 0); see UpdateCameraUBO.
-	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
+	unsigned int id = shader->GetID();
+	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "model")), m);
+	renderer.BindWorldCameraBlock();   // view/projection: Camera block
+	Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(id), "theTexture")), (int)(0));
 
-	Scene3D::Get().ApplyLighting(id);
+	Scene3D::Get().ApplyLighting(id, renderer);
 
 	tex->UseTexture();
 	quad->RenderMesh(0);
@@ -1495,10 +468,7 @@ void Character3D::Render(const Renderer& renderer)
 	Scene3D& scene = Scene3D::Get();
 	bool maskChar = scene.celShading && scene.outlineEnabled && !scene.outlineCharacters;
 	if (maskChar)
-	{
-		GLenum bufs[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-		glDrawBuffers(2, bufs);
-	}
+		Device().SetBoundDrawBuffers(2);
 
 	// Body (or combined sprite) first, then head layered on top. Both are
 	// full-canvas overlays that align by transparency; the head is pulled
@@ -1508,10 +478,7 @@ void Character3D::Render(const Renderer& renderer)
 		DrawQuad(renderer, headTex, 1.5f);
 
 	if (maskChar)
-	{
-		GLenum bufs[1] = { GL_COLOR_ATTACHMENT0 };
-		glDrawBuffers(1, bufs);
-	}
+		Device().SetBoundDrawBuffers(1);
 }
 
 // --------------------------------------------------------------- manager
@@ -1577,24 +544,18 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	if (shader == nullptr)
 	{
 		shader = new ShaderProgram(-1, modelShaderVert.c_str(), modelShaderFrag.c_str());
-		BindCameraBlock(shader);
 	}
 	if (billboardShader == nullptr)
 	{
 		billboardShader = new ShaderProgram(-1, billboardShaderVert.c_str(), billboardShaderFrag.c_str());
-		BindCameraBlock(billboardShader);
 	}
 	if (instancedShader == nullptr)
 	{
 		// Instanced variant of the model shader (dup opaque props). Shares the
 		// model fragment shader; reads the per-instance model matrix from attribs.
 		instancedShader = new ShaderProgram(-1, instancedShaderVert.c_str(), modelShaderFrag.c_str());
-		BindCameraBlock(instancedShader);
 	}
-	if (edgeShader == nullptr)
-	{
-		edgeShader = new ShaderProgram(-1, "data/shaders/scene3d_edge.vert", "data/shaders/scene3d_edge.frag");
-	}
+	EdgeShader();
 	if (shadowDepthShader == nullptr)
 	{
 		shadowDepthShader = new ShaderProgram(-1, "data/shaders/shadow_depth.vert", "data/shaders/shadow_depth.frag");
@@ -1606,7 +567,6 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	if (weatherShader == nullptr)
 	{
 		weatherShader = new ShaderProgram(-1, weatherShaderVert.c_str(), weatherShaderFrag.c_str());
-		BindCameraBlock(weatherShader);
 	}
 
 	// (Re)load the material library so "mat <name>" tokens can resolve.
@@ -1634,14 +594,14 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	// with dummy normals so Mesh::CreateMesh's stride-8 layout is satisfied
 	if (billboardQuad == nullptr)
 	{
-		GLfloat qv[] = {
+		float qv[] = {
 			// pos                uv          normal
 			-0.5f, 0.0f, 0.0f,   0.0f, 1.0f,  0.0f, 0.0f, 1.0f,
 			 0.5f, 0.0f, 0.0f,   1.0f, 1.0f,  0.0f, 0.0f, 1.0f,
 			 0.5f, 1.0f, 0.0f,   1.0f, 0.0f,  0.0f, 0.0f, 1.0f,
 			-0.5f, 1.0f, 0.0f,   0.0f, 0.0f,  0.0f, 0.0f, 1.0f,
 		};
-		GLuint qi[] = { 0, 1, 2, 0, 2, 3 };
+		unsigned int qi[] = { 0, 1, 2, 0, 2, 3 };
 		billboardQuad = new Mesh();
 		billboardQuad->CreateMesh(qv, qi, 32, 6, 8, 3, 5);
 	}
@@ -2082,172 +1042,66 @@ void Scene3D::ComputeFigureBounds(Character3D* ch,
 		<< " hcenter " << ch->figureHCenterFrac << std::endl;
 }
 
-void Scene3D::ApplyLighting(unsigned int shaderID) const
-{
-	const int MAX_POINTS = 8;
-	const int MAX_SPOTS = 4;
-	GLuint id = (GLuint)shaderID;
-
-	glUniform3fv(glGetUniformLocation(id, "ambientColor"), 1, glm::value_ptr(ambientColor));
-	glUniform3fv(glGetUniformLocation(id, "dirLightDir"), 1, glm::value_ptr(dirLight.dir));
-	glUniform3fv(glGetUniformLocation(id, "dirLightColor"), 1, glm::value_ptr(dirLight.color));
-	glUniform1f(glGetUniformLocation(id, "dirLightDiffuse"), dirLight.diffuse);
-
-	// Storm lightning: a scene-wide flash of sky light (0 unless a strike is active).
-	glUniform1f(glGetUniformLocation(id, "lightningFlash"), flashIntensity);
-	glUniform3f(glGetUniformLocation(id, "lightningColor"), 0.80f, 0.85f, 1.0f);
-
-	// Sun shadow map (bound to unit 3; unit 0 = albedo, 1 = normal map).
-	if (shadowActive && shadowsEnabled && shadowDepthTex != 0)
-	{
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, shadowDepthTex);
-		glActiveTexture(GL_TEXTURE0);
-		glUniform1i(glGetUniformLocation(id, "shadowMap"), 3);
-		glUniformMatrix4fv(glGetUniformLocation(id, "lightSpaceMatrix"), 1, GL_FALSE,
-			glm::value_ptr(lightSpaceMatrix));
-		glUniform1f(glGetUniformLocation(id, "shadowStrength"), shadowStrength);
-		glUniform1i(glGetUniformLocation(id, "shadowsOn"), 1);
-	}
-	else
-	{
-		glUniform1i(glGetUniformLocation(id, "shadowsOn"), 0);
-	}
-
-	// Point lights: pack the ENABLED ones into contiguous arrays (off
-	// lights are skipped, shrinking the uploaded count)
-	float pPos[MAX_POINTS * 3], pCol[MAX_POINTS * 3], pRange[MAX_POINTS], pInt[MAX_POINTS];
-	int pc = 0;
-	// Map each cube-shadow caster slot -> its packed point-light index.
-	int packedForSlot[kMaxPointShadows];
-	for (int s = 0; s < kMaxPointShadows; s++) packedForSlot[s] = -1;
-	for (const ScenePointLight& p : pointLights)
-	{
-		if (!p.on || p.guardHidden || pc >= MAX_POINTS) continue;
-		pPos[pc * 3 + 0] = p.pos.x; pPos[pc * 3 + 1] = p.pos.y; pPos[pc * 3 + 2] = p.pos.z;
-		pCol[pc * 3 + 0] = p.color.r; pCol[pc * 3 + 1] = p.color.g; pCol[pc * 3 + 2] = p.color.b;
-		pRange[pc] = p.range; pInt[pc] = p.intensity;
-		if (pointShadowActive)
-			for (int s = 0; s < pointShadowCount; s++)
-				if (p.pos == pointShadowPositions[s]) packedForSlot[s] = pc;
-		pc++;
-	}
-	glUniform1i(glGetUniformLocation(id, "pointCount"), pc);
-	if (pc > 0)
-	{
-		glUniform3fv(glGetUniformLocation(id, "pointPos"), pc, pPos);
-		glUniform3fv(glGetUniformLocation(id, "pointColor"), pc, pCol);
-		glUniform1fv(glGetUniformLocation(id, "pointRange"), pc, pRange);
-		glUniform1fv(glGetUniformLocation(id, "pointIntensity"), pc, pInt);
-	}
-
-	// Point-light (cube) shadows: bind each caster's cube to units 4,5,6,... and
-	// upload the parallel arrays (position, far, and the packed light index it
-	// shadows). shadowStrength is shared with the sun shadow.
-	if (pointShadowActive && pointShadowsEnabled && pointShadowCount > 0)
-	{
-		bool useArray = false;
-#ifndef __EMSCRIPTEN__
-		useArray = (ShaderProgram::glslVersion >= 400);
-#endif
-#ifndef __EMSCRIPTEN__
-		if (useArray)
-		{
-			// GL4 cube-map array: shader samples layer == caster slot, so upload
-			// slots directly (no compaction) to keep layer/index aligned.
-			float psPos[kMaxPointShadows * 3], psFar[kMaxPointShadows];
-			int psIdx[kMaxPointShadows];
-			for (int s = 0; s < pointShadowCount; s++)
-			{
-				psPos[s * 3 + 0] = pointShadowPositions[s].x;
-				psPos[s * 3 + 1] = pointShadowPositions[s].y;
-				psPos[s * 3 + 2] = pointShadowPositions[s].z;
-				psFar[s] = pointShadowFars[s];
-				psIdx[s] = packedForSlot[s];
-			}
-			glActiveTexture(GL_TEXTURE4);
-			glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowArrayTex);
-			glActiveTexture(GL_TEXTURE0);
-			glUniform1i(glGetUniformLocation(id, "pointShadowArray"), 4);
-			glUniform1i(glGetUniformLocation(id, "pointShadowCount"), pointShadowCount);
-			glUniform3fv(glGetUniformLocation(id, "pointShadowPositions"), pointShadowCount, psPos);
-			glUniform1fv(glGetUniformLocation(id, "pointShadowFars"), pointShadowCount, psFar);
-			glUniform1iv(glGetUniformLocation(id, "pointShadowLightIdx"), pointShadowCount, psIdx);
-			glUniform1f(glGetUniformLocation(id, "shadowStrength"), shadowStrength);
-		}
-		else
-#endif
-		{
-			// Fallback: bind each caster's cube to units 4,5,6,... (compacted).
-			float psPos[kMaxPointShadowsFallback * 3], psFar[kMaxPointShadowsFallback];
-			int psIdx[kMaxPointShadowsFallback], psUnit[kMaxPointShadowsFallback];
-			int n = 0;
-			for (int s = 0; s < pointShadowCount && n < kMaxPointShadowsFallback; s++)
-			{
-				if (pointShadowCubes[s] == 0 || packedForSlot[s] < 0) continue;
-				glActiveTexture(GL_TEXTURE4 + n);
-				glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowCubes[s]);
-				psUnit[n] = 4 + n;
-				psPos[n * 3 + 0] = pointShadowPositions[s].x;
-				psPos[n * 3 + 1] = pointShadowPositions[s].y;
-				psPos[n * 3 + 2] = pointShadowPositions[s].z;
-				psFar[n] = pointShadowFars[s];
-				psIdx[n] = packedForSlot[s];
-				n++;
-			}
-			glActiveTexture(GL_TEXTURE0);
-			glUniform1i(glGetUniformLocation(id, "pointShadowCount"), n);
-			if (n > 0)
-			{
-				glUniform1iv(glGetUniformLocation(id, "pointShadowMaps"), n, psUnit);
-				glUniform3fv(glGetUniformLocation(id, "pointShadowPositions"), n, psPos);
-				glUniform1fv(glGetUniformLocation(id, "pointShadowFars"), n, psFar);
-				glUniform1iv(glGetUniformLocation(id, "pointShadowLightIdx"), n, psIdx);
-				glUniform1f(glGetUniformLocation(id, "shadowStrength"), shadowStrength);
-			}
-		}
-	}
-	else
-	{
-		glUniform1i(glGetUniformLocation(id, "pointShadowCount"), 0);
-	}
-
-	// Spot lights (enabled only)
-	float sPos[MAX_SPOTS * 3], sDir[MAX_SPOTS * 3], sCol[MAX_SPOTS * 3];
-	float sRange[MAX_SPOTS], sInt[MAX_SPOTS], sCosIn[MAX_SPOTS], sCosOut[MAX_SPOTS];
-	int sc = 0;
-	auto packSpot = [&](const SceneSpotLight& s)
-	{
-		if (!s.on || sc >= MAX_SPOTS) return;
-		sPos[sc * 3 + 0] = s.pos.x; sPos[sc * 3 + 1] = s.pos.y; sPos[sc * 3 + 2] = s.pos.z;
-		glm::vec3 d = glm::normalize(s.dir);
-		sDir[sc * 3 + 0] = d.x; sDir[sc * 3 + 1] = d.y; sDir[sc * 3 + 2] = d.z;
-		sCol[sc * 3 + 0] = s.color.r; sCol[sc * 3 + 1] = s.color.g; sCol[sc * 3 + 2] = s.color.b;
-		sRange[sc] = s.range; sInt[sc] = s.intensity;
-		sCosIn[sc] = cosf(glm::radians(s.innerDeg));
-		sCosOut[sc] = cosf(glm::radians(s.outerDeg));
-		sc++;
-	};
-	for (const SceneSpotLight& s : spotLights) packSpot(s);
-	if (focusSpotOn) packSpot(focusSpot);   // runtime focus/debate spotlight
-	glUniform1i(glGetUniformLocation(id, "spotCount"), sc);
-	if (sc > 0)
-	{
-		glUniform3fv(glGetUniformLocation(id, "spotPos"), sc, sPos);
-		glUniform3fv(glGetUniformLocation(id, "spotDir"), sc, sDir);
-		glUniform3fv(glGetUniformLocation(id, "spotColor"), sc, sCol);
-		glUniform1fv(glGetUniformLocation(id, "spotRange"), sc, sRange);
-		glUniform1fv(glGetUniformLocation(id, "spotIntensity"), sc, sInt);
-		glUniform1fv(glGetUniformLocation(id, "spotCosInner"), sc, sCosIn);
-		glUniform1fv(glGetUniformLocation(id, "spotCosOuter"), sc, sCosOut);
-	}
-}
-
 // --- solid collision ------------------------------------------------------
 
 bool Scene3D::ReadObjLocalAABB(const std::string& objPath,
 	glm::vec3& lo, glm::vec3& hi) const
 {
+	// An OBJ's local bounds never change while the game runs, but this used to
+	// re-open and re-parse the whole file on EVERY call. That made
+	// RebuildSolids() cost one file parse per solid model, and RemoveModel()
+	// calls RebuildSolids() unconditionally - so deleting a single model in a
+	// scene with ~100 solids meant ~100 file parses. Games that remove models
+	// repeatedly at runtime (a game vacuuming up props, SceneLogic's
+	// "keep N of tag" thinning loop, the editor's tile tools) paid that over
+	// and over; one such case dropped the frame rate from 60 to ~15.
+	//
+	// Cache the parsed bounds per path. Also speeds up scene LOADING, where
+	// duplicate props previously re-parsed the same OBJ once per instance.
+	// Keyed on the path string; OBJ files are not edited at runtime, so the
+	// entries never go stale.
+	static std::map<std::string, std::pair<glm::vec3, glm::vec3>> s_aabbCache;
+	{
+		auto cached = s_aabbCache.find(objPath);
+		if (cached != s_aabbCache.end())
+		{
+			lo = cached->second.first;
+			hi = cached->second.second;
+			// A miss was cached as an inverted box; report it as a failure
+			// again rather than re-reading a file we know we cannot open.
+			return lo.x <= hi.x;
+		}
+	}
+
+	// Remember the outcome (success or failure) before returning.
+	struct CacheOnExit
+	{
+		std::map<std::string, std::pair<glm::vec3, glm::vec3>>* cache;
+		const std::string* path;
+		glm::vec3* lo;
+		glm::vec3* hi;
+		~CacheOnExit() { (*cache)[*path] = { *lo, *hi }; }
+	} cacheOnExit{ &s_aabbCache, &objPath, &lo, &hi };
+
+	// Sentinel for "could not read": an inverted box.
+	lo = glm::vec3(1e9f);
+	hi = glm::vec3(-1e9f);
+
+	// The model loader has usually just loaded this very file and knows its
+	// bounds from the vertex data. Re-parsing a large OBJ's text here cost as
+	// much as loading it (0.5 s per character frame in Debug).
+#ifdef USE_ASSIMP
+	{
+		float mlo[3], mhi[3];
+		if (Model::LoadedBounds(objPath, mlo, mhi))
+		{
+			lo = glm::vec3(mlo[0], mlo[1], mlo[2]);
+			hi = glm::vec3(mhi[0], mhi[1], mhi[2]);
+			return true;
+		}
+	}
+#endif
+
 	std::ifstream file(objPath);
 	if (!file.is_open())
 	{
@@ -2255,8 +1109,6 @@ bool Scene3D::ReadObjLocalAABB(const std::string& objPath,
 		return false;
 	}
 
-	lo = glm::vec3(1e9f);
-	hi = glm::vec3(-1e9f);
 	bool any = false;
 	std::string line;
 	while (std::getline(file, line))

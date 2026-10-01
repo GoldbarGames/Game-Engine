@@ -1,5 +1,10 @@
 #include "Mesh.h"
+#include "TransientBuffer.h"
+#include "render/RenderDevice.h"
 #include <glm/ext/matrix_float4x4.hpp>
+
+// VAO / VBO / IBO / instanceVBO hold render-device handle ids (the members are
+// plain unsigned ints so Mesh's layout is unchanged for games).
 
 Mesh::Mesh()
 {
@@ -14,55 +19,51 @@ Mesh::~Mesh()
     ClearMesh();
 }
 
-void Mesh::CreateMesh(GLfloat* vertices, unsigned int* indices,
+void Mesh::CreateMesh(float* vertices, unsigned int* indices,
     unsigned int numOfVertices, unsigned int numOfIndices, unsigned int v,
     unsigned int uvOffset, unsigned int normalOffset, int tangentOffset)
 {
+    RenderDevice& device = Device();
     indexCount = numOfIndices;
 
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
+    const VertexArrayHandle vao = device.CreateVertexArray();
+    const BufferHandle ibo = device.CreateIndexBuffer(sizeof(indices[0]) * numOfIndices, indices);
+    const BufferHandle vbo = device.CreateBuffer(sizeof(vertices[0]) * numOfVertices, vertices, BufferUsage::Static);
+    device.SetIndexBuffer(vao, ibo);
 
-    glGenBuffers(1, &IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    // Check size of element of array * number of elements in array
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * numOfIndices, indices, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // Check size of element of array * number of elements in array
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * numOfVertices, vertices, GL_STATIC_DRAW);
-
-    // Vertices - no offset, every v numbers is a new vertex
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * v, 0);
-    glEnableVertexAttribArray(0);
-
-    // UVs - offset1, every v numbers is a new vertex
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * v, (void*)(sizeof(vertices[0]) * uvOffset));
-    glEnableVertexAttribArray(1);
+    // Every v floats is a new vertex: position (3) at 0, UV (2) at uvOffset.
+    const size_t stride = sizeof(vertices[0]) * v;
+    device.SetVertexAttribute(vao, 0, vbo, 3, stride, 0);
+    device.SetVertexAttribute(vao, 1, vbo, 2, stride, sizeof(vertices[0]) * uvOffset);
 
     // Normals - present whenever a normal offset is given (stride 8 or 11)
     if (normalOffset > 0)
-    {
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * v, (void*)(sizeof(vertices[0]) * normalOffset));
-        glEnableVertexAttribArray(2);
-    }
+        device.SetVertexAttribute(vao, 2, vbo, 3, stride, sizeof(vertices[0]) * normalOffset);
 
     // Tangent (location 7, avoids the instancing mat4 slots 3-6)
     if (tangentOffset >= 0)
-    {
-        glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * v, (void*)(sizeof(vertices[0]) * tangentOffset));
-        glEnableVertexAttribArray(7);
-    }
+        device.SetVertexAttribute(vao, 7, vbo, 3, stride, sizeof(vertices[0]) * tangentOffset);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    // Note: Do NOT unbind GL_ELEMENT_ARRAY_BUFFER while VAO is bound, as IBO binding is part of VAO state
+    VAO = vao.id;
+    VBO = vbo.id;
+    IBO = ibo.id;
 }
 
 void Mesh::BindMesh()
 {
-    glBindVertexArray(VAO);
+    Device().BindVertexArray(VertexArrayHandle(VAO));
+}
+
+namespace
+{
+    // A mat4 attribute occupies four consecutive vec4 locations (3-6),
+    // advancing once per instance.
+    void PointInstanceMatrices(VertexArrayHandle vao, BufferHandle buffer, size_t offset)
+    {
+        for (unsigned int i = 0; i < 4; i++)
+            Device().SetVertexAttribute(vao, 3 + i, buffer, 4, sizeof(glm::mat4),
+                offset + i * sizeof(glm::vec4), 1);
+    }
 }
 
 void Mesh::SetInstances(const glm::mat4* matrices, unsigned int count, bool dynamic)
@@ -71,95 +72,68 @@ void Mesh::SetInstances(const glm::mat4* matrices, unsigned int count, bool dyna
     if (count == 0)
         return;
 
-    glBindVertexArray(VAO);
-
-    bool firstUpload = (instanceVBO == 0);
-    if (firstUpload)
-        glGenBuffers(1, &instanceVBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, count * sizeof(glm::mat4), matrices,
-        dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+    RenderDevice& device = Device();
+    const BufferUsage usage = dynamic ? BufferUsage::Dynamic : BufferUsage::Static;
+    if (instanceVBO == 0)
+        instanceVBO = device.CreateBuffer(count * sizeof(glm::mat4), matrices, usage).id;
+    else
+        device.ReplaceBuffer(BufferHandle(instanceVBO), count * sizeof(glm::mat4), matrices, usage);
 
     // (Re)enable the instance attributes every call: ClearInstances() disables
     // them again after the draw, so a mesh that is also drawn non-instanced
     // (shadow pass) never keeps the per-instance divisors on locations 3-6.
-    (void)firstUpload;
-    // A mat4 attribute occupies four consecutive vec4 locations (3-6),
-    // advancing once per instance
-    for (int i = 0; i < 4; i++)
+    PointInstanceMatrices(VertexArrayHandle(VAO), BufferHandle(instanceVBO), 0);
+}
+
+void Mesh::SetInstancesTransient(const glm::mat4* matrices, unsigned int count)
+{
+    const TransientAlloc a = TransientUpload(matrices, count * sizeof(glm::mat4));
+    if (!a.Valid())
     {
-        glEnableVertexAttribArray(3 + i);
-        glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-            (void*)(i * sizeof(glm::vec4)));
-        glVertexAttribDivisor(3 + i, 1);
+        SetInstances(matrices, count, true);   // ring unavailable: the mesh's own buffer
+        return;
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    instanceCount = count;
+    PointInstanceMatrices(VertexArrayHandle(VAO), BufferHandle(a.buffer), a.offset);
 }
 
 void Mesh::ClearInstances()
 {
     instanceCount = 0;
-    if (instanceVBO == 0)
+    // Disable the instance attributes even when the matrices came from the
+    // transient ring (no instanceVBO of our own); disabling unused ones is harmless.
+    if (VAO == 0)
         return;
-    glBindVertexArray(VAO);
-    for (int i = 0; i < 4; i++)
-        glDisableVertexAttribArray(3 + i);
-    glBindVertexArray(0);
+    for (unsigned int i = 0; i < 4; i++)
+        Device().DisableVertexAttribute(VertexArrayHandle(VAO), 3 + i);
 }
-
 
 void Mesh::RenderMesh(unsigned int instanceAmount)
 {
     if (indexCount > 0)
     {
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-
         // Meshes with instance matrices (SetInstances) draw all instances in
         // one call; instanceAmount can override with a smaller count
-        unsigned int instances = (instanceAmount > 0) ? instanceAmount : instanceCount;
-        if (instances > 0)
-            glDrawElementsInstanced(mode, indexCount, GL_UNSIGNED_INT, 0, instances);
-        else
-            glDrawElements(mode, indexCount, GL_UNSIGNED_INT, 0);
-
-        // Unbind the VAO BEFORE the element buffer: unbinding
-        // GL_ELEMENT_ARRAY_BUFFER while the VAO is still bound would strip
-        // the IBO association from the VAO state itself
-        glBindVertexArray(0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        const unsigned int instances = (instanceAmount > 0) ? instanceAmount : instanceCount;
+        Device().DrawIndexed(VertexArrayHandle(VAO), Primitive::Triangles, indexCount, (int)instances);
     }
 }
 
 void Mesh::ClearMesh()
 {
-    if (VBO != 0)
-    {
-        glDeleteBuffers(1, &VBO);
-        VBO = 0;
-    }
+    RenderDevice& device = Device();
 
-    if (VAO != 0)
-    {
-        glDeleteVertexArrays(1, &VAO);
-        VAO = 0;
-    }
-
-    if (IBO != 0)
-    {
-        glDeleteBuffers(1, &IBO);
-        IBO = 0;
-    }
-
-    if (instanceVBO != 0)
-    {
-        glDeleteBuffers(1, &instanceVBO);
-        instanceVBO = 0;
-    }
-
+    BufferHandle vbo(VBO), ibo(IBO), instances(instanceVBO);
+    VertexArrayHandle vao(VAO);
+    device.DestroyBuffer(vbo);
+    device.DestroyVertexArray(vao);
+    device.DestroyBuffer(ibo);
+    device.DestroyBuffer(instances);
+    VBO = 0;
+    VAO = 0;
+    IBO = 0;
+    instanceVBO = 0;
     instanceCount = 0;
     indexCount = 0;
 }

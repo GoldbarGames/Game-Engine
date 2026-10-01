@@ -1,4 +1,5 @@
 #include "SDFFont.h"
+#include "render/RenderDevice.h"
 #include "Game.h"
 #include "Renderer.h"
 #include "Texture.h"
@@ -24,12 +25,12 @@ static const char* SDF_VERT =
 "precision mediump float;\n"
 "layout (location = 0) in vec3 pos;\n"
 "layout (location = 1) in vec2 tex;\n"
-"uniform mat4 model;\n"
-"uniform mat4 projection;\n"
+"struct DrawData { mat4 mvp; vec4 sdfColor; };\n"   // engine DrawData shape (shaders/draw.glsl)
+"uniform DrawData draw;\n"
 "out vec2 TexCoord;\n"
 "void main()\n"
 "{\n"
-"    gl_Position = projection * model * vec4(pos, 1.0);\n"
+"    gl_Position = draw.mvp * vec4(pos, 1.0);\n"
 "    TexCoord = tex;\n"
 "}";
 
@@ -39,13 +40,14 @@ static const char* SDF_FRAG =
 "in vec2 TexCoord;\n"
 "out vec4 color;\n"
 "uniform sampler2D theTexture;\n"
-"uniform vec4 sdfColor;\n"
+"struct DrawData { mat4 mvp; vec4 sdfColor; };\n"   // same default precision as the vertex stage
+"uniform DrawData draw;\n"
 "void main()\n"
 "{\n"
 "    float d = texture(theTexture, TexCoord).a;\n"
 "    float w = fwidth(d) * 0.8 + 0.004;\n"
 "    float alpha = smoothstep(0.5 - w, 0.5 + w, d);\n"
-"    color = vec4(sdfColor.rgb, sdfColor.a * alpha);\n"
+"    color = vec4(draw.sdfColor.rgb, draw.sdfColor.a * alpha);\n"
 "}";
 
 SDFFont::SDFFont(Game& game, const std::string& ttfPath)
@@ -211,7 +213,7 @@ void SDFText::SetText(const std::string& s)
 
 	// One quad per glyph in font pixels: pen at the origin baseline,
 	// +y down (GUI convention). Layout: pos3, uv2, normal3.
-	std::vector<GLfloat> verts;
+	std::vector<float> verts;
 	std::vector<unsigned int> inds;
 	float pen = 0.0f;
 	float box = font->boxSize;
@@ -226,7 +228,7 @@ void SDFText::SetText(const std::string& s)
 		float x1 = x0 + box, y1 = y0 + box;
 		unsigned int base = (unsigned int)(verts.size() / 8);
 
-		GLfloat quad[] = {
+		float quad[] = {
 			x0, y0, 0,  g.u0, g.v0,  0, 0, 1,
 			x1, y0, 0,  g.u1, g.v0,  0, 0, 1,
 			x0, y1, 0,  g.u0, g.v1,  0, 0, 1,
@@ -254,7 +256,7 @@ void SDFText::Render(const Renderer& renderer)
 		return;
 
 	font->shader->UseShader();
-	GLuint id = font->shader->GetID();
+	unsigned int id = font->shader->GetID();
 
 	// GUI space: same convention as GUI text sprites (guiProjection,
 	// position offset by the GUI camera, z = -2)
@@ -264,12 +266,12 @@ void SDFText::Render(const Renderer& renderer)
 		position.y + renderer.guiCamera.position.y, -2.0f));
 	model = glm::scale(model, glm::vec3(scale, scale, 1.0f));
 
-	glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(model));
-	glUniformMatrix4fv(glGetUniformLocation(id, "projection"), 1, GL_FALSE,
-		glm::value_ptr(renderer.camera.guiProjection));
-	glUniform4f(glGetUniformLocation(id, "sdfColor"),
-		color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
-	glUniform1i(glGetUniformLocation(id, "theTexture"), 0);
+	// projection * model folded on the CPU: keeps DrawData within the 128-byte
+	// push-constant budget (two mat4s + a colour would be 144).
+	const glm::mat4 mvp = renderer.camera.guiProjection * model;
+	Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(id), "draw.mvp")), mvp);
+	Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(id), "draw.sdfColor")), glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f));
+	Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(id), "theTexture")), (int)(0));
 
 	font->atlas->UseTexture();
 	mesh->RenderMesh(0);

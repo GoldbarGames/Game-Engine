@@ -1,4 +1,5 @@
 #include "Light.h"
+#include "render/RenderDevice.h"
 
 Light::Light()
 {
@@ -24,9 +25,9 @@ Light::Light(glm::vec3 col, float ai, float di)
 
 void Light::UseLight(const ShaderProgram& shader, int index)
 {
-	glUniform3f(shader.uniformDirectionalLight.uniformColor, color.x, color.y, color.z);
-	glUniform1f(shader.uniformDirectionalLight.uniformAmbientIntensity, ambientIntensity);
-	glUniform1f(shader.uniformDirectionalLight.uniformDiffuseIntensity, diffuseIntensity);
+	Device().SetUniform((int)(shader.uniformDirectionalLight.uniformColor), glm::vec3(color.x, color.y, color.z));
+	Device().SetUniform((int)(shader.uniformDirectionalLight.uniformAmbientIntensity), (float)(ambientIntensity));
+	Device().SetUniform((int)(shader.uniformDirectionalLight.uniformDiffuseIntensity), (float)(diffuseIntensity));
 }
 
 Light::~Light()

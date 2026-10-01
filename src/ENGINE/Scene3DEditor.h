@@ -116,16 +116,6 @@ private:
 	bool undoKeyWasDown = false;
 	bool redoKeyWasDown = false;
 
-	// GL line rendering (selection box + axis gizmo)
-	ShaderProgram* lineShader = nullptr;
-	unsigned int lineVAO = 0, lineVBO = 0;
-	void EnsureGL();
-	void DrawLines(Game& game, const Renderer& renderer,
-		const std::vector<glm::vec3>& segments, const glm::vec4& color);
-	// Filled 2D rectangle in GUI space (for the mode buttons' backgrounds).
-	void DrawFilledRect(Game& game, const Renderer& renderer,
-		float x, float y, float w, float h, const glm::vec4& color);
-
 	// Move / Rotate / Scale button bar. Each button is sized snugly around its
 	// label; the rects are cached (from the last render) for hit-testing.
 	Text* modeButtonText[3] = { nullptr, nullptr, nullptr };

@@ -1,4 +1,7 @@
 #include "leak_check.h"
+#include "render/RenderDevice.h"
+#include "RenderState.h"
+#include "TransientBuffer.h"
 #include "Renderer.h"
 #include "Sprite.h"
 #include "Game.h"
@@ -10,6 +13,11 @@
 
 ShaderProgram* Renderer::textShader;
 ShaderProgram* Renderer::tileShader;
+
+namespace
+{
+	void PointBatchInstances(unsigned int vao, unsigned int buffer, size_t matrixOffset, size_t texOffset, size_t colorOffset);
+}
 
 ShaderProgram* Renderer::GetTextShader()
 {
@@ -65,27 +73,27 @@ void Renderer::Init(Game* g)
 
 void Renderer::SetDepthTestEnabled(bool enabled) const
 {
+	RenderState s = CurrentRenderState();
+	s.depthTest = enabled;
 	if (enabled)
-	{
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
-	}
-	else
-	{
-		glDisable(GL_DEPTH_TEST);
-	}
+		s.depthCompare = CompareOp::Less;
+	ApplyRenderState(s);
 }
 
 void Renderer::SetDepthBias(float factor, float units) const
 {
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(factor, units);
+	RenderState s = CurrentRenderState();
+	s.depthBiasFactor = factor;
+	s.depthBiasUnits = units;
+	ApplyRenderState(s);
 }
 
 void Renderer::ClearDepthBias() const
 {
-	glDisable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(0, 0);
+	RenderState s = CurrentRenderState();
+	s.depthBiasFactor = 0.0f;
+	s.depthBiasUnits = 0.0f;
+	ApplyRenderState(s);
 }
 
 void Renderer::HotReload()
@@ -109,8 +117,9 @@ void Renderer::HotReload()
 			vertexFile = shaderFolder + ParseWord(shaderList[i], ' ', index);
 			fragmentFile = shaderFolder + ParseWord(shaderList[i], ' ', index);
 
-			fs::path path1 = dir / vertexFile;
-			fs::path path2 = dir / fragmentFile;
+			// Watch the file actually loaded: the game's copy, else the engine's
+			fs::path path1 = dir / ShaderProgram::ResolvePath(vertexFile);
+			fs::path path2 = dir / ShaderProgram::ResolvePath(fragmentFile);
 			fs::directory_entry entry1 { path1 };
 			fs::directory_entry entry2 { path2 };
 
@@ -168,6 +177,16 @@ void Renderer::CreateShaders()
 	shaderFolder += "webgl/";
 #endif
 
+	// The fallback sprite shader (slot 0). Self-contained - it must work even if
+	// no shader files are found - so the Camera block (shaders/camera.glsl) and
+	// the sprite DrawData (shaders/sprite_draw.glsl) are spelled out here; keep
+	// them identical to those files.
+	const std::string spriteInterface =
+	"layout(std140) uniform Camera { mat4 view; mat4 projection; };\n"
+	"struct DrawData { mat4 model; vec2 texFrame; vec2 texOffset; vec4 spriteColor;\n"
+	"                  float lightRatio; float time; float freq; float emissive; };\n"
+	"uniform DrawData draw;\n";
+
 	const std::string defaultVert =
 	"#version 300 es\n"
 	"precision mediump float;\n"
@@ -176,16 +195,12 @@ void Renderer::CreateShaders()
 	"out vec4 vertexColor;\n"
 	"out vec2 TexCoord;\n"
 	"out vec2 MaskCoord;\n"
-	"uniform mat4 model;\n"
-	"uniform mat4 projection;\n"
-	"uniform mat4 view;\n"
-	"uniform vec2 texFrame;\n"
-	"uniform vec2 texOffset;\n"
+	+ spriteInterface +
 	"void main()\n"
 	"{\n"
-	"    gl_Position = projection * view * model * vec4(pos, 1.0);\n"
+	"    gl_Position = projection * view * draw.model * vec4(pos, 1.0);\n"
 	"    vertexColor = vec4(clamp(pos, 0.0, 1.0), 1.0);\n"
-	"    TexCoord = texOffset + (texFrame * tex);\n"
+	"    TexCoord = draw.texOffset + (draw.texFrame * tex);\n"
 	"    vec2 frame = vec2(1.0, 1.0);\n"
 	"    MaskCoord = frame * tex;\n"
 	"}";
@@ -197,10 +212,10 @@ void Renderer::CreateShaders()
 	"in vec2 TexCoord;\n"
 	"out vec4 color;\n"
 	"uniform sampler2D theTexture;\n"
-	"uniform vec4 spriteColor;\n"
+	+ spriteInterface +
 	"void main()\n"
 	"{\n"
-	"    vec4 newColor = texture(theTexture, TexCoord) * spriteColor;\n"
+	"    vec4 newColor = texture(theTexture, TexCoord) * draw.spriteColor;\n"
 	"    color = vec4(newColor.r, newColor.g, newColor.b, newColor.a);\n"
 	"}";
 
@@ -241,7 +256,15 @@ Renderer::~Renderer()
 		delete_it(instancedShader);
 
 	if (instanceVBO != 0)
-		glDeleteBuffers(1, &instanceVBO);
+	{
+		BufferHandle vbo(instanceVBO);
+		Device().DestroyBuffer(vbo);
+		instanceVBO = 0;
+	}
+
+	ReleaseOverlayResources();
+	ReleaseUniformBlocks();
+	TransientRelease();
 }
 
 void Renderer::InitBatchRendering()
@@ -254,7 +277,7 @@ void Renderer::InitBatchRendering()
 		0, 1, 2
 	};
 
-	GLfloat quadVertices[] = {
+	float quadVertices[] = {
 		// pos              // uv
 		-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
 		1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
@@ -266,39 +289,15 @@ void Renderer::InitBatchRendering()
 	batchMesh->CreateMesh(quadVertices, quadIndices, 20, 12, 5, 3, 0);
 
 	// Create instance VBO for model matrices, tex data, and colors
-	glGenBuffers(1, &instanceVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 	// Allocate space for matrices (mat4) + texData (vec4) + colors (vec4) per instance
 	size_t instanceDataSize = (sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4)) * MAX_BATCH_SIZE;
-	glBufferData(GL_ARRAY_BUFFER, instanceDataSize, nullptr, GL_DYNAMIC_DRAW);
+	instanceVBO = Device().CreateBuffer(instanceDataSize, nullptr, BufferUsage::Dynamic).id;
 
-	// Set up instance attributes on the batch mesh VAO
-	glBindVertexArray(batchMesh->GetVAO());
-	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);  // Re-bind to ensure VBO is associated with attributes
-
-	// Model matrix takes 4 attribute slots (3, 4, 5, 6)
-	size_t matrixOffset = 0;
-	for (int i = 0; i < 4; i++)
-	{
-		glEnableVertexAttribArray(3 + i);
-		glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(matrixOffset + i * sizeof(glm::vec4)));
-		glVertexAttribDivisor(3 + i, 1);
-	}
-
-	// Tex data (offset + frame) at attribute 7
+	// Instance attributes on the batch mesh VAO: model matrix in slots 3-6,
+	// tex data (offset + frame) at 7, color at 8 - one block of each
 	size_t texDataOffset = sizeof(glm::mat4) * MAX_BATCH_SIZE;
-	glEnableVertexAttribArray(7);
-	glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)texDataOffset);
-	glVertexAttribDivisor(7, 1);
-
-	// Color at attribute 8
 	size_t colorOffset = texDataOffset + sizeof(glm::vec4) * MAX_BATCH_SIZE;
-	glEnableVertexAttribArray(8);
-	glVertexAttribPointer(8, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)colorOffset);
-	glVertexAttribDivisor(8, 1);
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	PointBatchInstances(batchMesh->GetVAO(), instanceVBO, 0, texDataOffset, colorOffset);
 
 	// Reserve space for batch data
 	batchMatrices.reserve(MAX_BATCH_SIZE);
@@ -338,8 +337,49 @@ void Renderer::InitBatchRendering()
 	}
 }
 
-void Renderer::BeginBatch(Texture* texture, ShaderProgram* shader) const
+namespace
 {
+	// Point the batch quad's instance attributes (3-6 model matrix, 7 texData,
+	// 8 color) at three arrays living in `buffer`.
+	void PointBatchInstances(unsigned int vao, unsigned int buffer, size_t matrixOffset, size_t texOffset, size_t colorOffset)
+	{
+		RenderDevice& device = Device();
+		const VertexArrayHandle v(vao);
+		const BufferHandle b(buffer);
+		for (unsigned int i = 0; i < 4; i++)
+			device.SetVertexAttribute(v, 3 + i, b, 4, sizeof(glm::mat4), matrixOffset + i * sizeof(glm::vec4), 1);
+		device.SetVertexAttribute(v, 7, b, 4, sizeof(glm::vec4), texOffset, 1);
+		device.SetVertexAttribute(v, 8, b, 4, sizeof(glm::vec4), colorOffset, 1);
+	}
+
+	// One batch's instance data for this frame: streamed through the transient
+	// ring (no per-draw upload into a buffer the GPU may still be reading), or,
+	// if the ring is unavailable, written into the renderer's own instanceVBO
+	// at its fixed block offsets as before.
+	void StreamBatchInstances(unsigned int vao, unsigned int instanceVBO, const glm::mat4* models,
+		const glm::vec4* texData, const glm::vec4* colors, size_t count, size_t capacity)
+	{
+		const TransientAlloc m = TransientUpload(models, count * sizeof(glm::mat4));
+		const TransientAlloc t = TransientUpload(texData, count * sizeof(glm::vec4));
+		const TransientAlloc c = TransientUpload(colors, count * sizeof(glm::vec4));
+		if (m.Valid() && t.Valid() && c.Valid() && m.buffer == t.buffer && t.buffer == c.buffer)
+		{
+			PointBatchInstances(vao, m.buffer, m.offset, t.offset, c.offset);
+			return;
+		}
+
+		const size_t texOffset = sizeof(glm::mat4) * capacity;
+		const size_t colorOffset = texOffset + sizeof(glm::vec4) * capacity;
+		RenderDevice& device = Device();
+		const BufferHandle vbo(instanceVBO);
+		device.UpdateBuffer(vbo, 0, count * sizeof(glm::mat4), models);
+		device.UpdateBuffer(vbo, texOffset, count * sizeof(glm::vec4), texData);
+		device.UpdateBuffer(vbo, colorOffset, count * sizeof(glm::vec4), colors);
+		PointBatchInstances(vao, instanceVBO, 0, texOffset, colorOffset);
+	}
+}
+
+void Renderer::BeginBatch(Texture* texture, ShaderProgram* shader) const{
 	// Skip if batching not initialized
 	if (!batchingEnabled || batchMesh == nullptr)
 		return;
@@ -380,12 +420,13 @@ void Renderer::FlushBatch() const
 
 	instancedShader->UseShader();
 
-	// Set up uniforms that exist in the instanced shader
-	glUniformMatrix4fv(instancedShader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
-		glm::value_ptr(camera.CalculateViewMatrix()));
-	glUniformMatrix4fv(instancedShader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
-		glm::value_ptr(camera.projection));
-	glUniform1f(instancedShader->GetUniformVariable(ShaderVariable::distanceToLight2D), 1.0f);  // lightRatio
+	// Camera block for the engine shader; the loose view/projection uniforms
+	// are still set for game overrides that predate the block (no-ops otherwise).
+	const glm::mat4 view = camera.CalculateViewMatrix();
+	BindCameraBlock(view, camera.projection);
+	Device().SetUniform((int)(instancedShader->GetUniformVariable(ShaderVariable::view)), view);
+	Device().SetUniform((int)(instancedShader->GetUniformVariable(ShaderVariable::projection)), camera.projection);
+	Device().SetUniform((int)(instancedShader->GetUniformVariable(ShaderVariable::distanceToLight2D)), (float)(1.0f));  // lightRatio
 
 	// Bind texture
 	if (currentBatchTexture != nullptr)
@@ -393,30 +434,12 @@ void Renderer::FlushBatch() const
 		currentBatchTexture->UseTexture();
 	}
 
-	// Upload instance data
-	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-
-	size_t matrixDataSize = batchMatrices.size() * sizeof(glm::mat4);
-	size_t texDataSize = batchTexData.size() * sizeof(glm::vec4);
-	size_t colorDataSize = batchColors.size() * sizeof(glm::vec4);
-
-	// Upload matrices
-	glBufferSubData(GL_ARRAY_BUFFER, 0, matrixDataSize, batchMatrices.data());
-
-	// Upload tex data
-	size_t texDataOffset = sizeof(glm::mat4) * MAX_BATCH_SIZE;
-	glBufferSubData(GL_ARRAY_BUFFER, texDataOffset, texDataSize, batchTexData.data());
-
-	// Upload colors
-	size_t colorOffset = texDataOffset + sizeof(glm::vec4) * MAX_BATCH_SIZE;
-	glBufferSubData(GL_ARRAY_BUFFER, colorOffset, colorDataSize, batchColors.data());
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	// Instance data (matrices | texData | colors) streamed for this draw
+	StreamBatchInstances(batchMesh->GetVAO(), instanceVBO, batchMatrices.data(),
+		batchTexData.data(), batchColors.data(), batchMatrices.size(), MAX_BATCH_SIZE);
 
 	// Draw instanced
-	glBindVertexArray(batchMesh->GetVAO());
-	glDrawElementsInstanced(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0, static_cast<GLsizei>(batchMatrices.size()));
-	glBindVertexArray(0);
+	Device().DrawIndexed(VertexArrayHandle(batchMesh->GetVAO()), Primitive::Triangles, 12, (int)batchMatrices.size());
 
 	drawCallsPerFrame++;
 
@@ -444,26 +467,19 @@ void Renderer::DrawGlyphBatch(Texture* atlas, const std::vector<glm::mat4>& mode
 	instancedShader->UseShader();
 	// Match the per-glyph immediate path exactly (Sprite::Render): camera-relative
 	// text uses the GUI camera's VIEW but the main camera's guiProjection.
-	glUniformMatrix4fv(instancedShader->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
-		glm::value_ptr(guiCamera.CalculateViewMatrix()));
-	glUniformMatrix4fv(instancedShader->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE,
-		glm::value_ptr(camera.guiProjection));
-	glUniform1f(instancedShader->GetUniformVariable(ShaderVariable::distanceToLight2D), 1.0f);
+	const glm::mat4 guiView = guiCamera.CalculateViewMatrix();
+	BindCameraBlock(guiView, camera.guiProjection);
+	Device().SetUniform((int)(instancedShader->GetUniformVariable(ShaderVariable::view)), guiView);
+	Device().SetUniform((int)(instancedShader->GetUniformVariable(ShaderVariable::projection)), camera.guiProjection);
+	Device().SetUniform((int)(instancedShader->GetUniformVariable(ShaderVariable::distanceToLight2D)), (float)(1.0f));
 
 	atlas->UseTexture();
 
-	// Same interleaved-by-block layout FlushBatch uses (matrices | texData | colors).
-	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(glm::mat4), models.data());
-	size_t texDataOffset = sizeof(glm::mat4) * MAX_BATCH_SIZE;
-	glBufferSubData(GL_ARRAY_BUFFER, texDataOffset, count * sizeof(glm::vec4), texData.data());
-	size_t colorOffset = texDataOffset + sizeof(glm::vec4) * MAX_BATCH_SIZE;
-	glBufferSubData(GL_ARRAY_BUFFER, colorOffset, count * sizeof(glm::vec4), colors.data());
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	// Same instance streams FlushBatch uses (matrices | texData | colors).
+	StreamBatchInstances(batchMesh->GetVAO(), instanceVBO, models.data(),
+		texData.data(), colors.data(), count, MAX_BATCH_SIZE);
 
-	glBindVertexArray(batchMesh->GetVAO());
-	glDrawElementsInstanced(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0, (GLsizei)count);
-	glBindVertexArray(0);
+	Device().DrawIndexed(VertexArrayHandle(batchMesh->GetVAO()), Primitive::Triangles, 12, (int)count);
 
 	drawCallsPerFrame++;
 }
@@ -598,6 +614,11 @@ void Renderer::ToggleVisibility(DrawingLayer layer)
 
 void Renderer::UseLight(const ShaderProgram& shader) const
 {
+	// Engine shaders read the point lights from the SpriteLights block.
+	if (BindSpriteLightsBlock(shader))
+		return;
+
+	// Legacy: per-member loose uniforms for game shaders that predate the block.
 	if (light != nullptr)
 	{
 		light->UseLight(shader);
@@ -613,7 +634,7 @@ void Renderer::UseLight(const ShaderProgram& shader) const
 	if (pointLightCount > MAX_POINT_LIGHTS)
 		pointLightCount = MAX_POINT_LIGHTS;
 
-	glUniform1i(shader.GetUniformVariable(ShaderVariable::pointLightCount), pointLightCount);
+	Device().SetUniform((int)(shader.GetUniformVariable(ShaderVariable::pointLightCount)), (int)(pointLightCount));
 
 	for (size_t i = 0; i < pointLightCount; i++)
 	{
@@ -625,7 +646,7 @@ void Renderer::UseLight(const ShaderProgram& shader) const
 	if (spotLightCount > MAX_SPOT_LIGHTS)
 		spotLightCount = MAX_SPOT_LIGHTS;
 
-	glUniform1i(shader.GetUniformVariable(ShaderVariable::spotLightCount), spotLightCount);
+	Device().SetUniform((int)(shader.GetUniformVariable(ShaderVariable::spotLightCount)), (int)(spotLightCount));
 
 	for (size_t i = 0; i < spotLightCount; i++)
 	{
@@ -640,32 +661,14 @@ void Renderer::ConfigureInstanceArray(unsigned int amount)
 	instanceAmount = amount;
 	modelMatrices = new glm::mat4[amount];
 
-	unsigned int buffer;
-	glGenBuffers(1, &buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, instanceAmount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+	const BufferHandle buffer = Device().CreateBuffer(instanceAmount * sizeof(glm::mat4), &modelMatrices[0], BufferUsage::Static);
 
 	for (unsigned int i = 0; i < game->entities.size(); i++)
 	{
-		glBindVertexArray(game->entities[i]->GetSprite()->mesh->GetVAO());
-
-		// set attribute pointers for matrix (4 times vec4)
-		glEnableVertexAttribArray(3);
-		glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
-		glEnableVertexAttribArray(4);
-		glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
-		glEnableVertexAttribArray(5);
-		glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
-		glEnableVertexAttribArray(6);
-		glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
-
-		glVertexAttribDivisor(3, 1);
-		glVertexAttribDivisor(4, 1);
-		glVertexAttribDivisor(5, 1);
-		glVertexAttribDivisor(6, 1);
-
-		glBindVertexArray(0);
+		// attribute pointers for the matrix (4 times vec4), one per instance
+		const VertexArrayHandle vao(game->entities[i]->GetSprite()->mesh->GetVAO());
+		for (unsigned int c = 0; c < 4; c++)
+			Device().SetVertexAttribute(vao, 3 + c, buffer, 4, sizeof(glm::mat4), c * sizeof(glm::vec4), 1);
 	}
-
 
 }

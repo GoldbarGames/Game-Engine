@@ -8,7 +8,6 @@
 #include "Texture.h"
 #include "InputManager.h"
 #include "MenuManager.h"
-#include "opengl_includes.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <SDL2/SDL.h>
 #include <cmath>
@@ -953,7 +952,7 @@ void Scene3DEditor::RenderListZoomButtons(Game& game, const Renderer& renderer)
 		bool sel = (listEntries[idx].type == selType && listEntries[idx].index == selIndex);
 		glm::vec4 bg = sel ? glm::vec4(0.20f, 0.42f, 0.55f, 0.9f)
 			: glm::vec4(0.20f, 0.26f, 0.34f, 0.8f);
-		DrawFilledRect(game, renderer, bx, by, bw, bh, bg);
+		renderer.DrawRect(bx, by, bw, bh, bg);
 		CenterLabel(zoomMarkerText, bx, by, bw, bh);
 		zoomMarkerText->Render(renderer);
 	}
@@ -966,13 +965,13 @@ void Scene3DEditor::RenderListZoomButtons(Game& game, const Renderer& renderer)
 		const float trackY = kListContentTop;
 		const float trackW = 6.0f;
 		const float trackH = (float)visRows * kListRowGui;
-		DrawFilledRect(game, renderer, trackX, trackY, trackW, trackH,
+		renderer.DrawRect(trackX, trackY, trackW, trackH,
 			glm::vec4(0.10f, 0.12f, 0.16f, 0.7f));
 		float thumbH = trackH * (float)visRows / (float)total;
 		if (thumbH < 18.0f) thumbH = 18.0f;
 		float frac = (float)listScroll / (float)(total - visRows);
 		float thumbY = trackY + frac * (trackH - thumbH);
-		DrawFilledRect(game, renderer, trackX, thumbY, trackW, thumbH,
+		renderer.DrawRect(trackX, thumbY, trackW, thumbH,
 			glm::vec4(0.45f, 0.55f, 0.68f, 0.95f));
 	}
 }
@@ -1103,7 +1102,7 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 			box.push_back(c[e[0]]);
 			box.push_back(c[e[1]]);
 		}
-		DrawLines(game, renderer, box, glm::vec4(1.0f, 0.92f, 0.2f, 1.0f));
+		renderer.DrawLines3D(box, glm::vec4(1.0f, 0.92f, 0.2f, 1.0f));
 
 		// Move gizmo: axis lines from the object origin. Visual up is -Y, so
 		// the Y handle points to -Y. Length scales with the object size.
@@ -1113,7 +1112,7 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 		{
 			std::vector<glm::vec3> seg{ origin, origin + dir * len };
 			glm::vec4 cc = active ? glm::vec4(1, 1, 1, 1) : col;
-			DrawLines(game, renderer, seg, cc);
+			renderer.DrawLines3D(seg, cc);
 		};
 		// Highlight the currently locked axis (white) so it's obvious which one
 		// a drag will edit.
@@ -1140,7 +1139,7 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 			seg.push_back(top); seg.push_back(top + dir * 34.0f);
 		}
 		if (!seg.empty())
-			DrawLines(game, renderer, seg, glm::vec4(0.2f, 0.95f, 1.0f, 1.0f));
+			renderer.DrawLines3D(seg, glm::vec4(0.2f, 0.95f, 1.0f, 1.0f));
 	}
 
 	// Info panel: created here, but positioned + rendered AFTER the button bars
@@ -1277,90 +1276,6 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 	}
 }
 
-void Scene3DEditor::EnsureGL()
-{
-	if (lineShader == nullptr)
-	{
-		lineShader = new ShaderProgram(-1, "data/shaders/gizmo.vert", "data/shaders/gizmo.frag");
-	}
-	if (lineVAO == 0)
-	{
-		glGenVertexArrays(1, &lineVAO);
-		glGenBuffers(1, &lineVBO);
-		glBindVertexArray(lineVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 64, nullptr, GL_DYNAMIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-		glBindVertexArray(0);
-	}
-}
-
-void Scene3DEditor::DrawLines(Game& game, const Renderer& renderer,
-	const std::vector<glm::vec3>& segments, const glm::vec4& color)
-{
-	if (segments.empty())
-		return;
-	EnsureGL();
-
-	lineShader->UseShader();
-	GLuint id = lineShader->GetID();
-	glm::mat4 model(1.0f);
-	glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(model));
-	glUniformMatrix4fv(glGetUniformLocation(id, "view"), 1, GL_FALSE,
-		glm::value_ptr(renderer.camera.CalculateViewMatrix()));
-	glUniformMatrix4fv(glGetUniformLocation(id, "projection"), 1, GL_FALSE,
-		glm::value_ptr(renderer.camera.projection));
-	glUniform4fv(glGetUniformLocation(id, "gizmoColor"), 1, glm::value_ptr(color));
-
-	glBindVertexArray(lineVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-	glBufferData(GL_ARRAY_BUFFER, segments.size() * sizeof(glm::vec3),
-		segments.data(), GL_DYNAMIC_DRAW);
-
-	GLboolean depthWas = glIsEnabled(GL_DEPTH_TEST);
-	glDisable(GL_DEPTH_TEST);
-	glDrawArrays(GL_LINES, 0, (GLsizei)segments.size());
-	if (depthWas)
-		glEnable(GL_DEPTH_TEST);
-
-	glBindVertexArray(0);
-}
-
-void Scene3DEditor::DrawFilledRect(Game& game, const Renderer& renderer,
-	float x, float y, float w, float h, const glm::vec4& color)
-{
-	EnsureGL();
-
-	// Two triangles in GUI space, drawn with the GUI ortho projection so the
-	// pixel coordinates map straight through (identity model/view).
-	glm::vec3 verts[6] = {
-		{x,     y,     0.0f}, {x + w, y,     0.0f}, {x + w, y + h, 0.0f},
-		{x,     y,     0.0f}, {x + w, y + h, 0.0f}, {x,     y + h, 0.0f}
-	};
-
-	lineShader->UseShader();
-	GLuint id = lineShader->GetID();
-	glm::mat4 ident(1.0f);
-	glUniformMatrix4fv(glGetUniformLocation(id, "model"), 1, GL_FALSE, glm::value_ptr(ident));
-	glUniformMatrix4fv(glGetUniformLocation(id, "view"), 1, GL_FALSE, glm::value_ptr(ident));
-	glUniformMatrix4fv(glGetUniformLocation(id, "projection"), 1, GL_FALSE,
-		glm::value_ptr(renderer.camera.guiProjection));
-	glUniform4fv(glGetUniformLocation(id, "gizmoColor"), 1, glm::value_ptr(color));
-
-	glBindVertexArray(lineVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
-
-	GLboolean depthWas = glIsEnabled(GL_DEPTH_TEST);
-	glDisable(GL_DEPTH_TEST);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	if (depthWas)
-		glEnable(GL_DEPTH_TEST);
-
-	glBindVertexArray(0);
-}
-
 // ------------------------------------------------------- mode button bar
 
 bool Scene3DEditor::ModeButtonClick(Game& game, float sx, float sy)
@@ -1420,7 +1335,7 @@ void Scene3DEditor::RenderModeButtons(Game& game, const Renderer& renderer)
 		bool active = ((int)xformMode == i);
 		glm::vec4 bg = active ? glm::vec4(0.20f, 0.45f, 0.85f, 0.9f)
 			: glm::vec4(0.14f, 0.14f, 0.16f, 0.8f);
-		DrawFilledRect(game, renderer, btnX[i], btnY[i], btnW[i], btnH[i], bg);
+		renderer.DrawRect(btnX[i], btnY[i], btnW[i], btnH[i], bg);
 		CenterLabel(modeButtonText[i], btnX[i], btnY[i], btnW[i], btnH[i]);
 		modeButtonText[i]->Render(renderer);
 	}
@@ -1489,7 +1404,7 @@ void Scene3DEditor::RenderAxisButtons(Game& game, const Renderer& renderer)
 	{
 		bool active = (lockAxis == i - 1);
 		glm::vec4 bg = active ? activeCol[i] : glm::vec4(0.14f, 0.14f, 0.16f, 0.8f);
-		DrawFilledRect(game, renderer, axisBtnX[i], axisBtnY[i], axisBtnW[i], axisBtnH[i], bg);
+		renderer.DrawRect(axisBtnX[i], axisBtnY[i], axisBtnW[i], axisBtnH[i], bg);
 		CenterLabel(axisBtnText[i], axisBtnX[i], axisBtnY[i], axisBtnW[i], axisBtnH[i]);
 		axisBtnText[i]->Render(renderer);
 	}
@@ -1585,7 +1500,7 @@ void Scene3DEditor::RenderResetButtons(Game& game, const Renderer& renderer)
 	{
 		// Amber-ish; the reset buttons are momentary (no persistent state).
 		glm::vec4 bg = glm::vec4(0.45f, 0.34f, 0.14f, 0.85f);
-		DrawFilledRect(game, renderer, resetBtnX[i], resetBtnY[i], resetBtnW[i], resetBtnH[i], bg);
+		renderer.DrawRect(resetBtnX[i], resetBtnY[i], resetBtnW[i], resetBtnH[i], bg);
 		CenterLabel(resetBtnText[i], resetBtnX[i], resetBtnY[i], resetBtnW[i], resetBtnH[i]);
 		resetBtnText[i]->Render(renderer);
 	}
@@ -1737,7 +1652,7 @@ void Scene3DEditor::RenderListTabs(Game& game, const Renderer& renderer)
 			: (listTab == ListTab::Cameras);
 		glm::vec4 bg = activeTab ? glm::vec4(0.20f, 0.42f, 0.55f, 0.95f)
 			: glm::vec4(0.15f, 0.19f, 0.25f, 0.85f);
-		DrawFilledRect(game, renderer, tabBtnX[i], tabBtnY[i], tabBtnW[i], tabBtnH[i], bg);
+		renderer.DrawRect(tabBtnX[i], tabBtnY[i], tabBtnW[i], tabBtnH[i], bg);
 		Color tc = activeTab ? Color{ 255, 245, 180, 255 } : Color{ 175, 190, 205, 255 };
 		tabBtnText[i]->SetText(names[i], tc);
 		tabBtnText[i]->SetScale(glm::vec2(kListScale, kListScale));
@@ -1986,7 +1901,7 @@ void Scene3DEditor::RenderEditButtons(Game& game, const Renderer& renderer)
 		bool avail = (i == 0) ? !undoStack.empty() : (i == 1) ? !redoStack.empty() : true;
 		glm::vec4 bg = (i == 2) ? glm::vec4(0.45f, 0.20f, 0.20f, 0.85f)
 			: (avail ? glm::vec4(0.24f, 0.24f, 0.30f, 0.9f) : glm::vec4(0.14f, 0.14f, 0.16f, 0.6f));
-		DrawFilledRect(game, renderer, editBtnX[i], editBtnY[i], editBtnW[i], editBtnH[i], bg);
+		renderer.DrawRect(editBtnX[i], editBtnY[i], editBtnW[i], editBtnH[i], bg);
 		CenterLabel(editBtnText[i], editBtnX[i], editBtnY[i], editBtnW[i], editBtnH[i]);
 		editBtnText[i]->Render(renderer);
 	}
@@ -2052,9 +1967,9 @@ void Scene3DEditor::RenderWaterButtons(Game& game, const Renderer& renderer)
 		waterRowY[i] = rowY;
 
 		// [-] and [+]
-		DrawFilledRect(game, renderer, waterMinusX, rowY, waterBtnW, waterRowH,
+		renderer.DrawRect(waterMinusX, rowY, waterBtnW, waterRowH,
 			glm::vec4(0.40f, 0.22f, 0.22f, 0.92f));
-		DrawFilledRect(game, renderer, waterPlusX, rowY, waterBtnW, waterRowH,
+		renderer.DrawRect(waterPlusX, rowY, waterBtnW, waterRowH,
 			glm::vec4(0.18f, 0.36f, 0.28f, 0.92f));
 		CenterLabel(waterMinusText, waterMinusX, rowY, waterBtnW, waterRowH);
 		waterMinusText->Render(renderer);
@@ -2163,9 +2078,9 @@ void Scene3DEditor::RenderFountainButtons(Game& game, const Renderer& renderer)
 		float rowY = rowY0 + (float)i * rowPitch;
 		fountainRowY[i] = rowY;
 
-		DrawFilledRect(game, renderer, fountainMinusX, rowY, fountainBtnW, fountainRowH,
+		renderer.DrawRect(fountainMinusX, rowY, fountainBtnW, fountainRowH,
 			glm::vec4(0.40f, 0.22f, 0.22f, 0.92f));
-		DrawFilledRect(game, renderer, fountainPlusX, rowY, fountainBtnW, fountainRowH,
+		renderer.DrawRect(fountainPlusX, rowY, fountainBtnW, fountainRowH,
 			glm::vec4(0.18f, 0.36f, 0.28f, 0.92f));
 		CenterLabel(fountainMinusText, fountainMinusX, rowY, fountainBtnW, fountainRowH);
 		fountainMinusText->Render(renderer);
@@ -2253,7 +2168,7 @@ void Scene3DEditor::RenderCameraButtons(Game& game, const Renderer& renderer)
 		// Teal-ish; ADD brightens while its name prompt is up.
 		glm::vec4 bg = (i == 0 && naming) ? glm::vec4(0.18f, 0.62f, 0.62f, 0.95f)
 			: glm::vec4(0.14f, 0.34f, 0.40f, 0.85f);
-		DrawFilledRect(game, renderer, camBtnX[i], camBtnY[i], camBtnW[i], camBtnH[i], bg);
+		renderer.DrawRect(camBtnX[i], camBtnY[i], camBtnW[i], camBtnH[i], bg);
 		CenterLabel(camBtnText[i], camBtnX[i], camBtnY[i], camBtnW[i], camBtnH[i]);
 		camBtnText[i]->Render(renderer);
 	}
@@ -2373,7 +2288,7 @@ void Scene3DEditor::RenderActionButtons(Game& game, const Renderer& renderer)
 	};
 	for (int i = 0; i < kNumActions; i++)
 	{
-		DrawFilledRect(game, renderer, actBtnX[i], actBtnY[i], actBtnW[i], actBtnH[i], bgs[i]);
+		renderer.DrawRect(actBtnX[i], actBtnY[i], actBtnW[i], actBtnH[i], bgs[i]);
 		CenterLabel(actBtnText[i], actBtnX[i], actBtnY[i], actBtnW[i], actBtnH[i]);
 		actBtnText[i]->Render(renderer);
 	}
@@ -2685,9 +2600,9 @@ void Scene3DEditor::RenderMinimap(Game& game, const Renderer& renderer)
 	minimapX = panelX; minimapY = panelTop; minimapW = panelW; minimapH = panelH;
 
 	// Frame + backdrop (a light border rect behind a dark fill).
-	DrawFilledRect(game, renderer, panelX - 2, panelTop - 2, panelW + 4, panelH + 4,
+	renderer.DrawRect(panelX - 2, panelTop - 2, panelW + 4, panelH + 4,
 		glm::vec4(0.45f, 0.55f, 0.62f, 0.9f));
-	DrawFilledRect(game, renderer, panelX, panelTop, panelW, panelH,
+	renderer.DrawRect(panelX, panelTop, panelW, panelH,
 		glm::vec4(0.05f, 0.06f, 0.08f, 0.94f));
 
 	// World XZ bounds over everything worth showing (+ the live camera so its
@@ -2723,7 +2638,7 @@ void Scene3DEditor::RenderMinimap(Game& game, const Renderer& renderer)
 	auto toX = [&](float wx) { return offX + (wx - minX) * sc; };   // world +X -> right
 	auto toY = [&](float wz) { return offY + (wz - minZ) * sc; };   // world +Z -> down
 	auto dot = [&](float cx, float cy, float half, const glm::vec4& col) {
-		DrawFilledRect(game, renderer, cx - half, cy - half, 2 * half, 2 * half, col);
+		renderer.DrawRect(cx - half, cy - half, 2 * half, 2 * half, col);
 	};
 
 	// Models: translucent footprints so overlaps read and small props aren't hidden
@@ -2747,7 +2662,7 @@ void Scene3DEditor::RenderMinimap(Game& game, const Renderer& renderer)
 				: m->IsWater() ? glm::vec4(0.25f, 0.5f, 0.85f, 0.5f)
 				: m->guardHidden ? glm::vec4(0.4f, 0.4f, 0.45f, 0.28f)
 				: glm::vec4(0.62f, 0.66f, 0.72f, 0.55f);
-			DrawFilledRect(game, renderer, x0, y0, w, h, col);
+			renderer.DrawRect(x0, y0, w, h, col);
 		}
 	}
 
@@ -2879,7 +2794,7 @@ void Scene3DEditor::RenderDropdown(Game& game, const Renderer& renderer)
 	dropdownTop = actBtnY[dropdownAnchor] + actBtnH[dropdownAnchor] + 8.0f;
 
 	float bgH = count * kDropRowGui + 16.0f;
-	DrawFilledRect(game, renderer, dropdownX - 8.0f, dropdownTop - 8.0f,
+	renderer.DrawRect(dropdownX - 8.0f, dropdownTop - 8.0f,
 		kDropWidthGui, bgH, glm::vec4(0.08f, 0.08f, 0.10f, 0.96f));
 
 	for (int i = 0; i < count && i < (int)dropdownRows.size(); i++)
@@ -3109,7 +3024,7 @@ void Scene3DEditor::RenderNamePrompt(Game& game, const Renderer& renderer)
 	float w = (float)game.designWidth * Camera::MULTIPLIER;
 	float boxW = 1200.0f, boxH = 220.0f;
 	float boxX = (w - boxW) * 0.5f, boxY = 300.0f;
-	DrawFilledRect(game, renderer, boxX, boxY, boxW, boxH, glm::vec4(0.05f, 0.07f, 0.12f, 0.97f));
+	renderer.DrawRect(boxX, boxY, boxW, boxH, glm::vec4(0.05f, 0.07f, 0.12f, 0.97f));
 
 	std::string txt;
 	if (promptMode == PromptMode::Tag)
@@ -3468,5 +3383,5 @@ void Scene3DEditor::RenderTileHighlight(Game& game, const Renderer& renderer)
 	glm::vec4 color = (hoverModelIndex >= 0)
 		? glm::vec4(1.0f, 0.9f, 0.2f, 1.0f)
 		: glm::vec4(0.3f, 1.0f, 0.4f, 1.0f);
-	DrawLines(game, renderer, segs, color);
+	renderer.DrawLines3D(segs, color);
 }

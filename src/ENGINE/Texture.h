@@ -2,7 +2,6 @@
 #define TEXTURE_H
 #pragma once
 
-#include "opengl_includes.h"
 #include <SDL2/SDL_image.h>
 #include "leak_check.h"
 #include <string>
@@ -24,14 +23,16 @@ public:
 	enum class Filter { Point, Smooth };
 
 	void LoadTexture(SDL_Surface* surface, bool reset=false, Filter filter=Filter::Point);
-	void UseTexture(int textureNum = GL_TEXTURE0);
+	// Bind to texture unit `unit` (0, 1, 2...). For compatibility, a raw
+	// GL_TEXTUREn value is also accepted (older callers passed GL_TEXTURE0+n).
+	void UseTexture(int unit = 0);
 	void ClearTexture();
 	int GetWidth() { return width; }
 	int GetHeight() { return height; }
 	const std::string& GetFilePath() { return filePath; } ;
 private:
 	std::string filePath = "";
-	GLuint textureID;
+	unsigned int textureID;
 	int width, height;
 };
 

@@ -220,9 +220,13 @@ def validate_project(project_dir):
     return results
 
 
+ENGINE_SHADER_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "shaders")
+
+
 def _check_shaders_dat(project_dir):
-    """Cross-check every shader referenced in data/config/shaders.dat actually
-    exists in data/shaders/."""
+    """Cross-check every shader referenced in data/config/shaders.dat exists,
+    either as a game override in data/shaders/ or as an engine shader in
+    GameEngine/shaders/ (the same lookup order the engine uses)."""
     out = []
     sd = os.path.join(project_dir, "data", "config", "shaders.dat")
     if not os.path.isfile(sd):
@@ -235,10 +239,13 @@ def _check_shaders_dat(project_dir):
             if len(parts) < 3:
                 continue
             for fname in parts[1:3]:
-                ok = os.path.isfile(os.path.join(shader_dir, fname))
-                out.append(("ok" if ok else "error",
-                            ("shader   " if ok else "MISSING shader   ") +
-                            "data/shaders/" + fname + "  (referenced in shaders.dat)"))
+                if os.path.isfile(os.path.join(shader_dir, fname)):
+                    out.append(("ok", "shader   data/shaders/" + fname + "  (game override)"))
+                elif os.path.isfile(os.path.join(ENGINE_SHADER_DIR, fname)):
+                    out.append(("ok", "shader   " + fname + "  (engine)"))
+                else:
+                    out.append(("error", "MISSING shader   " + fname +
+                                "  (referenced in shaders.dat; not in data/shaders/ or the engine)"))
     return out
 
 

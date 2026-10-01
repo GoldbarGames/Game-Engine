@@ -118,23 +118,23 @@ void GUI::SetShaderVariables(const Sprite& sprite, const ShaderProgram* shader)
 
 		fadeColor = glm::vec4(fadeR, fadeG, fadeB, fadeA);
 
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), game->renderer.now);
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
-		glUniform4fv(shader->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(fadeColor));
+		shader->SetFloat(ShaderVariable::currentTime, game->renderer.now);
+		shader->SetFloat(ShaderVariable::frequency, freq);
+		shader->SetVec4(ShaderVariable::fadeColor, fadeColor);
 		break;
 	case 13: //ShaderName::Motion:
 		// % is the number of seconds / tiles for the pattern
 		// NOTE: The tile must loop at the halfway mark to look correct
 		// TODO: Can this be improved to work for whole tiles?
 		freq = 1000;
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
+		shader->SetFloat(ShaderVariable::frequency, freq);
 		break;
 	case 15:
 		freq = 0.0004f;
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::frequency), freq);
+		shader->SetFloat(ShaderVariable::frequency, freq);
 		break;
 	case 11:
-		glUniform1f(shader->GetUniformVariable(ShaderVariable::currentTime), game->renderer.now);
+		shader->SetFloat(ShaderVariable::currentTime, game->renderer.now);
 		break;
 	default:
 		break;

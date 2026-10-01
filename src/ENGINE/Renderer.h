@@ -19,6 +19,7 @@
 #include "SpotLight.h"
 
 #include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
@@ -101,7 +102,7 @@ public:
 
 	// Instanced batch rendering (mutable for const-correct batching in Sprite::Render)
 	static const int MAX_BATCH_SIZE = 10000;
-	GLuint instanceVBO = 0;
+	unsigned int instanceVBO = 0;
 	Mesh* batchMesh = nullptr;
 	mutable std::vector<glm::mat4> batchMatrices;
 	mutable std::vector<glm::vec4> batchTexData;  // xy = texOffset, zw = texFrame
@@ -128,12 +129,43 @@ public:
 	void DrawGlyphBatch(Texture* atlas, const std::vector<glm::mat4>& models,
 		const std::vector<glm::vec4>& texData, const std::vector<glm::vec4>& colors) const;
 
+	// ---- Overlay drawing (use these instead of raw GL in game code) ----
+	// Flat-colored shapes for menus, HUDs and editor gizmos. Each call draws
+	// immediately, so it layers correctly with Text/Sprite renders issued around
+	// it. Alpha-blended, depth test off; GL state is left as it was found. The
+	// shader is built into the engine (no data/shaders files needed).
+	//
+	// GUI space: GUI units (designWidth * Camera::MULTIPLIER wide), origin top-left.
+	void DrawRect(float x, float y, float w, float h, const glm::vec4& color) const;
+	// World space through the game camera, drawn on top of the scene. `segments`
+	// holds pairs of endpoints (GL_LINES style), so its size must be even.
+	void DrawLines3D(const std::vector<glm::vec3>& segments, const glm::vec4& color) const;
+
+	// ---- Camera uniform block ("Camera", binding 0; shaders/camera.glsl) ----
+	// Every draw path binds the camera it draws with right before drawing; no
+	// code may assume the block is still bound from an earlier draw. Buffers
+	// are cached by content, so alternating between cameras (world sprites,
+	// GUI text, Scene3D) rebinds instead of re-uploading.
+	void BindCameraBlock(const glm::mat4& view, const glm::mat4& projection) const;
+	// Shorthand for the world camera: camera's view + perspective/ortho projection.
+	void BindWorldCameraBlock() const;
+
 	void Init(Game* g);
 	void SetDepthTestEnabled(bool enabled) const;
 	void SetDepthBias(float factor, float units) const;
 	void ClearDepthBias() const;
 	Renderer();
 	~Renderer();
+
+private:
+	// Overlay GL objects live in RendererOverlay.cpp (file-local), not as members,
+	// so adding the overlay API did not change Renderer's layout.
+	static void ReleaseOverlayResources();
+	// Same for every uniform-block buffer (RendererBlocks.cpp).
+	static void ReleaseUniformBlocks();
+	// UseLight for programs with the SpriteLights block: fill and bind it.
+	// False if the program predates the block (RendererBlocks.cpp).
+	bool BindSpriteLightsBlock(const ShaderProgram& shader) const;
 };
 
 #endif

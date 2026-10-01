@@ -1,4 +1,5 @@
 #include "SpotLight.h"
+#include "render/RenderDevice.h"
 
 SpotLight::SpotLight() : PointLight()
 {
@@ -33,16 +34,16 @@ SpotLight::~SpotLight()
 
 void SpotLight::UseLight(const ShaderProgram& shader, int index)
 {
-	glUniform3f(shader.uniformSpotLight[index].uniformColor, color.x, color.y, color.z);
-	glUniform1f(shader.uniformSpotLight[index].uniformAmbientIntensity, ambientIntensity);
-	glUniform1f(shader.uniformSpotLight[index].uniformDiffuseIntensity, diffuseIntensity);
+	Device().SetUniform((int)(shader.uniformSpotLight[index].uniformColor), glm::vec3(color.x, color.y, color.z));
+	Device().SetUniform((int)(shader.uniformSpotLight[index].uniformAmbientIntensity), (float)(ambientIntensity));
+	Device().SetUniform((int)(shader.uniformSpotLight[index].uniformDiffuseIntensity), (float)(diffuseIntensity));
 
-	glUniform3f(shader.uniformSpotLight[index].uniformPosition, position.x, position.y, position.z);
-	glUniform1f(shader.uniformSpotLight[index].uniformConstant, constant);
-	glUniform1f(shader.uniformSpotLight[index].uniformLinear, linear);
-	glUniform1f(shader.uniformSpotLight[index].uniformExponent, exponent);
+	Device().SetUniform((int)(shader.uniformSpotLight[index].uniformPosition), glm::vec3(position.x, position.y, position.z));
+	Device().SetUniform((int)(shader.uniformSpotLight[index].uniformConstant), (float)(constant));
+	Device().SetUniform((int)(shader.uniformSpotLight[index].uniformLinear), (float)(linear));
+	Device().SetUniform((int)(shader.uniformSpotLight[index].uniformExponent), (float)(exponent));
 
-	glUniform3f(shader.uniformSpotLight[index].uniformDirection, direction.x, direction.y, direction.z);
-	glUniform1f(shader.uniformSpotLight[index].uniformEdge, procEdge);
+	Device().SetUniform((int)(shader.uniformSpotLight[index].uniformDirection), glm::vec3(direction.x, direction.y, direction.z));
+	Device().SetUniform((int)(shader.uniformSpotLight[index].uniformEdge), (float)(procEdge));
 
 }

@@ -3,6 +3,7 @@
 #include "SoundManager.h"
 #include "Editor.h"
 #include "Text.h"
+#include "render/RenderContext.h"
 
 SettingsButton::SettingsButton(const std::string& n, const glm::vec2& pos, Game& game, SettingsType st)
 {
@@ -264,7 +265,7 @@ void SettingsButton::ExecuteSelectedOption(Game& game)
 	}
 	else if (name == "Vsync")
 	{ 
-		SDL_GL_SetSwapInterval(selectedOption);
+		SetVSync(selectedOption);
 	}
 	else if (name == "Display FPS")
 	{

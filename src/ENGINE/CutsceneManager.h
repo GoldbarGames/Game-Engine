@@ -408,6 +408,10 @@ public:
 	void ClearBackground();
 	void RenderTextbox(const Renderer& renderer);
 	SceneLabel* JumpToLabel(const std::string& newLabelName);
+
+	// Does this label exist? Unlike JumpToLabel this neither jumps nor logs an
+	// error when it is absent, so it can be used to probe for optional labels.
+	bool HasLabel(const std::string& labelName) const;
 	SceneLabel* PlayCutscene(const char* labelName);
 	void EndCutscene();
 	void ReadNextLine();

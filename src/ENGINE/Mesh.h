@@ -2,7 +2,6 @@
 #define MESH_H
 #pragma once
 
-#include "opengl_includes.h"
 #include "leak_check.h"
 
 #include <glm/mat4x4.hpp>
@@ -22,7 +21,7 @@ public:
 	// tangentOffset >= 0 enables a tangent vertex attribute at location 7 (used
 	// by the scene3d shader's vertex-tangent normal-map path). -1 = no tangent.
 	// Location 7 avoids the instancing mat4 slots (locations 3-6).
-	void CreateMesh(GLfloat* vertices, unsigned int* indices,
+	void CreateMesh(float* vertices, unsigned int* indices,
 		unsigned int numOfVertices, unsigned int numOfIndices,
 		unsigned int v, unsigned int uvOffset, unsigned int normalOffset,
 		int tangentOffset = -1);
@@ -37,6 +36,10 @@ public:
 	// in a single glDrawElementsInstanced call. Call again to update
 	// (pass dynamic = true if updating often); count 0 disables instancing.
 	void SetInstances(const glm::mat4* matrices, unsigned int count, bool dynamic = false);
+	// Same, for matrices rebuilt every frame: they are streamed through the
+	// engine's per-frame transient buffer instead of re-uploading the mesh's
+	// own instance buffer each time. Valid for draws issued this frame.
+	void SetInstancesTransient(const glm::mat4* matrices, unsigned int count);
 	// Fully restore the mesh to non-instanced state: disable the instance
 	// attribute arrays (3-6) on the VAO and zero the instance count. Call after
 	// an instanced draw when the SAME mesh is also drawn non-instanced elsewhere
@@ -44,15 +47,16 @@ public:
 	void ClearInstances();
 	unsigned int GetInstanceCount() const { return instanceCount; }
 
-	GLuint GetVAO() const { return VAO; };
+	// Backend object id of the vertex array. Engine-internal (instanced batch
+	// setup); game code should never need it.
+	unsigned int GetVAO() const { return VAO; };
 
 
 private:
-	GLuint VAO, VBO, IBO;
-	GLuint instanceVBO = 0;
+	unsigned int VAO, VBO, IBO;
+	unsigned int instanceVBO = 0;
 	unsigned int instanceCount = 0;
-	GLsizei indexCount;
-	GLenum mode = GL_TRIANGLES;
+	int indexCount;
 };
 
 #endif

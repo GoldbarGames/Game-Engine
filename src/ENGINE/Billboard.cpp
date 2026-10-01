@@ -22,7 +22,7 @@ Billboard::Billboard(Game& game, const std::string& texturePath,
 	if (meshBillboardQuad == nullptr)
 	{
 		// Unit quad in the X-Y plane, facing +Z; pos(3), uv(2), normal(3)
-		GLfloat verts[] = {
+		float verts[] = {
 			-1.0f, -1.0f, 0.0f,   0.0f, 1.0f,   0.0f, 0.0f, 1.0f,
 			 1.0f, -1.0f, 0.0f,   1.0f, 1.0f,   0.0f, 0.0f, 1.0f,
 			-1.0f,  1.0f, 0.0f,   0.0f, 0.0f,   0.0f, 0.0f, 1.0f,

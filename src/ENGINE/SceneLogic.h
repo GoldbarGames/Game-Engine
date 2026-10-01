@@ -75,7 +75,7 @@
 //             | recruited <Name> | !recruited <Name>
 // Actions:    cutscene <label> | battle <id> | teleport <x> <y> <z>
 //             | teleport-slot <slot> | open-gate <tag> | give <item...>
-//             | set <key> [N] | add <key> [N]
+//             | set <key> [N] | add <key> [N] | fade-to <slot>
 //
 // Persistence: `persist` keys are ints in a generic map saved by SaveManager
 // as one "sceneLogic" object; legacy per-puzzle save keys are seeded into it
@@ -119,6 +119,9 @@ public:
 	virtual std::string DefaultRoamPattern(const std::string& battleId) = 0;
 	virtual void GiveItem(const std::string& item) = 0;
 	virtual void ApplyStatus(const std::string& name, int ms) = 0;
+	// Move the player to a slot behind a screen fade (doorways into interiors
+	// that live in the SAME scene - cheaper than loading a scene per room).
+	virtual void FadeMoveTo(const std::string& slot) = 0;
 	virtual int CurrentChapter() = 0;
 	virtual bool IsRecruited(const std::string& name) = 0;
 };
@@ -153,7 +156,7 @@ private:
 
 	struct Action
 	{
-		enum class Type { Cutscene, Battle, Teleport, TeleportSlot, OpenGate, Give, Set, Add, Log, Status };
+		enum class Type { Cutscene, Battle, Teleport, TeleportSlot, OpenGate, Give, Set, Add, Log, Status, FadeTo };
 		Type type = Type::Cutscene;
 		std::string arg;
 		glm::vec3 pos = glm::vec3(0.0f);

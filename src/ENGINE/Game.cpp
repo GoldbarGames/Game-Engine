@@ -1,4 +1,6 @@
 #include "leak_check.h"
+#include "render/RenderDevice.h"
+#include "render/RenderContext.h"
 
 #include "Game.h"
 #include "MainHelper.h"
@@ -70,6 +72,46 @@
 
 #endif
 
+#include "UniformBlocks.h"
+#include "UniformBufferCache.h"
+#include "RenderState.h"
+#include "TransientBuffer.h"
+#include "RenderPass.h"
+#include <cstddef>
+
+namespace
+{
+	// std140 mirror of the GLSL "Outline" block (shaders/outline.glsl): the
+	// toon outline composite's settings, set in the render pass below.
+	struct OutlineBlockData
+	{
+		glm::vec2 texelSize;
+		float nearPlane;
+		float farPlane;
+		glm::vec3 outlineColor;
+		float edgeThreshold;
+		float thickness;
+		float pad[3];   // std140 rounds the block up to 16 bytes
+	};
+	static_assert(sizeof(OutlineBlockData) == 48, "OutlineBlockData must match shaders/outline.glsl");
+
+	const UniformBlockMember kOutlineMembers[] = {
+		{ "texelSize", offsetof(OutlineBlockData, texelSize), false },
+		{ "nearPlane", offsetof(OutlineBlockData, nearPlane), false },
+		{ "farPlane", offsetof(OutlineBlockData, farPlane), false },
+		{ "outlineColor", offsetof(OutlineBlockData, outlineColor), false },
+		{ "edgeThreshold", offsetof(OutlineBlockData, edgeThreshold), false },
+		{ "thickness", offsetof(OutlineBlockData, thickness), false },
+	};
+
+	UniformBufferCache outlineBlocks(UniformBlock::Outline, sizeof(OutlineBlockData), 2);
+
+	// What RenderNormally is drawing into right now - the World pass or the
+	// crossfade capture - so its sub-passes declare the right targets.
+	// File-local rather than a Game member so Game's layout is unchanged.
+	TargetSet worldPassTargets = 0;
+}
+
 static unsigned int allocationCount = 0;
 
 /*
@@ -86,46 +128,6 @@ void operator delete(void* p)
 	free(p);
 }
 */
-
-#if defined(_DEBUG) && !defined(__EMSCRIPTEN__)
-// GL 4.3+ debug output: the driver hands us the exact offending call with a
-// readable message + severity, replacing the engine's sticky-glGetError chasing.
-// Installed after glewInit when the context is >= 4.3 (debug desktop builds only;
-// web / release desktop are untouched). See ApplyVersion/[[engine-gl-version]].
-static void GLAPIENTRY GLDebugCallback(GLenum source, GLenum type, GLuint id,
-	GLenum severity, GLsizei /*length*/, const GLchar* message, const void* /*user*/)
-{
-	// Mute low-value driver chatter (e.g. NVIDIA "buffer will use VIDEO memory").
-	if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;
-	if (id == 131185 || id == 131218 || id == 131204) return;
-
-	const char* src = "?";
-	switch (source)
-	{
-		case GL_DEBUG_SOURCE_API:             src = "API";      break;
-		case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   src = "WinSys";   break;
-		case GL_DEBUG_SOURCE_SHADER_COMPILER: src = "Shader";   break;
-		case GL_DEBUG_SOURCE_THIRD_PARTY:     src = "3rdParty"; break;
-		case GL_DEBUG_SOURCE_APPLICATION:     src = "App";      break;
-		case GL_DEBUG_SOURCE_OTHER:           src = "Other";    break;
-	}
-	const char* typ = "?";
-	switch (type)
-	{
-		case GL_DEBUG_TYPE_ERROR:               typ = "ERROR";       break;
-		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typ = "DEPRECATED";  break;
-		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typ = "UNDEFINED";   break;
-		case GL_DEBUG_TYPE_PORTABILITY:         typ = "PORTABILITY"; break;
-		case GL_DEBUG_TYPE_PERFORMANCE:         typ = "PERF";        break;
-		case GL_DEBUG_TYPE_MARKER:              typ = "MARKER";      break;
-		case GL_DEBUG_TYPE_OTHER:               typ = "OTHER";       break;
-	}
-	const char* sev = (severity == GL_DEBUG_SEVERITY_HIGH)   ? "HIGH"
-	                : (severity == GL_DEBUG_SEVERITY_MEDIUM) ? "MED" : "LOW";
-	std::cout << "[GL " << sev << "/" << src << "/" << typ << " #" << id << "] "
-		<< message << std::endl;
-}
-#endif
 
 void WebGLMainLoop(Game* game)
 {
@@ -235,6 +237,17 @@ int Game::MainLoop()
 	}
 	//PrintDuration("Update");
 
+	// Headless test runs: hard time limit (see Game::autoQuitAfterMs)
+	if (autoQuitAfterMs > 0.0f)
+	{
+		autoQuitElapsedMs += dt;
+		if (autoQuitElapsedMs >= autoQuitAfterMs)
+		{
+			std::cout << "Run time limit reached - quitting" << std::endl;
+			shouldQuit = true;
+		}
+	}
+
 	// Automated test runs end the game when input playback is done
 	if (quitWhenPlaybackEnds && !inputManager.isPlayingBackInput)
 	{
@@ -296,6 +309,10 @@ int Game::MainLoop()
 
 	return 0;
 }
+
+bool Game::startWindowed = false;
+int  Game::startWindowedMaxWidth = 1280;
+int  Game::startWindowedMaxHeight = 720;
 
 Game::Game(const std::string& name, const std::string& title, const std::string& icon, bool is2D, MainHelper* helper) : logger("logs/output.log")
 {
@@ -452,11 +469,22 @@ void Game::Init()
 		case 3: w = 1920; h = 1080; break;
 		default: break;  // no/unknown setting -> keep the engine defaults
 		}
+		if (startWindowed)
+		{
+			// --windowed launch: open small from the very first frame (see Game.h).
+			forceWindowed = true;
+			if (w <= 0 || w > startWindowedMaxWidth)
+			{
+				w = startWindowedMaxWidth;
+				h = startWindowedMaxHeight;
+			}
+		}
 		if (w > 0)
 		{
 			initialWidth = w;  initialHeight = h;
 			screenWidth = w;   screenHeight = h;
-			indexScreenResolution = resIndex;
+			if (!startWindowed)
+				indexScreenResolution = resIndex;
 		}
 	}
 
@@ -696,170 +724,16 @@ void Game::InitOpenGL()
 	std::cout << "Init OpenGL..." << std::endl;
 
 
-#if EMSCRIPTEN
+	// The graphics context (render/gl/GLContext.cpp for the GL backend).
+	mainContext = (SDL_GLContext)CreateRenderContext(window, logger);
 
-	std::cout << "Attempting to create emscripten WebGL context..." << std::endl;
+	// Engine default state (depth test LESS with writes, alpha blending, no
+	// culling, no depth bias), set on GL and tracked from here on.
+	ResetRenderState(RenderState());
 
-	// 3.2 is part of the modern versions of OpenGL, but most video cards whould be able to run it
-	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_MAJOR_VERSION failed. " + std::string(SDL_GetError()));
-	}
+	Device().SetViewport(0, 0, screenWidth, screenHeight);
 
-	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_MINOR_VERSION failed. " + std::string(SDL_GetError()));
-	}
-
-	// Set our OpenGL version.
-	// SDL_GL_CONTEXT_CORE gives us only the newer version, deprecated functions are disabled
-	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_MASK failed. " + std::string(SDL_GetError()));
-	}
-
-	std::cout << "Attempting to create emscripten WebGL context 1 ..." << std::endl;
-
-	EmscriptenWebGLContextAttributes attrs;
-	std::cout << "Attempting to create emscripten WebGL context 2 ..." << std::endl;
-
-	// The following lines must be done in exact order, or it will break!
-	emscripten_webgl_init_context_attributes(&attrs); // you MUST init the attributes before creating the context
-	
-	attrs.majorVersion = 2;  // WebGL 2 = OpenGL ES 3.0
-	attrs.minorVersion = 0;
-	attrs.alpha = true;
-	attrs.antialias = true;
-	attrs.powerPreference = EM_WEBGL_POWER_PREFERENCE_DEFAULT;
-	
-	EMSCRIPTEN_WEBGL_CONTEXT_HANDLE webgl_context = emscripten_webgl_create_context("#canvas", &attrs);
-	
-	std::cout << "Attempting to create emscripten WebGL context 3 ..." << std::endl;
-	
-	emscripten_webgl_make_context_current(webgl_context);
-	
-	std::cout << "Attempting to create emscripten WebGL context 4..." << std::endl;
-	
-	mainContext = SDL_GL_CreateContext(window);
-
-#else
-	
-	// Desktop: prefer a modern 4.6 core context (unlocks GL 4.x features), and
-	// fall back to 3.3 core for older GPUs/drivers. 3.3 is the floor - our shaders
-	// need GLSL 330+. The version we actually get drives the "#version" line the
-	// shader loader injects (see ShaderProgram::ApplyVersion).
-	// SDL_GL_CONTEXT_CORE gives us only the newer version; deprecated functions off.
-	if (SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_MASK failed. " + std::string(SDL_GetError()));
-	}
-
-	// Debug builds ask for a debug-capable context so GL 4.3+ debug output
-	// (glDebugMessageCallback, installed after glewInit) fires reliably.
-#ifdef _DEBUG
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-#endif
-
-	const int tryMajor[] = { 4, 3 };
-	const int tryMinor[] = { 6, 3 };
-	mainContext = nullptr;
-	for (int t = 0; t < 2 && mainContext == nullptr; t++)
-	{
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, tryMajor[t]);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, tryMinor[t]);
-		std::cout << "Creating GL " << tryMajor[t] << "." << tryMinor[t] << " core context..." << std::endl;
-		mainContext = SDL_GL_CreateContext(window);
-		if (mainContext == nullptr)
-			logger.Log("GL " + std::to_string(tryMajor[t]) + "." + std::to_string(tryMinor[t])
-				+ " context unavailable: " + std::string(SDL_GetError()));
-	}
-	if (mainContext == nullptr)
-		logger.Log("ERROR: could not create any desktop GL context. " + std::string(SDL_GetError()));
-
-	if (SDL_GL_MakeCurrent(window, mainContext) != 0)
-	{
-		std::cout << "Context failed..." << std::endl;
-		logger.Log("ERROR: SDL_GL_MakeCurrent failed. " + std::string(SDL_GetError()));
-	}
-
-	// Record the achieved GLSL version (GL X.Y -> GLSL X*100+Y*10, floored at
-	// 330) so file shaders get their "#version" rewritten to match this context.
-	{
-		int glMaj = 3, glMin = 3;
-		glGetIntegerv(GL_MAJOR_VERSION, &glMaj);
-		glGetIntegerv(GL_MINOR_VERSION, &glMin);
-		int glsl = glMaj * 100 + glMin * 10;
-		if (glsl < 330) glsl = 330;
-		ShaderProgram::SetGLSLVersion(glsl);
-		std::cout << "Desktop GL " << glMaj << "." << glMin << " -> GLSL " << glsl << std::endl;
-	}
-
-	// Turn on double buffering with a 24bit Z buffer.
-	// You may need to change this to 16 or 32 for your system
-	if (SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_DOUBLEBUFFER failed. " + std::string(SDL_GetError()));
-	}
-
-	if (SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_MULTISAMPLEBUFFERS failed. " + std::string(SDL_GetError()));
-	}
-
-	if (SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetAttribute SDL_GL_MULTISAMPLESAMPLES failed. " + std::string(SDL_GetError()));
-	}
-
-	glEnable(GL_MULTISAMPLE);
-#endif
-
-	std::cout << "GL_VERSION: " << glGetString(GL_VERSION) << std::endl;
-	//std::cout << "GL_VERSION? " << std::endl;
-
-	// Parameter 0 = no vsync, 1 = vsync
-	if (SDL_GL_SetSwapInterval(1) != 0)
-	{
-		logger.Log("ERROR: SDL_GL_SetSwapInterval failed. " + std::string(SDL_GetError()));
-	}
-
-#ifndef EMSCRIPTEN
-	glewExperimental = GL_TRUE;
-	glewInit();
-	glAlphaFunc(GL_GREATER, 0.1f);
-	glEnable(GL_ALPHA_TEST);
-
-#if defined(_DEBUG) && !defined(__EMSCRIPTEN__)
-	// GL 4.3+ debug output (desktop debug builds): route driver diagnostics to
-	// stdout via GLDebugCallback. No-op on the 3.3 fallback (< 4.3).
-	{
-		int dMaj = 0, dMin = 0;
-		glGetIntegerv(GL_MAJOR_VERSION, &dMaj);
-		glGetIntegerv(GL_MINOR_VERSION, &dMin);
-		if ((dMaj * 10 + dMin) >= 43 && glDebugMessageCallback != nullptr)
-		{
-			glEnable(GL_DEBUG_OUTPUT);
-			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);   // report on the offending call's stack
-			glDebugMessageCallback(GLDebugCallback, nullptr);
-			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
-			glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION,
-				0, nullptr, GL_FALSE);
-			std::cout << "GL debug output enabled (" << dMaj << "." << dMin << ")" << std::endl;
-		}
-	}
-#endif
-#endif
-
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glViewport(0, 0, screenWidth, screenHeight);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-	SDL_GL_SwapWindow(window);
+	PresentFrame(window);
 
 	// Build the cameras from the fixed DESIGN resolution, not the live window
 	// size. This keeps guiProjection (and the ortho/perspective projections) in
@@ -904,7 +778,7 @@ void Game::InitSDL()
 
 	std::cout << "Creating window..." << std::endl;
 
-	window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, initialWidth, initialHeight, SDL_WINDOW_OPENGL);
+	window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, initialWidth, initialHeight, RenderWindowFlags());
 
 	if (window == nullptr)
 	{
@@ -921,7 +795,7 @@ void Game::InitSDL()
 void Game::EndSDL()
 {
 	// Delete our OpenGL context
-	SDL_GL_DeleteContext(mainContext);
+	DestroyRenderContext(mainContext);
 
 	SDL_DestroyWindow(window);	
 	window = nullptr;
@@ -1202,12 +1076,23 @@ void Game::DeleteEntity(Entity* entity)
 		entityById.erase(entity->id);
 		delete_it(*index);
 		entities.erase(index);
-		entitiesToDelete.erase(entitiesToDelete.begin());
 	}
 	else
 	{
-		logger.LogEntity("Failed to delete entity", *entity);
+		// The entity is no longer in the level - it was destroyed some other
+		// way while this deletion request was still queued, which is exactly
+		// what happens when a game loads a new level at runtime (the load
+		// deletes every entity outright). Do NOT log it: `entity` is dangling
+		// here, so reading it is undefined behaviour.
+		//
+		// The queue entry is dropped either way. Leaving it in place used to
+		// hang the game: CheckDeleteEntities loops `while (entitiesToDelete
+		// .size() > 0)`, and an entry that can never be erased spins forever.
 	}
+
+	// Always retire the request, found or not, so the flush loop terminates.
+	if (!entitiesToDelete.empty())
+		entitiesToDelete.erase(entitiesToDelete.begin());
 }
 
 void Game::DeleteEntity(int index)
@@ -1986,7 +1871,9 @@ void Game::LoadSettings()
 		{
 			indexScreenResolution = std::stoi(tokens[1]);
 
-			if (hasSettingsButton)
+			// A --windowed capture run keeps its small window: re-applying a saved
+			// 1080p index here would grow it to fill the whole desktop again.
+			if (hasSettingsButton && !forceWindowed)
 			{
 				SettingsButton* button = dynamic_cast<SettingsButton*>(allMenus["DisplaySettings"]->GetButtonByName("Screen Resolution"));
 
@@ -2448,19 +2335,19 @@ void Game::CreateScreenshot()
 	switch (screenWidth)
 	{
 		case 640:
-			glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels640);
+			Device().ReadPixels(0, 0, screenWidth, screenHeight, ReadbackFormat::BGR8, pixels640);
 			createdScreenshot = SDL_CreateRGBSurfaceFrom(pixels640, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
 			break;
 		case 1280:
-			glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels1280);
+			Device().ReadPixels(0, 0, screenWidth, screenHeight, ReadbackFormat::BGR8, pixels1280);
 			createdScreenshot = SDL_CreateRGBSurfaceFrom(pixels1280, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
 			break;
 		case 1600:
-			glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels1600);
+			Device().ReadPixels(0, 0, screenWidth, screenHeight, ReadbackFormat::BGR8, pixels1600);
 			createdScreenshot = SDL_CreateRGBSurfaceFrom(pixels1600, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
 			break;
 		case 1920:
-			glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels1920);
+			Device().ReadPixels(0, 0, screenWidth, screenHeight, ReadbackFormat::BGR8, pixels1920);
 			createdScreenshot = SDL_CreateRGBSurfaceFrom(pixels1920, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
 			break;
 	}		
@@ -2536,7 +2423,7 @@ void Game::SaveScreenshot(const std::string& filepath, const std::string& filena
 	const unsigned int bytesPerPixel = 3;
 
 	unsigned char* pixels = new unsigned char[screenWidth * screenHeight * bytesPerPixel]; // 4 bytes for RGBA
-	glReadPixels(0, 0, screenWidth, screenHeight, GL_BGR, GL_UNSIGNED_BYTE, pixels);
+	Device().ReadPixels(0, 0, screenWidth, screenHeight, ReadbackFormat::BGR8, pixels);
 
 	SDL_Surface* screenshot = SDL_CreateRGBSurfaceFrom(pixels, screenWidth, screenHeight, 8 * bytesPerPixel, screenWidth * bytesPerPixel, 0, 0, 0, 0);
 
@@ -3118,7 +3005,7 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 	if (shader4 != nullptr)
 		prevMainFrameBuffer->sprite->SetShader(shader4);
 
-	glViewport(0, 0, screenWidth, screenHeight);
+	Device().SetViewport(0, 0, screenWidth, screenHeight);
 }
 
 
@@ -3127,51 +3014,56 @@ void Game::Render()
 
 
 	
+	// The frame is a list of declared passes (RenderPass.h): each names the
+	// targets it samples and the ones it draws into.
+	BeginFramePasses();
+
 	// Refresh the shared camera UBO (view+projection) + instance groups once per
 	// frame, before any 3D pass reads them.
 	Scene3D::Get().UpdateCameraUBO(renderer);
 
 	// Shadow maps: render scene depth from the sun's POV (outdoor) and from the
 	// strongest point light (indoor cube map) before the main pass.
-	Scene3D::Get().RenderShadowDepth(*this, renderer);
-	Scene3D::Get().RenderPointShadowDepth(*this, renderer);
-
-	// zero pass
-	glBindFramebuffer(GL_FRAMEBUFFER, mainFrameBuffer->framebufferObject);
-
-	// While a cel-shaded 3D scene is up, the character-outline mask (draw buffer 1)
-	// must be cleared to 0 too, so include it in the clear then revert to
-	// color-only for the opaque pass (characters re-enable it while they draw).
-	bool outlineActive = Scene3D::Get().active && Scene3D::Get().celShading
-		&& Scene3D::Get().outlineEnabled;
-	if (outlineActive)
+	RunPass("SunShadow", Targets(), Targets(RenderTarget::ShadowMap), [&]()
 	{
-		GLenum bufs2[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-		glDrawBuffers(2, bufs2);
-	}
-
-	//glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	if (outlineActive)
+		Scene3D::Get().RenderShadowDepth(*this, renderer);
+	});
+	RunPass("PointShadows", Targets(), Targets(RenderTarget::PointShadowMaps), [&]()
 	{
-		GLenum bufs1[1] = { GL_COLOR_ATTACHMENT0 };
-		glDrawBuffers(1, bufs1);
-	}
+		Scene3D::Get().RenderPointShadowDepth(*this, renderer);
+	});
 
-	//SetDuration("RenderNormally");
-	RenderNormally();
-	//PrintDuration("RenderNormally");
+	// The world (backgrounds, entities, the 3D scene) into the main framebuffer.
+	worldPassTargets = Targets(RenderTarget::MainColor, RenderTarget::MainDepth, RenderTarget::CharacterMask);
+	RunPass("World", Targets(RenderTarget::ShadowMap, RenderTarget::PointShadowMaps), worldPassTargets, [&]()
+	{
+		RenderDevice& device = Device();
+		device.BindFramebuffer(FramebufferHandle(mainFrameBuffer->framebufferObject));
 
-	// first pass
-	glBindFramebuffer(GL_FRAMEBUFFER, cutsceneFrameBuffer->framebufferObject);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// While a cel-shaded 3D scene is up, the character-outline mask (draw buffer 1)
+		// must be cleared to 0 too, so include it in the clear then revert to
+		// color-only for the opaque pass (characters re-enable it while they draw).
+		bool outlineActive = Scene3D::Get().active && Scene3D::Get().celShading
+			&& Scene3D::Get().outlineEnabled;
+		if (outlineActive)
+			device.SetBoundDrawBuffers(2);
 
-	//SetDuration("RenderScene");
-	RenderScene();
-	//PrintDuration("RenderScene");
+		device.Clear(true, true, glm::vec4(0.0f));
+
+		if (outlineActive)
+			device.SetBoundDrawBuffers(1);
+
+		RenderNormally();
+	});
+
+	// Cutscene layer (text boxes, VN sprites, editor UI) into its own framebuffer.
+	RunPass("Cutscene", Targets(), Targets(RenderTarget::CutsceneColor), [&]()
+	{
+		Device().BindFramebuffer(FramebufferHandle(cutsceneFrameBuffer->framebufferObject));
+		Device().Clear(true, true, glm::vec4(0.0f));
+
+		RenderScene();
+	});
 
 	// second pass
 	bool renderSecondCutsceneBuffer = false;
@@ -3213,31 +3105,29 @@ void Game::Render()
 			renderSecondCutsceneBuffer = false;
 			updateScreenTexture = false;
 
-			glBindFramebuffer(GL_FRAMEBUFFER, prevMainFrameBuffer->framebufferObject);
-			glClearColor(0.1f, 0.5f, 1.0f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			RenderNormally();
-			prevMainFrameBuffer->sprite->color.a = 255;
-			
-			glBindFramebuffer(GL_FRAMEBUFFER, prevCutsceneFrameBuffer->framebufferObject);
-			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			RenderScene();
-			prevCutsceneFrameBuffer->sprite->color.a = 255;
+			// Capture this frame's world + cutscene as the "previous" images the
+			// next crossfade fades out from.
+			worldPassTargets = Targets(RenderTarget::PrevMainColor);
+			RunPass("CrossfadeCapture", Targets(RenderTarget::ShadowMap, RenderTarget::PointShadowMaps),
+				Targets(RenderTarget::PrevMainColor, RenderTarget::PrevCutsceneColor), [&]()
+			{
+				Device().BindFramebuffer(FramebufferHandle(prevMainFrameBuffer->framebufferObject));
+				Device().Clear(true, true, glm::vec4(0.1f, 0.5f, 1.0f, 1.0f));
+				RenderNormally();
+				prevMainFrameBuffer->sprite->color.a = 255;
+
+				Device().BindFramebuffer(FramebufferHandle(prevCutsceneFrameBuffer->framebufferObject));
+				Device().Clear(true, true, glm::vec4(0.0f));
+				RenderScene();
+				prevCutsceneFrameBuffer->sprite->color.a = 255;
+			});
 		}
 	}
 
 	//SetDuration("render2");
 
-	// final pass
-	glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-	glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	glm::vec3 screenPos = glm::vec3(renderer.camera.startScreenWidth, renderer.camera.startScreenHeight, 0);
 	glm::vec2 screenScale = glm::vec2(renderer.camera.startScreenWidth / screenWidth, renderer.camera.startScreenHeight / -screenHeight);
-
-	RenderQuake(screenPos);
 
 	// Toon post-process outline: when a 3D scene with cel-shading is active,
 	// composite the main (3D) framebuffer through a depth-edge shader that draws
@@ -3245,79 +3135,128 @@ void Game::Render()
 	Scene3D& scene3d = Scene3D::Get();
 	bool celEdge = scene3d.active && scene3d.celShading && scene3d.outlineEnabled
 		&& scene3d.EdgeShader() != nullptr && mainFrameBuffer->depthTexture != 0;
+
+	// Composite the layers onto the window: the world (through the toon
+	// outline when it is on - it samples the world's depth and character
+	// mask), the crossfade's previous images, and the cutscene layer.
+	TargetSet compositeReads = Targets(RenderTarget::MainColor, RenderTarget::CutsceneColor);
 	if (celEdge)
-	{
-		ShaderProgram* prevShader = mainFrameBuffer->sprite->GetShader();
-		ShaderProgram* edge = scene3d.EdgeShader();
-		mainFrameBuffer->sprite->SetShader(edge);
-		edge->UseShader();
-		GLuint eid = edge->GetID();
-		glUniform1i(glGetUniformLocation(eid, "depthTex"), 1);
-		glUniform2f(glGetUniformLocation(eid, "texelSize"), 1.0f / screenWidth, 1.0f / screenHeight);
-		glUniform1f(glGetUniformLocation(eid, "nearPlane"), 0.1f);
-		glUniform1f(glGetUniformLocation(eid, "farPlane"), 5000.0f);
-		glUniform1f(glGetUniformLocation(eid, "edgeThreshold"), scene3d.outlineDepthThreshold);
-		glUniform1f(glGetUniformLocation(eid, "thickness"), scene3d.outlineWidth);
-		glUniform3fv(glGetUniformLocation(eid, "outlineColor"), 1, glm::value_ptr(scene3d.outlineColor));
-		glUniform1i(glGetUniformLocation(eid, "maskTex"), 2);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, mainFrameBuffer->depthTexture);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, mainFrameBuffer->maskTexture);
-		glActiveTexture(GL_TEXTURE0);
-
-		mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
-		mainFrameBuffer->sprite->SetShader(prevShader);
-	}
-	else
-	{
-		mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
-	}
-
+		compositeReads |= Targets(RenderTarget::MainDepth, RenderTarget::CharacterMask);
 	if (renderSecondCutsceneBuffer)
+		compositeReads |= Targets(RenderTarget::PrevMainColor, RenderTarget::PrevCutsceneColor);
+	RunPass("Composite", compositeReads, Targets(RenderTarget::Backbuffer), [&]()
 	{
-		prevMainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
-	}
+		Device().BindFramebuffer(FramebufferHandle()); // back to default
+		Device().Clear(true, true, glm::vec4(clearColor.r, clearColor.g, clearColor.b, clearColor.a));
 
-	cutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+		RenderQuake(screenPos);
 
-	if (renderSecondCutsceneBuffer)
-	{
-		prevCutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
-	}
-
-	// Render the GUI above everything
-	if (!cutsceneManager.watchingCutscene && !editMode)
-	{
-		gui->Render(renderer);
-	}
-	else if (gui->renderOnCutscene)
-	{
-		gui->Render(renderer);
-	}
-
-	// Render all menu screens above the GUI
-	if (openedMenus.size() > 0)
-	{
-		if (menuLastFrame != nullptr && menuLastFrame->isPlayingExitAnimation)
+		if (celEdge)
 		{
-			menuLastFrame->Render(renderer);
+			ShaderProgram* prevShader = mainFrameBuffer->sprite->GetShader();
+			ShaderProgram* edge = scene3d.EdgeShader();
+			mainFrameBuffer->sprite->SetShader(edge);
+			edge->UseShader();
+			RenderDevice& device = Device();
+			const ProgramHandle eid(edge->GetID());
+			device.SetUniform(device.UniformLocation(eid, "depthTex"), 1);
+			device.SetUniform(device.UniformLocation(eid, "maskTex"), 2);
+
+			OutlineBlockData outline = {};
+			outline.texelSize = glm::vec2(1.0f / screenWidth, 1.0f / screenHeight);
+			// The camera's ACTUAL planes, not the defaults.
+			//
+			// These were hardcoded 0.1 and 5000, which is what Camera happens to
+			// start with - so the outline was correct for any game that never
+			// called SetupPerspective with anything else, and quietly wrong for one
+			// that did. The shader linearises depth with these, so getting them
+			// wrong scales every depth it compares AND moves the "this is the empty
+			// far background" cutoff, which is how a game with a 6 km far plane
+			// ended up with almost no outline at all.
+			outline.nearPlane = renderer.camera.nearPlane;
+			outline.farPlane = renderer.camera.farPlane;
+			outline.edgeThreshold = scene3d.outlineDepthThreshold;
+			outline.thickness = scene3d.outlineWidth;
+			outline.outlineColor = scene3d.outlineColor;
+			if (device.HasUniformBlock(eid, "Outline"))
+			{
+				CheckUniformBlockLayout(eid.id, "Outline", kOutlineMembers,
+					sizeof(kOutlineMembers) / sizeof(kOutlineMembers[0]), sizeof(OutlineBlockData));
+				outlineBlocks.Bind(&outline);
+			}
+			else
+			{
+				// Legacy: a scene3d_edge.frag copy in the game that predates the block.
+				device.SetUniform(device.UniformLocation(eid, "texelSize"), outline.texelSize);
+				device.SetUniform(device.UniformLocation(eid, "nearPlane"), outline.nearPlane);
+				device.SetUniform(device.UniformLocation(eid, "farPlane"), outline.farPlane);
+				device.SetUniform(device.UniformLocation(eid, "edgeThreshold"), outline.edgeThreshold);
+				device.SetUniform(device.UniformLocation(eid, "thickness"), outline.thickness);
+				device.SetUniform(device.UniformLocation(eid, "outlineColor"), outline.outlineColor);
+			}
+			device.BindTexture(1, TextureHandle(mainFrameBuffer->depthTexture));
+			device.BindTexture(2, TextureHandle(mainFrameBuffer->maskTexture));
+
+			mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+			mainFrameBuffer->sprite->SetShader(prevShader);
 		}
 		else
 		{
-			openedMenus[openedMenus.size() - 1]->Render(renderer);
+			mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
 		}
-	}
 
-	// Always render the mouse last
-	if (cursorSprite != nullptr)
+		if (renderSecondCutsceneBuffer)
+		{
+			prevMainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+		}
+
+		cutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+
+		if (renderSecondCutsceneBuffer)
+		{
+			prevCutsceneFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+		}
+	});
+
+	// GUI, menu screens and the mouse cursor, on top of everything.
+	RunPass("GUI", Targets(), Targets(RenderTarget::Backbuffer), [&]()
 	{
-		cursorSprite->Render(glm::vec3(inputManager.GetMouseX() * Camera::MULTIPLIER, 
-			inputManager.GetMouseY() * Camera::MULTIPLIER, 0), 0, renderer, cursorScale, glm::vec3(0,0,0));
-	}
+		// Render the GUI above everything
+		if (!cutsceneManager.watchingCutscene && !editMode)
+		{
+			gui->Render(renderer);
+		}
+		else if (gui->renderOnCutscene)
+		{
+			gui->Render(renderer);
+		}
 
-	glUseProgram(0);
-	SDL_GL_SwapWindow(window);
+		// Render all menu screens above the GUI
+		if (openedMenus.size() > 0)
+		{
+			if (menuLastFrame != nullptr && menuLastFrame->isPlayingExitAnimation)
+			{
+				menuLastFrame->Render(renderer);
+			}
+			else
+			{
+				openedMenus[openedMenus.size() - 1]->Render(renderer);
+			}
+		}
+
+		// Always render the mouse last
+		if (cursorSprite != nullptr)
+		{
+			cursorSprite->Render(glm::vec3(inputManager.GetMouseX() * Camera::MULTIPLIER, 
+				inputManager.GetMouseY() * Camera::MULTIPLIER, 0), 0, renderer, cursorScale, glm::vec3(0,0,0));
+		}
+	});
+
+	Device().UseProgram(ProgramHandle());
+	PresentFrame(window);
+	// Fence this frame's slice of the streaming buffer and move to the next.
+	TransientEndFrame();
+	EndFramePasses();
 
 	if (savingGIF)
 	{
@@ -3487,14 +3426,9 @@ void Game::RenderNormally()
 	// camera at runtime (2.5D mode) set it true while use2DCamera stays
 	// true - gating on use2DCamera silently disabled the depth buffer for
 	// them every frame, leaving pure painter's-algorithm draw order
-	if (useDepthTesting)
-	{
-		glEnable(GL_DEPTH_TEST);
-	}
-	else
-	{
-		glDisable(GL_DEPTH_TEST);
-	}
+	RenderState spritePass = CurrentRenderState();
+	spritePass.depthTest = useDepthTesting;
+	ApplyRenderState(spritePass);
 
 	gui->RenderStart();
 
@@ -3637,13 +3571,20 @@ void Game::RenderNormally()
 
 		// Transparent 3D-scene models (glass/ice) draw last, back-to-front,
 		// while depth testing is still enabled (RenderScene turns it off).
-		Scene3D::Get().RenderTransparentModels(*this, renderer);
+		RunPass("Transparent", Targets(RenderTarget::ShadowMap, RenderTarget::PointShadowMaps), worldPassTargets, [&]()
+		{
+			Scene3D::Get().RenderTransparentModels(*this, renderer);
+		});
 
 		// Weather particles (rain/snow) after all geometry: depth-tested so
 		// props occlude them, depth-write off so the outline pass ignores them.
-		Scene3D::Get().RenderWeather(*this, renderer);
-		// Fountain spray droplets (same transparent, depth-tested slot).
-		Scene3D::Get().RenderFountain(*this, renderer);
+		// Fountain spray droplets share the slot; a storm's lightning flash
+		// goes on last (RenderWeather draws it).
+		RunPass("Weather", Targets(), worldPassTargets, [&]()
+		{
+			Scene3D::Get().RenderWeather(*this, renderer);
+			Scene3D::Get().RenderFountain(*this, renderer);
+		});
 	}
 
 	if (!use2DCamera && triangle3D != nullptr)
@@ -3656,7 +3597,9 @@ void Game::RenderNormally()
 void Game::RenderScene()
 {
 	// Draw anything in the cutscenes
-	glDisable(GL_DEPTH_TEST);
+	RenderState scenePass = CurrentRenderState();
+	scenePass.depthTest = false;
+	ApplyRenderState(scenePass);
 
 	cutsceneManager.Render(renderer); // includes the overlay
 
@@ -3859,7 +3802,7 @@ Mesh* Game::CreateQuadMesh()
 		0, 1, 2
 	};
 
-	GLfloat quadVertices[] = {
+	float quadVertices[] = {
 		-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
 		1.0f, -1.0f, 0.0f,   0.0f, 0.0f,
 		-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,
@@ -3893,7 +3836,7 @@ Mesh* Game::CreateCubeMesh()
 	// A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 vertices
 	// 6 faces, 4 vertices per face = 24 indices
 
-	GLfloat cubeVertices[] = {
+	float cubeVertices[] = {
 		-1.0f,-1.0f,-1.0f, // triangle 1 : begin
 		-1.0f,-1.0f, 1.0f,
 		-1.0f, 1.0f, 1.0f, // triangle 1 : end

@@ -15,6 +15,7 @@
 #include "ParticleSystem.h"
 #include "SoundTest.h"
 #include "Scene3D.h"
+#include "render/RenderContext.h"
 
 //#include <Windows.h>
 
@@ -1960,7 +1961,7 @@ namespace CutsceneFunctions
 		}
 		else if (parameters[1] == "vsync")
 		{
-			SDL_GL_SetSwapInterval(c.ParseNumberValue(parameters[2]));
+			SetVSync(c.ParseNumberValue(parameters[2]));
 		}
 		else if (parameters[1] == "fps")
 		{
@@ -3612,7 +3613,15 @@ namespace CutsceneFunctions
 		
 		if (entity == nullptr)
 		{
-			c.manager->game->logger.Log("ERROR: Could not change animator on null entity: " + parameters[1]);
+			// enable/disable are idempotent toggles, so applying one to an entity
+			// that simply isn't on screen right now is a legitimate no-op - it is
+			// how a settings screen re-applies "animate portraits" without caring
+			// whether any portrait happens to be loaded. Only the content-changing
+			// subcommands (state/set) are genuinely wrong on a missing entity.
+			if (parameters[2] != "enable" && parameters[2] != "disable")
+			{
+				c.manager->game->logger.Log("ERROR: Could not change animator on null entity: " + parameters[1]);
+			}
 			return 0;
 		}
 

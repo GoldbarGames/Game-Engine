@@ -1,6 +1,9 @@
 #include "Texture.h"
+#include "render/RenderDevice.h"
 #include <iostream>
 
+// Kept for binary compatibility with games built against the old header; the
+// bind cache now lives in the render device.
 int Texture::lastTextureID = -1;
 int Texture::lastActiveTexture = -1;
 
@@ -36,30 +39,27 @@ bool Texture::LoadTexture()
 	return true;
 }
 
+// An empty RGBA render-target colour texture (framebuffers): linear, clamped.
 void Texture::LoadTexture(unsigned int& buffer, int w, int h)
 {
 	width = w;
 	height = h;
-	glGenTextures(1, &buffer);
-	glBindTexture(GL_TEXTURE_2D, buffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
+	TextureDesc desc;
+	desc.width = w;
+	desc.height = h;
+	desc.filter = TextureFilter::Linear;
+	desc.wrap = TextureWrap::ClampToEdge;
+	buffer = Device().CreateTexture(desc, nullptr).id;
 	textureID = buffer;
 }
 
 void Texture::LoadTexture(SDL_Surface* surface, bool reset, Filter filter)
 {
 	if (reset)
-		glDeleteTextures(1, &textureID);
-
-	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_2D, textureID);
+	{
+		TextureHandle old(textureID);
+		Device().DestroyTexture(old);
+	}
 
 	// Convert surface to RGBA format to handle BGR/RGB and indexed color issues
 	SDL_Surface* convertedSurface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA32, 0);
@@ -69,45 +69,28 @@ void Texture::LoadTexture(SDL_Surface* surface, bool reset, Filter filter)
 		convertedSurface = surface;
 	}
 
-	int Mode = GL_RGBA;
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	if (filter == Filter::Smooth)
-	{
-		// Trilinear minification actually uses the mipmaps generated below;
-		// GL_NEAREST ignored them, which made scaled-down text grainy
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-#ifdef GL_TEXTURE_MAX_ANISOTROPY_EXT
-		// Trilinear alone smears surfaces seen at oblique angles (2.5D floors);
-		// anisotropic sampling keeps them sharp into the distance
-		GLfloat maxAniso = 0.0f;
-		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
-		if (maxAniso > 1.0f)
-		{
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
-				maxAniso < 8.0f ? maxAniso : 8.0f);
-		}
-#endif
-	}
-	else
-	{
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	}
-
 	width = convertedSurface->w;
 	height = convertedSurface->h;
 
-	glTexImage2D(GL_TEXTURE_2D, 0, Mode, width, height, 0, Mode, GL_UNSIGNED_BYTE, convertedSurface->pixels);
-
-	// Mipmaps only for Smooth textures (Point/NEAREST never samples them)
+	TextureDesc desc;
+	desc.width = width;
+	desc.height = height;
+	desc.wrap = TextureWrap::Repeat;
 	if (filter == Filter::Smooth)
 	{
-		glGenerateMipmap(GL_TEXTURE_2D);
+		// Trilinear minification actually uses the generated mipmaps (nearest
+		// ignored them, which made scaled-down text grainy), and anisotropic
+		// sampling keeps surfaces seen at oblique angles (2.5D floors) sharp.
+		desc.filter = TextureFilter::Trilinear;
+		desc.generateMipmaps = true;
+		desc.maxAnisotropy = 8.0f;
 	}
+	else
+	{
+		// Point: crisp pixel art, no mipmaps (nearest never samples them)
+		desc.filter = TextureFilter::Nearest;
+	}
+	textureID = Device().CreateTexture(desc, convertedSurface->pixels).id;
 
 	// Free the converted surface if we created one
 	if (convertedSurface != surface)
@@ -116,25 +99,19 @@ void Texture::LoadTexture(SDL_Surface* surface, bool reset, Filter filter)
 	}
 }
 
-void Texture::UseTexture(int textureNum)
+void Texture::UseTexture(int unit)
 {
-	if (textureID != lastTextureID)
-	{
-		lastTextureID = textureID;
-
-		if (lastActiveTexture != textureNum)
-		{
-			lastActiveTexture = textureNum;
-			glActiveTexture(textureNum);
-		}
-
-		glBindTexture(GL_TEXTURE_2D, textureID);
-	}
+	// Accept a raw GL_TEXTUREn (0x84C0 + n) too: binaries built against the
+	// old header pass GL_TEXTURE0 as the default argument.
+	const int kGLTexture0 = 0x84C0;
+	const int index = (unit >= kGLTexture0) ? unit - kGLTexture0 : unit;
+	Device().BindTexture((unsigned int)index, TextureHandle(textureID));
 }
 
 void Texture::ClearTexture()
 {
-	glDeleteTextures(1, &textureID);
+	TextureHandle handle(textureID);
+	Device().DestroyTexture(handle);
 	textureID = 0;
 	width = 0;
 	height = 0;

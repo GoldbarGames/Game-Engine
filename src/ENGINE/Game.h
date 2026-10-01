@@ -312,6 +312,11 @@ public:
 	// If > 0, quit the game after this many auto-screenshots have been taken
 	// (a self-bounding headless-capture run). 0 = keep capturing indefinitely.
 	int autoScreenshotsMax = 0;
+	// Headless test runs: quit after this many ms regardless of screenshots.
+	// (--shots doubles as a duration, which is why long behaviour tests used
+	// to spam hundreds of images just to stay alive; this separates them.)
+	float autoQuitAfterMs = 0.0f;
+	float autoQuitElapsedMs = 0.0f;
 	int autoScreenshotsTaken = 0;
 	// If set, auto-screenshots don't begin until the named 3D scene is active
 	// (`Scene3D::currentScene`). Lets a headless capture race through a cutscene
@@ -326,6 +331,13 @@ public:
 	// fullscreen minimizes + stops rendering when it loses focus, corrupting the
 	// readback). Does not change the on-disk settings.
 	bool forceWindowed = false;
+	// Startup form of the same override: set BEFORE constructing the Game (the
+	// window is created in the constructor at the saved resolution, so a 1080p
+	// setting on a 1080p monitor opens looking fullscreen and only shrinks later).
+	// When set, the window is created windowed and no larger than this size.
+	static bool startWindowed;
+	static int  startWindowedMaxWidth;    // default 1280
+	static int  startWindowedMaxHeight;   // default 720
 
 	// Automatically record GIFs every X seconds for Y seconds
 	int autoGIFsDelay = 0;

@@ -557,6 +557,32 @@ void CutsceneManager::ParseCutsceneFile()
 
 	data.erase(std::remove(data.begin(), data.end(), '\t'), data.end());
 
+	// A malformed script used to be FATAL and SILENT: the scans below walked the
+	// data buffer looking for a closing delimiter with no bounds check, so a single
+	// unterminated text run (most commonly a stray backtick, including one inside a
+	// ";" comment - comments are NOT stripped before parsing) ran off the end and
+	// aborted the process with "vector subscript out of range" during Game
+	// construction, before any logging happened. There was nothing to go on.
+	//
+	// Now every scan is bounded and reports where it gave up. Parsing stops at the
+	// first bad delimiter - the rest of the file cannot be trusted once the text/
+	// command framing is out of step - but the game stays up long enough to print
+	// something actionable.
+	auto parseError = [&](const std::string& what, size_t at)
+	{
+		std::string labelName = (label2 > label1)
+			? data.substr(label1, (size_t)(label2 - label1)) : "<before first label>";
+		size_t from = (at > 60) ? at - 60 : 0;
+		size_t len = (data.length() > from) ? std::min<size_t>(140, data.length() - from) : 0;
+		std::string msg = "CUTSCENE PARSE ERROR: " + what
+			+ "\n  in label: *" + labelName
+			+ "\n  near: ..." + data.substr(from, len) + "..."
+			+ "\n  (parsing stopped here - fix the script; search for the text above)";
+		std::cout << msg << std::endl;
+		if (game != nullptr)
+			game->logger.Log(msg);
+	};
+
 	Timer timer;
 	timer.Start(10);
 
@@ -576,7 +602,9 @@ void CutsceneManager::ParseCutsceneFile()
 		//newLabel.name = Trim(newLabel.name);
 
 		label1 = index;
-		while (data[index] != '*' && index < data.length())
+		// Bounds check FIRST: the old order dereferenced data[index] before testing
+		// index, which reads past the end once the buffer is exhausted.
+		while (index < (int)data.length() && data[index] != '*')
 		{
 			index++;
 		}
@@ -609,9 +637,14 @@ void CutsceneManager::ParseCutsceneFile()
 				{
 					index++; // skip :
 					speaker1 = index;
-					while (data[index] != ':')
+					while (index < (int)data.length() && data[index] != ':')
 					{
 						index++;
+					}
+					if (index >= (int)data.length())
+					{
+						parseError("unterminated speaker name - no closing ':'", (size_t)speaker1);
+						return;
 					}
 					speaker2 = index;
 					index++; // skip :
@@ -619,9 +652,16 @@ void CutsceneManager::ParseCutsceneFile()
 				}
 
 				// deal with the text
-				while (data[index] != '`')
-				{					
+				while (index < (int)data.length() && data[index] != '`')
+				{
 					index++;
+				}
+				if (index >= (int)data.length())
+				{
+					// The classic one: an opening backtick with no closing partner,
+					// very often a backtick typed inside a ';' comment.
+					parseError("unterminated text - no closing backtick", (size_t)text1);
+					return;
 				}
 
 				text2 = index;
@@ -662,17 +702,9 @@ void CutsceneManager::ParseCutsceneFile()
 				// read until we hit the end of the line
 				bool foundColon = (data[index] == ':');
 
-				while (!(data[index] == ';' || data[index] == '`'))
+				while (index < (int)data.length() && !(data[index] == ';' || data[index] == '`'))
 				{
-					if (index >= data.length())
-					{
-						std::cout << "Error on line: " + data.substr(command1, index - command1);
-						break;
-					}
-					else
-					{
-						index++;
-					}
+					index++;
 
 					/*
 					char delimit = ' ';
@@ -695,15 +727,25 @@ void CutsceneManager::ParseCutsceneFile()
 					}*/
 
 					// TODO: Ignore : inside of [ ] or " "
-					if (data[index] == ':')
+					if (index < (int)data.length() && data[index] == ':')
 						foundColon = true;
+				}
+
+				if (index >= (int)data.length())
+				{
+					// Every source line contributes a trailing ';' when the buffer is
+					// built, so a command that reaches the end of the buffer without
+					// one means the text/command framing is already out of step.
+					parseError("unterminated command - reached end of script without a ';'",
+						(size_t)command1);
+					return;
 				}
 
 				command2 = index - 1;
 
 				// This is so that we can run commands within a line of text,
 				// the commands must be followed by an @
-				if (data[index-1] == '@')
+				if (index > 0 && data[index-1] == '@')
 				{
 					index--;
 				}
@@ -807,6 +849,12 @@ void CutsceneManager::ParseCutsceneFile()
 void CutsceneManager::ExecuteDefineBlock(const char* configName)
 {
 	int cmdIndex = 0;
+
+	// This runs at the end of parsing EVERY cutscene file, and only one of a
+	// game's files carries the define block - so an absent one is the normal
+	// case, not an error worth logging.
+	if (!HasLabel(configName))
+		return;
 
 	SceneLabel* configLabel = JumpToLabel(configName);
 
@@ -991,6 +1039,23 @@ void CutsceneManager::JumpForward()
 			}
 		}
 	}
+}
+
+bool CutsceneManager::HasLabel(const std::string& labelName) const
+{
+	std::string name = labelName;
+	name = Trim(name);
+
+	if (!name.empty() && name[0] == '*')
+		name = name.substr(1, name.size() - 1);
+
+	for (unsigned int i = 0; i < labels.size(); i++)
+	{
+		if (GetLabelName(labels[i]) == name)
+			return true;
+	}
+
+	return false;
 }
 
 SceneLabel* CutsceneManager::JumpToLabel(const std::string& newLabelName)

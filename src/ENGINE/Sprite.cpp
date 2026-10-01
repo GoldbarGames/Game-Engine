@@ -1,4 +1,5 @@
 #include "leak_check.h"
+#include "render/RenderDevice.h"
 #include "Sprite.h"
 #include "globals.h"
 #include "Renderer.h"
@@ -77,7 +78,7 @@ void Sprite::CreateMesh(MeshType meshType)
 					1, 2, 3
 				};
 
-				GLfloat quadVertices[] = {
+				float quadVertices[] = {
 					-1.0f, 0.0f, -1.0f,  0.0f, 0.0f,	0.0f, -1.0f, 0.0f,
 					1.0f, 0.0f, -1.0f,   1.0f, 0.0f,	0.0f, -1.0f, 0.0f,
 					-1.0f, 0.0f, 1.0f,   0.0f, 1.0f,	0.0f, -1.0f, 0.0f,
@@ -100,7 +101,7 @@ void Sprite::CreateMesh(MeshType meshType)
 					0, 1, 2
 				};
 
-				GLfloat quadVertices[] = {
+				float quadVertices[] = {
 					-1.0f, -1.0f, 0.0f,  1.0f, 0.0f,	0.0f, 0.0f, 0.0f,
 					1.0f, -1.0f, 0.0f,   0.0f, 0.0f,	0.0f, 0.0f, 0.0f,
 					-1.0f, 1.0f, 0.0f,   1.0f, 1.0f,	0.0f, 0.0f, 0.0f,
@@ -127,7 +128,7 @@ void Sprite::CreateMesh(MeshType meshType)
 					0, 1, 2
 				};
 
-				GLfloat triVertices[] = {
+				float triVertices[] = {
 					-1.0f, -1.0f, -1.0f,
 					0.0f, -1.0f, 1.0f,
 					1.0f, -1.0f, 0.0f,
@@ -151,7 +152,7 @@ void Sprite::CreateMesh(MeshType meshType)
 					0, 1, 2
 				};
 
-				GLfloat lineVertices[] = {
+				float lineVertices[] = {
 					-1.0f, 0.0f, 0.0f,  1.0f, 0.0f,
 					1.0f, 0.0f, 0.0f,   0.0f, 0.0f,
 					-1.0f, 0.01f, 0.0f,   1.0f, 1.0f,
@@ -177,7 +178,7 @@ void Sprite::CreateMesh(MeshType meshType)
 
 				// x y z u v nx ny nz
 
-				GLfloat pyramidVertices[] = {
+				float pyramidVertices[] = {
 					-1.0f, -1.0f, -0.6f,  1.0f, 0.0f,	0.0f, 0.0f, 0.0f,
 					0.0f, -1.0f, 1.0f,   0.5f, 0.0f,	0.0f, 0.0f, 0.0f,
 					1.0f, -1.0f, -0.6f,   1.0f, 0.0f,	0.0f, 0.0f, 0.0f,
@@ -201,7 +202,7 @@ void Sprite::CreateMesh(MeshType meshType)
 				// Format: x, y, z, u, v, nx, ny, nz
 				// Cube goes from -1 to 1 on all axes (like the quad)
 				// Top face (y=1) shows the main texture
-				GLfloat cubeVertices[] = {
+				float cubeVertices[] = {
 					// Top face (y = 1) - main visible face, normal points up
 					-1.0f,  1.0f, -1.0f,   1.0f, 0.0f,   0.0f, 1.0f, 0.0f,  // 0
 					 1.0f,  1.0f, -1.0f,   0.0f, 0.0f,   0.0f, 1.0f, 0.0f,  // 1
@@ -273,7 +274,7 @@ void Sprite::CreateMesh(MeshType meshType)
 				// texture's bottom quarter (v 0.75..1) upright, with the
 				// strip's top at z=-1 (visual up = world -z).
 				// Format: x, y, z, u, v, nx, ny, nz
-				GLfloat cubeTileVertices[] = {
+				float cubeTileVertices[] = {
 					// y=1 quad: SOUTH side, faces the camera (normal +y)
 					-1.0f,  1.0f, -1.0f,   1.0f, 0.75f,   0.0f, 1.0f, 0.0f,  // 0
 					 1.0f,  1.0f, -1.0f,   0.0f, 0.75f,   0.0f, 1.0f, 0.0f,  // 1
@@ -336,7 +337,7 @@ void Sprite::CreateMesh(MeshType meshType)
 				const int slices = 32;  // longitude divisions
 				const float radius = 1.0f;
 
-				std::vector<GLfloat> sphereVertices;
+				std::vector<float> sphereVertices;
 				std::vector<unsigned int> sphereIndices;
 
 				// Generate vertices
@@ -633,7 +634,7 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 		{
 			unsigned int currentFrameOnRow = (currentFrame % framesPerRow);
 			texOffset.x = (1.0f / framesPerRow) * currentFrameOnRow; // - (1.0f / framesPerRow);
-			texOffset.y = (frameHeight * (currentRow)) / (GLfloat)texture->GetHeight();
+			texOffset.y = (frameHeight * (currentRow)) / (float)texture->GetHeight();
 		}
 
 	}
@@ -667,6 +668,63 @@ glm::vec2 Sprite::CalculateRenderFrame(const Renderer& renderer, float animSpeed
 	}
 
 	return texOffset;
+}
+
+// See the long note in Sprite.h. Build the rotation that is actually wanted,
+// then decompose it into the XYZ Euler triple CalculateModel can express.
+glm::vec3 Sprite::BodyRotation(float headingDegrees, float pitchDegrees,
+	float rollDegrees)
+{
+	// No roll: hand back the triple callers have always passed. This is a fast
+	// path AND a guarantee - the decomposition below returns exactly this, and
+	// saying so here means nobody has to trust that to keep old scenes still.
+	if (std::fabs(rollDegrees) < 0.0001f)
+		return glm::vec3(0.0f, headingDegrees, pitchDegrees);
+
+	// CalculateModel turns a triple (a, b, c) into Rx(-a) * Ry(-b) * Rz(-c),
+	// because each of its glm::rotate calls uses a negative axis. Build the
+	// target in the same convention: yaw, then pitch, then roll about the
+	// body's own long axis (local X).
+	const glm::mat4 target =
+		glm::rotate(glm::mat4(1.0f), glm::radians(-headingDegrees), glm::vec3(0, 1, 0)) *
+		glm::rotate(glm::mat4(1.0f), glm::radians(-pitchDegrees), glm::vec3(0, 0, 1)) *
+		glm::rotate(glm::mat4(1.0f), glm::radians(-rollDegrees), glm::vec3(1, 0, 0));
+
+	// Decompose R = Rx(u) * Ry(v) * Rz(w). Writing that product out gives
+	//
+	//     R = | cv*cw            -cv*sw            sv    |
+	//         | cu*sw+su*sv*cw   cu*cw-su*sv*sw   -su*cv |
+	//         | su*sw-cu*sv*cw   su*cw+cu*sv*sw    cu*cv |
+	//
+	// so v comes from R[0][2], u from the third column and w from the first
+	// row. glm is column-major, so m[column][row].
+	const glm::mat3 R(target);
+	const float r02 = R[2][0];
+	const float r12 = R[2][1];
+	const float r22 = R[2][2];
+	const float r00 = R[0][0];
+	const float r01 = R[1][0];
+
+	float v = std::asin(std::max(-1.0f, std::min(1.0f, r02)));
+	float u, w;
+
+	// Gimbal lock: at v = +/-90 degrees the first row and third column stop
+	// distinguishing u from w and only their sum is defined. A body would have
+	// to be pointing straight up to reach it, but a decomposition that returns
+	// NaN in a corner is a decomposition waiting to ruin an afternoon.
+	if (std::fabs(r02) > 0.99999f)
+	{
+		u = std::atan2(-R[1][2], R[1][1]);
+		w = 0.0f;
+	}
+	else
+	{
+		u = std::atan2(-r12, r22);
+		w = std::atan2(-r01, r00);
+	}
+
+	// ...and back out through the negative axes.
+	return glm::vec3(-glm::degrees(u), -glm::degrees(v), -glm::degrees(w));
 }
 
 void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const glm::vec3& scale, const Renderer& renderer)
@@ -720,8 +778,8 @@ void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const
 		const int width = (texture != nullptr) ? texture->GetWidth() : 1;
 		const int height = (texture != nullptr) ? texture->GetHeight() : 1;
 
-		model = glm::scale(model, glm::vec3(-1 * scale.x * width / (GLfloat)(framesPerRow),
-			scale.y * height / (GLfloat)numberRows, scale.z));
+		model = glm::scale(model, glm::vec3(-1 * scale.x * width / (float)(framesPerRow),
+			scale.y * height / (float)numberRows, scale.z));
 	}	
 }
 
@@ -786,8 +844,8 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	shaderToUse->UseShader();
 
 	const Camera* camera = keepPositionRelativeToCamera ? &renderer.guiCamera : &renderer.camera;
-	glUniformMatrix4fv(shaderToUse->GetUniformVariable(ShaderVariable::view), 1, GL_FALSE,
-		glm::value_ptr(camera->CalculateViewMatrix()));
+	const glm::mat4 viewMatrix = camera->CalculateViewMatrix();
+	Device().SetUniform((int)(shaderToUse->GetUniformVariable(ShaderVariable::view)), viewMatrix);
 
 	if (!camera->useOrthoCamera)
 	{
@@ -799,8 +857,8 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 	const glm::vec2 texFrame = useCustomTexFrame ? customTexFrame : glm::vec2((1.0f / framesPerRow), frameHeight/height);
 
 	// Send the info to the shader
-	glUniform2fv(shaderToUse->GetUniformVariable(ShaderVariable::texFrame), 1, glm::value_ptr(texFrame));
-	glUniform2fv(shaderToUse->GetUniformVariable(ShaderVariable::texOffset), 1, glm::value_ptr(texOffset));
+	Device().SetUniform((int)(shaderToUse->GetUniformVariable(ShaderVariable::texFrame)), texFrame);
+	Device().SetUniform((int)(shaderToUse->GetUniformVariable(ShaderVariable::texOffset)), texOffset);
 
 	// Calculate 2D lighting
 	float lightRatio = 1.0f;
@@ -830,18 +888,18 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 		}
 	}
 
-	glUniform1f(shaderToUse->GetUniformVariable(ShaderVariable::distanceToLight2D), lightRatio);
+	Device().SetUniform((int)(shaderToUse->GetUniformVariable(ShaderVariable::distanceToLight2D)), (float)(lightRatio));
 
 	glm::vec4 spriteColor = glm::vec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
-	glUniform4fv(shaderToUse->GetUniformVariable(ShaderVariable::fadeColor), 1, glm::value_ptr(spriteColor));
-	glUniform1f(shaderToUse->GetUniformVariable(ShaderVariable::currentTime), renderer.now);
+	Device().SetUniform((int)(shaderToUse->GetUniformVariable(ShaderVariable::fadeColor)), spriteColor);
+	Device().SetUniform((int)(shaderToUse->GetUniformVariable(ShaderVariable::currentTime)), (float)(renderer.now));
 
 	// Unlit surfaces (skyboxes, billboards, emissive suns) skip lighting.
 	// Shaders opt in by declaring "uniform float emissive". Must be set for
 	// every sprite because uniforms persist in the program between draws.
-	GLint emissiveLoc = glGetUniformLocation(shaderToUse->GetID(), "emissive");
+	int emissiveLoc = ShaderProgram::DrawUniformLocation(shaderToUse->GetID(), "emissive");
 	if (emissiveLoc != -1)
-		glUniform1f(emissiveLoc, unlit ? 1.0f : 0.0f);
+		Device().SetUniform((int)(emissiveLoc), (float)(unlit ? 1.0f : 0.0f));
 
 	renderer.game->gui->SetShaderVariables(*this, shaderToUse);
 
@@ -849,14 +907,16 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 
 	// Projection
 	const glm::mat4* cameraProjection = keepScaleRelativeToCamera ? &renderer.camera.guiProjection : &renderer.camera.projection;
-	glUniformMatrix4fv(shaderToUse->GetUniformVariable(ShaderVariable::projection), 1, GL_FALSE, glm::value_ptr(*cameraProjection));
+	Device().SetUniform((int)(shaderToUse->GetUniformVariable(ShaderVariable::projection)), *cameraProjection);
+	// Same matrices for shaders that read the Camera block (the loose view/
+	// projection above serve game shaders that predate it).
+	renderer.BindCameraBlock(viewMatrix, *cameraProjection);
 
 	// For lights
-	glUniform3f(shaderToUse->GetUniformVariable(ShaderVariable::eyePosition), renderer.camera.position.x,
-		renderer.camera.position.y, renderer.camera.position.z);
+	Device().SetUniform((int)(shaderToUse->GetUniformVariable(ShaderVariable::eyePosition)), glm::vec3(renderer.camera.position.x, renderer.camera.position.y, renderer.camera.position.z));
 
 	// Set uniform variables
-	glUniformMatrix4fv(shaderToUse->GetUniformVariable(ShaderVariable::model), 1, GL_FALSE, glm::value_ptr(model));
+	Device().SetUniform((int)(shaderToUse->GetUniformVariable(ShaderVariable::model)), model);
 
 	// Use Texture
 	if (texture != nullptr)
@@ -864,9 +924,9 @@ void Sprite::Render(const glm::vec3& position, int speed, const Renderer& render
 
 	if (mask != nullptr)
 	{
-		glUniform1i(glGetUniformLocation(shaderToUse->GetID(), "theTexture"), 0);
-		glUniform1i(glGetUniformLocation(shaderToUse->GetID(), "maskTexture"), 1);
-		mask->UseTexture(GL_TEXTURE1);
+		Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(shaderToUse->GetID()), "theTexture")), (int)(0));
+		Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(shaderToUse->GetID()), "maskTexture")), (int)(1));
+		mask->UseTexture(1);
 	}
 
 	// Use Material

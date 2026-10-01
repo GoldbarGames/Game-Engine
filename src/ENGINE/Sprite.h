@@ -143,6 +143,63 @@ public:
 	glm::vec2 CalculateRenderFrame(const Renderer& renderer, float animSpeed);
 	void CalculateModel(glm::vec3 position, const glm::vec3& rotation, const glm::vec3& scale, const Renderer& renderer);
 
+	// --- rolling a body about its own length ---------------------------------
+	//
+	// The rotation triple to pass to RenderWorld/Render for a body that is
+	// heading one way, pitched nose-up or nose-down, AND rolled about its own
+	// longitudinal (local X) axis.
+	//
+	// NOTE FIRST, because it is the thing worth knowing: the engine has TWO
+	// rotation conventions, and this is the other one.
+	//
+	//   Scene3DModel::ModelMatrix builds T * Ryaw * Rpitch * Rroll * S, with
+	//   roll INNERMOST. That is a proper body rotation and it has worked at any
+	//   heading all along. If you are placing a 3-D model, use that.
+	//
+	//   CalculateModel, below, builds T * Rx * Ry * Rz * S with X OUTERMOST.
+	//   That is not an oversight either: Billboard::FaceCamera derives its
+	//   angles by inverting exactly this composition
+	//   (dir = -sin ry, cos ry sin rx, cos ry cos rx), so the order is load
+	//   bearing for every camera-facing sprite in every project.
+	//
+	// This function exists for things drawn through the SPRITE path that need a
+	// body roll anyway - a mesh sprite standing in for a 3-D object. It does not
+	// replace the Scene3D convention and should not be used where that one is
+	// available.
+	//
+	// Roll is the one thing this path's rotation parameter cannot be asked for
+	// directly. CalculateModel builds
+	//
+	//     model = T * Rx * Ry * Rz * S
+	//
+	// with each rotation about the NEGATIVE axis, so `rotation.z` is applied
+	// first and pitches a body about its own lateral axis, `rotation.y` then
+	// swings it onto its heading - and `rotation.x` is applied LAST, about
+	// WORLD X, after the heading. That is not a body axis: it behaves like roll
+	// only when the heading happens to be zero.
+	//
+	// Rather than change that order - which would break Billboard, and silently
+	// redefine `rotation.x` for anything else passing one - this inverts it.
+	// XYZ Euler angles are COMPLETE: any rotation can be written in that form,
+	// so build the rotation actually wanted and solve for the triple that
+	// produces it. The renderer is asked for exactly what it could always do.
+	//
+	// Two things to know if you touch this:
+	//
+	//   * with zero roll it returns (0, heading, pitch) EXACTLY, which is the
+	//     triple callers have always passed. Switching it on cannot move
+	//     anything that was already right, and that property is worth keeping;
+	//   * verify it against a rebuilt matrix, not by eye. A roll that is
+	//     correct at one heading and wrong at another reads as a modelling
+	//     mistake and sends you looking in entirely the wrong place.
+	//
+	// Positive roll tips the body to its RIGHT.
+	//
+	// Proved out in TrainRails first (a train leaning into a canted curve, and
+	// a derailed vehicle lying over in the ditch) before being brought here.
+	static glm::vec3 BodyRotation(float headingDegrees, float pitchDegrees,
+		float rollDegrees);
+
 	//TODO: What should we do here?
 	// start = first frame of animation
 	// end = last frame of animation

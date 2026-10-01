@@ -314,7 +314,7 @@ void Camera::MouseControl(float xChange, float yChange)
 void Camera::KeyControl(const uint8_t* input, const float& dt, 
 	const float& screenWidth, const float& screenHeight)
 {
-	GLfloat velocity = movementSpeed * dt * orthoZoom;
+	float velocity = movementSpeed * dt * orthoZoom;
 
 	// 2D Movement
 

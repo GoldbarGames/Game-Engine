@@ -91,6 +91,7 @@ void SceneLogic::LoadForScene(Game& game, const std::string& scene)
 			else if (verb == "open-gate") { a.type = Action::Type::OpenGate; ss >> a.arg; }
 			else if (verb == "teleport") { a.type = Action::Type::Teleport; ss >> a.pos.x >> a.pos.y >> a.pos.z; }
 			else if (verb == "teleport-slot") { a.type = Action::Type::TeleportSlot; ss >> a.arg; }
+				else if (verb == "fade-to") { a.type = Action::Type::FadeTo; ss >> a.arg; }
 			else if (verb == "set" || verb == "add")
 			{
 				a.type = (verb == "set") ? Action::Type::Set : Action::Type::Add;
@@ -591,6 +592,9 @@ void SceneLogic::RunActions(Game& game, SceneLogicHost& host, const std::vector<
 		case Action::Type::Status:
 			host.ApplyStatus(a.arg, a.value);
 			break;
+		case Action::Type::FadeTo:
+			host.FadeMoveTo(a.arg);
+			break;
 		}
 	}
 }
@@ -652,6 +656,7 @@ void SceneLogic::SpawnRoamers(Game& game, SceneLogicHost& host)
 			float y = 0.0f;
 			if (!Scene3D::Get().GetAnchor(r.slot, home, y))
 				continue;
+			r.yaw = y;   // the slot's facing is the roamer's starting facing
 		}
 		r.home = home;
 		r.pos = home;

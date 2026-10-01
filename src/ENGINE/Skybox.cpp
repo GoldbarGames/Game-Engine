@@ -5,7 +5,7 @@
 #include "SpriteManager.h"
 #include "Texture.h"
 #include "Mesh.h"
-#include "opengl_includes.h"
+#include "RenderState.h"
 #include <cmath>
 #include <vector>
 #include <iostream>
@@ -33,7 +33,7 @@ Skybox::Skybox(Game& game, const std::string& texturePath, float radius,
 		const int stacks = 24;
 		const int slices = 48;
 
-		std::vector<GLfloat> verts;
+		std::vector<float> verts;
 		std::vector<unsigned int> inds;
 
 		for (int i = 0; i <= stacks; i++)
@@ -131,17 +131,15 @@ void Skybox::Render(const Renderer& renderer)
 		s->texture = nextTexture;
 		s->color.a = (Uint8)(b * 255.0f);
 
-		const GLboolean blendWas = glIsEnabled(GL_BLEND);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glDepthFunc(GL_LEQUAL);
-		glDepthMask(GL_FALSE);
+		{
+			RenderState fade = CurrentRenderState();
+			fade.blend = BlendMode::Alpha;
+			fade.depthCompare = CompareOp::LessEqual;
+			fade.depthWrite = false;
+			ScopedRenderState scope(fade);
 
-		s->RenderWorld(position, glm::vec3(r), rotation, renderer);
-
-		glDepthMask(GL_TRUE);
-		glDepthFunc(GL_LESS);
-		if (!blendWas) glDisable(GL_BLEND);
+			s->RenderWorld(position, glm::vec3(r), rotation, renderer);
+		}
 		s->texture = baseTex;
 	}
 

@@ -1,5 +1,11 @@
 #include "Shader.h"
 #include "Renderer.h"
+#include "render/RenderDevice.h"
+#include "EnginePaths.h"
+#include "UniformBlocks.h"
+#include <glm/gtc/type_ptr.hpp>
+#include <filesystem>
+#include <cstring>
 
 unsigned int ShaderProgram::lastProgramID = -1;
 
@@ -38,103 +44,82 @@ void ShaderProgram::CreateFromString(const char* vertexCode, const char* fragmen
 
 void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCode)
 {
-    programID = glCreateProgram();
+    std::string log;
+    programID = Device().CreateProgram(vertexCode, fragmentCode, log).id;
+    if (!log.empty())
+        std::cout << "Shader " << GetNameString() << ": " << log;
+    if (programID == 0)
+        return;   // compile/link failed (reported above)
 
-    if (!programID)
-    {
-        printf("Error creating shader program!\n");
-        //GLenum err = glGetError();
-        //std::cerr << glewGetErrorString(err) << std::endl;
-        return;
-    }
+    // Point every engine uniform block this program declares at its shared
+    // binding (see UniformBlocks.h); blocks it doesn't declare are skipped.
+    for (const UniformBlock::Entry& block : UniformBlock::kAll)
+        Device().SetUniformBlockBinding(ProgramHandle(programID), block.name, block.binding);
 
-    AddShader(programID, vertexCode, GL_VERTEX_SHADER);
-    AddShader(programID, fragmentCode, GL_FRAGMENT_SHADER);
-
-    GLint result = 0;
-    GLchar eLog[1024] = { 0 };
-
-    glLinkProgram(programID);
-    glGetProgramiv(programID, GL_LINK_STATUS, &result);
-
-    if (!result)
-    {
-        glGetProgramInfoLog(programID, sizeof(eLog), NULL, eLog);
-        printf("Error linking program: '%s'\n", eLog);
-        return;
-    }
-
-    glValidateProgram(programID);
-    glGetProgramiv(programID, GL_VALIDATE_STATUS, &result);
-
-    if (!result)
-    {
-        glGetProgramInfoLog(programID, sizeof(eLog), NULL, eLog);
-        printf("Error validating program: '%s'\n", eLog);
-        return;
-    }
-
-    uniformVariables[ShaderVariable::model] = glGetUniformLocation(programID, "model");
-    uniformVariables[ShaderVariable::projection] = glGetUniformLocation(programID, "projection");
-    uniformVariables[ShaderVariable::view] = glGetUniformLocation(programID, "view");
+    // Per-draw values: "draw.<name>" in engine shaders, plain names in older
+    // game shaders (DrawUniformLocation). view/projection are in the Camera
+    // block for engine shaders, so these two resolve to -1 there (no-op sets).
+    uniformVariables[ShaderVariable::model] = DrawUniformLocation(programID, "model");
+    uniformVariables[ShaderVariable::projection] = DrawUniformLocation(programID, "projection");
+    uniformVariables[ShaderVariable::view] = DrawUniformLocation(programID, "view");
 
     // The size of the frame (width and height) in the texture
-    uniformVariables[ShaderVariable::texFrame] = glGetUniformLocation(programID, "texFrame");
+    uniformVariables[ShaderVariable::texFrame] = DrawUniformLocation(programID, "texFrame");
 
     // The offset of the frame within the texture
-    uniformVariables[ShaderVariable::texOffset] = glGetUniformLocation(programID, "texOffset");
+    uniformVariables[ShaderVariable::texOffset] = DrawUniformLocation(programID, "texOffset");
 
     //TODO: What is a good way for us to define variables for specific shaders?
-    uniformVariables[ShaderVariable::fadeColor] = glGetUniformLocation(programID, "spriteColor");
-    uniformVariables[ShaderVariable::currentTime] = glGetUniformLocation(programID, "time");
-    uniformVariables[ShaderVariable::frequency] = glGetUniformLocation(programID, "freq");
+    uniformVariables[ShaderVariable::fadeColor] = DrawUniformLocation(programID, "spriteColor");
+    uniformVariables[ShaderVariable::currentTime] = DrawUniformLocation(programID, "time");
+    uniformVariables[ShaderVariable::frequency] = DrawUniformLocation(programID, "freq");
 
-    //uniformVariables[ShaderVariable::textureWidth] = glGetUniformLocation(programID, "textureWidth");
-    //uniformVariables[ShaderVariable::textureHeight] = glGetUniformLocation(programID, "textureHeight");
+    //uniformVariables[ShaderVariable::textureWidth] = Device().UniformLocation(ProgramHandle(programID), "textureWidth");
+    //uniformVariables[ShaderVariable::textureHeight] = Device().UniformLocation(ProgramHandle(programID), "textureHeight");
 
     /*
-    uniformVariables[ShaderVariable::ambientColor] = glGetUniformLocation(programID, "directionalLight.color");
-    uniformVariables[ShaderVariable::ambientIntensity] = glGetUniformLocation(programID, "directionalLight.ambientIntensity");
-    uniformVariables[ShaderVariable::diffuseIntensity] = glGetUniformLocation(programID, "directionalLight.diffuseIntensity");
-    uniformVariables[ShaderVariable::lightDirection] = glGetUniformLocation(programID, "directionalLight.direction");
+    uniformVariables[ShaderVariable::ambientColor] = Device().UniformLocation(ProgramHandle(programID), "directionalLight.color");
+    uniformVariables[ShaderVariable::ambientIntensity] = Device().UniformLocation(ProgramHandle(programID), "directionalLight.ambientIntensity");
+    uniformVariables[ShaderVariable::diffuseIntensity] = Device().UniformLocation(ProgramHandle(programID), "directionalLight.diffuseIntensity");
+    uniformVariables[ShaderVariable::lightDirection] = Device().UniformLocation(ProgramHandle(programID), "directionalLight.direction");
     */
 
-    uniformDirectionalLight.uniformColor = glGetUniformLocation(programID, "directionalLight.base.color");
-    uniformDirectionalLight.uniformAmbientIntensity = glGetUniformLocation(programID, "directionalLight.base.ambientIntensity");
-    uniformDirectionalLight.uniformDiffuseIntensity = glGetUniformLocation(programID, "directionalLight.base.diffuseIntensity");
-    uniformDirectionalLight.uniformDirection = glGetUniformLocation(programID, "directionalLight.direction");
+    uniformDirectionalLight.uniformColor = Device().UniformLocation(ProgramHandle(programID), "directionalLight.base.color");
+    uniformDirectionalLight.uniformAmbientIntensity = Device().UniformLocation(ProgramHandle(programID), "directionalLight.base.ambientIntensity");
+    uniformDirectionalLight.uniformDiffuseIntensity = Device().UniformLocation(ProgramHandle(programID), "directionalLight.base.diffuseIntensity");
+    uniformDirectionalLight.uniformDirection = Device().UniformLocation(ProgramHandle(programID), "directionalLight.direction");
 
-    uniformVariables[ShaderVariable::specularIntensity] = glGetUniformLocation(programID, "material.specularIntensity");
-    uniformVariables[ShaderVariable::specularShine] = glGetUniformLocation(programID, "material.shine");
-    uniformVariables[ShaderVariable::eyePosition] = glGetUniformLocation(programID, "eyePosition");
+    uniformVariables[ShaderVariable::specularIntensity] = Device().UniformLocation(ProgramHandle(programID), "material.specularIntensity");
+    uniformVariables[ShaderVariable::specularShine] = Device().UniformLocation(ProgramHandle(programID), "material.shine");
+    uniformVariables[ShaderVariable::eyePosition] = Device().UniformLocation(ProgramHandle(programID), "eyePosition");
 
-    uniformVariables[ShaderVariable::pointLightCount] = glGetUniformLocation(programID, "pointLightCount");
-    uniformVariables[ShaderVariable::spotLightCount] = glGetUniformLocation(programID, "spotLightCount");
+    uniformVariables[ShaderVariable::pointLightCount] = Device().UniformLocation(ProgramHandle(programID), "pointLightCount");
+    uniformVariables[ShaderVariable::spotLightCount] = Device().UniformLocation(ProgramHandle(programID), "spotLightCount");
 
-    uniformVariables[ShaderVariable::distanceToLight2D] = glGetUniformLocation(programID, "lightRatio");
+    uniformVariables[ShaderVariable::distanceToLight2D] = DrawUniformLocation(programID, "lightRatio");
 
     for (int i = 0; i < MAX_POINT_LIGHTS; i++)
     {
         char locBuff[100] = { '\0' };
 
         snprintf(locBuff, sizeof(locBuff), "pointLights[%d].base.color", i);
-        uniformPointLight[i].uniformColor = glGetUniformLocation(programID, locBuff);
+        uniformPointLight[i].uniformColor = Device().UniformLocation(ProgramHandle(programID), locBuff);
         snprintf(locBuff, sizeof(locBuff), "pointLights[%d].base.ambientIntensity", i);
-        uniformPointLight[i].uniformAmbientIntensity = glGetUniformLocation(programID, locBuff);
+        uniformPointLight[i].uniformAmbientIntensity = Device().UniformLocation(ProgramHandle(programID), locBuff);
         snprintf(locBuff, sizeof(locBuff), "pointLights[%d].base.diffuseIntensity", i);
-        uniformPointLight[i].uniformDiffuseIntensity = glGetUniformLocation(programID, locBuff);
+        uniformPointLight[i].uniformDiffuseIntensity = Device().UniformLocation(ProgramHandle(programID), locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "pointLights[%d].position", i);
-        uniformPointLight[i].uniformPosition = glGetUniformLocation(programID, locBuff);
+        uniformPointLight[i].uniformPosition = Device().UniformLocation(ProgramHandle(programID), locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "pointLights[%d].constant", i);
-        uniformPointLight[i].uniformConstant = glGetUniformLocation(programID, locBuff);
+        uniformPointLight[i].uniformConstant = Device().UniformLocation(ProgramHandle(programID), locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "pointLights[%d].linear", i);
-        uniformPointLight[i].uniformLinear = glGetUniformLocation(programID, locBuff);
+        uniformPointLight[i].uniformLinear = Device().UniformLocation(ProgramHandle(programID), locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "pointLights[%d].exponent", i);
-        uniformPointLight[i].uniformExponent = glGetUniformLocation(programID, locBuff);
+        uniformPointLight[i].uniformExponent = Device().UniformLocation(ProgramHandle(programID), locBuff);
     }
 
 
@@ -143,33 +128,33 @@ void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCo
         char locBuff[100] = { '\0' };
 
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].base.base.color", i);
-        uniformSpotLight[i].uniformColor = glGetUniformLocation(programID, locBuff);
+        uniformSpotLight[i].uniformColor = Device().UniformLocation(ProgramHandle(programID), locBuff);
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].base.base.ambientIntensity", i);
-        uniformSpotLight[i].uniformAmbientIntensity = glGetUniformLocation(programID, locBuff);
+        uniformSpotLight[i].uniformAmbientIntensity = Device().UniformLocation(ProgramHandle(programID), locBuff);
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].base.base.diffuseIntensity", i);
-        uniformSpotLight[i].uniformDiffuseIntensity = glGetUniformLocation(programID, locBuff);
+        uniformSpotLight[i].uniformDiffuseIntensity = Device().UniformLocation(ProgramHandle(programID), locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].base.position", i);
-        uniformSpotLight[i].uniformPosition = glGetUniformLocation(programID, locBuff);
+        uniformSpotLight[i].uniformPosition = Device().UniformLocation(ProgramHandle(programID), locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].base.constant", i);
-        uniformSpotLight[i].uniformConstant = glGetUniformLocation(programID, locBuff);
+        uniformSpotLight[i].uniformConstant = Device().UniformLocation(ProgramHandle(programID), locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].base.linear", i);
-        uniformSpotLight[i].uniformLinear = glGetUniformLocation(programID, locBuff);
+        uniformSpotLight[i].uniformLinear = Device().UniformLocation(ProgramHandle(programID), locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].base.exponent", i);
-        uniformSpotLight[i].uniformExponent = glGetUniformLocation(programID, locBuff);
+        uniformSpotLight[i].uniformExponent = Device().UniformLocation(ProgramHandle(programID), locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].direction", i);
-        uniformSpotLight[i].uniformDirection = glGetUniformLocation(programID, locBuff);
+        uniformSpotLight[i].uniformDirection = Device().UniformLocation(ProgramHandle(programID), locBuff);
 
         snprintf(locBuff, sizeof(locBuff), "spotLights[%d].edge", i);
-        uniformSpotLight[i].uniformEdge = glGetUniformLocation(programID, locBuff);
+        uniformSpotLight[i].uniformEdge = Device().UniformLocation(ProgramHandle(programID), locBuff);
     }
 }
 
-GLuint ShaderProgram::GetUniformVariable(ShaderVariable variable) const
+unsigned int ShaderProgram::GetUniformVariable(ShaderVariable variable) const
 {
     return uniformVariables[variable];
 }
@@ -201,10 +186,86 @@ std::string ShaderProgram::ApplyVersion(const std::string& src)
 #endif
 }
 
+std::string ShaderProgram::ResolvePath(const std::string& path)
+{
+    // Development switch: KINJO_PREFER_ENGINE_SHADERS=1 makes the engine's copy
+    // win wherever one exists, so any game can be run against the current
+    // engine shaders without touching its data/shaders folder (e.g. to check
+    // whether its old copies can be retired).
+    static const bool preferEngine = []()
+    {
+        const char* v = std::getenv("KINJO_PREFER_ENGINE_SHADERS");
+        const bool on = (v != nullptr && v[0] == '1');
+        if (on)
+            std::cout << "KINJO_PREFER_ENGINE_SHADERS: engine shaders override game copies" << std::endl;
+        return on;
+    }();
+
+    std::error_code ec;
+    static const std::string gameShaderFolder = "data/shaders/";
+    std::string engineCandidate;
+    if (path.compare(0, gameShaderFolder.size(), gameShaderFolder) == 0 && !EngineShaderDir().empty())
+        engineCandidate = EngineShaderDir() + path.substr(gameShaderFolder.size());
+
+    if (preferEngine && !engineCandidate.empty() && std::filesystem::exists(engineCandidate, ec))
+        return engineCandidate;
+    if (std::filesystem::exists(path, ec))
+        return path;
+    if (!engineCandidate.empty() && std::filesystem::exists(engineCandidate, ec))
+        return engineCandidate;
+    return path;
+}
+
+namespace
+{
+    // Expand `#include "name"` lines. The name resolves like any shader file
+    // (data/shaders/<name>, then the engine's copy), so a game can override an
+    // include too. Line numbers in compile errors after an include are offset
+    // by the included file's length.
+    std::string ExpandIncludes(ShaderProgram& program, const std::string& source, int depth = 0)
+    {
+        if (depth > 8)
+        {
+            std::cout << "ERROR: shader #include nesting too deep (cycle?)" << std::endl;
+            return source;
+        }
+
+        std::string out;
+        out.reserve(source.size());
+        size_t start = 0;
+        while (start < source.size())
+        {
+            size_t end = source.find('\n', start);
+            if (end == std::string::npos)
+                end = source.size();
+            const std::string line = source.substr(start, end - start);
+
+            const size_t hash = line.find_first_not_of(" \t");
+            const size_t open = line.find('"');
+            const size_t close = (open == std::string::npos) ? std::string::npos : line.find('"', open + 1);
+            if (hash != std::string::npos && line.compare(hash, 8, "#include") == 0 && close != std::string::npos)
+            {
+                const std::string name = line.substr(open + 1, close - open - 1);
+                const std::string path = ShaderProgram::ResolvePath("data/shaders/" + name);
+                out += ExpandIncludes(program, program.ReadFile(path.c_str()), depth + 1);
+            }
+            else
+            {
+                out += line;
+                out += '\n';
+            }
+            start = end + 1;
+        }
+        return out;
+    }
+}
+
 void ShaderProgram::CreateFromFiles(const char* vertexFilePath, const char* fragmentFilePath)
 {
-    std::string vertexString = ApplyVersion(ReadFile(vertexFilePath));
-    std::string fragmentString = ApplyVersion(ReadFile(fragmentFilePath));
+    const std::string vertexPath = ResolvePath(vertexFilePath);
+    const std::string fragmentPath = ResolvePath(fragmentFilePath);
+    std::string vertexString = ApplyVersion(ExpandIncludes(*this, ReadFile(vertexPath.c_str())));
+    std::string fragmentString = ApplyVersion(ExpandIncludes(*this, ReadFile(fragmentPath.c_str())));
 
     const char* vertexCode = vertexString.c_str();
     const char* fragmentCode = fragmentString.c_str();
@@ -240,7 +301,7 @@ std::string ShaderProgram::ReadFile(const char* filePath)
 
 void ShaderProgram::UseShader() const
 {
-    glUseProgram(programID); 
+    Device().UseProgram(ProgramHandle(programID));
 
     /*
     if (programID != lastProgramID)
@@ -250,44 +311,69 @@ void ShaderProgram::UseShader() const
     */
 }
 
+int ShaderProgram::DrawUniformLocation(unsigned int program, const char* name)
+{
+    char drawName[96] = "draw.";
+    const size_t prefix = 5;
+    const size_t len = strlen(name);
+    if (len + prefix < sizeof(drawName))
+    {
+        memcpy(drawName + prefix, name, len + 1);
+        const int location = Device().UniformLocation(ProgramHandle(program), drawName);
+        if (location != -1)
+            return location;
+    }
+    return Device().UniformLocation(ProgramHandle(program), name);
+}
+
+void ShaderProgram::SetInt(const char* name, int value) const{
+    Device().SetUniform(DrawUniformLocation(programID, name), value);
+}
+
+void ShaderProgram::SetFloat(const char* name, float value) const
+{
+    Device().SetUniform(DrawUniformLocation(programID, name), value);
+}
+
+void ShaderProgram::SetVec2(const char* name, const glm::vec2& value) const
+{
+    Device().SetUniform(DrawUniformLocation(programID, name), value);
+}
+
+void ShaderProgram::SetVec3(const char* name, const glm::vec3& value) const
+{
+    Device().SetUniform(DrawUniformLocation(programID, name), value);
+}
+
+void ShaderProgram::SetVec4(const char* name, const glm::vec4& value) const
+{
+    Device().SetUniform(DrawUniformLocation(programID, name), value);
+}
+
+void ShaderProgram::SetMat4(const char* name, const glm::mat4& value) const
+{
+    Device().SetUniform(DrawUniformLocation(programID, name), value);
+}
+
+void ShaderProgram::SetFloat(ShaderVariable variable, float value) const
+{
+    Device().SetUniform((int)GetUniformVariable(variable), value);
+}
+
+void ShaderProgram::SetVec4(ShaderVariable variable, const glm::vec4& value) const
+{
+    Device().SetUniform((int)GetUniformVariable(variable), value);
+}
+
 void ShaderProgram::ClearShader()
 {
     if (programID != 0)
     {
-        glDeleteProgram(programID);
+        ProgramHandle program(programID);
+        Device().DestroyProgram(program);
         programID = 0;
     }
 
     uniformVariables[ShaderVariable::model] = 0;
     uniformVariables[ShaderVariable::projection] = 0;
-}
-
-void ShaderProgram::AddShader(GLuint theProgram, const char* shaderCode, GLenum shaderType)
-{
-    GLuint theShader = glCreateShader(shaderType);
-
-    const GLchar* theCode[1];
-    theCode[0] = shaderCode;
-
-    GLint codeLength[1];
-    codeLength[0] = strlen(shaderCode);
-
-    glShaderSource(theShader, 1, theCode, codeLength);
-    glCompileShader(theShader);
-
-    GLint result = 0;
-    GLchar eLog[1024] = { 0 };
-
-    glGetShaderiv(theShader, GL_COMPILE_STATUS, &result);
-
-    if (!result)
-    {
-        glGetShaderInfoLog(theShader, sizeof(eLog), NULL, eLog);
-        std::cout << "Error compiling the " << GetNameString() << " shader: " << eLog << std::endl;
-        return;
-    }
-
-    glAttachShader(theProgram, theShader);
-
-    return;
 }

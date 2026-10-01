@@ -1,4 +1,5 @@
 #include "DirectionalLight.h"
+#include "render/RenderDevice.h"
 
 DirectionalLight::DirectionalLight() : Light()
 {
@@ -19,19 +20,19 @@ DirectionalLight::DirectionalLight(glm::vec3 col, float ai, float di, glm::vec3 
 void DirectionalLight::UseLight(const ShaderProgram& shader, int index)
 {
 	/*
-	glUniform3f(shader.GetUniformVariable(ShaderVariable::ambientColor), color.x, color.y, color.z);
-	glUniform1f(shader.GetUniformVariable(ShaderVariable::ambientIntensity), ambientIntensity);
-	glUniform1f(shader.GetUniformVariable(ShaderVariable::diffuseIntensity), diffuseIntensity);
+	Device().SetUniform((int)(shader.GetUniformVariable(ShaderVariable::ambientColor)), glm::vec3(color.x, color.y, color.z));
+	Device().SetUniform((int)(shader.GetUniformVariable(ShaderVariable::ambientIntensity)), (float)(ambientIntensity));
+	Device().SetUniform((int)(shader.GetUniformVariable(ShaderVariable::diffuseIntensity)), (float)(diffuseIntensity));
 
-	glUniform3f(shader.GetUniformVariable(ShaderVariable::lightDirection), direction.x, direction.y, direction.z);
+	Device().SetUniform((int)(shader.GetUniformVariable(ShaderVariable::lightDirection)), glm::vec3(direction.x, direction.y, direction.z));
 
 	*/
 
-	glUniform3f(shader.uniformDirectionalLight.uniformColor, color.x, color.y, color.z);
-	glUniform1f(shader.uniformDirectionalLight.uniformAmbientIntensity, ambientIntensity);
-	glUniform1f(shader.uniformDirectionalLight.uniformDiffuseIntensity, diffuseIntensity);
+	Device().SetUniform((int)(shader.uniformDirectionalLight.uniformColor), glm::vec3(color.x, color.y, color.z));
+	Device().SetUniform((int)(shader.uniformDirectionalLight.uniformAmbientIntensity), (float)(ambientIntensity));
+	Device().SetUniform((int)(shader.uniformDirectionalLight.uniformDiffuseIntensity), (float)(diffuseIntensity));
 
-	glUniform3f(shader.uniformDirectionalLight.uniformDirection, direction.x, direction.y, direction.z);
+	Device().SetUniform((int)(shader.uniformDirectionalLight.uniformDirection), glm::vec3(direction.x, direction.y, direction.z));
 }
 
 DirectionalLight::~DirectionalLight()

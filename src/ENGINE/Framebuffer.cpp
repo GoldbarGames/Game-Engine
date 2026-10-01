@@ -1,10 +1,12 @@
 #include "FrameBuffer.h"
 #include "Shader.h"
+#include "render/RenderDevice.h"
 
 FrameBuffer::FrameBuffer(const Renderer& renderer, int screenWidth, int screenHeight)
 {
-	glGenFramebuffers(1, &framebufferObject);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebufferObject);
+	RenderDevice& device = Device();
+	const FramebufferHandle fbo = device.CreateFramebuffer();
+	framebufferObject = fbo.id;
 
 	Texture* screenTexture = new Texture("");
 	screenTexture->LoadTexture(textureColorBuffer, screenWidth, screenHeight);
@@ -13,54 +15,51 @@ FrameBuffer::FrameBuffer(const Renderer& renderer, int screenWidth, int screenHe
 	sprite->keepPositionRelativeToCamera = true;
 	sprite->keepScaleRelativeToCamera = true;
 
-	// attach it to currently bound framebuffer object
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer, 0);
+	device.AttachTexture(fbo, Attachment::Color0, TextureHandle(textureColorBuffer));
 
 	// Depth+stencil as a TEXTURE (instead of a renderbuffer) so post-process
 	// passes can sample the scene depth. Nearest filtering + clamp.
 	renderBufferObject = 0;
-	glGenTextures(1, &depthTexture);
-	glBindTexture(GL_TEXTURE_2D, depthTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, screenWidth, screenHeight, 0,
-		GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+	TextureDesc depthDesc;
+	depthDesc.format = TextureFormat::Depth24Stencil8;
+	depthDesc.width = screenWidth;
+	depthDesc.height = screenHeight;
+	depthDesc.filter = TextureFilter::Nearest;
+	depthDesc.wrap = TextureWrap::ClampToEdge;
+	depthTexture = device.CreateTexture(depthDesc).id;
+	device.AttachTexture(fbo, Attachment::DepthStencil, TextureHandle(depthTexture));
 
 	// "Is-character" mask (R8), color attachment 1. Only written when a pass
 	// enables draw buffer 1 (the character billboards); the default draw-buffer
 	// state writes attachment 0 only, so this stays dormant for 2D content and
 	// non-character 3D geometry. The toon-outline post-process samples it to skip
 	// character sprites (see scene3d_edge.frag / Game::Render / Character3D::Render).
-	glGenTextures(1, &maskTexture);
-	glBindTexture(GL_TEXTURE_2D, maskTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, screenWidth, screenHeight, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, maskTexture, 0);
+	TextureDesc maskDesc;
+	maskDesc.format = TextureFormat::R8;
+	maskDesc.width = screenWidth;
+	maskDesc.height = screenHeight;
+	maskDesc.filter = TextureFilter::Nearest;
+	maskDesc.wrap = TextureWrap::ClampToEdge;
+	maskTexture = device.CreateTexture(maskDesc).id;
+	device.AttachTexture(fbo, Attachment::Color1, TextureHandle(maskTexture));
 
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	std::string error;
+	if (!device.IsFramebufferComplete(fbo, &error))
 	{
-		std::cout << "ERROR::FRAMEBUFFER:: " << glCheckFramebufferStatus(GL_FRAMEBUFFER) << std::endl;
+		std::cout << "ERROR::FRAMEBUFFER:: " << error << std::endl;
 	}
-		
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	device.BindFramebuffer(FramebufferHandle());
 }
 
 FrameBuffer::~FrameBuffer()
 {
-	if (depthTexture != 0)
-		glDeleteTextures(1, &depthTexture);
-	if (maskTexture != 0)
-		glDeleteTextures(1, &maskTexture);
-	if (framebufferObject != 0)
-		glDeleteFramebuffers(1, &framebufferObject);
+	RenderDevice& device = Device();
+	TextureHandle depth(depthTexture), mask(maskTexture);
+	FramebufferHandle fbo(framebufferObject);
+	device.DestroyTexture(depth);
+	device.DestroyTexture(mask);
+	device.DestroyFramebuffer(fbo);
 
 	// Necessary to delete this here because it's not managed by the SpriteManager
 	if (sprite->texture != nullptr)

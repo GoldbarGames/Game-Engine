@@ -265,7 +265,14 @@ public:
 	void SpotlightCharacter(Game& game, const std::string& charName, bool on);
 	// Full-screen depth-edge outline shader (created on first scene load), run
 	// by Game's composite pass. Public getter.
-	ShaderProgram* EdgeShader() const { return edgeShader; }
+	// The post-process outline shader, built on first use.
+	//
+	// It used to be created only by Load, which meant the toon outline was
+	// available exactly to games that loaded a .scene - and silently absent for
+	// a game that draws its own world and asks for `celShading`. That is the
+	// same trap the weather shader had (see EnsureWeatherResources), so it is
+	// fixed the same way: the getter builds it.
+	ShaderProgram* EdgeShader();
 
 	// Shader files Scene3D loads for the 3D passes. A game may repoint these at
 	// its own shaders (e.g. a realistic PBR set instead of the toon default)
@@ -407,10 +414,17 @@ public:
 	// Advance an in-progress glide; call every frame while active.
 	void Update(Game& game);
 
-	// Upload the current scene lighting (ambient + directional + point +
-	// spot) to a bound shader program. Both the model and billboard
-	// shaders share the same light uniform names.
-	void ApplyLighting(unsigned int shaderID) const;
+	// Lighting for one draw with a bound program: fills the "Scene" uniform
+	// block (ambient, sun, lightning, point/spot lights, shadow casters,
+	// camera position, time, toon) and binds the shadow-map textures. The
+	// block is re-uploaded only when its contents change. Programs that
+	// predate the block (old copies in a game's data/shaders) get the same
+	// values as loose uniforms.
+	void ApplyLighting(unsigned int shaderID, const Renderer& renderer) const;
+	// Material for one draw: fills the "Material" uniform block (cached per
+	// distinct material) and binds the normal map. A water model passes its
+	// per-surface tuning; others pass nullptr. Same legacy fallback.
+	void ApplyMaterial(unsigned int shaderID, const SceneMaterial& mat, const WaterSurface* water) const;
 
 	// Refresh the shared camera UBO (view+projection, std140 binding 0) and
 	// rebuild the per-frame instance groups. Call once per frame before the 3D
@@ -474,11 +488,24 @@ public:
 	// lightning flashes (a full-screen additive flash) and delayed thunder audio.
 	enum class WeatherType { None, Rain, Snow, Storm };
 	void SetWeather(WeatherType type, float intensity = 1.0f);
+
+	// World scale for the weather. The particle volume and the particle sizes
+	// are both tuned for a scene a character walks around in; a game whose world
+	// unit means something different needs them in proportion to ITS world or
+	// the flakes come out metres across. 1 is the original look; TrainRails,
+	// where one unit is one metre of railroad, uses about a tenth of it.
+	float weatherScale = 1.0f;
 	WeatherType GetWeather() const { return weatherType; }
 	float GetWeatherIntensity() const { return weatherIntensity; }
 	// Draw the weather particles. Call once per frame after RenderTransparentModels
 	// (Game::Render does), while the perspective depth buffer is still bound.
 	void RenderWeather(Game& game, const Renderer& renderer);
+
+	// The storm's lightning flash: a full-screen additive pop, driven by the
+	// same Update that drives the rain. Scene3D::Render calls this itself; a
+	// game that draws its own world and only borrows the weather (TrainRails)
+	// calls it after RenderWeather, or its storms have no lightning in them.
+	void RenderLightningFlash(const Renderer& renderer);
 
 	// --- fountain particle jet -----------------------------------------
 	// A point emitter that sprays water droplets UP from `pos`, arcing back down
@@ -655,12 +682,9 @@ private:
 	ShaderProgram* shadowDepthShader = nullptr;  // sun's-POV depth pass
 	unsigned int shadowFBO = 0, shadowDepthTex = 0;
 
-	// Shared camera matrices (std140 UBO, binding point 0): view + projection,
-	// uploaded once per frame instead of per draw. Core GL 3.1 / ES 3.0.
+	// Unused: the Camera block moved to the renderer (Renderer::BindCameraBlock).
+	// Kept so Scene3D's layout doesn't change for games built against it.
 	unsigned int cameraUBO = 0;
-	void EnsureCameraUBO();
-	// Link a program's "Camera" uniform block to binding point 0 (no-op if absent).
-	void BindCameraBlock(ShaderProgram* program) const;
 
 	// Per-frame instance groups (>=2 duplicate opaque props each); group[0] leads.
 	std::vector<std::vector<Scene3DModel*>> instanceGroups;
@@ -773,7 +797,6 @@ private:
 	ShaderProgram* flashShader = nullptr;
 	unsigned int flashVAO = 0;                  // empty VAO for the full-screen tri
 	void UpdateLightning(Game& game, float dtSec);   // strike timing, flash, thunder
-	void RenderLightningFlash(const Renderer& renderer);  // full-screen additive flash
 
 	// --- fountain particle jet -----------------------------------------
 	bool hasFountain = false;

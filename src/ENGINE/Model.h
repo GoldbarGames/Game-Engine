@@ -43,6 +43,12 @@ public:
 	void RenderModel();
 	void ClearModel();
 
+	// Local-space bounds of a model LoadModel has already loaded (any Model,
+	// this process), from its vertex data. False if that file has not been
+	// loaded. Lets callers skip re-parsing the OBJ text for a bounding box,
+	// which cost as much as the load itself.
+	static bool LoadedBounds(const std::string& filename, float lo[3], float hi[3]);
+
 #ifdef MODEL_VIA_ASSIMP
 	void LoadNode(aiNode* node, const aiScene* scene);
 	void LoadMesh(aiMesh* mesh, const aiScene* scene);
