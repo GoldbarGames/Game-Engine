@@ -1,6 +1,7 @@
 // Texture files - see TextureFiles.h. Backend-agnostic.
 
 #include "TextureFiles.h"
+#include "ColorPipeline.h"
 #include "../globals.h"
 #include <algorithm>
 #include <cstring>
@@ -234,7 +235,7 @@ std::string PreferredTextureFile(const std::string& path)
 
 void LoadTextureSettings()
 {
-	auto config = GetMapStringsFromFile("data/config/renderer.dat");
+	auto config = GetMapStringsFromFile(RendererConfigPath());
 	anisotropy = 8.0f;
 	if (config.count("anisotropy") > 0)
 	{

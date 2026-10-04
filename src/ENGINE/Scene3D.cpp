@@ -831,6 +831,7 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	hasFountain = false;               // a scene without a "fountain" line has none
 	fountainInit = false;
 	season = Season::Summer;           // a scene without a "season" line = summer
+	Scene3DInternal::RestoreGameToonSettings();   // and the game's cel / outline settings
 	SetSceneExposure(0.0f);            // a scene without an "exposure" line = the project default
 	SetSceneBloom(-1.0f);              // likewise "bloom"
 	SetSceneIBL(-1.0f, -1.0f);         // and "ibl"
@@ -1202,6 +1203,41 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 				if (!(ss >> strength))
 					strength = 1.0f;
 				SetSceneColorGrade(lutPath, strength, 0.0f);
+			}
+		}
+		else if (tag == "cel" || tag == "outline" || tag == "outlinechars")
+		{
+			// cel on|off, outline on|off, outlinechars on|off - this scene's own
+			// cel shading / outline (the game's values otherwise).
+			std::string v;
+			if (ss >> v)
+			{
+				const bool on = !(v == "off" || v == "0" || v == "false");
+				using TS = Scene3DInternal::ToonSetting;
+				const TS which = (tag == "cel") ? TS::CelShading : (tag == "outline") ? TS::Outline : TS::OutlineCharacters;
+				Scene3DInternal::OwnToonSetting(which);
+				(which == TS::CelShading ? celShading : which == TS::Outline ? outlineEnabled : outlineCharacters) = on;
+			}
+		}
+		else if (tag == "outlinewidth" || tag == "outlinedepth")
+		{
+			// outlinewidth <pixels>, outlinedepth <edge threshold>
+			float v = 0.0f;
+			if (ss >> v)
+			{
+				using TS = Scene3DInternal::ToonSetting;
+				Scene3DInternal::OwnToonSetting(tag == "outlinewidth" ? TS::OutlineWidth : TS::OutlineDepth);
+				(tag == "outlinewidth" ? outlineWidth : outlineDepthThreshold) = v;
+			}
+		}
+		else if (tag == "outlinecolor")
+		{
+			// outlinecolor <r> <g> <b>
+			glm::vec3 c;
+			if (ss >> c.r >> c.g >> c.b)
+			{
+				Scene3DInternal::OwnToonSetting(Scene3DInternal::ToonSetting::OutlineColor);
+				outlineColor = c;
 			}
 		}
 		else if (tag == "ao")
@@ -1712,6 +1748,22 @@ void Scene3D::WriteScene(std::ostream& out) const
 			out << "\n";
 		}
 	}
+	{
+		// The cel / outline settings this scene sets itself.
+		using TS = Scene3DInternal::ToonSetting;
+		if (Scene3DInternal::SceneOwnsToonSetting(TS::CelShading))
+			out << "cel " << (celShading ? "on" : "off") << "\n";
+		if (Scene3DInternal::SceneOwnsToonSetting(TS::Outline))
+			out << "outline " << (outlineEnabled ? "on" : "off") << "\n";
+		if (Scene3DInternal::SceneOwnsToonSetting(TS::OutlineCharacters))
+			out << "outlinechars " << (outlineCharacters ? "on" : "off") << "\n";
+		if (Scene3DInternal::SceneOwnsToonSetting(TS::OutlineWidth))
+			out << "outlinewidth " << outlineWidth << "\n";
+		if (Scene3DInternal::SceneOwnsToonSetting(TS::OutlineDepth))
+			out << "outlinedepth " << outlineDepthThreshold << "\n";
+		if (Scene3DInternal::SceneOwnsToonSetting(TS::OutlineColor))
+			out << "outlinecolor " << outlineColor.r << " " << outlineColor.g << " " << outlineColor.b << "\n";
+	}
 	out << "\n";
 
 	// Cameras (preserve load order; the first is the default view)
@@ -2218,6 +2270,13 @@ void Scene3D::SetSkyTexture(Game& game, const std::string& path)
 	skybox->blendToNext = 0.0f;
 }
 
+void Scene3D::SetSkyRadius(float radius)
+{
+	skyRadiusVal = std::max(radius, 100.0f);
+	if (skybox != nullptr)
+		skybox->skyRadius = skyRadiusVal;
+}
+
 void Scene3D::SetAuthoredSky(Game& game, const std::string& path)
 {
 	if (path.empty())
@@ -2291,6 +2350,7 @@ void Scene3D::Unload(Game& game)
 	active = false;
 	gliding = false;
 	currentScene.clear();
+	Scene3DInternal::RestoreGameToonSettings();
 	SetSceneExposure(0.0f);   // back to the project defaults
 	SetSceneBloom(-1.0f);
 	SetSceneIBL(-1.0f, -1.0f);
@@ -2847,4 +2907,66 @@ void Scene3D::RestoreOrtho(Game& game)
 
 	game.useDepthTesting = false;
 	game.renderer.SetDepthTestEnabled(false);
+}
+
+// --- a scene's own cel-shading / outline settings (Scene3DInternal.h) -------
+
+namespace
+{
+	const int kToonCount = (int)Scene3DInternal::ToonSetting::Count;
+	bool toonOwned[kToonCount] = {};
+	bool toonSaved = false;   // the game's values below are held
+	bool gameCel = false, gameOutline = true, gameOutlineChars = true;
+	float gameOutlineWidth = 3.0f, gameOutlineDepth = 4.0f;
+	glm::vec3 gameOutlineColor(0.0f);
+}
+
+void Scene3DInternal::OwnToonSetting(ToonSetting s)
+{
+	Scene3D& scene = Scene3D::Get();
+	if (!toonSaved)
+	{
+		gameCel = scene.celShading;
+		gameOutline = scene.outlineEnabled;
+		gameOutlineChars = scene.outlineCharacters;
+		gameOutlineWidth = scene.outlineWidth;
+		gameOutlineDepth = scene.outlineDepthThreshold;
+		gameOutlineColor = scene.outlineColor;
+		toonSaved = true;
+	}
+	toonOwned[(int)s] = true;
+}
+
+bool Scene3DInternal::SceneOwnsToonSetting(ToonSetting s)
+{
+	return toonOwned[(int)s];
+}
+
+void Scene3DInternal::ResetToonSetting(ToonSetting s)
+{
+	if (!toonOwned[(int)s])
+		return;
+	toonOwned[(int)s] = false;
+	Scene3D& scene = Scene3D::Get();
+	switch (s)
+	{
+	case ToonSetting::CelShading: scene.celShading = gameCel; break;
+	case ToonSetting::Outline: scene.outlineEnabled = gameOutline; break;
+	case ToonSetting::OutlineCharacters: scene.outlineCharacters = gameOutlineChars; break;
+	case ToonSetting::OutlineWidth: scene.outlineWidth = gameOutlineWidth; break;
+	case ToonSetting::OutlineDepth: scene.outlineDepthThreshold = gameOutlineDepth; break;
+	case ToonSetting::OutlineColor: scene.outlineColor = gameOutlineColor; break;
+	default: break;
+	}
+	bool any = false;
+	for (bool owned : toonOwned)
+		any = any || owned;
+	if (!any)
+		toonSaved = false;   // nothing held: the game may change its values freely again
+}
+
+void Scene3DInternal::RestoreGameToonSettings()
+{
+	for (int i = 0; i < kToonCount; i++)
+		ResetToonSetting((ToonSetting)i);
 }

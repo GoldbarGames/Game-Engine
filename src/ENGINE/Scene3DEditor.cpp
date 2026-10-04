@@ -25,9 +25,13 @@
 #include "render/DepthOfField.h"
 #include "render/Environment.h"
 #include "render/VolumetricFog.h"
+#include "render/Reflections.h"
+#include "render/TemporalAA.h"
+#include "render/TextureFiles.h"
 #include <fstream>
 #include <cctype>
 #include <functional>
+#include <set>
 
 namespace
 {
@@ -37,8 +41,9 @@ namespace
 	// every few frames through the editor's normal click path (buttons, panels,
 	// dropdowns; a click that reaches the scene picks there). "x,y>x2,y2" is a
 	// drag instead: press at x,y, move over a few frames, release at x2,y2;
-	// "save" presses F5.
-	struct ScriptedClick { int x, y; bool drag; int x2, y2; bool save; };
+	// "save" presses F5; "name:<text>" types <text> into an open name prompt
+	// and presses Enter.
+	struct ScriptedClick { int x, y; bool drag; int x2, y2; bool save; std::string typed; };
 	std::vector<ScriptedClick> scriptedClicks;
 	size_t scriptedNext = 0;
 	int scriptedWait = 0;
@@ -59,8 +64,10 @@ namespace
 		std::string item;
 		while (std::getline(ss, item, ';'))
 		{
-			ScriptedClick c = { 0, 0, false, 0, 0, false };
-			if (item == "save")
+			ScriptedClick c = { 0, 0, false, 0, 0, false, std::string() };
+			if (item.compare(0, 5, "name:") == 0)
+				c.typed = item.substr(5);
+			else if (item == "save")
 				c.save = true;
 			else if (std::sscanf(item.c_str(), "%d,%d>%d,%d", &c.x, &c.y, &c.x2, &c.y2) == 4)
 				c.drag = true;
@@ -290,9 +297,9 @@ static const float kAnchorHalf = 26.0f;
 	enum class LookProp
 	{
 		Exposure, Bloom, SkyLight, SkyShine, Ao, AoRadius,
-		Shadows, Fog, FogFalloff, FogGlow, FogDrift, Weather,
+		Shadows, Fog, FogFalloff, FogGlow, FogDrift, FogRed, FogGreen, FogBlue, Weather,
 		Focus, Aperture, PickFocus, Grade, Lut,
-		Sky, AoView, LightCount,
+		Sky, AoView, LightCount, SkySize, Project, Toon,
 	};
 	// A row is a value with [-] [+] or a full-width button. A value steps by
 	// adding `step`, or by multiplying when `mul` (then `floor` is where + starts
@@ -315,23 +322,29 @@ static const float kAnchorHalf = 26.0f;
 		{ 0, LookProp::SkyShine,   "SKY SHINE",   false, 0.1f,   false, 0.0f,   4.0f,     0.0f,    "%.1f" },
 		{ 0, LookProp::Ao,         "AO",          false, 0.1f,   false, 0.0f,   1.0f,     0.0f,    "%.1f" },
 		{ 0, LookProp::AoRadius,   "AO RADIUS",   false, 10.0f,  false, 10.0f,  400.0f,   0.0f,    "%.0f" },
-		{ 1, LookProp::Shadows,    "SHADOWS",     false, 1.25f,  true,  500.0f, 40000.0f, 0.0f,    "%.0f" },
+		{ 0, LookProp::Toon,       "TOON & OUTLINE...", true, 0.0f, false, 0.0f,  0.0f,     0.0f,    "" },
 		{ 1, LookProp::Fog,        "FOG",         false, 1.25f,  true,  0.0f,   0.02f,    0.0001f, "%.5f" },
 		{ 1, LookProp::FogFalloff, "FOG FALLOFF", false, 1.25f,  true,  0.0f,   0.05f,    0.0005f, "%.4f" },
 		{ 1, LookProp::FogGlow,    "FOG GLOW",    false, 0.05f,  false, -0.95f, 0.95f,    0.0f,    "%.2f" },
 		{ 1, LookProp::FogDrift,   "FOG DRIFT",   false, 0.05f,  false, 0.0f,   1.0f,     0.0f,    "%.2f" },
-		{ 1, LookProp::Weather,    "WEATHER",     false, 0.1f,   false, 0.1f,   1.0f,     0.0f,    "%.1f" },
+		{ 1, LookProp::FogRed,     "FOG RED",     false, 0.05f,  false, 0.0f,   1.0f,     0.0f,    "%.2f" },
+		{ 1, LookProp::FogGreen,   "FOG GREEN",   false, 0.05f,  false, 0.0f,   1.0f,     0.0f,    "%.2f" },
+		{ 1, LookProp::FogBlue,    "FOG BLUE",    false, 0.05f,  false, 0.0f,   1.0f,     0.0f,    "%.2f" },
 		{ 2, LookProp::Focus,      "FOCUS",       false, 1.15f,  true,  10.0f,  50000.0f, 0.0f,    "%.0f" },
 		{ 2, LookProp::Aperture,   "APERTURE",    false, 0.5f,   false, 0.0f,   40.0f,    0.0f,    "%.1f" },
 		{ 2, LookProp::PickFocus,  "PICK FOCUS",  true,  0.0f,   false, 0.0f,   0.0f,     0.0f,    "" },
 		{ 2, LookProp::Grade,      "GRADE",       false, 0.1f,   false, 0.0f,   1.0f,     0.0f,    "%.1f" },
 		{ 2, LookProp::Lut,        "LUT",         true,  0.0f,   false, 0.0f,   0.0f,     0.0f,    "" },
+		{ 2, LookProp::Project,    "PROJECT SETTINGS...", true, 0.0f, false, 0.0f, 0.0f,   0.0f,    "" },
 		{ 3, LookProp::Sky,        "SKY",         true,  0.0f,   false, 0.0f,   0.0f,     0.0f,    "" },
+		{ 3, LookProp::SkySize,    "SKY SIZE",    false, 1.15f,  true,  500.0f, 20000.0f, 0.0f,    "%.0f" },
+		{ 3, LookProp::Shadows,    "SHADOWS",     false, 1.25f,  true,  500.0f, 40000.0f, 0.0f,    "%.0f" },
+		{ 3, LookProp::Weather,    "WEATHER",     false, 0.1f,   false, 0.1f,   1.0f,     0.0f,    "%.1f" },
 		{ 3, LookProp::AoView,     "AO VIEW",     true,  0.0f,   false, 0.0f,   0.0f,     0.0f,    "" },
 		{ 3, LookProp::LightCount, "LIGHT COUNT", true,  0.0f,   false, 0.0f,   0.0f,     0.0f,    "" },
 	};
 	const int kLookRowCount = (int)(sizeof(kLookRows) / sizeof(kLookRows[0]));
-	const char* kLookColumnNames[4] = { "LIGHT", "ATMOSPHERE", "CAMERA & GRADE", "VIEW" };
+	const char* kLookColumnNames[4] = { "LIGHT", "FOG", "CAMERA & GRADE", "SCENE" };
 
 	// --- row panels (LOOK, LIGHTS) --------------------------------------------
 	// A boxed panel under the button bars: a title line, up to four columns with
@@ -412,8 +425,8 @@ static const float kAnchorHalf = 26.0f;
 			p.shown.push_back(std::string());
 		}
 
-		const float rowH = p.minus->GetRenderedHeight() + 8.0f;
-		const float pitch = rowH + 5.0f;
+		const float rowH = p.minus->GetRenderedHeight() + 5.0f;
+		const float pitch = rowH + 3.0f;
 		const float lineH = p.minus->GetRenderedHeight() + 2.0f;
 		const float titleY = top + 6.0f;
 		const float headerY = titleY + lineH + 4.0f;
@@ -553,8 +566,9 @@ static const float kAnchorHalf = 26.0f;
 	{
 		Intensity, Range, Flash, FlashPhase, Inner, Outer, AimTurn, AimTilt,
 		Temp, Red, Green, Blue,
-		OnOff, Shadow, Rename, AddPoint, AddSpot, SceneLight,
+		OnOff, Shadow, Rename, AddPoint, AddSpot, SceneLight, Guard,
 		Sun, SunTemp, SunHeading, SunHeight, Ambient, AmbientTemp,
+		SunRed, SunGreen, SunBlue, AmbientRed, AmbientGreen, AmbientBlue,
 	};
 	struct LightStepDef
 	{
@@ -585,6 +599,12 @@ static const float kAnchorHalf = 26.0f;
 		{ LightProp::SunHeight,   "SUN HEIGHT",   5.0f,  false, 5.0f,   90.0f,    0.0f,  "%.0f deg" },
 		{ LightProp::Ambient,     "AMBIENT",      1.25f, true,  0.0f,   2.0f,     0.01f, "%.2f" },
 		{ LightProp::AmbientTemp, "AMBIENT TEMP", 0.0f,  false, 0.0f,   0.0f,     0.0f,  "%.0f K" },
+		{ LightProp::SunRed,      "SUN RED",      0.05f, false, 0.0f,   2.0f,     0.0f,  "%.2f" },
+		{ LightProp::SunGreen,    "SUN GREEN",    0.05f, false, 0.0f,   2.0f,     0.0f,  "%.2f" },
+		{ LightProp::SunBlue,     "SUN BLUE",     0.05f, false, 0.0f,   2.0f,     0.0f,  "%.2f" },
+		{ LightProp::AmbientRed,  "AMBIENT RED",  0.02f, false, 0.0f,   2.0f,     0.0f,  "%.2f" },
+		{ LightProp::AmbientGreen,"AMBIENT GREEN",0.02f, false, 0.0f,   2.0f,     0.0f,  "%.2f" },
+		{ LightProp::AmbientBlue, "AMBIENT BLUE", 0.02f, false, 0.0f,   2.0f,     0.0f,  "%.2f" },
 	};
 
 	const LightStepDef* FindLightStep(LightProp p)
@@ -605,6 +625,7 @@ static const float kAnchorHalf = 26.0f;
 		case LightProp::AddPoint: return "ADD POINT LIGHT";
 		case LightProp::AddSpot: return "ADD SPOT LIGHT";
 		case LightProp::SceneLight: return "SUN & AMBIENT";
+		case LightProp::Guard: return "GUARD";
 		default: return "";
 		}
 	}
@@ -758,6 +779,12 @@ static const float kAnchorHalf = 26.0f;
 			break;
 		}
 		case LightProp::Ambient: value = Brightness(scene.GetAmbientLight()); break;
+		case LightProp::SunRed: value = scene.GetDirectionalLight().color.r; break;
+		case LightProp::SunGreen: value = scene.GetDirectionalLight().color.g; break;
+		case LightProp::SunBlue: value = scene.GetDirectionalLight().color.b; break;
+		case LightProp::AmbientRed: value = scene.GetAmbientLight().r; break;
+		case LightProp::AmbientGreen: value = scene.GetAmbientLight().g; break;
+		case LightProp::AmbientBlue: value = scene.GetAmbientLight().b; break;
 		case LightProp::AmbientTemp:
 			value = kKelvins[NearestKelvin(scene.GetAmbientLight(), exact)];
 			if (!exact) text = "custom";
@@ -765,6 +792,315 @@ static const float kAnchorHalf = 26.0f;
 		default:
 			break;
 		}
+	}
+
+	// --- TOON & OUTLINE: a page of the LOOK panel ----------------------------
+	bool lookToonPage = false;
+	RowPanel toonPanel;
+	enum class ToonKind { OnOff, Value, GameValues, Back };
+	struct ToonRowDef
+	{
+		int column;
+		ToonKind kind;
+		Scene3DInternal::ToonSetting setting;
+		const char* name;
+		int component;       // outline colour: 0 red, 1 green, 2 blue
+		float step;
+		bool mul;
+		float lo, hi;
+		const char* fmt;
+	};
+	const ToonRowDef kToonRows[] = {
+		{ 0, ToonKind::OnOff,      Scene3DInternal::ToonSetting::CelShading,        "CEL SHADING",  0, 0.0f,  false, 0.0f, 0.0f,  "" },
+		{ 0, ToonKind::OnOff,      Scene3DInternal::ToonSetting::Outline,           "OUTLINE",      0, 0.0f,  false, 0.0f, 0.0f,  "" },
+		{ 0, ToonKind::OnOff,      Scene3DInternal::ToonSetting::OutlineCharacters, "OUTLINE CHARACTERS", 0, 0.0f, false, 0.0f, 0.0f, "" },
+		{ 0, ToonKind::GameValues, Scene3DInternal::ToonSetting::Count,             "THE GAME'S SETTINGS", 0, 0.0f, false, 0.0f, 0.0f, "" },
+		{ 0, ToonKind::Back,       Scene3DInternal::ToonSetting::Count,             "BACK TO THE LOOK", 0, 0.0f, false, 0.0f, 0.0f, "" },
+		{ 1, ToonKind::Value,      Scene3DInternal::ToonSetting::OutlineWidth,      "WIDTH",        0, 0.5f,  false, 0.5f, 12.0f, "%.1f px" },
+		{ 1, ToonKind::Value,      Scene3DInternal::ToonSetting::OutlineDepth,      "EDGES",        0, 1.25f, true,  0.1f, 50.0f, "%.2f" },
+		{ 1, ToonKind::Value,      Scene3DInternal::ToonSetting::OutlineColor,      "RED",          0, 0.05f, false, 0.0f, 1.0f,  "%.2f" },
+		{ 1, ToonKind::Value,      Scene3DInternal::ToonSetting::OutlineColor,      "GREEN",        1, 0.05f, false, 0.0f, 1.0f,  "%.2f" },
+		{ 1, ToonKind::Value,      Scene3DInternal::ToonSetting::OutlineColor,      "BLUE",         2, 0.05f, false, 0.0f, 1.0f,  "%.2f" },
+	};
+	const int kToonRowCount = (int)(sizeof(kToonRows) / sizeof(kToonRows[0]));
+
+	// The Scene3D field a value row edits.
+	float& ToonField(const ToonRowDef& d)
+	{
+		Scene3D& scene = Scene3D::Get();
+		switch (d.setting)
+		{
+		case Scene3DInternal::ToonSetting::OutlineWidth: return scene.outlineWidth;
+		case Scene3DInternal::ToonSetting::OutlineDepth: return scene.outlineDepthThreshold;
+		default: return scene.outlineColor[d.component];
+		}
+	}
+
+	float ToonValue(const ToonRowDef& d)
+	{
+		return ToonField(d);
+	}
+
+	// --- GUARD button (after the action buttons) -------------------------------
+	float guardBtnX = 0, guardBtnY = 0, guardBtnW = 0, guardBtnH = 0;
+	bool guardBtnLaidOut = false;
+	Text* guardText = nullptr;
+	std::string guardShown;
+
+	// --- PROJECT SETTINGS: a page of the LOOK panel (renderer.dat) ------------
+	bool lookProjectPage = false;
+	RowPanel projectPanel;
+	std::set<std::string> projectRestartKeys;   // restart-only keys changed this session
+	std::unordered_map<std::string, std::string> projectConfig;   // the file as last read
+
+	enum class ProjectKind { Value, OnOff, Choice, Lut, Back };
+	struct ProjectRowDef
+	{
+		int column;
+		ProjectKind kind;
+		const char* key;     // renderer.dat key
+		const char* name;
+		float step;
+		bool mul;
+		float lo, hi, floor;
+		const char* fmt;
+		const char* def;     // the engine's value when the key is absent
+		bool restart;        // only takes effect after a restart
+	};
+	const ProjectRowDef kProjectRows[] = {
+		{ 0, ProjectKind::OnOff,  "linearLighting",     "LINEAR",           0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "0",          true },
+		{ 0, ProjectKind::Choice, "tonemap",            "TONEMAP",          0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "agx_punchy", false },
+		{ 0, ProjectKind::Value,  "exposure",           "EXPOSURE",         1.1f,  true,  0.05f, 20.0f,    0.0f,    "%.2f", "1",          false },
+		{ 0, ProjectKind::Value,  "bloom",              "BLOOM",            0.01f, false, 0.0f,  1.0f,     0.0f,    "%.2f", "0.04",       false },
+		{ 0, ProjectKind::Lut,    "colorGrade",         "LUT",              0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "none",       false },
+		{ 0, ProjectKind::Value,  "colorGradeStrength", "GRADE",            0.1f,  false, 0.0f,  1.0f,     0.0f,    "%.1f", "1",          false },
+		{ 0, ProjectKind::Back,   "",                   "BACK TO THIS SCENE", 0.0f, false, 0.0f, 0.0f,     0.0f,    "",     "",           false },
+		{ 1, ProjectKind::Value,  "ibl",                "SKY LIGHT",        0.1f,  false, 0.0f,  4.0f,     0.0f,    "%.1f", "1",          false },
+		{ 1, ProjectKind::Value,  "iblSpecular",        "SKY SHINE",        0.1f,  false, 0.0f,  4.0f,     0.0f,    "%.1f", "",           false },
+		{ 1, ProjectKind::Value,  "ao",                 "AO",               0.1f,  false, 0.0f,  1.0f,     0.0f,    "%.1f", "1",          false },
+		{ 1, ProjectKind::Value,  "aoRadius",           "AO RADIUS",        10.0f, false, 10.0f, 400.0f,   0.0f,    "%.0f", "60",         false },
+		{ 1, ProjectKind::Value,  "shadowCascades",     "SHADOW MAPS",      1.0f,  false, 0.0f,  4.0f,     0.0f,    "%.0f", "4",          false },
+		{ 1, ProjectKind::Value,  "shadowDistance",     "SHADOW REACH",     1.25f, true,  500.0f, 40000.0f, 0.0f,   "%.0f", "5000",       false },
+		{ 1, ProjectKind::Value,  "shadowSoftness",     "SHADOW SOFTNESS",  0.25f, false, 0.0f,  4.0f,     0.0f,    "%.2f", "1",          false },
+		{ 2, ProjectKind::Value,  "fog",                "FOG",              1.25f, true,  0.0f,  0.02f,    0.0001f, "%.5f", "0",          false },
+		{ 2, ProjectKind::Value,  "fogHeightFalloff",   "FOG FALLOFF",      1.25f, true,  0.0f,  0.05f,    0.0005f, "%.4f", "0.004",      false },
+		{ 2, ProjectKind::Value,  "fogAnisotropy",      "FOG GLOW",         0.05f, false, -0.95f, 0.95f,   0.0f,    "%.2f", "0.5",        false },
+		{ 2, ProjectKind::Value,  "fogNoise",           "FOG DRIFT",        0.05f, false, 0.0f,  1.0f,     0.0f,    "%.2f", "0",          false },
+		{ 2, ProjectKind::Value,  "fogDistance",        "FOG REACH",        1.25f, true,  500.0f, 40000.0f, 0.0f,   "%.0f", "6000",       false },
+		{ 2, ProjectKind::OnOff,  "volumetricFog",      "VOLUMETRIC FOG",   0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "1",          false },
+		{ 3, ProjectKind::Choice, "antialiasing",       "ANTI-ALIASING",    0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "taa",        false },
+		{ 3, ProjectKind::OnOff,  "reflections",        "REFLECTIONS",      0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "1",          false },
+		{ 3, ProjectKind::Value,  "reflectionDistance", "REFLECT REACH",    1.25f, true,  50.0f, 20000.0f, 0.0f,    "%.0f", "1500",       false },
+		{ 3, ProjectKind::OnOff,  "depthOfField",       "DEPTH OF FIELD",   0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "1",          false },
+		{ 3, ProjectKind::OnOff,  "clusteredLights",    "CLUSTERED LIGHTS", 0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "1",          false },
+		{ 3, ProjectKind::OnOff,  "gpuDriven",          "GPU-DRIVEN",       0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "1",          true },
+		{ 3, ProjectKind::Value,  "anisotropy",         "ANISOTROPY",       2.0f,  true,  1.0f,  16.0f,    0.0f,    "%.0f", "8",          false },
+	};
+	const int kProjectRowCount = (int)(sizeof(kProjectRows) / sizeof(kProjectRows[0]));
+
+	bool ProjectHas(const ProjectRowDef& d)
+	{
+		return projectConfig.count(d.key) > 0 && !projectConfig[d.key].empty();
+	}
+
+	std::string ProjectValue(const ProjectRowDef& d)
+	{
+		if (ProjectHas(d))
+			return projectConfig[d.key];
+		if (std::string(d.key) == "iblSpecular")   // defaults to ibl
+			return projectConfig.count("ibl") > 0 ? projectConfig["ibl"] : "1";
+		return d.def;
+	}
+
+	float ProjectNumber(const ProjectRowDef& d)
+	{
+		try { return std::stof(ProjectValue(d)); } catch (...) { return 0.0f; }
+	}
+
+	std::vector<std::string> ProjectChoices(const ProjectRowDef& d)
+	{
+		if (std::string(d.key) == "tonemap")
+			return { "none", "agx", "agx_punchy", "aces" };
+		return { "taa", "none" };
+	}
+
+	// Set one renderer.dat key: replace its line (or append one), keeping every
+	// other line, comment and line ending as it was.
+	bool WriteRendererSetting(const std::string& key, const std::string& value, std::string& message)
+	{
+		const std::string& path = RendererConfigPath();
+		std::vector<std::string> lines;
+		std::vector<bool> crlf;
+		{
+			std::ifstream in(path, std::ios::binary);
+			std::string line;
+			while (std::getline(in, line))
+			{
+				const bool cr = !line.empty() && line.back() == '\r';
+				if (cr)
+					line.pop_back();
+				lines.push_back(line);
+				crlf.push_back(cr);
+			}
+		}
+		bool found = false;
+		for (std::string& line : lines)
+		{
+			std::istringstream ss(line);
+			std::string tok;
+			if ((ss >> tok) && tok == key)
+			{
+				line = key + " " + value;
+				found = true;
+			}
+		}
+		if (!found)
+		{
+			lines.push_back(key + " " + value);
+			crlf.push_back(!crlf.empty() && crlf.back());
+		}
+		std::ofstream out(path, std::ios::binary | std::ios::trunc);
+		if (!out.is_open())
+		{
+			message = "cannot write " + path;
+			return false;
+		}
+		for (size_t i = 0; i < lines.size(); i++)
+			out << lines[i] << (crlf[i] ? "\r\n" : "\n");
+		return true;
+	}
+
+	// Re-read renderer.dat into everything that can change while running. The
+	// colour mode (linearLighting) and gpuDriven wait for a restart.
+	void ReloadRenderSettingsLive()
+	{
+		ReloadColorSettings();
+		LoadEnvironmentSettings();
+		LoadAmbientOcclusionSettings();
+		LoadTemporalAASettings();
+		LoadClusteredLightSettings();
+		LoadColorGradeSettings();
+		LoadDepthOfFieldSettings();
+		LoadFogSettings();
+		LoadReflectionSettings();
+		LoadTextureSettings();
+		Scene3DInternal::ReloadShadowSettings();
+	}
+
+	// --- MATERIAL panel ------------------------------------------------------
+	bool materialOpen = false;
+	RowPanel materialPanel;
+	std::vector<int> materialRowProps;  // the MatProp of each row last drawn (for clicks)
+	float materialBtnX = 0, materialBtnY = 0, materialBtnW = 0, materialBtnH = 0;   // the MATERIAL toggle
+	bool materialBtnLaidOut = false;
+	Text* materialToggleText = nullptr;
+
+	enum class MatProp
+	{
+		Lighting, Specular, Shininess, Metallic, Roughness, Fresnel, Opacity,
+		TintR, TintG, TintB, GlowR, GlowG, GlowB,
+		TileU, TileV, NormalMap, NormalStrength, NormalMode,
+		Assign, NewMat, Outline, Season,
+	};
+	struct MatStepDef
+	{
+		MatProp prop;
+		const char* name;
+		float step;
+		bool mul;
+		float lo, hi, floor;
+		const char* fmt;
+	};
+	// Tiling steps by its size instead (step 0).
+	const MatStepDef kMatSteps[] = {
+		{ MatProp::Specular,       "SPECULAR",        0.05f, false, 0.0f,  4.0f,    0.0f, "%.2f" },
+		{ MatProp::Shininess,      "SHININESS",       1.25f, true,  1.0f,  1000.0f, 0.0f, "%.0f" },
+		{ MatProp::Metallic,       "METALLIC",        0.05f, false, 0.0f,  1.0f,    0.0f, "%.2f" },
+		{ MatProp::Roughness,      "ROUGHNESS",       0.05f, false, 0.02f, 1.0f,    0.0f, "%.2f" },
+		{ MatProp::Fresnel,        "FRESNEL",         0.05f, false, 0.0f,  2.0f,    0.0f, "%.2f" },
+		{ MatProp::Opacity,        "OPACITY",         0.05f, false, 0.05f, 1.0f,    0.0f, "%.2f" },
+		{ MatProp::TintR,          "TINT RED",        0.05f, false, 0.0f,  2.0f,    0.0f, "%.2f" },
+		{ MatProp::TintG,          "TINT GREEN",      0.05f, false, 0.0f,  2.0f,    0.0f, "%.2f" },
+		{ MatProp::TintB,          "TINT BLUE",       0.05f, false, 0.0f,  2.0f,    0.0f, "%.2f" },
+		{ MatProp::GlowR,          "GLOW RED",        0.1f,  false, 0.0f,  20.0f,   0.0f, "%.2f" },
+		{ MatProp::GlowG,          "GLOW GREEN",      0.1f,  false, 0.0f,  20.0f,   0.0f, "%.2f" },
+		{ MatProp::GlowB,          "GLOW BLUE",       0.1f,  false, 0.0f,  20.0f,   0.0f, "%.2f" },
+		{ MatProp::TileU,          "TILE ACROSS",     0.0f,  false, 0.25f, 500.0f,  0.0f, "%.2f" },
+		{ MatProp::TileV,          "TILE DOWN",       0.0f,  false, 0.25f, 500.0f,  0.0f, "%.2f" },
+		{ MatProp::NormalStrength, "NORMAL DEPTH",    0.1f,  false, 0.0f,  4.0f,    0.0f, "%.1f" },
+	};
+
+	const MatStepDef* FindMatStep(MatProp p)
+	{
+		for (const MatStepDef& d : kMatSteps)
+			if (d.prop == p)
+				return &d;
+		return nullptr;
+	}
+
+	// The material field a value row edits.
+	float* MatField(SceneMaterial& m, MatProp p)
+	{
+		switch (p)
+		{
+		case MatProp::Specular: return &m.specular;
+		case MatProp::Shininess: return &m.shininess;
+		case MatProp::Metallic: return &m.metallic;
+		case MatProp::Roughness: return &m.roughness;
+		case MatProp::Fresnel: return &m.fresnel;
+		case MatProp::Opacity: return &m.opacity;
+		case MatProp::TintR: return &m.tint.x;
+		case MatProp::TintG: return &m.tint.y;
+		case MatProp::TintB: return &m.tint.z;
+		case MatProp::GlowR: return &m.emissive.x;
+		case MatProp::GlowG: return &m.emissive.y;
+		case MatProp::GlowB: return &m.emissive.z;
+		case MatProp::TileU: return &m.uvTile.x;
+		case MatProp::TileV: return &m.uvTile.y;
+		case MatProp::NormalStrength: return &m.normalStrength;
+		default: return nullptr;
+		}
+	}
+
+	// Tiling steps a quarter at a time up to 2, whole tiles to 10, then 5s.
+	float StepTiling(float v, int dir)
+	{
+		const float ref = (dir > 0) ? v : v - 1e-4f;
+		const float step = (ref < 2.0f) ? 0.25f : (ref < 10.0f) ? 1.0f : 5.0f;
+		const float nv = std::round((v + dir * step) / step) * step;
+		return std::min(std::max(nv, 0.25f), 500.0f);
+	}
+
+	const char* LightingName(LightingModel l)
+	{
+		return l == LightingModel::PBR ? "PBR" : l == LightingModel::Water ? "WATER" : "PHONG";
+	}
+
+	bool IsGltfPath(const std::string& path)
+	{
+		const size_t dot = path.find_last_of('.');
+		const std::string ext = (dot == std::string::npos) ? std::string() : path.substr(dot);
+		return ext == ".gltf" || ext == ".glb" || ext == ".GLTF" || ext == ".GLB";
+	}
+
+	// --- undo snapshots: the scene text plus the material library ------------
+	// Material edits join undo and the unsaved flag, so a snapshot carries both.
+	// A scene load re-reads materials.txt, so restoring a snapshot re-applies
+	// its materials afterwards.
+	const std::string kMaterialsMarker = "\n#@materials\n";
+
+	std::string EditorSnapshot()
+	{
+		return Scene3D::Get().SerializeToString() + kMaterialsMarker + MaterialLibrary::Get().Serialize();
+	}
+
+	// Models hold pointers into the material list, which can move when the
+	// editor adds a material.
+	void RefreshMaterialPointers()
+	{
+		const MaterialLibrary& library = MaterialLibrary::Get();
+		for (Scene3DModel* m : Scene3D::Get().GetModels())
+			m->material = m->materialName.empty() ? nullptr : library.Find(m->materialName);
 	}
 
 	std::string UniqueLightName(Scene3D& scene, const std::string& base)
@@ -835,13 +1171,17 @@ static const float kAnchorHalf = 26.0f;
 		case LookProp::FogFalloff:
 		case LookProp::FogGlow:
 		case LookProp::FogDrift:
+		case LookProp::FogRed:
+		case LookProp::FogGreen:
+		case LookProp::FogBlue:
 		{
 			FogSettings f;
 			v.own = GetSceneFog(f);
 			if (!v.own)
 				f = FogInForce();
 			v.value = (p == LookProp::Fog) ? f.density : (p == LookProp::FogFalloff) ? f.heightFalloff
-				: (p == LookProp::FogGlow) ? f.anisotropy : f.noise;
+				: (p == LookProp::FogGlow) ? f.anisotropy : (p == LookProp::FogDrift) ? f.noise
+				: (p == LookProp::FogRed) ? f.color.r : (p == LookProp::FogGreen) ? f.color.g : f.color.b;
 			break;
 		}
 		case LookProp::Weather:
@@ -863,6 +1203,12 @@ static const float kAnchorHalf = 26.0f;
 				v.text = "off";
 			break;
 		}
+		case LookProp::SkySize:
+			v.own = true;   // the scene's own; there is no project default
+			v.value = scene.GetSkyRadius();
+			if (!scene.HasSky())
+				v.text = "no sky";
+			break;
 		case LookProp::Grade:
 		{
 			std::string path, projectPath;
@@ -988,6 +1334,21 @@ void Scene3DEditor::Update(Game& game)
 	// While naming a new scene, capture typed text and freeze everything else.
 	if (namingScene)
 	{
+		// A scripted name (KINJO_EDITOR_CLICKS "name:<text>"): type it, press Enter.
+		LoadEditorScript();
+		if (scriptedNext < scriptedClicks.size() && !scriptedClicks[scriptedNext].typed.empty() && --scriptedWait <= 0)
+		{
+			static Uint8 typedKeys[SDL_NUM_SCANCODES];
+			std::copy(keys, keys + SDL_NUM_SCANCODES, typedKeys);
+			typedKeys[SDL_SCANCODE_RETURN] = 1;
+			prevKeys[SDL_SCANCODE_RETURN] = 0;
+			nameBuffer = scriptedClicks[scriptedNext].typed;
+			std::cout << "Scene3DEditor: scripted name " << nameBuffer << std::endl;
+			scriptedNext++;
+			scriptedWait = 2;
+			UpdateNaming(typedKeys, game);
+			return;
+		}
 		UpdateNaming(keys, game);
 		return;
 	}
@@ -1153,6 +1514,10 @@ void Scene3DEditor::Update(Game& game)
 		leftPressed = false;   // consumed (LOOK toggle / panel)
 	if (leftPressed && !rightHeld && LightsButtonClick(game, (float)mx, (float)my))
 		leftPressed = false;   // consumed (LIGHTS toggle / panel)
+	if (leftPressed && !rightHeld && MaterialButtonClick(game, (float)mx, (float)my))
+		leftPressed = false;   // consumed (MATERIAL toggle / panel)
+	if (leftPressed && !rightHeld && GuardButtonClick(game, (float)mx, (float)my))
+		leftPressed = false;   // consumed (GUARD prompt)
 	if (leftPressed && !rightHeld && WaterButtonClick(game, (float)mx, (float)my))
 		leftPressed = false;   // consumed
 	if (leftPressed && !rightHeld && FountainButtonClick(game, (float)mx, (float)my))
@@ -1184,6 +1549,7 @@ void Scene3DEditor::Update(Game& game)
 		{
 			lightsOpen = true;
 			lookOpen = false;
+			materialOpen = false;
 			lookPickFocus = false;
 			showMinimap = false;
 		}
@@ -1392,9 +1758,17 @@ void Scene3DEditor::Update(Game& game)
 	{
 		if (scene.SaveScene(game))
 		{
-			savedSnapshot = scene.SerializeToString();   // now clean (keeps undo history)
+			// The materials too: only those that differ from the file are written.
+			std::string materials;
+			const bool materialsSaved = MaterialLibrary::Get().SaveChanges(materials);
 			statusMsg = "Saved " + scene.currentScene + ".scene";
-			statusFrames = 180;
+			if (!materialsSaved)
+				statusMsg += ", but MATERIALS FAILED: " + materials;
+			else if (materials != "materials unchanged")
+				statusMsg += "; " + materials;
+			if (materialsSaved)
+				savedSnapshot = EditorSnapshot();   // now clean (keeps undo history)
+			statusFrames = 220;
 		}
 		else
 		{
@@ -1938,7 +2312,8 @@ void Scene3DEditor::RefreshInfoText(Game& game)
 			+ rot + "  " + scl
 			+ (m->solid ? "  [solid]" : "")
 			+ (m->interactionTag.empty() ? "" : ("\ntag: " + m->interactionTag))
-			+ (m->materialName.empty() ? "" : ("\nmat: " + m->materialName));
+			+ (m->materialName.empty() ? "" : ("\nmat: " + m->materialName))
+			+ (m->guard.empty() ? "" : ("\nguard: " + m->guard));
 	}
 	else if (selType == SelType::Character && selIndex >= 0 && selIndex < (int)scene.GetCharacters().size())
 	{
@@ -1960,7 +2335,8 @@ void Scene3DEditor::RefreshInfoText(Game& game)
 	{
 		info = "POINT LIGHT  " + pl->name + (pl->on ? "" : "  (off)") + "\n"
 			+ "pos (" + F(pl->pos.x) + ", " + F(pl->pos.y) + ", " + F(pl->pos.z) + ")\n"
-			+ "range " + F(pl->range) + "  intensity " + F(pl->intensity);
+			+ "range " + F(pl->range) + "  intensity " + F(pl->intensity)
+			+ (pl->guard.empty() ? "" : ("\nguard: " + pl->guard));
 	}
 	else if (const SceneSpotLight* sl = SelectedSpotLight())
 	{
@@ -2107,19 +2483,21 @@ void Scene3DEditor::Render(Game& game, const Renderer& renderer)
 	// (which anchors under them).
 	RenderModeButtons(game, renderer);
 	RenderActionButtons(game, renderer);
+	RenderGuardButton(game, renderer);   // may wrap the action rows, so before the axis row
 	RenderAxisButtons(game, renderer);
 	RenderResetButtons(game, renderer);
 	RenderCameraButtons(game, renderer);
 	RenderEditButtons(game, renderer);
 	RenderLookPanel(game, renderer);
 	RenderLightsPanel(game, renderer);
+	RenderMaterialPanel(game, renderer);
 	RenderWaterButtons(game, renderer);
 	RenderFountainButtons(game, renderer);
 
 	// Object-details text, below the button bars (infoPanelY is now current).
 	// Hidden while a water object is selected - the water panel fills that space
 	// and already shows the material; the selection box marks the object.
-	if (infoText != nullptr && SelectedWater(game) == nullptr && !lookOpen && !lightsOpen)
+	if (infoText != nullptr && SelectedWater(game) == nullptr && !lookOpen && !lightsOpen && !materialOpen)
 	{
 		infoText->SetPosition(24.0f, infoPanelY);
 		infoText->Render(renderer);
@@ -2689,14 +3067,14 @@ bool Scene3DEditor::CameraListClick(Game& game, float sx, float sy)
 
 bool Scene3DEditor::IsDirty() const
 {
-	return Scene3D::Get().SerializeToString() != savedSnapshot;
+	return EditorSnapshot() != savedSnapshot;
 }
 
 void Scene3DEditor::ResetHistory()
 {
 	undoStack.clear();
 	redoStack.clear();
-	baselineSnapshot = Scene3D::Get().SerializeToString();
+	baselineSnapshot = EditorSnapshot();
 	savedSnapshot = baselineSnapshot;
 	historyScene = Scene3D::Get().currentScene;
 	listScroll = 0;   // start a freshly-loaded scene's list at the top
@@ -2708,7 +3086,7 @@ void Scene3DEditor::CommitEdit()
 	// the last commit) push the baseline as an undo step. Called at the END of
 	// an edit (mouse release / button action), so a drag's intermediate frames
 	// collapse into one step.
-	std::string cur = Scene3D::Get().SerializeToString();
+	std::string cur = EditorSnapshot();
 	if (cur == baselineSnapshot)
 		return;
 	undoStack.push_back(baselineSnapshot);
@@ -2722,8 +3100,16 @@ void Scene3DEditor::CommitEdit()
 
 void Scene3DEditor::LoadSnapshot(Game& game, const std::string& snap)
 {
-	// Rebuild the scene from a snapshot without moving the editor's fly camera.
-	Scene3D::Get().LoadFromString(game, snap, Scene3D::Get().currentScene, false);
+	// Rebuild the scene from a snapshot without moving the editor's fly camera,
+	// then its materials (the load re-read them from the file).
+	const size_t at = snap.find(kMaterialsMarker);
+	Scene3D::Get().LoadFromString(game, (at == std::string::npos) ? snap : snap.substr(0, at),
+		Scene3D::Get().currentScene, false);
+	if (at != std::string::npos)
+	{
+		MaterialLibrary::Get().ApplySerialized(game, snap.substr(at + kMaterialsMarker.size()));
+		RefreshMaterialPointers();
+	}
 	ClearSelection();
 	dragging = false;
 	openDropdown = DropKind::None;
@@ -2852,7 +3238,7 @@ Scene3DModel* Scene3DEditor::SelectedWater(Game& game) const
 void Scene3DEditor::RenderWaterButtons(Game& game, const Renderer& renderer)
 {
 	Scene3DModel* w = SelectedWater(game);
-	if (w == nullptr || lookOpen || lightsOpen)
+	if (w == nullptr || lookOpen || lightsOpen || materialOpen)
 	{
 		waterPanelLaidOut = false;   // hidden -> not hit-testable
 		return;
@@ -2966,7 +3352,7 @@ void Scene3DEditor::RenderFountainButtons(Game& game, const Renderer& renderer)
 	Scene3D& sc = Scene3D::Get();
 	// Shares the water panel's space, so only show it when there's a fountain AND
 	// no water object is selected.
-	if (!sc.HasFountain() || SelectedWater(game) != nullptr || lookOpen || lightsOpen)
+	if (!sc.HasFountain() || SelectedWater(game) != nullptr || lookOpen || lightsOpen || materialOpen)
 	{
 		fountainPanelLaidOut = false;
 		return;
@@ -3417,6 +3803,7 @@ bool Scene3DEditor::ActionButtonClick(Game& game, float sx, float sy)
 					lookOpen = false;
 					lookPickFocus = false;
 					lightsOpen = false;
+					materialOpen = false;
 				}
 				statusMsg = showMinimap ? "Aerial map ON" : "Aerial map OFF";
 				statusFrames = 120;
@@ -3710,7 +4097,9 @@ int Scene3DEditor::DropdownCount() const
 	if (openDropdown == DropKind::AddModel) return (int)addPalette.size();
 	if (openDropdown == DropKind::LoadScene) return (int)sceneList.size();
 	if (openDropdown == DropKind::MatSelect) return (int)matList.size();
-	if (openDropdown == DropKind::LookLut || openDropdown == DropKind::LookSky) return (int)lookDropValues.size();
+	if (openDropdown == DropKind::LookLut || openDropdown == DropKind::LookSky || openDropdown == DropKind::MatNormal
+		|| openDropdown == DropKind::ProjectLut)
+		return (int)lookDropValues.size();
 	return 0;
 }
 
@@ -3771,9 +4160,10 @@ void Scene3DEditor::RenderDropdown(Game& game, const Renderer& renderer)
 	if (openDropdown == DropKind::None || count == 0)
 		return;
 
-	if (openDropdown == DropKind::LookLut || openDropdown == DropKind::LookSky)
+	if (openDropdown == DropKind::LookLut || openDropdown == DropKind::LookSky || openDropdown == DropKind::MatNormal
+		|| openDropdown == DropKind::ProjectLut)
 	{
-		// Under its LOOK button, or above it when the list would run off the bottom.
+		// Under its panel button, or above it when the list would run off the bottom.
 		const float listH = count * kDropRowGui;
 		const float below = lookAnchorY + lookAnchorH + 8.0f;
 		dropdownX = lookAnchorX;
@@ -3817,6 +4207,36 @@ bool Scene3DEditor::DropdownClick(Game& game, float sx, float sy)
 		return false;
 
 	Scene3D& scene = Scene3D::Get();
+	if (openDropdown == DropKind::ProjectLut)
+	{
+		std::string message;
+		if (WriteRendererSetting("colorGrade", lookDropValues[row], message))
+		{
+			projectConfig = GetMapStringsFromFile(RendererConfigPath());
+			ReloadRenderSettingsLive();
+			statusMsg = "Project colour grade: " + (lookDropValues[row] == "none" ? std::string("none") : LookBaseName(lookDropValues[row]))
+				+ "  (saved to " + RendererConfigPath() + ")";
+		}
+		else
+			statusMsg = "renderer.dat: " + message;
+		statusFrames = 220;
+		return true;
+	}
+	if (openDropdown == DropKind::MatNormal)
+	{
+		Scene3DModel* m = (selType == SelType::Model && selIndex >= 0 && selIndex < (int)scene.GetModels().size())
+			? scene.GetModels()[selIndex] : nullptr;
+		SceneMaterial* mat = (m != nullptr && !m->materialName.empty()) ? MaterialLibrary::Get().FindMutable(m->materialName) : nullptr;
+		if (mat != nullptr)
+		{
+			MaterialLibrary::Get().SetNormalMap(game, *mat, lookDropValues[row]);
+			statusMsg = "Normal map: " + (lookDropValues[row].empty() ? std::string("none") : LookBaseName(lookDropValues[row]))
+				+ "  (" + mat->name + "; F5 saves)";
+			statusFrames = 180;
+			CommitEdit();
+		}
+		return true;
+	}
 	if (openDropdown == DropKind::LookLut || openDropdown == DropKind::LookSky)
 	{
 		const std::string value = lookDropValues[row];
@@ -3917,6 +4337,14 @@ void Scene3DEditor::StartNaming(PromptMode mode)
 		if (selIndex >= 0 && selIndex < (int)scene.GetModels().size())
 			nameBuffer = scene.GetModels()[selIndex]->interactionTag;
 	}
+	if (mode == PromptMode::Guard)
+	{
+		Scene3D& scene = Scene3D::Get();
+		if (selType == SelType::Model && selIndex >= 0 && selIndex < (int)scene.GetModels().size())
+			nameBuffer = scene.GetModels()[selIndex]->guard;
+		else if (const ScenePointLight* pl = SelectedPointLight())
+			nameBuffer = pl->guard;
+	}
 	if (mode == PromptMode::LightName)
 	{
 		if (const ScenePointLight* pl = SelectedPointLight())
@@ -3935,17 +4363,43 @@ void Scene3DEditor::UpdateNaming(const Uint8* keys, Game& game)
 {
 	auto edge = [&](int sc) { return keys[sc] && !prevKeys[sc]; };
 
-	// Scene names are lowercase filename-safe; tags are UPPERCASE.
-	bool upper = (promptMode == PromptMode::Tag);
-	for (int sc = SDL_SCANCODE_A; sc <= SDL_SCANCODE_Z; sc++)
-		if (edge(sc) && nameBuffer.size() < 40)
-			nameBuffer += (char)((upper ? 'A' : 'a') + (sc - SDL_SCANCODE_A));
-	for (int sc = SDL_SCANCODE_1; sc <= SDL_SCANCODE_9; sc++)
-		if (edge(sc) && nameBuffer.size() < 40)
-			nameBuffer += (char)('1' + (sc - SDL_SCANCODE_1));
-	if (edge(SDL_SCANCODE_0) && nameBuffer.size() < 40) nameBuffer += '0';
-	if (edge(SDL_SCANCODE_MINUS) && nameBuffer.size() < 40) nameBuffer += '_';
-	if (edge(SDL_SCANCODE_BACKSPACE) && !nameBuffer.empty()) nameBuffer.pop_back();
+	if (promptMode == PromptMode::Guard)
+	{
+		// Guards are tokens like  arrested  !arrested  clue:KNIFE  key=value
+		// t>=18:00  day=2, separated by spaces: Shift for capitals, ! and &;
+		// ; types ':', , and . type '<' and '>'.
+		const bool shift = keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT];
+		auto put = [&](char c) { if (nameBuffer.size() < 80) nameBuffer += c; };
+		for (int sc = SDL_SCANCODE_A; sc <= SDL_SCANCODE_Z; sc++)
+			if (edge(sc))
+				put((char)((shift ? 'A' : 'a') + (sc - SDL_SCANCODE_A)));
+		static const char kShiftedDigits[10] = { ')', '!', '@', '#', '$', '%', '^', '&', '*', '(' };
+		for (int d = 1; d <= 9; d++)
+			if (edge(SDL_SCANCODE_1 + d - 1))
+				put(shift ? kShiftedDigits[d] : (char)('0' + d));
+		if (edge(SDL_SCANCODE_0)) put(shift ? kShiftedDigits[0] : '0');
+		if (edge(SDL_SCANCODE_MINUS)) put('_');
+		if (edge(SDL_SCANCODE_SPACE)) put(' ');
+		if (edge(SDL_SCANCODE_SEMICOLON)) put(':');
+		if (edge(SDL_SCANCODE_EQUALS)) put('=');
+		if (edge(SDL_SCANCODE_COMMA)) put('<');
+		if (edge(SDL_SCANCODE_PERIOD)) put('>');
+		if (edge(SDL_SCANCODE_BACKSPACE) && !nameBuffer.empty()) nameBuffer.pop_back();
+	}
+	else
+	{
+		// Scene names are lowercase filename-safe; tags are UPPERCASE.
+		bool upper = (promptMode == PromptMode::Tag);
+		for (int sc = SDL_SCANCODE_A; sc <= SDL_SCANCODE_Z; sc++)
+			if (edge(sc) && nameBuffer.size() < 40)
+				nameBuffer += (char)((upper ? 'A' : 'a') + (sc - SDL_SCANCODE_A));
+		for (int sc = SDL_SCANCODE_1; sc <= SDL_SCANCODE_9; sc++)
+			if (edge(sc) && nameBuffer.size() < 40)
+				nameBuffer += (char)('1' + (sc - SDL_SCANCODE_1));
+		if (edge(SDL_SCANCODE_0) && nameBuffer.size() < 40) nameBuffer += '0';
+		if (edge(SDL_SCANCODE_MINUS) && nameBuffer.size() < 40) nameBuffer += '_';
+		if (edge(SDL_SCANCODE_BACKSPACE) && !nameBuffer.empty()) nameBuffer.pop_back();
+	}
 
 	bool confirm = edge(SDL_SCANCODE_RETURN) || edge(SDL_SCANCODE_KP_ENTER);
 	bool cancel = edge(SDL_SCANCODE_ESCAPE);
@@ -3958,6 +4412,8 @@ void Scene3DEditor::UpdateNaming(const Uint8* keys, Game& game)
 		statusMsg = (promptMode == PromptMode::Tag) ? "Tag cancelled"
 			: (promptMode == PromptMode::CameraName) ? "Add camera cancelled"
 			: (promptMode == PromptMode::LightName) ? "Rename cancelled"
+			: (promptMode == PromptMode::MaterialName) ? "New material cancelled"
+			: (promptMode == PromptMode::Guard) ? "Guard unchanged"
 			: "New scene cancelled";
 		statusFrames = 120;
 		return;
@@ -3992,6 +4448,77 @@ void Scene3DEditor::UpdateNaming(const Uint8* keys, Game& game)
 		statusMsg = std::string(existed ? "Updated camera '" : "Added camera '")
 			+ nameBuffer + "' at current view (F5 to save)";
 		statusFrames = 220;
+		return;
+	}
+
+	if (promptMode == PromptMode::Guard)
+	{
+		namingScene = false;
+		statusFrames = 300;
+		Scene3D& scene = Scene3D::Get();
+		std::string guard = nameBuffer;
+		while (!guard.empty() && guard.back() == ' ') guard.pop_back();
+		while (!guard.empty() && guard.front() == ' ') guard.erase(guard.begin());
+		std::string* target = nullptr;
+		bool* hidden = nullptr;
+		std::string what;
+		if (selType == SelType::Model && selIndex >= 0 && selIndex < (int)scene.GetModels().size())
+		{
+			Scene3DModel* m = scene.GetModels()[selIndex];
+			target = &m->guard;
+			hidden = &m->guardHidden;
+			what = BaseName(m->objPath);
+		}
+		else if (ScenePointLight* pl = SelectedPointLight())
+		{
+			target = &pl->guard;
+			hidden = &pl->guardHidden;
+			what = pl->name;
+		}
+		if (target == nullptr)
+			return;
+		*target = guard;
+		if (guard.empty())
+		{
+			*hidden = false;   // nothing hides it any more
+			statusMsg = what + ": no guard, always there  (F5 to save)";
+		}
+		else
+		{
+			statusMsg = what + " is there only while: " + guard + "  (the game evaluates it; F5 to save)";
+		}
+		RefreshInfoText(game);
+		CommitEdit();
+		return;
+	}
+
+	if (promptMode == PromptMode::MaterialName)
+	{
+		namingScene = false;
+		statusFrames = 220;
+		Scene3D& scene = Scene3D::Get();
+		if (selType != SelType::Model || selIndex < 0 || selIndex >= (int)scene.GetModels().size())
+			return;
+		if (nameBuffer.empty())
+		{
+			statusMsg = "A material needs a name";
+			return;
+		}
+		for (const std::string& n : MaterialLibrary::Get().Names())
+			if (n == nameBuffer) { statusMsg = "There is already a material called " + nameBuffer; return; }
+		// A copy of the model's current material (or the plain default).
+		Scene3DModel* m = scene.GetModels()[selIndex];
+		const SceneMaterial* current = m->materialName.empty() ? nullptr : MaterialLibrary::Get().Find(m->materialName);
+		SceneMaterial made = current ? *current : SceneMaterial();
+		made.name = nameBuffer;
+		MaterialLibrary::Get().Add(game, made);
+		RefreshMaterialPointers();
+		m->materialName = nameBuffer;
+		m->material = MaterialLibrary::Get().Find(nameBuffer);
+		statusMsg = "New material " + nameBuffer + " for " + BaseName(m->objPath) + "  (F5 saves it to "
+			+ MaterialLibrary::Get().LoadedPath() + ")";
+		RefreshInfoText(game);
+		CommitEdit();
 		return;
 	}
 
@@ -4092,6 +4619,11 @@ void Scene3DEditor::RenderNamePrompt(Game& game, const Renderer& renderer)
 		txt = "CAMERA NAME (current view):\n" + nameBuffer + "_\n(Enter = save,  Esc = cancel)";
 	else if (promptMode == PromptMode::LightName)
 		txt = "LIGHT NAME (scripts use it: scene3d light <name> ...):\n" + nameBuffer + "_\n(Enter = rename,  Esc = cancel)";
+	else if (promptMode == PromptMode::Guard)
+		txt = "GUARD (there only while it holds; blank = always):\n" + nameBuffer + "_\n"
+			"e.g.  arrested   !arrested   clue:KNIFE   t>=18:00   day=2   (Enter = apply,  Esc = cancel)";
+	else if (promptMode == PromptMode::MaterialName)
+		txt = "NEW MATERIAL NAME (starts as a copy of the current one):\n" + nameBuffer + "_\n(Enter = create,  Esc = cancel)";
 	else
 		txt = "NEW SCENE NAME:\n" + nameBuffer + "_\n(Enter = create,  Esc = cancel)";
 	namePromptText->SetText(txt, { 255, 255, 255, 255 });
@@ -4468,8 +5000,20 @@ void Scene3DEditor::RenderLookPanel(Game& game, const Renderer& renderer)
 	lookToggleText->Render(renderer);
 
 	lookPanel.hits.clear();
+	projectPanel.hits.clear();
+	toonPanel.hits.clear();
 	if (!lookOpen)
 		return;
+	if (lookProjectPage)
+	{
+		RenderProjectPage(game, renderer);
+		return;
+	}
+	if (lookToonPage)
+	{
+		RenderToonPage(game, renderer);
+		return;
+	}
 
 	Scene3D& scene = Scene3D::Get();
 	const bool linear = LinearWorkflow();
@@ -4519,6 +5063,10 @@ void Scene3DEditor::RenderLookPanel(Game& game, const Renderer& renderer)
 					v.on = ClusterDebugView();
 					v.label = v.on ? "LIGHT COUNT: ON" : "LIGHT COUNT: OFF";
 					break;
+				case LookProp::Project:
+				case LookProp::Toon:
+					v.label = d.name;
+					break;
 				default:
 					break;
 				}
@@ -4550,12 +5098,15 @@ bool Scene3DEditor::LookButtonClick(Game& game, float sx, float sy)
 	{
 		lookOpen = !lookOpen;
 		lookPickFocus = false;
+		lookProjectPage = false;
+		lookToonPage = false;
 		if (openDropdown == DropKind::LookLut || openDropdown == DropKind::LookSky)
 			openDropdown = DropKind::None;
 		if (lookOpen)
 		{
 			showMinimap = false;   // these cover the same space
 			lightsOpen = false;
+			materialOpen = false;
 			statusMsg = "LOOK: [-] [+] change this scene's look; grey values are the project's; F5 saves";
 		}
 		else
@@ -4569,6 +5120,24 @@ bool Scene3DEditor::LookButtonClick(Game& game, float sx, float sy)
 		return false;
 
 	int row = -1, part = -1;
+	if (lookToonPage)
+	{
+		if (PanelHitTest(toonPanel, gx, gy, row, part))
+		{
+			ToonClick(game, row, part);
+			return true;
+		}
+		return PanelContains(toonPanel, gx, gy);
+	}
+	if (lookProjectPage)
+	{
+		if (PanelHitTest(projectPanel, gx, gy, row, part))
+		{
+			ProjectClick(game, row, part);
+			return true;
+		}
+		return PanelContains(projectPanel, gx, gy);
+	}
 	if (PanelHitTest(lookPanel, gx, gy, row, part))
 	{
 		LookClick(game, row, part);
@@ -4588,6 +5157,17 @@ void Scene3DEditor::LookClick(Game& game, int row, int part)
 	{
 		switch (d.prop)
 		{
+		case LookProp::Toon:
+			lookToonPage = true;
+			lookPickFocus = false;
+			statusMsg = "TOON & OUTLINE: this scene's own cel shading and outline (grey = the game's)";
+			break;
+		case LookProp::Project:
+			lookProjectPage = true;
+			lookPickFocus = false;
+			projectConfig = GetMapStringsFromFile(RendererConfigPath());
+			statusMsg = "PROJECT SETTINGS: " + RendererConfigPath() + " - every scene uses these; each change saves at once";
+			break;
 		case LookProp::PickFocus:
 			lookPickFocus = !lookPickFocus;
 			statusMsg = lookPickFocus ? "PICK FOCUS: click what the camera should focus on" : "Pick focus cancelled";
@@ -4646,7 +5226,10 @@ void Scene3DEditor::LookClick(Game& game, int row, int part)
 		case LookProp::Fog:
 		case LookProp::FogFalloff:
 		case LookProp::FogGlow:
-		case LookProp::FogDrift: SetSceneFog(false, FogSettings(), 0.0f); break;
+		case LookProp::FogDrift:
+		case LookProp::FogRed:
+		case LookProp::FogGreen:
+		case LookProp::FogBlue: SetSceneFog(false, FogSettings(), 0.0f); break;
 		case LookProp::Focus:
 		case LookProp::Aperture: scene.SetDepthOfField(500.0f, 0.0f); break;
 		case LookProp::Grade: scene.SetColorGrade("", 1.0f); break;
@@ -4657,7 +5240,8 @@ void Scene3DEditor::LookClick(Game& game, int row, int part)
 		const bool pairs = d.prop == LookProp::SkyLight || d.prop == LookProp::SkyShine
 			|| d.prop == LookProp::Ao || d.prop == LookProp::AoRadius;
 		const bool fog = d.prop == LookProp::Fog || d.prop == LookProp::FogFalloff
-			|| d.prop == LookProp::FogGlow || d.prop == LookProp::FogDrift;
+			|| d.prop == LookProp::FogGlow || d.prop == LookProp::FogDrift
+			|| d.prop == LookProp::FogRed || d.prop == LookProp::FogGreen || d.prop == LookProp::FogBlue;
 		statusMsg = std::string(d.name) + (fog ? " (and the rest of the fog)" : pairs ? " (and its pair)" : "")
 			+ ((d.prop == LookProp::Focus || d.prop == LookProp::Aperture) ? ": depth of field off" : ": project default")
 			+ "  (F5 to save)";
@@ -4704,6 +5288,9 @@ void Scene3DEditor::LookClick(Game& game, int row, int part)
 	case LookProp::FogFalloff:
 	case LookProp::FogGlow:
 	case LookProp::FogDrift:
+	case LookProp::FogRed:
+	case LookProp::FogGreen:
+	case LookProp::FogBlue:
 	{
 		// The fog in force becomes the scene's own, with this one value changed.
 		FogSettings f;
@@ -4712,7 +5299,10 @@ void Scene3DEditor::LookClick(Game& game, int row, int part)
 		if (d.prop == LookProp::Fog) f.density = nv;
 		else if (d.prop == LookProp::FogFalloff) f.heightFalloff = nv;
 		else if (d.prop == LookProp::FogGlow) f.anisotropy = nv;
-		else f.noise = nv;
+		else if (d.prop == LookProp::FogDrift) f.noise = nv;
+		else if (d.prop == LookProp::FogRed) f.color.r = nv;
+		else if (d.prop == LookProp::FogGreen) f.color.g = nv;
+		else f.color.b = nv;
 		SetSceneFog(true, f, 0.0f);
 		break;
 	}
@@ -4735,6 +5325,14 @@ void Scene3DEditor::LookClick(Game& game, int row, int part)
 			scene.SetDepthOfField(focus, nv);
 		break;
 	}
+	case LookProp::SkySize:
+		if (!scene.HasSky())
+		{
+			statusMsg = "No sky here: pick one with the SKY button first";
+			return;
+		}
+		scene.SetSkyRadius(nv);
+		break;
 	case LookProp::Grade:
 	{
 		std::string path, projectPath;
@@ -5044,7 +5642,7 @@ void Scene3DEditor::RenderLightsPanel(Game& game, const Renderer& renderer)
 		title = "POINT LIGHT  " + pl->name + "    MOVE drags it (lock Y to raise it)   SCALE drags its range   F5 saves";
 		add(0, LightProp::Intensity); add(0, LightProp::Range); add(0, LightProp::Flash); add(0, LightProp::FlashPhase);
 		add(1, LightProp::Temp); add(1, LightProp::Red); add(1, LightProp::Green); add(1, LightProp::Blue);
-		add(2, LightProp::OnOff); add(2, LightProp::Shadow); add(2, LightProp::Rename);
+		add(2, LightProp::OnOff); add(2, LightProp::Shadow); add(2, LightProp::Rename); add(2, LightProp::Guard);
 		add(3, LightProp::AddPoint); add(3, LightProp::AddSpot); add(3, LightProp::SceneLight);
 	}
 	else if (sl != nullptr)
@@ -5061,7 +5659,9 @@ void Scene3DEditor::RenderLightsPanel(Game& game, const Renderer& renderer)
 	{
 		title = "SCENE LIGHT    click a light's marker in the view (or pick it in the list) to edit that light   F5 saves";
 		add(0, LightProp::Sun); add(0, LightProp::SunTemp); add(0, LightProp::SunHeading); add(0, LightProp::SunHeight);
+		add(0, LightProp::SunRed); add(0, LightProp::SunGreen); add(0, LightProp::SunBlue);
 		add(1, LightProp::Ambient); add(1, LightProp::AmbientTemp);
+		add(1, LightProp::AmbientRed); add(1, LightProp::AmbientGreen); add(1, LightProp::AmbientBlue);
 		add(2, LightProp::AddPoint); add(2, LightProp::AddSpot);
 	}
 	lightsRowProps.clear();
@@ -5082,6 +5682,12 @@ void Scene3DEditor::RenderLightsPanel(Game& game, const Renderer& renderer)
 					const bool on = pl ? pl->on : sl ? sl->on : false;
 					v.label = on ? "ON  (click to switch off)" : "OFF  (click to switch on)";
 					v.on = on;
+				}
+				else if (p == LightProp::Guard && pl != nullptr)
+				{
+					v.label = pl->guard.empty() ? "GUARD: none (always on)"
+						: "GUARD: " + (pl->guard.size() > 16 ? pl->guard.substr(0, 15) + "~" : pl->guard);
+					v.on = !pl->guard.empty();
 				}
 				else if (p == LightProp::Shadow && pl != nullptr)
 				{
@@ -5119,6 +5725,7 @@ bool Scene3DEditor::LightsButtonClick(Game& game, float sx, float sy)
 			lookOpen = false;   // these cover the same space
 			lookPickFocus = false;
 			showMinimap = false;
+			materialOpen = false;
 			statusMsg = "LIGHTS: click a light's marker to edit it, or set the sun and ambient light; F5 saves";
 		}
 		else
@@ -5173,6 +5780,9 @@ void Scene3DEditor::LightsClick(Game& game, int row, int part)
 			break;
 		case LightProp::Rename:
 			StartNaming(PromptMode::LightName);
+			break;
+		case LightProp::Guard:
+			StartNaming(PromptMode::Guard);
 			break;
 		case LightProp::AddPoint:
 			AddLight(game, false);
@@ -5307,6 +5917,24 @@ void Scene3DEditor::LightsClick(Game& game, int row, int part)
 	case LightProp::AmbientTemp:
 		scene.SetAmbientLight(StepKelvin(scene.GetAmbientLight(), dir, kelvin));
 		break;
+	case LightProp::SunRed:
+	case LightProp::SunGreen:
+	case LightProp::SunBlue:
+	{
+		glm::vec3 c = scene.GetDirectionalLight().color;
+		(prop == LightProp::SunRed ? c.r : prop == LightProp::SunGreen ? c.g : c.b) = nv;
+		scene.SetDirectionalLight(c, scene.GetDirectionalLight().diffuse);
+		break;
+	}
+	case LightProp::AmbientRed:
+	case LightProp::AmbientGreen:
+	case LightProp::AmbientBlue:
+	{
+		glm::vec3 c = scene.GetAmbientLight();
+		(prop == LightProp::AmbientRed ? c.r : prop == LightProp::AmbientGreen ? c.g : c.b) = nv;
+		scene.SetAmbientLight(c);
+		break;
+	}
 	default:
 		return;
 	}
@@ -5372,5 +6000,705 @@ void Scene3DEditor::AddLight(Game& game, bool spot)
 	}
 	statusFrames = 220;
 	RefreshInfoText(game);
+	CommitEdit();
+}
+
+// ---------------------------------------------------------- MATERIAL panel
+
+void Scene3DEditor::RenderMaterialPanel(Game& game, const Renderer& renderer)
+{
+	// The MATERIAL toggle follows LIGHTS on the UNDO / REDO / RELOAD row.
+	if (materialToggleText == nullptr)
+	{
+		materialToggleText = NewOverlayText(EnsureFont(game));
+		SetOverlayText(materialToggleText, "MATERIAL", { 255, 255, 255, 255 }, kBtnTextScale);
+	}
+	materialBtnX = lightsBtnX + lightsBtnW + kBtnGap;
+	materialBtnY = lightsBtnY;
+	materialBtnW = materialToggleText->GetTextWidth() * kBtnWFactor + 2.0f * kBtnPadX;
+	materialBtnH = lightsBtnH;
+	materialBtnLaidOut = lightsBtnLaidOut;
+	renderer.DrawRect(materialBtnX, materialBtnY, materialBtnW, materialBtnH, materialOpen
+		? glm::vec4(0.18f, 0.58f, 0.56f, 0.95f) : glm::vec4(0.12f, 0.34f, 0.34f, 0.85f));
+	CenterLabel(materialToggleText, materialBtnX, materialBtnY, materialBtnW, materialBtnH);
+	materialToggleText->Render(renderer);
+
+	materialPanel.hits.clear();
+	if (!materialOpen)
+		return;
+
+	Scene3D& scene = Scene3D::Get();
+	Scene3DModel* model = (selType == SelType::Model && selIndex >= 0 && selIndex < (int)scene.GetModels().size())
+		? scene.GetModels()[selIndex] : nullptr;
+	SceneMaterial* mat = (model != nullptr && !model->materialName.empty())
+		? MaterialLibrary::Get().FindMutable(model->materialName) : nullptr;
+
+	std::vector<PanelRow> rows;
+	auto add = [&](int column, MatProp p, const char* buttonName)
+	{
+		const MatStepDef* d = FindMatStep(p);
+		rows.push_back({ column, (int)p, d ? d->name : buttonName, d == nullptr });
+	};
+	static const char* const kColumns[4] = { "SURFACE", "COLOUR", "TEXTURE", "MATERIAL" };
+	static const char* const kBareColumns[4] = { "MATERIAL", "", "", "" };
+	const char* const* columns = kColumns;
+	std::string title;
+	if (model == nullptr)
+	{
+		title = "MATERIAL    select a model (in the view or the list) to edit its material";
+	}
+	else if (IsGltfPath(model->objPath))
+	{
+		title = "MATERIAL    " + BaseName(model->objPath) + " is a glTF model: it brings its own materials, so these don't apply";
+	}
+	else if (mat == nullptr)
+	{
+		columns = kBareColumns;
+		title = "MATERIAL    " + BaseName(model->objPath) + " has none (the plain default): ASSIGN one, or make a NEW one for it";
+		add(0, MatProp::Assign, "ASSIGN A MATERIAL...");
+		add(0, MatProp::NewMat, "NEW MATERIAL FOR IT...");
+	}
+	else
+	{
+		int users = 0;
+		for (const Scene3DModel* m : scene.GetModels())
+			users += (m->materialName == mat->name) ? 1 : 0;
+		title = "MATERIAL  " + mat->name + "    used by " + std::to_string(users)
+			+ (users == 1 ? " model" : " models") + " here (other scenes may share it): edits change them all   F5 saves";
+		add(0, MatProp::Lighting, "LIGHTING");
+		if (mat->lighting == LightingModel::PBR)
+		{
+			add(0, MatProp::Metallic, nullptr);
+			add(0, MatProp::Roughness, nullptr);
+		}
+		else
+		{
+			add(0, MatProp::Specular, nullptr);
+			add(0, MatProp::Shininess, nullptr);
+		}
+		add(0, MatProp::Fresnel, nullptr);
+		add(0, MatProp::Opacity, nullptr);
+		add(1, MatProp::TintR, nullptr); add(1, MatProp::TintG, nullptr); add(1, MatProp::TintB, nullptr);
+		add(1, MatProp::GlowR, nullptr); add(1, MatProp::GlowG, nullptr); add(1, MatProp::GlowB, nullptr);
+		add(2, MatProp::TileU, nullptr); add(2, MatProp::TileV, nullptr);
+		add(2, MatProp::NormalMap, "NORMAL MAP");
+		add(2, MatProp::NormalStrength, nullptr);
+		add(2, MatProp::NormalMode, "NORMAL MODE");
+		add(3, MatProp::Assign, "ASSIGN ANOTHER...");
+		add(3, MatProp::NewMat, "NEW (A COPY OF THIS)...");
+		add(3, MatProp::Outline, "OUTLINE");
+		add(3, MatProp::Season, "SEASONS");
+	}
+	materialRowProps.clear();
+	for (const PanelRow& r : rows)
+		materialRowProps.push_back(r.id);
+
+	DrawRowPanel(EnsureFont(game), renderer, materialPanel, editBtnY[0] + editBtnH[0] + kBtnGap, title,
+		{ 225, 230, 240, 255 }, columns, rows,
+		[&](int i)
+		{
+			const MatProp p = (MatProp)rows[i].id;
+			RowView v;
+			if (rows[i].button)
+			{
+				v.label = rows[i].name;
+				if (mat == nullptr)
+					return v;
+				switch (p)
+				{
+				case MatProp::Lighting:
+					v.label = std::string("LIGHTING: ") + LightingName(mat->lighting);
+					break;
+				case MatProp::NormalMap:
+					v.label = "NORMAL MAP: " + (mat->normalMapPath.empty() ? std::string("none") : LookBaseName(mat->normalMapPath));
+					v.on = openDropdown == DropKind::MatNormal;
+					break;
+				case MatProp::NormalMode:
+					v.label = mat->normalMode == NormalMode::Vertex ? "NORMAL MODE: VERTEX" : "NORMAL MODE: SCREEN";
+					break;
+				case MatProp::Outline:
+					v.label = mat->outline ? "OUTLINE: ON" : "OUTLINE: OFF";
+					v.on = mat->outline;
+					break;
+				case MatProp::Season:
+					v.label = mat->deciduous ? "SEASONS: BARE IN WINTER" : mat->seasonal ? "SEASONS: SWAP TEXTURES" : "SEASONS: NONE";
+					v.on = mat->seasonal;
+					break;
+				case MatProp::Assign:
+					v.on = openDropdown == DropKind::MatSelect;
+					break;
+				default:
+					break;
+				}
+				return v;
+			}
+			const MatStepDef* d = FindMatStep(p);
+			float* f = (mat != nullptr) ? MatField(*mat, p) : nullptr;
+			char buf[64];
+			snprintf(buf, sizeof(buf), d->fmt, f ? *f : 0.0f);
+			v.label = std::string(d->name) + ": " + buf;
+			return v;
+		});
+}
+
+bool Scene3DEditor::MaterialButtonClick(Game& game, float sx, float sy)
+{
+	const float gx = sx * (game.designWidth * Camera::MULTIPLIER) / (float)game.screenWidth;
+	const float gy = sy * (game.designHeight * Camera::MULTIPLIER) / (float)game.screenHeight;
+
+	if (materialBtnLaidOut && gx >= materialBtnX && gx <= materialBtnX + materialBtnW
+		&& gy >= materialBtnY && gy <= materialBtnY + materialBtnH)
+	{
+		materialOpen = !materialOpen;
+		if (openDropdown == DropKind::MatNormal)
+			openDropdown = DropKind::None;
+		if (materialOpen)
+		{
+			lookOpen = false;   // these cover the same space
+			lookPickFocus = false;
+			lightsOpen = false;
+			showMinimap = false;
+			statusMsg = "MATERIAL: edits the selected model's material (every model using it changes); F5 saves";
+		}
+		else
+		{
+			statusMsg = "MATERIAL closed";
+		}
+		statusFrames = 200;
+		return true;
+	}
+	if (!materialOpen)
+		return false;
+
+	int row = -1, part = -1;
+	if (PanelHitTest(materialPanel, gx, gy, row, part))
+	{
+		MaterialClick(game, row, part);
+		return true;
+	}
+	return PanelContains(materialPanel, gx, gy);
+}
+
+void Scene3DEditor::MaterialClick(Game& game, int row, int part)
+{
+	if (row < 0 || row >= (int)materialRowProps.size())
+		return;
+	const MatProp prop = (MatProp)materialRowProps[row];
+	Scene3D& scene = Scene3D::Get();
+	Scene3DModel* model = (selType == SelType::Model && selIndex >= 0 && selIndex < (int)scene.GetModels().size())
+		? scene.GetModels()[selIndex] : nullptr;
+	SceneMaterial* mat = (model != nullptr && !model->materialName.empty())
+		? MaterialLibrary::Get().FindMutable(model->materialName) : nullptr;
+	statusFrames = 180;
+
+	if (part == 3)   // a button
+	{
+		switch (prop)
+		{
+		case MatProp::Assign:
+			if (openDropdown == DropKind::MatSelect)
+				openDropdown = DropKind::None;
+			else
+				OpenMatDropdown(game);   // the MAT button's list
+			return;
+		case MatProp::NewMat:
+			StartNaming(PromptMode::MaterialName);
+			return;
+		default:
+			break;
+		}
+		if (mat == nullptr)
+			return;
+		switch (prop)
+		{
+		case MatProp::Lighting:
+			mat->lighting = (mat->lighting == LightingModel::Phong) ? LightingModel::PBR
+				: (mat->lighting == LightingModel::PBR) ? LightingModel::Water : LightingModel::Phong;
+			statusMsg = std::string("Lighting: ") + LightingName(mat->lighting)
+				+ (mat->lighting == LightingModel::Water ? "  (tune each water model with the WATER panel)" : "")
+				+ "  (" + mat->name + "; F5 saves)";
+			break;
+		case MatProp::NormalMap:
+			if (openDropdown == DropKind::MatNormal)
+				openDropdown = DropKind::None;
+			else
+				OpenNormalMapDropdown(game);
+			return;
+		case MatProp::NormalMode:
+			mat->normalMode = (mat->normalMode == NormalMode::Vertex) ? NormalMode::ScreenSpace : NormalMode::Vertex;
+			statusMsg = mat->normalMode == NormalMode::Vertex
+				? "Normal mode: VERTEX (directions from the mesh's tangents)" : "Normal mode: SCREEN (exact, from the surface)";
+			break;
+		case MatProp::Outline:
+			mat->outline = !mat->outline;
+			statusMsg = std::string(mat->outline ? "Outline on" : "Outline off") + "  (shows only with cel shading)";
+			break;
+		case MatProp::Season:
+			if (mat->deciduous)
+				mat->seasonal = mat->deciduous = false;
+			else if (mat->seasonal)
+				mat->deciduous = true;
+			else
+				mat->seasonal = true;
+			statusMsg = mat->deciduous ? "Seasons: textures swap, and the mesh goes bare in winter (<model>_bare.obj)"
+				: mat->seasonal ? "Seasons: textures swap to <texture>_<season>.png" : "Seasons: none";
+			break;
+		default:
+			return;
+		}
+		CommitEdit();
+		return;
+	}
+	if (part == 2)
+	{
+		statusMsg = "[-] / [+] change it";
+		return;
+	}
+	if (mat == nullptr)
+		return;
+
+	const MatStepDef* d = FindMatStep(prop);
+	float* f = (d != nullptr) ? MatField(*mat, prop) : nullptr;
+	if (f == nullptr)
+		return;
+	const int dir = (part == 1) ? 1 : -1;
+	*f = (prop == MatProp::TileU || prop == MatProp::TileV) ? StepTiling(*f, dir)
+		: StepValue(*f, dir, d->step, d->mul, d->lo, d->hi, d->floor);
+	char buf[64];
+	snprintf(buf, sizeof(buf), d->fmt, *f);
+	statusMsg = std::string(d->name) + " " + buf + "  (" + mat->name + ", every model using it; F5 saves)";
+	if ((prop == MatProp::GlowR || prop == MatProp::GlowG || prop == MatProp::GlowB) && *f > 1.0f)
+		statusMsg += "  - above 1 blooms";
+	CommitEdit();
+}
+
+void Scene3DEditor::OpenNormalMapDropdown(Game& game)
+{
+	Scene3D& scene = Scene3D::Get();
+	Scene3DModel* model = (selType == SelType::Model && selIndex >= 0 && selIndex < (int)scene.GetModels().size())
+		? scene.GetModels()[selIndex] : nullptr;
+	const SceneMaterial* mat = (model != nullptr && !model->materialName.empty())
+		? MaterialLibrary::Get().Find(model->materialName) : nullptr;
+	if (mat == nullptr)
+		return;
+
+	// "(none)", the current map, then normal maps (names with "normal", or a
+	// _n / _nrm / _nor / _norm suffix) beside it, beside the model's texture,
+	// and in assets/textures.
+	std::vector<std::string> labels;
+	lookDropValues.clear();
+	auto add = [&](const std::string& label, const std::string& value)
+	{
+		for (const std::string& v : lookDropValues)
+			if (v == value)
+				return;
+		labels.push_back(label);
+		lookDropValues.push_back(value);
+	};
+	add("(none)", "");
+	if (!mat->normalMapPath.empty())
+		add(LookBaseName(mat->normalMapPath), mat->normalMapPath);
+
+	namespace fs = std::filesystem;
+	std::vector<std::string> folders;
+	auto folderOf = [](const std::string& path)
+	{
+		const size_t slash = path.find_last_of("/\\");
+		return (slash == std::string::npos) ? std::string() : path.substr(0, slash);
+	};
+	if (!mat->normalMapPath.empty())
+		folders.push_back(folderOf(mat->normalMapPath));
+	folders.push_back(folderOf(model->texPath));
+	folders.push_back("assets/textures");
+	std::vector<std::string> found;
+	for (const std::string& folder : folders)
+	{
+		if (folder.empty())
+			continue;
+		try
+		{
+			if (!fs::is_directory(folder))
+				continue;
+			for (const auto& e : fs::directory_iterator(folder))
+			{
+				if (!e.is_regular_file())
+					continue;
+				const std::string ext = LookLower(e.path().extension().generic_string());
+				const std::string stem = LookLower(e.path().stem().generic_string());
+				auto endsWith = [&](const char* suffix)
+				{
+					const std::string sfx = suffix;
+					return stem.size() > sfx.size() && stem.compare(stem.size() - sfx.size(), sfx.size(), sfx) == 0;
+				};
+				if ((ext == ".png" || ext == ".jpg") && (stem.find("normal") != std::string::npos
+					|| endsWith("_n") || endsWith("_nrm") || endsWith("_nor") || endsWith("_norm")))
+					found.push_back(folder + "/" + e.path().filename().generic_string());
+			}
+		}
+		catch (const std::exception&) {}
+	}
+	std::sort(found.begin(), found.end());
+	for (const std::string& f : found)
+		if (labels.size() < 24)
+			add(LookBaseName(f), f);
+	if (found.empty())
+	{
+		statusMsg = "No normal maps found (names with \"normal\" or ending _n) beside the texture or in assets/textures";
+		statusFrames = 240;
+	}
+
+	openDropdown = DropKind::MatNormal;
+	for (const PanelHit& h : materialPanel.hits)
+	{
+		if (h.part == 3 && h.row < (int)materialRowProps.size() && (MatProp)materialRowProps[h.row] == MatProp::NormalMap)
+		{
+			lookAnchorX = h.x;
+			lookAnchorY = h.y;
+			lookAnchorH = h.h;
+		}
+	}
+	FillDropdownRows(dropdownRows, labels, EnsureFont(game), kDropScale);
+}
+
+// ------------------------------------------------------------- GUARD button
+
+void Scene3DEditor::RenderGuardButton(Game& game, const Renderer& renderer)
+{
+	if (guardText == nullptr)
+		guardText = NewOverlayText(EnsureFont(game));
+	Scene3D& scene = Scene3D::Get();
+	std::string guard;
+	bool usable = false;
+	if (selType == SelType::Model && selIndex >= 0 && selIndex < (int)scene.GetModels().size())
+	{
+		guard = scene.GetModels()[selIndex]->guard;
+		usable = true;
+	}
+	else if (const ScenePointLight* pl = SelectedPointLight())
+	{
+		guard = pl->guard;
+		usable = true;
+	}
+	const std::string label = guard.empty() ? "GUARD"
+		: "GUARD: " + (guard.size() > 13 ? guard.substr(0, 12) + "~" : guard);
+	ShowText(guardText, guardShown, label, { 255, 255, 255, 255 }, kBtnTextScale);
+
+	// After the last action button, wrapping (and pushing the rows below down)
+	// when it doesn't fit. A fixed width, so selecting doesn't shift the layout.
+	const int last = kNumActions - 1;
+	const float w = 400.0f;
+	const float h = actBtnH[last];
+	float x = actBtnX[last] + actBtnW[last] + kBtnGap;
+	float y = actBtnY[last];
+	const float maxX = game.designWidth * Camera::MULTIPLIER - kListWidthGui - kListMarginGui;
+	if (x + w > maxX)
+	{
+		x = kBtnX;
+		y = actBtnBottomY + kBtnGap;
+		actBtnBottomY = y + h;
+	}
+	guardBtnX = x;
+	guardBtnY = y;
+	guardBtnW = w;
+	guardBtnH = h;
+	guardBtnLaidOut = actBtnLaidOut;
+
+	const bool naming = namingScene && promptMode == PromptMode::Guard;
+	renderer.DrawRect(x, y, w, h, naming ? glm::vec4(0.75f, 0.32f, 0.36f, 0.95f)
+		: !guard.empty() ? glm::vec4(0.58f, 0.24f, 0.30f, 0.92f)
+		: usable ? glm::vec4(0.40f, 0.18f, 0.22f, 0.85f) : glm::vec4(0.22f, 0.14f, 0.16f, 0.7f));
+	CenterLabel(guardText, x, y, w, h);
+	guardText->Render(renderer);
+}
+
+bool Scene3DEditor::GuardButtonClick(Game& game, float sx, float sy)
+{
+	if (!guardBtnLaidOut)
+		return false;
+	const float gx = sx * (game.designWidth * Camera::MULTIPLIER) / (float)game.screenWidth;
+	const float gy = sy * (game.designHeight * Camera::MULTIPLIER) / (float)game.screenHeight;
+	if (gx < guardBtnX || gx > guardBtnX + guardBtnW || gy < guardBtnY || gy > guardBtnY + guardBtnH)
+		return false;
+	Scene3D& scene = Scene3D::Get();
+	const bool model = selType == SelType::Model && selIndex >= 0 && selIndex < (int)scene.GetModels().size();
+	if (model || SelectedPointLight() != nullptr)
+	{
+		StartNaming(PromptMode::Guard);
+	}
+	else
+	{
+		statusMsg = SelectedSpotLight() != nullptr ? "Spot lights can't have guards (models and point lights can)"
+			: "Select a model or a point light to give it a guard";
+		statusFrames = 180;
+	}
+	return true;
+}
+
+// ----------------------------------------------------- PROJECT SETTINGS page
+
+void Scene3DEditor::RenderProjectPage(Game& game, const Renderer& renderer)
+{
+	static std::vector<PanelRow> rows;
+	if (rows.empty())
+		for (int i = 0; i < kProjectRowCount; i++)
+			rows.push_back({ kProjectRows[i].column, i, kProjectRows[i].name, kProjectRows[i].kind != ProjectKind::Value });
+	if (projectConfig.empty())
+		projectConfig = GetMapStringsFromFile(RendererConfigPath());
+
+	static const char* const kColumns[4] = { "COLOUR", "LIGHT & SHADOW", "FOG", "QUALITY" };
+	const std::string title = "PROJECT SETTINGS  " + RendererConfigPath()
+		+ "   every scene uses these; each change saves at once   grey = not in the file (engine default)";
+
+	DrawRowPanel(EnsureFont(game), renderer, projectPanel, editBtnY[0] + editBtnH[0] + kBtnGap, title,
+		{ 255, 220, 150, 255 }, kColumns, rows,
+		[&](int i)
+		{
+			const ProjectRowDef& d = kProjectRows[i];
+			RowView v;
+			const std::string value = ProjectValue(d);
+			switch (d.kind)
+			{
+			case ProjectKind::Back:
+				v.label = d.name;
+				return v;
+			case ProjectKind::Lut:
+				v.label = "LUT: " + ((value.empty() || value == "none") ? std::string("none") : LookBaseName(value));
+				v.on = openDropdown == DropKind::ProjectLut;
+				break;
+			case ProjectKind::OnOff:
+			{
+				const bool on = value == "1";
+				v.label = std::string(d.name) + (on ? ": ON" : ": OFF");
+				v.on = on;
+				if (projectRestartKeys.count(d.key) != 0)
+					v.label += " - RESTART";
+				break;
+			}
+			case ProjectKind::Choice:
+			{
+				std::string upper = value;
+				for (char& c : upper)
+					c = (char)std::toupper((unsigned char)c);
+				v.label = std::string(d.name) + ": " + upper;
+				break;
+			}
+			case ProjectKind::Value:
+			{
+				char buf[64];
+				snprintf(buf, sizeof(buf), d.fmt, ProjectNumber(d));
+				v.label = std::string(d.name) + ": " + buf;
+				break;
+			}
+			}
+			if (!ProjectHas(d))
+				v.color = { 140, 165, 200, 255 };
+			return v;
+		});
+}
+
+void Scene3DEditor::ProjectClick(Game& game, int row, int part)
+{
+	if (row < 0 || row >= kProjectRowCount)
+		return;
+	const ProjectRowDef& d = kProjectRows[row];
+	statusFrames = 240;
+	std::string value;
+	switch (d.kind)
+	{
+	case ProjectKind::Back:
+		lookProjectPage = false;
+		if (openDropdown == DropKind::ProjectLut)
+			openDropdown = DropKind::None;
+		statusMsg = "This scene's look";
+		return;
+	case ProjectKind::Lut:
+		if (openDropdown == DropKind::ProjectLut)
+			openDropdown = DropKind::None;
+		else
+			OpenProjectLutDropdown(game);
+		return;
+	case ProjectKind::OnOff:
+		value = (ProjectValue(d) == "1") ? "0" : "1";
+		break;
+	case ProjectKind::Choice:
+	{
+		const std::vector<std::string> choices = ProjectChoices(d);
+		const std::string cur = ProjectValue(d);
+		size_t i = 0;
+		while (i < choices.size() && choices[i] != cur)
+			i++;
+		value = choices[(i + 1) % choices.size()];
+		break;
+	}
+	case ProjectKind::Value:
+	{
+		if (part == 2)
+		{
+			statusMsg = "[-] / [+] change it";
+			return;
+		}
+		const float nv = StepValue(ProjectNumber(d), (part == 1) ? 1 : -1, d.step, d.mul, d.lo, d.hi, d.floor);
+		std::ostringstream ss;
+		ss << nv;
+		value = ss.str();
+		break;
+	}
+	}
+
+	std::string message;
+	if (!WriteRendererSetting(d.key, value, message))
+	{
+		statusMsg = "renderer.dat: " + message;
+		return;
+	}
+	projectConfig = GetMapStringsFromFile(RendererConfigPath());
+	ReloadRenderSettingsLive();
+	statusMsg = std::string(d.key) + " " + value + " saved";
+	if (d.restart)
+	{
+		projectRestartKeys.insert(d.key);
+		statusMsg += "  - RESTART the game to apply it";
+	}
+	else if (std::string(d.key) == "anisotropy")
+		statusMsg += "  (textures loaded from now on; restart for all)";
+	else
+		statusMsg += "  (every scene, now)";
+}
+
+void Scene3DEditor::OpenProjectLutDropdown(Game& game)
+{
+	std::vector<std::string> labels;
+	lookDropValues.clear();
+	labels.push_back("(none)");
+	lookDropValues.push_back("none");
+	std::vector<std::string> files;
+	try
+	{
+		namespace fs = std::filesystem;
+		if (fs::is_directory("data/luts"))
+			for (const auto& e : fs::directory_iterator("data/luts"))
+				if (e.is_regular_file() && LookLower(e.path().extension().generic_string()) == ".png")
+					files.push_back("data/luts/" + e.path().filename().generic_string());
+	}
+	catch (const std::exception&) {}
+	std::sort(files.begin(), files.end());
+	for (const std::string& f : files)
+	{
+		labels.push_back(LookBaseName(f));
+		lookDropValues.push_back(f);
+	}
+	if (files.empty())
+	{
+		statusMsg = "No LUTs in data/luts (copy utils/templates/project/data/luts/neutral32.png and grade it)";
+		statusFrames = 240;
+	}
+	openDropdown = DropKind::ProjectLut;
+	for (const PanelHit& h : projectPanel.hits)
+	{
+		if (h.part == 3 && kProjectRows[h.row].kind == ProjectKind::Lut)
+		{
+			lookAnchorX = h.x;
+			lookAnchorY = h.y;
+			lookAnchorH = h.h;
+		}
+	}
+	FillDropdownRows(dropdownRows, labels, EnsureFont(game), kDropScale);
+}
+
+// --------------------------------------------------------- TOON & OUTLINE page
+
+void Scene3DEditor::RenderToonPage(Game& game, const Renderer& renderer)
+{
+	static std::vector<PanelRow> rows;
+	if (rows.empty())
+		for (int i = 0; i < kToonRowCount; i++)
+			rows.push_back({ kToonRows[i].column, i, kToonRows[i].name, kToonRows[i].kind != ToonKind::Value });
+	static const char* const kColumns[4] = { "CEL SHADING", "OUTLINE", "", "" };
+	const std::string title = "TOON & OUTLINE   white = this scene's own, grey = the game's (set in its code)"
+		"   click a name to go back to it   F5 saves";
+
+	Scene3D& scene = Scene3D::Get();
+	DrawRowPanel(EnsureFont(game), renderer, toonPanel, editBtnY[0] + editBtnH[0] + kBtnGap, title,
+		{ 225, 230, 240, 255 }, kColumns, rows,
+		[&](int i)
+		{
+			const ToonRowDef& d = kToonRows[i];
+			RowView v;
+			switch (d.kind)
+			{
+			case ToonKind::Back:
+			case ToonKind::GameValues:
+				v.label = d.name;
+				return v;
+			case ToonKind::OnOff:
+			{
+				const bool on = (d.setting == Scene3DInternal::ToonSetting::CelShading) ? scene.celShading
+					: (d.setting == Scene3DInternal::ToonSetting::Outline) ? scene.outlineEnabled : scene.outlineCharacters;
+				v.label = std::string(d.name) + (on ? ": ON" : ": OFF");
+				v.on = on;
+				break;
+			}
+			case ToonKind::Value:
+			{
+				char buf[64];
+				snprintf(buf, sizeof(buf), d.fmt, ToonValue(d));
+				v.label = std::string(d.name) + ": " + buf;
+				break;
+			}
+			}
+			if (!Scene3DInternal::SceneOwnsToonSetting(d.setting))
+				v.color = { 140, 165, 200, 255 };
+			return v;
+		});
+}
+
+void Scene3DEditor::ToonClick(Game& game, int row, int part)
+{
+	if (row < 0 || row >= kToonRowCount)
+		return;
+	const ToonRowDef& d = kToonRows[row];
+	Scene3D& scene = Scene3D::Get();
+	statusFrames = 220;
+	using TS = Scene3DInternal::ToonSetting;
+
+	switch (d.kind)
+	{
+	case ToonKind::Back:
+		lookToonPage = false;
+		statusMsg = "This scene's look";
+		return;
+	case ToonKind::GameValues:
+		Scene3DInternal::RestoreGameToonSettings();
+		statusMsg = "Cel shading and outline: the game's own settings  (F5 to save)";
+		CommitEdit();
+		return;
+	case ToonKind::OnOff:
+	{
+		Scene3DInternal::OwnToonSetting(d.setting);
+		bool& field = (d.setting == TS::CelShading) ? scene.celShading
+			: (d.setting == TS::Outline) ? scene.outlineEnabled : scene.outlineCharacters;
+		field = !field;
+		statusMsg = std::string(d.name) + (field ? " on" : " off") + "  (this scene; F5 to save)";
+		if (d.setting != TS::CelShading && !scene.celShading)
+			statusMsg += "  - the outline shows only with cel shading on";
+		break;
+	}
+	case ToonKind::Value:
+	{
+		if (part == 2)   // the name: back to the game's value
+		{
+			Scene3DInternal::ResetToonSetting(d.setting);
+			statusMsg = std::string(d.name) + ": the game's value  (F5 to save)";
+			break;
+		}
+		const float nv = StepValue(ToonValue(d), (part == 1) ? 1 : -1, d.step, d.mul, d.lo, d.hi, 0.0f);
+		Scene3DInternal::OwnToonSetting(d.setting);
+		ToonField(d) = nv;
+		char buf[64];
+		snprintf(buf, sizeof(buf), d.fmt, nv);
+		statusMsg = std::string(d.name) + " " + buf + "  (this scene; F5 to save)";
+		break;
+	}
+	}
 	CommitEdit();
 }

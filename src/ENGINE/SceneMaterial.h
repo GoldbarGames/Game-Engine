@@ -93,6 +93,25 @@ public:
 	std::vector<std::string> Names() const;        // for the editor dropdown
 	const std::vector<SceneMaterial>& All() const { return materials; }
 
+	// --- editing (the 3D editor's MATERIAL panel) ---------------------------
+	// Edits apply in place, so every model using a material updates at once.
+	SceneMaterial* FindMutable(const std::string& name);
+	// A new material (or one made earlier this session and undone). The list
+	// may move in memory: refresh held pointers (Scene3DModel::material) after.
+	SceneMaterial* Add(Game& game, const SceneMaterial& material);
+	// Point a material at a normal map, loading it ("" = none).
+	void SetNormalMap(Game& game, SceneMaterial& material, const std::string& path);
+	// The whole library as material-file text (the editor's undo snapshots),
+	// and back: materials missing from the text are dropped from Names() and
+	// saving, as if never made. Then refresh held pointers, as after Add.
+	std::string Serialize() const;
+	void ApplySerialized(Game& game, const std::string& text);
+	// Write the materials that differ from the file Load read back into it,
+	// changing only their differing lines (comments and layout stay); new
+	// materials are appended. `message` says what happened. False on failure.
+	bool SaveChanges(std::string& message) const;
+	const std::string& LoadedPath() const;
+
 private:
 	// Untagged models fall back to defaultMat, which opts OUT of the cel
 	// outline (an inverted-hull silhouette needs a clean convex-ish mesh; give

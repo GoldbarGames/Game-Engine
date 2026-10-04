@@ -320,9 +320,26 @@ namespace
 	}
 }
 
+const std::string& RendererConfigPath()
+{
+	static const std::string path = []()
+	{
+		const char* e = std::getenv("KINJO_RENDERER_DAT");
+		return std::string((e != nullptr && e[0] != '\0') ? e : "data/config/renderer.dat");
+	}();
+	return path;
+}
+
+void ReloadColorSettings()
+{
+	const bool mode = linearOn;
+	LoadColorSettings();
+	linearOn = mode;
+}
+
 void LoadColorSettings()
 {
-	auto config = GetMapStringsFromFile("data/config/renderer.dat");
+	auto config = GetMapStringsFromFile(RendererConfigPath());
 
 	bool want = false;
 	const char* env = std::getenv("KINJO_LINEAR");

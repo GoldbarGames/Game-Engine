@@ -22,6 +22,7 @@
 
 #include "Scene3D.h"
 #include "Scene3DInternal.h"
+#include "render/ColorPipeline.h"
 #include "ModelMaterials.h"
 #include "Renderer.h"
 #include "Camera.h"
@@ -58,7 +59,7 @@ namespace
 		if (!settingsLoaded)
 		{
 			settingsLoaded = true;
-			auto config = GetMapStringsFromFile("data/config/renderer.dat");
+			auto config = GetMapStringsFromFile(RendererConfigPath());
 			wanted = !(config.count("gpuDriven") > 0 && config["gpuDriven"] == "0");
 			if (const char* v = std::getenv("KINJO_GPU_DRIVEN"))
 				wanted = (v[0] == '1');

@@ -183,7 +183,7 @@ namespace
 
 void LoadTemporalAASettings()
 {
-	auto config = GetMapStringsFromFile("data/config/renderer.dat");
+	auto config = GetMapStringsFromFile(RendererConfigPath());
 	projectOn = true;
 	if (config.count("antialiasing") > 0)
 	{

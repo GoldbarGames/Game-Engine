@@ -153,7 +153,7 @@ namespace
 
 void LoadFogSettings()
 {
-	auto config = GetMapStringsFromFile("data/config/renderer.dat");
+	auto config = GetMapStringsFromFile(RendererConfigPath());
 	allowed = !(config.count("volumetricFog") > 0 && config["volumetricFog"] == "0");
 	float v = 0.0f;
 	if (config.count("fog") > 0 && ParseFloat(config["fog"], v)) project.density = std::max(v, 0.0f);

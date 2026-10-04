@@ -329,7 +329,7 @@ void Renderer::InitBatchRendering()
 
 	// Check config file for batching setting
 	bool batchingConfigEnabled = true;  // Default to enabled
-	auto rendererConfig = GetMapStringsFromFile("data/config/renderer.dat");
+	auto rendererConfig = GetMapStringsFromFile(RendererConfigPath());
 	if (rendererConfig.count("batchRendering") > 0)
 	{
 		batchingConfigEnabled = (rendererConfig["batchRendering"] == "1");

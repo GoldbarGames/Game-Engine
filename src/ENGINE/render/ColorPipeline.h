@@ -36,6 +36,12 @@ class FrameBuffer;
 
 // Read the setting (once the render device exists, before shaders compile).
 void LoadColorSettings();
+// Re-read the tone settings (tonemap, exposure, bloom) without changing the
+// colour mode: switching linearLighting needs a restart.
+void ReloadColorSettings();
+// The renderer settings file: data/config/renderer.dat, or the file named by
+// KINJO_RENDERER_DAT for one run (tests that must not touch a game's).
+const std::string& RendererConfigPath();
 
 // Is the linear workflow on for this run?
 bool LinearWorkflow();

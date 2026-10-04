@@ -205,7 +205,7 @@ namespace
 
 void LoadEnvironmentSettings()
 {
-	auto config = GetMapStringsFromFile("data/config/renderer.dat");
+	auto config = GetMapStringsFromFile(RendererConfigPath());
 	auto parse = [](const std::string& s, float fallback) -> float
 	{
 		try { return std::max(std::stof(s), 0.0f); }

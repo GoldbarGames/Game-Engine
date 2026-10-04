@@ -42,6 +42,18 @@ namespace Scene3DInternal
 	void SetSceneShadowDistance(float distance);   // < 0 = project default
 	float SceneShadowDistance();
 	float ProjectShadowDistance();                 // renderer.dat `shadowDistance`
+	void ReloadShadowSettings();                   // re-read renderer.dat's shadow keys
+
+	// A scene's own cel-shading / outline settings. Games set Scene3D's
+	// celShading and outline* fields in code; a scene may override any of them
+	// (.scene `cel on|off`, `outline on|off`, `outlinechars on|off`,
+	// `outlinewidth <px>`, `outlinedepth <v>`, `outlinecolor <r> <g> <b>`). The
+	// game's values are kept meanwhile and put back when the next scene loads.
+	enum class ToonSetting { CelShading, Outline, OutlineCharacters, OutlineWidth, OutlineDepth, OutlineColor, Count };
+	void OwnToonSetting(ToonSetting s);      // call before changing the field: keeps the game's value
+	bool SceneOwnsToonSetting(ToonSetting s);
+	void ResetToonSetting(ToonSetting s);    // back to the game's value
+	void RestoreGameToonSettings();          // all of them (scene load / unload)
 
 	// Engine shaders declare the uniform blocks; old copies kept in a game's
 	// data/shaders predate them and still need the loose uniforms.

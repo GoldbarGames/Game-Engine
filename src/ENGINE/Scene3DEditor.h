@@ -243,6 +243,10 @@ public:
 	bool LookButtonClick(Game& game, float sx, float sy);
 	// The same for the LIGHTS toggle and panel.
 	bool LightsButtonClick(Game& game, float sx, float sy);
+	// The same for the MATERIAL toggle and panel.
+	bool MaterialButtonClick(Game& game, float sx, float sy);
+	// If (sx,sy) hits the GUARD button, prompt for the selection's guard.
+	bool GuardButtonClick(Game& game, float sx, float sy);
 private:
 	// LOOK panel: the scene's rendering look (exposure, bloom, sky light, AO,
 	// shadows, fog, depth of field, grade, sky, debug views). Its state lives in
@@ -262,6 +266,24 @@ private:
 	void AddLight(Game& game, bool spot);
 	ScenePointLight* SelectedPointLight() const;
 	SceneSpotLight* SelectedSpotLight() const;
+
+	// Material editing: the selected model's material (data/materials.txt), in
+	// place, so every model using it changes; F5 saves it back into the file.
+	void RenderMaterialPanel(Game& game, const Renderer& renderer);
+	void MaterialClick(Game& game, int row, int part);
+	void OpenNormalMapDropdown(Game& game);
+
+	// GUARD (after the action buttons): the selected model's or point light's
+	// availability guard (`if <guard>`). PROJECT SETTINGS: a page of the LOOK
+	// panel editing data/config/renderer.dat (saved at once, applied live).
+	void RenderGuardButton(Game& game, const Renderer& renderer);
+	void RenderProjectPage(Game& game, const Renderer& renderer);
+	void ProjectClick(Game& game, int row, int part);
+	// TOON & OUTLINE: a page of the LOOK panel for the scene's own cel shading
+	// and outline settings (over the game's, which it sets in code).
+	void RenderToonPage(Game& game, const Renderer& renderer);
+	void ToonClick(Game& game, int row, int part);
+	void OpenProjectLutDropdown(Game& game);
 
 	// Action buttons: DELETE, ADD (model dropdown), NEW (new scene), LOAD
 	// (scene dropdown), TAG, MAT, SHADOW (scene-global point-light caster),
@@ -296,7 +318,7 @@ private:
 
 	// A single dropdown, listing either model types (to add) or scenes (to
 	// load). Only one open at a time; it hangs under its anchor button.
-	enum class DropKind { None, AddModel, LoadScene, MatSelect, LookLut, LookSky };
+	enum class DropKind { None, AddModel, LoadScene, MatSelect, LookLut, LookSky, MatNormal, ProjectLut };
 	DropKind openDropdown = DropKind::None;
 	int dropdownAnchor = 1;
 	std::vector<Scene3D::ModelDef> addPalette;
@@ -313,7 +335,7 @@ private:
 	// Typed-text prompt (SDL key edges). Shared by NEW-scene naming and CLUE
 	// tagging; promptMode selects what confirming does. namingScene stays the
 	// "prompt is active" flag the rest of the editor already checks.
-	enum class PromptMode { NewScene, Tag, CameraName, LightName };
+	enum class PromptMode { NewScene, Tag, CameraName, LightName, MaterialName, Guard };
 	bool namingScene = false;
 	PromptMode promptMode = PromptMode::NewScene;
 	std::string nameBuffer;

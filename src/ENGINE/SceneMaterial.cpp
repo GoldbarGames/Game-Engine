@@ -5,6 +5,125 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <set>
+
+namespace
+{
+	// Kept out of the exported class so its layout doesn't change.
+	std::string loadedPath = "data/materials.txt";   // the file Load read (SaveChanges writes it)
+	std::set<std::string> discarded;                  // made in the editor, then undone
+
+	float ParseNumber(const std::string& s)
+	{
+		try { return std::stof(s); } catch (...) { return 0.0f; }
+	}
+
+	// Apply one field line (`tok` and the rest in `ss`) to m. False if `tok`
+	// isn't a material field.
+	bool ApplyField(SceneMaterial& m, const std::string& tok, std::istringstream& ss)
+	{
+		std::string v;
+		if (tok == "lighting")
+		{
+			ss >> v;
+			m.lighting = (v == "pbr") ? LightingModel::PBR : (v == "water") ? LightingModel::Water : LightingModel::Phong;
+		}
+		else if (tok == "tint")           { ss >> m.tint.x >> m.tint.y >> m.tint.z; }
+		else if (tok == "specular")       { ss >> v; m.specular = ParseNumber(v); }
+		else if (tok == "shininess")      { ss >> v; m.shininess = ParseNumber(v); }
+		else if (tok == "emissive")       { ss >> m.emissive.x >> m.emissive.y >> m.emissive.z; }
+		else if (tok == "fresnel")        { ss >> v; m.fresnel = ParseNumber(v); }
+		else if (tok == "uvtile")         { ss >> m.uvTile.x >> m.uvTile.y; }
+		else if (tok == "normal")         { ss >> m.normalMapPath; }
+		else if (tok == "normalstrength") { ss >> v; m.normalStrength = ParseNumber(v); }
+		else if (tok == "normalmode")     { ss >> v; m.normalMode = (v == "vertex") ? NormalMode::Vertex : NormalMode::ScreenSpace; }
+		else if (tok == "metallic")       { ss >> v; m.metallic = ParseNumber(v); }
+		else if (tok == "roughness")      { ss >> v; m.roughness = ParseNumber(v); }
+		else if (tok == "opacity")        { ss >> v; m.opacity = ParseNumber(v); }
+		else if (tok == "outline")        { ss >> v; m.outline = !(v == "off" || v == "0" || v == "false"); }
+		else if (tok == "seasonal")       { m.seasonal = true; }
+		else if (tok == "deciduous")      { m.deciduous = true; m.seasonal = true; }
+		else
+			return false;
+		return true;
+	}
+
+	// The materials in a material file (or the editor's snapshot text).
+	std::vector<SceneMaterial> ParseMaterials(std::istream& in)
+	{
+		std::vector<SceneMaterial> out;
+		SceneMaterial cur;
+		bool have = false;
+		std::string line;
+		while (std::getline(in, line))
+		{
+			std::istringstream ss(line);
+			std::string tok;
+			if (!(ss >> tok) || tok[0] == '#' || tok[0] == ';')
+				continue;
+			if (tok == "material")
+			{
+				if (have)
+					out.push_back(cur);
+				cur = SceneMaterial();
+				ss >> cur.name;
+				have = true;
+			}
+			else if (have)
+			{
+				ApplyField(cur, tok, ss);
+			}
+		}
+		if (have)
+			out.push_back(cur);
+		return out;
+	}
+
+	std::string Num(float v)
+	{
+		std::ostringstream ss;
+		ss << v;
+		return ss.str();
+	}
+
+	// The fields a material is written with, in file order. "season" stands for
+	// the seasonal / deciduous flag lines.
+	const char* const kFields[] = { "lighting", "specular", "shininess", "metallic", "roughness", "tint",
+		"emissive", "fresnel", "uvtile", "normal", "normalstrength", "normalmode", "opacity", "outline", "season" };
+
+	// A field's value as written after its keyword ("" = no line: an unset
+	// normal map, or no season flag).
+	std::string FieldValue(const SceneMaterial& m, const std::string& f)
+	{
+		if (f == "lighting") return m.lighting == LightingModel::PBR ? "pbr" : m.lighting == LightingModel::Water ? "water" : "phong";
+		if (f == "specular") return Num(m.specular);
+		if (f == "shininess") return Num(m.shininess);
+		if (f == "metallic") return Num(m.metallic);
+		if (f == "roughness") return Num(m.roughness);
+		if (f == "tint") return Num(m.tint.x) + " " + Num(m.tint.y) + " " + Num(m.tint.z);
+		if (f == "emissive") return Num(m.emissive.x) + " " + Num(m.emissive.y) + " " + Num(m.emissive.z);
+		if (f == "fresnel") return Num(m.fresnel);
+		if (f == "uvtile") return Num(m.uvTile.x) + " " + Num(m.uvTile.y);
+		if (f == "normal") return m.normalMapPath;
+		if (f == "normalstrength") return Num(m.normalStrength);
+		if (f == "normalmode") return m.normalMode == NormalMode::Vertex ? "vertex" : "screen";
+		if (f == "opacity") return Num(m.opacity);
+		if (f == "outline") return m.outline ? "on" : "off";
+		if (f == "season") return m.deciduous ? "deciduous" : m.seasonal ? "seasonal" : "";
+		return "";
+	}
+
+	// The line(s) a field is written as: "season" is a bare keyword.
+	std::string FieldLine(const std::string& f, const std::string& value)
+	{
+		return (f == "season") ? value : f + " " + value;
+	}
+
+	bool IsSeasonToken(const std::string& tok)
+	{
+		return tok == "seasonal" || tok == "deciduous";
+	}
+}
 
 MaterialLibrary& MaterialLibrary::Get()
 {
@@ -24,14 +143,243 @@ std::vector<std::string> MaterialLibrary::Names() const
 {
 	std::vector<std::string> out;
 	for (const SceneMaterial& m : materials)
-		out.push_back(m.name);
+		if (discarded.count(m.name) == 0)
+			out.push_back(m.name);
 	return out;
+}
+
+SceneMaterial* MaterialLibrary::FindMutable(const std::string& name)
+{
+	auto it = byName.find(name);
+	return (it == byName.end()) ? nullptr : &materials[it->second];
+}
+
+void MaterialLibrary::SetNormalMap(Game& game, SceneMaterial& material, const std::string& path)
+{
+	material.normalMapPath = path;
+	material.normalMap = path.empty() ? nullptr : game.spriteManager.GetImage(path, Texture::Filter::Smooth);
+	if (!path.empty() && material.normalMap == nullptr)
+		std::cout << "MaterialLibrary: normal map not found: " << path << std::endl;
+}
+
+SceneMaterial* MaterialLibrary::Add(Game& game, const SceneMaterial& material)
+{
+	discarded.erase(material.name);
+	SceneMaterial* m = FindMutable(material.name);
+	if (m == nullptr)
+	{
+		materials.push_back(material);
+		byName[material.name] = (int)materials.size() - 1;
+		m = &materials.back();
+	}
+	else
+	{
+		*m = material;
+	}
+	SetNormalMap(game, *m, material.normalMapPath);
+	return m;
+}
+
+const std::string& MaterialLibrary::LoadedPath() const
+{
+	return loadedPath;
+}
+
+std::string MaterialLibrary::Serialize() const
+{
+	std::string out;
+	for (const SceneMaterial& m : materials)
+	{
+		if (discarded.count(m.name) != 0)
+			continue;
+		out += "material " + m.name + "\n";
+		for (const char* f : kFields)
+		{
+			const std::string v = FieldValue(m, f);
+			if (!v.empty())
+				out += FieldLine(f, v) + "\n";
+		}
+	}
+	return out;
+}
+
+void MaterialLibrary::ApplySerialized(Game& game, const std::string& text)
+{
+	std::istringstream in(text);
+	const std::vector<SceneMaterial> snapshot = ParseMaterials(in);
+	std::set<std::string> present;
+	for (const SceneMaterial& s : snapshot)
+	{
+		present.insert(s.name);
+		Add(game, s);
+	}
+	for (const SceneMaterial& m : materials)
+		if (present.count(m.name) == 0)
+			discarded.insert(m.name);
+}
+
+bool MaterialLibrary::SaveChanges(std::string& message) const
+{
+	// The file as it is now, line by line.
+	// Each line keeps its own ending (files can mix CRLF and LF); added lines
+	// take their neighbour's.
+	std::vector<std::string> lines;
+	std::vector<bool> crlf;
+	{
+		std::ifstream in(loadedPath, std::ios::binary);
+		std::string line;
+		while (std::getline(in, line))
+		{
+			const bool cr = !line.empty() && line.back() == '\r';
+			if (cr)
+				line.pop_back();
+			lines.push_back(line);
+			crlf.push_back(cr);
+		}
+	}
+
+	// Its blocks: the header line, and the field lines up to the next header.
+	struct Block { std::string name; int header; std::vector<int> fieldLines; };
+	std::vector<Block> blocks;
+	for (int i = 0; i < (int)lines.size(); i++)
+	{
+		std::istringstream ss(lines[i]);
+		std::string tok;
+		if (!(ss >> tok) || tok[0] == '#' || tok[0] == ';')
+			continue;
+		if (tok == "material")
+		{
+			Block b;
+			ss >> b.name;
+			b.header = i;
+			blocks.push_back(b);
+		}
+		else if (!blocks.empty())
+		{
+			SceneMaterial probe;
+			std::istringstream rest(lines[i]);
+			std::string t;
+			rest >> t;
+			if (ApplyField(probe, t, rest))
+				blocks.back().fieldLines.push_back(i);
+		}
+	}
+
+	// Per line: a replacement, or removal; per line index: lines to insert after it.
+	std::vector<bool> removed(lines.size(), false);
+	std::vector<std::vector<std::string>> insertAfter(lines.size());
+	std::vector<std::string> appended;
+	const SceneMaterial defaults;
+	int changedMaterials = 0;
+
+	for (const SceneMaterial& m : materials)
+	{
+		if (discarded.count(m.name) != 0)
+			continue;
+		const Block* block = nullptr;
+		for (const Block& b : blocks)
+			if (b.name == m.name)
+				block = &b;
+
+		if (block == nullptr)
+		{
+			// A new material: its own block at the end, non-default fields only.
+			appended.push_back("");
+			appended.push_back("material " + m.name);
+			for (const char* f : kFields)
+			{
+				const std::string v = FieldValue(m, f);
+				if (!v.empty() && (v != FieldValue(defaults, f) || std::string(f) == "lighting"))
+					appended.push_back(FieldLine(f, v));
+			}
+			changedMaterials++;
+			continue;
+		}
+
+		// What the file says now, field by field.
+		SceneMaterial fileMat;
+		for (int li : block->fieldLines)
+		{
+			std::istringstream ss(lines[li]);
+			std::string tok;
+			ss >> tok;
+			ApplyField(fileMat, tok, ss);
+		}
+		const int insertAt = block->fieldLines.empty() ? block->header : block->fieldLines.back();
+		bool changed = false;
+		for (const char* f : kFields)
+		{
+			const std::string field = f;
+			const std::string want = FieldValue(m, field);
+			if (want == FieldValue(fileMat, field))
+				continue;
+			changed = true;
+			// The lines that set this field now (the last one wins on load).
+			std::vector<int> existing;
+			for (int li : block->fieldLines)
+			{
+				std::istringstream ss(lines[li]);
+				std::string tok;
+				ss >> tok;
+				if (field == "season" ? IsSeasonToken(tok) : tok == field)
+					existing.push_back(li);
+			}
+			if (want.empty())   // no normal map / no season flag: drop the lines
+			{
+				for (int li : existing)
+					removed[li] = true;
+			}
+			else if (!existing.empty() && field != "season")
+			{
+				for (size_t k = 0; k + 1 < existing.size(); k++)
+					removed[existing[k]] = true;
+				lines[existing.back()] = FieldLine(field, want);
+			}
+			else
+			{
+				for (int li : existing)
+					removed[li] = true;
+				insertAfter[insertAt].push_back(FieldLine(field, want));
+			}
+		}
+		if (changed)
+			changedMaterials++;
+	}
+
+	if (changedMaterials == 0)
+	{
+		message = "materials unchanged";
+		return true;
+	}
+
+	std::ofstream out(loadedPath, std::ios::binary | std::ios::trunc);
+	if (!out.is_open())
+	{
+		message = "cannot write " + loadedPath;
+		return false;
+	}
+	auto eol = [&](size_t i) { return (i < crlf.size() && crlf[i]) ? "\r\n" : "\n"; };
+	if (lines.empty())
+		out << "# Material library for 3D scenes (see SceneMaterial.h).\n";
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		if (!removed[i])
+			out << lines[i] << eol(i);
+		for (const std::string& add : insertAfter[i])
+			out << add << eol(i);
+	}
+	for (const std::string& add : appended)
+		out << add << eol(lines.empty() ? 0 : lines.size() - 1);
+	message = std::to_string(changedMaterials) + (changedMaterials == 1 ? " material" : " materials") + " saved to " + loadedPath;
+	return true;
 }
 
 bool MaterialLibrary::Load(Game& game, const std::string& path)
 {
 	materials.clear();
 	byName.clear();
+	discarded.clear();
+	loadedPath = path;
 
 	std::ifstream file(path);
 	if (!file.is_open())
@@ -39,66 +387,9 @@ bool MaterialLibrary::Load(Game& game, const std::string& path)
 		std::cout << "MaterialLibrary: no " << path << " (using default material only)" << std::endl;
 		return false;
 	}
-
-	auto pf = [](const std::string& s) -> float
-	{
-		try { return std::stof(s); } catch (...) { return 0.0f; }
-	};
-
-	SceneMaterial cur;
-	bool have = false;
-	auto flush = [&]()
-	{
-		if (have)
-			materials.push_back(cur);
-		have = false;
-	};
-
-	std::string line;
-	while (std::getline(file, line))
-	{
-		std::istringstream ss(line);
-		std::string tok;
-		if (!(ss >> tok))
-			continue;
-		if (tok.empty() || tok[0] == '#' || tok[0] == ';')
-			continue;
-
-		if (tok == "material")
-		{
-			flush();
-			cur = SceneMaterial();
-			ss >> cur.name;
-			have = true;
-		}
-		else if (!have)
-		{
-			continue;   // stray field before any "material"
-		}
-		else if (tok == "lighting")
-		{
-			std::string v; ss >> v;
-			cur.lighting = (v == "pbr")   ? LightingModel::PBR
-			             : (v == "water") ? LightingModel::Water
-			             :                  LightingModel::Phong;
-		}
-		else if (tok == "tint")       { ss >> cur.tint.x >> cur.tint.y >> cur.tint.z; }
-		else if (tok == "specular")   { std::string v; ss >> v; cur.specular = pf(v); }
-		else if (tok == "shininess")  { std::string v; ss >> v; cur.shininess = pf(v); }
-		else if (tok == "emissive")   { ss >> cur.emissive.x >> cur.emissive.y >> cur.emissive.z; }
-		else if (tok == "fresnel")    { std::string v; ss >> v; cur.fresnel = pf(v); }
-		else if (tok == "uvtile")     { ss >> cur.uvTile.x >> cur.uvTile.y; }
-		else if (tok == "normal")     { ss >> cur.normalMapPath; }
-		else if (tok == "normalstrength") { std::string v; ss >> v; cur.normalStrength = pf(v); }
-		else if (tok == "normalmode") { std::string v; ss >> v; cur.normalMode = (v == "vertex") ? NormalMode::Vertex : NormalMode::ScreenSpace; }
-		else if (tok == "metallic")   { std::string v; ss >> v; cur.metallic = pf(v); }
-		else if (tok == "roughness")  { std::string v; ss >> v; cur.roughness = pf(v); }
-		else if (tok == "opacity")    { std::string v; ss >> v; cur.opacity = pf(v); }
-		else if (tok == "outline")    { std::string v; ss >> v; cur.outline = !(v == "off" || v == "0" || v == "false"); }
-		else if (tok == "seasonal")   { cur.seasonal = true; }
-		else if (tok == "deciduous")  { cur.deciduous = true; cur.seasonal = true; }
-	}
-	flush();
+	materials = ParseMaterials(file);
+	// Room for materials the editor adds, so the list rarely moves in memory.
+	materials.reserve(materials.size() + 64);
 
 	// Resolve normal-map textures and build the name lookup.
 	for (size_t i = 0; i < materials.size(); i++)

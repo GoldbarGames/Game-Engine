@@ -112,7 +112,7 @@ namespace
 
 void LoadColorGradeSettings()
 {
-	auto config = GetMapStringsFromFile("data/config/renderer.dat");
+	auto config = GetMapStringsFromFile(RendererConfigPath());
 	projectPath = (config.count("colorGrade") > 0 && config["colorGrade"] != "none") ? config["colorGrade"] : std::string();
 	projectStrength = 1.0f;
 	if (config.count("colorGradeStrength") > 0)

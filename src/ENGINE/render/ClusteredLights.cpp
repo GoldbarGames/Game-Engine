@@ -2,6 +2,7 @@
 // work goes through RenderDevice.
 
 #include "ClusteredLights.h"
+#include "ColorPipeline.h"
 #include "RenderDevice.h"
 #include "ProgramEvents.h"
 #include "../UniformBlocks.h"
@@ -148,7 +149,7 @@ namespace
 
 void LoadClusteredLightSettings()
 {
-	auto config = GetMapStringsFromFile("data/config/renderer.dat");
+	auto config = GetMapStringsFromFile(RendererConfigPath());
 	projectOn = !(config.count("clusteredLights") > 0 && config["clusteredLights"] == "0");
 	if (const char* e = std::getenv("KINJO_CLUSTERS"))
 		forced = (e[0] == '0') ? 0 : (e[0] == '1') ? 1 : -1;

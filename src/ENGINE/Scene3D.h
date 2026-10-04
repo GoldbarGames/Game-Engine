@@ -498,6 +498,10 @@ public:
 	// editor's sky picker). "" removes the sky; a scene without one gets it.
 	void SetAuthoredSky(Game& game, const std::string& path);
 	const std::string& GetAuthoredSky() const { return skyTexPath; }
+	// The sky sphere's radius (the .scene `sky <png> <radius>`). It must stay
+	// beyond the scene and inside the camera's far plane (drawing clamps it).
+	float GetSkyRadius() const { return skyRadiusVal; }
+	void SetSkyRadius(float radius);
 	// Cross-fade the sky between two panoramas: blend 0 = fully fromPath,
 	// 1 = fully toPath. Textures come from the sprite cache (cheap per frame).
 	// Pass an empty toPath (or blend 0) for a single static panorama.

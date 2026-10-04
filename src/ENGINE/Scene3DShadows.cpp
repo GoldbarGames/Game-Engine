@@ -33,6 +33,7 @@
 #include "TransientBuffer.h"
 
 #include "Scene3DInternal.h"
+#include "render/ColorPipeline.h"
 #include "render/ProgramEvents.h"
 #include "globals.h"
 #include <unordered_map>
@@ -127,7 +128,7 @@ namespace
 		if (!cascadeSettings.loaded)
 		{
 			cascadeSettings.loaded = true;
-			auto config = GetMapStringsFromFile("data/config/renderer.dat");
+			auto config = GetMapStringsFromFile(RendererConfigPath());
 			try
 			{
 				if (config.count("shadowCascades") > 0)
@@ -287,6 +288,11 @@ float Scene3DInternal::SceneShadowDistance()
 float Scene3DInternal::ProjectShadowDistance()
 {
 	return Cascades().distance;
+}
+
+void Scene3DInternal::ReloadShadowSettings()
+{
+	cascadeSettings = CascadeSettings();   // read again on next use
 }
 
 void Scene3D::RenderShadowCascades(Game& game, const Renderer& renderer, const glm::vec3& L, double casterSig)
