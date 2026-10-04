@@ -28,11 +28,17 @@
 #include <SDL2/SDL_image.h>
 #include <cstddef>
 #include "UniformBlocks.h"
+#include "ModelMaterials.h"
+#include "render/TextureFiles.h"
 #include "UniformBufferCache.h"
 #include "RenderState.h"
 #include "TransientBuffer.h"
 
 #include "Scene3DInternal.h"
+#include "render/ColorPipeline.h"
+#include "render/Environment.h"
+#include "render/AmbientOcclusion.h"
+#include "render/ClusteredLights.h"
 
 using Scene3DInternal::ProgramHasBlock;
 
@@ -123,9 +129,24 @@ namespace
 		float uWaterWaveScale;
 		float uWaterShoreFade;
 		float uWaterChoppy;
-		float pad[2];           // std140 rounds the block up to 16 bytes
+		int matMaps;
+		float matAlphaCutoff;
+		float matOcclusionStrength;
+		float pad[3];           // std140 rounds the block up to 16 bytes
 	};
-	static_assert(sizeof(MaterialBlockData) == 96, "MaterialBlockData must match shaders/material.glsl");
+	static_assert(sizeof(MaterialBlockData) == 112, "MaterialBlockData must match shaders/material.glsl");
+
+	// shaders/material.glsl's MAT_* bits.
+	const int kMatMetalRoughMap = 1;
+	const int kMatOcclusionPacked = 2;
+	const int kMatOcclusionMap = 4;
+	const int kMatEmissiveMap = 8;
+	const int kMatNormalXY = 16;
+	const int kMatGltf = 32;
+	const int kMatDoubleSided = 64;
+	const int kMatAlphaMask = 128;
+	const int kMatAlphaBlend = 256;
+	const int kMatUnlit = 512;
 
 	const UniformBlockMember kMaterialMembers[] = {
 		{ "matTint", offsetof(MaterialBlockData, matTint), false },
@@ -145,6 +166,9 @@ namespace
 		{ "uWaterWaveScale", offsetof(MaterialBlockData, uWaterWaveScale), false },
 		{ "uWaterShoreFade", offsetof(MaterialBlockData, uWaterShoreFade), false },
 		{ "uWaterChoppy", offsetof(MaterialBlockData, uWaterChoppy), false },
+		{ "matMaps", offsetof(MaterialBlockData, matMaps), false },
+		{ "matAlphaCutoff", offsetof(MaterialBlockData, matAlphaCutoff), false },
+		{ "matOcclusionStrength", offsetof(MaterialBlockData, matOcclusionStrength), false },
 	};
 
 	// Lighting rarely changes within a frame (a lightning flash does), so two
@@ -152,6 +176,23 @@ namespace
 	// variants; 64 keeps them all resident.
 	UniformBufferCache sceneBlocks(UniformBlock::Scene, sizeof(SceneBlockData), 2);
 	UniformBufferCache materialBlocks(UniformBlock::Material, sizeof(MaterialBlockData), 64);
+
+	// Where point-shadow caster slot `s` sits in the Scene block's arrays. A
+	// GL 4.x context uses the slots as they are (cube-map array layers); the
+	// 3.3/web fallback packs the casters that have a cube into the first
+	// `fallbackMax` entries. -1 = not available to shaders.
+	int ShadowBlockIndex(int s, bool useArray, const unsigned int* cubes, int fallbackMax)
+	{
+		if (useArray)
+			return s;
+		if (cubes[s] == 0)
+			return -1;
+		int index = 0;
+		for (int t = 0; t < s; t++)
+			if (cubes[t] != 0)
+				index++;
+		return (index < fallbackMax) ? index : -1;
+	}
 
 }
 
@@ -162,17 +203,27 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 	const unsigned int id = shaderID;
 	RenderDevice& device = Device();
 
+	// Image-based lighting (the Environment block; the sky's maps when active),
+	// the cascaded sun shadows (the Cascades block; their maps when rendered)
+	// and ambient occlusion (its block; its maps when computed this frame).
+	BindEnvironment(id);
+	Scene3DInternal::BindCascades(id);
+	BindAmbientOcclusion(id);
+	BindLightClusters(id);   // point and spot lights, clustered (render/ClusteredLights.h)
+
 	// Pack everything once into the std140 mirror of the Scene block. Programs
 	// with the block get it uploaded (only when it changed); older programs get
 	// the same values as loose uniforms below.
 	SceneBlockData d = {};
-	d.ambientColor = ambientColor;
+	// Colours convert to linear when the linear workflow is on (ColorPipeline.h);
+	// intensities and ranges are already linear scalars.
+	d.ambientColor = SceneColor(ambientColor);
 	d.dirLightDir = dirLight.dir;
-	d.dirLightColor = dirLight.color;
+	d.dirLightColor = SceneColor(dirLight.color);
 	d.dirLightDiffuse = dirLight.diffuse;
 	// Storm lightning: a scene-wide flash of sky light (0 unless a strike is active).
 	d.lightningFlash = flashIntensity;
-	d.lightningColor = glm::vec3(0.80f, 0.85f, 1.0f);
+	d.lightningColor = SceneColor(glm::vec3(0.80f, 0.85f, 1.0f));
 	d.shadowStrength = shadowStrength;
 	d.viewPos = renderer.camera.position;
 	d.toon = celShading ? 1 : 0;
@@ -197,7 +248,7 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 	{
 		if (!p.on || p.guardHidden || pc >= MAX_POINTS) continue;
 		d.pointPos[pc] = glm::vec4(p.pos, 0.0f);
-		d.pointColor[pc] = glm::vec4(p.color, 0.0f);
+		d.pointColor[pc] = glm::vec4(SceneColor(p.color), 0.0f);
 		d.pointRange[pc].x = p.range;
 		d.pointIntensity[pc].x = p.intensity;
 		if (pointShadowActive)
@@ -229,11 +280,13 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 		}
 		else
 		{
-			// Fallback: separate cubes on units 4, 5, ... (compacted).
+			// Fallback: separate cubes on units 4, 5, ... (compacted; see
+			// ShadowBlockIndex). A caster whose light is past the block's first 8
+			// points stays in, with index -1: only clustered lighting reaches it.
 			int units[kMaxPointShadowsFallback];
 			for (int s = 0; s < pointShadowCount && casters < kMaxPointShadowsFallback; s++)
 			{
-				if (pointShadowCubes[s] == 0 || packedForSlot[s] < 0) continue;
+				if (pointShadowCubes[s] == 0) continue;
 				device.BindTexture(4 + casters, TextureHandle(pointShadowCubes[s]), TextureType::Cube);
 				units[casters] = 4 + casters;
 				d.pointShadowPositions[casters] = glm::vec4(pointShadowPositions[s], 0.0f);
@@ -254,7 +307,7 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 		if (!s.on || sc >= MAX_SPOTS) return;
 		d.spotPos[sc] = glm::vec4(s.pos, 0.0f);
 		d.spotDir[sc] = glm::vec4(glm::normalize(s.dir), 0.0f);
-		d.spotColor[sc] = glm::vec4(s.color, 0.0f);
+		d.spotColor[sc] = glm::vec4(SceneColor(s.color), 0.0f);
 		d.spotRange[sc].x = s.range;
 		d.spotIntensity[sc].x = s.intensity;
 		d.spotCosInner[sc].x = cosf(glm::radians(s.innerDeg));
@@ -338,7 +391,67 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 	}
 }
 
-void Scene3D::ApplyMaterial(unsigned int shaderID, const SceneMaterial& mat, const WaterSurface* water) const
+void Scene3D::UpdateLightClusters(Game& game, const Renderer& renderer)
+{
+	if (!active || renderer.camera.useOrthoCamera || !ClusteredLightsWanted())
+	{
+		DisableLightClusters();
+		return;
+	}
+
+	// Every enabled light, in the order the Scene block packs them (points,
+	// then spots, then the runtime focus spot) - but without its 8 + 4 cap.
+	static std::vector<ClusterLight> lights;
+	lights.clear();
+	const bool useArray = Device().SupportsCubeMapArrays();
+	const bool casters = pointShadowActive && pointShadowsEnabled && pointShadowCount > 0;
+	for (const ScenePointLight& p : pointLights)
+	{
+		if (!p.on || p.guardHidden)
+			continue;
+		ClusterLight l;
+		l.pos = p.pos;
+		l.range = p.range;
+		l.color = SceneColor(p.color);
+		l.intensity = p.intensity;
+		if (casters)
+			for (int s = 0; s < pointShadowCount; s++)
+				if (p.pos == pointShadowPositions[s])
+				{
+					l.shadow = ShadowBlockIndex(s, useArray, pointShadowCubes, kMaxPointShadowsFallback);
+					break;
+				}
+		lights.push_back(l);
+	}
+	auto addSpot = [&](const SceneSpotLight& s)
+	{
+		if (!s.on)
+			return;
+		ClusterLight l;
+		l.pos = s.pos;
+		l.range = s.range;
+		l.color = SceneColor(s.color);
+		l.intensity = s.intensity;
+		l.dir = glm::normalize(s.dir);
+		l.cosInner = cosf(glm::radians(s.innerDeg));
+		l.cosOuter = cosf(glm::radians(s.outerDeg));
+		l.spot = true;
+		lights.push_back(l);
+	};
+	for (const SceneSpotLight& s : spotLights)
+		addSpot(s);
+	if (focusSpotOn)
+		addSpot(focusSpot);
+
+	const Camera& cam = renderer.camera;
+	BuildLightClusters(lights, cam.CalculateViewMatrix(), cam.projection, cam.nearPlane, cam.farPlane,
+		game.screenWidth, game.screenHeight);
+}
+
+// The Material block for `mat`, plus an imported (glTF) material's map bits
+// (shaders/material.glsl MAT_*), which ApplyModelMaterial passes.
+static void BindMaterialBlock(unsigned int shaderID, const SceneMaterial& mat, const WaterSurface* water,
+	int maps, float alphaCutoff, float occlusionStrength)
 {
 	const unsigned int id = shaderID;
 
@@ -350,8 +463,8 @@ void Scene3D::ApplyMaterial(unsigned int shaderID, const SceneMaterial& mat, con
 	}
 
 	MaterialBlockData m = {};
-	m.matTint = mat.tint;
-	m.matEmissive = mat.emissive;
+	m.matTint = SceneColor(mat.tint);
+	m.matEmissive = SceneColor(mat.emissive);
 	m.matFresnel = mat.fresnel;
 	m.matUVTile = mat.uvTile;
 	m.matNormalStrength = mat.normalStrength;
@@ -363,6 +476,11 @@ void Scene3D::ApplyMaterial(unsigned int shaderID, const SceneMaterial& mat, con
 	m.matRoughness = mat.roughness;
 	m.matOpacity = mat.opacity;
 	m.matHasNormal = (mat.normalMap != nullptr) ? 1 : 0;
+	m.matMaps = maps;
+	if (mat.normalMap != nullptr && IsTwoChannelTexture(mat.normalMap))
+		m.matMaps |= kMatNormalXY;   // a BC5 normal map: x and y only
+	m.matAlphaCutoff = alphaCutoff;
+	m.matOcclusionStrength = occlusionStrength;
 	// The shader only reads these for water; defaults match the old uniform
 	// initializers so non-water materials hash identically.
 	m.uWaterAmp = 9.0f;
@@ -390,6 +508,13 @@ void Scene3D::ApplyMaterial(unsigned int shaderID, const SceneMaterial& mat, con
 	}
 
 	// Legacy: loose uniforms for programs that predate the Material block.
+	// They know none of the newer maps: skip what they would draw wrongly (a
+	// two-channel normal map read as xyz points into the surface; an emissive
+	// factor meant to multiply a map would glow over the whole surface).
+	if ((m.matMaps & kMatNormalXY) != 0)
+		m.matHasNormal = 0;
+	if ((m.matMaps & kMatEmissiveMap) != 0)
+		m.matEmissive = glm::vec3(0.0f);
 	auto loc = [id](const char* name) { return Device().UniformLocation(ProgramHandle(id), name); };
 	Device().SetUniform((int)(loc("matTint")), m.matTint);
 	Device().SetUniform((int)(loc("matEmissive")), m.matEmissive);
@@ -411,4 +536,50 @@ void Scene3D::ApplyMaterial(unsigned int shaderID, const SceneMaterial& mat, con
 		Device().SetUniform((int)(loc("uWaterShoreFade")), (float)(m.uWaterShoreFade));
 		Device().SetUniform((int)(loc("uWaterChoppy")), (float)(m.uWaterChoppy));
 	}
+}
+
+void Scene3D::ApplyMaterial(unsigned int shaderID, const SceneMaterial& mat, const WaterSurface* water) const
+{
+	BindMaterialBlock(shaderID, mat, water, 0, 0.5f, 1.0f);
+}
+
+void Scene3DInternal::ApplyModelMaterial(unsigned int program, const ModelMaterial& material)
+{
+	RenderDevice& device = Device();
+	const ProgramHandle handle(program);
+	int maps = kMatGltf;
+	if (material.metallicRoughness != nullptr)
+	{
+		maps |= kMatMetalRoughMap;
+		if (material.occlusionPacked)
+			maps |= kMatOcclusionPacked;
+		device.SetUniform(device.UniformLocation(handle, "metallicRoughnessMap"), 2);
+		material.metallicRoughness->UseTexture(2);
+	}
+	if (ModelMaterialExtraMaps())   // units 5 and 6 hold point-shadow cubes on the fallback
+	{
+		if (material.occlusion != nullptr)
+		{
+			maps |= kMatOcclusionMap;
+			device.SetUniform(device.UniformLocation(handle, "occlusionMap"), 5);
+			material.occlusion->UseTexture(5);
+		}
+		if (material.emissive != nullptr)
+		{
+			maps |= kMatEmissiveMap;
+			device.SetUniform(device.UniformLocation(handle, "emissiveMap"), 6);
+			material.emissive->UseTexture(6);
+		}
+	}
+	if (material.doubleSided)
+		maps |= kMatDoubleSided;
+	if (material.alphaMode == AlphaMode::Mask)
+		maps |= kMatAlphaMask;
+	if (material.alphaMode == AlphaMode::Blend)
+		maps |= kMatAlphaBlend;
+	if (material.unlit)
+		maps |= kMatUnlit;
+
+	BindMaterialBlock(program, material.scene, nullptr, maps, material.alphaCutoff, material.occlusionStrength);
+	ModelBaseColor(material)->UseTexture(0);
 }

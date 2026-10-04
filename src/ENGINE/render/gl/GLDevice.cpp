@@ -3,6 +3,7 @@
 #include "../../opengl_includes.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -40,6 +41,7 @@ namespace
 		switch (type)
 		{
 		case TextureType::Cube:      return GL_TEXTURE_CUBE_MAP;
+		case TextureType::Tex2DArray: return GL_TEXTURE_2D_ARRAY;
 #ifndef __EMSCRIPTEN__
 		case TextureType::CubeArray: return GL_TEXTURE_CUBE_MAP_ARRAY;
 #endif
@@ -48,12 +50,35 @@ namespace
 		}
 	}
 
+	// Block-compressed internal formats, spelled out so the Emscripten GLES
+	// headers (which may lack the extension enums) compile too.
+	const GLint kRgbaS3tcDxt1 = 0x83F1;
+	const GLint kSrgbAlphaS3tcDxt1 = 0x8C4D;
+	const GLint kRgbaS3tcDxt5 = 0x83F3;
+	const GLint kSrgbAlphaS3tcDxt5 = 0x8C4F;
+	const GLint kRedRgtc1 = 0x8DBB;
+	const GLint kRgRgtc2 = 0x8DBD;
+	const GLint kRgbaBptc = 0x8E8C;
+	const GLint kSrgbAlphaBptc = 0x8E8D;
+
 	struct GLFormat { GLint internal; GLenum format; GLenum type; };
 	GLFormat FormatOf(TextureFormat f)
 	{
 		switch (f)
 		{
+		case TextureFormat::BC1:             return { kRgbaS3tcDxt1, 0, 0 };
+		case TextureFormat::BC1_SRGB:        return { kSrgbAlphaS3tcDxt1, 0, 0 };
+		case TextureFormat::BC3:             return { kRgbaS3tcDxt5, 0, 0 };
+		case TextureFormat::BC3_SRGB:        return { kSrgbAlphaS3tcDxt5, 0, 0 };
+		case TextureFormat::BC4:             return { kRedRgtc1, 0, 0 };
+		case TextureFormat::BC5:             return { kRgRgtc2, 0, 0 };
+		case TextureFormat::BC7:             return { kRgbaBptc, 0, 0 };
+		case TextureFormat::BC7_SRGB:        return { kSrgbAlphaBptc, 0, 0 };
+		case TextureFormat::SRGB8_A8:        return { GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE };
+		case TextureFormat::RGBA16F:         return { GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT };
 		case TextureFormat::R8:              return { GL_R8, GL_RED, GL_UNSIGNED_BYTE };
+		case TextureFormat::R32F:            return { GL_R32F, GL_RED, GL_FLOAT };
+		case TextureFormat::RGBA32UI:        return { GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT };
 		case TextureFormat::Depth24:         return { GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT };
 		case TextureFormat::Depth24Stencil8: return { GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 };
 		case TextureFormat::RGBA8:
@@ -66,11 +91,101 @@ namespace
 		switch (a)
 		{
 		case Attachment::Color1:       return GL_COLOR_ATTACHMENT1;
+		case Attachment::Color2:       return GL_COLOR_ATTACHMENT2;
 		case Attachment::Depth:        return GL_DEPTH_ATTACHMENT;
 		case Attachment::DepthStencil: return GL_DEPTH_STENCIL_ATTACHMENT;
 		case Attachment::Color0:
 		default:                       return GL_COLOR_ATTACHMENT0;
 		}
+	}
+
+	// The context's extensions (desktop core profiles list them one by one;
+	// WebGL as one string, with or without a "GL_" prefix).
+	bool HasExtension(const std::string& name)
+	{
+		static std::vector<std::string> extensions;
+		static bool loaded = false;
+		if (!loaded)
+		{
+			loaded = true;
+#ifdef __EMSCRIPTEN__
+			const char* all = (const char*)glGetString(GL_EXTENSIONS);
+			std::string s = (all != nullptr) ? all : "";
+			size_t start = 0;
+			while (start < s.size())
+			{
+				size_t end = s.find(' ', start);
+				if (end == std::string::npos) end = s.size();
+				if (end > start) extensions.push_back(s.substr(start, end - start));
+				start = end + 1;
+			}
+#else
+			GLint count = 0;
+			glGetIntegerv(GL_NUM_EXTENSIONS, &count);
+			for (GLint i = 0; i < count; i++)
+			{
+				const char* e = (const char*)glGetStringi(GL_EXTENSIONS, (GLuint)i);
+				if (e != nullptr) extensions.push_back(e);
+			}
+#endif
+		}
+		for (const std::string& e : extensions)
+			if (e == name || e == "GL_" + name)
+				return true;
+		return false;
+	}
+
+	// The hardware's anisotropic filtering limit (1 = none), queried once.
+	float MaxAnisotropy()
+	{
+#ifdef GL_TEXTURE_MAX_ANISOTROPY_EXT
+		static const float limit = []()
+		{
+			GLfloat v = 0.0f;
+			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &v);
+			return v > 1.0f ? (float)v : 1.0f;
+		}();
+		return limit;
+#else
+		return 1.0f;
+#endif
+	}
+
+	// Filtering, wrapping, depth comparison and anisotropy of the texture bound to `target`.
+	void SetSamplerState(GLenum target, const TextureDesc& desc)
+	{
+		GLint minFilter = GL_NEAREST, magFilter = GL_NEAREST;
+		if (desc.filter == TextureFilter::Linear) { minFilter = GL_LINEAR; magFilter = GL_LINEAR; }
+		if (desc.filter == TextureFilter::Trilinear) { minFilter = GL_LINEAR_MIPMAP_LINEAR; magFilter = GL_LINEAR; }
+		glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
+		glTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
+
+		GLint wrap = GL_CLAMP_TO_EDGE;
+		if (desc.wrap == TextureWrap::Repeat) wrap = GL_REPEAT;
+#ifndef __EMSCRIPTEN__
+		if (desc.wrap == TextureWrap::ClampToBorder)
+		{
+			wrap = GL_CLAMP_TO_BORDER;
+			glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(desc.borderColor));
+		}
+#endif
+		glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap);
+		glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap);
+		if (desc.type != TextureType::Tex2D)
+			glTexParameteri(target, GL_TEXTURE_WRAP_R, wrap);
+
+		// Depth comparison: shadow samplers return the filtered result of
+		// "reference <= stored depth" (hardware PCF) instead of the depth.
+		if (desc.depthCompare)
+		{
+			glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+			glTexParameteri(target, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+		}
+
+#ifdef GL_TEXTURE_MAX_ANISOTROPY_EXT
+		if (desc.maxAnisotropy > 1.0f && MaxAnisotropy() > 1.0f)
+			glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, std::min(MaxAnisotropy(), desc.maxAnisotropy));
+#endif
 	}
 }
 
@@ -230,36 +345,7 @@ TextureHandle GLDevice::CreateTexture(const TextureDesc& desc, const void* rgbaP
 	glBindTexture(target, id);
 	unit0Known = false;   // that bind replaced whatever unit 0 held
 
-	GLint minFilter = GL_NEAREST, magFilter = GL_NEAREST;
-	if (desc.filter == TextureFilter::Linear) { minFilter = GL_LINEAR; magFilter = GL_LINEAR; }
-	if (desc.filter == TextureFilter::Trilinear) { minFilter = GL_LINEAR_MIPMAP_LINEAR; magFilter = GL_LINEAR; }
-	glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
-	glTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
-
-	GLint wrap = GL_CLAMP_TO_EDGE;
-	if (desc.wrap == TextureWrap::Repeat) wrap = GL_REPEAT;
-#ifndef __EMSCRIPTEN__
-	if (desc.wrap == TextureWrap::ClampToBorder)
-	{
-		wrap = GL_CLAMP_TO_BORDER;
-		glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(desc.borderColor));
-	}
-#endif
-	glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap);
-	glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap);
-	if (desc.type != TextureType::Tex2D)
-		glTexParameteri(target, GL_TEXTURE_WRAP_R, wrap);
-
-#ifdef GL_TEXTURE_MAX_ANISOTROPY_EXT
-	if (desc.maxAnisotropy > 1.0f)
-	{
-		GLfloat maxAniso = 0.0f;
-		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
-		if (maxAniso > 1.0f)
-			glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT,
-				maxAniso < desc.maxAnisotropy ? maxAniso : desc.maxAnisotropy);
-	}
-#endif
+	SetSamplerState(target, desc);
 
 	switch (desc.type)
 	{
@@ -267,6 +353,10 @@ TextureHandle GLDevice::CreateTexture(const TextureDesc& desc, const void* rgbaP
 		for (int face = 0; face < 6; face++)
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0, fmt.internal, desc.width, desc.height, 0,
 				fmt.format, fmt.type, nullptr);
+		break;
+	case TextureType::Tex2DArray:
+		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, fmt.internal, desc.width, desc.height, desc.layers, 0,
+			fmt.format, fmt.type, nullptr);
 		break;
 #ifndef __EMSCRIPTEN__
 	case TextureType::CubeArray:
@@ -277,6 +367,18 @@ TextureHandle GLDevice::CreateTexture(const TextureDesc& desc, const void* rgbaP
 	case TextureType::Tex2D:
 	default:
 		glTexImage2D(GL_TEXTURE_2D, 0, fmt.internal, desc.width, desc.height, 0, fmt.format, fmt.type, rgbaPixels);
+		if (desc.mipLevels > 1)
+		{
+			// Storage for every level up front, so each can be a render target;
+			// MAX_LEVEL makes the texture complete without levels past it.
+			for (int level = 1; level < desc.mipLevels; level++)
+			{
+				const int w = std::max(1, desc.width >> level);
+				const int h = std::max(1, desc.height >> level);
+				glTexImage2D(GL_TEXTURE_2D, level, fmt.internal, w, h, 0, fmt.format, fmt.type, nullptr);
+			}
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, desc.mipLevels - 1);
+		}
 		break;
 	}
 
@@ -285,6 +387,81 @@ TextureHandle GLDevice::CreateTexture(const TextureDesc& desc, const void* rgbaP
 
 	glBindTexture(target, 0);
 	return TextureHandle(id);
+}
+
+TextureHandle GLDevice::CreateTextureLevels(const TextureDesc& desc, const TextureLevel* levels, int levelCount)
+{
+	if (levels == nullptr || levelCount < 1 || desc.type != TextureType::Tex2D)
+		return TextureHandle();
+	const GLFormat fmt = FormatOf(desc.format);
+	const bool compressed = IsBlockCompressed(desc.format);
+
+	GLuint id = 0;
+	glGenTextures(1, &id);
+	glBindTexture(GL_TEXTURE_2D, id);
+	unit0Known = false;   // that bind replaced whatever unit 0 held
+
+	TextureDesc sampler = desc;
+	const bool generate = desc.generateMipmaps && levelCount == 1 && !compressed;
+	if (sampler.filter == TextureFilter::Trilinear && levelCount == 1 && !generate)
+		sampler.filter = TextureFilter::Linear;   // no levels to blend between
+	SetSamplerState(GL_TEXTURE_2D, sampler);
+
+	// Rows of RGBA8 levels are tightly packed (4-byte texels: any alignment works).
+	for (int level = 0; level < levelCount; level++)
+	{
+		const int w = std::max(1, desc.width >> level);
+		const int h = std::max(1, desc.height >> level);
+		if (compressed)
+			glCompressedTexImage2D(GL_TEXTURE_2D, level, (GLenum)fmt.internal, w, h, 0,
+				(GLsizei)levels[level].bytes, levels[level].data);
+		else
+			glTexImage2D(GL_TEXTURE_2D, level, fmt.internal, w, h, 0, fmt.format, fmt.type, levels[level].data);
+	}
+	// A chain that stops before 1x1 is still complete up to its last level.
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, generate ? 1000 : levelCount - 1);
+	if (generate)
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return TextureHandle(id);
+}
+
+bool GLDevice::SupportsTextureFormat(TextureFormat format) const
+{
+	switch (format)
+	{
+#ifdef __EMSCRIPTEN__
+	case TextureFormat::BC1:
+	case TextureFormat::BC3:
+		return HasExtension("WEBGL_compressed_texture_s3tc");
+	case TextureFormat::BC1_SRGB:
+	case TextureFormat::BC3_SRGB:
+		return HasExtension("WEBGL_compressed_texture_s3tc_srgb");
+	case TextureFormat::BC4:
+	case TextureFormat::BC5:
+		return HasExtension("EXT_texture_compression_rgtc");
+	case TextureFormat::BC7:
+	case TextureFormat::BC7_SRGB:
+		return HasExtension("EXT_texture_compression_bptc");
+#else
+	case TextureFormat::BC1:
+	case TextureFormat::BC3:
+		return HasExtension("GL_EXT_texture_compression_s3tc");
+	case TextureFormat::BC1_SRGB:
+	case TextureFormat::BC3_SRGB:
+		return HasExtension("GL_EXT_texture_compression_s3tc")
+			&& (HasExtension("GL_EXT_texture_sRGB") || HasExtension("GL_EXT_texture_compression_s3tc_srgb"));
+	case TextureFormat::BC4:
+	case TextureFormat::BC5:
+		return true;   // RGTC: core since GL 3.0
+	case TextureFormat::BC7:
+	case TextureFormat::BC7_SRGB:
+		return ShaderProgram::glslVersion >= 420 || HasExtension("GL_ARB_texture_compression_bptc");
+#endif
+	default:
+		return true;
+	}
 }
 
 void GLDevice::DestroyTexture(TextureHandle& texture)
@@ -337,23 +514,44 @@ void GLDevice::DestroyFramebuffer(FramebufferHandle& framebuffer)
 }
 
 void GLDevice::AttachTexture(FramebufferHandle framebuffer, Attachment attachment, TextureHandle texture,
-	TextureType type, int layer)
+	TextureType type, int layer, int mipLevel)
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.id);
 	const GLenum point = AttachmentOf(attachment);
 	switch (type)
 	{
 	case TextureType::Cube:
-		glFramebufferTexture2D(GL_FRAMEBUFFER, point, GL_TEXTURE_CUBE_MAP_POSITIVE_X + layer, texture.id, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, point, GL_TEXTURE_CUBE_MAP_POSITIVE_X + layer, texture.id, mipLevel);
 		break;
 	case TextureType::CubeArray:
-		glFramebufferTextureLayer(GL_FRAMEBUFFER, point, texture.id, 0, layer);
+	case TextureType::Tex2DArray:
+		glFramebufferTextureLayer(GL_FRAMEBUFFER, point, texture.id, mipLevel, layer);
 		break;
 	case TextureType::Tex2D:
 	default:
-		glFramebufferTexture2D(GL_FRAMEBUFFER, point, GL_TEXTURE_2D, texture.id, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, point, GL_TEXTURE_2D, texture.id, mipLevel);
 		break;
 	}
+}
+
+void GLDevice::UpdateTexture(TextureHandle texture, TextureFormat format, int x, int y, int width, int height,
+	const void* data)
+{
+	if (texture.id == 0 || width <= 0 || height <= 0)
+		return;
+	const GLFormat fmt = FormatOf(format);
+	glBindTexture(GL_TEXTURE_2D, texture.id);   // on unit 0, which stays active
+	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, fmt.format, fmt.type, data);
+	boundUnit0 = texture.id;
+	unit0Known = true;
+}
+
+void GLDevice::GenerateMipmaps(TextureHandle texture)
+{
+	glBindTexture(GL_TEXTURE_2D, texture.id);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	boundUnit0 = texture.id;   // left bound on unit 0
+	unit0Known = true;
 }
 
 void GLDevice::SetDrawBuffers(FramebufferHandle framebuffer, int colorCount)
@@ -373,6 +571,25 @@ void GLDevice::SetBoundDrawBuffers(int colorCount)
 	}
 	const GLenum all[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	glDrawBuffers(colorCount > 2 ? 2 : colorCount, all);
+}
+
+void GLDevice::SetBoundDrawBufferMask(unsigned int attachmentMask)
+{
+	GLenum buffers[3];
+	int count = 0;
+	for (int i = 0; i < 3; i++)
+	{
+		buffers[i] = (attachmentMask & (1u << i)) ? (GLenum)(GL_COLOR_ATTACHMENT0 + i) : (GLenum)GL_NONE;
+		if (attachmentMask & (1u << i))
+			count = i + 1;   // trailing unused slots are simply left off
+	}
+	if (count == 0)
+	{
+		GLenum none = GL_NONE;
+		glDrawBuffers(1, &none);
+		return;
+	}
+	glDrawBuffers(count, buffers);
 }
 
 bool GLDevice::IsFramebufferComplete(FramebufferHandle framebuffer, std::string* error)
@@ -428,6 +645,121 @@ void GLDevice::DrawIndexed(VertexArrayHandle vao, Primitive primitive, int index
 	else
 		glDrawElements(ToGL(primitive), indexCount, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+}
+
+// ---------------------------------------------------------------- GPU-driven
+
+bool GLDevice::SupportsGpuDriven() const
+{
+#ifdef __EMSCRIPTEN__
+	return false;
+#else
+	// Compute shaders, storage buffers and multi-draw-indirect are core in 4.3.
+	return ShaderProgram::glslVersion >= 430 && glDispatchCompute != nullptr
+		&& glMultiDrawElementsIndirect != nullptr && glBindBufferRange != nullptr;
+#endif
+}
+
+ProgramHandle GLDevice::CreateComputeProgram(const char* source, std::string& log)
+{
+	log.clear();
+#ifdef __EMSCRIPTEN__
+	(void)source;
+	log = "compute shaders are not available on WebGL";
+	return ProgramHandle();
+#else
+	GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
+	glShaderSource(shader, 1, &source, nullptr);
+	glCompileShader(shader);
+	GLint ok = 0;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+	if (!ok)
+	{
+		GLchar info[1024] = { 0 };
+		glGetShaderInfoLog(shader, sizeof(info), nullptr, info);
+		log = std::string("Error compiling the compute shader: ") + info + "\n";
+		glDeleteShader(shader);
+		return ProgramHandle();
+	}
+	GLuint program = glCreateProgram();
+	glAttachShader(program, shader);
+	glLinkProgram(program);
+	glDeleteShader(shader);
+	GLint linked = 0;
+	glGetProgramiv(program, GL_LINK_STATUS, &linked);
+	if (!linked)
+	{
+		GLchar info[1024] = { 0 };
+		glGetProgramInfoLog(program, sizeof(info), nullptr, info);
+		log = std::string("Error linking compute program: '") + info + "'\n";
+		glDeleteProgram(program);
+		return ProgramHandle();
+	}
+	return ProgramHandle(program);
+#endif
+}
+
+void GLDevice::BindStorageBuffer(unsigned int binding, BufferHandle buffer, size_t offset, size_t bytes)
+{
+#ifndef __EMSCRIPTEN__
+	if (bytes == 0)
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, buffer.id);
+	else
+		glBindBufferRange(GL_SHADER_STORAGE_BUFFER, binding, buffer.id, (GLintptr)offset, (GLsizeiptr)bytes);
+#else
+	(void)binding; (void)buffer; (void)offset; (void)bytes;
+#endif
+}
+
+void GLDevice::Dispatch(unsigned int groupsX, unsigned int groupsY, unsigned int groupsZ)
+{
+#ifndef __EMSCRIPTEN__
+	glDispatchCompute(groupsX, groupsY, groupsZ);
+#else
+	(void)groupsX; (void)groupsY; (void)groupsZ;
+#endif
+}
+
+void GLDevice::GpuBarrier(unsigned int barrierBits)
+{
+#ifndef __EMSCRIPTEN__
+	GLbitfield bits = 0;
+	if (barrierBits & BarrierStorage) bits |= GL_SHADER_STORAGE_BARRIER_BIT;
+	if (barrierBits & BarrierIndirect) bits |= GL_COMMAND_BARRIER_BIT;
+	if (barrierBits & BarrierVertexAttributes) bits |= GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT;
+	if (bits != 0)
+		glMemoryBarrier(bits);
+#else
+	(void)barrierBits;
+#endif
+}
+
+void GLDevice::SetVertexAttributeInt(VertexArrayHandle vao, unsigned int location, BufferHandle buffer,
+	int components, size_t stride, size_t offset, unsigned int divisor)
+{
+	glBindVertexArray(vao.id);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer.id);
+	glVertexAttribIPointer(location, components, GL_UNSIGNED_INT, (GLsizei)stride, (void*)offset);
+	glEnableVertexAttribArray(location);
+	glVertexAttribDivisor(location, divisor);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void GLDevice::MultiDrawIndexedIndirect(VertexArrayHandle vao, Primitive primitive, BufferHandle commands,
+	size_t offset, int drawCount, size_t stride)
+{
+#ifndef __EMSCRIPTEN__
+	if (drawCount <= 0)
+		return;
+	glBindVertexArray(vao.id);
+	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commands.id);
+	glMultiDrawElementsIndirect(ToGL(primitive), GL_UNSIGNED_INT, (const void*)offset, drawCount, (GLsizei)stride);
+	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+	glBindVertexArray(0);
+#else
+	(void)vao; (void)primitive; (void)commands; (void)offset; (void)drawCount; (void)stride;
+#endif
 }
 
 // ---------------------------------------------------------------- programs
@@ -573,6 +905,8 @@ void GLDevice::ApplyState(const RenderState& s, bool force)
 			glEnable(GL_BLEND);
 			if (s.blend == BlendMode::Additive)
 				glBlendFunc(GL_ONE, GL_ONE);
+			else if (s.blend == BlendMode::Premultiplied)
+				glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);   // src + dst * (1 - src.a)
 			else
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}
@@ -717,5 +1051,85 @@ bool GLDevice::SupportsPersistentMapping() const
 	return false;
 #else
 	return ShaderProgram::glslVersion >= 440 && glBufferStorage != nullptr;
+#endif
+}
+
+// ---------------------------------------------------------------- timestamps
+
+bool GLDevice::SupportsTimestamps() const
+{
+#ifdef __EMSCRIPTEN__
+	return false;   // WebGL2 only has them through an optional, often-disabled extension
+#else
+	return true;    // core since GL 3.3 (ARB_timer_query)
+#endif
+}
+
+QueryHandle GLDevice::CreateQuery()
+{
+#ifndef __EMSCRIPTEN__
+	GLuint id = 0;
+	glGenQueries(1, &id);
+	return QueryHandle(id);
+#else
+	return QueryHandle();
+#endif
+}
+
+void GLDevice::DestroyQuery(QueryHandle& query)
+{
+#ifndef __EMSCRIPTEN__
+	if (query.id != 0)
+	{
+		GLuint id = query.id;
+		glDeleteQueries(1, &id);
+	}
+#endif
+	query = QueryHandle();
+}
+
+void GLDevice::WriteTimestamp(QueryHandle query)
+{
+#ifndef __EMSCRIPTEN__
+	if (query.id != 0)
+		glQueryCounter(query.id, GL_TIMESTAMP);
+#else
+	(void)query;
+#endif
+}
+
+bool GLDevice::ReadTimestamp(QueryHandle query, uint64_t& nanoseconds)
+{
+#ifndef __EMSCRIPTEN__
+	if (query.id == 0)
+		return false;
+	GLint available = 0;
+	glGetQueryObjectiv(query.id, GL_QUERY_RESULT_AVAILABLE, &available);
+	if (!available)
+		return false;
+	GLuint64 value = 0;
+	glGetQueryObjectui64v(query.id, GL_QUERY_RESULT, &value);
+	nanoseconds = (uint64_t)value;
+	return true;
+#else
+	(void)query;
+	(void)nanoseconds;
+	return false;
+#endif
+}
+
+bool GLDevice::SupportsFloatRenderTargets() const
+{
+#ifdef __EMSCRIPTEN__
+	// WebGL2 renders to RGBA16F only with EXT_color_buffer_float (enabled at
+	// context creation when the browser offers it).
+	static const bool has = []()
+	{
+		const char* ext = (const char*)glGetString(GL_EXTENSIONS);
+		return ext != nullptr && std::string(ext).find("EXT_color_buffer_float") != std::string::npos;
+	}();
+	return has;
+#else
+	return true;   // core since GL 3.0
 #endif
 }

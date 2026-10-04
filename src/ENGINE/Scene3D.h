@@ -355,6 +355,18 @@ public:
 	// the 3D editor and serialized as the .scene "shadowlight <name>" line.
 	std::string shadowCasterLight;
 	void RenderPointShadowDepth(Game& game, const Renderer& renderer);
+
+	// Ambient occlusion (linear workflow; render/AmbientOcclusion.h): whether
+	// this frame has a perspective scene whose model shader reads occlusion,
+	// and the prepass drawing its opaque models into the occlusion targets.
+	// Game::Render runs both, before the world.
+	bool WantsScreenSpacePrepass(const Renderer& renderer) const;   // occlusion and/or reflections
+	void RenderAoPrepass(Game& game, const Renderer& renderer);
+
+	// Clustered lighting (render/ClusteredLights.h): sort this frame's enabled
+	// point and spot lights - any number of them - into the camera's light
+	// clusters, for the lit shaders. Game::Render runs it once, before the world.
+	void UpdateLightClusters(Game& game, const Renderer& renderer);
 	// Names of the scene's point lights, in order (for the editor's cycle button).
 	std::vector<std::string> PointLightNames() const;
 	// Mutable access to the point lights (ObjectGuards toggles their guardHidden).
@@ -438,6 +450,14 @@ public:
 	// Batch duplicate opaque props (same obj+texture+material) into one
 	// instanced draw. On by default; toggle for A/B testing or debugging.
 	bool instancingEnabled = true;
+
+	// GPU-driven model rendering (Phase 1.5 item 11, Scene3DGpuDriven.cpp). On a
+	// GL 4.3+ desktop context with the engine's scene3d shaders, the opaque
+	// models come from one per-frame instance list: each view (the camera, a
+	// shadow cascade, a cube face) is culled on the GPU and drawn with indirect
+	// multi-draws, one per texture + material. Such a model's Render draws
+	// nothing itself; the first one to Render in a frame draws them all.
+	void DrawGpuDrivenModels(const Renderer& renderer);
 
 	// Runtime light control (by the name given in the .scene file). All
 	// return false if no light of that name exists.
@@ -545,6 +565,62 @@ public:
 	enum class Season { Summer, Spring, Autumn, Winter };
 	void SetSeason(Game& game, Season s);
 	Season GetSeason() const { return season; }
+
+	// --- exposure (linear workflow only: renderer.dat `linearLighting 1`) ---
+	// A multiplier on the world's linear light before tonemapping; 0 = the
+	// project's renderer.dat `exposure`. Fades over fadeSeconds when > 0.
+	// Authored per scene with the ".scene" token `exposure <multiplier>` (reset
+	// on every load), and from scripts with `scene3d exposure <v> [seconds]`.
+	void SetExposure(float multiplier, float fadeSeconds = 0.0f);
+	float GetExposure() const;   // this scene's value (0 = project default)
+	// Bloom strength 0..1 (0 = none; < 0 = the project's renderer.dat `bloom`).
+	// Authored with the ".scene" token `bloom <strength>`, reset on every load.
+	void SetBloom(float strength);
+	float GetBloom() const;      // this scene's value (< 0 = project default)
+	// Image-based lighting from the sky (linear workflow): multipliers on the
+	// sky's diffuse light and reflections; 0 = off, < 0 = renderer.dat `ibl`.
+	// Authored with the ".scene" token `ibl <diffuse> [specular]`.
+	void SetIBL(float diffuse, float specular);
+	// Ambient occlusion (linear workflow): strength 0..1 (0 = off, < 0 = the
+	// project's renderer.dat `ao`) and search radius in world units (<= 0 =
+	// renderer.dat `aoRadius`). Authored with the ".scene" token
+	// `ao <strength> [radius]`, reset on every load.
+	void SetAmbientOcclusion(float strength, float radius = -1.0f);
+	// Temporal anti-aliasing (linear workflow) blends each frame into the
+	// image accumulated over earlier ones. After a hard camera cut that the
+	// game makes itself (teleporting renderer.camera rather than going through
+	// JumpToCamera, which already does this), call it so the old view isn't
+	// blended into the first frames of the new one.
+	void NotifyCameraCut();
+	// Colour grading (linear workflow): a strip LUT PNG (N*N x N) applied to
+	// the final image - "" = the project's renderer.dat `colorGrade`, "none" =
+	// off. Cross-fades from the current look over fadeSeconds. Authored with
+	// the ".scene" token `grade <png> [strength]`; scripts use
+	// `scene3d grade <png|none|default> [strength] [seconds]`.
+	void SetColorGrade(const std::string& lutPath, float strength = 1.0f, float fadeSeconds = 0.0f);
+	// Depth of field (linear workflow): focus distance (world units in front
+	// of the camera) and aperture - the blur, in 720p pixels, of what lies far
+	// beyond the focus (0 = off); fades over fadeSeconds. The ".scene" token is
+	// `dof <focus> <aperture>`; scripts use `scene3d dof ...`.
+	void SetDepthOfField(float focusDistance, float aperture, float fadeSeconds = 0.0f);
+	// The same, with the focus following a character's face every frame (a
+	// cutscene close-up).
+	void SetDepthOfFieldTarget(const std::string& characterName, float aperture, float fadeSeconds = 0.0f);
+	// Game::Render: resolve a followed character's distance for this frame.
+	void UpdateDepthOfField(const Renderer& renderer);
+	// Volumetric fog and light shafts (linear workflow): density per world
+	// unit (0 = none), fading over fadeSeconds. The ".scene" token is
+	// `fog <density> [falloff] [r g b] [anisotropy] [noise]`; rain, snow and
+	// storms bring their own when a scene sets none. Scripts: `scene3d fog`.
+	void SetFog(float density, float fadeSeconds = 0.0f);
+	// Game::Render: this frame has fog to draw (sets the weather's), and the
+	// half-resolution march, lit like the scene (the composite onto the world
+	// is render/VolumetricFog.h's CompositeFog, in its own pass).
+	bool WantsVolumetricFog(const Renderer& renderer);
+	void RenderVolumetricFog(Game& game, const Renderer& renderer);
+	// What the sky looks like now (texture, time-of-day cross-fade, tint), for
+	// the environment capture. False without an active scene with a sky.
+	bool GetSkySource(Texture*& sky, Texture*& next, float& blend, glm::vec3& tint) const;
 
 	// A global weather override (a debug/CLI flag or a story-wide storm): when set
 	// to anything but None it is (re)applied after every scene load, overriding the
@@ -689,12 +765,25 @@ private:
 	// Per-frame instance groups (>=2 duplicate opaque props each); group[0] leads.
 	std::vector<std::vector<Scene3DModel*>> instanceGroups;
 	void RebuildInstanceGroups();
+
+	// GPU-driven models (Scene3DGpuDriven.cpp): this frame's instance list, and
+	// one view's cull + draws for the colour passes (world, AO prepass) and the
+	// depth passes (sun cascades, point-light cube faces). False = not active
+	// this frame (the caller draws every model itself).
+	void BuildGpuDrawList(const Renderer& renderer);
+	bool DrawGpuColourView(const Renderer& renderer, unsigned int program, bool world);
+	bool DrawGpuDepthView(const glm::mat4& viewProj, unsigned int program);
 	int shadowMapSize = 2048;
 	glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);
 	bool shadowActive = false;    // was the shadow map rendered this frame?
 	double shadowSig = 0.0;       // cache key (sun dir + casters); moved -> re-render
 	bool shadowEverRendered = false;
 	void EnsureShadowMap();
+	// Cascaded sun shadows (Scene3DShadows.cpp): the maps for this frame, and
+	// one cascade's casters.
+	void RenderShadowCascades(Game& game, const Renderer& renderer, const glm::vec3& L, double casterSig);
+	void DrawShadowCasters(const Renderer& renderer, unsigned int program, const glm::vec3& center,
+		float radius, const glm::vec3& L);
 
 	// Omnidirectional (cube) shadow maps: up to kMaxPointShadows point lights cast
 	// at once, each into its own cube. Depth is re-rendered only when the scene

@@ -33,6 +33,9 @@
 #include "TransientBuffer.h"
 
 #include "Scene3DInternal.h"
+#include "render/ProgramEvents.h"
+#include "globals.h"
+#include <unordered_map>
 
 using Scene3DInternal::ProgramHasBlock;
 
@@ -98,6 +101,386 @@ namespace
 			Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(program), "farPlane")), (float)(farPlane));
 		}
 	}
+
+	// ------------------------------------------------ cascaded sun shadows
+	// Phase 1.5 item 5 (docs/RENDERING_BACKEND_PLAN.md). Up to 4 maps in one
+	// depth texture array, each covering a slice of the camera's view through
+	// its bounding sphere: the sphere's size depends only on the slice, so it
+	// doesn't breathe as the camera turns, and its centre is snapped to whole
+	// shadow texels so the map doesn't swim as the camera moves. Each cascade
+	// re-renders only when its matrix or the casters change.
+	const int kMaxCascades = 4;
+	const int kCascadeSize = 2048;
+
+	struct CascadeSettings
+	{
+		bool loaded = false;
+		int count = 4;
+		float distance = 5000.0f;
+		float softness = 1.0f;
+	};
+	CascadeSettings cascadeSettings;
+	float sceneShadowDistance = -1.0f;   // .scene `shadowdistance`; < 0 = project default
+
+	const CascadeSettings& Cascades()
+	{
+		if (!cascadeSettings.loaded)
+		{
+			cascadeSettings.loaded = true;
+			auto config = GetMapStringsFromFile("data/config/renderer.dat");
+			try
+			{
+				if (config.count("shadowCascades") > 0)
+					cascadeSettings.count = std::min(std::max(std::stoi(config["shadowCascades"]), 0), kMaxCascades);
+				if (config.count("shadowDistance") > 0)
+					cascadeSettings.distance = std::max(std::stof(config["shadowDistance"]), 100.0f);
+				if (config.count("shadowSoftness") > 0)
+					cascadeSettings.softness = std::max(std::stof(config["shadowSoftness"]), 0.0f);
+			}
+			catch (...)
+			{
+				std::cout << "WARNING: renderer.dat shadow settings could not be read; using defaults" << std::endl;
+			}
+		}
+		return cascadeSettings;
+	}
+
+	bool CascadesWanted()
+	{
+		return Cascades().count > 0;
+	}
+
+	// Profiling: KINJO_SHADOWS_EVERY_FRAME=1 redraws the shadow maps every frame,
+	// as a scene with moving casters would, instead of reusing them.
+	bool ShadowsEveryFrame()
+	{
+		static const bool on = []()
+		{
+			const char* v = std::getenv("KINJO_SHADOWS_EVERY_FRAME");
+			return v != nullptr && v[0] == '1';
+		}();
+		return on;
+	}
+
+	// std140 mirror of the GLSL "Cascades" block (shaders/cascades.glsl).
+	struct CascadesBlockData
+	{
+		glm::mat4 viewProj[kMaxCascades];
+		glm::vec4 sphere[kMaxCascades];   // xyz centre, w radius^2
+		glm::vec4 texelWorld;
+		glm::vec4 depthBias;
+		int count;
+		float softness;
+		float pad[2];
+	};
+	static_assert(sizeof(CascadesBlockData) == 368, "CascadesBlockData must match shaders/cascades.glsl");
+
+	// Plain arrays report only element [0]; the vec4 array's 16-byte stride is
+	// checked (isArray), the mat4 array's 64 is std140's and fixed.
+	const UniformBlockMember kCascadesMembers[] = {
+		{ "cascadeViewProj[0]", offsetof(CascadesBlockData, viewProj), false },
+		{ "cascadeSphere[0]", offsetof(CascadesBlockData, sphere), true },
+		{ "cascadeTexelWorld", offsetof(CascadesBlockData, texelWorld), false },
+		{ "cascadeDepthBias", offsetof(CascadesBlockData, depthBias), false },
+		{ "cascadeCount", offsetof(CascadesBlockData, count), false },
+		{ "cascadeSoftness", offsetof(CascadesBlockData, softness), false },
+	};
+	UniformBufferCache cascadeBlocks(UniformBlock::Cascades, sizeof(CascadesBlockData), 4);
+
+	TextureHandle cascadeTexture;          // Depth24 array, kMaxCascades layers, hardware compare
+	TextureHandle cascadePlaceholder;      // 1x1 of the same kind: a shadow sampler must always see one
+	FramebufferHandle cascadeFbo;
+	CascadesBlockData cascadeData = {};    // what the last render produced
+	int cascadesThisFrame = 0;             // 0 until this frame's cascades exist
+	glm::mat4 cascadeRendered[kMaxCascades];   // per-layer cache: the matrix it was drawn with...
+	double cascadeRenderedSig[kMaxCascades];   // ...and the casters it saw
+	bool cascadeValid[kMaxCascades] = {};
+
+	void EnsureCascadeTargets()
+	{
+		if (cascadeTexture)
+			return;
+		RenderDevice& device = Device();
+		TextureDesc desc;
+		desc.type = TextureType::Tex2DArray;
+		desc.format = TextureFormat::Depth24;
+		desc.width = desc.height = kCascadeSize;
+		desc.layers = kMaxCascades;
+		desc.filter = TextureFilter::Linear;   // with compare: bilinear PCF per tap
+		desc.wrap = TextureWrap::ClampToEdge;
+		desc.depthCompare = true;
+		cascadeTexture = device.CreateTexture(desc);
+		cascadeFbo = device.CreateFramebuffer();
+		device.AttachTexture(cascadeFbo, Attachment::Depth, cascadeTexture, TextureType::Tex2DArray, 0);
+		device.SetDrawBuffers(cascadeFbo, 0);   // depth only
+		device.BindFramebuffer(FramebufferHandle());
+		for (bool& v : cascadeValid)
+			v = false;
+	}
+
+	std::unordered_map<unsigned int, int> cascadeSamplerLoc;   // program -> "shadowCascades" location
+}
+
+void Scene3DInternal::ApplyShadowPass(unsigned int program, const glm::mat4& viewProj, const glm::vec3& lightPos,
+	float farPlane, float alphaCutoff, bool sun)
+{
+	::ApplyShadowPass(program, viewProj, lightPos, farPlane, alphaCutoff, sun);
+}
+
+void Scene3DInternal::BindCascades(unsigned int program)
+{
+	CascadesBlockData d = cascadeData;
+	d.count = cascadesThisFrame;
+	cascadeBlocks.Bind(&d);
+	if (program == 0)
+		return;
+	if (ProgramHasBlock(program, "Cascades"))
+		CheckUniformBlockLayout(program, "Cascades", kCascadesMembers,
+			sizeof(kCascadesMembers) / sizeof(kCascadesMembers[0]), sizeof(CascadesBlockData));
+
+	// The sampler's unit is set even with no cascades: a shadow sampler left on
+	// its default unit 0 would clash with the albedo sampler there.
+	auto it = cascadeSamplerLoc.find(program);
+	if (it == cascadeSamplerLoc.end())
+	{
+		AddProgramDeletedListener([](unsigned int p) { cascadeSamplerLoc.erase(p); });
+		it = cascadeSamplerLoc.emplace(program, Device().UniformLocation(ProgramHandle(program), "shadowCascades")).first;
+	}
+	if (it->second >= 0)
+	{
+		Device().SetUniform(it->second, 11);
+		if (cascadesThisFrame > 0)
+		{
+			Device().BindTexture(11, cascadeTexture, TextureType::Tex2DArray);
+		}
+		else
+		{
+			// Not sampled (cascadeCount = 0), but a shadow sampler with no depth
+			// texture behind it is undefined behaviour all the same.
+			if (!cascadePlaceholder)
+			{
+				TextureDesc desc;
+				desc.type = TextureType::Tex2DArray;
+				desc.format = TextureFormat::Depth24;
+				desc.width = desc.height = 1;
+				desc.layers = 1;
+				desc.filter = TextureFilter::Linear;
+				desc.wrap = TextureWrap::ClampToEdge;
+				desc.depthCompare = true;
+				cascadePlaceholder = Device().CreateTexture(desc);
+			}
+			Device().BindTexture(11, cascadePlaceholder, TextureType::Tex2DArray);
+		}
+	}
+}
+
+void Scene3DInternal::SetSceneShadowDistance(float distance)
+{
+	sceneShadowDistance = (distance < 0.0f) ? -1.0f : std::max(distance, 100.0f);
+}
+
+float Scene3DInternal::SceneShadowDistance()
+{
+	return sceneShadowDistance;
+}
+
+void Scene3D::RenderShadowCascades(Game& game, const Renderer& renderer, const glm::vec3& L, double casterSig)
+{
+	const CascadeSettings& cfg = Cascades();
+	const Camera& cam = renderer.camera;
+	const float nearD = std::max(cam.nearPlane, 1.0f);
+	const float reach = (sceneShadowDistance > 0.0f) ? sceneShadowDistance : cfg.distance;
+	const float farD = std::min(reach, cam.farPlane);
+	const int count = cfg.count;
+	if (count <= 0 || farD <= nearD * 2.0f || cam.farPlane <= cam.nearPlane)
+		return;
+	EnsureCascadeTargets();
+
+	// The view frustum's corner rays, from the inverse view-projection (no
+	// assumptions about the camera's axis conventions). View depth is linear
+	// along each ray, so a slice's corners interpolate between near and far.
+	const glm::mat4 invViewProj = glm::inverse(cam.projection * cam.CalculateViewMatrix());
+	const glm::vec2 ndc[4] = { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } };
+	glm::vec3 nearCorner[4], farCorner[4];
+	for (int k = 0; k < 4; k++)
+	{
+		const glm::vec4 a = invViewProj * glm::vec4(ndc[k], -1.0f, 1.0f);
+		const glm::vec4 b = invViewProj * glm::vec4(ndc[k], 1.0f, 1.0f);
+		nearCorner[k] = glm::vec3(a) / a.w;
+		farCorner[k] = glm::vec3(b) / b.w;
+	}
+	auto cornerAt = [&](int k, float depth)
+	{
+		const float t = (depth - cam.nearPlane) / (cam.farPlane - cam.nearPlane);
+		return nearCorner[k] + (farCorner[k] - nearCorner[k]) * t;
+	};
+
+	// Split distances: a 3:1 blend of logarithmic (even texel density) and
+	// linear (no tiny first slice), the usual "practical" scheme.
+	float split[kMaxCascades + 1];
+	split[0] = nearD;
+	for (int i = 1; i <= count; i++)
+	{
+		const float s = (float)i / (float)count;
+		const float logSplit = nearD * std::pow(farD / nearD, s);
+		const float linSplit = nearD + (farD - nearD) * s;
+		split[i] = 0.75f * logSplit + 0.25f * linSplit;
+	}
+
+	// The light's orientation (eye at the origin, looking along L).
+	const glm::vec3 up = (std::fabs(L.y) > 0.97f) ? glm::vec3(0, 0, 1) : glm::vec3(0, -1, 0);
+	const glm::mat4 lightRotation = glm::lookAt(glm::vec3(0.0f), L, up);
+
+	RenderDevice& device = Device();
+	bool bound = false;
+	unsigned int id = shadowDepthShader->GetID();
+	for (int i = 0; i < count; i++)
+	{
+		// Bounding sphere of the slice.
+		glm::vec3 pts[8];
+		glm::vec3 center(0.0f);
+		for (int k = 0; k < 4; k++)
+		{
+			pts[k] = cornerAt(k, split[i]);
+			pts[k + 4] = cornerAt(k, split[i + 1]);
+		}
+		for (const glm::vec3& p : pts)
+			center += p;
+		center /= 8.0f;
+		float radius = 0.0f;
+		for (const glm::vec3& p : pts)
+			radius = std::max(radius, glm::length(p - center));
+		radius = std::ceil(radius);   // stable size (no float jitter)
+
+		// Light-space box around it, its centre snapped to whole texels.
+		const float texel = 2.0f * radius / (float)kCascadeSize;
+		glm::vec3 c = glm::vec3(lightRotation * glm::vec4(center, 1.0f));
+		c.x = std::floor(c.x / texel) * texel;
+		c.y = std::floor(c.y / texel) * texel;
+		const float back = std::max(2.0f * radius, 3000.0f);   // casters toward the sun, outside the slice
+		const glm::mat4 proj = glm::ortho(c.x - radius, c.x + radius, c.y - radius, c.y + radius,
+			-c.z - radius - back, -c.z + radius);
+		const glm::mat4 viewProj = proj * lightRotation;
+		const float depthRange = 2.0f * radius + back;
+
+		cascadeData.viewProj[i] = viewProj;
+		// Selection sphere a couple of texels inside the map's edge.
+		const float selectRadius = radius - 2.0f * texel;
+		cascadeData.sphere[i] = glm::vec4(center, selectRadius * selectRadius);
+		cascadeData.texelWorld[i] = texel;
+		cascadeData.depthBias[i] = 0.5f * texel / depthRange;
+
+		if (cascadeValid[i] && cascadeRendered[i] == viewProj && cascadeRenderedSig[i] == casterSig
+			&& !ShadowsEveryFrame())
+			continue;   // nothing moved in this cascade: keep its map
+		cascadeValid[i] = true;
+		cascadeRendered[i] = viewProj;
+		cascadeRenderedSig[i] = casterSig;
+
+		if (!bound)
+		{
+			device.SetViewport(0, 0, kCascadeSize, kCascadeSize);
+			ApplyRenderState(ShadowDepthState());
+			shadowDepthShader->UseShader();
+			Device().SetUniform(Device().UniformLocation(ProgramHandle(id), "theTexture"), 0);
+			bound = true;
+		}
+		device.AttachTexture(cascadeFbo, Attachment::Depth, cascadeTexture, TextureType::Tex2DArray, i);
+		device.BindFramebuffer(cascadeFbo);
+		device.Clear(false, true);
+		ApplyShadowPass(id, viewProj, glm::vec3(0.0f), 1.0f, 0.5f, true);
+		DrawShadowCasters(renderer, id, center, radius, L);
+		if (Scene3DInternal::GpuDrivenFrame())
+		{
+			// GPU-driven casters (Scene3DGpuDriven.cpp), culled to this cascade.
+			const unsigned int gpu = Scene3DInternal::GpuShadowProgram(false);
+			device.UseProgram(ProgramHandle(gpu));
+			ApplyShadowPass(gpu, viewProj, glm::vec3(0.0f), 1.0f, 0.5f, true);
+			DrawGpuDepthView(viewProj, gpu);
+			shadowDepthShader->UseShader();
+		}
+	}
+
+	cascadeData.count = count;
+	cascadeData.softness = cfg.softness;
+	cascadesThisFrame = count;
+	if (bound)
+	{
+		device.BindFramebuffer(FramebufferHandle());
+		device.SetViewport(0, 0, game.screenWidth, game.screenHeight);
+	}
+}
+
+// Sun-shadow casters for one cascade: models with real height (not flat
+// ground, not water) and visible characters, skipping anything that can't
+// shadow the cascade's sphere - off to the side of it as seen from the sun, or
+// entirely beyond it along the light.
+void Scene3D::DrawShadowCasters(const Renderer& renderer, unsigned int program, const glm::vec3& center,
+	float radius, const glm::vec3& L)
+{
+	auto canShadow = [&](const glm::vec3& c, float r)
+	{
+		const glm::vec3 v = c - center;
+		const float along = glm::dot(v, L);
+		if (along > radius + r)
+			return false;   // past the sphere: it would only shadow things farther on
+		const glm::vec3 across = v - along * L;
+		return glm::dot(across, across) <= (radius + r) * (radius + r);
+	};
+
+	// (Models the GPU-driven path draws are drawn after this, in RenderShadowCascades.)
+	for (Scene3DModel* m : Scene3DInternal::CpuCasterModels(models))
+	{
+		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
+			continue;
+		if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
+			continue;
+		const glm::vec3 c = (m->aabbMin + m->aabbMax) * 0.5f;
+		if (!canShadow(c, glm::length(m->aabbMax - m->aabbMin) * 0.5f))
+			continue;
+		glm::mat4 model(1.0f);
+		model = glm::translate(model, m->position);
+		model = glm::rotate(model, glm::radians(m->yawDeg), glm::vec3(0, -1, 0));
+		model = glm::rotate(model, glm::radians(m->pitchDeg), glm::vec3(1, 0, 0));
+		model = glm::rotate(model, glm::radians(m->rollDeg), glm::vec3(0, 0, 1));
+		model = glm::scale(model, m->EffectiveScale());
+		Device().SetUniform(ShaderProgram::DrawUniformLocation(program, "model"), model);
+		Scene3DInternal::DrawMeshesForDepth(m->model3D.meshList, m->texture);
+	}
+
+	// Characters: the quad oriented exactly like the visible billboard (yaw-only,
+	// facing the camera), as in the single-map pass.
+	const glm::vec3 worldUp(0.0f, -1.0f, 0.0f);
+	for (Character3D* ch : characters)
+	{
+		if (!CharVisible(ch))
+			continue;
+		if (ch == nullptr || ch->quad == nullptr || ch->bodyTex == nullptr)
+			continue;
+		if (!canShadow(ch->position + worldUp * (ch->worldHeight * 0.5f), ch->worldHeight * 0.6f))
+			continue;
+		glm::vec3 toCam = renderer.camera.position - ch->position;
+		toCam.y = 0.0f;
+		if (glm::length(toCam) < 1e-4f) toCam = glm::vec3(0, 0, 1);
+		toCam = glm::normalize(toCam);
+		const glm::vec3 right = glm::normalize(glm::cross(toCam, worldUp));
+		const float aspect = (ch->bodyTex->GetHeight() > 0)
+			? (float)ch->bodyTex->GetWidth() / (float)ch->bodyTex->GetHeight() : 0.5f;
+		const float width = ch->worldHeight * aspect;
+		glm::mat4 model(1.0f);
+		model[0] = glm::vec4(right * width, 0.0f);
+		model[1] = glm::vec4(worldUp * ch->worldHeight, 0.0f);
+		model[2] = glm::vec4(toCam, 0.0f);
+		model[3] = glm::vec4(ch->position, 1.0f);
+		Device().SetUniform(ShaderProgram::DrawUniformLocation(program, "model"), model);
+		ch->bodyTex->UseTexture();
+		ch->quad->RenderMesh(0);
+		if (ch->headTex != nullptr)
+		{
+			ch->headTex->UseTexture();
+			ch->quad->RenderMesh(0);
+		}
+	}
 }
 
 void Scene3D::EnsureShadowMap()
@@ -126,6 +509,7 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 {
 #ifdef USE_ASSIMP
 	shadowActive = false;
+	cascadesThisFrame = 0;
 	if (!active || !shadowsEnabled || renderer.camera.useOrthoCamera)
 		return;
 	if (dirLight.diffuse <= 0.02f)   // no sun (night / point-lit room) -> no shadows
@@ -135,7 +519,6 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	if (glm::length(L) < 1e-4f) return;
 	L = glm::normalize(L);   // direction the sunlight travels (into the scene)
 
-	EnsureShadowMap();
 	if (shadowDepthShader == nullptr)
 		return;
 
@@ -166,6 +549,15 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 		sig += renderer.camera.position.x * 0.71 + renderer.camera.position.y * 0.93
 		     + renderer.camera.position.z * 1.29;
 
+	// Cascaded maps when the scene's model shader reads them (the engine's
+	// scene3d.frag); an older game copy keeps the single map below.
+	if (CascadesWanted() && shader != nullptr && ProgramHasBlock(shader->GetID(), "Cascades"))
+	{
+		RenderShadowCascades(game, renderer, L, sig);
+		return;
+	}
+
+	EnsureShadowMap();
 	if (shadowEverRendered && sig == shadowSig)
 	{
 		shadowActive = true;   // reuse the cached shadow map; no depth work this frame
@@ -215,9 +607,7 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 		model = glm::rotate(model, glm::radians(m->rollDeg), glm::vec3(0, 0, 1));
 		model = glm::scale(model, m->EffectiveScale());
 		Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "model")), model);
-		m->texture->UseTexture();
-		for (Mesh* mesh : m->model3D.meshList)
-			mesh->RenderMesh(0);
+		Scene3DInternal::DrawMeshesForDepth(m->model3D.meshList, m->texture);
 	}
 
 	// Character casters: orient the shadow quad EXACTLY like the visible billboard
@@ -373,7 +763,7 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 		sig += renderer.camera.position.x * 0.71 + renderer.camera.position.y * 0.93
 		     + renderer.camera.position.z * 1.29;
 
-	if (pointShadowEverRendered && sig == pointShadowSig)
+	if (pointShadowEverRendered && sig == pointShadowSig && !ShadowsEveryFrame())
 	{
 		pointShadowActive = true;   // reuse the cached cubes; no depth work this frame
 		return;
@@ -420,7 +810,8 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 			// Models with real height, RANGE-CULLED: skip anything whose bounding
 			// sphere is entirely beyond this light's reach (its shadow can't land
 			// on a lit surface).
-			for (Scene3DModel* m : models)
+			// (Models the GPU-driven path draws are drawn below.)
+			for (Scene3DModel* m : Scene3DInternal::CpuCasterModels(models))
 			{
 				if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
 					continue;
@@ -437,9 +828,7 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 				model = glm::rotate(model, glm::radians(m->rollDeg), glm::vec3(0, 0, 1));
 				model = glm::scale(model, m->EffectiveScale());
 				Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "model")), model);
-				m->texture->UseTexture();
-				for (Mesh* mesh : m->model3D.meshList)
-					mesh->RenderMesh(0);
+				Scene3DInternal::DrawMeshesForDepth(m->model3D.meshList, m->texture);
 			}
 
 			// Characters: orient the shadow quad like the visible billboard (yaw-only,
@@ -473,6 +862,16 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 					ch->headTex->UseTexture();
 					ch->quad->RenderMesh(0);
 				}
+			}
+
+			if (Scene3DInternal::GpuDrivenFrame())
+			{
+				// GPU-driven casters (Scene3DGpuDriven.cpp), culled to this face.
+				const unsigned int gpu = Scene3DInternal::GpuShadowProgram(true);
+				device.UseProgram(ProgramHandle(gpu));
+				ApplyShadowPass(gpu, vp, P, farP, 0.5f, false);
+				DrawGpuDepthView(vp, gpu);
+				pointShadowShader->UseShader();
 			}
 		}
 	}

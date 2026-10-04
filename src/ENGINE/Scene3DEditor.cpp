@@ -17,6 +17,8 @@
 #include <algorithm>
 #include <filesystem>
 #include "SceneMaterial.h"
+#include "Scene3DInternal.h"
+#include "render/ColorPipeline.h"
 
 namespace
 {
@@ -618,6 +620,35 @@ void Scene3DEditor::Update(Game& game)
 	if (cloneDown && !cloneWasDown && HasSelection() && !namingScene)
 		CloneSelected(game);
 	cloneWasDown = cloneDown;
+
+	// [ / ] = this scene's exposure down / up 10% (linear workflow; F5 saves it
+	// as the scene's `exposure` token, so it also joins undo and the dirty flag).
+	static bool exposureDownWas = false;
+	static bool exposureUpWas = false;
+	const bool exposureDown = keys[SDL_SCANCODE_LEFTBRACKET] != 0;
+	const bool exposureUp = keys[SDL_SCANCODE_RIGHTBRACKET] != 0;
+	if (((exposureDown && !exposureDownWas) || (exposureUp && !exposureUpWas)) && !namingScene)
+	{
+		if (!LinearWorkflow())
+		{
+			statusMsg = "Exposure needs linearLighting 1 in data/config/renderer.dat";
+		}
+		else
+		{
+			float e = (scene.GetExposure() > 0.0f) ? scene.GetExposure() : EffectiveExposure();
+			e *= exposureUp ? 1.1f : (1.0f / 1.1f);
+			e = std::min(std::max(e, 0.05f), 20.0f);
+			scene.SetExposure(e);
+			std::ostringstream msg;
+			msg.setf(std::ios::fixed);
+			msg.precision(2);
+			msg << "Exposure " << e << "  ([ ] adjust, F5 saves it to the scene)";
+			statusMsg = msg.str();
+		}
+		statusFrames = 180;
+	}
+	exposureDownWas = exposureDown;
+	exposureUpWas = exposureUp;
 }
 
 void Scene3DEditor::PickAt(Game& game, float sx, float sy)
@@ -3314,7 +3345,7 @@ void Scene3DEditor::TileRetexture(Game& game)
 	{
 		m->texPath = SingleTileTexture(m->texPath);
 	}
-	m->texture = game.spriteManager.GetImage(m->texPath, Texture::Filter::Smooth);
+	m->texture = Scene3DInternal::SceneColorTexture(game, m->texPath);
 	scene.RebuildSolids();
 	CommitEdit();
 	statusMsg = "Tile -> " + next;

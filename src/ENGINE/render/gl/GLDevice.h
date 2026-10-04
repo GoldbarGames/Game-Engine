@@ -28,15 +28,21 @@ public:
 	void BindVertexArray(VertexArrayHandle vao) override;
 
 	TextureHandle CreateTexture(const TextureDesc& desc, const void* rgbaPixels) override;
+	TextureHandle CreateTextureLevels(const TextureDesc& desc, const TextureLevel* levels, int levelCount) override;
+	bool SupportsTextureFormat(TextureFormat format) const override;
 	void DestroyTexture(TextureHandle& texture) override;
+	void UpdateTexture(TextureHandle texture, TextureFormat format, int x, int y, int width, int height,
+		const void* data) override;
+	void GenerateMipmaps(TextureHandle texture) override;
 	void BindTexture(unsigned int unit, TextureHandle texture, TextureType type) override;
 
 	FramebufferHandle CreateFramebuffer() override;
 	void DestroyFramebuffer(FramebufferHandle& framebuffer) override;
 	void AttachTexture(FramebufferHandle framebuffer, Attachment attachment, TextureHandle texture,
-		TextureType type, int layer) override;
+		TextureType type, int layer, int mipLevel) override;
 	void SetDrawBuffers(FramebufferHandle framebuffer, int colorCount) override;
 	void SetBoundDrawBuffers(int colorCount) override;
+	void SetBoundDrawBufferMask(unsigned int attachmentMask) override;
 	bool IsFramebufferComplete(FramebufferHandle framebuffer, std::string* error) override;
 
 	void BindFramebuffer(FramebufferHandle framebuffer) override;
@@ -44,6 +50,16 @@ public:
 	void Clear(bool color, bool depth, const glm::vec4& clearColor) override;
 	void Draw(VertexArrayHandle vao, Primitive primitive, int first, int count, int instances) override;
 	void DrawIndexed(VertexArrayHandle vao, Primitive primitive, int indexCount, int instances) override;
+
+	bool SupportsGpuDriven() const override;
+	ProgramHandle CreateComputeProgram(const char* source, std::string& log) override;
+	void BindStorageBuffer(unsigned int binding, BufferHandle buffer, size_t offset, size_t bytes) override;
+	void Dispatch(unsigned int groupsX, unsigned int groupsY, unsigned int groupsZ) override;
+	void GpuBarrier(unsigned int barrierBits) override;
+	void SetVertexAttributeInt(VertexArrayHandle vao, unsigned int location, BufferHandle buffer,
+		int components, size_t stride, size_t offset, unsigned int divisor) override;
+	void MultiDrawIndexedIndirect(VertexArrayHandle vao, Primitive primitive, BufferHandle commands,
+		size_t offset, int drawCount, size_t stride) override;
 
 	ProgramHandle CreateProgram(const char* vertexSource, const char* fragmentSource, std::string& log) override;
 	void DestroyProgram(ProgramHandle& program) override;
@@ -71,6 +87,11 @@ public:
 	void WaitFence(FenceHandle& fence) override;
 	void DeleteFence(FenceHandle& fence) override;
 	void Finish() override;
+	bool SupportsTimestamps() const override;
+	QueryHandle CreateQuery() override;
+	void DestroyQuery(QueryHandle& query) override;
+	void WriteTimestamp(QueryHandle query) override;
+	bool ReadTimestamp(QueryHandle query, uint64_t& nanoseconds) override;
 
 	void ReadPixels(int x, int y, int width, int height, ReadbackFormat format, void* out) override;
 
@@ -79,6 +100,7 @@ public:
 
 	bool SupportsCubeMapArrays() const override;
 	bool SupportsPersistentMapping() const override;
+	bool SupportsFloatRenderTargets() const override;
 
 private:
 	RenderState state;

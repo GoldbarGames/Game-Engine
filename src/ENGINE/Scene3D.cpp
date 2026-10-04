@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <map>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -30,8 +31,123 @@
 #include "TransientBuffer.h"
 
 #include "Scene3DInternal.h"
+#include "ModelMaterials.h"
+#include "render/ColorPipeline.h"
+#include "render/Environment.h"
+#include "render/AmbientOcclusion.h"
+#include "render/TemporalAA.h"
+#include "render/ColorGrading.h"
+#include "render/DepthOfField.h"
+#include "render/VolumetricFog.h"
+#include "render/Reflections.h"
 
 using Scene3DInternal::ProgramHasBlock;
+using Scene3DInternal::SceneColorTexture;
+
+Texture* Scene3DInternal::SceneColorTexture(const Game& game, const std::string& path)
+{
+	// "-": no texture of its own (a glTF model brings its materials' maps).
+	if (path == "-")
+		return ModelWhiteTexture();
+	return game.spriteManager.GetImage(path, Texture::Filter::Smooth, LinearWorkflow());
+}
+
+void Scene3DInternal::DrawMeshesForDepth(const std::vector<Mesh*>& meshes, Texture* modelTexture)
+{
+	// A mesh with its own (glTF) material cuts out by its own alpha mode.
+	const bool own = HasModelMaterials(meshes);
+	if (!own && modelTexture != nullptr)
+		modelTexture->UseTexture();
+	for (Mesh* mesh : meshes)
+	{
+		if (own)
+		{
+			const ModelMaterial* material = MeshMaterial(mesh);
+			Texture* alpha = (material != nullptr) ? ModelShadowAlpha(*material) : modelTexture;
+			if (alpha != nullptr)
+				alpha->UseTexture();
+		}
+		mesh->RenderMesh(0);
+	}
+}
+
+// ------------------------------------------------------- motion vectors
+
+namespace
+{
+	// Each drawn object's position in the last two frames it was drawn in.
+	struct MotionTrack
+	{
+		glm::vec3 prevPos = glm::vec3(0.0f);
+		glm::vec3 curPos = glm::vec3(0.0f);
+		unsigned int prevFrame = 0;
+		unsigned int curFrame = 0;
+	};
+	std::unordered_map<const void*, MotionTrack> motionTracks;
+
+	// Set while RenderTransparentModels draws: a model whose meshes carry
+	// their own (glTF) materials then draws only its blended meshes, and the
+	// opaque pass only the others.
+	bool drawingTransparent = false;
+
+	// Draw `meshes` with `program` bound and the model's own state applied: a
+	// mesh with its own material applies that first, and draws only in its
+	// pass (blended meshes in the transparent pass, the rest in the opaque one).
+	// With `instances`, each mesh draws once per matrix (an instance group).
+	void DrawModelMeshes(unsigned int program, const std::vector<Mesh*>& meshes, bool transparentPass,
+		const std::vector<glm::mat4>* instances = nullptr)
+	{
+		const bool own = HasModelMaterials(meshes);
+		for (Mesh* mesh : meshes)
+		{
+			if (own)
+			{
+				const ModelMaterial* material = MeshMaterial(mesh);
+				if (material == nullptr || (material->alphaMode == AlphaMode::Blend) != transparentPass)
+					continue;
+				Scene3DInternal::ApplyModelMaterial(program, *material);
+			}
+			if (instances != nullptr)
+				mesh->SetInstancesTransient(instances->data(), (unsigned int)instances->size());
+			mesh->RenderMesh(0);
+			if (instances != nullptr)
+				mesh->ClearInstances();   // restore pristine VAO for the shadow/other passes
+		}
+	}
+}
+
+unsigned int Scene3DInternal::WorldDrawBuffers(unsigned int program, bool characterMask)
+{
+	unsigned int buffers = 1u;
+	if (characterMask)
+		buffers |= 2u;
+	if (MotionWritesActive() && ProgramHasBlock(program, "Motion"))
+		buffers |= 4u;
+	return buffers;
+}
+
+glm::vec3 Scene3DInternal::MotionOffset(const void* object, const glm::vec3& position)
+{
+	const unsigned int frame = TemporalFrameIndex();
+	if (frame == 0)
+		return glm::vec3(0.0f);
+	if (motionTracks.size() > 8192)
+		motionTracks.clear();   // deleted objects' entries pile up; a cleared track only costs one frame
+	MotionTrack& t = motionTracks[object];
+	if (t.curFrame != frame)
+	{
+		t.prevPos = t.curPos;
+		t.prevFrame = t.curFrame;
+		t.curPos = position;
+		t.curFrame = frame;
+	}
+	return (t.prevFrame != 0 && t.prevFrame + 1 == frame) ? position - t.prevPos : glm::vec3(0.0f);
+}
+
+void Scene3DInternal::ForgetMotion()
+{
+	motionTracks.clear();
+}
 
 // ---------------------------------------------------------------- models
 
@@ -64,6 +180,12 @@ void Scene3DModel::Render(const Renderer& renderer)
 {
 	if (guardHidden)   // availability guard says this object isn't present now
 		return;
+	// GPU-driven models (Scene3DGpuDriven.cpp): the first to Render draws them all.
+	if (Scene3DInternal::GpuDrawnColour(this))
+	{
+		Scene3D::Get().DrawGpuDrivenModels(renderer);
+		return;
+	}
 	// Instanced grouping (rebuilt each frame): duplicate opaque props draw once,
 	// from their group leader; the other members skip this pass.
 	if (instanceMember)
@@ -75,7 +197,7 @@ void Scene3DModel::Render(const Renderer& renderer)
 	}
 	// Transparent models (material opacity < 1) are drawn later, back-to-front,
 	// in Scene3D::RenderTransparentModels - skip them in the normal opaque pass.
-	if (material != nullptr && material->IsTransparent())
+	if (material != nullptr && material->IsTransparent() && !HasModelMaterials(model3D.meshList))
 		return;
 	DrawGeometry(renderer);
 }
@@ -113,11 +235,18 @@ void Scene3DModel::DrawGeometry(const Renderer& renderer)
 
 	texture->UseTexture();
 
-	for (Mesh* mesh : model3D.meshList)
-	{
-		mesh->RenderMesh(0);
-	}
+	// Motion vectors (temporal anti-aliasing): this draw also writes how far
+	// the model moved since last frame.
+	const unsigned int buffers = Scene3DInternal::WorldDrawBuffers(id, false);
+	const glm::vec3 motion = (buffers & 4u) ? Scene3DInternal::MotionOffset(this, position) : glm::vec3(0.0f);
+	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "motionOffset")), motion);
+	if (buffers != 1u)
+		Device().SetBoundDrawBufferMask(buffers);
 
+	DrawModelMeshes(id, model3D.meshList, drawingTransparent);
+
+	if (buffers != 1u)
+		Device().SetBoundDrawBufferMask(1u);
 	renderer.drawCallsPerFrame++;
 #endif
 }
@@ -133,8 +262,15 @@ void Scene3D::RenderTransparentModels(Game& game, const Renderer& renderer)
 
 	std::vector<Scene3DModel*> transparent;
 	for (Scene3DModel* m : models)
-		if (m->material != nullptr && m->material->IsTransparent() && !m->guardHidden)
+	{
+		if (m->guardHidden)
+			continue;
+		// glTF: models with blended meshes (only those meshes draw here).
+		const bool own = HasModelMaterials(m->model3D.meshList);
+		if (own ? HasBlendedModelMaterial(m->model3D.meshList)
+			: (m->material != nullptr && m->material->IsTransparent()))
 			transparent.push_back(m);
+	}
 	if (transparent.empty())
 		return;
 
@@ -151,8 +287,90 @@ void Scene3D::RenderTransparentModels(Game& game, const Renderer& renderer)
 	RenderState glass = CurrentRenderState();
 	glass.depthWrite = false;   // don't write depth; keep depth TEST on
 	ScopedRenderState scope(glass);
+	drawingTransparent = true;
 	for (Scene3DModel* m : transparent)
 		m->DrawGeometry(renderer);
+	drawingTransparent = false;
+}
+
+// ------------------------------------------------- ambient occlusion prepass
+
+bool Scene3D::WantsScreenSpacePrepass(const Renderer& renderer) const
+{
+#ifdef USE_ASSIMP
+	// For ambient occlusion and/or screen-space reflections. An older shader
+	// copy (gamma mode keeps a game's own) reads neither.
+	return active && !renderer.camera.useOrthoCamera && shader != nullptr && PrepassWanted()
+		&& ProgramHasBlock(shader->GetID(), "AmbientOcclusion");
+#else
+	(void)renderer;
+	return false;
+#endif
+}
+
+// The opaque models exactly as the world pass draws them (same skips, same
+// instance groups, same alpha cut-outs), into the occlusion targets.
+void Scene3D::RenderAoPrepass(Game& game, const Renderer& renderer)
+{
+#ifdef USE_ASSIMP
+	unsigned int program = 0, instancedProgram = 0;
+	if (!BeginAoPrepass(game.screenWidth, game.screenHeight, program, instancedProgram))
+		return;
+	RenderDevice& device = Device();
+	renderer.BindWorldCameraBlock();
+
+	device.UseProgram(ProgramHandle(program));
+	const int modelLoc = ShaderProgram::DrawUniformLocation(program, "model");
+	device.SetUniform(device.UniformLocation(ProgramHandle(program), "theTexture"), 0);
+	// (Models the GPU-driven path draws are drawn below, GPU-culled.)
+	for (Scene3DModel* m : Scene3DInternal::CpuColourModels(models))
+	{
+		if (m == nullptr || !m->loaded || m->shader == nullptr || m->texture == nullptr || m->guardHidden
+			|| m->instanceMember || m->instanceGroupIndex >= 0 || m->IsWater() || !m->active)
+			continue;
+		const bool own = HasModelMaterials(m->model3D.meshList);
+		if (m->material != nullptr && m->material->IsTransparent() && !own)
+			continue;
+		device.SetUniform(modelLoc, m->ModelMatrix());
+		ApplyMaterial(program, m->material ? *m->material : MaterialLibrary::Get().Default(), nullptr);
+		m->texture->UseTexture();
+		DrawModelMeshes(program, m->model3D.meshList, false);
+	}
+
+	// Instance groups (built for this frame by UpdateCameraUBO): one draw each.
+	bool instancedBound = false;
+	for (const std::vector<Scene3DModel*>& group : instanceGroups)
+	{
+		if (group.empty())
+			continue;
+		Scene3DModel* leader = group[0];
+		if (!leader->loaded || leader->texture == nullptr || leader->model3D.meshList.empty() || !leader->active
+			|| instancedShader == nullptr)
+			continue;
+		if (!instancedBound)
+		{
+			device.UseProgram(ProgramHandle(instancedProgram));
+			device.SetUniform(device.UniformLocation(ProgramHandle(instancedProgram), "theTexture"), 0);
+			instancedBound = true;
+		}
+		std::vector<glm::mat4> mats;
+		mats.reserve(group.size());
+		for (Scene3DModel* m : group)
+			mats.push_back(m->ModelMatrix());
+		ApplyMaterial(instancedProgram, leader->material ? *leader->material : MaterialLibrary::Get().Default(), nullptr);
+		leader->texture->UseTexture();
+		DrawModelMeshes(instancedProgram, leader->model3D.meshList, false, &mats);
+	}
+
+	// GPU-driven models (Scene3DGpuDriven.cpp).
+	if (Scene3DInternal::GpuDrivenFrame())
+		DrawGpuColourView(renderer, Scene3DInternal::GpuPrepassProgram(), false);
+
+	EndAoPrepass(game.screenWidth, game.screenHeight);
+#else
+	(void)game;
+	(void)renderer;
+#endif
 }
 
 // ----------------------------------------------------- seasonal foliage
@@ -184,7 +402,7 @@ void Scene3D::SetSeason(Game& game, Season s)
 			if (f.good())
 				path = variant;
 		}
-		Texture* t = game.spriteManager.GetImage(path, Texture::Filter::Smooth);
+		Texture* t = SceneColorTexture(game, path);
 		if (t != nullptr)
 			m->texture = t;
 
@@ -246,6 +464,8 @@ ShaderProgram* Scene3D::EdgeShader()
 
 void Scene3D::UpdateCameraUBO(const Renderer& renderer)
 {
+	// This frame's GPU-driven model list (or none: it decides, ortho frames too).
+	BuildGpuDrawList(renderer);
 	if (renderer.camera.useOrthoCamera)
 		return;                     // 2D frames don't use the 3D camera block
 	// The Camera block itself is the renderer's now (Renderer::BindCameraBlock);
@@ -267,8 +487,8 @@ void Scene3D::RebuildInstanceGroups()
 		m->instanceGroupIndex = -1;
 		m->instanceMember = false;
 	}
-	if (!instancingEnabled)
-		return;
+	if (!instancingEnabled || Scene3DInternal::GpuDrivenFrame())
+		return;   // (the GPU-driven path batches every model itself)
 
 	// Bucket opaque, non-water, loaded props that share geometry + texture +
 	// material. Only groups of 2+ are worth an instanced draw.
@@ -326,15 +546,18 @@ void Scene3D::DrawInstancedGroup(const Renderer& renderer, int groupIndex)
 	ApplyLighting(id, renderer);
 	leader->texture->UseTexture();
 
+	// Motion vectors: the camera's motion only (grouped props stand still;
+	// scene3d_instanced.vert passes no per-instance offset).
+	const unsigned int buffers = Scene3DInternal::WorldDrawBuffers(id, false);
+	if (buffers != 1u)
+		Device().SetBoundDrawBufferMask(buffers);
+
 	// Upload the instance matrices to the leader's mesh(es), draw all instances in
 	// one call, then reset the instance count so later passes (shadow/outline that
 	// call RenderMesh(0) on this same mesh) still draw non-instanced.
-	for (Mesh* mesh : leader->model3D.meshList)
-	{
-		mesh->SetInstancesTransient(mats.data(), (unsigned int)mats.size());
-		mesh->RenderMesh(0);
-		mesh->ClearInstances();   // restore pristine VAO for the shadow/other passes
-	}
+	DrawModelMeshes(id, leader->model3D.meshList, false, &mats);
+	if (buffers != 1u)
+		Device().SetBoundDrawBufferMask(1u);
 	renderer.drawCallsPerFrame++;
 #endif
 }
@@ -404,6 +627,10 @@ void Character3D::DrawQuad(const Renderer& renderer, Texture* tex, float forward
 	shader->UseShader();
 	unsigned int id = shader->GetID();
 	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "model")), m);
+	// How far the character moved since last frame, for motion vectors (0
+	// unless Render enabled them; the body and head share the offset).
+	const glm::vec3 motion = MotionWritesActive() ? Scene3DInternal::MotionOffset(this, position) : glm::vec3(0.0f);
+	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "motionOffset")), motion);
 	renderer.BindWorldCameraBlock();   // view/projection: Camera block
 	Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(id), "theTexture")), (int)(0));
 
@@ -465,10 +692,14 @@ void Character3D::Render(const Renderer& renderer)
 	// framebuffer's "is-character" mask (draw buffer 1) so the outline post-process
 	// can skip these pixels. billboard3d.frag writes oMask=1.0. Characters still
 	// write depth normally, so occlusion + depth sorting are unaffected.
+	// Under temporal anti-aliasing, characters also write motion vectors
+	// (draw buffer 2), so a walking character doesn't ghost.
 	Scene3D& scene = Scene3D::Get();
 	bool maskChar = scene.celShading && scene.outlineEnabled && !scene.outlineCharacters;
-	if (maskChar)
-		Device().SetBoundDrawBuffers(2);
+	const unsigned int buffers = (shader != nullptr)
+		? Scene3DInternal::WorldDrawBuffers(shader->GetID(), maskChar) : (maskChar ? 3u : 1u);
+	if (buffers != 1u)
+		Device().SetBoundDrawBufferMask(buffers);
 
 	// Body (or combined sprite) first, then head layered on top. Both are
 	// full-canvas overlays that align by transparency; the head is pulled
@@ -477,8 +708,8 @@ void Character3D::Render(const Renderer& renderer)
 	if (headTex != nullptr)
 		DrawQuad(renderer, headTex, 1.5f);
 
-	if (maskChar)
-		Device().SetBoundDrawBuffers(1);
+	if (buffers != 1u)
+		Device().SetBoundDrawBufferMask(1u);
 }
 
 // --------------------------------------------------------------- manager
@@ -570,7 +801,13 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	}
 
 	// (Re)load the material library so "mat <name>" tokens can resolve.
-	MaterialLibrary::Get().Load(game);
+	// KINJO_MATERIALS=<file> loads that file instead, to try materials out
+	// (e.g. in a scratch test scene) without touching the game's.
+	const char* materialsOverride = std::getenv("KINJO_MATERIALS");
+	if (materialsOverride != nullptr && materialsOverride[0] != '\0')
+		MaterialLibrary::Get().Load(game, materialsOverride);
+	else
+		MaterialLibrary::Get().Load(game);
 
 	// Reset lighting to defaults; the file's light directives override it
 	ambientColor = glm::vec3(0.08f, 0.08f, 0.10f);
@@ -589,6 +826,14 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	hasFountain = false;               // a scene without a "fountain" line has none
 	fountainInit = false;
 	season = Season::Summer;           // a scene without a "season" line = summer
+	SetSceneExposure(0.0f);            // a scene without an "exposure" line = the project default
+	SetSceneBloom(-1.0f);              // likewise "bloom"
+	SetSceneIBL(-1.0f, -1.0f);         // and "ibl"
+	Scene3DInternal::SetSceneShadowDistance(-1.0f);   // and "shadowdistance"
+	SetSceneAO(-1.0f, -1.0f);          // and "ao"
+	SetSceneColorGrade("", 1.0f, 0.0f);   // and "grade"
+	::SetDepthOfField(500.0f, 0.0f, 0.0f);   // and "dof"
+	SetSceneFog(false, FogSettings(), 0.0f);   // and "fog"
 
 	// Shared unit billboard quad: x[-0.5,0.5], y[0,1] (base at origin), z=0,
 	// with dummy normals so Mesh::CreateMesh's stride-8 layout is satisfied
@@ -630,7 +875,7 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 			m->yawDeg = yaw;
 			m->modelScale = scale;
 			m->shader = shader;
-			m->texture = game.spriteManager.GetImage(texPath, Texture::Filter::Smooth);
+			m->texture = SceneColorTexture(game, texPath);
 			m->objPath = objPath;
 			m->texPath = texPath;
 
@@ -809,7 +1054,7 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 
 				Character3D* ch = new Character3D(pos);
 				ch->worldHeight = height;
-				ch->bodyTex = game.spriteManager.GetImage(spritePath, Texture::Filter::Smooth);
+				ch->bodyTex = SceneColorTexture(game, spritePath);
 				ch->headTex = nullptr;  // combined sprites need no layering
 				bodyPath = spritePath;
 				ch->mode = "combined";
@@ -872,6 +1117,92 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 			season = (kind == "spring") ? Season::Spring
 				: (kind == "autumn") ? Season::Autumn
 				: (kind == "winter") ? Season::Winter : Season::Summer;
+		}
+		else if (tag == "exposure")
+		{
+			// exposure <multiplier> - this scene's exposure in a linear-workflow
+			// project (render/ColorPipeline.h); ignored otherwise.
+			float e = 0.0f;
+			if (ss >> e)
+				SetSceneExposure(e);
+		}
+		else if (tag == "bloom")
+		{
+			// bloom <strength 0..1> - this scene's bloom in a linear-workflow
+			// project (0 = none); ignored otherwise.
+			float b = -1.0f;
+			if (ss >> b)
+				SetSceneBloom(b);
+		}
+		else if (tag == "ibl")
+		{
+			// ibl <diffuse> [specular] - image-based lighting from this scene's
+			// sky (linear workflow; 0 = off). One value sets both.
+			float d = -1.0f, s = -1.0f;
+			if (ss >> d)
+			{
+				if (!(ss >> s))
+					s = d;
+				SetSceneIBL(d, s);
+			}
+		}
+		else if (tag == "shadowdistance")
+		{
+			// shadowdistance <world units> - how far this scene's cascaded sun
+			// shadows reach (renderer.dat shadowDistance otherwise).
+			float d = -1.0f;
+			if (ss >> d)
+				Scene3DInternal::SetSceneShadowDistance(d);
+		}
+		else if (tag == "fog")
+		{
+			// fog <density> [height falloff] [r g b] [anisotropy] [noise] - this
+			// scene's volumetric fog in a linear-workflow project
+			// (render/VolumetricFog.h; density 0 = none, even in rain).
+			FogSettings fog;
+			if (ss >> fog.density)
+			{
+				float v = 0.0f;
+				if (ss >> v) fog.heightFalloff = v;
+				glm::vec3 c;
+				if (ss >> c.r >> c.g >> c.b) fog.color = c;
+				if (ss >> v) fog.anisotropy = v;
+				if (ss >> v) fog.noise = v;
+				SetSceneFog(true, fog, 0.0f);
+			}
+		}
+		else if (tag == "dof")
+		{
+			// dof <focus distance> <aperture> - this scene's depth of field in a
+			// linear-workflow project (aperture = blur in 720p pixels at
+			// infinity; render/DepthOfField.h).
+			float focus = 0.0f, aperture = 0.0f;
+			if (ss >> focus >> aperture)
+				::SetDepthOfField(focus, aperture, 0.0f);
+		}
+		else if (tag == "grade")
+		{
+			// grade <lut.png|none> [strength] - this scene's colour grade in a
+			// linear-workflow project (render/ColorGrading.h).
+			std::string lutPath;
+			float strength = 1.0f;
+			if (ss >> lutPath)
+			{
+				if (!(ss >> strength))
+					strength = 1.0f;
+				SetSceneColorGrade(lutPath, strength, 0.0f);
+			}
+		}
+		else if (tag == "ao")
+		{
+			// ao <strength 0..1> [radius] - this scene's ambient occlusion in a
+			// linear-workflow project (0 = none; radius in world units).
+			float strength = -1.0f, radius = -1.0f;
+			if (ss >> strength)
+			{
+				ss >> radius;
+				SetSceneAO(strength, radius);
+			}
 		}
 	}
 
@@ -942,7 +1273,7 @@ Texture* Scene3D::ResolveTexture(Game& game, const std::string& folder,
 	{
 		probe.close();
 		if (resolvedPath) *resolvedPath = flat;
-		return game.spriteManager.GetImage(flat, Texture::Filter::Smooth);
+		return SceneColorTexture(game, flat);
 	}
 
 	// Animation-frame folder: use the first frame as the static pose
@@ -952,7 +1283,7 @@ Texture* Scene3D::ResolveTexture(Game& game, const std::string& folder,
 	{
 		probe2.close();
 		if (resolvedPath) *resolvedPath = framed;
-		return game.spriteManager.GetImage(framed, Texture::Filter::Smooth);
+		return SceneColorTexture(game, framed);
 	}
 
 	std::cout << "Scene3D: sprite not found: " << flat << " (or " << framed << ")" << std::endl;
@@ -1318,6 +1649,46 @@ void Scene3D::WriteScene(std::ostream& out) const
 	if (season != Season::Summer)
 		out << "season " << (season == Season::Spring ? "spring"
 			: season == Season::Autumn ? "autumn" : "winter") << "\n";
+	// Exposure (linear workflow), if this scene sets its own.
+	if (SceneExposure() > 0.0f)
+		out << "exposure " << SceneExposure() << "\n";
+	if (SceneBloom() >= 0.0f)
+		out << "bloom " << SceneBloom() << "\n";
+	{
+		float iblDiffuse = -1.0f, iblSpecular = -1.0f;
+		GetSceneIBL(iblDiffuse, iblSpecular);
+		if (iblDiffuse >= 0.0f)
+			out << "ibl " << iblDiffuse << " " << (iblSpecular >= 0.0f ? iblSpecular : iblDiffuse) << "\n";
+	}
+	if (Scene3DInternal::SceneShadowDistance() > 0.0f)
+		out << "shadowdistance " << Scene3DInternal::SceneShadowDistance() << "\n";
+	{
+		std::string gradePath;
+		float gradeStrength = 1.0f;
+		GetSceneColorGrade(gradePath, gradeStrength);
+		if (!gradePath.empty())
+			out << "grade " << gradePath << " " << gradeStrength << "\n";
+		FogSettings fog;
+		if (GetSceneFog(fog))
+			out << "fog " << fog.density << " " << fog.heightFalloff << " " << fog.color.r << " " << fog.color.g
+				<< " " << fog.color.b << " " << fog.anisotropy << " " << fog.noise << "\n";
+		float dofFocus = 0.0f, dofAperture = 0.0f;
+		GetSceneDepthOfField(dofFocus, dofAperture);
+		if (dofAperture > 0.0f && DepthOfFieldTarget().empty())
+			out << "dof " << dofFocus << " " << dofAperture << "\n";
+	}
+	{
+		float aoStrength = -1.0f, aoRadius = -1.0f;
+		GetSceneAO(aoStrength, aoRadius);
+		if (aoStrength >= 0.0f || aoRadius > 0.0f)
+		{
+			// A radius alone still needs a strength first: -1 = the project's.
+			out << "ao " << aoStrength;
+			if (aoRadius > 0.0f)
+				out << " " << aoRadius;
+			out << "\n";
+		}
+	}
 	out << "\n";
 
 	// Cameras (preserve load order; the first is the default view)
@@ -1446,7 +1817,9 @@ std::vector<Scene3D::ModelDef> Scene3D::GetModelPalette() const
 		namespace fs = std::filesystem;
 		for (const auto& e : fs::directory_iterator(folder))
 		{
-			if (!e.is_regular_file() || e.path().extension() != ".obj")
+			const std::string ext = e.path().extension().generic_string();
+			const bool gltfFile = (ext == ".gltf" || ext == ".glb");
+			if (!e.is_regular_file() || (ext != ".obj" && !gltfFile))
 				continue;
 			std::string obj = e.path().generic_string();
 			if (has(obj))
@@ -1474,7 +1847,12 @@ std::vector<Scene3D::ModelDef> Scene3D::GetModelPalette() const
 				};
 				std::string stem = e.path().stem().generic_string();
 				auto dt = kDefaults.find(stem);
-				if (dt != kDefaults.end())
+				if (gltfFile)
+				{
+					def.tex = "-";   // its own materials
+					def.solid = false;
+				}
+				else if (dt != kDefaults.end())
 				{
 					def.tex = folder + "/" + dt->second.first + ".png";
 					def.solid = dt->second.second;
@@ -1514,7 +1892,7 @@ Scene3DModel* Scene3D::AddModelInstance(Game& game, const ModelDef& def, const g
 	m->yawDeg = 0.0f;
 	m->modelScale = 1.0f;
 	m->shader = shader;
-	m->texture = game.spriteManager.GetImage(def.tex, Texture::Filter::Smooth);
+	m->texture = SceneColorTexture(game, def.tex);
 	m->objPath = def.obj;
 	m->texPath = def.tex;
 	m->solid = def.solid;
@@ -1864,9 +2242,128 @@ void Scene3D::Unload(Game& game)
 	active = false;
 	gliding = false;
 	currentScene.clear();
+	SetSceneExposure(0.0f);   // back to the project defaults
+	SetSceneBloom(-1.0f);
+	SetSceneIBL(-1.0f, -1.0f);
+	Scene3DInternal::SetSceneShadowDistance(-1.0f);
+	SetSceneAO(-1.0f, -1.0f);
+	SetSceneColorGrade("", 1.0f, 0.0f);
+	::SetDepthOfField(500.0f, 0.0f, 0.0f);
+	SetSceneFog(false, FogSettings(), 0.0f);
+	Scene3DInternal::ForgetMotion();
 
 	RestoreOrtho(game);
 	std::cout << "Scene3D: unloaded, back to 2D" << std::endl;
+}
+
+void Scene3D::SetExposure(float multiplier, float fadeSeconds)
+{
+	SetSceneExposure(multiplier, fadeSeconds);
+}
+
+float Scene3D::GetExposure() const
+{
+	return SceneExposure();
+}
+
+void Scene3D::SetBloom(float strength)
+{
+	SetSceneBloom(strength);
+}
+
+float Scene3D::GetBloom() const
+{
+	return SceneBloom();
+}
+
+void Scene3D::SetIBL(float diffuse, float specular)
+{
+	SetSceneIBL(diffuse, specular);
+}
+
+void Scene3D::SetAmbientOcclusion(float strength, float radius)
+{
+	SetSceneAO(strength, radius);
+}
+
+void Scene3D::SetColorGrade(const std::string& lutPath, float strength, float fadeSeconds)
+{
+	SetSceneColorGrade(lutPath, strength, fadeSeconds);
+}
+
+void Scene3D::SetDepthOfField(float focusDistance, float aperture, float fadeSeconds)
+{
+	::SetDepthOfField(focusDistance, aperture, fadeSeconds);
+}
+
+void Scene3D::SetDepthOfFieldTarget(const std::string& characterName, float aperture, float fadeSeconds)
+{
+	::SetDepthOfFieldTarget(characterName, aperture, fadeSeconds);
+}
+
+void Scene3D::UpdateDepthOfField(const Renderer& renderer)
+{
+	const std::string& name = DepthOfFieldTarget();
+	if (name.empty() || !active)
+		return;
+	Character3D* ch = FindCharacter(name);
+	if (ch == nullptr)
+		return;
+	// Focus on the face: most of the way up the figure (world up is -Y).
+	const glm::vec3 head = ch->position + glm::vec3(0.0f, -1.0f, 0.0f) * (ch->worldHeight * 0.85f);
+	const glm::vec4 v = renderer.camera.CalculateViewMatrix() * glm::vec4(head, 1.0f);
+	SetDepthOfFieldFocus(-v.z);
+}
+
+void Scene3D::SetFog(float density, float fadeSeconds)
+{
+	SetSceneFogDensity(density, fadeSeconds);
+}
+
+bool Scene3D::WantsVolumetricFog(const Renderer& renderer)
+{
+	// Weather brings its own haze when the scene sets no fog of its own.
+	float weatherFog = 0.0f;
+	if (weatherType == WeatherType::Rain)
+		weatherFog = 0.00030f;
+	else if (weatherType == WeatherType::Snow)
+		weatherFog = 0.00035f;
+	else if (weatherType == WeatherType::Storm)
+		weatherFog = 0.00055f;
+	SetWeatherFogDensity(weatherFog * weatherIntensity);
+	return active && !renderer.camera.useOrthoCamera && FogActive();
+}
+
+void Scene3D::RenderVolumetricFog(Game& game, const Renderer& renderer)
+{
+	const unsigned int program = BeginFogMarch(game.screenWidth, game.screenHeight);
+	if (program == 0)
+		return;
+	const Camera& cam = renderer.camera;
+	const TextureHandle depth(game.mainFrameBuffer->depthTexture);
+	Device().UseProgram(ProgramHandle(program));
+	renderer.BindWorldCameraBlock();
+	ApplyLighting(program, renderer);   // sun, lights, shadows, sky: what the fog scatters
+	DrawFogMarch(glm::inverse(cam.projection * cam.CalculateViewMatrix()), depth, game.screenWidth, game.screenHeight,
+		renderer.now * 0.001f);
+	Device().SetViewport(0, 0, game.screenWidth, game.screenHeight);
+}
+
+void Scene3D::NotifyCameraCut()
+{
+	ResetTemporalHistory();
+}
+
+bool Scene3D::GetSkySource(Texture*& sky, Texture*& next, float& blend, glm::vec3& tint) const
+{
+	if (!active || skybox == nullptr || skybox->GetSprite() == nullptr || skybox->GetSprite()->texture == nullptr)
+		return false;
+	const Sprite* s = skybox->GetSprite();
+	sky = s->texture;
+	next = skybox->nextTexture;
+	blend = (next != nullptr) ? std::min(std::max(skybox->blendToNext, 0.0f), 1.0f) : 0.0f;
+	tint = glm::vec3(s->color.r, s->color.g, s->color.b) / 255.0f;
+	return true;
 }
 
 void Scene3D::GlideToPose(const CamPose& pose, float seconds)
@@ -2220,6 +2717,7 @@ bool Scene3D::JumpToCamera(Game& game, const std::string& camName)
 	cam.yaw = it->second.yaw;
 	cam.shouldUpdate = true;
 	cam.Update();
+	ResetTemporalHistory();   // a cut: last frame's image doesn't belong to this view
 
 	std::cout << "Scene3D: camera '" << camName << "' pos ("
 		<< cam.position.x << "," << cam.position.y << "," << cam.position.z

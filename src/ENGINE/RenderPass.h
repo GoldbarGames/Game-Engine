@@ -13,7 +13,9 @@
 //     wrote logs a warning (once), unless the target persists across frames;
 //   - label GPU captures: each pass is a GL debug group (desktop GL 4.3+), so
 //     RenderDoc / Nsight show "World", "Composite", ... instead of raw calls;
-//   - describe the frame: KINJO_DUMP_FRAME=1 prints one frame's pass list.
+//   - describe the frame: KINJO_DUMP_FRAME=1 prints one frame's pass list;
+//   - time it: KINJO_GPU_TIMINGS=1 prints each pass's GPU time (timestamp
+//     queries) and CPU recording time, averaged every 60 frames.
 // A Vulkan backend derives barriers and image-layout transitions from the
 // same declarations.
 //
@@ -33,6 +35,19 @@ enum class RenderTarget : uint8_t
 	CutsceneColor,        // cutscene framebuffer colour
 	PrevMainColor,        // crossfade: previous world image        - persists
 	PrevCutsceneColor,    // crossfade: previous cutscene image     - persists
+	WorldHdr,             // linear workflow: the world's linear HDR colour (Resolve encodes it into MainColor)
+	Bloom,                // linear workflow: the bloom mip chain built from WorldHdr
+	EnvMaps,              // linear workflow: image-based lighting maps of the sky  - persists (rebuilt on change)
+	AoGeometry,           // linear workflow: the occlusion prepass's view depth + normals (lit shaders read the depth too)
+	AoRaw,                // linear workflow: GTAO's noisy occlusion
+	AmbientOcclusion,     // linear workflow: the denoised occlusion lit shaders read
+	TaaHistory,           // linear workflow: the anti-aliased image accumulated over frames - persists
+	TaaOutput,            // linear workflow: this frame's anti-aliased world (Bloom and Resolve read it)
+	MotionVectors,        // linear workflow + TAA: the world's per-object screen motion (world colour attachment 2)
+	LightClusters,        // the point/spot lights sorted into the camera's clusters (lit shaders read them)
+	DepthOfField,         // linear workflow: the world image with depth of field (Bloom and Resolve read it)
+	FogVolume,            // linear workflow: the half-resolution fog march (light scattered in, transmittance)
+	Reflections,          // linear workflow + TAA: screen-space reflections (lit shaders read them)
 	Count
 };
 

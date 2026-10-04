@@ -115,11 +115,19 @@ void Skybox::Render(const Renderer& renderer)
 	if (maxR > 0.0f && r > maxR)
 		r = maxR;
 
+	// The sphere mesh puts the panorama's top row (v = 0) at mesh +Y, which in
+	// this -Y-up world is DOWN, so it is drawn mirrored in Y: the zenith overhead,
+	// the ordinary equirectangular layout (and the one image-based lighting reads,
+	// shaders/panorama.glsl). Until 2026-10-01 it was not mirrored and every sky
+	// drew upside down; TrainRails and CruiseShipCleanup had flipped their
+	// panoramas to compensate, and were flipped back when this was fixed.
+	const glm::vec3 skyScale(r, -r, r);
+
 	// There is no backface culling, so the sphere is visible from inside.
 	// Pass 1: the base panorama (tint in colour.rgb, fully opaque).
 	const Color baseColor = s->color;
 	s->color.a = 255;
-	s->RenderWorld(position, glm::vec3(r), rotation, renderer);
+	s->RenderWorld(position, skyScale, rotation, renderer);
 
 	// Pass 2: cross-fade toward the next panorama. Same geometry, so allow
 	// equal-depth overwrite (LEQUAL) without writing depth, and blend by the
@@ -138,7 +146,7 @@ void Skybox::Render(const Renderer& renderer)
 			fade.depthWrite = false;
 			ScopedRenderState scope(fade);
 
-			s->RenderWorld(position, glm::vec3(r), rotation, renderer);
+			s->RenderWorld(position, skyScale, rotation, renderer);
 		}
 		s->texture = baseTex;
 	}

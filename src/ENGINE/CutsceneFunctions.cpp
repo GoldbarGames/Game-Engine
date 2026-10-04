@@ -2577,6 +2577,61 @@ namespace CutsceneFunctions
 			else
 				game->logger.Log("scene3d light: bad action " + action);
 		}
+		else if (sub == "exposure" && parameters.size() > 2)
+		{
+			// scene3d exposure <multiplier> [seconds] - the scene's exposure in a
+			// linear-workflow project (0 = the project default); fades when given
+			// seconds. Floats, so parsed directly (ParseNumberValue is int-only).
+			auto pf = [](const std::string& s) -> float
+			{
+				try { return std::stof(s); } catch (...) { return 0.0f; }
+			};
+			Scene3D::Get().SetExposure(pf(parameters[2]), (parameters.size() > 3) ? pf(parameters[3]) : 0.0f);
+		}
+		else if (sub == "fog" && parameters.size() > 2)
+		{
+			// scene3d fog <density> [seconds] - the scene's volumetric fog
+			// (linear workflow; 0 = none), fading when given seconds.
+			auto pf = [](const std::string& s, float fallback) -> float
+			{
+				try { return std::stof(s); } catch (...) { return fallback; }
+			};
+			Scene3D::Get().SetFog(pf(parameters[2], 0.0f), (parameters.size() > 3) ? pf(parameters[3], 0.0f) : 0.0f);
+		}
+		else if (sub == "dof" && parameters.size() > 2)
+		{
+			// scene3d dof <focus> <aperture> [seconds]     - focus distance + blur
+			// scene3d dof char <name> <aperture> [seconds] - focus follows a character
+			// scene3d dof off [seconds]                    - back to sharp
+			// (linear workflow; aperture = blur in 720p pixels far beyond the focus)
+			auto pf = [](const std::string& s, float fallback) -> float
+			{
+				try { return std::stof(s); } catch (...) { return fallback; }
+			};
+			Scene3D& scene = Scene3D::Get();
+			if (parameters[2] == "off")
+				scene.SetDepthOfField(500.0f, 0.0f, (parameters.size() > 3) ? pf(parameters[3], 0.0f) : 0.0f);
+			else if (parameters[2] == "char" && parameters.size() > 4)
+				scene.SetDepthOfFieldTarget(parameters[3], pf(parameters[4], 8.0f),
+					(parameters.size() > 5) ? pf(parameters[5], 0.0f) : 0.0f);
+			else if (parameters.size() > 3)
+				scene.SetDepthOfField(pf(parameters[2], 500.0f), pf(parameters[3], 8.0f),
+					(parameters.size() > 4) ? pf(parameters[4], 0.0f) : 0.0f);
+			else
+				game->logger.Log("scene3d dof: expected <focus> <aperture> [seconds], char <name> <aperture> [seconds], or off");
+		}
+		else if (sub == "grade" && parameters.size() > 2)
+		{
+			// scene3d grade <lut.png|none|default> [strength] [seconds] - the
+			// colour grade (linear workflow); fades when given seconds.
+			auto pf = [](const std::string& s, float fallback) -> float
+			{
+				try { return std::stof(s); } catch (...) { return fallback; }
+			};
+			const float strength = (parameters.size() > 3) ? pf(parameters[3], 1.0f) : 1.0f;
+			const float seconds = (parameters.size() > 4) ? pf(parameters[4], 0.0f) : 0.0f;
+			Scene3D::Get().SetColorGrade(parameters[2] == "default" ? std::string() : parameters[2], strength, seconds);
+		}
 		else if (sub == "characters" && parameters.size() > 2)
 		{
 			// scene3d characters on|off - show/hide the scene's baked 3D cast.

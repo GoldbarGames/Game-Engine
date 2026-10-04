@@ -2,6 +2,7 @@
 
 in vec2 TexCoord;
 in vec3 FragPos;
+in vec3 PrevWorldPos;
 
 layout(location = 0) out vec4 color;
 // "Is-character" mask for the toon outline (written only when the framebuffer's
@@ -9,6 +10,9 @@ layout(location = 0) out vec4 color;
 // carries the sprite's coverage so alpha blending (which is on for billboards)
 // weights the mask by opacity instead of zeroing it out on a lone float output.
 layout(location = 1) out vec4 oMask;
+// Motion vectors for temporal anti-aliasing (motion.glsl), stored only while
+// the engine enables the world target's attachment 2.
+layout(location = 2) out vec4 oMotion;
 
 uniform sampler2D theTexture;
 
@@ -18,6 +22,14 @@ uniform sampler2D theTexture;
 // spotlight is bright and one in shadow goes dark, matching the room.
 // Ambient, sun, lightning, point/spot lights and shadow data: Scene block.
 #include "scene.glsl"
+// Linear-aware: character art is an sRGB texture and the block's light colours
+// arrive linear in a linear-workflow project (render/ColorPipeline.h).
+#include "target.glsl"
+#include "environment.glsl"   // the sky's ambient, when image-based lighting is on
+#include "cascades.glsl"      // cascaded sun shadows (cascadeCount = 0 when unused)
+#include "motion.glsl"
+#include "camera.glsl"
+#include "lights.glsl"        // point and spot lights, clustered (LightRange / GetLight)
 
 float Attenuate(float dist, float range)
 {
@@ -48,56 +60,7 @@ float ShadowFactor(vec3 worldPos)
 }
 
 // --- point-light (cube) shadows ---
-// GL 4.x desktop: one cube-map array (dynamic layer index). 3.3/web: up to 4
-// separate cubes, constant-indexed. See scene3d.frag for the full rationale.
-
-#ifdef KINJO_GL4
-const int MAX_PT_SHADOWS = 8;
-uniform samplerCubeArray pointShadowArray;
-
-float PointShadowForLight(int plIndex, vec3 worldPos)
-{
-	for (int s = 0; s < MAX_PT_SHADOWS; s++)
-	{
-		if (s >= pointShadowCount) break;
-		if (pointShadowLightIdx[s] != plIndex) continue;
-		vec3 f2l = worldPos - pointShadowPositions[s];
-		float cur = length(f2l);
-		float closest = texture(pointShadowArray, vec4(f2l, float(s))).r * pointShadowFars[s];
-		float bias = max(0.03 * cur, 5.0);
-		float lit = (cur - bias > closest) ? 0.0 : 1.0;
-		return 1.0 - shadowStrength * (1.0 - lit);
-	}
-	return 1.0;
-}
-#else
-const int MAX_PT_SHADOWS = 4;
-uniform samplerCube pointShadowMaps[MAX_PT_SHADOWS];
-
-float sampleShadowCube(int s, vec3 dir)
-{
-	if (s == 0) return texture(pointShadowMaps[0], dir).r;
-	if (s == 1) return texture(pointShadowMaps[1], dir).r;
-	if (s == 2) return texture(pointShadowMaps[2], dir).r;
-	return texture(pointShadowMaps[3], dir).r;
-}
-
-float PointShadowForLight(int plIndex, vec3 worldPos)
-{
-	for (int s = 0; s < MAX_PT_SHADOWS; s++)
-	{
-		if (s >= pointShadowCount) break;
-		if (pointShadowLightIdx[s] != plIndex) continue;
-		vec3 f2l = worldPos - pointShadowPositions[s];
-		float cur = length(f2l);
-		float closest = sampleShadowCube(s, f2l) * pointShadowFars[s];
-		float bias = max(0.03 * cur, 5.0);
-		float lit = (cur - bias > closest) ? 0.0 : 1.0;
-		return 1.0 - shadowStrength * (1.0 - lit);
-	}
-	return 1.0;
-}
-#endif
+#include "point_shadows.glsl"   // PointShadowSlot (cube shadows of the lamps)
 
 void main()
 {
@@ -107,33 +70,46 @@ void main()
 
 	// Flat fill (no normal term for pre-shaded billboards). The sun contribution
 	// is darkened where the character is in shadow; ambient still fills it.
-	float shadow = ShadowFactor(FragPos);
-	vec3 light = ambientColor + dirLightColor * dirLightDiffuse * shadow;
+	// Cascaded maps when rendered (offset toward the camera, the way the quad
+	// faces), else the single sun map.
+	vec3 facing = vec3(viewPos.x - FragPos.x, 0.0, viewPos.z - FragPos.z);
+	float shadow = (cascadeCount > 0)
+		? 1.0 - shadowStrength * (1.0 - SunShadow(FragPos, normalize(facing + vec3(0.0, 0.0, 1e-4)), normalize(dirLightDir)))
+		: ShadowFactor(FragPos);
+	vec3 light = ((iblOn != 0) ? EnvDiffuseFlat() : ambientColor) + dirLightColor * dirLightDiffuse * shadow;
 
 	// Storm lightning floods the character with a brief sky-lit burst.
 	light += lightningColor * lightningFlash;
 
-	for (int i = 0; i < pointCount; i++)
+	// Point and spot lights: the ones that reach this pixel's cluster
+	// (lights.glsl), points first, then spots.
+	int lightFirst, lightCount;
+	LightRange(FragPos, lightFirst, lightCount);
+	for (int k = lightFirst; k < lightFirst + lightCount; k++)
 	{
-		float dist = length(pointPos[i] - FragPos);
-		vec3 radiance = pointColor[i] * pointIntensity[i] * Attenuate(dist, pointRange[i]);
-		if (pointShadowCount > 0)
-			radiance *= PointShadowForLight(i, FragPos);
-		light += radiance;
-	}
-
-	for (int i = 0; i < spotCount; i++)
-	{
-		vec3 d = spotPos[i] - FragPos;
-		float dist = length(d);
-		if (dist < 0.0001) continue;
-		vec3 L = d / dist;
-		float att = Attenuate(dist, spotRange[i]);
-		float theta = dot(-L, normalize(spotDir[i]));
-		float cone = smoothstep(spotCosOuter[i], spotCosInner[i], theta);
-		light += spotColor[i] * spotIntensity[i] * att * cone;
+		SceneLight l = GetLight(k);
+		if (l.spot == 0)
+		{
+			float dist = length(l.pos - FragPos);
+			vec3 radiance = l.color * l.intensity * Attenuate(dist, l.range);
+			if (l.shadow >= 0)
+				radiance *= PointShadowSlot(l.shadow, FragPos);
+			light += radiance;
+		}
+		else
+		{
+			vec3 d = l.pos - FragPos;
+			float dist = length(d);
+			if (dist < 0.0001) continue;
+			vec3 L = d / dist;
+			float att = Attenuate(dist, l.range);
+			float theta = dot(-L, normalize(l.dir));
+			float cone = smoothstep(l.cosOuter, l.cosInner, theta);
+			light += l.color * l.intensity * att * cone;
+		}
 	}
 
 	color = vec4(c.rgb * light, c.a);
 	oMask = vec4(1.0, 0.0, 0.0, c.a);   // character; alpha = coverage for blending
+	oMotion = MotionVector(FragPos, PrevWorldPos, step(0.5, c.a));
 }

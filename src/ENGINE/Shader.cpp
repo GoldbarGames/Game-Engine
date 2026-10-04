@@ -3,11 +3,40 @@
 #include "render/RenderDevice.h"
 #include "EnginePaths.h"
 #include "UniformBlocks.h"
+#include "render/ColorPipeline.h"
+#include "render/ProgramEvents.h"
+#include "ShaderSources.h"
+#include <vector>
 #include <glm/gtc/type_ptr.hpp>
 #include <filesystem>
 #include <cstring>
+#include <set>
 
 unsigned int ShaderProgram::lastProgramID = -1;
+
+namespace
+{
+    std::vector<ProgramDeletedFn>& ProgramDeletedListeners()
+    {
+        static std::vector<ProgramDeletedFn>* listeners = new std::vector<ProgramDeletedFn>();   // never freed: outlives every static ShaderProgram
+        return *listeners;
+    }
+}
+
+void AddProgramDeletedListener(ProgramDeletedFn fn)
+{
+    auto& l = ProgramDeletedListeners();
+    for (ProgramDeletedFn f : l)
+        if (f == fn)
+            return;
+    l.push_back(fn);
+}
+
+void NotifyProgramDeleted(unsigned int program)
+{
+    for (ProgramDeletedFn f : ProgramDeletedListeners())
+        f(program);
+}
 
 ShaderProgram::ShaderProgram(const int n, const char* vertexFilePath, const char* fragmentFilePath, bool fromString)
 {
@@ -44,8 +73,21 @@ void ShaderProgram::CreateFromString(const char* vertexCode, const char* fragmen
 
 void ShaderProgram::CompileShader(const char* vertexCode, const char* fragmentCode)
 {
+    // Linear workflow: a shader that writes gamma-space colour gets its output
+    // converted when it draws into a linear target (render/ColorPipeline.h).
+    bool adapted = false;
+    const std::string adaptedFragment = AdaptFragmentShader(fragmentCode, adapted);
+
     std::string log;
-    programID = Device().CreateProgram(vertexCode, fragmentCode, log).id;
+    programID = Device().CreateProgram(vertexCode, adapted ? adaptedFragment.c_str() : fragmentCode, log).id;
+    if (programID == 0 && adapted)
+    {
+        // The adaptation is a source rewrite; never let it cost a shader.
+        std::cout << "Shader " << GetNameString() << ": linear-workflow adaptation failed to compile ("
+            << log << "); using the shader unadapted - it will look washed out in the 3D world" << std::endl;
+        log.clear();
+        programID = Device().CreateProgram(vertexCode, fragmentCode, log).id;
+    }
     if (!log.empty())
         std::cout << "Shader " << GetNameString() << ": " << log;
     if (programID == 0)
@@ -209,6 +251,17 @@ std::string ShaderProgram::ResolvePath(const std::string& path)
 
     if (preferEngine && !engineCandidate.empty() && std::filesystem::exists(engineCandidate, ec))
         return engineCandidate;
+
+    // Linear workflow: Scene3D's linear-aware shaders must be the engine's (a
+    // game's older copy would compute in the wrong colour space).
+    if (RequiresEngineShader(path) && !engineCandidate.empty() && std::filesystem::exists(engineCandidate, ec))
+    {
+        static std::set<std::string> reported;
+        if (std::filesystem::exists(path, ec) && reported.insert(path).second)
+            std::cout << "Linear workflow: using the engine's " << path.substr(gameShaderFolder.size())
+                << " instead of the game's copy" << std::endl;
+        return engineCandidate;
+    }
     if (std::filesystem::exists(path, ec))
         return path;
     if (!engineCandidate.empty() && std::filesystem::exists(engineCandidate, ec))
@@ -218,11 +271,31 @@ std::string ShaderProgram::ResolvePath(const std::string& path)
 
 namespace
 {
+    // A text file's lines with Windows line endings removed ("" if missing).
+    std::string ReadShaderText(const char* filePath)
+    {
+        std::string content;
+        std::ifstream fileStream(filePath, std::ios::in);
+        if (!fileStream.is_open())
+        {
+            printf("Failed to read in %s! File doesn't exist.", filePath);
+            return "";
+        }
+        std::string line;
+        while (std::getline(fileStream, line))
+        {
+            if (!line.empty() && line.back() == '\r')
+                line.pop_back();
+            content.append(line + "\n");
+        }
+        return content;
+    }
+
     // Expand `#include "name"` lines. The name resolves like any shader file
     // (data/shaders/<name>, then the engine's copy), so a game can override an
     // include too. Line numbers in compile errors after an include are offset
     // by the included file's length.
-    std::string ExpandIncludes(ShaderProgram& program, const std::string& source, int depth = 0)
+    std::string ExpandIncludes(const std::string& source, int depth = 0)
     {
         if (depth > 8)
         {
@@ -247,7 +320,7 @@ namespace
             {
                 const std::string name = line.substr(open + 1, close - open - 1);
                 const std::string path = ShaderProgram::ResolvePath("data/shaders/" + name);
-                out += ExpandIncludes(program, program.ReadFile(path.c_str()), depth + 1);
+                out += ExpandIncludes(ReadShaderText(path.c_str()), depth + 1);
             }
             else
             {
@@ -264,13 +337,34 @@ void ShaderProgram::CreateFromFiles(const char* vertexFilePath, const char* frag
 {
     const std::string vertexPath = ResolvePath(vertexFilePath);
     const std::string fragmentPath = ResolvePath(fragmentFilePath);
-    std::string vertexString = ApplyVersion(ExpandIncludes(*this, ReadFile(vertexPath.c_str())));
-    std::string fragmentString = ApplyVersion(ExpandIncludes(*this, ReadFile(fragmentPath.c_str())));
+    std::string vertexString = ApplyVersion(ExpandIncludes(ReadFile(vertexPath.c_str())));
+    std::string fragmentString = ApplyVersion(ExpandIncludes(ReadFile(fragmentPath.c_str())));
 
     const char* vertexCode = vertexString.c_str();
     const char* fragmentCode = fragmentString.c_str();
 
     CompileShader(vertexCode, fragmentCode);
+}
+
+std::string LoadShaderSource(const std::string& path)
+{
+    return ShaderProgram::ApplyVersion(ExpandIncludes(ReadShaderText(ShaderProgram::ResolvePath(path).c_str())));
+}
+
+unsigned int CreateComputeProgramFromFile(const std::string& path)
+{
+    const std::string source = LoadShaderSource(path);
+    if (source.empty())
+        return 0;
+    std::string log;
+    const ProgramHandle program = Device().CreateComputeProgram(source.c_str(), log);
+    if (!log.empty())
+        std::cout << "Compute shader " << path << ": " << log;
+    if (!program)
+        return 0;
+    for (const UniformBlock::Entry& block : UniformBlock::kAll)
+        Device().SetUniformBlockBinding(program, block.name, block.binding);
+    return program.id;
 }
 
 std::string ShaderProgram::ReadFile(const char* filePath)
@@ -369,6 +463,7 @@ void ShaderProgram::ClearShader()
 {
     if (programID != 0)
     {
+        NotifyProgramDeleted(programID);   // modules caching its uniform locations
         ProgramHandle program(programID);
         Device().DestroyProgram(program);
         programID = 0;

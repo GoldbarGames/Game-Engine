@@ -16,6 +16,12 @@ namespace UniformBlock
 		SpriteLights = 3,   // "SpriteLights": renderer point lights for lit sprites (shaders/sprite_lights.glsl)
 		ShadowPass = 4,     // "ShadowPass": one shadow-map target (shaders/shadow_pass.glsl)
 		Outline = 5,        // "Outline": toon outline composite settings (shaders/outline.glsl)
+		Target = 6,         // "KinjoTarget": is the bound render target linear? (shaders/target.glsl, render/ColorPipeline.h)
+		Environment = 7,    // "Environment": image-based lighting switches (shaders/environment.glsl, render/Environment.h)
+		Cascades = 8,       // "Cascades": cascaded sun shadow maps (shaders/cascades.glsl, Scene3DShadows.cpp)
+		AmbientOcclusion = 9,   // "AmbientOcclusion": screen-space occlusion of ambient light (shaders/ao.glsl, render/AmbientOcclusion.h)
+		Motion = 10,        // "Motion": cameras for motion vectors (shaders/motion.glsl, render/TemporalAA.h)
+		Clusters = 11,      // "Clusters": clustered light grid (shaders/lights.glsl, render/ClusteredLights.h)
 	};
 
 	struct Entry { const char* name; Binding binding; };
@@ -26,6 +32,12 @@ namespace UniformBlock
 		{ "SpriteLights", SpriteLights },
 		{ "ShadowPass", ShadowPass },
 		{ "Outline", Outline },
+		{ "KinjoTarget", Target },
+		{ "Environment", Environment },
+		{ "Cascades", Cascades },
+		{ "AmbientOcclusion", AmbientOcclusion },
+		{ "Motion", Motion },
+		{ "Clusters", Clusters },
 	};
 
 	// Per-draw values are not a block: each shader declares a `DrawData` struct

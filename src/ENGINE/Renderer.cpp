@@ -1,5 +1,14 @@
 #include "leak_check.h"
 #include "render/RenderDevice.h"
+#include "render/ColorPipeline.h"
+#include "render/Environment.h"
+#include "render/AmbientOcclusion.h"
+#include "render/TemporalAA.h"
+#include "render/ClusteredLights.h"
+#include "render/ColorGrading.h"
+#include "render/DepthOfField.h"
+#include "render/VolumetricFog.h"
+#include "render/Reflections.h"
 #include "RenderState.h"
 #include "TransientBuffer.h"
 #include "Renderer.h"
@@ -263,6 +272,15 @@ Renderer::~Renderer()
 	}
 
 	ReleaseOverlayResources();
+	ReleaseColorPipeline();
+	ReleaseEnvironment();
+	ReleaseAmbientOcclusion();
+	ReleaseTemporalAA();
+	ReleaseClusteredLights();
+	ReleaseColorGrading();
+	ReleaseDepthOfField();
+	ReleaseVolumetricFog();
+	ReleaseReflections();
 	ReleaseUniformBlocks();
 	TransientRelease();
 }

@@ -40,6 +40,7 @@ KINJO_DEVICE_HANDLE(TextureHandle);
 KINJO_DEVICE_HANDLE(FramebufferHandle);     // 0 = the window
 KINJO_DEVICE_HANDLE(VertexArrayHandle);
 KINJO_DEVICE_HANDLE(ProgramHandle);
+KINJO_DEVICE_HANDLE(QueryHandle);
 #undef KINJO_DEVICE_HANDLE
 
 struct FenceHandle
@@ -51,14 +52,40 @@ struct FenceHandle
 // ---- descriptions ----------------------------------------------------------
 enum class BufferUsage : uint8_t { Static, Dynamic, Stream };
 
-enum class TextureType : uint8_t { Tex2D, Cube, CubeArray };
+enum class TextureType : uint8_t { Tex2D, Cube, CubeArray, Tex2DArray };
 enum class TextureFormat : uint8_t
 {
 	RGBA8,
+	SRGB8_A8,         // colour art in a linear-workflow project: sampling returns linear values
+	RGBA16F,          // HDR render target (linear-workflow world)
 	R8,
+	R32F,             // one float channel (linear view depth for ambient occlusion)
+	RGBA32UI,         // four unsigned ints per texel, read with texelFetch (clustered light lists)
 	Depth24,          // sampled shadow maps
 	Depth24Stencil8,  // framebuffer depth that post-process passes sample
+	// Block-compressed (4x4-texel blocks), uploaded pre-encoded from KTX2 files
+	// (CreateTextureLevels). Check SupportsTextureFormat first.
+	BC1,              // RGB + 1-bit alpha, 8 bytes a block
+	BC1_SRGB,
+	BC3,              // RGBA, 16 bytes a block
+	BC3_SRGB,
+	BC4,              // one channel (R), 8 bytes a block: masks, roughness, occlusion
+	BC5,              // two channels (RG), 16 bytes a block: normal maps (z rebuilt in the shader)
+	BC7,              // RGBA, 16 bytes a block, the best quality
+	BC7_SRGB,
 };
+
+inline bool IsBlockCompressed(TextureFormat f)
+{
+	return f >= TextureFormat::BC1 && f <= TextureFormat::BC7_SRGB;
+}
+
+// Bytes in one 4x4 block of a block-compressed format.
+inline int BlockBytes(TextureFormat f)
+{
+	return (f == TextureFormat::BC1 || f == TextureFormat::BC1_SRGB || f == TextureFormat::BC4) ? 8 : 16;
+}
+
 enum class TextureFilter : uint8_t { Nearest, Linear, Trilinear };   // Trilinear = linear + mipmaps
 enum class TextureWrap : uint8_t { Repeat, ClampToEdge, ClampToBorder };
 
@@ -68,15 +95,43 @@ struct TextureDesc
 	TextureFormat format = TextureFormat::RGBA8;
 	int width = 1;
 	int height = 1;
-	int layers = 1;                  // CubeArray: number of cubes
+	int layers = 1;                  // CubeArray: number of cubes; Tex2DArray: number of layers
+	bool depthCompare = false;       // depth formats: shadow samplers compare (hardware PCF)
 	TextureFilter filter = TextureFilter::Nearest;
 	TextureWrap wrap = TextureWrap::ClampToEdge;
 	glm::vec4 borderColor = glm::vec4(1.0f);   // ClampToBorder only
 	float maxAnisotropy = 1.0f;      // clamped to what the hardware allows
 	bool generateMipmaps = false;    // after the initial upload
+	int mipLevels = 1;               // Tex2D: allocate this many levels (render targets drawn per level)
 };
 
-enum class Attachment : uint8_t { Color0, Color1, Depth, DepthStencil };
+// One level of a texture's mip chain, as stored: `bytes` of texels in the
+// format's layout (tightly packed rows, or 4x4 blocks in row order).
+struct TextureLevel
+{
+	const void* data = nullptr;
+	size_t bytes = 0;
+};
+
+// One indexed indirect draw, as the GPU reads it (DrawIndexedIndirect / VkDrawIndexedIndirectCommand).
+struct DrawIndexedIndirectCommand
+{
+	uint32_t indexCount;
+	uint32_t instanceCount;
+	uint32_t firstIndex;
+	int32_t baseVertex;
+	uint32_t baseInstance;
+};
+static_assert(sizeof(DrawIndexedIndirectCommand) == 20, "indirect commands are 5 words");
+
+enum GpuBarrierBit : unsigned int
+{
+	BarrierStorage = 1u,          // later shader storage reads/writes
+	BarrierIndirect = 2u,         // later indirect draw parameters
+	BarrierVertexAttributes = 4u, // later vertex attribute fetches
+};
+
+enum class Attachment : uint8_t { Color0, Color1, Depth, DepthStencil, Color2 };
 enum class ReadbackFormat : uint8_t { RGBA8, BGR8 };   // BGR8 = what SDL_SaveBMP / IMG_SavePNG surfaces take
 enum class Primitive : uint8_t { Triangles, Lines };
 
@@ -114,19 +169,39 @@ public:
 
 	// Textures
 	virtual TextureHandle CreateTexture(const TextureDesc& desc, const void* rgbaPixels = nullptr) = 0;
+	// A 2D texture from its stored mip chain (a KTX2 file's levels): levels[0]
+	// is desc.width x desc.height and each next one half the size, rounded down
+	// (at least 1). Block-compressed formats upload as they are. With a single
+	// level, desc.generateMipmaps builds the rest (uncompressed formats only).
+	// desc.mipLevels is ignored.
+	virtual TextureHandle CreateTextureLevels(const TextureDesc& desc, const TextureLevel* levels, int levelCount) = 0;
+	// Whether this GPU can sample `format` (block-compressed formats need
+	// hardware support: BC7 needs GL 4.2 or an extension, WebGL extensions).
+	virtual bool SupportsTextureFormat(TextureFormat format) const = 0;
 	virtual void DestroyTexture(TextureHandle& texture) = 0;
+	// Replace a rectangle of a 2D texture's level 0 with `data`, tightly packed
+	// in `format`'s texel layout (data streamed each frame, e.g. light lists).
+	virtual void UpdateTexture(TextureHandle texture, TextureFormat format, int x, int y, int width, int height,
+		const void* data) = 0;
+	// Rebuild a 2D texture's mip chain from its level 0 (e.g. after rendering into it).
+	virtual void GenerateMipmaps(TextureHandle texture) = 0;
 	virtual void BindTexture(unsigned int unit, TextureHandle texture, TextureType type = TextureType::Tex2D) = 0;
 
-	// Framebuffers. `layer` selects a cube face (Cube) or face-layer (CubeArray).
+	// Framebuffers. `layer` selects a cube face (Cube) or face-layer (CubeArray);
+	// `mipLevel` the level of a 2D texture to draw into.
 	virtual FramebufferHandle CreateFramebuffer() = 0;
 	virtual void DestroyFramebuffer(FramebufferHandle& framebuffer) = 0;
 	virtual void AttachTexture(FramebufferHandle framebuffer, Attachment attachment, TextureHandle texture,
-		TextureType type = TextureType::Tex2D, int layer = 0) = 0;
+		TextureType type = TextureType::Tex2D, int layer = 0, int mipLevel = 0) = 0;
 	// How many colour attachments draws write (0 = depth-only).
 	virtual void SetDrawBuffers(FramebufferHandle framebuffer, int colorCount) = 0;
 	// The same for whichever framebuffer is bound (a draw that adds a second
 	// output mid-pass, like the character mask), leaving it bound.
 	virtual void SetBoundDrawBuffers(int colorCount) = 0;
+	// The same by attachment: bit i enables colour attachment i (fragment
+	// output location i); the others are not written. E.g. 0b101 = colour and
+	// motion vectors without the character mask in between.
+	virtual void SetBoundDrawBufferMask(unsigned int attachmentMask) = 0;
 	virtual bool IsFramebufferComplete(FramebufferHandle framebuffer, std::string* error = nullptr) = 0;
 
 	// Commands
@@ -135,6 +210,27 @@ public:
 	virtual void Clear(bool color, bool depth, const glm::vec4& clearColor = glm::vec4(0.0f)) = 0;
 	virtual void Draw(VertexArrayHandle vao, Primitive primitive, int first, int count, int instances = 0) = 0;
 	virtual void DrawIndexed(VertexArrayHandle vao, Primitive primitive, int indexCount, int instances = 0) = 0;
+
+	// GPU-driven rendering (Phase 1.5 item 11): compute programs, storage
+	// buffers and indirect draws. Desktop GL 4.3+ only; WebGL2 has none.
+	virtual bool SupportsGpuDriven() const = 0;
+	virtual ProgramHandle CreateComputeProgram(const char* source, std::string& log) = 0;
+	// A storage buffer (std430 `buffer` block) at `binding`: the whole buffer,
+	// or `bytes` of it from `offset` (aligned to the device's storage alignment).
+	virtual void BindStorageBuffer(unsigned int binding, BufferHandle buffer, size_t offset = 0, size_t bytes = 0) = 0;
+	virtual void Dispatch(unsigned int groupsX, unsigned int groupsY = 1, unsigned int groupsZ = 1) = 0;
+	// Make compute writes visible to later commands that read the memory as
+	// what the bits name (GpuBarrierBit).
+	virtual void GpuBarrier(unsigned int barrierBits) = 0;
+	// An integer vertex attribute (`in uint` / `in int`: no conversion to float).
+	virtual void SetVertexAttributeInt(VertexArrayHandle vao, unsigned int location, BufferHandle buffer,
+		int components, size_t stride, size_t offset, unsigned int divisor = 0) = 0;
+	// `drawCount` indexed draws (32-bit indices) whose parameters live in
+	// `commands` from `offset`: DrawIndexedIndirectCommand records, `stride`
+	// bytes apart. Each draws `instanceCount` instances from `baseInstance`,
+	// which offsets instanced (divisor > 0) attributes.
+	virtual void MultiDrawIndexedIndirect(VertexArrayHandle vao, Primitive primitive, BufferHandle commands,
+		size_t offset, int drawCount, size_t stride) = 0;
 
 	// Programs
 	virtual ProgramHandle CreateProgram(const char* vertexSource, const char* fragmentSource, std::string& log) = 0;
@@ -169,6 +265,15 @@ public:
 	virtual void DeleteFence(FenceHandle& fence) = 0;
 	virtual void Finish() = 0;
 
+	// GPU timestamps (profiling, KINJO_GPU_TIMINGS): a query records the GPU
+	// clock once the commands before it have executed. Read results a few
+	// frames later; ReadTimestamp is false until the result is available.
+	virtual bool SupportsTimestamps() const = 0;
+	virtual QueryHandle CreateQuery() = 0;
+	virtual void DestroyQuery(QueryHandle& query) = 0;
+	virtual void WriteTimestamp(QueryHandle query) = 0;
+	virtual bool ReadTimestamp(QueryHandle query, uint64_t& nanoseconds) = 0;
+
 	// Readback of the bound framebuffer, tightly packed, bottom-up rows.
 	virtual void ReadPixels(int x, int y, int width, int height, ReadbackFormat format, void* out) = 0;
 
@@ -179,6 +284,7 @@ public:
 	// Capabilities
 	virtual bool SupportsCubeMapArrays() const = 0;
 	virtual bool SupportsPersistentMapping() const = 0;
+	virtual bool SupportsFloatRenderTargets() const = 0;   // RGBA16F colour attachments
 };
 
 // The active device. Created on first use (the GL backend, the only one

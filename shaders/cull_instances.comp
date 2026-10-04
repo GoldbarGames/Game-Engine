@@ -1,0 +1,93 @@
+#version 430
+
+// GPU culling for the GPU-driven models (Phase 1.5 item 11; driven by
+// src/ENGINE/Scene3DGpuDriven.cpp). One workgroup per batch (models sharing
+// meshes, texture and material, stored consecutively in the instance list):
+// each instance's bounding sphere is tested against the view's six planes,
+// the visible ones are compacted IN ORDER (a prefix sum, not atomics, so
+// overlapping coplanar surfaces resolve the same way every frame) into the
+// view's region of the visible list, and the count goes into each of the
+// batch's indirect draw commands.
+layout(local_size_x = 64) in;
+
+#include "scene_instances.glsl"
+
+// Per batch, 6 words: first instance, instance count, then for each command
+// set (0 = colour passes, 1 = depth passes) where its commands are listed in
+// batchCommands (offset, count).
+layout(std430, binding = 2) readonly buffer Batches { uint batches[]; };
+layout(std430, binding = 3) readonly buffer BatchCommands { uint batchCommands[]; };
+// DrawIndexedIndirectCommand records, 5 words each; word 1 = instanceCount.
+layout(std430, binding = 4) buffer Commands { uint commands[]; };
+// The visible instances' indices, read by the vertex shaders as a
+// per-instance attribute (baseInstance points each command at its batch).
+layout(std430, binding = 5) writeonly buffer Visible { uint visible[]; };
+
+#include "draw.glsl"
+struct DrawData
+{
+	vec4 planes[6];     // the view's frustum, normalized, pointing inward
+	int commandSet;     // 0 colour, 1 depth
+	int commandBase;    // this view's first command (in records)
+	int visibleBase;    // this view's region in visible[]
+	int flags;          // an instance needs one of these flags (SceneInstance.info.y)
+	int batchCount;     // (ints: the engine sets per-draw values with glUniform*i)
+};
+PER_DRAW(DrawData);
+
+shared uint scan[64];
+
+void main()
+{
+	uint b = gl_WorkGroupID.y * 65535u + gl_WorkGroupID.x;
+	if (b >= uint(draw.batchCount))
+		return;   // the whole group: no barrier is reached
+	uint first = batches[b * 6u];
+	uint count = batches[b * 6u + 1u];
+	uint listOffset = batches[b * 6u + 2u + uint(draw.commandSet)];
+	uint listCount = batches[b * 6u + 4u + uint(draw.commandSet)];
+	if (listCount == 0u)
+		return;
+
+	uint lane = gl_LocalInvocationID.x;
+	uint written = 0u;
+	for (uint start = 0u; start < count; start += 64u)
+	{
+		uint i = start + lane;
+		bool keep = false;
+		if (i < count)
+		{
+			SceneInstance inst = sceneInstances[first + i];
+			keep = (inst.info.y & uint(draw.flags)) != 0u;
+			if (keep && inst.sphere.w >= 0.0)
+			{
+				for (int p = 0; p < 6; p++)
+				{
+					if (dot(draw.planes[p].xyz, inst.sphere.xyz) + draw.planes[p].w < -inst.sphere.w)
+						keep = false;
+				}
+			}
+		}
+
+		// Inclusive prefix sum of `keep` across the 64 lanes.
+		scan[lane] = keep ? 1u : 0u;
+		barrier();
+		for (uint offset = 1u; offset < 64u; offset <<= 1u)
+		{
+			uint add = (lane >= offset) ? scan[lane - offset] : 0u;
+			barrier();
+			scan[lane] += add;
+			barrier();
+		}
+		if (keep)
+			visible[uint(draw.visibleBase) + first + written + scan[lane] - 1u] = first + i;
+		written += scan[63];
+		barrier();   // everyone has read scan[] before the next round writes it
+	}
+
+	if (lane == 0u)
+	{
+		for (uint k = 0u; k < listCount; k++)
+			commands[(uint(draw.commandBase) + batchCommands[listOffset + k]) * 5u + 1u] = written;
+	}
+}

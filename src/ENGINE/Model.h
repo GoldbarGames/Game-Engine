@@ -20,6 +20,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/config.h>
 #pragma pop_macro("new")
 
 #endif

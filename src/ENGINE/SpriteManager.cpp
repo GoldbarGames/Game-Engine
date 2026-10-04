@@ -3,6 +3,7 @@
 #include "SpriteManager.h"
 #include "Animator.h"
 #include "Sprite.h"
+#include "render/TextureFiles.h"
 #include <sstream>
 #include <iterator>
 
@@ -59,20 +60,31 @@ void SpriteManager::Init(Renderer* r)
 	Animator::spriteManager = this;
 }
 
-void SpriteManager::ClearCache(std::string const& imagePath)
+namespace
 {
-	auto it = images.find(imagePath);
-	if (it != images.end()) 
-	{
-		images.erase(it);
-	}
-}
+	// Cache key of an image's sRGB copy (GetImage with srgb = true). Not a
+	// valid path, so it can't collide with a real image.
+	const char* const kSrgbKeySuffix = "\n[srgb]";
 
-Texture* SpriteManager::GetImage(std::string const& imagePath, Texture::Filter filter) const
-{
-	if (images.count(imagePath) == 0)
+	Texture* LoadImageTexture(const std::string& imagePath, Texture::Filter filter, bool srgb)
 	{
 		SDL_Surface* surface;
+
+#if !PHYSFS_ENABLED
+		// A KTX2 file (its own mip chain, usually GPU-compressed): asked for by
+		// name, or found beside the requested image (render/TextureFiles.h).
+		const std::string file = PreferredTextureFile(imagePath);
+		if (IsKtx2Path(file))
+		{
+			std::vector<unsigned char> bytes;
+			Texture* ktx = new Texture(imagePath.c_str());
+			if (ReadFileBytes(file, bytes) && ktx->LoadFromFileData(bytes.data(), bytes.size(), filter, srgb))
+				return ktx;
+			delete_it(ktx);
+			if (file != imagePath)
+				std::cout << "Loading " << imagePath << " instead of " << file << std::endl;
+		}
+#endif
 
 #if PHYSFS_ENABLED
 
@@ -114,14 +126,54 @@ Texture* SpriteManager::GetImage(std::string const& imagePath, Texture::Filter f
 #endif
 
 		Texture* newTexture = new Texture(imagePath.c_str());
-
-		newTexture->LoadTexture(surface, false, filter);
-		images[imagePath] = newTexture;
+		newTexture->LoadTexture(surface, false, filter, srgb);
 
 		SDL_FreeSurface(surface);
+		return newTexture;
 	}
-		
+}
+
+void SpriteManager::ClearCache(std::string const& imagePath)
+{
+	auto it = images.find(imagePath);
+	if (it != images.end())
+	{
+		images.erase(it);
+	}
+	it = images.find(imagePath + kSrgbKeySuffix);
+	if (it != images.end())
+	{
+		images.erase(it);
+	}
+}
+
+Texture* SpriteManager::GetImage(std::string const& imagePath, Texture::Filter filter) const
+{
+	if (images.count(imagePath) == 0)
+	{
+		Texture* newTexture = LoadImageTexture(imagePath, filter, false);
+		if (newTexture == nullptr)
+			return nullptr;
+		images[imagePath] = newTexture;
+	}
+
 	return images[imagePath];
+}
+
+Texture* SpriteManager::GetImage(std::string const& imagePath, Texture::Filter filter, bool srgb) const
+{
+	if (!srgb)
+		return GetImage(imagePath, filter);
+
+	const std::string key = imagePath + kSrgbKeySuffix;
+	auto it = images.find(key);
+	if (it != images.end())
+		return it->second;
+
+	Texture* newTexture = LoadImageTexture(imagePath, filter, true);
+	if (newTexture != nullptr)
+		images[key] = newTexture;
+	return newTexture;
 }
 
 Texture* SpriteManager::GetTexture(TTF_Font* f, char c, int size)

@@ -14,6 +14,7 @@ out vec2 TexCoord;
 out vec3 FragPos;
 out vec3 Normal;
 out vec3 Tangent;
+out vec3 PrevWorldPos;   // instanced props don't move: last frame's = this frame's
 
 #include "camera.glsl"
 
@@ -24,6 +25,7 @@ void main()
 	mat3 nm = transpose(inverse(mat3(instanceModel)));
 
 	FragPos = worldPos.xyz;
+	PrevWorldPos = worldPos.xyz;
 	gl_Position = projection * view * worldPos;
 	TexCoord = tex;
 	Normal = nm * normal;

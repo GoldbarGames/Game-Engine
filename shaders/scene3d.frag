@@ -4,11 +4,26 @@ in vec2 TexCoord;
 in vec3 FragPos;
 in vec3 Normal;
 in vec3 Tangent;
+in vec3 PrevWorldPos;
 
-out vec4 color;
+layout(location = 0) out vec4 color;
+// Motion vectors for temporal anti-aliasing (motion.glsl). Only stored while
+// the engine enables the world target's attachment 2 for this draw.
+layout(location = 2) out vec4 oMotion;
 
 uniform sampler2D theTexture;   // albedo (unit 0)
 uniform sampler2D normalMap;    // tangent-space normal map (unit 1)
+// Maps of a material imported with a model (glTF; Material.matMaps says which).
+uniform sampler2D metallicRoughnessMap;   // unit 2: G = roughness, B = metallic (R = occlusion if packed)
+#ifdef KINJO_GL4
+uniform sampler2D occlusionMap;           // unit 5 (a point-shadow cube's unit on the 3.3/web fallback)
+uniform sampler2D emissiveMap;            // unit 6
+#endif
+
+// This pixel's metallic and roughness: the material's, times its
+// metallic-roughness map when it has one. Set at the top of main().
+float surfMetallic;
+float surfRoughness;
 
 const float PI = 3.14159265;
 
@@ -16,6 +31,16 @@ const float PI = 3.14159265;
 // surface material (Material block).
 #include "scene.glsl"
 #include "material.glsl"
+// Linear-aware (render/ColorPipeline.h): in a linear-workflow project the
+// albedo texture is sRGB (sampled as linear) and the block colours arrive
+// linear, so the lighting here is computed and written in linear space.
+#include "target.glsl"
+#include "environment.glsl"   // image-based lighting from the sky (iblOn = 0 when unused)
+#include "cascades.glsl"      // cascaded sun shadows (cascadeCount = 0 when unused)
+#include "ao.glsl"            // screen-space ambient occlusion (aoOn = 0 when unused)
+#include "motion.glsl"        // motion vectors (motionOn = 0 when unused)
+#include "camera.glsl"
+#include "lights.glsl"        // point and spot lights, clustered (LightRange / GetLight)
 
 // Storm lightning: a brief bright flood of light from the sky (world up = -Y).
 // Light contributed by a lightning flash on a surface with normal N. Up-facing
@@ -55,82 +80,13 @@ float ShadowFactor(vec3 worldPos, float ndotl)
 }
 
 // --- point-light (cube) shadows, for indoor lamp-lit rooms ---
-// On a GL 4.x desktop context (KINJO_GL4) a single cube-map ARRAY holds many
-// casters, indexed dynamically by layer. On the 3.3/web fallback there are up to
-// 4 separate cubes fetched with a constant index (GLSL 330 forbids dynamic
-// sampler-array indexing). Caster positions/fars/indices are in the Scene block.
-
-#ifdef KINJO_GL4
-const int MAX_PT_SHADOWS = 8;
-uniform samplerCubeArray pointShadowArray;
-
-float PointShadowForLight(int plIndex, vec3 worldPos)
-{
-	for (int s = 0; s < MAX_PT_SHADOWS; s++)
-	{
-		if (s >= pointShadowCount) break;
-		if (pointShadowLightIdx[s] != plIndex) continue;
-		vec3 f2l = worldPos - pointShadowPositions[s];
-		float cur = length(f2l);
-		float closest = texture(pointShadowArray, vec4(f2l, float(s))).r * pointShadowFars[s];
-		float bias = max(0.03 * cur, 5.0);
-		float lit = (cur - bias > closest) ? 0.0 : 1.0;
-		return 1.0 - shadowStrength * (1.0 - lit);
-	}
-	return 1.0;
-}
-#else
-const int MAX_PT_SHADOWS = 4;
-uniform samplerCube pointShadowMaps[MAX_PT_SHADOWS];
-
-// Constant-indexed cube fetch (GLSL 330 forbids dynamic sampler-array indexing).
-float sampleShadowCube(int s, vec3 dir)
-{
-	if (s == 0) return texture(pointShadowMaps[0], dir).r;
-	if (s == 1) return texture(pointShadowMaps[1], dir).r;
-	if (s == 2) return texture(pointShadowMaps[2], dir).r;
-	return texture(pointShadowMaps[3], dir).r;
-}
-
-// Shadow multiplier for point light `plIndex` (1.0 if it isn't a shadow caster).
-float PointShadowForLight(int plIndex, vec3 worldPos)
-{
-	for (int s = 0; s < MAX_PT_SHADOWS; s++)
-	{
-		if (s >= pointShadowCount) break;
-		if (pointShadowLightIdx[s] != plIndex) continue;
-		vec3 f2l = worldPos - pointShadowPositions[s];
-		float cur = length(f2l);
-		float closest = sampleShadowCube(s, f2l) * pointShadowFars[s];
-		float bias = max(0.03 * cur, 5.0);
-		float lit = (cur - bias > closest) ? 0.0 : 1.0;
-		return 1.0 - shadowStrength * (1.0 - lit);
-	}
-	return 1.0;
-}
-#endif
+#include "point_shadows.glsl"   // PointShadowSlot (cube shadows of the lamps)
 
 // Finite-range falloff (reaches 0 at range): artist-friendly, no infinities
 float Attenuate(float dist, float range)
 {
 	float a = clamp(1.0 - dist / range, 0.0, 1.0);
 	return a * a;
-}
-
-// Screen-space tangent frame (no per-vertex tangents needed): builds T/B from
-// the derivatives of world position + uv, so a normal map can perturb N.
-mat3 CotangentFrame(vec3 N, vec3 p, vec2 uv)
-{
-	vec3 dp1 = dFdx(p);
-	vec3 dp2 = dFdy(p);
-	vec2 duv1 = dFdx(uv);
-	vec2 duv2 = dFdy(uv);
-	vec3 dp2perp = cross(dp2, N);
-	vec3 dp1perp = cross(N, dp1);
-	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
-	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
-	float invmax = inversesqrt(max(dot(T, T), dot(B, B)));
-	return mat3(T * invmax, B * invmax, N);
 }
 
 // GGX / Trowbridge-Reitz normal distribution (PBR)
@@ -150,6 +106,29 @@ float GeometrySchlick(float NdotV, float rough)
 	return NdotV / (NdotV * (1.0 - k) + k);
 }
 
+// The tangent frame of a normal map, from screen-space derivatives solved
+// exactly: T along +u, B up the texture (-v), so a map's +Y (green) means up,
+// the OpenGL / glTF convention. Right for mirrored UVs and whichever way the
+// projection flips the screen. (Until 2026-10-03 materials used Schuler's
+// cotangent frame, whose adjugate form flips T and B when the screen mapping
+// is mirrored, as the engine's Y-flipped projection always is: X came out
+// inverted.)
+mat3 UvFrame(vec3 N, vec3 p, vec2 uv)
+{
+	vec3 dp1 = dFdx(p);
+	vec3 dp2 = dFdy(p);
+	vec2 duv1 = dFdx(uv);
+	vec2 duv2 = dFdy(uv);
+	float s = (duv1.x * duv2.y - duv1.y * duv2.x < 0.0) ? -1.0 : 1.0;
+	vec3 T = (dp1 * duv2.y - dp2 * duv1.y) * s;
+	vec3 B = (dp2 * duv1.x - dp1 * duv2.x) * s;
+	T -= N * dot(N, T);
+	B -= N * dot(N, B);
+	if (dot(T, T) < 1e-20 || dot(B, B) < 1e-20)
+		return mat3(vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), N);   // no usable UVs: leave N as is
+	return mat3(normalize(T), -normalize(B), N);
+}
+
 // Cel ramp: map a 0..1 lighting term to a few flat bands (~0.25 / 0.60 / 1.00).
 float ToonRamp(float t)
 {
@@ -167,18 +146,23 @@ void AddLight(vec3 L, vec3 radiance, vec3 N, vec3 V, vec3 albedo, vec3 F0,
 
 	if (toon == 1)
 	{
-		diffuseAccum += albedo * radiance * ToonRamp(NdotL);
+		// The bands are a stylistic choice made by eye: in a linear target,
+		// decode them so they keep the levels they were picked at.
+		float ramp = ToonRamp(NdotL);
+		if (kinjoTargetLinear != 0)
+			ramp = SrgbToLinear(vec3(ramp)).r;
+		diffuseAccum += albedo * radiance * ramp;
 		float sp = pow(max(dot(N, H), 0.0), max(matShininess, 1.0));
 		specularAccum += radiance * step(0.5, sp) * matSpecular;   // hard highlight
 	}
 	else if (matLighting == 1)   // PBR (Cook-Torrance)
 	{
-		float NDF = DistributionGGX(N, H, matRoughness);
-		float G = GeometrySchlick(max(dot(N, V), 0.0), matRoughness) *
-		          GeometrySchlick(NdotL, matRoughness);
+		float NDF = DistributionGGX(N, H, surfRoughness);
+		float G = GeometrySchlick(max(dot(N, V), 0.0), surfRoughness) *
+		          GeometrySchlick(NdotL, surfRoughness);
 		vec3 F = F0 + (1.0 - F0) * pow(1.0 - max(dot(H, V), 0.0), 5.0);
 		vec3 spec = (NDF * G * F) / max(4.0 * max(dot(N, V), 0.0) * NdotL, 1e-4);
-		vec3 kd = (vec3(1.0) - F) * (1.0 - matMetallic);
+		vec3 kd = (vec3(1.0) - F) * (1.0 - surfMetallic);
 		diffuseAccum += kd * albedo / PI * radiance * NdotL;
 		specularAccum += spec * radiance * NdotL;
 	}
@@ -195,10 +179,42 @@ void main()
 	vec2 uv = TexCoord * matUVTile;
 
 	vec4 texColor = texture(theTexture, uv);
-	if (texColor.a < 0.1)
+	float alpha = texColor.a * matOpacity;
+	if ((matMaps & MAT_GLTF) != 0)
+	{
+		// glTF alpha modes: blended surfaces blend; masked ones cut out below
+		// the cutoff; otherwise (masked or opaque) alpha means nothing.
+		if ((matMaps & MAT_ALPHA_BLEND) == 0)
+		{
+			if ((matMaps & MAT_ALPHA_MASK) != 0 && texColor.a < matAlphaCutoff)
+				discard;
+			alpha = 1.0;
+		}
+	}
+	else if (texColor.a < 0.1)
 		discard;
 
+	surfMetallic = matMetallic;
+	surfRoughness = matRoughness;
+	vec4 metalRough = vec4(1.0);
+	if ((matMaps & MAT_METAL_ROUGH_MAP) != 0)
+	{
+		metalRough = texture(metallicRoughnessMap, uv);
+		surfRoughness *= metalRough.g;
+		surfMetallic *= metalRough.b;
+	}
+
+	// Glass and other see-through surfaces keep the motion of what's behind them.
+	oMotion = MotionVector(FragPos, PrevWorldPos, (matOpacity < 1.0) ? 0.0 : 1.0);
+
 	vec3 albedo = texColor.rgb * matTint;
+
+	// KHR_materials_unlit: the base colour as it is.
+	if ((matMaps & MAT_UNLIT) != 0)
+	{
+		color = vec4(albedo, alpha);
+		return;
+	}
 
 	// --- animated water surface -------------------------------------------
 	// A special mode for lake/sea planes: procedural sine ripples perturb the
@@ -239,7 +255,9 @@ void main()
 		vec3 sceneLit = ambientColor + dirLightColor * dirLightDiffuse
 			+ lightningColor * lightningFlash * 0.9;   // storm flash brightens the water
 		vec3 deep    = albedo * (0.35 + sceneLit);
-		vec3 skyRefl = (0.35 + sceneLit) * vec3(0.55, 0.70, 0.92);
+		vec3 skyRefl = (0.35 + sceneLit) * TargetColor(vec3(0.55, 0.70, 0.92));
+		if (iblOn != 0)
+			skyRefl = EnvReflection(reflect(-Vw, Nw), 0.04);   // the real sky (and its sun)
 		vec3 wcol = mix(deep, skyRefl, fres);
 
 		// Moving sun/lamp glints (sharp specular off the rippled normal).
@@ -249,13 +267,17 @@ void main()
 			vec3 H = normalize(Vw + normalize(-dirLightDir));
 			glint += dirLightColor * pow(max(dot(Nw, H), 0.0), matShininess) * matSpecular;
 		}
-		for (int i = 0; i < pointCount; i++)
+		int glintFirst, glintCount;
+		LightRange(FragPos, glintFirst, glintCount);
+		for (int k = glintFirst; k < glintFirst + glintCount; k++)
 		{
-			vec3 Lv = pointPos[i] - FragPos;
+			SceneLight l = GetLight(k);
+			if (l.spot != 0) continue;   // point lights glint
+			vec3 Lv = l.pos - FragPos;
 			float dist = length(Lv);
 			if (dist < 0.0001) continue;
 			vec3 H = normalize(Vw + Lv / dist);
-			glint += pointColor[i] * pointIntensity[i] * Attenuate(dist, pointRange[i])
+			glint += l.color * l.intensity * Attenuate(dist, l.range)
 			         * pow(max(dot(Nw, H), 0.0), matShininess) * matSpecular;
 		}
 
@@ -265,23 +287,37 @@ void main()
 	}
 
 	// Base geometric normal, optionally perturbed by the normal map. The TBN
-	// frame comes either from real vertex tangents (matNormalMode == 1) or is
-	// reconstructed from screen-space derivatives (0).
+	// frame comes from screen-space derivatives (UvFrame), or with
+	// matNormalMode == 1 takes its directions from the vertex tangents.
 	vec3 N = normalize(Normal);
+	if ((matMaps & MAT_DOUBLE_SIDED) != 0)
+	{
+		// A back face: light it with the normal of the side the camera sees.
+		vec3 face = cross(dFdx(FragPos), dFdy(FragPos));
+		if (dot(face, viewPos - FragPos) * dot(face, N) < 0.0)
+			N = -N;
+	}
 	if (matHasNormal == 1)
 	{
 		vec3 mapN = texture(normalMap, uv).rgb * 2.0 - 1.0;
+		if ((matMaps & MAT_NORMAL_XY) != 0)
+			mapN.z = sqrt(max(1.0 - dot(mapN.xy, mapN.xy), 0.0));   // two-channel (BC5) map
 		mapN.xy *= matNormalStrength;
-		mat3 TBN;
-		if (matNormalMode == 1)
+		mat3 TBN = UvFrame(N, FragPos, uv);
+		if ((matMaps & MAT_GLTF) == 0 && matNormalMode == 1 && dot(Tangent, Tangent) > 1e-12)
 		{
+			// Vertex tangents: smooth directions across faces, but their signs
+			// (and the bitangent's) from the exact frame. The importer's
+			// tangents follow its own UV convention, and nothing stores a
+			// mirrored layout's handedness: taken as they were, the map's
+			// up/down came out inverted.
 			vec3 T = normalize(Tangent - N * dot(N, Tangent));  // Gram-Schmidt
+			if (dot(T, TBN[0]) < 0.0)
+				T = -T;
 			vec3 B = cross(N, T);
+			if (dot(B, TBN[1]) < 0.0)
+				B = -B;
 			TBN = mat3(T, B, N);
-		}
-		else
-		{
-			TBN = CotangentFrame(N, FragPos, uv);
 		}
 		N = normalize(TBN * mapN);
 	}
@@ -290,46 +326,112 @@ void main()
 
 	vec3 diffuseAccum = vec3(0.0);
 	vec3 specularAccum = vec3(0.0);
-	vec3 F0 = mix(vec3(0.04), albedo, matMetallic);   // PBR base reflectance
+	vec3 F0 = mix(vec3(0.04), albedo, surfMetallic);   // PBR base reflectance
 
 	// Directional fill (usually off in a point/spot-lit room)
 	if (dirLightDiffuse > 0.0)
 		AddLight(normalize(-dirLightDir), dirLightColor * dirLightDiffuse,
 			N, V, albedo, F0, diffuseAccum, specularAccum);
 
-	// Point lights
-	for (int i = 0; i < pointCount; i++)
+	// Point and spot lights: the ones that reach this pixel's cluster
+	// (lights.glsl), points first, then spots.
+	int lightFirst, lightCount;
+	LightRange(FragPos, lightFirst, lightCount);
+	for (int k = lightFirst; k < lightFirst + lightCount; k++)
 	{
-		vec3 Lv = pointPos[i] - FragPos;
+		SceneLight l = GetLight(k);
+		vec3 Lv = l.pos - FragPos;
 		float dist = length(Lv);
 		if (dist < 0.0001) continue;
-		vec3 radiance = pointColor[i] * pointIntensity[i] * Attenuate(dist, pointRange[i]);
-		if (pointShadowCount > 0)
-			radiance *= PointShadowForLight(i, FragPos);
-		AddLight(Lv / dist, radiance, N, V, albedo, F0, diffuseAccum, specularAccum);
-	}
-
-	// Spot lights (distance falloff * cone falloff)
-	for (int i = 0; i < spotCount; i++)
-	{
-		vec3 Lv = spotPos[i] - FragPos;
-		float dist = length(Lv);
-		if (dist < 0.0001) continue;
-		vec3 L = Lv / dist;
-		float theta = dot(-L, normalize(spotDir[i]));
-		float cone = smoothstep(spotCosOuter[i], spotCosInner[i], theta);
-		vec3 radiance = spotColor[i] * spotIntensity[i] * Attenuate(dist, spotRange[i]) * cone;
-		AddLight(L, radiance, N, V, albedo, F0, diffuseAccum, specularAccum);
+		if (l.spot == 0)
+		{
+			vec3 radiance = l.color * l.intensity * Attenuate(dist, l.range);
+			if (l.shadow >= 0)
+				radiance *= PointShadowSlot(l.shadow, FragPos);
+			AddLight(Lv / dist, radiance, N, V, albedo, F0, diffuseAccum, specularAccum);
+		}
+		else
+		{
+			// Distance falloff * cone falloff
+			vec3 L = Lv / dist;
+			float theta = dot(-L, normalize(l.dir));
+			float cone = smoothstep(l.cosOuter, l.cosInner, theta);
+			vec3 radiance = l.color * l.intensity * Attenuate(dist, l.range) * cone;
+			AddLight(L, radiance, N, V, albedo, F0, diffuseAccum, specularAccum);
+		}
 	}
 
 	// Sun shadow: darken the direct (diffuse+specular) contribution where the
 	// fragment is occluded from the sun; ambient still fills shadowed areas.
 	float ndotl = max(dot(N, normalize(-dirLightDir)), 0.0);
-	float shadow = ShadowFactor(FragPos, ndotl);
+	// Cascaded maps when the engine renders them (Scene3DShadows.cpp), else the
+	// single sun map. The cascades offset along the TRUE face normal (from
+	// screen-space derivatives, turned toward the camera), not the vertex
+	// normal: generated or smoothed normals - a box with no normals in its
+	// file, stretched non-uniformly - can point almost anywhere, and offsetting
+	// along one pushed the lookup inside the object.
+	vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+	if (dot(faceNormal, viewPos - FragPos) < 0.0)
+		faceNormal = -faceNormal;
+	float shadow = (cascadeCount > 0)
+		? 1.0 - shadowStrength * (1.0 - SunShadow(FragPos, faceNormal, normalize(dirLightDir)))
+		: ShadowFactor(FragPos, ndotl);
 
-	// Cel shading flattens the ambient into the shadow band too.
-	vec3 ambient = albedo * ambientColor;
-	vec3 lit = ambient + (diffuseAccum + specularAccum) * shadow;
+	// Ambient: the scene's flat `ambient` colour - or, with image-based lighting
+	// (a linear-workflow scene with a sky; environment.glsl), the sky's own
+	// light arriving from the surface's direction, plus the sky reflected by
+	// roughness and Fresnel. Cel shading keeps a flat ambient either way.
+	// Ambient occlusion (ao.glsl) darkens this light only, never direct light.
+	// Screen-space reflections (ao.glsl ScreenReflection) replace the sky's
+	// reflection where they found something, and are the only reflection in a
+	// room without a sky.
+	// The material's own occlusion map (glTF) darkens ambient light as well.
+	float materialOcclusion = 1.0;
+	if ((matMaps & MAT_OCCLUSION_PACKED) != 0)
+		materialOcclusion = mix(1.0, metalRough.r, matOcclusionStrength);
+#ifdef KINJO_GL4
+	else if ((matMaps & MAT_OCCLUSION_MAP) != 0)
+		materialOcclusion = mix(1.0, texture(occlusionMap, uv).r, matOcclusionStrength);
+#endif
+	float ambientVisibility = AmbientVisibility(FragPos) * materialOcclusion;
+	vec3 ambient = albedo * ambientColor * ambientVisibility;
+	vec3 skySpecular = vec3(0.0);
+	if (iblOn != 0 && toon == 1)
+	{
+		ambient = albedo * EnvDiffuseFlat() * ambientVisibility;
+	}
+	else if (toon == 0 && (iblOn != 0 || ssrOn != 0))
+	{
+		float NdotV = max(dot(N, V), 0.0);
+		bool pbr = (matLighting == 1);
+		// Blinn-Phong materials: a roughness from the highlight exponent, and
+		// reflections scaled by their specular strength.
+		float rough = pbr ? surfRoughness : sqrt(2.0 / (matShininess + 2.0));
+		vec3 specF0 = pbr ? F0 : vec3(0.04);
+		vec4 screen = ScreenReflection(FragPos);
+		if (iblOn != 0)
+		{
+			vec3 fresnel = specF0 + (max(vec3(1.0 - rough), specF0) - specF0) * pow(1.0 - NdotV, 5.0);
+			vec3 kd = pbr ? (vec3(1.0) - fresnel) * (1.0 - surfMetallic) : vec3(1.0);
+			ambient = kd * albedo * EnvDiffuse(N) * ambientVisibility;
+			vec2 brdf = EnvBrdf(NdotV, rough);
+			vec3 reflected = EnvReflection(reflect(-V, N), rough);
+			if (screen.a > 0.0)
+				reflected = mix(reflected, screen.rgb, screen.a);
+			skySpecular = reflected * (specF0 * brdf.x + brdf.y)
+				* (pbr ? 1.0 : matSpecular) * SpecularVisibility(NdotV, ambientVisibility, rough);
+		}
+		else if (screen.a > 0.0)
+		{
+			// No sky maps (so no BRDF table): Karis' analytic fit of it.
+			vec4 r = rough * vec4(-1.0, -0.0275, -0.572, 0.022) + vec4(1.0, 0.0425, 1.04, -0.04);
+			float a004 = min(r.x * r.x, exp2(-9.28 * NdotV)) * r.x + r.y;
+			vec2 brdf = vec2(-1.04, 1.04) * a004 + r.zw;
+			skySpecular = screen.rgb * screen.a * (specF0 * brdf.x + brdf.y)
+				* (pbr ? 1.0 : matSpecular) * SpecularVisibility(NdotV, ambientVisibility, rough);
+		}
+	}
+	vec3 lit = ambient + skySpecular + (diffuseAccum + specularAccum) * shadow;
 
 	// Storm lightning floods the surface with a brief sky-lit burst.
 	lit += albedo * LightningLight(N);
@@ -343,7 +445,17 @@ void main()
 		lit += matFresnel * f * vec3(1.0);
 	}
 
-	lit += matEmissive;
+	vec3 emissive = matEmissive;
+#ifdef KINJO_GL4
+	if ((matMaps & MAT_EMISSIVE_MAP) != 0)
+		emissive *= texture(emissiveMap, uv).rgb;
+#endif
+	lit += emissive;
 
-	color = vec4(lit, texColor.a * matOpacity);
+	if (aoDebug != 0 && aoOn != 0)
+		lit = vec3(ambientVisibility);   // KINJO_AO_DEBUG: the occlusion itself
+	if (ClusterDebugView())
+		lit = ClusterHeat(lightCount);   // KINJO_CLUSTER_DEBUG: how many lights reach here
+
+	color = vec4(lit, alpha);
 }

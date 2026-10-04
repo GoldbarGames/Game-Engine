@@ -1,1 +1,92 @@
 batchRendering 1
+# linearLighting 1 = linear (gamma-correct) lighting for the 3D world: sRGB
+# scene textures, a linear HDR world target, exposure + tonemapping, encoded
+# back to sRGB. Lit 3D scenes look different (lighting tuned by eye in gamma
+# usually needs rebalancing - see exposure); 2D content and the GUI are
+# unaffected. 0 or absent = off. KINJO_LINEAR=1 / =0 overrides it for one run.
+linearLighting 0
+# With linearLighting 1 only:
+# tonemap   none | agx | agx_punchy | aces   (default agx_punchy). Each is
+#           calibrated so exposure 1 keeps mid-grey where it was; they differ
+#           in contrast, saturation and how highlights roll off.
+# exposure  multiplier on the world's light before tonemapping (default 1).
+#           A scene can set its own with `exposure <v>` in its .scene file
+#           ([ and ] in the 3D editor, F5 to save); scripts use
+#           `scene3d exposure <v> [seconds]`.
+tonemap agx_punchy
+exposure 1.0
+# bloom     0..1 (default 0.04; 0 = off): the share of the image replaced by
+#           its own soft blur. Flat areas keep their brightness; light much
+#           brighter than its surroundings (emissives above 1 in materials.txt,
+#           specular glints) glows. A scene can set its own: `bloom <v>`.
+bloom 0.04
+# ibl       image-based lighting from the scene's sky (default 1; 0 = off):
+#           ambient light comes from the sky in each surface's direction and
+#           surfaces reflect it. iblSpecular sets reflections separately.
+#           Scenes without a sky keep their flat ambient. Per scene:
+#           `ibl <diffuse> [specular]`.
+ibl 1
+# ao        ambient occlusion strength 0..1 (default 1; 0 = off): darkens
+#           ambient light (sky / flat ambient) where geometry crowds a
+#           surface - corners, contact under objects - never direct light.
+# aoRadius  how far it looks for occluders, in world units (default 60).
+#           Per scene: `ao <strength> [radius]`.
+ao 1
+aoRadius 60
+# antialiasing  taa | none (default taa): temporal anti-aliasing for 3D scenes
+#           - smooth edges, stable fine detail. Each frame is rendered with a
+#           sub-pixel camera offset and blended into the image accumulated
+#           over earlier frames (moving objects carry motion vectors, so they
+#           don't ghost). Costs a little sharpness.
+antialiasing taa
+# clusteredLights  1 | 0 (default 1; any colour mode): point and spot lights
+#           are sorted into screen tiles x depth slices each frame, so a scene
+#           can hold hundreds of lights while each pixel shades only those that
+#           reach it. 0 = the old way: the scene's first 8 point + 4 spot lights.
+clusteredLights 1
+# --- atmosphere and extras (linearLighting 1 only) ---
+# colorGrade  a strip LUT png (N*N wide, N tall) applied to the final image -
+#           start from data/luts/neutral32.png: paste it into a screenshot,
+#           grade the whole picture, cut the strip back out. none = off.
+#           A scene can set its own: `grade <png> [strength]`.
+colorGrade none
+colorGradeStrength 1
+# depthOfField  1 | 0: allow depth of field (scenes and scripts turn it on:
+#           `dof <focus> <aperture>`, `scene3d dof ...`).
+depthOfField 1
+# fog       volumetric fog density per world unit (0 = none; 0.0005 loses
+#           about half the light over 1400 units), lit by the sun (god rays)
+#           and the lamps (light shafts). Rain/snow/storms add their own.
+# fogHeightFalloff  thinning with height (per world unit; 0 = uniform)
+# fogColor r g b    scattering colour; fogAnisotropy 0..0.9 (forward glow)
+# fogNoise 0..1     drifting patches; fogDistance  how far rays march
+fog 0
+fogHeightFalloff 0.004
+fogColor 1 1 1
+fogAnisotropy 0.5
+fogNoise 0
+fogDistance 6000
+# reflections  1 | 0: screen-space reflections on glossy surfaces (needs
+#           antialiasing taa); reflectionDistance  how far rays search.
+reflections 1
+reflectionDistance 1500
+# Sun shadows (any colour mode; used with the engine's scene3d shaders):
+# shadowCascades  1-4 cascaded maps (default 4), 0 = the old single sun map
+# shadowDistance  how far from the camera sun shadows reach, in world units
+#                 (default 5000). A scene can set its own: `shadowdistance <d>`.
+# shadowSoftness  PCF tap spacing in shadow-map texels (default 1; larger = softer)
+shadowCascades 4
+shadowDistance 5000
+shadowSoftness 1
+# Textures (any colour mode):
+# anisotropy  1-16 (default 8): anisotropic filtering of smooth (mipmapped)
+#           textures, so floors and walls seen at a slant stay sharp; clamped
+#           to what the GPU allows. A name.ktx2 beside a name.png loads in its
+#           place (GPU-compressed, its own mips): make them with
+#           utils/texconvert.py.
+anisotropy 8
+# gpuDriven  1 | 0 (default 1; desktop GL 4.3+ with the engine's scene3d
+#           shaders): the 3D scene's opaque models are culled per view on the
+#           GPU and drawn with a few indirect multi-draws instead of one draw per
+#           model, so scenes with thousands of props stay fast.
+gpuDriven 1

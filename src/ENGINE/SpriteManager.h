@@ -109,6 +109,9 @@ public:
 	// filter it was created with, so load an image consistently everywhere
 	Texture* GetImage(const std::string& imagePath,
 		Texture::Filter filter = Texture::Filter::Point) const;
+	// srgb = colour art for a linear-workflow 3D scene: a separate cached copy
+	// stored as sRGB, so the same file used as a 2D sprite keeps its own texture.
+	Texture* GetImage(const std::string& imagePath, Texture::Filter filter, bool srgb) const;
 	Texture* GetTexture(TTF_Font* f, char c, int size);
 	Texture* GetTexture(TTF_Font* f, const std::string& txt, int wrapWidth=0);
 	void Init(Renderer* r);

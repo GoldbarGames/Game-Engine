@@ -5,6 +5,9 @@
 // of the frame and eases off toward the ground - this keeps the lower scene
 // readable instead of washing the whole screen to a flat white.
 #include "draw.glsl"
+// Linear-aware: the flash is light added to the scene, so in a linear target
+// its (authored, sRGB) colour is decoded and scaled linearly.
+#include "target.glsl"
 
 struct DrawData
 {
@@ -54,5 +57,5 @@ void main()
     // at rest it adds nothing at all and leaves the sky alone, and during a
     // strike it becomes as opaque as it is bright.
     float a = draw.uFlashIntensity * grad;
-    FragColor = vec4(draw.uFlashColor * a, a);
+    FragColor = vec4(TargetColor(draw.uFlashColor) * a, a);
 }

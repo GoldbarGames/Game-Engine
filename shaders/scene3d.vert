@@ -9,16 +9,20 @@ out vec2 TexCoord;
 out vec3 FragPos;
 out vec3 Normal;
 out vec3 Tangent;
+out vec3 PrevWorldPos;   // where this point was last frame (motion vectors, motion.glsl)
 
 #include "camera.glsl"
 #include "draw.glsl"
 
-// Per draw: the model matrix, and transpose(inverse(mat3(model))) to keep
-// normals correct under non-uniform scale. 112 bytes (push-constant budget).
+// Per draw: the model matrix, transpose(inverse(mat3(model))) to keep
+// normals correct under non-uniform scale, and how far the model moved since
+// last frame (for motion vectors; 0 when still). 128 bytes, the push-constant
+// budget.
 struct DrawData
 {
 	mat4 model;
 	mat3 normalMatrix;
+	vec3 motionOffset;
 };
 PER_DRAW(DrawData);
 
@@ -74,6 +78,7 @@ void main()
 	}
 
 	FragPos = worldPos.xyz;
+	PrevWorldPos = worldPos.xyz - draw.motionOffset;
 	gl_Position = projection * view * worldPos;
 	TexCoord = tex;
 	Normal = N;

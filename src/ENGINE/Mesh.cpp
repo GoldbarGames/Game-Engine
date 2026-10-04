@@ -1,5 +1,7 @@
 #include "Mesh.h"
 #include "TransientBuffer.h"
+#include "ModelMaterials.h"
+#include "render/MeshPool.h"
 #include "render/RenderDevice.h"
 #include <glm/ext/matrix_float4x4.hpp>
 
@@ -17,6 +19,8 @@ Mesh::Mesh()
 Mesh::~Mesh()
 {
     ClearMesh();
+    ForgetMeshMaterial(this);   // a material imported with it (glTF), if any
+    MeshPoolForget(this);       // and its copy in the shared mesh pool
 }
 
 void Mesh::CreateMesh(float* vertices, unsigned int* indices,

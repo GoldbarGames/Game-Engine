@@ -28,5 +28,22 @@ layout(std140) uniform Material
 	float uWaterWaveScale;    // 76  spatial frequency multiplier
 	float uWaterShoreFade;    // 80  0 = waves reach the edge; 1 = calm shore
 	float uWaterChoppy;       // 84  surface-ripple strength (1.0 = default)
-};                            // 96 bytes (rounded to vec4)
+	// Maps and modes of a material imported with a model (glTF 2.0,
+	// src/ENGINE/ModelMaterials.h). 0 for materials.txt materials, apart from
+	// MAT_NORMAL_XY.
+	int   matMaps;            // 88  MAT_* bits below
+	float matAlphaCutoff;     // 92  MAT_ALPHA_MASK: alpha below this is cut out
+	float matOcclusionStrength; // 96 how far the occlusion map darkens ambient light
+};                            // 112 bytes (rounded to vec4)
+
+const int MAT_METAL_ROUGH_MAP  = 1;    // metallicRoughnessMap (unit 2): G = roughness, B = metallic
+const int MAT_OCCLUSION_PACKED = 2;    // ... and R = occlusion
+const int MAT_OCCLUSION_MAP    = 4;    // occlusionMap (unit 5), R (KINJO_GL4 only)
+const int MAT_EMISSIVE_MAP     = 8;    // emissiveMap (unit 6), times matEmissive (KINJO_GL4 only)
+const int MAT_NORMAL_XY        = 16;   // the normal map holds x and y only (BC5): rebuild z
+const int MAT_GLTF             = 32;   // glTF conventions: normal map +Y = up the texture; alpha by mode
+const int MAT_DOUBLE_SIDED     = 64;   // back faces are lit as front faces
+const int MAT_ALPHA_MASK       = 128;  // cut out below matAlphaCutoff, else opaque
+const int MAT_ALPHA_BLEND      = 256;  // blended (drawn in the transparent pass)
+const int MAT_UNLIT            = 512;  // KHR_materials_unlit: the base colour as it is
 #endif

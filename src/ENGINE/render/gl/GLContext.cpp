@@ -7,6 +7,7 @@
 #include "../../Logger.h"
 #include "../../Shader.h"
 #include <SDL2/SDL.h>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 
@@ -104,6 +105,9 @@ void* CreateRenderContext(SDL_Window* window, Logger& logger)
 	std::cout << "Attempting to create emscripten WebGL context 3 ..." << std::endl;
 
 	emscripten_webgl_make_context_current(webgl_context);
+	// Lets a linear-workflow project render its world into RGBA16F (see
+	// render/ColorPipeline.h); harmless when unused or unavailable.
+	emscripten_webgl_enable_extension(webgl_context, "EXT_color_buffer_float");
 
 	std::cout << "Attempting to create emscripten WebGL context 4..." << std::endl;
 
@@ -129,7 +133,11 @@ void* CreateRenderContext(SDL_Window* window, Logger& logger)
 
 	const int tryMajor[] = { 4, 3 };
 	const int tryMinor[] = { 6, 3 };
-	for (int t = 0; t < 2 && mainContext == nullptr; t++)
+	// KINJO_FORCE_GL33=1: skip 4.6, to test the 3.3 fallback's shader paths
+	// (no cube-map arrays, point-shadow cubes on units 4-7) on a modern GPU.
+	const char* force33 = std::getenv("KINJO_FORCE_GL33");
+	const int firstTry = (force33 != nullptr && force33[0] == '1') ? 1 : 0;
+	for (int t = firstTry; t < 2 && mainContext == nullptr; t++)
 	{
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, tryMajor[t]);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, tryMinor[t]);

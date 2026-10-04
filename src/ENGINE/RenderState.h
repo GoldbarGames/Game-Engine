@@ -21,6 +21,7 @@ enum class BlendMode : uint8_t
 	Off,        // opaque
 	Alpha,      // src * a + dst * (1 - a)  (the engine's default)
 	Additive,   // src + dst                 (lightning flash)
+	Premultiplied,   // src + dst * (1 - src.a): a layer whose colour is already weighted by its opacity (volumetric fog)
 };
 
 enum class CompareOp : uint8_t
