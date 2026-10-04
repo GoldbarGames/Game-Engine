@@ -284,6 +284,11 @@ float Scene3DInternal::SceneShadowDistance()
 	return sceneShadowDistance;
 }
 
+float Scene3DInternal::ProjectShadowDistance()
+{
+	return Cascades().distance;
+}
+
 void Scene3D::RenderShadowCascades(Game& game, const Renderer& renderer, const glm::vec3& L, double casterSig)
 {
 	const CascadeSettings& cfg = Cascades();

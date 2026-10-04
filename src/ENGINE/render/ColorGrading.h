@@ -27,6 +27,7 @@ void LoadColorGradeSettings();
 // seconds > 0 it cross-fades from the look on screen.
 void SetSceneColorGrade(const std::string& path, float strength, float seconds);
 void GetSceneColorGrade(std::string& path, float& strength);   // as set (for saving)
+void GetProjectColorGrade(std::string& path, float& strength); // renderer.dat (path "" = none)
 
 // What the Resolve pass applies this frame. False = no grading.
 struct ColorGradeState

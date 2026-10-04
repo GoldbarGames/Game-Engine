@@ -65,6 +65,12 @@ void BindAmbientOcclusion(unsigned int program);
 // The current scene's values: < 0 = the project default.
 void SetSceneAO(float strength, float radius);
 void GetSceneAO(float& strength, float& radius);
+void GetProjectAO(float& strength, float& radius);   // renderer.dat `ao` / `aoRadius`
+
+// Show the occlusion itself on lit surfaces (KINJO_AO_DEBUG; the 3D editor's
+// LOOK panel toggles it at runtime).
+void SetAmbientOcclusionDebugView(bool on);
+bool AmbientOcclusionDebugView();
 
 void ReleaseAmbientOcclusion();
 

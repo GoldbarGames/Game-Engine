@@ -164,6 +164,18 @@ void LoadClusteredLightSettings()
 			<< std::endl;
 }
 
+void SetClusterDebugView(bool on)
+{
+	debugView = on;
+	// An unchanged frame reuses the last build, block included: flip it in place.
+	blockData.layout.w = on ? 1 : 0;
+}
+
+bool ClusterDebugView()
+{
+	return debugView;
+}
+
 bool ClusteredLightsWanted()
 {
 	return (forced >= 0) ? (forced == 1) : projectOn;

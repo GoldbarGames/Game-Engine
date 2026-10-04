@@ -331,16 +331,14 @@ Color ParseColorHexadecimal(const std::string& text)
 	int index = 1;
 	if (text[0] == '#')
 	{
-		// Color B
-		color.b = (HexToDecimal(text[index]) * 16) + HexToDecimal(text[index+1]);
+		// #RRGGBB[AA]
+		color.r = (HexToDecimal(text[index]) * 16) + HexToDecimal(text[index + 1]);
 		index += 2;
 
-		// Color G
 		color.g = (HexToDecimal(text[index]) * 16) + HexToDecimal(text[index + 1]);
 		index += 2;
 
-		// Color R
-		color.r = (HexToDecimal(text[index]) * 16) + HexToDecimal(text[index + 1]);
+		color.b = (HexToDecimal(text[index]) * 16) + HexToDecimal(text[index + 1]);
 		index += 2;
 
 		// Color A

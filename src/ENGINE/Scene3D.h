@@ -371,6 +371,9 @@ public:
 	std::vector<std::string> PointLightNames() const;
 	// Mutable access to the point lights (ObjectGuards toggles their guardHidden).
 	std::vector<ScenePointLight>& GetPointLights();
+	// The spot lights and the sun, for the 3D editor's LIGHTS panel.
+	std::vector<SceneSpotLight>& GetSpotLights();
+	const SceneDirLight& GetDirectionalLight() const { return dirLight; }
 
 	// Hard-cut the camera to a named pose. Returns false if unknown.
 	bool JumpToCamera(Game& game, const std::string& camName);
@@ -491,6 +494,10 @@ public:
 	bool HasSky() const { return skybox != nullptr; }
 	void SetSkyTint(const glm::vec3& tint);
 	void SetSkyTexture(Game& game, const std::string& path);
+	// The scene's own panorama, as the .scene `sky` line saves it (the 3D
+	// editor's sky picker). "" removes the sky; a scene without one gets it.
+	void SetAuthoredSky(Game& game, const std::string& path);
+	const std::string& GetAuthoredSky() const { return skyTexPath; }
 	// Cross-fade the sky between two panoramas: blend 0 = fully fromPath,
 	// 1 = fully toPath. Textures come from the sprite cache (cheap per frame).
 	// Pass an empty toPath (or blend 0) for a single static panorama.

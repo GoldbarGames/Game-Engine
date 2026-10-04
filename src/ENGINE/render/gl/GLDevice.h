@@ -60,6 +60,9 @@ public:
 		int components, size_t stride, size_t offset, unsigned int divisor) override;
 	void MultiDrawIndexedIndirect(VertexArrayHandle vao, Primitive primitive, BufferHandle commands,
 		size_t offset, int drawCount, size_t stride) override;
+	void BindImage(unsigned int unit, TextureHandle texture, int level, ImageAccess access,
+		TextureFormat format) override;
+	void ReadBuffer(BufferHandle buffer, size_t offset, size_t bytes, void* out) override;
 
 	ProgramHandle CreateProgram(const char* vertexSource, const char* fragmentSource, std::string& log) override;
 	void DestroyProgram(ProgramHandle& program) override;

@@ -1,0 +1,49 @@
+#version 430
+
+// Hi-Z pyramid (src/ENGINE/render/HiZ.cpp): a mip chain of a depth buffer in
+// which each texel holds the FARTHEST depth of the area it covers, for
+// occlusion tests. Level 0 copies the depth texture; each next level is the
+// max of the 2x2 texels under it, 3 wide or tall at an odd edge so the last
+// texel covers the leftover row or column.
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(r32f, binding = 0) uniform readonly image2D source;    // level L-1
+layout(r32f, binding = 1) uniform writeonly image2D target;   // level L
+uniform sampler2D depthTexture;                               // level 0's source
+
+#include "draw.glsl"
+struct DrawData
+{
+	int sourceWidth, sourceHeight;
+	int targetWidth, targetHeight;
+	int fromDepth;   // 1: level 0, from depthTexture
+};
+PER_DRAW(DrawData);
+
+void main()
+{
+	ivec2 sourceSize = ivec2(draw.sourceWidth, draw.sourceHeight);
+	ivec2 targetSize = ivec2(draw.targetWidth, draw.targetHeight);
+	ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+	if (p.x >= targetSize.x || p.y >= targetSize.y)
+		return;
+
+	float d = 0.0;
+	if (draw.fromDepth != 0)
+	{
+		d = texelFetch(depthTexture, p, 0).r;
+	}
+	else
+	{
+		ivec2 first = p * 2;
+		ivec2 last = min(first + ivec2(1), sourceSize - 1);
+		if (p.x == targetSize.x - 1)
+			last.x = sourceSize.x - 1;
+		if (p.y == targetSize.y - 1)
+			last.y = sourceSize.y - 1;
+		for (int y = first.y; y <= last.y; y++)
+			for (int x = first.x; x <= last.x; x++)
+				d = max(d, imageLoad(source, ivec2(x, y)).r);
+	}
+	imageStore(target, p, vec4(d));
+}

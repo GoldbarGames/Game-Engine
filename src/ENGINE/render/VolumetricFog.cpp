@@ -193,6 +193,11 @@ void SetSceneFog(bool set, const FogSettings& fog, float seconds)
 	scene = fog;
 }
 
+FogSettings FogInForce()
+{
+	return Target();
+}
+
 bool GetSceneFog(FogSettings& fog)
 {
 	fog = scene;

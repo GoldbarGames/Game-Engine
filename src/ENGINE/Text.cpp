@@ -279,7 +279,7 @@ void Text::SetText(const std::string& text, Color color, uint32_t wrapWidth)
 			newGlyph->sprite = Sprite(textTexture, Renderer::GetTextShader());
 			newGlyph->sprite.keepScaleRelativeToCamera = keepScaleRelative;
 			newGlyph->sprite.keepPositionRelativeToCamera = renderRelative;
-			newGlyph->sprite.color = { color.b, color.g, color.r, color.a };
+			newGlyph->sprite.color = color;
 			newGlyph->letter = txt[i];
 			newGlyph->scale = currentScale;
 
@@ -308,12 +308,9 @@ void Text::SetText(const std::string& text, Color color, uint32_t wrapWidth)
 
 void Text::SetTextAsOneSprite(const std::string& text, Color color, uint32_t wrapWidth)
 {
-	// For some reason, it is necessary to flip the color from RGBA to BGRA for drawing text
-	Color flippedColor = { color.b, color.g, color.r, color.a };
-
 	// don't do anything if it would result in the same thing
 	if (Globals::currentLanguageIndex == lastLanguageIndex
-		&& txt == text && currentSprite.color == flippedColor)
+		&& txt == text && currentSprite.color == color)
 		return;
 
 	bool renderRelative = currentSprite.keepPositionRelativeToCamera;
@@ -335,7 +332,7 @@ void Text::SetTextAsOneSprite(const std::string& text, Color color, uint32_t wra
 	{
 		currentSprite.SetTexture(textTexture);
 		currentSprite.SetShader(Renderer::GetTextShader());
-		currentSprite.color = flippedColor;
+		currentSprite.color = color;
 		//std::cout << currentSprite.texture << " Creating text " << txt << std::endl;
 		currentSprite.keepScaleRelativeToCamera = keepScaleRelative;
 		currentSprite.keepPositionRelativeToCamera = renderRelative;
@@ -403,7 +400,7 @@ void Text::AddText(char c, Color color)
 		newGlyph->sprite.SetShader(Renderer::GetTextShader());
 		newGlyph->sprite.keepScaleRelativeToCamera = keepScaleRelative;
 		newGlyph->sprite.keepPositionRelativeToCamera = renderRelative;
-		newGlyph->sprite.color = { color.b, color.g, color.r, color.a };
+		newGlyph->sprite.color = color;
 		newGlyph->letter = c;
 		newGlyph->scale = currentScale;
 

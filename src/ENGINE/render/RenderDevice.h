@@ -129,7 +129,12 @@ enum GpuBarrierBit : unsigned int
 	BarrierStorage = 1u,          // later shader storage reads/writes
 	BarrierIndirect = 2u,         // later indirect draw parameters
 	BarrierVertexAttributes = 4u, // later vertex attribute fetches
+	BarrierImage = 8u,            // later image loads/stores (BindImage)
+	BarrierTextureFetch = 16u,    // later texture sampling of image-written textures
+	BarrierBufferRead = 32u,      // a later ReadBuffer of shader-written buffers
 };
+
+enum class ImageAccess : uint8_t { Read, Write, ReadWrite };
 
 enum class Attachment : uint8_t { Color0, Color1, Depth, DepthStencil, Color2 };
 enum class ReadbackFormat : uint8_t { RGBA8, BGR8 };   // BGR8 = what SDL_SaveBMP / IMG_SavePNG surfaces take
@@ -231,6 +236,13 @@ public:
 	// which offsets instanced (divisor > 0) attributes.
 	virtual void MultiDrawIndexedIndirect(VertexArrayHandle vao, Primitive primitive, BufferHandle commands,
 		size_t offset, int drawCount, size_t stride) = 0;
+	// One mip level of a 2D texture as a compute shader image (`layout(binding = unit)
+	// uniform image2D`), with `format` its texel layout (R32F, RGBA8, RGBA16F...).
+	virtual void BindImage(unsigned int unit, TextureHandle texture, int level, ImageAccess access,
+		TextureFormat format) = 0;
+	// Copy `bytes` of a buffer back to the CPU. Waits for the GPU if it is still
+	// writing them (debug statistics; read a few frames late to avoid the wait).
+	virtual void ReadBuffer(BufferHandle buffer, size_t offset, size_t bytes, void* out) = 0;
 
 	// Programs
 	virtual ProgramHandle CreateProgram(const char* vertexSource, const char* fragmentSource, std::string& log) = 0;

@@ -393,6 +393,12 @@ void SetSceneIBL(float diffuse, float specular)
 	sceneSpecular = (specular < 0.0f) ? -1.0f : specular;
 }
 
+void GetProjectIBL(float& diffuse, float& specular)
+{
+	diffuse = projectDiffuse;
+	specular = projectSpecular;
+}
+
 void GetSceneIBL(float& diffuse, float& specular)
 {
 	diffuse = sceneDiffuse;

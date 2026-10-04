@@ -35,6 +35,7 @@
 #include "render/RenderDevice.h"
 #include "render/MeshPool.h"
 #include "render/TemporalAA.h"
+#include "render/HiZ.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 #include <cmath>
@@ -745,4 +746,129 @@ unsigned int Scene3DInternal::GpuShadowProgram(bool point)
 unsigned int Scene3DInternal::GpuPrepassProgram()
 {
 	return programsOk ? prepassProgram->GetID() : 0;
+}
+
+// ------------------------------------------------------------ KINJO_HIZ_STATS
+// How much a Hi-Z occlusion test would cull (docs/RENDERING_NEXT_STEPS.md):
+// after the world pass, the frame's final depth becomes a Hi-Z pyramid
+// (render/HiZ.h) and shaders/hiz_stats.comp tests every in-view GPU-driven
+// model against it. Counts are read back a few frames late (no stall) and
+// averaged. Measures only; nothing is culled.
+
+namespace
+{
+	int hizStatsEvery = -1;   // -1 = not read yet, 0 = off, else report every N frames
+	unsigned int statsProgram = 0;
+	bool statsTried = false;
+	struct { int viewProj, width, height, levels, instanceCount, hiz; } statsLoc;
+	const int kStatsRing = 4;
+	BufferHandle statsCounts[kStatsRing];
+	bool statsWritten[kStatsRing] = {};
+	int statsSlot = 0;
+	Buffer statsTriangles;
+	// hiz_stats.comp's counts: models in view, hidden (coarse), hidden (fine),
+	// then the same three in triangles.
+	const int kStatCount = 6;
+	uint64_t sums[kStatCount] = {};
+	int statsFrames = 0;
+}
+
+bool Scene3DInternal::HizStatsWanted()
+{
+	if (hizStatsEvery < 0)
+	{
+		const char* v = std::getenv("KINJO_HIZ_STATS");
+		const int n = (v != nullptr) ? std::atoi(v) : 0;
+		hizStatsEvery = (n == 1) ? 60 : std::max(n, 0);
+		if (hizStatsEvery > 0)
+			std::cout << "KINJO_HIZ_STATS: Hi-Z occlusion estimate every " << hizStatsEvery << " frames" << std::endl;
+	}
+	return hizStatsEvery > 0;
+}
+
+void Scene3DInternal::MeasureOcclusion(const Renderer& renderer, unsigned int depthTexture, int width, int height)
+{
+	if (!frameActive || colourModels.empty() || !HizStatsWanted())
+		return;
+	RenderDevice& device = Device();
+	if (!statsTried)
+	{
+		statsTried = true;
+		statsProgram = CreateComputeProgramFromFile("data/shaders/hiz_stats.comp");
+		if (statsProgram != 0)
+		{
+			const ProgramHandle p(statsProgram);
+			statsLoc.viewProj = device.UniformLocation(p, "draw.viewProj");
+			statsLoc.width = device.UniformLocation(p, "draw.width");
+			statsLoc.height = device.UniformLocation(p, "draw.height");
+			statsLoc.levels = device.UniformLocation(p, "draw.levels");
+			statsLoc.instanceCount = device.UniformLocation(p, "draw.instanceCount");
+			statsLoc.hiz = device.UniformLocation(p, "hiz");
+			for (BufferHandle& b : statsCounts)
+				b = device.CreateBuffer(8 * sizeof(uint32_t), nullptr, BufferUsage::Dynamic);
+		}
+	}
+	if (statsProgram == 0 || !BuildHiZ(TextureHandle(depthTexture), width, height))
+		return;
+
+	// The counts written kStatsRing - 1 frames ago (the GPU is done with them).
+	const int readSlot = (statsSlot + 1) % kStatsRing;
+	if (statsWritten[readSlot])
+	{
+		uint32_t c[8] = {};
+		device.ReadBuffer(statsCounts[readSlot], 0, sizeof(c), c);
+		for (int k = 0; k < kStatCount; k++)
+			sums[k] += c[k];
+		if (++statsFrames >= hizStatsEvery)
+		{
+			double avg[kStatCount];
+			for (int k = 0; k < kStatCount; k++)
+				avg[k] = (double)sums[k] / statsFrames;
+			auto pct = [](double part, double whole) { return whole > 0.0 ? 100.0 * part / whole : 0.0; };
+			char line[384];
+			snprintf(line, sizeof(line), "Hi-Z estimate (camera vs the frame's final depth, avg of %d frames): "
+				"%.0f in-view models, %.0f triangles. Hidden - culler's 2x2 test: %.0f models (%.1f%%), "
+				"%.1f%% of triangles; finer test: %.0f models (%.1f%%), %.1f%% of triangles",
+				statsFrames, avg[0], avg[3], avg[1], pct(avg[1], avg[0]), pct(avg[4], avg[3]),
+				avg[2], pct(avg[2], avg[0]), pct(avg[5], avg[3]));
+			std::cout << line << std::endl;
+			for (uint64_t& sum : sums)
+				sum = 0;
+			statsFrames = 0;
+		}
+	}
+
+	// Each batch's triangles in the colour passes (blended glTF meshes draw elsewhere).
+	static std::vector<uint32_t> triangles;
+	triangles.assign(batches.size(), 0u);
+	for (size_t b = 0; b < batches.size(); b++)
+	{
+		for (const Mesh* mesh : batches[b].leader->model3D.meshList)
+		{
+			const ModelMaterial* own = MeshMaterial(mesh);
+			MeshPoolRange range;
+			if ((own == nullptr || own->alphaMode != AlphaMode::Blend) && MeshPoolFind(mesh, range))
+				triangles[b] += range.indexCount / 3;
+		}
+	}
+	device.UpdateBuffer(Ensure(statsTriangles, triangles.size() * sizeof(uint32_t)), 0,
+		triangles.size() * sizeof(uint32_t), triangles.data());
+
+	const uint32_t zero[8] = {};
+	device.UpdateBuffer(statsCounts[statsSlot], 0, sizeof(zero), zero);
+	device.UseProgram(ProgramHandle(statsProgram));
+	device.SetUniform(statsLoc.viewProj, renderer.camera.projection * renderer.camera.CalculateViewMatrix());
+	device.SetUniform(statsLoc.width, width);
+	device.SetUniform(statsLoc.height, height);
+	device.SetUniform(statsLoc.levels, HiZLevels());
+	device.SetUniform(statsLoc.instanceCount, (int)instances.size());
+	device.BindTexture(0, HiZTexture());
+	device.SetUniform(statsLoc.hiz, 0);
+	device.BindStorageBuffer(0, slots[slot].instances.handle);
+	device.BindStorageBuffer(6, statsCounts[statsSlot]);
+	device.BindStorageBuffer(7, statsTriangles.handle);
+	device.Dispatch((unsigned int)((instances.size() + 63) / 64));
+	device.GpuBarrier(BarrierStorage | BarrierBufferRead);
+	statsWritten[statsSlot] = true;
+	statsSlot = (statsSlot + 1) % kStatsRing;
 }

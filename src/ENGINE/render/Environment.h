@@ -48,6 +48,7 @@ void BindEnvironment(unsigned int program);
 // The current scene's IBL strengths: < 0 = the project default.
 void SetSceneIBL(float diffuse, float specular);
 void GetSceneIBL(float& diffuse, float& specular);
+void GetProjectIBL(float& diffuse, float& specular);   // renderer.dat `ibl` / `iblSpecular`
 
 void ReleaseEnvironment();
 

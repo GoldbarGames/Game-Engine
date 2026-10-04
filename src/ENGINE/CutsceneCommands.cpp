@@ -560,10 +560,9 @@ Color CutsceneCommands::ParseColorFromParameters(const std::vector<std::string>&
 	}
 	else // then it must be RGB or RGBA decimal such as 255 255 255 or 255 255 255 255
 	{
-		// Note: blue and red are swapped for endianness
-		color.b = ParseNumberValue(colorParams[0]);
+		color.r = ParseNumberValue(colorParams[0]);
 		color.g = ParseNumberValue(colorParams[1]);
-		color.r = ParseNumberValue(colorParams[2]);
+		color.b = ParseNumberValue(colorParams[2]);
 
 		if (colorParams.size() > 3)
 			color.a = ParseNumberValue(colorParams[3]);

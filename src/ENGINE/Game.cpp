@@ -50,6 +50,7 @@
 #include "MenuScreen.h"
 #include "Renderer.h"
 #include "Scene3D.h"
+#include "Scene3DInternal.h"
 #include "Light.h"
 #include "DirectionalLight.h"
 #include "PointLight.h"
@@ -3212,6 +3213,18 @@ void Game::Render()
 		SetMotionWrites(false);
 	});
 	weatherAfterTemporal = false;
+
+	// KINJO_HIZ_STATS: how many in-view models a Hi-Z occlusion test against
+	// this frame's depth would cull - a measurement, nothing is culled
+	// (docs/RENDERING_NEXT_STEPS.md). The camera still carries the world's jitter.
+	if (Scene3DInternal::HizStatsWanted() && Scene3D::Get().active && !renderer.camera.useOrthoCamera
+		&& mainFrameBuffer->depthTexture != 0)
+	{
+		RunPass("HizStats", Targets(RenderTarget::MainDepth), Targets(), [&]()
+		{
+			Scene3DInternal::MeasureOcclusion(renderer, mainFrameBuffer->depthTexture, screenWidth, screenHeight);
+		});
+	}
 
 	// Temporal anti-aliasing: the toon outline joins the world first (so it is
 	// smoothed too and doesn't shimmer with the jitter), then this frame is

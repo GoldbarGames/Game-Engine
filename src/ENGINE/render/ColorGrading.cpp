@@ -143,6 +143,12 @@ void SetSceneColorGrade(const std::string& path, float strength, float seconds)
 	sceneStrength = (strength < 0.0f) ? 1.0f : strength;
 }
 
+void GetProjectColorGrade(std::string& path, float& strength)
+{
+	path = projectPath;
+	strength = projectStrength;
+}
+
 void GetSceneColorGrade(std::string& path, float& strength)
 {
 	path = scenePath;

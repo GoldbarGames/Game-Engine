@@ -69,7 +69,7 @@ public:
 	bool DropdownClick(Game& game, float sx, float sy);
 
 private:
-	enum class SelType { None, Model, Character, Anchor };
+	enum class SelType { None, Model, Character, Anchor, PointLight, SpotLight };
 	SelType selType = SelType::None;
 	int selIndex = -1;
 
@@ -238,7 +238,30 @@ public:
 	bool ListTabClick(Game& game, float sx, float sy);
 	// True if (sx,sy) falls inside the open minimap panel (so the click is swallowed).
 	bool MinimapClick(Game& game, float sx, float sy);
+	// If (sx,sy) hits the LOOK toggle or a control in the open LOOK panel, apply
+	// it and return true (a click elsewhere on the open panel is swallowed too).
+	bool LookButtonClick(Game& game, float sx, float sy);
+	// The same for the LIGHTS toggle and panel.
+	bool LightsButtonClick(Game& game, float sx, float sy);
 private:
+	// LOOK panel: the scene's rendering look (exposure, bloom, sky light, AO,
+	// shadows, fog, depth of field, grade, sky, debug views). Its state lives in
+	// Scene3DEditor.cpp, not here: this class is exported and games embed it by
+	// value, so new data members would change its size under them.
+	void RenderLookPanel(Game& game, const Renderer& renderer);
+	void LookClick(Game& game, int row, int part);
+	void OpenLookDropdown(Game& game, bool sky);
+	void LookFocusAt(Game& game, float sx, float sy);
+
+	// Light editing: point and spot lights are selectable (their markers in the
+	// view, or the object list) and edited in the LIGHTS panel, which shows the
+	// sun and ambient light when no light is selected. State is file-static too.
+	void RenderLightsPanel(Game& game, const Renderer& renderer);
+	void LightsClick(Game& game, int row, int part);
+	void RenderLightGizmos(Game& game, const Renderer& renderer);
+	void AddLight(Game& game, bool spot);
+	ScenePointLight* SelectedPointLight() const;
+	SceneSpotLight* SelectedSpotLight() const;
 
 	// Action buttons: DELETE, ADD (model dropdown), NEW (new scene), LOAD
 	// (scene dropdown), TAG, MAT, SHADOW (scene-global point-light caster),
@@ -273,7 +296,7 @@ private:
 
 	// A single dropdown, listing either model types (to add) or scenes (to
 	// load). Only one open at a time; it hangs under its anchor button.
-	enum class DropKind { None, AddModel, LoadScene, MatSelect };
+	enum class DropKind { None, AddModel, LoadScene, MatSelect, LookLut, LookSky };
 	DropKind openDropdown = DropKind::None;
 	int dropdownAnchor = 1;
 	std::vector<Scene3D::ModelDef> addPalette;
@@ -290,7 +313,7 @@ private:
 	// Typed-text prompt (SDL key edges). Shared by NEW-scene naming and CLUE
 	// tagging; promptMode selects what confirming does. namingScene stays the
 	// "prompt is active" flag the rest of the editor already checks.
-	enum class PromptMode { NewScene, Tag, CameraName };
+	enum class PromptMode { NewScene, Tag, CameraName, LightName };
 	bool namingScene = false;
 	PromptMode promptMode = PromptMode::NewScene;
 	std::string nameBuffer;

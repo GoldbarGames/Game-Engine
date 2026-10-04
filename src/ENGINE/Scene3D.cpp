@@ -575,6 +575,11 @@ std::vector<ScenePointLight>& Scene3D::GetPointLights()
 	return pointLights;
 }
 
+std::vector<SceneSpotLight>& Scene3D::GetSpotLights()
+{
+	return spotLights;
+}
+
 // ------------------------------------------------------------ characters
 
 Character3D::Character3D(const glm::vec3& pos) : Entity(pos)
@@ -989,7 +994,7 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 		}
 		else if (tag == "point")
 		{
-			// point <name> <x> <y> <z> <r> <g> <b> <range> <intensity> [flash <hz> [phase]]
+			// point <name> <x> <y> <z> <r> <g> <b> <range> <intensity> [off] [flash <hz> [phase]] [if <guard>]
 			ScenePointLight p;
 			ss >> p.name >> p.pos.x >> p.pos.y >> p.pos.z
 				>> p.color.r >> p.color.g >> p.color.b
@@ -1000,7 +1005,9 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 			std::string kw;
 			while (ss >> kw)
 			{
-				if (kw == "flash")
+				if (kw == "off")
+					p.on = false;   // starts switched off (a script turns it on)
+				else if (kw == "flash")
 					ss >> p.flashHz >> p.flashPhase;
 				else if (kw == "if")
 				{
@@ -1016,12 +1023,16 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 		else if (tag == "spot")
 		{
 			// spot <name> <x> <y> <z> <dx> <dy> <dz> <r> <g> <b>
-			//      <range> <intensity> <innerDeg> <outerDeg>
+			//      <range> <intensity> <innerDeg> <outerDeg> [off]
 			SceneSpotLight s;
 			ss >> s.name >> s.pos.x >> s.pos.y >> s.pos.z
 				>> s.dir.x >> s.dir.y >> s.dir.z
 				>> s.color.r >> s.color.g >> s.color.b
 				>> s.range >> s.intensity >> s.innerDeg >> s.outerDeg;
+			std::string kw;
+			while (ss >> kw)
+				if (kw == "off")
+					s.on = false;   // [off]: starts switched off
 			spotLights.push_back(s);
 		}
 		else if (tag == "shadowlight")   // shadowlight <point-light name> (caster override)
@@ -1617,9 +1628,18 @@ void Scene3D::WriteScene(std::ostream& out) const
 	}
 	for (const ScenePointLight& p : pointLights)
 	{
+		// A strobing light is saved at its authored peak, not mid-blink.
+		const float intensity = (p.flashHz > 0.0f) ? p.flashPeak : p.intensity;
 		out << "point " << p.name << " " << p.pos.x << " " << p.pos.y << " "
 			<< p.pos.z << " " << p.color.r << " " << p.color.g << " "
-			<< p.color.b << " " << p.range << " " << p.intensity << "\n";
+			<< p.color.b << " " << p.range << " " << intensity;
+		if (!p.on)
+			out << " off";
+		if (p.flashHz > 0.0f)
+			out << " flash " << p.flashHz << " " << p.flashPhase;
+		if (!p.guard.empty())
+			out << " if " << p.guard;   // runs to the end of the line
+		out << "\n";
 	}
 	for (const SceneSpotLight& s : spotLights)
 	{
@@ -1627,7 +1647,10 @@ void Scene3D::WriteScene(std::ostream& out) const
 			<< s.pos.z << " " << s.dir.x << " " << s.dir.y << " " << s.dir.z
 			<< " " << s.color.r << " " << s.color.g << " " << s.color.b
 			<< " " << s.range << " " << s.intensity << " " << s.innerDeg
-			<< " " << s.outerDeg << "\n";
+			<< " " << s.outerDeg;
+		if (!s.on)
+			out << " off";
+		out << "\n";
 	}
 	// Which point light casts shadows (empty = auto-pick the strongest).
 	if (!shadowCasterLight.empty())
@@ -2193,6 +2216,32 @@ void Scene3D::SetSkyTexture(Game& game, const std::string& path)
 	s->frameHeight = tex->GetHeight();
 	skybox->nextTexture = nullptr;   // a hard set clears any cross-fade
 	skybox->blendToNext = 0.0f;
+}
+
+void Scene3D::SetAuthoredSky(Game& game, const std::string& path)
+{
+	if (path.empty())
+	{
+		if (skybox != nullptr)
+		{
+			game.ShouldDeleteEntity(skybox);
+			skybox = nullptr;
+		}
+		skyTexPath.clear();
+		return;
+	}
+	if (skybox == nullptr)
+	{
+		if (skyRadiusVal <= 0.0f)
+			skyRadiusVal = 4000.0f;
+		skybox = new Skybox(game, path, skyRadiusVal);
+		game.entities.push_back(skybox);
+	}
+	else
+	{
+		SetSkyTexture(game, path);
+	}
+	skyTexPath = path;
 }
 
 void Scene3D::SetSkyCrossfade(Game& game, const std::string& fromPath,

@@ -44,6 +44,9 @@ void LoadFogSettings();
 // its density fading over `seconds`.
 void SetSceneFog(bool set, const FogSettings& fog, float seconds);
 bool GetSceneFog(FogSettings& fog);           // false = the scene sets none (for saving)
+// The settings in force, before any density fade: the scene's, else the
+// project's (with the weather's density when the project sets none).
+FogSettings FogInForce();
 void SetSceneFogDensity(float density, float seconds);   // scene3d fog <density> [seconds]
 // The weather's fog (rain/snow/storm), used when the scene sets none.
 void SetWeatherFogDensity(float density);

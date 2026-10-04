@@ -447,6 +447,22 @@ void SetSceneAO(float strength, float radius)
 	sceneRadius = (radius <= 0.0f) ? -1.0f : radius;
 }
 
+void GetProjectAO(float& strength, float& radius)
+{
+	strength = projectStrength;
+	radius = projectRadius;
+}
+
+void SetAmbientOcclusionDebugView(bool on)
+{
+	debugView = on;
+}
+
+bool AmbientOcclusionDebugView()
+{
+	return debugView;
+}
+
 void GetSceneAO(float& strength, float& radius)
 {
 	strength = sceneStrength;

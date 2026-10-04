@@ -1,0 +1,122 @@
+#version 430
+
+// KINJO_HIZ_STATS (src/ENGINE/Scene3DGpuDriven.cpp, docs/RENDERING_NEXT_STEPS.md):
+// how much a Hi-Z occlusion test would cull. For every GPU-driven model in the
+// camera's view, its bounding sphere's box is projected; it is hidden when its
+// nearest depth is behind the farthest depth of the Hi-Z pyramid (render/HiZ.h)
+// under its screen rectangle. Two readings:
+//   coarse - the level where the rectangle spans one texel, so 2x2 texels are
+//            read: the cheap test a Hi-Z culler makes;
+//   fine   - a level 3 lower, up to 9x9 texels: closer to what the depth
+//            buffer really says (an upper bound for any culler using it).
+// Measuring only: nothing is culled.
+layout(local_size_x = 64) in;
+
+#include "scene_instances.glsl"
+
+// [0] models in view, [1] hidden (coarse), [2] hidden (fine),
+// [3] triangles in view, [4] hidden (coarse), [5] hidden (fine).
+layout(std430, binding = 6) buffer HizCounts { uint hizCounts[]; };
+// Each batch's triangles in the colour passes.
+layout(std430, binding = 7) readonly buffer BatchTriangles { uint batchTriangles[]; };
+
+uniform sampler2D hiz;
+
+#include "draw.glsl"
+struct DrawData
+{
+	mat4 viewProj;   // as the depth buffer was drawn
+	int width, height;
+	int levels;
+	int instanceCount;
+};
+PER_DRAW(DrawData);
+
+bool InView(vec4 s)
+{
+	mat4 m = draw.viewProj;
+	vec4 row0 = vec4(m[0][0], m[1][0], m[2][0], m[3][0]);
+	vec4 row1 = vec4(m[0][1], m[1][1], m[2][1], m[3][1]);
+	vec4 row2 = vec4(m[0][2], m[1][2], m[2][2], m[3][2]);
+	vec4 row3 = vec4(m[0][3], m[1][3], m[2][3], m[3][3]);
+	vec4 planes[6] = vec4[6](row3 + row0, row3 - row0, row3 + row1, row3 - row1, row3 + row2, row3 - row2);
+	for (int p = 0; p < 6; p++)
+	{
+		vec4 plane = planes[p] / length(planes[p].xyz);
+		if (dot(plane.xyz, s.xyz) + plane.w < -s.w)
+			return false;
+	}
+	return true;
+}
+
+// The sphere's world box, projected: its pixel rectangle (a, b) and nearest
+// window depth. False if it can't be judged (it reaches behind the camera).
+bool Project(vec4 s, out ivec2 a, out ivec2 b, out float depth)
+{
+	vec2 lo = vec2(1.0e9), hi = vec2(-1.0e9);
+	float nearest = 1.0e9;
+	a = ivec2(0);
+	b = ivec2(0);
+	depth = 0.0;
+	for (int k = 0; k < 8; k++)
+	{
+		vec3 corner = s.xyz + s.w * vec3((k & 1) != 0 ? 1.0 : -1.0, (k & 2) != 0 ? 1.0 : -1.0, (k & 4) != 0 ? 1.0 : -1.0);
+		vec4 c = draw.viewProj * vec4(corner, 1.0);
+		if (c.w <= 1.0e-4)
+			return false;
+		vec3 ndc = c.xyz / c.w;
+		lo = min(lo, ndc.xy);
+		hi = max(hi, ndc.xy);
+		nearest = min(nearest, ndc.z);
+	}
+	depth = nearest * 0.5 + 0.5;
+	if (depth <= 0.0)
+		return false;   // crosses the near plane
+	ivec2 size = ivec2(draw.width, draw.height);
+	a = clamp(ivec2(floor((lo * 0.5 + 0.5) * vec2(size))), ivec2(0), size - 1);
+	b = clamp(ivec2(floor((hi * 0.5 + 0.5) * vec2(size))), ivec2(0), size - 1);
+	return true;
+}
+
+// Hidden by the pyramid, read `finer` levels below the one where the
+// rectangle spans a single texel.
+bool Hidden(ivec2 a, ivec2 b, float depth, int finer)
+{
+	ivec2 span = b - a + 1;
+	int level = clamp(int(ceil(log2(float(max(span.x, span.y))))) - finer, 0, draw.levels - 1);
+	ivec2 levelSize = max(ivec2(draw.width, draw.height) >> level, ivec2(1));
+	ivec2 ta = min(a >> level, levelSize - 1);
+	ivec2 tb = min(b >> level, levelSize - 1);
+	float farthest = 0.0;
+	for (int y = ta.y; y <= tb.y; y++)
+		for (int x = ta.x; x <= tb.x; x++)
+			farthest = max(farthest, texelFetch(hiz, ivec2(x, y), level).r);
+	return depth > farthest;
+}
+
+void main()
+{
+	uint i = gl_GlobalInvocationID.x;
+	if (i >= uint(draw.instanceCount))
+		return;
+	SceneInstance inst = sceneInstances[i];
+	if ((inst.info.y & 1u) == 0u || inst.sphere.w < 0.0 || !InView(inst.sphere))
+		return;
+	uint triangles = batchTriangles[inst.info.x];
+	atomicAdd(hizCounts[0], 1u);
+	atomicAdd(hizCounts[3], triangles);
+	ivec2 a, b;
+	float depth;
+	if (!Project(inst.sphere, a, b, depth))
+		return;
+	if (Hidden(a, b, depth, 0))
+	{
+		atomicAdd(hizCounts[1], 1u);
+		atomicAdd(hizCounts[4], triangles);
+	}
+	if (Hidden(a, b, depth, 3))
+	{
+		atomicAdd(hizCounts[2], 1u);
+		atomicAdd(hizCounts[5], triangles);
+	}
+}

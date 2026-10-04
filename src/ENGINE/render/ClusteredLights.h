@@ -58,6 +58,11 @@ void DisableLightClusters();
 // texture on unit 14. Always safe to call.
 void BindLightClusters(unsigned int program);
 
+// Colour lit surfaces by how many lights reach them (KINJO_CLUSTER_DEBUG; the
+// 3D editor's LOOK panel toggles it at runtime).
+void SetClusterDebugView(bool on);
+bool ClusterDebugView();
+
 void ReleaseClusteredLights();
 
 #endif

@@ -727,6 +727,9 @@ void GLDevice::GpuBarrier(unsigned int barrierBits)
 	if (barrierBits & BarrierStorage) bits |= GL_SHADER_STORAGE_BARRIER_BIT;
 	if (barrierBits & BarrierIndirect) bits |= GL_COMMAND_BARRIER_BIT;
 	if (barrierBits & BarrierVertexAttributes) bits |= GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT;
+	if (barrierBits & BarrierImage) bits |= GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+	if (barrierBits & BarrierTextureFetch) bits |= GL_TEXTURE_FETCH_BARRIER_BIT;
+	if (barrierBits & BarrierBufferRead) bits |= GL_BUFFER_UPDATE_BARRIER_BIT;
 	if (bits != 0)
 		glMemoryBarrier(bits);
 #else
@@ -759,6 +762,38 @@ void GLDevice::MultiDrawIndexedIndirect(VertexArrayHandle vao, Primitive primiti
 	glBindVertexArray(0);
 #else
 	(void)vao; (void)primitive; (void)commands; (void)offset; (void)drawCount; (void)stride;
+#endif
+}
+
+void GLDevice::BindImage(unsigned int unit, TextureHandle texture, int level, ImageAccess access,
+	TextureFormat format)
+{
+#ifndef __EMSCRIPTEN__
+	const GLenum glAccess = (access == ImageAccess::Read) ? GL_READ_ONLY
+		: (access == ImageAccess::Write) ? GL_WRITE_ONLY : GL_READ_WRITE;
+	GLenum glFormat = GL_RGBA8;
+	switch (format)
+	{
+	case TextureFormat::R32F:     glFormat = GL_R32F; break;
+	case TextureFormat::R8:       glFormat = GL_R8; break;
+	case TextureFormat::RGBA16F:  glFormat = GL_RGBA16F; break;
+	case TextureFormat::RGBA32UI: glFormat = GL_RGBA32UI; break;
+	default:                      glFormat = GL_RGBA8; break;
+	}
+	glBindImageTexture(unit, texture.id, level, GL_FALSE, 0, glAccess, glFormat);
+#else
+	(void)unit; (void)texture; (void)level; (void)access; (void)format;
+#endif
+}
+
+void GLDevice::ReadBuffer(BufferHandle buffer, size_t offset, size_t bytes, void* out)
+{
+#ifndef __EMSCRIPTEN__
+	glBindBuffer(GL_COPY_READ_BUFFER, buffer.id);
+	glGetBufferSubData(GL_COPY_READ_BUFFER, (GLintptr)offset, (GLsizeiptr)bytes, out);
+	glBindBuffer(GL_COPY_READ_BUFFER, 0);
+#else
+	(void)buffer; (void)offset; (void)bytes; (void)out;
 #endif
 }
 

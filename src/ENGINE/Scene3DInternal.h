@@ -13,6 +13,7 @@
 
 class Game;
 class Texture;
+class Renderer;
 class Mesh;
 class Scene3DModel;
 struct ModelMaterial;
@@ -40,6 +41,7 @@ namespace Scene3DInternal
 	void BindCascades(unsigned int program);
 	void SetSceneShadowDistance(float distance);   // < 0 = project default
 	float SceneShadowDistance();
+	float ProjectShadowDistance();                 // renderer.dat `shadowDistance`
 
 	// Engine shaders declare the uniform blocks; old copies kept in a game's
 	// data/shaders predate them and still need the loose uniforms.
@@ -79,6 +81,11 @@ namespace Scene3DInternal
 	const std::vector<Scene3DModel*>& CpuCasterModels(const std::vector<Scene3DModel*>& all);
 	unsigned int GpuShadowProgram(bool point);        // the GPU path's depth programs (sun / cube face)
 	unsigned int GpuPrepassProgram();
+	// KINJO_HIZ_STATS=1 (or =<frames>): after the world pass, estimate how many
+	// in-view models a Hi-Z occlusion test against the frame's depth would cull
+	// (docs/RENDERING_NEXT_STEPS.md). Measures only. Needs the GPU-driven path.
+	bool HizStatsWanted();
+	void MeasureOcclusion(const Renderer& renderer, unsigned int depthTexture, int width, int height);
 	// A shadow pass's values for a bound depth program (Scene3DShadows.cpp).
 	void ApplyShadowPass(unsigned int program, const glm::mat4& viewProj, const glm::vec3& lightPos,
 		float farPlane, float alphaCutoff, bool sun);
