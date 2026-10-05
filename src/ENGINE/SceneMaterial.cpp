@@ -1,12 +1,21 @@
 #include "SceneMaterial.h"
 #include "Game.h"
+#include "Scene3D.h"
+#include "Shader.h"
 #include "SpriteManager.h"
+#include "StartupTrace.h"
 #include "Texture.h"
 #include "render/ColorPipeline.h"
+#include "render/RenderDevice.h"
+#include "render/TextureFiles.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <set>
+#include <thread>
 
 namespace
 {
@@ -20,10 +29,119 @@ namespace
 	{
 		std::string emissivePath;    // `emissivemap`: multiplies `emissive`
 		std::string roughnessPath;   // `roughnessmap`: G x roughness, B x metallic
+		std::string splatPath;       // `splat`: up to three ground layers, space-separated
 		Texture* emissive = nullptr;
 		Texture* roughness = nullptr;
+		unsigned int splatTexture = 0;   // the layers as one texture array, made on first use...
+		int splatSeason = -1;            // ...for this season (Scene3D::Season)
 	};
 	std::map<std::string, ExtraMaps> extraMaps;
+
+	// Splat layers sample as one texture array: three layers, all the size of
+	// the first, one after another. A missing layer is mid grey (its weights
+	// should be nought anyway); a layer of another size is stretched to fit.
+	// `suffix` picks a season's variant ("_winter") where one exists.
+	unsigned int BuildSplatArray(const std::string& paths, const char* suffix)
+	{
+		const int LAYERS = 3;
+		std::vector<std::string> files;
+		std::istringstream ss(paths);
+		for (std::string p; ss >> p && (int)files.size() < LAYERS;)
+		{
+			if (suffix[0] != '\0')
+			{
+				const size_t dot = p.find_last_of('.');
+				const std::string variant = (dot == std::string::npos) ? p + suffix
+					: p.substr(0, dot) + suffix + p.substr(dot);
+				if (std::ifstream(variant).good())
+					p = variant;
+			}
+			files.push_back(p);
+		}
+		if (files.empty())
+			return 0;
+
+		// Decoded side by side: three large PNGs one after another were most of
+		// a first frame. (SDL_image's PNG support is already up by now - the
+		// call here makes sure of it before any thread asks.)
+		IMG_Init(IMG_INIT_PNG);
+		std::vector<SDL_Surface*> layers(files.size(), nullptr);
+		{
+			std::vector<std::thread> decoders;
+			for (size_t i = 0; i < files.size(); i++)
+			{
+				decoders.emplace_back([&files, &layers, i]()
+				{
+					SDL_Surface* raw = IMG_Load(files[i].c_str());
+					if (raw != nullptr)
+					{
+						layers[i] = SDL_ConvertSurfaceFormat(raw, SDL_PIXELFORMAT_RGBA32, 0);
+						SDL_FreeSurface(raw);
+					}
+				});
+			}
+			for (std::thread& t : decoders)
+				t.join();
+		}
+		int w = 0, h = 0;
+		for (size_t i = 0; i < files.size(); i++)
+		{
+			if (layers[i] == nullptr)
+				std::cout << "MaterialLibrary: splat layer not found: " << files[i] << std::endl;
+			else if (w == 0)
+			{
+				w = layers[i]->w;
+				h = layers[i]->h;
+			}
+		}
+		if (w == 0)
+			return 0;
+
+		std::vector<unsigned char> pixels((size_t)w * h * 4 * LAYERS, 128);
+		for (int i = 0; i < (int)layers.size(); i++)
+		{
+			SDL_Surface* s = layers[i];
+			if (s == nullptr)
+				continue;
+			if (s->w != w || s->h != h)
+			{
+				std::cout << "MaterialLibrary: splat layer " << files[i] << " is " << s->w << "x" << s->h
+					<< ", not " << w << "x" << h << " like the first: stretched" << std::endl;
+				SDL_Surface* fit = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
+				SDL_SetSurfaceBlendMode(s, SDL_BLENDMODE_NONE);
+				SDL_BlitScaled(s, nullptr, fit, nullptr);
+				SDL_FreeSurface(s);
+				s = fit;
+			}
+			unsigned char* out = pixels.data() + (size_t)w * h * 4 * i;
+			for (int y = 0; y < h; y++)
+				memcpy(out + (size_t)y * w * 4, (const unsigned char*)s->pixels + (size_t)y * s->pitch, (size_t)w * 4);
+			SDL_FreeSurface(s);
+		}
+
+		TextureDesc desc;
+		desc.type = TextureType::Tex2DArray;
+		desc.format = LinearWorkflow() ? TextureFormat::SRGB8_A8 : TextureFormat::RGBA8;   // colour, like an albedo
+		desc.width = w;
+		desc.height = h;
+		desc.layers = LAYERS;
+		desc.filter = TextureFilter::Trilinear;
+		desc.wrap = TextureWrap::Repeat;
+		desc.maxAnisotropy = TextureAnisotropy();
+		desc.generateMipmaps = true;
+		return Device().CreateTexture(desc, pixels.data()).id;
+	}
+
+	void DropSplatArray(ExtraMaps& x)
+	{
+		if (x.splatTexture != 0)
+		{
+			TextureHandle t(x.splatTexture);
+			Device().DestroyTexture(t);
+		}
+		x.splatTexture = 0;
+		x.splatSeason = -1;
+	}
 
 	// A glow map is colour (sRGB, decoded in a linear workflow); a roughness
 	// map is data.
@@ -73,6 +191,12 @@ namespace
 		else if (tok == "normalmode")     { ss >> v; m.normalMode = (v == "vertex") ? NormalMode::Vertex : NormalMode::ScreenSpace; }
 		else if (tok == "emissivemap")    { ss >> x.emissivePath; }
 		else if (tok == "roughnessmap")   { ss >> x.roughnessPath; }
+		else if (tok == "splat")
+		{
+			x.splatPath.clear();
+			for (std::string p; ss >> p;)
+				x.splatPath += (x.splatPath.empty() ? "" : " ") + p;
+		}
 		else if (tok == "metallic")       { ss >> v; m.metallic = ParseNumber(v); }
 		else if (tok == "roughness")      { ss >> v; m.roughness = ParseNumber(v); }
 		else if (tok == "opacity")        { ss >> v; m.opacity = ParseNumber(v); }
@@ -132,7 +256,7 @@ namespace
 	// the seasonal / deciduous flag lines.
 	const char* const kFields[] = { "lighting", "specular", "shininess", "metallic", "roughness", "roughnessmap",
 		"tint", "emissive", "emissivemap", "fresnel", "uvtile", "normal", "normalstrength", "normalmode", "opacity",
-		"outline", "season" };
+		"outline", "splat", "season" };
 
 	// A field's value as written after its keyword ("" = no line: an unset
 	// map, or no season flag).
@@ -150,6 +274,7 @@ namespace
 		if (f == "normal") return m.normalMapPath;
 		if (f == "emissivemap") return x.emissivePath;
 		if (f == "roughnessmap") return x.roughnessPath;
+		if (f == "splat") return x.splatPath;
 		if (f == "normalstrength") return Num(m.normalStrength);
 		if (f == "normalmode") return m.normalMode == NormalMode::Vertex ? "vertex" : "screen";
 		if (f == "opacity") return Num(m.opacity);
@@ -249,6 +374,46 @@ Texture* MaterialLibrary::RoughnessMap(const SceneMaterial& material) const
 	return (it == extraMaps.end()) ? nullptr : it->second.roughness;
 }
 
+void MaterialLibrary::SetSplatLayers(Game& game, SceneMaterial& material, const std::string& paths)
+{
+	(void)game;
+	ExtraMaps& x = extraMaps[material.name];
+	DropSplatArray(x);   // made again, from these, on next use
+	x.splatPath = paths;
+}
+
+std::string MaterialLibrary::SplatLayersPath(const SceneMaterial& material) const
+{
+	auto it = extraMaps.find(material.name);
+	return (it == extraMaps.end()) ? std::string() : it->second.splatPath;
+}
+
+unsigned int MaterialLibrary::SplatLayersTexture(const SceneMaterial& material) const
+{
+	// The shader's array has a fixed unit, which needs GLSL 4.20.
+	if (ShaderProgram::glslVersion < 420 || Find(material.name) != &material)
+		return 0;
+	auto it = extraMaps.find(material.name);
+	if (it == extraMaps.end() || it->second.splatPath.empty())
+		return 0;
+
+	ExtraMaps& x = it->second;
+	const Scene3D::Season season = material.seasonal ? Scene3D::Get().GetSeason() : Scene3D::Season::Summer;
+	// Made once per season; a set that will not load is remembered as 0 for
+	// that season rather than tried again every frame.
+	if (x.splatSeason != (int)season)
+	{
+		DropSplatArray(x);
+		const char* suffix = (season == Scene3D::Season::Spring) ? "_spring"
+			: (season == Scene3D::Season::Autumn) ? "_autumn"
+			: (season == Scene3D::Season::Winter) ? "_winter" : "";
+		x.splatTexture = BuildSplatArray(x.splatPath, suffix);
+		x.splatSeason = (int)season;
+		StartupStep("ground layers (materials.txt `splat`)");
+	}
+	return x.splatTexture;
+}
+
 SceneMaterial* MaterialLibrary::Add(Game& game, const SceneMaterial& material)
 {
 	discarded.erase(material.name);
@@ -305,6 +470,8 @@ void MaterialLibrary::ApplySerialized(Game& game, const std::string& text)
 			SetEmissiveMap(game, *m, s.maps.emissivePath);
 		if (RoughnessMapPath(*m) != s.maps.roughnessPath)
 			SetRoughnessMap(game, *m, s.maps.roughnessPath);
+		if (SplatLayersPath(*m) != s.maps.splatPath)
+			SetSplatLayers(game, *m, s.maps.splatPath);
 	}
 	for (const SceneMaterial& m : materials)
 		if (present.count(m.name) == 0)
@@ -477,6 +644,8 @@ bool MaterialLibrary::Load(Game& game, const std::string& path)
 	materials.clear();
 	byName.clear();
 	discarded.clear();
+	for (auto& entry : extraMaps)
+		DropSplatArray(entry.second);
 	extraMaps.clear();
 	loadedPath = path;
 
@@ -497,11 +666,12 @@ bool MaterialLibrary::Load(Game& game, const std::string& path)
 	{
 		SceneMaterial& m = materials[i];
 		const ExtraMaps& x = parsed[i].maps;
-		if (!x.emissivePath.empty() || !x.roughnessPath.empty())
+		if (!x.emissivePath.empty() || !x.roughnessPath.empty() || !x.splatPath.empty())
 		{
 			ExtraMaps& own = extraMaps[m.name];
 			own.emissivePath = x.emissivePath;
 			own.roughnessPath = x.roughnessPath;
+			own.splatPath = x.splatPath;   // the layers load on first use (SplatLayersTexture)
 			own.emissive = LoadEmissiveMap(game, x.emissivePath);
 			own.roughness = LoadRoughnessMap(game, x.roughnessPath);
 		}

@@ -117,6 +117,19 @@ public:
 	// The loaded maps (nullptr: none, or `material` isn't one of the library's).
 	Texture* EmissiveMap(const SceneMaterial& material) const;
 	Texture* RoughnessMap(const SceneMaterial& material) const;
+	// Ground splatting (`splat` in a material file): up to three more textures
+	// blended over the model's own, weighted per vertex by the mesh's tangent
+	// slot - x, y and z for the three layers, the model's texture taking what
+	// is left (shaders/scene3d.frag, MAT_SPLAT). For meshes built for it, such
+	// as a game's terrain; not for imported models, whose tangent slot holds
+	// tangents. `paths` lists the files, space-separated ("" = none). A
+	// `seasonal` material's layers follow the season like its texture does.
+	// GLSL 4.20+ only: elsewhere the model shows its own texture alone.
+	void SetSplatLayers(Game& game, SceneMaterial& material, const std::string& paths);
+	std::string SplatLayersPath(const SceneMaterial& material) const;   // "" = none
+	// The layers as a texture array for the current season, made on first use
+	// (0: none, or this GPU can't). For the renderer (Scene3D::ApplyMaterial).
+	unsigned int SplatLayersTexture(const SceneMaterial& material) const;
 	// The whole library as material-file text (the editor's undo snapshots),
 	// and back: materials missing from the text are dropped from Names() and
 	// saving, as if never made. Then refresh held pointers, as after Add.

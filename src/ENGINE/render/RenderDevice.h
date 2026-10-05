@@ -172,7 +172,8 @@ public:
 	// places that need one bound outside a draw, e.g. shader validation on macOS).
 	virtual void BindVertexArray(VertexArrayHandle vao) = 0;
 
-	// Textures
+	// Textures. `rgbaPixels` (optional) is level 0's texels: for a Tex2DArray,
+	// every layer's, one after another. Cube and cube-array textures start empty.
 	virtual TextureHandle CreateTexture(const TextureDesc& desc, const void* rgbaPixels = nullptr) = 0;
 	// A 2D texture from its stored mip chain (a KTX2 file's levels): levels[0]
 	// is desc.width x desc.height and each next one half the size, rounded down

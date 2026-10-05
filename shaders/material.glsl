@@ -46,4 +46,7 @@ const int MAT_DOUBLE_SIDED     = 64;   // back faces are lit as front faces
 const int MAT_ALPHA_MASK       = 128;  // cut out below matAlphaCutoff, else opaque
 const int MAT_ALPHA_BLEND      = 256;  // blended (drawn in the transparent pass)
 const int MAT_UNLIT            = 512;  // KHR_materials_unlit: the base colour as it is
+const int MAT_SPLAT            = 1024; // splatLayers (unit 7): three ground layers over the
+                                       // albedo, weighted per vertex by the tangent slot
+                                       // (GLSL 4.20+ only; scene3d.frag)
 #endif

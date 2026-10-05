@@ -2114,6 +2114,43 @@ void Game::SetFullScreen(bool setFull)
 	isFullscreen = setFull;
 }
 
+namespace
+{
+	// The window ToggleFullscreen goes back to (kept out of Game, whose
+	// layout the DLL's ABI fixes).
+	int windowedWidth = 0, windowedHeight = 0;
+}
+
+void Game::ToggleFullscreen()
+{
+	if (window == nullptr)
+		return;
+	if (!isFullscreen)
+	{
+		// Borderless at the desktop's own size: no mode switch (a black flash,
+		// the other monitors rearranged), and alt-tab works.
+		SDL_DisplayMode desktop;
+		if (SDL_GetDesktopDisplayMode(SDL_GetWindowDisplayIndex(window), &desktop) != 0)
+			return;
+		windowedWidth = screenWidth;
+		windowedHeight = screenHeight;
+		startWindowed = false;
+		forceWindowed = false;
+		SetScreenResolution(desktop.w, desktop.h);
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		isFullscreen = true;
+	}
+	else
+	{
+		SDL_SetWindowFullscreen(window, 0);
+		SetScreenResolution(windowedWidth > 0 ? windowedWidth : 1280, windowedHeight > 0 ? windowedHeight : 720);
+		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		isFullscreen = false;
+	}
+	std::cout << "Display: " << (isFullscreen ? "fullscreen " : "windowed ") << screenWidth << "x"
+		<< screenHeight << std::endl;
+}
+
 bool Game::HandleEvent(SDL_Event& event)
 {
 	bool quit = false;

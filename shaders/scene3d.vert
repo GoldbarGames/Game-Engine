@@ -82,5 +82,7 @@ void main()
 	gl_Position = projection * view * worldPos;
 	TexCoord = tex;
 	Normal = N;
-	Tangent = draw.normalMatrix * tangent;
+	// A splat material's tangent slot carries its ground layers' weights,
+	// which are not a direction and must not be turned with the model.
+	Tangent = ((matMaps & MAT_SPLAT) != 0) ? tangent : draw.normalMatrix * tangent;
 }

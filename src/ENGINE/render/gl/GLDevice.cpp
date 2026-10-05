@@ -491,8 +491,9 @@ TextureHandle GLDevice::CreateTexture(const TextureDesc& desc, const void* rgbaP
 				fmt.format, fmt.type, nullptr);
 		break;
 	case TextureType::Tex2DArray:
+		// rgbaPixels, when given, holds every layer, one after another.
 		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, fmt.internal, desc.width, desc.height, desc.layers, 0,
-			fmt.format, fmt.type, nullptr);
+			fmt.format, fmt.type, rgbaPixels);
 		break;
 #ifndef __EMSCRIPTEN__
 	case TextureType::CubeArray:

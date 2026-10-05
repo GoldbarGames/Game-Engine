@@ -13,7 +13,8 @@ class Camera;
 // per frame depending on the game's camera mode.
 //
 // Axis reminder: the 3D projection's Y flip means "visually up" is world -Y,
-// and engine pitch is positive looking down. All controllers encapsulate this.
+// and engine pitch is positive looking UP (CLAUDE.md, gotcha 8). All
+// controllers encapsulate this.
 
 // Free-flight camera: dt-scaled camera-relative movement (forward/back,
 // strafe, vertical), optional mouse look, rotation keys, and mouse-wheel

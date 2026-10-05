@@ -31,7 +31,11 @@ void FlyCameraController::Update(Camera& cam, float dtMs, int mouseDX, int mouse
 	if (mouseLookHeld)
 	{
 		cam.yaw += mouseDX * mouseSensitivity;
-		cam.pitch += mouseDY * mouseSensitivity;  // engine pitch: positive looks down
+		// Engine pitch is positive looking UP (the view runs along -front, whose
+		// y is sin(pitch), and up is -Y), and SDL's dy is positive moving the
+		// mouse down: so the mouse down looks down. Until 2026-10-05 this
+		// added dy and every free camera's mouse look was upside down.
+		cam.pitch -= mouseDY * mouseSensitivity;
 	}
 
 	if (keys[keyPitchUp]) cam.pitch += rotateKeySpeed;

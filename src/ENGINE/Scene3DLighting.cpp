@@ -147,6 +147,7 @@ namespace
 	const int kMatAlphaMask = 128;
 	const int kMatAlphaBlend = 256;
 	const int kMatUnlit = 512;
+	const int kMatSplat = 1024;
 
 	const UniformBlockMember kMaterialMembers[] = {
 		{ "matTint", offsetof(MaterialBlockData, matTint), false },
@@ -551,6 +552,13 @@ void Scene3D::ApplyMaterial(unsigned int shaderID, const SceneMaterial& mat, con
 		maps |= kMatMetalRoughMap;
 		device.SetUniform(device.UniformLocation(handle, "metallicRoughnessMap"), 2);
 		rough->UseTexture(2);
+	}
+	// Ground layers (`splat`): a texture array on unit 7, whose binding the
+	// shader fixes (GLSL 4.20+; SplatLayersTexture is 0 below that).
+	if (const unsigned int layers = library.SplatLayersTexture(mat))
+	{
+		maps |= kMatSplat;
+		device.BindTexture(7, TextureHandle(layers), TextureType::Tex2DArray);
 	}
 	if (Texture* glow = library.EmissiveMap(mat))
 	{

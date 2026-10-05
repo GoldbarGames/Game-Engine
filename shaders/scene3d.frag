@@ -42,6 +42,80 @@ const float PI = 3.14159265;
 #include "camera.glsl"
 #include "lights.glsl"        // point and spot lights, clustered (LightRange / GetLight)
 
+// --- ground splatting (MAT_SPLAT) ---------------------------------------------
+// A ground material (materials.txt `splat`) lays three more textures over its
+// own - rock, earth, snow, whatever the game gives it. Each vertex says how
+// much of each in its tangent slot (x, y, z; the material's own texture takes
+// what is left). Each texture's detail, measured against its own average,
+// sharpens the hand-off - a cheap height blend, so rock shows through grass
+// along its cracks first rather than as a fade.
+//
+// GLSL 4.20+ only: the array's unit is fixed here, because a sampler2DArray
+// left on unit 0 beside the albedo's sampler2D would stop every draw; and on
+// the 3.3/web fallback unit 7 holds a point-shadow cube.
+#if defined(KINJO_GL4) && __VERSION__ >= 420
+#define KINJO_SPLAT
+layout(binding = 7) uniform sampler2DArray splatLayers;
+
+// Smooth value noise, 0..1, for the edges below.
+float SplatHash(vec2 p)
+{
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float SplatNoise(vec2 p)
+{
+	vec2 i = floor(p), f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(SplatHash(i), SplatHash(i + vec2(1.0, 0.0)), u.x),
+		mix(SplatHash(i + vec2(0.0, 1.0)), SplatHash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+vec3 SplatAlbedo(vec3 base, vec2 uv)
+{
+	vec4 w = vec4(0.0, clamp(Tangent, 0.0, 1.0));
+	w.x = clamp(1.0 - (w.y + w.z + w.w), 0.0, 1.0);
+
+	// Wandering edges. The weights are the mesh's, interpolated across its
+	// triangles, so left alone every boundary runs straight along them - a
+	// staircase, seen from above. Each layer's weight is nudged by noise of
+	// its own, a fraction of a texture repeat to a few repeats across, so the
+	// edges wander the way ground does. Only where layers already meet:
+	// ground that is all one thing stays so.
+	vec4 nudge;
+	nudge.x = SplatNoise(uv * 2.3) * 0.6 + SplatNoise(uv * 7.9 + 3.1) * 0.4;
+	nudge.y = SplatNoise(uv * 2.3 + vec2(17.3, 5.1)) * 0.6 + SplatNoise(uv * 7.9 + vec2(9.4, 2.2)) * 0.4;
+	nudge.z = SplatNoise(uv * 2.3 + vec2(-9.2, 13.7)) * 0.6 + SplatNoise(uv * 7.9 + vec2(-4.7, 8.8)) * 0.4;
+	nudge.w = SplatNoise(uv * 2.3 + vec2(5.5, -21.4)) * 0.6 + SplatNoise(uv * 7.9 + vec2(12.6, -6.3)) * 0.4;
+	vec4 meets = step(vec4(0.001), w) * step(0.001, 1.0 - max(max(w.x, w.y), max(w.z, w.w)));
+	w = clamp(w + (nudge - 0.5) * 0.5 * meets, 0.0, 1.0);
+
+	vec3 c1 = texture(splatLayers, vec3(uv, 0.0)).rgb;
+	vec3 c2 = texture(splatLayers, vec3(uv, 1.0)).rgb;
+	vec3 c3 = texture(splatLayers, vec3(uv, 2.0)).rgb;
+
+	// Detail as height: brighter than its own average stands proud.
+	const vec3 LUMA = vec3(0.299, 0.587, 0.114);
+	vec4 mean = vec4(dot(textureLod(theTexture, uv, 16.0).rgb, LUMA),
+		dot(textureLod(splatLayers, vec3(uv, 0.0), 16.0).rgb, LUMA),
+		dot(textureLod(splatLayers, vec3(uv, 1.0), 16.0).rgb, LUMA),
+		dot(textureLod(splatLayers, vec3(uv, 2.0), 16.0).rgb, LUMA));
+	vec4 detail = vec4(dot(base, LUMA), dot(c1, LUMA), dot(c2, LUMA), dot(c3, LUMA)) - mean;
+	vec4 present = step(vec4(0.001), w);
+	vec4 s = w + detail * 0.8 * present;
+	float top = max(max(s.x, s.y), max(s.z, s.w)) - 0.12;
+	vec4 b = max(s - top, 0.0) * present;
+	float sum = max(b.x + b.y + b.z + b.w, 1e-4);
+
+	// The base layer wanders a little in brightness and warmth over a few
+	// repeats of its texture, so a field does not show its tile.
+	float wander = 0.5 + 0.25 * sin(uv.x * 0.61 + sin(uv.y * 0.47) * 2.0)
+	                   + 0.25 * sin(uv.y * 0.83 + sin(uv.x * 0.37) * 2.0);
+	base *= mix(vec3(0.86, 0.94, 0.90), vec3(1.14, 1.04, 0.76), wander);
+
+	return (base * b.x + c1 * b.y + c2 * b.z + c3 * b.w) / sum;
+}
+#endif
+
 // Storm lightning: a brief bright flood of light from the sky (world up = -Y).
 // Light contributed by a lightning flash on a surface with normal N. Up-facing
 // surfaces catch the most (the bolt lights the world from above); a flat fill
@@ -179,6 +253,10 @@ void main()
 	vec2 uv = TexCoord * matUVTile;
 
 	vec4 texColor = texture(theTexture, uv);
+#ifdef KINJO_SPLAT
+	if ((matMaps & MAT_SPLAT) != 0)
+		texColor.rgb = SplatAlbedo(texColor.rgb, uv);
+#endif
 	float alpha = texColor.a * matOpacity;
 	if ((matMaps & MAT_GLTF) != 0)
 	{
@@ -304,7 +382,7 @@ void main()
 			mapN.z = sqrt(max(1.0 - dot(mapN.xy, mapN.xy), 0.0));   // two-channel (BC5) map
 		mapN.xy *= matNormalStrength;
 		mat3 TBN = UvFrame(N, FragPos, uv);
-		if ((matMaps & MAT_GLTF) == 0 && matNormalMode == 1 && dot(Tangent, Tangent) > 1e-12)
+		if ((matMaps & (MAT_GLTF | MAT_SPLAT)) == 0 && matNormalMode == 1 && dot(Tangent, Tangent) > 1e-12)
 		{
 			// Vertex tangents: smooth directions across faces, but their signs
 			// (and the bitangent's) from the exact frame. The importer's

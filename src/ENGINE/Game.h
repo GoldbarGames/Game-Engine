@@ -410,6 +410,10 @@ public:
 	glm::vec3 SnapToGrid(glm::vec3 position, int size);
 
 	void SetFullScreen(bool setFull);
+	// Fullscreen (borderless, at the desktop's size) and back to the window it
+	// was, from a key: render targets resized, the GUI's design space kept. A
+	// --windowed launch's size cap is lifted - the player asked for the screen.
+	void ToggleFullscreen();
 
 	Dialog* currentDialog = nullptr;
 
