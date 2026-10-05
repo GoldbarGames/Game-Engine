@@ -9,7 +9,6 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <iostream>
-#include <regex>
 
 using json = nlohmann::json;
 
@@ -573,6 +572,49 @@ void MenuLoader::ProcessSlots(MenuScreen& menu, Game& game)
 	}
 }
 
+namespace
+{
+	bool IsWordChar(char c)
+	{
+		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+	}
+
+	// Every "{word}" in `text` - or with `dollar`, every "${word}" - in order
+	// and not overlapping, as (the placeholder, the word): what the regexes
+	// \{(\w+)\} and \$\{(\w+)\} found. Scanned by hand because a std::regex
+	// built per string cost most of a second of DB2's start-up in a Debug build
+	// (docs/STARTUP.md).
+	std::vector<std::pair<std::string, std::string>> Placeholders(const std::string& text, bool dollar)
+	{
+		std::vector<std::pair<std::string, std::string>> found;
+		size_t i = 0;
+		while (i < text.size())
+		{
+			const size_t open = dollar ? i + 1 : i;
+			const bool starts = dollar ? (text[i] == '$' && open < text.size() && text[open] == '{')
+				: (text[i] == '{');
+			if (!starts)
+			{
+				i++;
+				continue;
+			}
+			size_t j = open + 1;
+			while (j < text.size() && IsWordChar(text[j]))
+				j++;
+			if (j > open + 1 && j < text.size() && text[j] == '}')
+			{
+				found.emplace_back(text.substr(i, j + 1 - i), text.substr(open + 1, j - open - 1));
+				i = j + 1;
+			}
+			else
+			{
+				i++;
+			}
+		}
+		return found;
+	}
+}
+
 std::string MenuLoader::ResolveString(const std::string& input, Game& game, const MenuDataItem* item)
 {
 	std::string result = input;
@@ -580,14 +622,10 @@ std::string MenuLoader::ResolveString(const std::string& input, Game& game, cons
 	// Replace {property} placeholders with item properties
 	if (item)
 	{
-		std::regex itemPattern("\\{(\\w+)\\}");
-		std::smatch match;
-		std::string temp = result;
-
-		while (std::regex_search(temp, match, itemPattern))
+		for (const auto& found : Placeholders(input, false))
 		{
-			std::string placeholder = match[0].str();
-			std::string propName = match[1].str();
+			const std::string& placeholder = found.first;
+			const std::string& propName = found.second;
 
 			std::string replacement;
 			if (propName == "name")
@@ -604,28 +642,20 @@ std::string MenuLoader::ResolveString(const std::string& input, Game& game, cons
 			size_t pos = result.find(placeholder);
 			if (pos != std::string::npos)
 				result.replace(pos, placeholder.length(), replacement);
-
-			temp = match.suffix().str();
 		}
 	}
 
 	// Replace ${variable} placeholders with cutscene variables
-	std::regex varPattern("\\$\\{(\\w+)\\}");
-	std::smatch match;
-	std::string temp = result;
-
-	while (std::regex_search(temp, match, varPattern))
+	for (const auto& found : Placeholders(result, true))
 	{
-		std::string placeholder = match[0].str();
-		std::string varName = match[1].str();
+		const std::string& placeholder = found.first;
+		const std::string& varName = found.second;
 
 		std::string replacement = dataProvider->ResolveVariable(varName, game);
 
 		size_t pos = result.find(placeholder);
 		if (pos != std::string::npos)
 			result.replace(pos, placeholder.length(), replacement);
-
-		temp = match.suffix().str();
 	}
 
 	return result;

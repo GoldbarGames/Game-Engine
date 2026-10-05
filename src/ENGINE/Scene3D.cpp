@@ -46,6 +46,22 @@
 using Scene3DInternal::ProgramHasBlock;
 using Scene3DInternal::SceneColorTexture;
 
+namespace
+{
+	// Models animating (Scene3D::AnimateModelTurn / AnimateModelMove). Kept out
+	// of the exported class, whose layout the DLL's ABI fixes.
+	struct ModelTween
+	{
+		Scene3DModel* model = nullptr;
+		bool turn = false;               // yaw (from.x -> to.x), else position
+		glm::vec3 from = glm::vec3(0.0f);
+		glm::vec3 to = glm::vec3(0.0f);
+		float seconds = 0.0f;
+		float elapsed = 0.0f;
+	};
+	std::vector<ModelTween> modelTweens;
+}
+
 Texture* Scene3DInternal::SceneColorTexture(const Game& game, const std::string& path)
 {
 	// "-": no texture of its own (a glTF model brings its materials' maps).
@@ -979,6 +995,7 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 			skybox = nullptr;
 		}
 		models.clear();
+		modelTweens.clear();
 		characters.clear();
 		solids.clear();
 	grounds.clear();
@@ -1881,6 +1898,8 @@ void Scene3D::WriteScene(std::ostream& out) const
 
 	for (Scene3DModel* m : models)
 	{
+		if (IsRuntimeModel(m))
+			continue;   // a game's own geometry (AddRuntimeModel), rebuilt by the game
 		std::ostringstream o;
 		glm::vec3 p = m->position;
 		o << "model " << m->objPath << " " << m->texPath << " "
@@ -2304,12 +2323,80 @@ Scene3DModel* Scene3D::AddModelInstance(Game& game, const ModelDef& def, const g
 	return m;
 }
 
+namespace
+{
+	// Runtime models (AddRuntimeModel) are told apart by their source path.
+	const char* const kRuntimePrefix = "runtime:";
+}
+
+bool Scene3D::IsRuntimeModel(const Scene3DModel* m)
+{
+	return m != nullptr && m->objPath.compare(0, 8, kRuntimePrefix) == 0;
+}
+
+Scene3DModel* Scene3D::AddRuntimeModel(Game& game, Mesh* mesh, const std::string& texture,
+	const std::string& material, const glm::vec3& localMin, const glm::vec3& localMax, const glm::vec3& pos)
+{
+	if (shader == nullptr || mesh == nullptr)   // no scene loaded
+		return nullptr;
+	Scene3DModel* m = new Scene3DModel(pos);
+	m->shader = shader;
+	m->texture = SceneColorTexture(game, texture);
+	m->texPath = texture;
+	// The mesh's address keys it: two models share instanced draws only when
+	// they share the mesh (the grouping is by path + texture + material).
+	std::ostringstream key;
+	key << kRuntimePrefix << (const void*)mesh;
+	m->objPath = key.str();
+	m->model3D.meshList.push_back(mesh);   // borrowed: Model never frees its meshes
+	m->loaded = true;
+	m->materialName = material;
+	m->material = material.empty() ? nullptr : MaterialLibrary::Get().Find(material);
+	if (!material.empty() && m->material == nullptr)
+		std::cout << "Scene3D: runtime model material '" << material << "' not found" << std::endl;
+	m->localMin = localMin;
+	m->localMax = localMax;
+	m->hasLocalBounds = true;
+	RecomputeModelBounds(m);
+	models.push_back(m);
+	game.entities.push_back(m);
+	return m;
+}
+
+void Scene3D::RemoveRuntimeModels(Game& game)
+{
+	bool solidGone = false;
+	for (size_t i = 0; i < models.size();)
+	{
+		Scene3DModel* m = models[i];
+		if (!IsRuntimeModel(m))
+		{
+			i++;
+			continue;
+		}
+		modelTweens.erase(std::remove_if(modelTweens.begin(), modelTweens.end(),
+			[m](const ModelTween& t) { return t.model == m; }), modelTweens.end());
+		solidGone = solidGone || m->solid;
+		models.erase(models.begin() + i);
+		game.ShouldDeleteEntity(m);
+	}
+	if (solidGone)
+		RebuildSolids();
+}
+
+Skybox* Scene3D::GetSkybox() const
+{
+	return skybox;
+}
+
 bool Scene3D::RemoveModel(Game& game, int index)
 {
 	if (index < 0 || index >= (int)models.size())
 		return false;
 	Scene3DModel* m = models[index];
 	OrphanSceneLines(SceneLineKey("model:", m));
+	modelTweens.erase(std::remove_if(modelTweens.begin(), modelTweens.end(),
+		[m](const ModelTween& t) { return t.model == m; }), modelTweens.end());
 	models.erase(models.begin() + index);
 	game.ShouldDeleteEntity(m);   // engine removes it from entities + frees it
 	RebuildSolids();
@@ -2561,6 +2648,67 @@ bool Scene3D::SetLightPosition(const std::string& name, const glm::vec3& pos)
 	return false;
 }
 
+int Scene3D::AnimateModelTurn(const std::string& tag, float yawDeg, float seconds)
+{
+	int matched = 0;
+	for (Scene3DModel* m : models)
+	{
+		if (m == nullptr || tag.empty() || m->interactionTag != tag)
+			continue;
+		matched++;
+		modelTweens.erase(std::remove_if(modelTweens.begin(), modelTweens.end(),
+			[m](const ModelTween& t) { return t.model == m && t.turn; }), modelTweens.end());
+		if (seconds <= 0.0f)
+		{
+			m->yawDeg = yawDeg;
+			RecomputeModelBounds(m);
+			continue;
+		}
+		ModelTween t;
+		t.model = m;
+		t.turn = true;
+		t.from = glm::vec3(m->yawDeg, 0.0f, 0.0f);
+		t.to = glm::vec3(yawDeg, 0.0f, 0.0f);
+		t.seconds = seconds;
+		modelTweens.push_back(t);
+	}
+	if (matched == 0)
+		std::cout << "Scene3D: no model tagged '" << tag << "' to turn" << std::endl;
+	return matched;
+}
+
+int Scene3D::AnimateModelMove(const std::string& tag, const glm::vec3& pos, float seconds)
+{
+	int matched = 0;
+	bool solidMoved = false;
+	for (Scene3DModel* m : models)
+	{
+		if (m == nullptr || tag.empty() || m->interactionTag != tag)
+			continue;
+		matched++;
+		modelTweens.erase(std::remove_if(modelTweens.begin(), modelTweens.end(),
+			[m](const ModelTween& t) { return t.model == m && !t.turn; }), modelTweens.end());
+		if (seconds <= 0.0f)
+		{
+			m->position = pos;
+			RecomputeModelBounds(m);
+			solidMoved = solidMoved || m->solid;
+			continue;
+		}
+		ModelTween t;
+		t.model = m;
+		t.from = m->position;
+		t.to = pos;
+		t.seconds = seconds;
+		modelTweens.push_back(t);
+	}
+	if (solidMoved)
+		RebuildSolids();
+	if (matched == 0)
+		std::cout << "Scene3D: no model tagged '" << tag << "' to move" << std::endl;
+	return matched;
+}
+
 void Scene3D::SetSkyTint(const glm::vec3& tint)
 {
 	if (skybox == nullptr || skybox->GetSprite() == nullptr)
@@ -2661,6 +2809,7 @@ void Scene3D::Unload(Game& game)
 		skybox = nullptr;
 	}
 	models.clear();
+	modelTweens.clear();
 	characters.clear();
 	solids.clear();
 	grounds.clear();
@@ -2945,10 +3094,21 @@ bool Scene3D::FocusBounds(Game& game, const glm::vec3& aabbMin, const glm::vec3&
 		sideXZ = glm::vec3(0, 0, 1);
 	sideXZ = glm::normalize(sideXZ);
 
-	// Level, eye-line shot at the box center.
+	// Level, eye-line shot at the box center - or, for a flat object (a ticket,
+	// a toilet seat, a key), from 45 degrees above, so its top is what's seen
+	// rather than its edge.
 	CamPose pose;
-	pose.position = center + sideXZ * dist;
-	pose.position.y = center.y;
+	if (vExtent < 0.35f * hExtent)
+	{
+		const float k = 0.7071f;
+		pose.position = center + sideXZ * (dist * k);
+		pose.position.y = center.y - dist * k;   // world up is -Y
+	}
+	else
+	{
+		pose.position = center + sideXZ * dist;
+		pose.position.y = center.y;
+	}
 
 	glm::vec3 front = glm::normalize(pose.position - center);
 	pose.pitch = glm::degrees(asinf(glm::clamp(front.y, -1.0f, 1.0f)));
@@ -2985,6 +3145,30 @@ void Scene3D::Update(Game& game)
 		return;
 
 	float dtSec = game.dt / 1000.0f;
+
+	// Model animations (scene3d model <tag> turn|move): eased to the target.
+	bool solidMoved = false;
+	for (size_t i = 0; i < modelTweens.size();)
+	{
+		ModelTween& t = modelTweens[i];
+		t.elapsed += dtSec;
+		const float k = std::min(t.elapsed / t.seconds, 1.0f);
+		const glm::vec3 v = t.from + (t.to - t.from) * (k * k * (3.0f - 2.0f * k));
+		if (t.turn)
+			t.model->yawDeg = v.x;
+		else
+			t.model->position = v;
+		RecomputeModelBounds(t.model);
+		if (k >= 1.0f)
+		{
+			solidMoved = solidMoved || t.model->solid;
+			modelTweens.erase(modelTweens.begin() + i);
+		}
+		else
+			i++;
+	}
+	if (solidMoved)
+		RebuildSolids();
 
 	// Advance any light-intensity fades (smoothstep to the target)
 	auto stepFade = [dtSec](float& intensity, bool& on, LightFade& f)

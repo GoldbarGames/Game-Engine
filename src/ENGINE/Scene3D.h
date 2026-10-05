@@ -9,6 +9,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <map>
 #include <string>
+#include <functional>
 #include <vector>
 #include <iosfwd>
 
@@ -473,6 +474,13 @@ public:
 	bool SetLightColor(const std::string& name, const glm::vec3& color);
 	bool SetLightPosition(const std::string& name, const glm::vec3& pos);
 
+	// Runtime model animation (`scene3d model <tag> turn|move ...`): every model
+	// whose interaction tag is `tag` turns to a yaw (degrees) or moves to a
+	// position over `seconds`, eased; 0 = at once. Returns how many models
+	// matched. Loading or unloading a scene cancels animations in progress.
+	int AnimateModelTurn(const std::string& tag, float yawDeg, float seconds);
+	int AnimateModelMove(const std::string& tag, const glm::vec3& pos, float seconds);
+
 	// --- environment / time-of-day control (runtime) ------------------
 	// Ambient + directional fill can be driven every frame (e.g. by a game's
 	// time-of-day system): ApplyLighting re-uploads them per frame, so the
@@ -677,6 +685,34 @@ public:
 	Scene3DModel* AddModelInstance(Game& game, const ModelDef& def, const glm::vec3& pos);
 	// Remove a model / character by index (as given by GetModels/GetCharacters).
 	bool RemoveModel(Game& game, int index);
+
+	// --- runtime models: a game's own geometry drawn as scene models ---------
+	// A mesh the game built itself (terrain, track...), drawn with the scene's
+	// lighting, shadows and effects like any loaded model. The mesh is BORROWED:
+	// the game keeps it alive while the model exists and frees it after
+	// RemoveRuntimeModels. `texture` is an image path (loaded as a scene colour
+	// texture), `material` a materials.txt name ("" = the default), the bounds
+	// are the mesh's own (for culling and picking). Runtime models are never
+	// written to a .scene file, and a scene load removes them like any model.
+	// Returns nullptr when no scene is loaded.
+	Scene3DModel* AddRuntimeModel(Game& game, Mesh* mesh, const std::string& texture,
+		const std::string& material, const glm::vec3& localMin, const glm::vec3& localMax,
+		const glm::vec3& pos = glm::vec3(0.0f));
+	void RemoveRuntimeModels(Game& game);
+	static bool IsRuntimeModel(const Scene3DModel* m);
+
+	// --- a game's own moving geometry in the sun's shadow -----------------
+	// For geometry a game draws itself each frame (a moving train): `draw` runs
+	// inside each sun-shadow map render and calls DrawShadowMesh for each of its
+	// meshes; `signature` returns a number that changes whenever that geometry
+	// moves, so still frames keep their cached shadows. Empty = none.
+	void SetShadowCasterHook(std::function<void()> draw, std::function<double()> signature);
+	// Only inside the hook's draw: one mesh into the shadow map being drawn.
+	void DrawShadowMesh(Mesh* mesh, const glm::mat4& model) const;
+
+	// The sky panorama entity (nullptr without a sky), e.g. to drive its
+	// cross-fade (nextTexture / blendToNext) from a game's time of day.
+	Skybox* GetSkybox() const;
 	bool RemoveCharacter(Game& game, int index);
 
 	// Spawn a "layered" character (folder + body/head pose sprites) at runtime,

@@ -9,7 +9,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 
 // SDF bake parameters: glyphs rasterized at basePt, padded by SPREAD px on
@@ -49,6 +51,69 @@ static const char* SDF_FRAG =
 "    float alpha = smoothstep(0.5 - w, 0.5 + w, d);\n"
 "    color = vec4(draw.sdfColor.rgb, draw.sdfColor.a * alpha);\n"
 "}";
+
+// The distance from every pixel to the nearest pixel of the other kind, exactly
+// (Felzenszwalb & Huttenlocher's distance transform, one axis at a time).
+//
+// The bake used to find it by brute force - every atlas texel scanned a
+// 17 x 17 window of the glyph - which is 112 million tests for a font, and a
+// second of every start-up in a Debug build. This gives the same distances
+// (the nearest such pixel is within the window exactly when it is within
+// SPREAD) in a few milliseconds (docs/STARTUP.md).
+static void DistanceTransform1D(const double* f, double* d, int n, int* v, double* z)
+{
+	int k = 0;
+	v[0] = 0;
+	z[0] = -1e30;
+	z[1] = 1e30;
+	for (int q = 1; q < n; q++)
+	{
+		double s = ((f[q] + (double)q * q) - (f[v[k]] + (double)v[k] * v[k])) / (2.0 * q - 2.0 * v[k]);
+		while (s <= z[k])
+		{
+			k--;
+			s = ((f[q] + (double)q * q) - (f[v[k]] + (double)v[k] * v[k])) / (2.0 * q - 2.0 * v[k]);
+		}
+		k++;
+		v[k] = q;
+		z[k] = s;
+		z[k + 1] = 1e30;
+	}
+	k = 0;
+	for (int q = 0; q < n; q++)
+	{
+		while (z[k + 1] < q)
+			k++;
+		d[q] = (double)(q - v[k]) * (q - v[k]) + f[v[k]];
+	}
+}
+
+// Squared distance from each cell of a w x h grid to the nearest cell where
+// `target` is set (1e20 where there is none).
+static void DistanceTransform2D(const uint8_t* target, int w, int h, double* out)
+{
+	const int n = std::max(w, h);
+	std::vector<double> f(n), d(n), z(n + 1);
+	std::vector<int> v(n);
+	double* fp = f.data();
+	double* dp = d.data();
+	for (int i = 0; i < w * h; i++)
+		out[i] = target[i] ? 0.0 : 1e20;
+	for (int x = 0; x < w; x++)
+	{
+		for (int y = 0; y < h; y++)
+			fp[y] = out[y * w + x];
+		DistanceTransform1D(fp, dp, h, v.data(), z.data());
+		for (int y = 0; y < h; y++)
+			out[y * w + x] = dp[y];
+	}
+	for (int y = 0; y < h; y++)
+	{
+		DistanceTransform1D(out + y * w, dp, w, v.data(), z.data());
+		for (int x = 0; x < w; x++)
+			out[y * w + x] = dp[x];
+	}
+}
 
 SDFFont::SDFFont(Game& game, const std::string& ttfPath)
 {
@@ -96,14 +161,31 @@ SDFFont::SDFFont(Game& game, const std::string& ttfPath)
 			SDL_LockSurface(gs);
 		uint8_t* apix = (gs != nullptr) ? (uint8_t*)gs->pixels : nullptr;
 
-		// inside() in glyph-surface coords; the box top-left sits SPREAD px
-		// up-left of the surface
-		auto inside = [&](int sx, int sy) -> bool
+		// The glyph as a mask, in glyph-surface coords with a margin of
+		// 2 x SPREAD all round: every sample point lies within SPREAD of the
+		// box, which sits SPREAD px up-left of the surface, and its search
+		// reaches SPREAD further. Outside the surface is outside the glyph.
+		const int margin = 2 * SPREAD;
+		const int gw = (gs != nullptr) ? gs->w : 0;
+		const int gh = (gs != nullptr) ? gs->h : 0;
+		const int span = (int)std::ceil(boxSize);
+		const int W = std::max(gw, span) + 2 * margin;
+		const int H = std::max(gh, span) + 2 * margin;
+		std::vector<uint8_t> inMask((size_t)W * H, 0), outMask((size_t)W * H, 1);
+		for (int y = 0; y < gh; y++)
 		{
-			if (apix == nullptr || sx < 0 || sy < 0 || sx >= gs->w || sy >= gs->h)
-				return false;
-			return apix[sy * gs->pitch + sx * 4 + 3] > 127;
-		};
+			for (int x = 0; x < gw; x++)
+			{
+				if (apix[y * gs->pitch + x * 4 + 3] > 127)
+				{
+					inMask[(size_t)(y + margin) * W + (x + margin)] = 1;
+					outMask[(size_t)(y + margin) * W + (x + margin)] = 0;
+				}
+			}
+		}
+		std::vector<double> toInside((size_t)W * H), toOutside((size_t)W * H);
+		DistanceTransform2D(inMask.data(), W, H, toInside.data());
+		DistanceTransform2D(outMask.data(), W, H, toOutside.data());
 
 		uint8_t* opix = (uint8_t*)atlasSurface->pixels;
 		for (int oy = 0; oy < CELL; oy++)
@@ -112,21 +194,14 @@ SDFFont::SDFFont(Game& game, const std::string& ttfPath)
 			{
 				int sx = (int)((ox + 0.5f) * step) - SPREAD;
 				int sy = (int)((oy + 0.5f) * step) - SPREAD;
-				bool in = inside(sx, sy);
+				const size_t at = (size_t)(std::min(std::max(sy + margin, 0), H - 1)) * W
+					+ std::min(std::max(sx + margin, 0), W - 1);
+				bool in = inMask[at] != 0;
 
-				// Nearest opposite-state pixel within the spread window
-				float best = (float)SPREAD;
-				for (int dy = -SPREAD; dy <= SPREAD; dy++)
-				{
-					for (int dx = -SPREAD; dx <= SPREAD; dx++)
-					{
-						if (inside(sx + dx, sy + dy) != in)
-						{
-							float d = sqrtf((float)(dx * dx + dy * dy));
-							if (d < best) best = d;
-						}
-					}
-				}
+				// Nearest opposite-state pixel, saturating at SPREAD
+				float best = sqrtf((float)(in ? toOutside[at] : toInside[at]));
+				if (!(best < (float)SPREAD))
+					best = (float)SPREAD;
 
 				float signedDist = in ? best : -best;
 				float a = 0.5f + signedDist / norm;

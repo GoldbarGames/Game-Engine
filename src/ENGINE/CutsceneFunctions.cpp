@@ -2577,6 +2577,26 @@ namespace CutsceneFunctions
 			else
 				game->logger.Log("scene3d light: bad action " + action);
 		}
+		else if (sub == "model" && parameters.size() > 4)
+		{
+			// scene3d model <tag> turn <degrees> [seconds]
+			// scene3d model <tag> move <x> <y> <z> [seconds]
+			// Animates the models with that interaction tag (a door swinging
+			// open), eased; no seconds = at once. Floats, parsed directly.
+			auto pf = [](const std::string& s) -> float
+			{
+				try { return std::stof(s); } catch (...) { return 0.0f; }
+			};
+			const std::string tag = c.ParseStringValue(parameters[2]);
+			const std::string& action = parameters[3];
+			if (action == "turn")
+				Scene3D::Get().AnimateModelTurn(tag, pf(parameters[4]), (parameters.size() > 5) ? pf(parameters[5]) : 0.0f);
+			else if (action == "move" && parameters.size() > 6)
+				Scene3D::Get().AnimateModelMove(tag, glm::vec3(pf(parameters[4]), pf(parameters[5]), pf(parameters[6])),
+					(parameters.size() > 7) ? pf(parameters[7]) : 0.0f);
+			else
+				game->logger.Log("scene3d model: bad action " + action);
+		}
 		else if (sub == "exposure" && parameters.size() > 2)
 		{
 			// scene3d exposure <multiplier> [seconds] - the scene's exposure in a

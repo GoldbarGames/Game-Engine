@@ -18,8 +18,8 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
-#include <regex>
 #include <set>
 #include <vector>
 
@@ -742,6 +742,129 @@ void BloomWorldTarget()
 }
 
 // -------------------------------------------------------- shader adaptation
+//
+// Read with a small hand-written scanner rather than std::regex. The regexes
+// matched the same things, but in a Debug build they took up to 0.4 s a
+// shader - over two seconds of DB2's start-up, more than compiling the shaders
+// did (docs/STARTUP.md).
+
+namespace
+{
+	bool IsWordChar(char c)
+	{
+		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+	}
+
+	bool IsSpace(char c)
+	{
+		return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
+	}
+
+	size_t SkipSpaces(const std::string& s, size_t i)
+	{
+		while (i < s.size() && IsSpace(s[i]))
+			i++;
+		return i;
+	}
+
+	// `word` at i, standing alone on its left (a \b before it).
+	bool WordAt(const std::string& s, size_t i, const char* word)
+	{
+		const size_t n = strlen(word);
+		if (i + n > s.size() || s.compare(i, n, word) != 0)
+			return false;
+		return i == 0 || !IsWordChar(s[i - 1]);
+	}
+
+	// "void main()" or "void main(void)" at i, any spacing: where it ends.
+	bool MainAt(const std::string& s, size_t i, size_t& end)
+	{
+		if (!WordAt(s, i, "void"))
+			return false;
+		size_t j = i + 4;
+		const size_t k = SkipSpaces(s, j);
+		if (k == j || s.compare(k, 4, "main") != 0)          // \s+ main
+			return false;
+		j = SkipSpaces(s, k + 4);
+		if (j >= s.size() || s[j] != '(')
+			return false;
+		j = SkipSpaces(s, j + 1);
+		if (s.compare(j, 4, "void") == 0)
+			j = SkipSpaces(s, j + 4);
+		if (j >= s.size() || s[j] != ')')
+			return false;
+		end = j + 1;
+		return true;
+	}
+
+	// "layout(location = N)" ending just before i (with only spaces between):
+	// N, or -1 when there is none (or the layout says something else).
+	int LocationBefore(const std::string& s, size_t i)
+	{
+		size_t j = i;
+		while (j > 0 && IsSpace(s[j - 1]))
+			j--;
+		if (j == 0 || s[j - 1] != ')')
+			return -1;
+		const size_t close = j - 1;
+		const size_t open = s.rfind('(', close);
+		if (open == std::string::npos)
+			return -1;
+		size_t w = open;
+		while (w > 0 && IsSpace(s[w - 1]))
+			w--;
+		if (w < 6 || s.compare(w - 6, 6, "layout") != 0)
+			return -1;
+		size_t k = SkipSpaces(s, open + 1);
+		if (s.compare(k, 8, "location") != 0)
+			return -1;
+		k = SkipSpaces(s, k + 8);
+		if (k >= close || s[k] != '=')
+			return -1;
+		k = SkipSpaces(s, k + 1);
+		size_t digits = k;
+		while (digits < close && s[digits] >= '0' && s[digits] <= '9')
+			digits++;
+		if (digits == k || SkipSpaces(s, digits) != close)
+			return -1;
+		return atoi(s.substr(k, digits - k).c_str());
+	}
+
+	// "out [precision] vec4|vec3 name;" at i: its type and name.
+	bool OutAt(const std::string& s, size_t i, std::string& type, std::string& name)
+	{
+		if (!WordAt(s, i, "out"))
+			return false;
+		size_t j = i + 3;
+		size_t k = SkipSpaces(s, j);
+		if (k == j)
+			return false;                                     // \s+
+		for (const char* p : { "lowp", "mediump", "highp" })
+		{
+			const size_t n = strlen(p);
+			if (s.compare(k, n, p) == 0 && k + n < s.size() && IsSpace(s[k + n]))
+			{
+				k = SkipSpaces(s, k + n);
+				break;
+			}
+		}
+		if (s.compare(k, 4, "vec4") != 0 && s.compare(k, 4, "vec3") != 0)
+			return false;
+		type = s.substr(k, 4);
+		j = k + 4;
+		k = SkipSpaces(s, j);
+		if (k == j)
+			return false;
+		size_t e = k;
+		while (e < s.size() && IsWordChar(s[e]))
+			e++;
+		if (e == k)
+			return false;
+		name = s.substr(k, e - k);
+		e = SkipSpaces(s, e);
+		return e < s.size() && s[e] == ';';
+	}
+}
 
 std::string AdaptFragmentShader(const std::string& source, bool& adapted)
 {
@@ -751,27 +874,48 @@ std::string AdaptFragmentShader(const std::string& source, bool& adapted)
 
 	const std::string code = StripComments(source);
 
-	// The colour output: the one at location 0, else the first declared.
-	static const std::regex outRe(
-		R"((?:layout\s*\(\s*location\s*=\s*(\d+)\s*\)\s*)?\bout\s+(?:(?:lowp|mediump|highp)\s+)?(vec4|vec3)\s+(\w+)\s*;)");
+	// The colour output: the one at location 0, else the first declared
+	// without a location.
 	std::string outName, outType;
-	for (auto it = std::sregex_iterator(code.begin(), code.end(), outRe); it != std::sregex_iterator(); ++it)
+	for (size_t i = code.find("out"); i != std::string::npos; i = code.find("out", i + 1))
 	{
-		const std::smatch& m = *it;
-		const bool explicitZero = m[1].matched && m[1].str() == "0";
-		if (explicitZero || (outName.empty() && !m[1].matched))
+		std::string type, name;
+		if (!OutAt(code, i, type, name))
+			continue;
+		const int location = LocationBefore(code, i);
+		if (location == 0 || (outName.empty() && location < 0))
 		{
-			outType = m[2].str();
-			outName = m[3].str();
-			if (explicitZero)
+			outType = type;
+			outName = name;
+			if (location == 0)
 				break;
 		}
 	}
-	static const std::regex mainRe(R"(\bvoid\s+main\s*\(\s*(?:void\s*)?\))");
-	if (outName.empty() || !std::regex_search(code, mainRe))
+	bool hasMain = false;
+	for (size_t i = code.find("void"); i != std::string::npos && !hasMain; i = code.find("void", i + 1))
+	{
+		size_t end = 0;
+		hasMain = MainAt(code, i, end);
+	}
+	if (outName.empty() || !hasMain)
 		return source;   // no colour output (a depth-only pass): nothing to convert
 
-	std::string out = std::regex_replace(source, mainRe, "void kinjo_user_main()");
+	// Rename the shader's own main (every spelling of it, as the regex did).
+	std::string out;
+	out.reserve(source.size() + 512);
+	size_t from = 0;
+	for (size_t i = source.find("void"); i != std::string::npos; i = source.find("void", i + 1))
+	{
+		size_t end = 0;
+		if (i >= from && MainAt(source, i, end))
+		{
+			out.append(source, from, i - from);
+			out += "void kinjo_user_main()";
+			from = end;
+			i = end - 1;
+		}
+	}
+	out.append(source, from, std::string::npos);
 	out +=
 		"\n// --- added by the engine (render/ColorPipeline.cpp): this shader writes\n"
 		"// gamma-space colour, so convert it when the target is linear ---\n"

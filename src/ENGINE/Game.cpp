@@ -1,4 +1,5 @@
 #include "leak_check.h"
+#include "StartupTrace.h"
 #include "render/RenderDevice.h"
 #include "render/RenderContext.h"
 #include "render/ColorPipeline.h"
@@ -356,6 +357,45 @@ bool Game::startWindowed = false;
 int  Game::startWindowedMaxWidth = 1280;
 int  Game::startWindowedMaxHeight = 720;
 
+// KINJO_STARTUP_TRACE=1: how long each step of start-up takes, from the moment
+// the engine was loaded to the first frame on screen (docs/STARTUP.md). Silent
+// otherwise. Made to find what a ten-second black window was spending its time
+// on, and kept for the next time it creeps up.
+namespace
+{
+	struct StartupTrace
+	{
+		bool on = false;
+		bool done = false;
+		std::chrono::steady_clock::time_point first, last;
+
+		StartupTrace()
+		{
+			const char* env = std::getenv("KINJO_STARTUP_TRACE");
+			on = (env != nullptr && env[0] == '1');
+			first = last = std::chrono::steady_clock::now();
+		}
+
+		void Step(const char* what)
+		{
+			if (!on || done)
+				return;
+			const auto now = std::chrono::steady_clock::now();
+			const double ms = std::chrono::duration<double, std::milli>(now - last).count();
+			const double total = std::chrono::duration<double, std::milli>(now - first).count();
+			std::cout << "[startup] " << (int)(ms + 0.5) << " ms  " << what
+				<< "   (" << (int)(total + 0.5) << " ms in)" << std::endl;
+			last = now;
+		}
+	};
+	StartupTrace startupTrace;
+}
+
+void StartupStep(const char* what)
+{
+	startupTrace.Step(what);
+}
+
 Game::Game(const std::string& name, const std::string& title, const std::string& icon, bool is2D, MainHelper* helper) : logger("logs/output.log")
 {
 	currentGame = name;
@@ -375,6 +415,7 @@ Game::Game(const std::string& name, const std::string& title, const std::string&
 	Init();
 
 	std::cout << "Game Created" << std::endl;
+	startupTrace.Step("the rest of Game::Init (lights, cutscene helper)");
 }
 
 Game::Game(const std::string& name, const std::string& title, const std::string& icon, bool is2D,
@@ -404,6 +445,7 @@ Game::Game(const std::string& name, const std::string& title, const std::string&
 	Init();
 
 	std::cout << "Game Created" << std::endl;
+	startupTrace.Step("the rest of Game::Init (lights, cutscene helper)");
 }
 
 Game::~Game()
@@ -531,13 +573,17 @@ void Game::Init()
 	}
 
 	fileManager->Init(*this);
+	startupTrace.Step("the game's FileManager");
 
 	InitSDL();
+	startupTrace.Step("controller check");
 
 	renderer.Init(this);
 	spriteManager.Init(&renderer);
+	startupTrace.Step("renderer, sprite manager");
 
 	InitOpenGL();
+	startupTrace.Step("OpenGL context, shaders, framebuffers");
 
 	std::cout << "After OpenGL Init..." << std::endl;
 
@@ -549,12 +595,15 @@ void Game::Init()
 	// TODO: Load all fonts from a file (fonts.list)
 	theFont = CreateFont(menuManager->defaultFontName, menuManager->defaultFontSize);
 	headerFont = CreateFont(menuManager->defaultFontName, menuManager->defaultFontSize * 2);
+	startupTrace.Step("fonts");
 
 	soundManager.ReadMusicData("data/config/bgm.dat");
+	startupTrace.Step("music list");
 
 	// Initialize the cutscene stuff (do this AFTER renderer and sprite manager and random)
 	cutsceneManager.Init(*this);
 	cutsceneManager.ParseCutsceneFile();
+	startupTrace.Step("cutscene script");
 
 	//ShaderProgram* shader = renderer.shaders[ShaderName::Default];
 
@@ -571,14 +620,17 @@ void Game::Init()
 
 	// Initialize the translation maps
 	ReadTranslationData();
+	startupTrace.Step("debug sprites, entity lists, translations");
 
 
 
 	editor = new Editor(*this);
 	debugScreen = new DebugScreen(*this);
+	startupTrace.Step("editor, debug screen");
 
 	// Initialize this AFTER OpenGL, Fonts, and Editor
 	soundManager.Init(this);
+	startupTrace.Step("sound");
 
 	// Check for new lists folder first, fall back to old config location
 	if (FileExists("data/lists/dirs.list"))
@@ -599,17 +651,21 @@ void Game::Init()
 	// startScreenWidth/Height are the fixed design resolution now, so don't use
 	// them here or the window would shrink to the design size).
 	SetScreenResolution(screenWidth, screenHeight);
+	startupTrace.Step("lists, screen resolution");
 
 
 	// Initialize GUI (do this AFTER fonts and resolution)
 	gui->Init(this);
+	startupTrace.Step("the game's GUI::Init");
 
 	inputManager.Init();
 
 	// Initialize all the menus (do this AFTER fonts and resolution)
 	menuManager->Init(*this);
+	startupTrace.Step("input, the game's MenuManager::Init");
 
 	LoadEditorSettings();
+	startupTrace.Step("editor settings");
 
 	previousTime = clock::now();
 
@@ -831,11 +887,13 @@ void Game::InitSDL()
 {
 	
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
+	startupTrace.Step("SDL_Init (video, game controllers)");
 	TTF_Init();
 
 	std::cout << "Creating window..." << std::endl;
 
 	window = SDL_CreateWindow(windowTitle.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, initialWidth, initialHeight, RenderWindowFlags());
+	startupTrace.Step("TTF_Init, SDL_CreateWindow");
 
 	if (window == nullptr)
 	{
@@ -846,6 +904,7 @@ void Game::InitSDL()
 		SDL_SetWindowIcon(window, IMG_Load(windowIconFilepath.c_str()));
 	}
 
+	startupTrace.Step("window icon");
 	CheckController(true);
 }
 
@@ -3532,6 +3591,11 @@ void Game::Render()
 
 	Device().UseProgram(ProgramHandle());
 	PresentFrame(window);
+	if (startupTrace.on && !startupTrace.done)
+	{
+		startupTrace.Step("to the first frame on screen (the game's own setup, the first level)");
+		startupTrace.done = true;
+	}
 	// Fence this frame's slice of the streaming buffer and move to the next.
 	TransientEndFrame();
 	EndFramePasses();

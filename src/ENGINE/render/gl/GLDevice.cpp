@@ -4,11 +4,147 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <algorithm>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <initializer_list>
 #include <memory>
 #include <vector>
 
 namespace
 {
+#ifndef __EMSCRIPTEN__
+	// ---- the program cache -----------------------------------------------
+	//
+	// Compiling GLSL is the slowest thing a start-up does: up to half a second
+	// for some of DB2's 2D effects, for every program, on every run - a debug
+	// context gets no help from the driver's own cache. A linked program can be
+	// saved as the driver's binary (glGetProgramBinary) and loaded back
+	// (glProgramBinary), so each is compiled once and afterwards read from the
+	// game's cache/shaders/. The key is a hash of the program's final source and
+	// the driver, so editing a shader (or updating the driver) simply compiles
+	// it again. KINJO_SHADER_CACHE=0 turns it off (docs/STARTUP.md).
+	struct ProgramCache
+	{
+		bool checked = false;
+		bool usable = false;
+		std::string driver;          // vendor | renderer | version: part of every key
+
+		bool Usable()
+		{
+			if (checked)
+				return usable;
+			checked = true;
+			const char* env = std::getenv("KINJO_SHADER_CACHE");
+			GLint formats = 0;
+			if (glGetProgramBinary != nullptr && glProgramBinary != nullptr && glProgramParameteri != nullptr)
+				glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &formats);
+			usable = formats > 0 && !(env != nullptr && env[0] == '0');
+			if (usable)
+			{
+				auto text = [](GLenum e)
+				{
+					const GLubyte* str = glGetString(e);
+					return (str != nullptr) ? std::string((const char*)str) : std::string();
+				};
+				driver = text(GL_VENDOR) + "|" + text(GL_RENDERER) + "|" + text(GL_VERSION);
+				std::error_code ec;
+				std::filesystem::create_directories("cache/shaders", ec);
+				usable = !ec;
+			}
+			std::cout << "Program cache: " << (usable ? "on (cache/shaders/)" : "off") << std::endl;
+			return usable;
+		}
+
+		std::string PathFor(std::initializer_list<const char*> sources) const
+		{
+			uint64_t h = 1469598103934665603ull;                     // FNV-1a
+			auto mix = [&](const char* text, size_t n)
+			{
+				for (size_t i = 0; i < n; i++)
+				{
+					h ^= (unsigned char)text[i];
+					h *= 1099511628211ull;
+				}
+				h ^= 0xffu;                                          // a separator
+				h *= 1099511628211ull;
+			};
+			mix("KPB1", 4);
+			mix(driver.data(), driver.size());
+			for (const char* source : sources)
+				mix(source, strlen(source));
+			char name[64];
+			snprintf(name, sizeof(name), "cache/shaders/%016llx.bin", (unsigned long long)h);
+			return name;
+		}
+
+		// The cached program, or 0 to compile it (none yet, or the driver
+		// refuses an old binary after an update).
+		GLuint Load(const std::string& path) const
+		{
+			std::ifstream in(path, std::ios::binary);
+			if (!in)
+				return 0;
+			char magic[4] = { 0 };
+			GLenum format = 0;
+			uint32_t length = 0;
+			in.read(magic, 4);
+			in.read((char*)&format, sizeof(format));
+			in.read((char*)&length, sizeof(length));
+			if (!in || memcmp(magic, "KPB1", 4) != 0 || length == 0 || length > 64u * 1024u * 1024u)
+				return 0;
+			std::vector<char> data(length);
+			if (!in.read(data.data(), length))
+				return 0;
+			GLuint program = glCreateProgram();
+			glProgramBinary(program, format, data.data(), (GLsizei)length);
+			GLint ok = 0;
+			glGetProgramiv(program, GL_LINK_STATUS, &ok);
+			if (!ok)
+			{
+				glDeleteProgram(program);
+				return 0;
+			}
+			return program;
+		}
+
+		void Save(const std::string& path, GLuint program) const
+		{
+			GLint length = 0;
+			glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &length);
+			if (length <= 0)
+				return;
+			std::vector<char> data((size_t)length);
+			GLenum format = 0;
+			GLsizei written = 0;
+			glGetProgramBinary(program, length, &written, &format, data.data());
+			if (written <= 0)
+				return;
+			// Written beside and renamed into place, so a run that dies half way
+			// through never leaves half a binary under the real name.
+			const std::string temp = path + ".tmp";
+			{
+				std::ofstream out(temp, std::ios::binary | std::ios::trunc);
+				if (!out)
+					return;
+				const uint32_t n = (uint32_t)written;
+				out.write("KPB1", 4);
+				out.write((const char*)&format, sizeof(format));
+				out.write((const char*)&n, sizeof(n));
+				out.write(data.data(), written);
+				if (!out)
+					return;
+			}
+			std::error_code ec;
+			std::filesystem::rename(temp, path, ec);
+		}
+	};
+	ProgramCache programCache;
+#endif
+
 	GLenum ToGL(BufferUsage usage)
 	{
 		switch (usage)
@@ -668,6 +804,14 @@ ProgramHandle GLDevice::CreateComputeProgram(const char* source, std::string& lo
 	log = "compute shaders are not available on WebGL";
 	return ProgramHandle();
 #else
+	std::string cachePath;
+	if (programCache.Usable())
+	{
+		cachePath = programCache.PathFor({ "compute", source });
+		if (GLuint cached = programCache.Load(cachePath))
+			return ProgramHandle(cached);
+	}
+
 	GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
 	glShaderSource(shader, 1, &source, nullptr);
 	glCompileShader(shader);
@@ -683,6 +827,8 @@ ProgramHandle GLDevice::CreateComputeProgram(const char* source, std::string& lo
 	}
 	GLuint program = glCreateProgram();
 	glAttachShader(program, shader);
+	if (!cachePath.empty())
+		glProgramParameteri(program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
 	glLinkProgram(program);
 	glDeleteShader(shader);
 	GLint linked = 0;
@@ -695,6 +841,8 @@ ProgramHandle GLDevice::CreateComputeProgram(const char* source, std::string& lo
 		glDeleteProgram(program);
 		return ProgramHandle();
 	}
+	if (!cachePath.empty())
+		programCache.Save(cachePath, program);
 	return ProgramHandle(program);
 #endif
 }
@@ -802,6 +950,15 @@ void GLDevice::ReadBuffer(BufferHandle buffer, size_t offset, size_t bytes, void
 ProgramHandle GLDevice::CreateProgram(const char* vertexSource, const char* fragmentSource, std::string& log)
 {
 	log.clear();
+#ifndef __EMSCRIPTEN__
+	std::string cachePath;
+	if (programCache.Usable())
+	{
+		cachePath = programCache.PathFor({ vertexSource, fragmentSource });
+		if (GLuint cached = programCache.Load(cachePath))
+			return ProgramHandle(cached);
+	}
+#endif
 	GLuint program = glCreateProgram();
 	if (program == 0)
 	{
@@ -834,6 +991,10 @@ ProgramHandle GLDevice::CreateProgram(const char* vertexSource, const char* frag
 	GLint linked = 0;
 	if (vsOk && fsOk)
 	{
+#ifndef __EMSCRIPTEN__
+		if (!cachePath.empty())
+			glProgramParameteri(program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
+#endif
 		glLinkProgram(program);
 		glGetProgramiv(program, GL_LINK_STATUS, &linked);
 		if (!linked)
@@ -858,6 +1019,10 @@ ProgramHandle GLDevice::CreateProgram(const char* vertexSource, const char* frag
 		glGetProgramInfoLog(program, sizeof(info), nullptr, info);
 		log += std::string("Error validating program: '") + info + "'\n";
 	}
+#ifndef __EMSCRIPTEN__
+	if (!cachePath.empty())
+		programCache.Save(cachePath, program);
+#endif
 	return ProgramHandle(program);
 }
 

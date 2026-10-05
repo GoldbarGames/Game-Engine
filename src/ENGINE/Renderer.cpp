@@ -134,9 +134,17 @@ void Renderer::HotReload()
 
 			try
 			{
-				if (lastModified.count(vertexFile) == 0
-					|| lastModified.count(fragmentFile) == 0
-					|| entry1.last_write_time() != lastModified[vertexFile]
+				// The first look at a file only records its time. Treating "not
+				// seen yet" as "changed" recompiled every shader on the first
+				// frame - the whole set twice at every start-up, two seconds of
+				// DB2's (docs/STARTUP.md).
+				if (lastModified.count(vertexFile) == 0 || lastModified.count(fragmentFile) == 0)
+				{
+					lastModified[vertexFile] = entry1.last_write_time();
+					lastModified[fragmentFile] = entry2.last_write_time();
+					continue;
+				}
+				if (entry1.last_write_time() != lastModified[vertexFile]
 					|| entry2.last_write_time() != lastModified[fragmentFile])
 				{
 					lastModified[vertexFile] = entry1.last_write_time();

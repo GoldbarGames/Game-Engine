@@ -29,6 +29,7 @@
 #include <cstddef>
 #include "UniformBlocks.h"
 #include "UniformBufferCache.h"
+#include "ModelMaterials.h"
 #include "RenderState.h"
 #include "TransientBuffer.h"
 
@@ -295,6 +296,11 @@ void Scene3DInternal::ReloadShadowSettings()
 	cascadeSettings = CascadeSettings();   // read again on next use
 }
 
+namespace
+{
+	void RunCasterHook(unsigned int program);   // below, with SetShadowCasterHook
+}
+
 void Scene3D::RenderShadowCascades(Game& game, const Renderer& renderer, const glm::vec3& L, double casterSig)
 {
 	const CascadeSettings& cfg = Cascades();
@@ -492,6 +498,8 @@ void Scene3D::DrawShadowCasters(const Renderer& renderer, unsigned int program, 
 			ch->quad->RenderMesh(0);
 		}
 	}
+
+	RunCasterHook(program);   // a game's own moving geometry (SetShadowCasterHook)
 }
 
 void Scene3D::EnsureShadowMap()
@@ -514,6 +522,38 @@ void Scene3D::EnsureShadowMap()
 	device.AttachTexture(fb, Attachment::Depth, depth);
 	device.SetDrawBuffers(fb, 0);         // depth only
 	device.BindFramebuffer(FramebufferHandle());
+}
+
+namespace
+{
+	// SetShadowCasterHook: a game's own moving geometry in the sun's shadow.
+	std::function<void()> casterHookDraw;
+	std::function<double()> casterHookSignature;
+	unsigned int casterHookProgram = 0;   // the depth program while the hook draws
+
+	void RunCasterHook(unsigned int program)
+	{
+		if (!casterHookDraw)
+			return;
+		casterHookProgram = program;
+		ModelWhiteTexture()->UseTexture();   // opaque: nothing cut out
+		casterHookDraw();
+		casterHookProgram = 0;
+	}
+}
+
+void Scene3D::SetShadowCasterHook(std::function<void()> draw, std::function<double()> signature)
+{
+	casterHookDraw = std::move(draw);
+	casterHookSignature = std::move(signature);
+}
+
+void Scene3D::DrawShadowMesh(Mesh* mesh, const glm::mat4& model) const
+{
+	if (casterHookProgram == 0 || mesh == nullptr)
+		return;
+	Device().SetUniform(ShaderProgram::DrawUniformLocation(casterHookProgram, "model"), model);
+	mesh->RenderMesh(0);
 }
 
 void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
@@ -559,6 +599,8 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	if (!characters.empty())
 		sig += renderer.camera.position.x * 0.71 + renderer.camera.position.y * 0.93
 		     + renderer.camera.position.z * 1.29;
+	if (casterHookSignature)
+		sig += casterHookSignature() * 1.37;   // a game's own moving casters
 
 	// Cascaded maps when the scene's model shader reads them (the engine's
 	// scene3d.frag); an older game copy keeps the single map below.
@@ -656,6 +698,8 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 			ch->quad->RenderMesh(0);
 		}
 	}
+
+	RunCasterHook(id);   // a game's own moving geometry (SetShadowCasterHook)
 
 	// Restore the default framebuffer + full viewport; Game::Render rebinds the
 	// main scene framebuffer next.
@@ -763,7 +807,13 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 			+ pointShadowPositions[s].x * 1.1 + pointShadowPositions[s].y * 2.3 + pointShadowPositions[s].z * 3.7;
 	for (Scene3DModel* m : models)
 		if (m && m->loaded && !m->IsWater() && !m->guardHidden)
-			sig += m->position.x * 1.7 + m->position.y * 2.9 + m->position.z * 3.1;
+		{
+			// Turning or resizing a model changes its shadow too (a door swinging).
+			const glm::vec3 s = m->EffectiveScale();
+			sig += m->position.x * 1.7 + m->position.y * 2.9 + m->position.z * 3.1
+				+ m->yawDeg * 0.019 + m->pitchDeg * 0.023 + m->rollDeg * 0.029
+				+ (s.x * 1.3 + s.y * 1.7 + s.z * 2.3);
+		}
 	for (Character3D* ch : characters)
 		if (ch)
 			sig += ch->position.x * 1.3 + ch->position.y * 2.1 + ch->position.z * 4.3;
