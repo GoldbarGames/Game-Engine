@@ -13,6 +13,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <fstream>
 #include <sstream>
+#include <functional>
+#include <unordered_set>
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
@@ -725,6 +727,221 @@ Scene3D& Scene3D::Get()
 	return instance;
 }
 
+// --- the lines of a .scene file that aren't data -----------------------------
+// Comments, blank lines and lines the engine doesn't recognise are kept from
+// the file a scene was loaded from, so a save writes them back: each block of
+// them stays above the data line it was above, and a comment at the end of a
+// data line stays at its end. Comments whose line is gone (a deleted model,
+// the sun switched off...) move to the end of the file rather than vanish.
+namespace
+{
+	struct SceneText
+	{
+		std::vector<std::string> header;     // above the first data line
+		std::vector<std::string> trailer;    // below the last
+		std::map<std::string, std::vector<std::string>> above;   // by line key
+		std::map<std::string, std::string> after;                // "   # ..." ending a line, by key
+		std::vector<std::string> keyOrder;   // keys in file order
+		std::unordered_set<std::string> keySeen;
+		std::vector<std::string> orphans;    // from models / characters deleted since loading
+	};
+	SceneText sceneText;
+
+	bool IsBlankLine(const std::string& s)
+	{
+		return s.find_first_not_of(" \t\r") == std::string::npos;
+	}
+
+	void TrimBlankEnds(std::vector<std::string>& v)
+	{
+		while (!v.empty() && IsBlankLine(v.back()))
+			v.pop_back();
+		size_t first = 0;
+		while (first < v.size() && IsBlankLine(v[first]))
+			first++;
+		v.erase(v.begin(), v.begin() + first);
+	}
+
+	// What a data line made: a model or character (by its object), a light,
+	// camera or slot (by name), or a one-per-scene setting (by its tag).
+	std::string SceneLineKey(const char* kind, const void* object)
+	{
+		std::ostringstream ss;
+		ss << kind << object;
+		return ss.str();
+	}
+
+	// The lines read since the last data line belong to the one just read
+	// (above the first one, the part up to the last blank line is the header).
+	void AttachSceneLines(const std::string& key, std::vector<std::string>& pending, const std::string& note, bool sawData)
+	{
+		if (!sawData)
+		{
+			size_t split = 0;
+			for (size_t i = 0; i < pending.size(); i++)
+				if (IsBlankLine(pending[i]))
+					split = i + 1;
+			sceneText.header.assign(pending.begin(), pending.begin() + split);
+			TrimBlankEnds(sceneText.header);
+			pending.erase(pending.begin(), pending.begin() + split);
+		}
+		TrimBlankEnds(pending);
+		if (!pending.empty())
+		{
+			std::vector<std::string>& block = sceneText.above[key];
+			block.insert(block.end(), pending.begin(), pending.end());
+		}
+		if (!note.empty())
+			sceneText.after[key] = note;
+		if (sceneText.keySeen.insert(key).second)
+			sceneText.keyOrder.push_back(key);
+	}
+
+	void FinishSceneLines(std::vector<std::string>& pending, bool sawData)
+	{
+		TrimBlankEnds(pending);
+		(sawData ? sceneText.trailer : sceneText.header) = pending;
+	}
+
+	// A model or character is being deleted: its lines go to the end of the
+	// file (its object's address may be reused by the next one made).
+	void OrphanSceneLines(const std::string& key)
+	{
+		auto a = sceneText.above.find(key);
+		if (a != sceneText.above.end())
+		{
+			for (const std::string& line : a->second)
+				if (!IsBlankLine(line))
+					sceneText.orphans.push_back(line);
+			sceneText.above.erase(a);
+		}
+		auto n = sceneText.after.find(key);
+		if (n != sceneText.after.end())
+		{
+			const size_t hash = n->second.find('#');
+			sceneText.orphans.push_back(hash == std::string::npos ? n->second : n->second.substr(hash));
+			sceneText.after.erase(n);
+		}
+	}
+
+	// The scene file: the data lines (key, text; an empty text = a section
+	// break) with the kept lines put back around them.
+	void WriteSceneLines(std::ostream& out, const std::vector<std::pair<std::string, std::string>>& lines)
+	{
+		std::vector<std::string> text;
+		auto blank = [&]()
+		{
+			if (!text.empty() && !IsBlankLine(text.back()))
+				text.push_back(std::string());
+		};
+		if (sceneText.header.empty())
+		{
+			text.push_back("# Saved by the in-game 3D editor.");
+			text.push_back("# model <obj> <tex> <x> <y> <z> <yaw> <scale> [solid] [tag <VALUE>]");
+			text.push_back("#   optional: rot <pitch> <roll>   scaleaxis <sx> <sy> <sz>");
+		}
+		else
+		{
+			text = sceneText.header;
+		}
+		blank();
+
+		std::unordered_set<std::string> written;
+		for (const std::pair<std::string, std::string>& l : lines)
+		{
+			if (l.second.empty())
+			{
+				blank();
+				continue;
+			}
+			std::string line = l.second;
+			if (!l.first.empty() && written.insert(l.first).second)
+			{
+				auto a = sceneText.above.find(l.first);
+				if (a != sceneText.above.end() && !a->second.empty())
+				{
+					blank();
+					text.insert(text.end(), a->second.begin(), a->second.end());
+				}
+				auto n = sceneText.after.find(l.first);
+				if (n != sceneText.after.end())
+					line += n->second;
+			}
+			text.push_back(line);
+		}
+
+		// Comments whose line is gone.
+		std::vector<std::string> lost;
+		for (const std::string& key : sceneText.keyOrder)
+		{
+			if (written.count(key) != 0)
+				continue;
+			auto a = sceneText.above.find(key);
+			if (a != sceneText.above.end())
+				for (const std::string& line : a->second)
+					if (!IsBlankLine(line))
+						lost.push_back(line);
+			auto n = sceneText.after.find(key);
+			if (n != sceneText.after.end())
+			{
+				const size_t hash = n->second.find('#');
+				lost.push_back(hash == std::string::npos ? n->second : n->second.substr(hash));
+			}
+		}
+		lost.insert(lost.end(), sceneText.orphans.begin(), sceneText.orphans.end());
+		if (!lost.empty())
+		{
+			blank();
+			text.insert(text.end(), lost.begin(), lost.end());
+		}
+		if (!sceneText.trailer.empty())
+		{
+			blank();
+			text.insert(text.end(), sceneText.trailer.begin(), sceneText.trailer.end());
+		}
+		while (!text.empty() && IsBlankLine(text.back()))
+			text.pop_back();
+		for (const std::string& t : text)
+			out << t << "\n";
+	}
+}
+
+void Scene3DInternal::RenameSceneLine(const std::string& kind, const std::string& from, const std::string& to)
+{
+	const std::string a = kind + ":" + from, b = kind + ":" + to;
+	if (a == b)
+		return;
+	auto moveKey = [&](auto& map)
+	{
+		auto it = map.find(a);
+		if (it != map.end())
+		{
+			map[b] = it->second;
+			map.erase(a);
+		}
+	};
+	moveKey(sceneText.above);
+	moveKey(sceneText.after);
+	for (std::string& k : sceneText.keyOrder)
+		if (k == a)
+			k = b;
+	sceneText.keySeen.erase(a);
+	sceneText.keySeen.insert(b);
+}
+
+bool Scene3D::RenameCamera(const std::string& from, const std::string& to)
+{
+	if (to.empty() || from == to || cameras.find(from) == cameras.end() || cameras.find(to) != cameras.end())
+		return false;
+	cameras[to] = cameras[from];
+	cameras.erase(from);
+	for (std::string& name : cameraOrder)
+		if (name == from)
+			name = to;
+	Scene3DInternal::RenameSceneLine("camera", from, to);
+	return true;
+}
+
 bool Scene3D::Load(Game& game, const std::string& sceneName)
 {
 	std::string path = "data/scenes/" + sceneName + ".scene";
@@ -857,15 +1074,40 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 		billboardQuad->CreateMesh(qv, qi, 32, 6, 8, 3, 5);
 	}
 
+	sceneText = SceneText();
+	std::vector<std::string> pending;   // comment / blank / unrecognised lines since the last data line
+	bool sawData = false;
 	std::string line;
 	while (std::getline(file, line))
 	{
-		if (line.empty() || line[0] == '#')
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
+		const size_t first = line.find_first_not_of(" \t");
+		if (first == std::string::npos || line[first] == '#')
+		{
+			pending.push_back(line);   // kept for saving
 			continue;
+		}
+		// A comment ending a data line: set apart, and put back on save.
+		std::string data = line, note;
+		for (size_t i = first + 1; i < line.size(); i++)
+		{
+			if (line[i] == '#' && (line[i - 1] == ' ' || line[i - 1] == '\t'))
+			{
+				size_t j = i;
+				while (j > 0 && (line[j - 1] == ' ' || line[j - 1] == '\t'))
+					j--;
+				data = line.substr(0, j);
+				note = line.substr(j);
+				break;
+			}
+		}
 
-		std::istringstream ss(line);
+		std::istringstream ss(data);
 		std::string tag;
 		ss >> tag;
+		const size_t modelsBefore = models.size();
+		const size_t charactersBefore = characters.size();
 
 		if (tag == "model")
 		{
@@ -1251,7 +1493,39 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 				SetSceneAO(strength, radius);
 			}
 		}
+		else
+		{
+			// Not a tag this engine knows (a newer engine's, or a typo): kept
+			// as it is, so saving doesn't lose it.
+			pending.push_back(line);
+			continue;
+		}
+
+		// What the line made, so its comments stay with it.
+		std::string key;
+		{
+			std::istringstream names(data);
+			std::string skip, name;
+			names >> skip >> name;
+			if (tag == "model")
+				key = (models.size() > modelsBefore) ? SceneLineKey("model:", models.back()) : std::string();
+			else if (tag == "character")
+				key = (characters.size() > charactersBefore) ? SceneLineKey("character:", characters.back()) : std::string();
+			else if (tag == "point" || tag == "spot" || tag == "camera" || tag == "slot")
+				key = tag + ":" + name;
+			else
+				key = "tag:" + tag;
+		}
+		if (key.empty())
+		{
+			pending.push_back(line);   // it made nothing (couldn't be read): kept as it is
+			continue;
+		}
+		AttachSceneLines(key, pending, note, sawData);
+		pending.clear();
+		sawData = true;
 	}
+	FinishSceneLines(pending, sawData);
 
 	// Now that every solid is known (order-independent), push each character
 	// clear of solid furniture so no one is left clipping into it
@@ -1599,142 +1873,176 @@ bool Scene3D::SaveScene(Game& game)
 
 void Scene3D::WriteScene(std::ostream& out) const
 {
-	out << "# Saved by the in-game 3D editor.\n";
-	out << "# model <obj> <tex> <x> <y> <z> <yaw> <scale> [solid] [tag <VALUE>]\n";
-	out << "#   optional: rot <pitch> <roll>   scaleaxis <sx> <sy> <sz>\n\n";
+	// The data lines in order, each with the key that finds the comments kept
+	// from loading (WriteSceneLines puts them back); an empty text = a break.
+	std::vector<std::pair<std::string, std::string>> lines;
+	auto add = [&](const std::string& key, const std::ostringstream& text) { lines.emplace_back(key, text.str()); };
+	auto section = [&]() { lines.emplace_back(std::string(), std::string()); };
 
 	for (Scene3DModel* m : models)
 	{
+		std::ostringstream o;
 		glm::vec3 p = m->position;
-		out << "model " << m->objPath << " " << m->texPath << " "
+		o << "model " << m->objPath << " " << m->texPath << " "
 			<< p.x << " " << p.y << " " << p.z << " "
 			<< m->yawDeg << " " << m->modelScale;
 		if (m->solid)
-			out << " solid";
+			o << " solid";
 		if (m->walkable)
-			out << " walk";
+			o << " walk";
 		if (!m->interactionTag.empty())
-			out << " tag " << m->interactionTag;
+			o << " tag " << m->interactionTag;
 		if (m->pitchDeg != 0.0f || m->rollDeg != 0.0f)
-			out << " rot " << m->pitchDeg << " " << m->rollDeg;
+			o << " rot " << m->pitchDeg << " " << m->rollDeg;
 		if (m->scaleAxis.x != 1.0f || m->scaleAxis.y != 1.0f || m->scaleAxis.z != 1.0f)
-			out << " scaleaxis " << m->scaleAxis.x << " " << m->scaleAxis.y << " " << m->scaleAxis.z;
+			o << " scaleaxis " << m->scaleAxis.x << " " << m->scaleAxis.y << " " << m->scaleAxis.z;
 		if (!m->materialName.empty())
-			out << " mat " << m->materialName;
+			o << " mat " << m->materialName;
 		if (m->IsWater())
-			out << " water " << m->water.amplitude << " " << m->water.waveScale << " "
+			o << " water " << m->water.amplitude << " " << m->water.waveScale << " "
 				<< m->water.shoreFade << " " << m->water.choppy << " " << m->water.specular
 				<< " " << m->water.shininess << " " << m->water.opacity;
 		// "if <guard>" must be LAST (parse reads the rest of the line into the guard).
 		if (!m->guard.empty())
-			out << " if " << m->guard;
-		out << "\n";
+			o << " if " << m->guard;
+		add(SceneLineKey("model:", m), o);
 	}
-	out << "\n";
+	section();
 
 	for (Character3D* ch : characters)
 	{
+		std::ostringstream o;
 		glm::vec3 p = ch->position;
 		if (ch->mode == "combined")
 		{
-			out << "character " << ch->charName << " combined "
+			o << "character " << ch->charName << " combined "
 				<< ch->spritePath << " "
-				<< p.x << " " << p.y << " " << p.z << " " << ch->worldHeight << "\n";
+				<< p.x << " " << p.y << " " << p.z << " " << ch->worldHeight;
 		}
 		else
 		{
-			out << "character " << ch->charName << " layered "
+			o << "character " << ch->charName << " layered "
 				<< ch->folder << " " << ch->bodyPose << " " << ch->headExpr << " "
-				<< p.x << " " << p.y << " " << p.z << " " << ch->worldHeight << "\n";
+				<< p.x << " " << p.y << " " << p.z << " " << ch->worldHeight;
 		}
+		add(SceneLineKey("character:", ch), o);
 	}
-	out << "\n";
+	section();
 
 	// Sky + lighting
 	if (!skyTexPath.empty())
-		out << "sky " << skyTexPath << " " << skyRadiusVal << "\n";
-	out << "ambient " << ambientColor.r << " " << ambientColor.g << " "
-		<< ambientColor.b << "\n";
+	{
+		std::ostringstream o;
+		o << "sky " << skyTexPath << " " << skyRadiusVal;
+		add("tag:sky", o);
+	}
+	{
+		std::ostringstream o;
+		o << "ambient " << ambientColor.r << " " << ambientColor.g << " " << ambientColor.b;
+		add("tag:ambient", o);
+	}
 	if (dirLight.diffuse > 0.0f)
 	{
-		out << "light " << dirLight.dir.x << " " << dirLight.dir.y << " "
+		std::ostringstream o;
+		o << "light " << dirLight.dir.x << " " << dirLight.dir.y << " "
 			<< dirLight.dir.z << " " << dirLight.color.r << " "
 			<< dirLight.color.g << " " << dirLight.color.b << " "
-			<< dirLight.diffuse << "\n";
+			<< dirLight.diffuse;
+		add("tag:light", o);
 	}
 	for (const ScenePointLight& p : pointLights)
 	{
 		// A strobing light is saved at its authored peak, not mid-blink.
+		std::ostringstream o;
 		const float intensity = (p.flashHz > 0.0f) ? p.flashPeak : p.intensity;
-		out << "point " << p.name << " " << p.pos.x << " " << p.pos.y << " "
+		o << "point " << p.name << " " << p.pos.x << " " << p.pos.y << " "
 			<< p.pos.z << " " << p.color.r << " " << p.color.g << " "
 			<< p.color.b << " " << p.range << " " << intensity;
 		if (!p.on)
-			out << " off";
+			o << " off";
 		if (p.flashHz > 0.0f)
-			out << " flash " << p.flashHz << " " << p.flashPhase;
+			o << " flash " << p.flashHz << " " << p.flashPhase;
 		if (!p.guard.empty())
-			out << " if " << p.guard;   // runs to the end of the line
-		out << "\n";
+			o << " if " << p.guard;   // runs to the end of the line
+		add("point:" + p.name, o);
 	}
-	for (const SceneSpotLight& s : spotLights)
+	for (const SceneSpotLight& sp : spotLights)
 	{
-		out << "spot " << s.name << " " << s.pos.x << " " << s.pos.y << " "
-			<< s.pos.z << " " << s.dir.x << " " << s.dir.y << " " << s.dir.z
-			<< " " << s.color.r << " " << s.color.g << " " << s.color.b
-			<< " " << s.range << " " << s.intensity << " " << s.innerDeg
-			<< " " << s.outerDeg;
-		if (!s.on)
-			out << " off";
-		out << "\n";
+		std::ostringstream o;
+		o << "spot " << sp.name << " " << sp.pos.x << " " << sp.pos.y << " "
+			<< sp.pos.z << " " << sp.dir.x << " " << sp.dir.y << " " << sp.dir.z
+			<< " " << sp.color.r << " " << sp.color.g << " " << sp.color.b
+			<< " " << sp.range << " " << sp.intensity << " " << sp.innerDeg
+			<< " " << sp.outerDeg;
+		if (!sp.on)
+			o << " off";
+		add("spot:" + sp.name, o);
 	}
+	// One-per-scene settings, each only when the scene sets it.
+	auto setting = [&](const char* tag, const std::function<void(std::ostringstream&)>& write)
+	{
+		std::ostringstream o;
+		o << tag << " ";
+		write(o);
+		add(std::string("tag:") + tag, o);
+	};
 	// Which point light casts shadows (empty = auto-pick the strongest).
 	if (!shadowCasterLight.empty())
-		out << "shadowlight " << shadowCasterLight << "\n";
-
+		setting("shadowlight", [&](std::ostringstream& o) { o << shadowCasterLight; });
 	// Weather (rain / snow / storm), if authored on this scene.
 	if (weatherType != WeatherType::None)
-	{
-		const char* kind = weatherType == WeatherType::Rain ? "rain"
-			: weatherType == WeatherType::Snow ? "snow" : "storm";
-		out << "weather " << kind << " " << weatherIntensity << "\n";
-	}
+		setting("weather", [&](std::ostringstream& o)
+		{
+			o << (weatherType == WeatherType::Rain ? "rain" : weatherType == WeatherType::Snow ? "snow" : "storm")
+				<< " " << weatherIntensity;
+		});
 	// Fountain spray, if authored on this scene.
 	if (hasFountain)
-		out << "fountain " << fountainPos.x << " " << fountainPos.y << " " << fountainPos.z
-			<< " " << fountainJetSpeed << " " << fountainFallDist << " " << fountainSpread
-			<< " " << fountainDropSize << " " << fountainCount << " " << fountainStretch << "\n";
+		setting("fountain", [&](std::ostringstream& o)
+		{
+			o << fountainPos.x << " " << fountainPos.y << " " << fountainPos.z
+				<< " " << fountainJetSpeed << " " << fountainFallDist << " " << fountainSpread
+				<< " " << fountainDropSize << " " << fountainCount << " " << fountainStretch;
+		});
 	// Season (foliage texture set), if not the default summer.
 	if (season != Season::Summer)
-		out << "season " << (season == Season::Spring ? "spring"
-			: season == Season::Autumn ? "autumn" : "winter") << "\n";
+		setting("season", [&](std::ostringstream& o)
+		{
+			o << (season == Season::Spring ? "spring" : season == Season::Autumn ? "autumn" : "winter");
+		});
 	// Exposure (linear workflow), if this scene sets its own.
 	if (SceneExposure() > 0.0f)
-		out << "exposure " << SceneExposure() << "\n";
+		setting("exposure", [&](std::ostringstream& o) { o << SceneExposure(); });
 	if (SceneBloom() >= 0.0f)
-		out << "bloom " << SceneBloom() << "\n";
+		setting("bloom", [&](std::ostringstream& o) { o << SceneBloom(); });
 	{
 		float iblDiffuse = -1.0f, iblSpecular = -1.0f;
 		GetSceneIBL(iblDiffuse, iblSpecular);
 		if (iblDiffuse >= 0.0f)
-			out << "ibl " << iblDiffuse << " " << (iblSpecular >= 0.0f ? iblSpecular : iblDiffuse) << "\n";
+			setting("ibl", [&](std::ostringstream& o)
+			{
+				o << iblDiffuse << " " << (iblSpecular >= 0.0f ? iblSpecular : iblDiffuse);
+			});
 	}
 	if (Scene3DInternal::SceneShadowDistance() > 0.0f)
-		out << "shadowdistance " << Scene3DInternal::SceneShadowDistance() << "\n";
+		setting("shadowdistance", [&](std::ostringstream& o) { o << Scene3DInternal::SceneShadowDistance(); });
 	{
 		std::string gradePath;
 		float gradeStrength = 1.0f;
 		GetSceneColorGrade(gradePath, gradeStrength);
 		if (!gradePath.empty())
-			out << "grade " << gradePath << " " << gradeStrength << "\n";
+			setting("grade", [&](std::ostringstream& o) { o << gradePath << " " << gradeStrength; });
 		FogSettings fog;
 		if (GetSceneFog(fog))
-			out << "fog " << fog.density << " " << fog.heightFalloff << " " << fog.color.r << " " << fog.color.g
-				<< " " << fog.color.b << " " << fog.anisotropy << " " << fog.noise << "\n";
+			setting("fog", [&](std::ostringstream& o)
+			{
+				o << fog.density << " " << fog.heightFalloff << " " << fog.color.r << " " << fog.color.g
+					<< " " << fog.color.b << " " << fog.anisotropy << " " << fog.noise;
+			});
 		float dofFocus = 0.0f, dofAperture = 0.0f;
 		GetSceneDepthOfField(dofFocus, dofAperture);
 		if (dofAperture > 0.0f && DepthOfFieldTarget().empty())
-			out << "dof " << dofFocus << " " << dofAperture << "\n";
+			setting("dof", [&](std::ostringstream& o) { o << dofFocus << " " << dofAperture; });
 	}
 	{
 		float aoStrength = -1.0f, aoRadius = -1.0f;
@@ -1742,29 +2050,34 @@ void Scene3D::WriteScene(std::ostream& out) const
 		if (aoStrength >= 0.0f || aoRadius > 0.0f)
 		{
 			// A radius alone still needs a strength first: -1 = the project's.
-			out << "ao " << aoStrength;
-			if (aoRadius > 0.0f)
-				out << " " << aoRadius;
-			out << "\n";
+			setting("ao", [&](std::ostringstream& o)
+			{
+				o << aoStrength;
+				if (aoRadius > 0.0f)
+					o << " " << aoRadius;
+			});
 		}
 	}
 	{
 		// The cel / outline settings this scene sets itself.
 		using TS = Scene3DInternal::ToonSetting;
 		if (Scene3DInternal::SceneOwnsToonSetting(TS::CelShading))
-			out << "cel " << (celShading ? "on" : "off") << "\n";
+			setting("cel", [&](std::ostringstream& o) { o << (celShading ? "on" : "off"); });
 		if (Scene3DInternal::SceneOwnsToonSetting(TS::Outline))
-			out << "outline " << (outlineEnabled ? "on" : "off") << "\n";
+			setting("outline", [&](std::ostringstream& o) { o << (outlineEnabled ? "on" : "off"); });
 		if (Scene3DInternal::SceneOwnsToonSetting(TS::OutlineCharacters))
-			out << "outlinechars " << (outlineCharacters ? "on" : "off") << "\n";
+			setting("outlinechars", [&](std::ostringstream& o) { o << (outlineCharacters ? "on" : "off"); });
 		if (Scene3DInternal::SceneOwnsToonSetting(TS::OutlineWidth))
-			out << "outlinewidth " << outlineWidth << "\n";
+			setting("outlinewidth", [&](std::ostringstream& o) { o << outlineWidth; });
 		if (Scene3DInternal::SceneOwnsToonSetting(TS::OutlineDepth))
-			out << "outlinedepth " << outlineDepthThreshold << "\n";
+			setting("outlinedepth", [&](std::ostringstream& o) { o << outlineDepthThreshold; });
 		if (Scene3DInternal::SceneOwnsToonSetting(TS::OutlineColor))
-			out << "outlinecolor " << outlineColor.r << " " << outlineColor.g << " " << outlineColor.b << "\n";
+			setting("outlinecolor", [&](std::ostringstream& o)
+			{
+				o << outlineColor.r << " " << outlineColor.g << " " << outlineColor.b;
+			});
 	}
-	out << "\n";
+	section();
 
 	// Cameras (preserve load order; the first is the default view)
 	for (const std::string& name : cameraOrder)
@@ -1772,20 +2085,24 @@ void Scene3D::WriteScene(std::ostream& out) const
 		auto it = cameras.find(name);
 		if (it == cameras.end())
 			continue;
+		std::ostringstream o;
 		const CamPose& c = it->second;
-		out << "camera " << name << " " << c.position.x << " " << c.position.y
-			<< " " << c.position.z << " " << c.pitch << " " << c.yaw << "\n";
+		o << "camera " << name << " " << c.position.x << " " << c.position.y
+			<< " " << c.position.z << " " << c.pitch << " " << c.yaw;
+		add("camera:" + name, o);
 	}
 
 	// Named anchors (schedule stand-points). yaw omitted when 0.
 	for (const SceneAnchor& a : anchors)
 	{
-		out << "slot " << a.name << " " << a.position.x << " " << a.position.y
-			<< " " << a.position.z;
+		std::ostringstream o;
+		o << "slot " << a.name << " " << a.position.x << " " << a.position.y << " " << a.position.z;
 		if (a.yaw != 0.0f)
-			out << " " << a.yaw;
-		out << "\n";
+			o << " " << a.yaw;
+		add("slot:" + a.name, o);
 	}
+
+	WriteSceneLines(out, lines);
 }
 
 std::string Scene3D::SerializeToString() const
@@ -1992,6 +2309,7 @@ bool Scene3D::RemoveModel(Game& game, int index)
 	if (index < 0 || index >= (int)models.size())
 		return false;
 	Scene3DModel* m = models[index];
+	OrphanSceneLines(SceneLineKey("model:", m));
 	models.erase(models.begin() + index);
 	game.ShouldDeleteEntity(m);   // engine removes it from entities + frees it
 	RebuildSolids();
@@ -2004,6 +2322,7 @@ bool Scene3D::RemoveCharacter(Game& game, int index)
 	if (index < 0 || index >= (int)characters.size())
 		return false;
 	Character3D* c = characters[index];
+	OrphanSceneLines(SceneLineKey("character:", c));
 	characters.erase(characters.begin() + index);
 	game.ShouldDeleteEntity(c);
 	std::cout << "Scene3D: removed character " << index << std::endl;
@@ -2351,6 +2670,7 @@ void Scene3D::Unload(Game& game)
 	gliding = false;
 	currentScene.clear();
 	Scene3DInternal::RestoreGameToonSettings();
+	sceneText = SceneText();
 	SetSceneExposure(0.0f);   // back to the project defaults
 	SetSceneBloom(-1.0f);
 	SetSceneIBL(-1.0f, -1.0f);

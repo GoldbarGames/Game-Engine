@@ -3008,9 +3008,18 @@ void Game::PopulateQuadTree()
 
 void Game::SetScreenResolution(const unsigned int width, const unsigned int height)
 {
-
-	screenWidth = width;
-	screenHeight = height;
+	// A --windowed launch keeps its small window: a script's `setting resolution
+	// 1920 1080` (DB2's init runs one) would otherwise grow it to fill the screen.
+	if (startWindowed && (int)width > startWindowedMaxWidth)
+	{
+		screenWidth = startWindowedMaxWidth;
+		screenHeight = startWindowedMaxHeight;
+	}
+	else
+	{
+		screenWidth = width;
+		screenHeight = height;
+	}
 
 	SDL_SetWindowSize(window, screenWidth, screenHeight);
 	renderer.camera.ResetProjection();

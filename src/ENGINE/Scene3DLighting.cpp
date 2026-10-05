@@ -540,7 +540,37 @@ static void BindMaterialBlock(unsigned int shaderID, const SceneMaterial& mat, c
 
 void Scene3D::ApplyMaterial(unsigned int shaderID, const SceneMaterial& mat, const WaterSurface* water) const
 {
-	BindMaterialBlock(shaderID, mat, water, 0, 0.5f, 1.0f);
+	// A library material's roughness map (unit 2, as a glTF material's) and
+	// glow map (unit 6: GL 4 only, like a glTF emissive map).
+	RenderDevice& device = Device();
+	const ProgramHandle handle(shaderID);
+	const MaterialLibrary& library = MaterialLibrary::Get();
+	int maps = 0;
+	if (Texture* rough = library.RoughnessMap(mat))
+	{
+		maps |= kMatMetalRoughMap;
+		device.SetUniform(device.UniformLocation(handle, "metallicRoughnessMap"), 2);
+		rough->UseTexture(2);
+	}
+	if (Texture* glow = library.EmissiveMap(mat))
+	{
+		if (ModelMaterialExtraMaps())
+		{
+			maps |= kMatEmissiveMap;
+			device.SetUniform(device.UniformLocation(handle, "emissiveMap"), 6);
+			glow->UseTexture(6);
+		}
+		else
+		{
+			// No unit for it here (the 3.3/web fallback): no glow, rather than
+			// the factor glowing over the whole surface.
+			SceneMaterial dark = mat;
+			dark.emissive = glm::vec3(0.0f);
+			BindMaterialBlock(shaderID, dark, water, maps, 0.5f, 1.0f);
+			return;
+		}
+	}
+	BindMaterialBlock(shaderID, mat, water, maps, 0.5f, 1.0f);
 }
 
 void Scene3DInternal::ApplyModelMaterial(unsigned int program, const ModelMaterial& material)

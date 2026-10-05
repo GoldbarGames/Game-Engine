@@ -12,6 +12,13 @@
 // Materials are named and loaded from data/materials.txt (see MaterialLibrary),
 // then referenced per model by the .scene "mat <name>" token. Engine feature -
 // available to any 3D game.
+//
+// Two more maps live in the library rather than in this class (its layout is
+// fixed by the DLL's ABI): `emissivemap <png>`, a glow map multiplying
+// `emissive` (lit windows, signs; GL 4 only), and `roughnessmap <png>`, whose
+// green channel multiplies a PBR material's roughness and blue its metallic
+// (glTF's packing: a grey image scales both; puddles on a road). See
+// MaterialLibrary::SetEmissiveMap / SetRoughnessMap.
 
 #include <glm/glm.hpp>
 #include <string>
@@ -101,6 +108,15 @@ public:
 	SceneMaterial* Add(Game& game, const SceneMaterial& material);
 	// Point a material at a normal map, loading it ("" = none).
 	void SetNormalMap(Game& game, SceneMaterial& material, const std::string& path);
+	// The same for its glow map (`emissivemap`) and roughness map
+	// (`roughnessmap`). They belong to the library's own material of that name.
+	void SetEmissiveMap(Game& game, SceneMaterial& material, const std::string& path);
+	void SetRoughnessMap(Game& game, SceneMaterial& material, const std::string& path);
+	std::string EmissiveMapPath(const SceneMaterial& material) const;   // "" = none
+	std::string RoughnessMapPath(const SceneMaterial& material) const;
+	// The loaded maps (nullptr: none, or `material` isn't one of the library's).
+	Texture* EmissiveMap(const SceneMaterial& material) const;
+	Texture* RoughnessMap(const SceneMaterial& material) const;
 	// The whole library as material-file text (the editor's undo snapshots),
 	// and back: materials missing from the text are dropped from Names() and
 	// saving, as if never made. Then refresh held pointers, as after Add.

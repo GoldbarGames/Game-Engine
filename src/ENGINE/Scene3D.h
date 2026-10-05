@@ -377,6 +377,9 @@ public:
 
 	// Hard-cut the camera to a named pose. Returns false if unknown.
 	bool JumpToCamera(Game& game, const std::string& camName);
+	// Rename a saved camera (its place in the order stays). False if there's no
+	// camera `from`, or one called `to` already.
+	bool RenameCamera(const std::string& from, const std::string& to);
 
 	// Start a smooth glide (smoothstep, shortest-path yaw) to a named pose.
 	bool GlideToCamera(const std::string& camName, float seconds);

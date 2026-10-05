@@ -13,16 +13,22 @@ class Renderer;
 class ShaderProgram;
 class Text;
 struct FontInfo;
+namespace EditorUI { class Column; }
 
-// In-game editor for DB2's 3D scenes (Scene3D). Replaces the engine's 2D
-// level editor when a 3D scene is showing. Free-fly camera (Solar-System
-// style: WASDQE + right-mouse look + wheel dolly), left-click to select a
-// model or character, an on-screen info panel, and left-drag to move the
-// selection on the ground plane or a single axis (hold X / Y / Z). Save
-// writes the .scene file; Revert reloads it from disk.
+// In-game editor for 3D scenes (Scene3D). Replaces the engine's 2D level
+// editor when a 3D scene is showing. Free-fly camera (WASDQE + right-mouse
+// look + wheel dolly); left-click selects a model, character, slot or light,
+// and dragging moves / rotates / scales it. The interface: a toolbar, a tabbed
+// inspector on the left (OBJECT, SCENE, LOOK, MATERIAL, CAMERA, PROJECT), the
+// object list on the right and a status bar, drawn with editor/EditorUI.h's
+// widgets. F5 saves the .scene (and changed materials); F9 reloads it.
 //
 // Toggle with the '2' key while a Scene3D is active (the 2D editor is
 // suppressed for 3D games via Game::prefer3DEditor).
+//
+// The class is exported and games embed it by value, so its data members
+// can't change: many below belong to the editor's old button bars and are no
+// longer used. New state lives in Scene3DEditor.cpp.
 class KINJO_API Scene3DEditor
 {
 public:
@@ -52,21 +58,15 @@ public:
 	// MyGUI::Render while a Scene3D is active.
 	void Render(Game& game, const Renderer& renderer);
 
+	// While the editor is open: the part of the screen its panels leave
+	// uncovered, in GUI units (the design resolution x Camera::MULTIPLIER), so
+	// a game can keep its own readouts (a clock, an FPS counter) inside it.
+	// False while the editor is closed.
+	bool ViewArea(Game& game, float& x, float& y, float& w, float& h) const;
+
 	// Ray-pick the model/character under a screen position (window pixels) and
 	// make it the selection. Public so tooling/tests can drive selection.
 	void PickAt(Game& game, float sx, float sy);
-
-	// If (sx,sy) (window pixels) falls on an object-list row, select that
-	// object, zoom the camera to it, and return true. Public so tests can
-	// drive it. Returns false when the click misses the list.
-	bool ListClick(Game& game, float sx, float sy);
-
-	// If (sx,sy) falls on a Move/Rotate/Scale button, switch mode and return
-	// true. Public so tests can drive it.
-	bool ModeButtonClick(Game& game, float sx, float sy);
-	// DELETE/ADD buttons and the add-model dropdown (public for tests).
-	bool ActionButtonClick(Game& game, float sx, float sy);
-	bool DropdownClick(Game& game, float sx, float sy);
 
 private:
 	enum class SelType { None, Model, Character, Anchor, PointLight, SpotLight };
@@ -122,7 +122,6 @@ private:
 	float btnX[3] = { 0, 0, 0 }, btnY[3] = { 0, 0, 0 };
 	float btnW[3] = { 0, 0, 0 }, btnH[3] = { 0, 0, 0 };
 	bool btnLaidOut = false;
-	void RenderModeButtons(Game& game, const Renderer& renderer);
 
 	// Axis-lock button bar: FREE / X / Y / Z. Sits under the mode buttons.
 	static const int kNumAxes = 4;   // FREE, X, Y, Z
@@ -130,7 +129,6 @@ private:
 	float axisBtnX[kNumAxes] = { 0 }, axisBtnY[kNumAxes] = { 0 };
 	float axisBtnW[kNumAxes] = { 0 }, axisBtnH[kNumAxes] = { 0 };
 	bool axisBtnLaidOut = false;
-	void RenderAxisButtons(Game& game, const Renderer& renderer);
 
 	// Reset button bar: RESET POS / RESET ROT / RESET SCALE. Snaps the selected
 	// object's position back to the scene origin, or clears its rotation / scale.
@@ -139,7 +137,6 @@ private:
 	float resetBtnX[kNumResets] = { 0 }, resetBtnY[kNumResets] = { 0 };
 	float resetBtnW[kNumResets] = { 0 }, resetBtnH[kNumResets] = { 0 };
 	bool resetBtnLaidOut = false;
-	void RenderResetButtons(Game& game, const Renderer& renderer);
 
 	// Camera-management buttons: ADD CAM / NEXT CAM / SET DEF / DEL CAM. Let the
 	// designer capture the live fly-camera pose as a named scene camera, cycle
@@ -151,7 +148,6 @@ private:
 	bool camBtnLaidOut = false;
 	int camCycleIndex = -1;          // last camera jumped to
 	std::string currentCamName;      // camera UPDATE / SET DEF / DEL CAM act on
-	void RenderCameraButtons(Game& game, const Renderer& renderer);
 	void JumpToCameraByName(Game& game, const std::string& name);
 	std::string NextCameraName() const;   // auto-name for SAVE CAM (cam1, cam2, ...)
 
@@ -163,8 +159,6 @@ private:
 	std::vector<std::string> camListRowCam;
 	float camListX = 0.0f, camListTop = 0.0f;
 	std::string camListMarkerKey;
-	void EnsureCameraList(Game& game);
-	void BuildCameraList(Game& game);
 
 	// Undo / Redo / Reload button bar (the last row).
 	static const int kNumEditBtns = 3;   // UNDO, REDO, RELOAD
@@ -172,7 +166,6 @@ private:
 	float editBtnX[kNumEditBtns] = { 0 }, editBtnY[kNumEditBtns] = { 0 };
 	float editBtnW[kNumEditBtns] = { 0 }, editBtnH[kNumEditBtns] = { 0 };
 	bool editBtnLaidOut = false;
-	void RenderEditButtons(Game& game, const Renderer& renderer);
 
 	// --- undo / redo / dirty tracking ----------------------------------
 	// Full-scene snapshots (the .scene text). Committed only when an edit
@@ -201,7 +194,6 @@ private:
 	Text* waterPlusText = nullptr;             // "+"
 	Text* waterLabelText = nullptr;            // "NAME: VALUE" (re-set per row)
 	Text* waterHeaderText = nullptr;
-	void RenderWaterButtons(Game& game, const Renderer& renderer);
 	Scene3DModel* SelectedWater(Game& game) const;   // selection if it's water, else null
 
 	// Fountain tuning panel, shown when the scene has a fountain (and no water is
@@ -214,76 +206,38 @@ private:
 	Text* fountainPlusText = nullptr;
 	Text* fountainLabelText = nullptr;
 	Text* fountainHeaderText = nullptr;
-	void RenderFountainButtons(Game& game, const Renderer& renderer);
 
 	// Top of the object-details info panel; kept below the button bars so the
 	// buttons never cover the text. Updated by RenderEditButtons.
 	float infoPanelY = 560.0f;
-public:
-	// If (sx,sy) hits a water tuning button, apply it and return true.
-	bool WaterButtonClick(Game& game, float sx, float sy);
-	// If (sx,sy) hits a fountain tuning button, apply it and return true.
-	bool FountainButtonClick(Game& game, float sx, float sy);
-	// If (sx,sy) hits UNDO/REDO/RELOAD, run it and return true.
-	bool EditButtonClick(Game& game, float sx, float sy);
-	// If (sx,sy) hits a FREE/X/Y/Z button, set the lock axis and return true.
-	bool AxisButtonClick(Game& game, float sx, float sy);
-	// If (sx,sy) hits a reset button, reset that transform and return true.
-	bool ResetButtonClick(Game& game, float sx, float sy);
-	// If (sx,sy) hits a camera button, run it and return true.
-	bool CameraButtonClick(Game& game, float sx, float sy);
-	// If (sx,sy) hits a camera-list row, jump there and return true.
-	bool CameraListClick(Game& game, float sx, float sy);
-	// If (sx,sy) hits the OBJECTS / CAMERAS tab, switch the panel and return true.
-	bool ListTabClick(Game& game, float sx, float sy);
-	// True if (sx,sy) falls inside the open minimap panel (so the click is swallowed).
-	bool MinimapClick(Game& game, float sx, float sy);
-	// If (sx,sy) hits the LOOK toggle or a control in the open LOOK panel, apply
-	// it and return true (a click elsewhere on the open panel is swallowed too).
-	bool LookButtonClick(Game& game, float sx, float sy);
-	// The same for the LIGHTS toggle and panel.
-	bool LightsButtonClick(Game& game, float sx, float sy);
-	// The same for the MATERIAL toggle and panel.
-	bool MaterialButtonClick(Game& game, float sx, float sy);
-	// If (sx,sy) hits the GUARD button, prompt for the selection's guard.
-	bool GuardButtonClick(Game& game, float sx, float sy);
-private:
-	// LOOK panel: the scene's rendering look (exposure, bloom, sky light, AO,
-	// shadows, fog, depth of field, grade, sky, debug views). Its state lives in
-	// Scene3DEditor.cpp, not here: this class is exported and games embed it by
-	// value, so new data members would change its size under them.
-	void RenderLookPanel(Game& game, const Renderer& renderer);
-	void LookClick(Game& game, int row, int part);
-	void OpenLookDropdown(Game& game, bool sky);
-	void LookFocusAt(Game& game, float sx, float sy);
+	// The interface (editor/EditorUI.h): render one part each, and the
+	// inspector's pages.
+	void RenderToolbar(Game& game, const Renderer& renderer);
+	void RenderInspector(Game& game, const Renderer& renderer);
+	void InspectObject(Game& game, EditorUI::Column& col);
+	void InspectScene(Game& game, EditorUI::Column& col);
+	void InspectLook(Game& game, EditorUI::Column& col);
+	void InspectMaterial(Game& game, EditorUI::Column& col);
+	void InspectCameras(Game& game, EditorUI::Column& col);
+	void InspectProject(Game& game, EditorUI::Column& col);
+	void RenderOutliner(Game& game, const Renderer& renderer);
+	void RenderStatusBar(Game& game, const Renderer& renderer);
 
-	// Light editing: point and spot lights are selectable (their markers in the
-	// view, or the object list) and edited in the LIGHTS panel, which shows the
-	// sun and ambient light when no light is selected. State is file-static too.
-	void RenderLightsPanel(Game& game, const Renderer& renderer);
-	void LightsClick(Game& game, int row, int part);
+	// What the interface does.
+	void SaveAll(Game& game);
+	void RevertAll(Game& game);
+	void LoadSceneByName(Game& game, const std::string& name);
+	bool ConfirmDiscard(const std::string& what);   // false: warned about unsaved changes
+	void AddSlot(Game& game);
+	void AddModelFromPalette(Game& game, int index);
+	void ResetTransform(Game& game, int which);     // 0 position, 1 rotation, 2 size
+	void CameraAction(Game& game, int which);       // 0 save view, 1 new, 2 make start, 3 delete
+	Scene3DModel* SelectedModel() const;
+	void LookFocusAt(Game& game, float sx, float sy);
 	void RenderLightGizmos(Game& game, const Renderer& renderer);
 	void AddLight(Game& game, bool spot);
 	ScenePointLight* SelectedPointLight() const;
 	SceneSpotLight* SelectedSpotLight() const;
-
-	// Material editing: the selected model's material (data/materials.txt), in
-	// place, so every model using it changes; F5 saves it back into the file.
-	void RenderMaterialPanel(Game& game, const Renderer& renderer);
-	void MaterialClick(Game& game, int row, int part);
-	void OpenNormalMapDropdown(Game& game);
-
-	// GUARD (after the action buttons): the selected model's or point light's
-	// availability guard (`if <guard>`). PROJECT SETTINGS: a page of the LOOK
-	// panel editing data/config/renderer.dat (saved at once, applied live).
-	void RenderGuardButton(Game& game, const Renderer& renderer);
-	void RenderProjectPage(Game& game, const Renderer& renderer);
-	void ProjectClick(Game& game, int row, int part);
-	// TOON & OUTLINE: a page of the LOOK panel for the scene's own cel shading
-	// and outline settings (over the game's, which it sets in code).
-	void RenderToonPage(Game& game, const Renderer& renderer);
-	void ToonClick(Game& game, int row, int part);
-	void OpenProjectLutDropdown(Game& game);
 
 	// Action buttons: DELETE, ADD (model dropdown), NEW (new scene), LOAD
 	// (scene dropdown), TAG, MAT, SHADOW (scene-global point-light caster),
@@ -297,7 +251,6 @@ private:
 	// Bottom Y of the LAST action-button row (the row wraps to a second line when
 	// it would reach the right-side list panel). The bars below key off this.
 	float actBtnBottomY = 0.0f;
-	void RenderActionButtons(Game& game, const Renderer& renderer);
 	void DeleteSelected(Game& game);
 	// Duplicate the selected MODEL one tile over (+100 x), copying transform,
 	// texture, material, flags and guard (not the interaction tag - tags are
@@ -326,16 +279,11 @@ private:
 	std::vector<std::string> matList;   // "(none)" + material names
 	std::vector<Text*> dropdownRows;
 	float dropdownX = 0.0f, dropdownTop = 0.0f;
-	void OpenAddDropdown(Game& game);
-	void OpenLoadDropdown(Game& game);
-	void OpenMatDropdown(Game& game);
-	int DropdownCount() const;
-	void RenderDropdown(Game& game, const Renderer& renderer);
 
 	// Typed-text prompt (SDL key edges). Shared by NEW-scene naming and CLUE
 	// tagging; promptMode selects what confirming does. namingScene stays the
 	// "prompt is active" flag the rest of the editor already checks.
-	enum class PromptMode { NewScene, Tag, CameraName, LightName, MaterialName, Guard };
+	enum class PromptMode { NewScene, Tag, CameraName, LightName, MaterialName, Guard, SlotName };
 	bool namingScene = false;
 	PromptMode promptMode = PromptMode::NewScene;
 	std::string nameBuffer;
@@ -371,7 +319,6 @@ private:
 	float tabBtnX[2] = { 0, 0 }, tabBtnY[2] = { 0, 0 };
 	float tabBtnW[2] = { 0, 0 }, tabBtnH[2] = { 0, 0 };
 	bool tabBtnLaidOut = false;
-	void RenderListTabs(Game& game, const Renderer& renderer);
 
 	struct ListEntry { SelType type; int index; };
 	std::vector<ListEntry> listEntries;
@@ -382,14 +329,9 @@ private:
 	std::string lastListMarkerKey;
 	// Rows that fit in the panel at once, and the max scroll offset, for the
 	// current resolution + object count.
-	int ListVisibleRows(Game& game) const;
-	int ListMaxScroll(Game& game) const;
-	void EnsureObjectList(Game& game);
-	void BuildObjectList(Game& game);
 	// Per-row "zoom" button drawn at each object row's right edge (a separate
 	// affordance so a name-click only selects). Reuses one marker Text.
 	Text* zoomMarkerText = nullptr;
-	void RenderListZoomButtons(Game& game, const Renderer& renderer);
 
 	// Camera zoom-to-object: a short editor-owned glide (kept separate from the
 	// scene's own glides, which the fly camera would fight). Active while

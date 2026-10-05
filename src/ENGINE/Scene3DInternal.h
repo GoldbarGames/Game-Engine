@@ -55,6 +55,11 @@ namespace Scene3DInternal
 	void ResetToonSetting(ToonSetting s);    // back to the game's value
 	void RestoreGameToonSettings();          // all of them (scene load / unload)
 
+	// A .scene file's comments (and lines the engine doesn't recognise) are kept
+	// from loading to saving, each with the data line it was above. A renamed
+	// light, camera or slot keeps its own: kind "point", "spot", "camera" or "slot".
+	void RenameSceneLine(const std::string& kind, const std::string& from, const std::string& to);
+
 	// Engine shaders declare the uniform blocks; old copies kept in a game's
 	// data/shaders predate them and still need the loose uniforms.
 	inline bool ProgramHasBlock(unsigned int program, const char* name)

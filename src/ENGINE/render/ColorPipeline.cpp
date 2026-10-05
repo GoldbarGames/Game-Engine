@@ -551,6 +551,11 @@ void ResolveWorldTarget(FrameBuffer& fb)
 	s.cull = CullMode::None;
 	ScopedRenderState scope(s);
 
+	// The grade first: the first frame that wants a LUT loads it, and creating
+	// its texture rebinds unit 0, which would replace the world image below.
+	ColorGradeState grade;
+	const bool graded = CurrentColorGrade(grade);
+
 	resolveShader->UseShader();
 	device.BindTexture(0, WorldSource());
 	device.SetUniform(resolveTextureLoc, 0);
@@ -568,8 +573,7 @@ void ResolveWorldTarget(FrameBuffer& fb)
 		device.SetUniform(resolveBloomStrengthLoc, 0.0f);
 	}
 	// Colour grading (render/ColorGrading.h): LUTs on units 2 and 3.
-	ColorGradeState grade;
-	if (CurrentColorGrade(grade))
+	if (graded)
 	{
 		device.BindTexture(2, grade.lut);
 		device.BindTexture(3, grade.previous);

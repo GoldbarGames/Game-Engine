@@ -2,6 +2,7 @@
 #include "Game.h"
 #include "SpriteManager.h"
 #include "Texture.h"
+#include "render/ColorPipeline.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -13,14 +14,47 @@ namespace
 	std::string loadedPath = "data/materials.txt";   // the file Load read (SaveChanges writes it)
 	std::set<std::string> discarded;                  // made in the editor, then undone
 
+	// A material's maps beyond the normal map, which the exported class has no
+	// room for: per library material, by name (extraMaps).
+	struct ExtraMaps
+	{
+		std::string emissivePath;    // `emissivemap`: multiplies `emissive`
+		std::string roughnessPath;   // `roughnessmap`: G x roughness, B x metallic
+		Texture* emissive = nullptr;
+		Texture* roughness = nullptr;
+	};
+	std::map<std::string, ExtraMaps> extraMaps;
+
+	// A glow map is colour (sRGB, decoded in a linear workflow); a roughness
+	// map is data.
+	Texture* LoadEmissiveMap(Game& game, const std::string& path)
+	{
+		if (path.empty())
+			return nullptr;
+		Texture* t = game.spriteManager.GetImage(path, Texture::Filter::Smooth, LinearWorkflow());
+		if (t == nullptr)
+			std::cout << "MaterialLibrary: emissive map not found: " << path << std::endl;
+		return t;
+	}
+
+	Texture* LoadRoughnessMap(Game& game, const std::string& path)
+	{
+		if (path.empty())
+			return nullptr;
+		Texture* t = game.spriteManager.GetImage(path, Texture::Filter::Smooth);
+		if (t == nullptr)
+			std::cout << "MaterialLibrary: roughness map not found: " << path << std::endl;
+		return t;
+	}
+
 	float ParseNumber(const std::string& s)
 	{
 		try { return std::stof(s); } catch (...) { return 0.0f; }
 	}
 
-	// Apply one field line (`tok` and the rest in `ss`) to m. False if `tok`
-	// isn't a material field.
-	bool ApplyField(SceneMaterial& m, const std::string& tok, std::istringstream& ss)
+	// Apply one field line (`tok` and the rest in `ss`) to m and its extra maps
+	// x. False if `tok` isn't a material field.
+	bool ApplyField(SceneMaterial& m, ExtraMaps& x, const std::string& tok, std::istringstream& ss)
 	{
 		std::string v;
 		if (tok == "lighting")
@@ -37,6 +71,8 @@ namespace
 		else if (tok == "normal")         { ss >> m.normalMapPath; }
 		else if (tok == "normalstrength") { ss >> v; m.normalStrength = ParseNumber(v); }
 		else if (tok == "normalmode")     { ss >> v; m.normalMode = (v == "vertex") ? NormalMode::Vertex : NormalMode::ScreenSpace; }
+		else if (tok == "emissivemap")    { ss >> x.emissivePath; }
+		else if (tok == "roughnessmap")   { ss >> x.roughnessPath; }
 		else if (tok == "metallic")       { ss >> v; m.metallic = ParseNumber(v); }
 		else if (tok == "roughness")      { ss >> v; m.roughness = ParseNumber(v); }
 		else if (tok == "opacity")        { ss >> v; m.opacity = ParseNumber(v); }
@@ -48,11 +84,17 @@ namespace
 		return true;
 	}
 
-	// The materials in a material file (or the editor's snapshot text).
-	std::vector<SceneMaterial> ParseMaterials(std::istream& in)
+	struct Parsed
 	{
-		std::vector<SceneMaterial> out;
-		SceneMaterial cur;
+		SceneMaterial material;
+		ExtraMaps maps;
+	};
+
+	// The materials in a material file (or the editor's snapshot text).
+	std::vector<Parsed> ParseMaterials(std::istream& in)
+	{
+		std::vector<Parsed> out;
+		Parsed cur;
 		bool have = false;
 		std::string line;
 		while (std::getline(in, line))
@@ -65,13 +107,13 @@ namespace
 			{
 				if (have)
 					out.push_back(cur);
-				cur = SceneMaterial();
-				ss >> cur.name;
+				cur = Parsed();
+				ss >> cur.material.name;
 				have = true;
 			}
 			else if (have)
 			{
-				ApplyField(cur, tok, ss);
+				ApplyField(cur.material, cur.maps, tok, ss);
 			}
 		}
 		if (have)
@@ -88,12 +130,13 @@ namespace
 
 	// The fields a material is written with, in file order. "season" stands for
 	// the seasonal / deciduous flag lines.
-	const char* const kFields[] = { "lighting", "specular", "shininess", "metallic", "roughness", "tint",
-		"emissive", "fresnel", "uvtile", "normal", "normalstrength", "normalmode", "opacity", "outline", "season" };
+	const char* const kFields[] = { "lighting", "specular", "shininess", "metallic", "roughness", "roughnessmap",
+		"tint", "emissive", "emissivemap", "fresnel", "uvtile", "normal", "normalstrength", "normalmode", "opacity",
+		"outline", "season" };
 
 	// A field's value as written after its keyword ("" = no line: an unset
-	// normal map, or no season flag).
-	std::string FieldValue(const SceneMaterial& m, const std::string& f)
+	// map, or no season flag).
+	std::string FieldValue(const SceneMaterial& m, const ExtraMaps& x, const std::string& f)
 	{
 		if (f == "lighting") return m.lighting == LightingModel::PBR ? "pbr" : m.lighting == LightingModel::Water ? "water" : "phong";
 		if (f == "specular") return Num(m.specular);
@@ -105,6 +148,8 @@ namespace
 		if (f == "fresnel") return Num(m.fresnel);
 		if (f == "uvtile") return Num(m.uvTile.x) + " " + Num(m.uvTile.y);
 		if (f == "normal") return m.normalMapPath;
+		if (f == "emissivemap") return x.emissivePath;
+		if (f == "roughnessmap") return x.roughnessPath;
 		if (f == "normalstrength") return Num(m.normalStrength);
 		if (f == "normalmode") return m.normalMode == NormalMode::Vertex ? "vertex" : "screen";
 		if (f == "opacity") return Num(m.opacity);
@@ -162,6 +207,48 @@ void MaterialLibrary::SetNormalMap(Game& game, SceneMaterial& material, const st
 		std::cout << "MaterialLibrary: normal map not found: " << path << std::endl;
 }
 
+void MaterialLibrary::SetEmissiveMap(Game& game, SceneMaterial& material, const std::string& path)
+{
+	ExtraMaps& x = extraMaps[material.name];
+	x.emissivePath = path;
+	x.emissive = LoadEmissiveMap(game, path);
+}
+
+void MaterialLibrary::SetRoughnessMap(Game& game, SceneMaterial& material, const std::string& path)
+{
+	ExtraMaps& x = extraMaps[material.name];
+	x.roughnessPath = path;
+	x.roughness = LoadRoughnessMap(game, path);
+}
+
+std::string MaterialLibrary::EmissiveMapPath(const SceneMaterial& material) const
+{
+	auto it = extraMaps.find(material.name);
+	return (it == extraMaps.end()) ? std::string() : it->second.emissivePath;
+}
+
+std::string MaterialLibrary::RoughnessMapPath(const SceneMaterial& material) const
+{
+	auto it = extraMaps.find(material.name);
+	return (it == extraMaps.end()) ? std::string() : it->second.roughnessPath;
+}
+
+Texture* MaterialLibrary::EmissiveMap(const SceneMaterial& material) const
+{
+	if (Find(material.name) != &material)   // a model's own material, or a copy
+		return nullptr;
+	auto it = extraMaps.find(material.name);
+	return (it == extraMaps.end()) ? nullptr : it->second.emissive;
+}
+
+Texture* MaterialLibrary::RoughnessMap(const SceneMaterial& material) const
+{
+	if (Find(material.name) != &material)
+		return nullptr;
+	auto it = extraMaps.find(material.name);
+	return (it == extraMaps.end()) ? nullptr : it->second.roughness;
+}
+
 SceneMaterial* MaterialLibrary::Add(Game& game, const SceneMaterial& material)
 {
 	discarded.erase(material.name);
@@ -193,9 +280,11 @@ std::string MaterialLibrary::Serialize() const
 		if (discarded.count(m.name) != 0)
 			continue;
 		out += "material " + m.name + "\n";
+		auto x = extraMaps.find(m.name);
+		const ExtraMaps maps = (x == extraMaps.end()) ? ExtraMaps() : x->second;
 		for (const char* f : kFields)
 		{
-			const std::string v = FieldValue(m, f);
+			const std::string v = FieldValue(m, maps, f);
 			if (!v.empty())
 				out += FieldLine(f, v) + "\n";
 		}
@@ -206,12 +295,16 @@ std::string MaterialLibrary::Serialize() const
 void MaterialLibrary::ApplySerialized(Game& game, const std::string& text)
 {
 	std::istringstream in(text);
-	const std::vector<SceneMaterial> snapshot = ParseMaterials(in);
+	const std::vector<Parsed> snapshot = ParseMaterials(in);
 	std::set<std::string> present;
-	for (const SceneMaterial& s : snapshot)
+	for (const Parsed& s : snapshot)
 	{
-		present.insert(s.name);
-		Add(game, s);
+		present.insert(s.material.name);
+		SceneMaterial* m = Add(game, s.material);
+		if (EmissiveMapPath(*m) != s.maps.emissivePath)
+			SetEmissiveMap(game, *m, s.maps.emissivePath);
+		if (RoughnessMapPath(*m) != s.maps.roughnessPath)
+			SetRoughnessMap(game, *m, s.maps.roughnessPath);
 	}
 	for (const SceneMaterial& m : materials)
 		if (present.count(m.name) == 0)
@@ -257,10 +350,11 @@ bool MaterialLibrary::SaveChanges(std::string& message) const
 		else if (!blocks.empty())
 		{
 			SceneMaterial probe;
+			ExtraMaps probeMaps;
 			std::istringstream rest(lines[i]);
 			std::string t;
 			rest >> t;
-			if (ApplyField(probe, t, rest))
+			if (ApplyField(probe, probeMaps, t, rest))
 				blocks.back().fieldLines.push_back(i);
 		}
 	}
@@ -270,12 +364,15 @@ bool MaterialLibrary::SaveChanges(std::string& message) const
 	std::vector<std::vector<std::string>> insertAfter(lines.size());
 	std::vector<std::string> appended;
 	const SceneMaterial defaults;
+	const ExtraMaps noMaps;
 	int changedMaterials = 0;
 
 	for (const SceneMaterial& m : materials)
 	{
 		if (discarded.count(m.name) != 0)
 			continue;
+		auto x = extraMaps.find(m.name);
+		const ExtraMaps maps = (x == extraMaps.end()) ? ExtraMaps() : x->second;
 		const Block* block = nullptr;
 		for (const Block& b : blocks)
 			if (b.name == m.name)
@@ -288,8 +385,8 @@ bool MaterialLibrary::SaveChanges(std::string& message) const
 			appended.push_back("material " + m.name);
 			for (const char* f : kFields)
 			{
-				const std::string v = FieldValue(m, f);
-				if (!v.empty() && (v != FieldValue(defaults, f) || std::string(f) == "lighting"))
+				const std::string v = FieldValue(m, maps, f);
+				if (!v.empty() && (v != FieldValue(defaults, noMaps, f) || std::string(f) == "lighting"))
 					appended.push_back(FieldLine(f, v));
 			}
 			changedMaterials++;
@@ -298,20 +395,21 @@ bool MaterialLibrary::SaveChanges(std::string& message) const
 
 		// What the file says now, field by field.
 		SceneMaterial fileMat;
+		ExtraMaps fileMaps;
 		for (int li : block->fieldLines)
 		{
 			std::istringstream ss(lines[li]);
 			std::string tok;
 			ss >> tok;
-			ApplyField(fileMat, tok, ss);
+			ApplyField(fileMat, fileMaps, tok, ss);
 		}
 		const int insertAt = block->fieldLines.empty() ? block->header : block->fieldLines.back();
 		bool changed = false;
 		for (const char* f : kFields)
 		{
 			const std::string field = f;
-			const std::string want = FieldValue(m, field);
-			if (want == FieldValue(fileMat, field))
+			const std::string want = FieldValue(m, maps, field);
+			if (want == FieldValue(fileMat, fileMaps, field))
 				continue;
 			changed = true;
 			// The lines that set this field now (the last one wins on load).
@@ -324,7 +422,7 @@ bool MaterialLibrary::SaveChanges(std::string& message) const
 				if (field == "season" ? IsSeasonToken(tok) : tok == field)
 					existing.push_back(li);
 			}
-			if (want.empty())   // no normal map / no season flag: drop the lines
+			if (want.empty())   // no map / no season flag: drop the lines
 			{
 				for (int li : existing)
 					removed[li] = true;
@@ -379,6 +477,7 @@ bool MaterialLibrary::Load(Game& game, const std::string& path)
 	materials.clear();
 	byName.clear();
 	discarded.clear();
+	extraMaps.clear();
 	loadedPath = path;
 
 	std::ifstream file(path);
@@ -387,14 +486,25 @@ bool MaterialLibrary::Load(Game& game, const std::string& path)
 		std::cout << "MaterialLibrary: no " << path << " (using default material only)" << std::endl;
 		return false;
 	}
-	materials = ParseMaterials(file);
+	const std::vector<Parsed> parsed = ParseMaterials(file);
 	// Room for materials the editor adds, so the list rarely moves in memory.
-	materials.reserve(materials.size() + 64);
+	materials.reserve(parsed.size() + 64);
+	for (const Parsed& p : parsed)
+		materials.push_back(p.material);
 
-	// Resolve normal-map textures and build the name lookup.
+	// Resolve the maps' textures and build the name lookup.
 	for (size_t i = 0; i < materials.size(); i++)
 	{
 		SceneMaterial& m = materials[i];
+		const ExtraMaps& x = parsed[i].maps;
+		if (!x.emissivePath.empty() || !x.roughnessPath.empty())
+		{
+			ExtraMaps& own = extraMaps[m.name];
+			own.emissivePath = x.emissivePath;
+			own.roughnessPath = x.roughnessPath;
+			own.emissive = LoadEmissiveMap(game, x.emissivePath);
+			own.roughness = LoadRoughnessMap(game, x.roughnessPath);
+		}
 		if (!m.normalMapPath.empty())
 		{
 			m.normalMap = game.spriteManager.GetImage(m.normalMapPath, Texture::Filter::Smooth);
