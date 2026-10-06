@@ -53,6 +53,13 @@ void Mesh::CreateMesh(float* vertices, unsigned int* indices,
     IBO = ibo.id;
 }
 
+void Mesh::UpdateVertices(const float* vertices, unsigned int floatCount)
+{
+    if (VBO == 0 || vertices == nullptr || floatCount == 0)
+        return;
+    Device().UpdateBuffer(BufferHandle(VBO), 0, sizeof(float) * floatCount, vertices);
+}
+
 void Mesh::BindMesh()
 {
     Device().BindVertexArray(VertexArrayHandle(VAO));

@@ -45,6 +45,13 @@ public:
 	void SetBoundDrawBufferMask(unsigned int attachmentMask) override;
 	bool IsFramebufferComplete(FramebufferHandle framebuffer, std::string* error) override;
 
+	RenderbufferHandle CreateRenderbuffer(TextureFormat format, int width, int height, int samples) override;
+	void DestroyRenderbuffer(RenderbufferHandle& renderbuffer) override;
+	void AttachRenderbuffer(FramebufferHandle framebuffer, Attachment attachment, RenderbufferHandle renderbuffer) override;
+	int MaxSamples(TextureFormat format) override;
+	void BlitFramebuffer(FramebufferHandle src, FramebufferHandle dst, int width, int height,
+		unsigned int colorMask, bool depth) override;
+
 	void BindFramebuffer(FramebufferHandle framebuffer) override;
 	void SetViewport(int x, int y, int width, int height) override;
 	void Clear(bool color, bool depth, const glm::vec4& clearColor) override;

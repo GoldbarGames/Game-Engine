@@ -218,7 +218,27 @@ namespace
 		case TextureFormat::Depth24:         return { GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT };
 		case TextureFormat::Depth24Stencil8: return { GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 };
 		case TextureFormat::RGBA8:
-		default:                             return { GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE };   // unsized, as the engine always used
+		default:
+			// Sized (the engine used unsized GL_RGBA until 2026-10-05, which
+			// drivers store the same way): a multisampled world resolves into
+			// the main framebuffer's colour texture with a blit, and WebGL2
+			// blits only between exactly matching formats.
+			return { GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE };
+		}
+	}
+
+	// A renderbuffer's storage, which must always be sized.
+	GLenum RenderbufferFormatOf(TextureFormat f)
+	{
+		switch (f)
+		{
+		case TextureFormat::RGBA16F:         return GL_RGBA16F;
+		case TextureFormat::R8:              return GL_R8;
+		case TextureFormat::Depth24Stencil8: return GL_DEPTH24_STENCIL8;
+		case TextureFormat::Depth24:         return GL_DEPTH_COMPONENT24;
+		case TextureFormat::SRGB8_A8:        return GL_SRGB8_ALPHA8;
+		case TextureFormat::RGBA8:
+		default:                             return GL_RGBA8;
 		}
 	}
 
@@ -736,6 +756,89 @@ bool GLDevice::IsFramebufferComplete(FramebufferHandle framebuffer, std::string*
 	if (status != GL_FRAMEBUFFER_COMPLETE && error != nullptr)
 		*error = std::to_string(status);
 	return status == GL_FRAMEBUFFER_COMPLETE;
+}
+
+RenderbufferHandle GLDevice::CreateRenderbuffer(TextureFormat format, int width, int height, int samples)
+{
+	GLuint id = 0;
+	glGenRenderbuffers(1, &id);
+	glBindRenderbuffer(GL_RENDERBUFFER, id);
+	const GLenum internal = RenderbufferFormatOf(format);
+	if (samples > 1)
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, internal, width, height);
+	else
+		glRenderbufferStorage(GL_RENDERBUFFER, internal, width, height);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	return RenderbufferHandle(id);
+}
+
+void GLDevice::DestroyRenderbuffer(RenderbufferHandle& renderbuffer)
+{
+	if (renderbuffer.id != 0)
+	{
+		GLuint id = renderbuffer.id;
+		glDeleteRenderbuffers(1, &id);
+	}
+	renderbuffer = RenderbufferHandle();
+}
+
+void GLDevice::AttachRenderbuffer(FramebufferHandle framebuffer, Attachment attachment, RenderbufferHandle renderbuffer)
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.id);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, AttachmentOf(attachment), GL_RENDERBUFFER, renderbuffer.id);
+}
+
+int GLDevice::MaxSamples(TextureFormat format)
+{
+#ifndef __EMSCRIPTEN__
+	if (!(GLEW_VERSION_4_2 || GLEW_ARB_internalformat_query))
+	{
+		// No per-format query (a 3.3 context without the extension): the limit
+		// for every non-integer format, which is what the engine renders to.
+		GLint most = 0;
+		glGetIntegerv(GL_MAX_SAMPLES, &most);
+		return most;
+	}
+#endif
+	// The counts this format supports (WebGL2 lists none for RGBA16F without
+	// EXT_color_buffer_float).
+	const GLenum internal = RenderbufferFormatOf(format);
+	GLint count = 0;
+	glGetInternalformativ(GL_RENDERBUFFER, internal, GL_NUM_SAMPLE_COUNTS, 1, &count);
+	if (count <= 0)
+		return 0;
+	std::vector<GLint> counts((size_t)count);
+	glGetInternalformativ(GL_RENDERBUFFER, internal, GL_SAMPLES, count, counts.data());
+	return *std::max_element(counts.begin(), counts.end());
+}
+
+void GLDevice::BlitFramebuffer(FramebufferHandle src, FramebufferHandle dst, int width, int height,
+	unsigned int colorMask, bool depth)
+{
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, src.id);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst.id);
+
+	// A blit reads one colour attachment and writes every enabled draw
+	// buffer, so the attachments go across one pair at a time.
+	for (int i = 0; i < 3; i++)
+	{
+		if ((colorMask & (1u << i)) == 0)
+			continue;
+		const GLenum attachment = (GLenum)(GL_COLOR_ATTACHMENT0 + i);
+		GLenum buffers[3] = { GL_NONE, GL_NONE, GL_NONE };
+		buffers[i] = attachment;
+		glReadBuffer(attachment);
+		glDrawBuffers(i + 1, buffers);
+		glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	}
+	if (depth)
+		glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+	// Back to the engine's default: attachment 0 is read and drawn.
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	const GLenum first = GL_COLOR_ATTACHMENT0;
+	glDrawBuffers(1, &first);
+	glBindFramebuffer(GL_FRAMEBUFFER, dst.id);
 }
 
 // ---------------------------------------------------------------- commands

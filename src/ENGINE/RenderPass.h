@@ -48,6 +48,7 @@ enum class RenderTarget : uint8_t
 	DepthOfField,         // linear workflow: the world image with depth of field (Bloom and Resolve read it)
 	FogVolume,            // linear workflow: the half-resolution fog march (light scattered in, transmittance)
 	Reflections,          // linear workflow + TAA: screen-space reflections (lit shaders read them)
+	MultisampleWorld,     // MSAA: the world's multisampled colour, mask, motion and depth (MsaaResolve copies them into the targets above)
 	Count
 };
 

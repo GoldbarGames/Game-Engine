@@ -62,6 +62,9 @@ void SetTargetLinear(bool linear);
 // Bind where the world draws for `fb`: the linear HDR target when the workflow
 // is on (and flag shaders), else fb's own framebuffer.
 void BindWorldTarget(FrameBuffer& fb);
+// The framebuffer BindWorldTarget(fb) binds (once it has), so the multisampled
+// world (render/Multisample.h) can be resolved into it.
+FramebufferHandle WorldTargetFramebuffer(FrameBuffer& fb);
 // Linear workflow only: expose, tonemap and encode the HDR world into fb's
 // colour attachment.
 void ResolveWorldTarget(FrameBuffer& fb);

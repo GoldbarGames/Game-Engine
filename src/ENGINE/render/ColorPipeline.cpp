@@ -530,6 +530,16 @@ void BindWorldTarget(FrameBuffer& fb)
 	SetTargetLinear(true);
 }
 
+FramebufferHandle WorldTargetFramebuffer(FrameBuffer& fb)
+{
+	if (!linearOn)
+		return FramebufferHandle(fb.framebufferObject);
+	for (const WorldFbo& t : worldFbos)
+		if (t.depth == fb.depthTexture && t.mask == fb.maskTexture)
+			return t.fbo;
+	return FramebufferHandle();
+}
+
 void ResolveWorldTarget(FrameBuffer& fb)
 {
 	if (!linearOn)

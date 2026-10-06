@@ -222,6 +222,7 @@ const char* RenderTargetName(RenderTarget target)
 	case RenderTarget::DepthOfField:      return "DepthOfField";
 	case RenderTarget::FogVolume:         return "FogVolume";
 	case RenderTarget::Reflections:       return "Reflections";
+	case RenderTarget::MultisampleWorld:  return "MultisampleWorld";
 	default:                              return "?";
 	}
 }

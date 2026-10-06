@@ -26,6 +26,7 @@
 #include "render/Environment.h"
 #include "render/VolumetricFog.h"
 #include "render/DistanceFog.h"
+#include "render/Multisample.h"
 #include "editor/EditorUI.h"
 #include "render/Reflections.h"
 #include "render/TemporalAA.h"
@@ -44,8 +45,9 @@ namespace
 	// dropdowns; a click that reaches the scene picks there). "x,y>x2,y2" is a
 	// drag instead: press at x,y, move over a few frames, release at x2,y2;
 	// "save" presses F5; "name:<text>" types <text> into an open name prompt
-	// and presses Enter.
-	struct ScriptedClick { int x, y; bool drag; int x2, y2; bool save; std::string typed; };
+	// and presses Enter; "wheel:x,y,n" turns the mouse wheel n notches over
+	// x,y, one a frame (negative = towards you: a list scrolls down).
+	struct ScriptedClick { int x, y; bool drag; int x2, y2; bool save; std::string typed; int wheel; };
 	std::vector<ScriptedClick> scriptedClicks;
 	size_t scriptedNext = 0;
 	int scriptedWait = 0;
@@ -66,11 +68,16 @@ namespace
 		std::string item;
 		while (std::getline(ss, item, ';'))
 		{
-			ScriptedClick c = { 0, 0, false, 0, 0, false, std::string() };
+			ScriptedClick c = { 0, 0, false, 0, 0, false, std::string(), 0 };
 			if (item.compare(0, 5, "name:") == 0)
 				c.typed = item.substr(5);
 			else if (item == "save")
 				c.save = true;
+			else if (std::sscanf(item.c_str(), "wheel:%d,%d,%d", &c.x, &c.y, &c.wheel) == 3)
+			{
+				if (c.wheel == 0)
+					continue;
+			}
 			else if (std::sscanf(item.c_str(), "%d,%d>%d,%d", &c.x, &c.y, &c.x2, &c.y2) == 4)
 				c.drag = true;
 			else if (std::sscanf(item.c_str(), "%d,%d", &c.x, &c.y) != 2)
@@ -671,6 +678,7 @@ static const float kAnchorHalf = 26.0f;
 		{ 2, ProjectKind::Value,  "distanceFogNear",    "DIST. FOG STARTS", 1.15f, true,  0.0f,  100000.0f, 50.0f,  "%.0f", "1000",       false },
 		{ 2, ProjectKind::Value,  "distanceFogFar",     "DIST. FOG FULL",   1.15f, true,  0.0f,  100000.0f, 50.0f,  "%.0f", "5000",       false },
 		{ 3, ProjectKind::Choice, "antialiasing",       "ANTI-ALIASING",    0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "taa",        false },
+		{ 3, ProjectKind::Choice, "msaa",               "MSAA",             0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "0",          false },
 		{ 3, ProjectKind::OnOff,  "reflections",        "REFLECTIONS",      0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "1",          false },
 		{ 3, ProjectKind::Value,  "reflectionDistance", "REFLECT REACH",    1.25f, true,  50.0f, 20000.0f, 0.0f,    "%.0f", "1500",       false },
 		{ 3, ProjectKind::OnOff,  "depthOfField",       "DEPTH OF FIELD",   0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "1",          false },
@@ -703,6 +711,8 @@ static const float kAnchorHalf = 26.0f;
 	{
 		if (std::string(d.key) == "tonemap")
 			return { "none", "agx", "agx_punchy", "aces" };
+		if (std::string(d.key) == "msaa")
+			return { "0", "2", "4", "8" };
 		return { "taa", "none" };
 	}
 
@@ -765,6 +775,7 @@ static const float kAnchorHalf = 26.0f;
 		LoadDepthOfFieldSettings();
 		LoadFogSettings();
 		LoadDistanceFogSettings();
+		LoadMultisampleSettings();
 		LoadReflectionSettings();
 		LoadTextureSettings();
 		Scene3DInternal::ReloadShadowSettings();
@@ -1220,13 +1231,28 @@ void Scene3DEditor::Update(Game& game)
 		game.screenshotTimer.Start(game.autoScreenshots);
 	if (scriptedNext < scriptedClicks.size() && (scriptedDragFrame >= 0 || --scriptedWait <= 0))
 	{
-		const ScriptedClick& c = scriptedClicks[scriptedNext];
+		ScriptedClick& c = scriptedClicks[scriptedNext];
 		if (c.save)
 		{
 			scriptedSave = true;
 			std::cout << "Scene3DEditor: scripted save" << std::endl;
 			scriptedNext++;
 			scriptedWait = 2;
+		}
+		else if (c.wheel != 0)
+		{
+			// One notch this frame, over x,y, until they're all turned.
+			mx = c.x;
+			my = c.y;
+			wheelUp = c.wheel > 0;
+			wheelDown = c.wheel < 0;
+			std::cout << "Scene3DEditor: scripted wheel " << (wheelUp ? "up" : "down") << " at " << mx << "," << my << std::endl;
+			c.wheel += wheelUp ? -1 : 1;
+			if (c.wheel == 0)
+			{
+				scriptedNext++;
+				scriptedWait = 2;
+			}
 		}
 		else if (!c.drag)
 		{
@@ -5078,6 +5104,8 @@ void Scene3DEditor::InspectProject(Game& game, ui::Column& col)
 						ch = (char)std::toupper((unsigned char)ch);
 					if (upper == "AGX_PUNCHY")
 						upper = "PUNCHY";
+					if (std::string(d.key) == "msaa")
+						upper = (choices[k] == "0") ? "OFF" : choices[k] + "X";
 					shown.push_back(upper);
 					if (choices[k] == ProjectValue(d))
 						chosen = (int)k;

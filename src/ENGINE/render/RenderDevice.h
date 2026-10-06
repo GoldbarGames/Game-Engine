@@ -41,6 +41,7 @@ KINJO_DEVICE_HANDLE(FramebufferHandle);     // 0 = the window
 KINJO_DEVICE_HANDLE(VertexArrayHandle);
 KINJO_DEVICE_HANDLE(ProgramHandle);
 KINJO_DEVICE_HANDLE(QueryHandle);
+KINJO_DEVICE_HANDLE(RenderbufferHandle);    // a render target that is never sampled
 #undef KINJO_DEVICE_HANDLE
 
 struct FenceHandle
@@ -209,6 +210,23 @@ public:
 	// motion vectors without the character mask in between.
 	virtual void SetBoundDrawBufferMask(unsigned int attachmentMask) = 0;
 	virtual bool IsFramebufferComplete(FramebufferHandle framebuffer, std::string* error = nullptr) = 0;
+
+	// Renderbuffers: render targets that are never sampled, such as the
+	// multisampled world (render/Multisample.h), copied out with
+	// BlitFramebuffer. `samples` < 2 = single-sampled. Formats: RGBA8, RGBA16F,
+	// R8 and Depth24Stencil8.
+	virtual RenderbufferHandle CreateRenderbuffer(TextureFormat format, int width, int height, int samples) = 0;
+	virtual void DestroyRenderbuffer(RenderbufferHandle& renderbuffer) = 0;
+	virtual void AttachRenderbuffer(FramebufferHandle framebuffer, Attachment attachment, RenderbufferHandle renderbuffer) = 0;
+	// The most samples a renderbuffer of `format` can have (0 = it can't be multisampled).
+	virtual int MaxSamples(TextureFormat format) = 0;
+	// Copy `src`'s colour attachments named by `colorMask` (bit i = attachment
+	// i), and its depth when `depth`, into the same attachments of `dst`; both
+	// are `width` x `height`. A multisampled source is resolved: colour is
+	// averaged, depth takes one sample. On WebGL2 the formats must match
+	// exactly. Leaves `dst` bound, drawing to attachment 0.
+	virtual void BlitFramebuffer(FramebufferHandle src, FramebufferHandle dst, int width, int height,
+		unsigned int colorMask, bool depth) = 0;
 
 	// Commands
 	virtual void BindFramebuffer(FramebufferHandle framebuffer) = 0;

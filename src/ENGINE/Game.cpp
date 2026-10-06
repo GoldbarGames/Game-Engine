@@ -12,6 +12,7 @@
 #include "render/DepthOfField.h"
 #include "render/VolumetricFog.h"
 #include "render/DistanceFog.h"
+#include "render/Multisample.h"
 #include "render/Reflections.h"
 #include "render/TextureFiles.h"
 
@@ -854,6 +855,7 @@ void Game::InitOpenGL()
 	LoadDepthOfFieldSettings();
 	LoadFogSettings();
 	LoadDistanceFogSettings();
+	LoadMultisampleSettings();
 	LoadReflectionSettings();
 	LoadTextureSettings();
 
@@ -3360,10 +3362,19 @@ void Game::Render()
 	weatherAfterTemporal = TemporalAAActive();
 	if (TemporalAAActive())
 		worldPassTargets |= Targets(RenderTarget::MotionVectors);
+	// MSAA (render/Multisample.h): the world draws into multisampled buffers
+	// instead, and MsaaResolve copies them into the targets above.
+	const TargetSet resolvedWorldTargets = worldPassTargets;
+	const bool msaa = EnsureMultisampleWorld(screenWidth, screenHeight,
+		linear ? TextureFormat::RGBA16F : TextureFormat::RGBA8, TemporalAAActive());
+	if (msaa)
+		worldPassTargets = Targets(RenderTarget::MultisampleWorld);
 	RunPass("World", worldPassReads, worldPassTargets, [&]()
 	{
 		RenderDevice& device = Device();
 		BindWorldTarget(*mainFrameBuffer);
+		if (msaa)
+			BindMultisampleWorld();
 
 		// While a cel-shaded 3D scene is up, the character-outline mask (draw buffer 1)
 		// must be cleared to 0 too, so include it in the clear then revert to
@@ -3386,6 +3397,14 @@ void Game::Render()
 		SetMotionWrites(false);
 	});
 	weatherAfterTemporal = false;
+	if (msaa)
+	{
+		worldPassTargets = resolvedWorldTargets;
+		RunPass("MsaaResolve", Targets(RenderTarget::MultisampleWorld), worldPassTargets, [&]()
+		{
+			ResolveMultisampleWorld(WorldTargetFramebuffer(*mainFrameBuffer));
+		});
+	}
 
 	// KINJO_HIZ_STATS: how many in-view models a Hi-Z occlusion test against
 	// this frame's depth would cull - a measurement, nothing is culled

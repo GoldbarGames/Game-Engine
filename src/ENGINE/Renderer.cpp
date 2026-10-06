@@ -9,6 +9,7 @@
 #include "render/DepthOfField.h"
 #include "render/VolumetricFog.h"
 #include "render/Reflections.h"
+#include "render/Multisample.h"
 #include "RenderState.h"
 #include "TransientBuffer.h"
 #include "Renderer.h"
@@ -289,6 +290,7 @@ Renderer::~Renderer()
 	ReleaseDepthOfField();
 	ReleaseVolumetricFog();
 	ReleaseReflections();
+	ReleaseMultisample();
 	ReleaseUniformBlocks();
 	TransientRelease();
 }

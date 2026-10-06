@@ -39,6 +39,11 @@ aoRadius 60
 #           over earlier frames (moving objects carry motion vectors, so they
 #           don't ghost). Costs a little sharpness.
 antialiasing taa
+# msaa      0 | 2 | 4 | 8 (default 0): multisample anti-aliasing for the
+#           world, in either colour mode - smooth geometry edges, no blur.
+#           Capped to what the GPU allows. Cut-out (alpha-tested) edges
+#           stay sharp. With antialiasing taa on as well it is redundant.
+msaa 0
 # clusteredLights  1 | 0 (default 1; any colour mode): point and spot lights
 #           are sorted into screen tiles x depth slices each frame, so a scene
 #           can hold hundreds of lights while each pixel shades only those that

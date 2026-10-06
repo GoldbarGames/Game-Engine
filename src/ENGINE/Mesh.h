@@ -26,6 +26,13 @@ public:
 		unsigned int v, unsigned int uvOffset, unsigned int normalOffset,
 		int tangentOffset = -1);
 
+	// Replace the vertices of a mesh made by CreateMesh, keeping its layout and
+	// its indices: the same number of floats, laid out the same way. For a shape
+	// that changes every frame - a figure blended between poses (TrainRails'
+	// flagman) - without building a new mesh each time. `floatCount` counts
+	// floats, as CreateMesh's numOfVertices does.
+	void UpdateVertices(const float* vertices, unsigned int floatCount);
+
 	void BindMesh();
 	void RenderMesh(unsigned int instanceAmount);
 	void ClearMesh();
