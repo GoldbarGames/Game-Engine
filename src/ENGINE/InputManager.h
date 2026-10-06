@@ -131,6 +131,37 @@ public:
 	bool GetKeyPressed(const std::string& keyName);
 	bool GetKeyReleased(const std::string& keyName);
 
+	// --- Several gamepads at once (opt-in) ---------------------------------
+	// SetMultiPad(true) opens every connected pad (up to 4, with hot-plug)
+	// and reads each one's buttons and axes every update. Pads take the
+	// lowest free slot in the order they connect: pad 0 is player 1. With it
+	// off (the default) these report no pads and the engine keeps its old
+	// single-pad behaviour. When on, GetKeyPressed / GetKeyReleased count a
+	// press on ANY pad, and menus navigate and confirm (A) from any pad.
+	// For testing without pads: KINJO_PAD_SCRIPT (see Gamepads.cpp).
+	void SetMultiPad(bool on);
+	bool IsMultiPad() const;
+	int PadCount() const;
+	bool PadConnected(int pad) const;
+	std::string GetPadName(int pad) const;
+
+	// A named action's button (the button map: SetDefaultButtons), on one pad
+	bool GetPadButton(int pad, const std::string& name) const;
+	bool GetPadButtonPressed(int pad, const std::string& name) const;
+	bool GetPadButtonReleased(int pad, const std::string& name) const;
+
+	// A button by its SDL_GameControllerButton number, on one pad
+	bool GetPadButtonRaw(int pad, int sdlButton) const;
+	bool GetPadButtonRawPressed(int pad, int sdlButton) const;
+
+	// An SDL_GameControllerAxis: -1..1 for the sticks (down and right are
+	// positive), 0..1 for the triggers
+	float GetPadAxis(int pad, int sdlAxis) const;
+
+	// The left stick as a direction: -1, 0 or +1 once it's past threshold
+	int GetPadStickX(int pad, float threshold = 0.5f) const;
+	int GetPadStickY(int pad, float threshold = 0.5f) const;
+
 	const glm::vec3 GetMouseWorldPosition() const;
 
 	const bool GetLeftClicked() const;

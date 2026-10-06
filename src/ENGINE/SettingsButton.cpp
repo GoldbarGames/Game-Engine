@@ -1,5 +1,6 @@
 #include "SettingsButton.h"
 #include "Game.h"
+#include "Gamepads.h"
 #include "SoundManager.h"
 #include "Editor.h"
 #include "Text.h"
@@ -182,7 +183,10 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 		}
 	}
 
-	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
+	// Multi-pad: the d-pad or left stick of any pad navigates too
+	const Gamepads::MenuDirection pad = Gamepads::AnyMenuDirection();
+
+	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W] || pad == Gamepads::Up)
 	{
 		if (buttonPressedUp != nullptr)
 		{
@@ -191,7 +195,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 			return buttonPressedUp;
 		}
 	}
-	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
+	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S] || pad == Gamepads::Down)
 	{
 		if (buttonPressedDown != nullptr)
 		{
@@ -200,7 +204,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 			return buttonPressedDown;
 		}
 	}
-	else if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
+	else if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A] || pad == Gamepads::Left)
 	{
 		selectedOption--;
 		if (selectedOption < 0)
@@ -208,7 +212,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 		ExecuteSelectedOption(game);
 		return this;
 	}
-	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
+	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D] || pad == Gamepads::Right)
 	{
 		selectedOption++;
 		if (selectedOption > options.size() - 1)

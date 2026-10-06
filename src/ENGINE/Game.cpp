@@ -1,5 +1,6 @@
 #include "leak_check.h"
 #include "StartupTrace.h"
+#include "Gamepads.h"
 #include "render/RenderDevice.h"
 #include "render/RenderContext.h"
 #include "render/ColorPipeline.h"
@@ -905,6 +906,7 @@ void Game::InitSDL()
 	}
 
 	startupTrace.Step("window icon");
+	Gamepads::LoadMappings();
 	CheckController(true);
 }
 
@@ -913,9 +915,10 @@ void Game::EndSDL()
 	// Delete our OpenGL context
 	DestroyRenderContext(mainContext);
 
-	SDL_DestroyWindow(window);	
+	SDL_DestroyWindow(window);
 	window = nullptr;
 
+	Gamepads::CloseAll(*this);   // multi-pad's pads (clears controller if it was one)
 	if (controller != nullptr)
 	{
 		SDL_GameControllerClose(controller);
@@ -928,6 +931,24 @@ void Game::EndSDL()
 
 void Game::CheckController(bool output)
 {
+	// Multi-pad (opt-in) keeps every pad open itself
+	if (Gamepads::MultiPad())
+	{
+		Gamepads::OpenAll(*this);
+		return;
+	}
+
+	// One pad (the default). Keep the open pad while it's still attached:
+	// a cutscene choice calls this every frame, and reopening the pad each
+	// time leaked its mapping string. Drop it once it's been unplugged.
+	if (controller != nullptr)
+	{
+		if (SDL_GameControllerGetAttached(controller))
+			return;
+		SDL_GameControllerClose(controller);
+		controller = nullptr;
+	}
+
 	if (SDL_NumJoysticks() < 1)
 	{
 		if (output)
@@ -947,21 +968,27 @@ void Game::CheckController(bool output)
 				}
 
 				controller = SDL_GameControllerOpen(i);
-				std::cout << SDL_GameControllerMapping(controller) << std::endl;
+				if (output && controller != nullptr)
+				{
+					char* mapping = SDL_GameControllerMapping(controller);
+					if (mapping != nullptr)
+					{
+						std::cout << mapping << std::endl;
+						SDL_free(mapping);
+					}
+				}
 				break;
 			}
 		}
 
-		SDL_Joystick* joystick = SDL_JoystickOpen(0);
-
 		if (output)
 		{
+			SDL_Joystick* joystick = SDL_JoystickOpen(0);
 			std::cout << "Controller Name: " << SDL_JoystickName(joystick) << std::endl;
 			std::cout << "Num Axes: " << SDL_JoystickNumAxes(joystick) << std::endl;
 			std::cout << "Num Buttons: " << SDL_JoystickNumButtons(joystick) << std::endl;
+			SDL_JoystickClose(joystick);
 		}
-
-		SDL_JoystickClose(joystick);
 	}
 }
 
@@ -1638,10 +1665,16 @@ bool Game::CheckInputs()
 	inputManager.scrolledUp = false;
 	inputManager.scrolledDown = false;
 
+	// Multi-pad was just turned on: open every pad
+	if (Gamepads::RescanPending())
+		Gamepads::OpenAll(*this);
+
 	// Check for inputs
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
 	{
+		Gamepads::HandleEvent(*this, event);   // hot-plug (multi-pad only)
+
 		switch (event.type)
 		{
 		case SDL_MOUSEBUTTONUP:
@@ -1700,6 +1733,23 @@ bool Game::CheckInputs()
 
 		if (quit)
 			break;
+	}
+
+	// Multi-pad: read every pad. Menus confirm on any pad's A, and a button
+	// remap takes the button pressed on any pad.
+	if (Gamepads::MultiPad() && !quit)
+	{
+		Gamepads::Poll();
+		if (inputManager.isCheckingForButtonMapping)
+		{
+			const int button = Gamepads::AnyButtonPressed();
+			if (button >= 0)
+				inputManager.pressedButton = static_cast<uint8_t>(button);
+		}
+		else if (openedMenus.size() > 0 && !cutsceneManager.watchingCutscene && Gamepads::AnyPressed(SDL_CONTROLLER_BUTTON_A))
+		{
+			quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
+		}
 	}
 
 	return quit;

@@ -1,6 +1,8 @@
 #include "InputManager.h"
 #include "Camera.h"
 #include "Game.h"
+#include "Gamepads.h"
+#include <algorithm>
 #include <iostream>
 
 void InputManager::Init()
@@ -534,10 +536,13 @@ bool InputManager::GetKeyPressed(const std::string& keyName)
 	}
 	else
 	{
-		// If it is held down now but not before, it was pressed
+		// If it is held down now but not before, it was pressed. With
+		// multi-pad on, a press on any pad counts.
 		const uint8_t* input = SDL_GetKeyboardState(NULL);
 		bool checkKeyboard = input[keys[keyName].mappedKey] && !keys[keyName].previousState;
-		bool checkController = buttonsPressed[buttons[keyName].mappedButton];
+		bool checkController = Gamepads::MultiPad()
+			? Gamepads::AnyPressed(buttons[keyName].mappedButton)
+			: buttonsPressed[buttons[keyName].mappedButton];
 
 		return checkKeyboard || checkController;
 	}
@@ -555,7 +560,16 @@ bool InputManager::GetKeyReleased(const std::string& keyName)
 		// If it is not held down now but was before, it was released
 		const uint8_t* input = SDL_GetKeyboardState(NULL);
 		bool checkKey = !input[keys[keyName].mappedKey] && keys[keyName].previousState;
-		bool checkController = buttonsReleased[buttons[keyName].mappedButton];
+		bool checkController = false;
+		if (Gamepads::MultiPad())
+		{
+			for (int pad = 0; pad < Gamepads::kMaxPads && !checkController; pad++)
+				checkController = Gamepads::Released(pad, buttons[keyName].mappedButton);
+		}
+		else
+		{
+			checkController = buttonsReleased[buttons[keyName].mappedButton];
+		}
 
 		return checkKey || checkController;
 	}
@@ -572,4 +586,76 @@ const bool InputManager::GetLeftClicked() const
 glm::vec3 InputManager::GetMouseWorldPos(const Game& game) const
 {
 	return game.ConvertFromScreenSpaceToWorldSpace(glm::vec2(mouseX, mouseY));
+}
+
+// --- Several gamepads at once (Gamepads.cpp holds the pads) ----------------
+
+void InputManager::SetMultiPad(bool on)
+{
+	Gamepads::SetMultiPad(on);
+}
+
+bool InputManager::IsMultiPad() const
+{
+	return Gamepads::MultiPad();
+}
+
+int InputManager::PadCount() const
+{
+	return Gamepads::Count();
+}
+
+bool InputManager::PadConnected(int pad) const
+{
+	return Gamepads::Connected(pad);
+}
+
+std::string InputManager::GetPadName(int pad) const
+{
+	return Gamepads::Name(pad);
+}
+
+bool InputManager::GetPadButton(int pad, const std::string& name) const
+{
+	const auto it = buttons.find(name);
+	return it != buttons.end() && Gamepads::Held(pad, it->second.mappedButton);
+}
+
+bool InputManager::GetPadButtonPressed(int pad, const std::string& name) const
+{
+	const auto it = buttons.find(name);
+	return it != buttons.end() && Gamepads::Pressed(pad, it->second.mappedButton);
+}
+
+bool InputManager::GetPadButtonReleased(int pad, const std::string& name) const
+{
+	const auto it = buttons.find(name);
+	return it != buttons.end() && Gamepads::Released(pad, it->second.mappedButton);
+}
+
+bool InputManager::GetPadButtonRaw(int pad, int sdlButton) const
+{
+	return Gamepads::Held(pad, sdlButton);
+}
+
+bool InputManager::GetPadButtonRawPressed(int pad, int sdlButton) const
+{
+	return Gamepads::Pressed(pad, sdlButton);
+}
+
+float InputManager::GetPadAxis(int pad, int sdlAxis) const
+{
+	return std::max(-1.0f, Gamepads::Axis(pad, sdlAxis) / 32767.0f);
+}
+
+int InputManager::GetPadStickX(int pad, float threshold) const
+{
+	const float x = GetPadAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
+	return (x >= threshold) ? 1 : (x <= -threshold ? -1 : 0);
+}
+
+int InputManager::GetPadStickY(int pad, float threshold) const
+{
+	const float y = GetPadAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
+	return (y >= threshold) ? 1 : (y <= -threshold ? -1 : 0);
 }
