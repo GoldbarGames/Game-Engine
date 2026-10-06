@@ -40,6 +40,7 @@
 #include "render/AmbientOcclusion.h"
 #include "render/ClusteredLights.h"
 #include "render/DistanceFog.h"
+#include "render/RenderViews.h"
 #include <set>
 
 using Scene3DInternal::ProgramHasBlock;
@@ -468,7 +469,7 @@ void Scene3D::UpdateLightClusters(Game& game, const Renderer& renderer)
 
 	const Camera& cam = renderer.camera;
 	BuildLightClusters(lights, cam.CalculateViewMatrix(), cam.projection, cam.nearPlane, cam.farPlane,
-		game.screenWidth, game.screenHeight);
+		ViewTargetWidth(game), ViewTargetHeight(game));
 }
 
 // The Material block for `mat`, plus an imported (glTF) material's map bits

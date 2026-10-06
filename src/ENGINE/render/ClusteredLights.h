@@ -63,6 +63,10 @@ void BindLightClusters(unsigned int program);
 void SetClusterDebugView(bool on);
 bool ClusterDebugView();
 
+// Split screen (render/RenderViews.h): which view's clusters are built and
+// bound. 0 outside split screen.
+void SetLightClusterView(int index);
+
 void ReleaseClusteredLights();
 
 #endif

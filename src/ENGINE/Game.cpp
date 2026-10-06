@@ -13,6 +13,7 @@
 #include "render/VolumetricFog.h"
 #include "render/DistanceFog.h"
 #include "render/Multisample.h"
+#include "render/RenderViews.h"
 #include "render/Reflections.h"
 #include "render/TextureFiles.h"
 
@@ -171,6 +172,75 @@ namespace
 				1.0f / camera.projection[0][0], 1.0f / camera.projection[1][1]);
 		}
 		return outline;
+	}
+
+	// --- split screen (Renderer::SetViews, render/RenderViews.h) ---------------
+
+	// The views to draw this frame: none when the game set none, or set only
+	// one full-window view through renderer.camera (that is the normal frame).
+	int ActiveViewCount(const Renderer& renderer)
+	{
+		const int count = renderer.ViewCount();
+		if (count == 1)
+		{
+			const RenderView& v = renderer.GetViews()[0];
+			if (v.camera == &renderer.camera && v.x == 0.0f && v.y == 0.0f && v.width == 1.0f && v.height == 1.0f)
+				return 0;
+		}
+		return count;
+	}
+
+	// A view's rectangle in window pixels, top-left origin.
+	struct ViewRect { int x, y, width, height; };
+	ViewRect ViewPixels(const RenderView& v, int screenWidth, int screenHeight)
+	{
+		ViewRect r;
+		r.x = (int)std::lround(v.x * screenWidth);
+		r.y = (int)std::lround(v.y * screenHeight);
+		r.width = std::max((int)std::lround((v.x + v.width) * screenWidth) - r.x, 1);
+		r.height = std::max((int)std::lround((v.y + v.height) * screenHeight) - r.y, 1);
+		return r;
+	}
+
+	// A view camera's projection, rebuilt at its view's aspect. A 2D (ortho)
+	// view keeps the projection its game gave it.
+	void FitViewProjection(Camera& camera, int width, int height)
+	{
+		if (camera.useOrthoCamera)
+			return;
+		camera.projection = glm::perspective(glm::radians(camera.fov), (float)width / (float)height,
+			camera.nearPlane, camera.farPlane);
+		if (camera.flipY)
+			camera.projection[1][1] *= -1.0f;
+	}
+
+	// Each view's own world framebuffer, the size of its rectangle.
+	std::vector<FrameBuffer*> viewFrameBuffers;
+
+	void ReleaseViewFrameBuffers()
+	{
+		if (viewFrameBuffers.empty())
+			return;
+		for (FrameBuffer*& fb : viewFrameBuffers)
+			if (fb != nullptr)
+				delete_it(fb);
+		viewFrameBuffers.clear();
+		ReleaseWorldTargets();   // the linear world targets were paired with their depth textures
+	}
+
+	FrameBuffer& ViewFrameBuffer(const Renderer& renderer, int index, int width, int height)
+	{
+		if ((int)viewFrameBuffers.size() <= index)
+			viewFrameBuffers.resize(index + 1, nullptr);
+		FrameBuffer*& fb = viewFrameBuffers[index];
+		if (fb != nullptr && (fb->sprite->texture->GetWidth() != width || fb->sprite->texture->GetHeight() != height))
+		{
+			delete_it(fb);
+			ReleaseWorldTargets();
+		}
+		if (fb == nullptr)
+			fb = new FrameBuffer(renderer, width, height);
+		return *fb;
 	}
 }
 
@@ -493,6 +563,7 @@ Game::~Game()
 	// NOTE: Need to delete textures manually for the screen textures
 	// which are created using frame buffers (not the usual way)
 
+	ReleaseViewFrameBuffers();   // split screen's
 	if (mainFrameBuffer != nullptr)
 	{
 		delete_it(mainFrameBuffer);
@@ -3242,6 +3313,271 @@ void Game::SetScreenResolution(const unsigned int width, const unsigned int heig
 }
 
 
+namespace
+{
+	// The world, drawn through renderer.camera into `target`, `width` x `height`
+	// pixels: the sun's shadows, the lights, the world pass and everything that
+	// finishes it, up to the Resolve into target's colour. Game::Render runs it
+	// once for the window's main framebuffer, or once per split-screen view
+	// (render/RenderViews.h) into that view's own framebuffer.
+	void RenderWorldChain(Game& game, FrameBuffer& target, int width, int height)
+	{
+		Renderer& renderer = game.renderer;
+
+		// The sun's shadow map (fitted to this camera's view when cascaded).
+		RunPass("SunShadow", Targets(), Targets(RenderTarget::ShadowMap), [&]()
+		{
+			Scene3D::Get().RenderShadowDepth(game, renderer);
+		});
+
+		// Temporal anti-aliasing (linear workflow, a perspective 3D scene): from here
+		// through the world, the camera carries this frame's sub-pixel offset
+		// (render/TemporalAA.h). The shadow passes above stay unjittered.
+		BeginTemporalFrame(TemporalAAWanted() && Scene3D::Get().active && !renderer.camera.useOrthoCamera,
+			width, height);
+		outlineInWorld = false;
+
+		// Clustered lighting: this frame's point and spot lights, sorted into the
+		// camera's light clusters for the lit shaders. Before the jitter below: the
+		// clusters carry a few pixels of margin, and an unjittered camera keeps
+		// their data unchanged - no upload - while the view is still.
+		const bool clusters = ClusteredLightsWanted() && Scene3D::Get().active && !renderer.camera.useOrthoCamera;
+		if (clusters)
+		{
+			RunPass("Lights", Targets(), Targets(RenderTarget::LightClusters), [&]()
+			{
+				Scene3D::Get().UpdateLightClusters(game, renderer);
+			});
+		}
+		else
+		{
+			DisableLightClusters();
+		}
+		JitterCamera(renderer.camera);
+
+		// Ambient occlusion (linear workflow): the opaque models' depth and normals,
+		// GTAO from them, then a denoise, all before the world, whose lit shaders
+		// darken their ambient light by the result (render/AmbientOcclusion.h).
+		// Screen-space reflections (linear workflow with TAA) march the same
+		// prepass, reflecting last frame's image (render/Reflections.h).
+		if (Scene3D::Get().WantsScreenSpacePrepass(renderer))
+		{
+			RunPass("AoPrepass", Targets(), Targets(RenderTarget::AoGeometry), [&]()
+			{
+				Scene3D::Get().RenderAoPrepass(game, renderer);
+			});
+			if (AmbientOcclusionWanted())
+			{
+				RunPass("Gtao", Targets(RenderTarget::AoGeometry), Targets(RenderTarget::AoRaw), [&]()
+				{
+					ComputeAmbientOcclusion(renderer.camera.projection);
+				});
+				RunPass("AoDenoise", Targets(RenderTarget::AoGeometry, RenderTarget::AoRaw),
+					Targets(RenderTarget::AmbientOcclusion), [&]()
+				{
+					DenoiseAmbientOcclusion(width, height);
+				});
+			}
+			if (ReflectionsWanted() && TemporalAAActive())
+			{
+				RunPass("Ssr", Targets(RenderTarget::AoGeometry, RenderTarget::TaaHistory),
+					Targets(RenderTarget::Reflections), [&]()
+				{
+					ComputeReflections(renderer.camera.CalculateViewMatrix(), renderer.camera.projection,
+						width, height);
+					Device().SetViewport(0, 0, width, height);
+				});
+			}
+		}
+
+		// The world (backgrounds, entities, the 3D scene) into the target - or,
+		// with the linear workflow, into the linear HDR world target that the
+		// Resolve pass then encodes into it (render/ColorPipeline.h).
+		const bool linear = LinearWorkflow();
+		const RenderTarget worldColor = linear ? RenderTarget::WorldHdr : RenderTarget::MainColor;
+		worldPassTargets = Targets(worldColor, RenderTarget::MainDepth, RenderTarget::CharacterMask);
+		worldPassReads = Targets(RenderTarget::ShadowMap, RenderTarget::PointShadowMaps);
+		if (EnvironmentActive())
+			worldPassReads |= Targets(RenderTarget::EnvMaps);
+		if (AmbientOcclusionActive())
+			worldPassReads |= Targets(RenderTarget::AoGeometry, RenderTarget::AmbientOcclusion);
+		if (clusters)
+			worldPassReads |= Targets(RenderTarget::LightClusters);
+		if (ReflectionsActive())
+			worldPassReads |= Targets(RenderTarget::AoGeometry, RenderTarget::Reflections);
+		weatherAfterTemporal = TemporalAAActive();
+		if (TemporalAAActive())
+			worldPassTargets |= Targets(RenderTarget::MotionVectors);
+		// MSAA (render/Multisample.h): the world draws into multisampled buffers
+		// instead, and MsaaResolve copies them into the targets above.
+		const TargetSet resolvedWorldTargets = worldPassTargets;
+		const bool msaa = EnsureMultisampleWorld(width, height,
+			linear ? TextureFormat::RGBA16F : TextureFormat::RGBA8, TemporalAAActive());
+		if (msaa)
+			worldPassTargets = Targets(RenderTarget::MultisampleWorld);
+		RunPass("World", worldPassReads, worldPassTargets, [&]()
+		{
+			RenderDevice& device = Device();
+			BindWorldTarget(target);
+			if (msaa)
+				BindMultisampleWorld();
+			device.SetViewport(0, 0, width, height);
+
+			// While a cel-shaded 3D scene is up, the character-outline mask (draw buffer 1)
+			// must be cleared to 0 too, so include it in the clear then revert to
+			// color-only for the opaque pass (characters re-enable it while they draw).
+			// Likewise the motion vectors (draw buffer 2) under temporal anti-aliasing:
+			// 0 = "no object wrote here", and Scene3D's lit draws enable it for themselves.
+			bool outlineActive = Scene3D::Get().active && Scene3D::Get().celShading
+				&& Scene3D::Get().outlineEnabled;
+			SetMotionWrites(TemporalAAActive());
+			const unsigned int clearBuffers = 1u | (outlineActive ? 2u : 0u) | (MotionWritesActive() ? 4u : 0u);
+			if (clearBuffers != 1u)
+				device.SetBoundDrawBufferMask(clearBuffers);
+
+			device.Clear(true, true, glm::vec4(0.0f));
+
+			if (clearBuffers != 1u)
+				device.SetBoundDrawBufferMask(1u);
+
+			game.RenderNormally();
+			SetMotionWrites(false);
+		});
+		weatherAfterTemporal = false;
+		if (msaa)
+		{
+			worldPassTargets = resolvedWorldTargets;
+			RunPass("MsaaResolve", Targets(RenderTarget::MultisampleWorld), worldPassTargets, [&]()
+			{
+				ResolveMultisampleWorld(WorldTargetFramebuffer(target));
+			});
+		}
+
+		// KINJO_HIZ_STATS: how many in-view models a Hi-Z occlusion test against
+		// this frame's depth would cull - a measurement, nothing is culled
+		// (docs/RENDERING_NEXT_STEPS.md). The camera still carries the world's jitter.
+		// In split screen, view 1's only.
+		if (Scene3DInternal::HizStatsWanted() && Scene3D::Get().active && !renderer.camera.useOrthoCamera
+			&& target.depthTexture != 0 && CurrentViewIndex() == 0)
+		{
+			RunPass("HizStats", Targets(RenderTarget::MainDepth), Targets(), [&]()
+			{
+				Scene3DInternal::MeasureOcclusion(renderer, target.depthTexture, width, height);
+			});
+		}
+
+		// Temporal anti-aliasing: the toon outline joins the world first (so it is
+		// smoothed too and doesn't shimmer with the jitter), then this frame is
+		// blended into the history. The camera goes back to unjittered after.
+		RenderTarget worldImage = RenderTarget::WorldHdr;
+		if (TemporalAAActive())
+		{
+			const TextureHandle depth(target.depthTexture);
+			Scene3D& scene = Scene3D::Get();
+			if (scene.celShading && scene.outlineEnabled && target.depthTexture != 0)
+			{
+				RunPass("Outline", Targets(RenderTarget::MainDepth, RenderTarget::CharacterMask),
+					Targets(RenderTarget::WorldHdr), [&]()
+				{
+					const OutlineBlockData outline = MakeOutlineBlock(scene, renderer.camera, width, height);
+					outlineBlocks.Bind(&outline);
+					outlineInWorld = DrawWorldOutline(depth, TextureHandle(target.maskTexture));
+				});
+			}
+		}
+
+		// Volumetric fog and light shafts (linear workflow): marched at half
+		// resolution and laid over the world - over the outline too, so distant
+		// lines fade into the haze - before TAA smooths the march's noise
+		// (render/VolumetricFog.h).
+		if (linear && Scene3D::Get().WantsVolumetricFog(renderer))
+		{
+			RunPass("Fog", worldPassReads | Targets(RenderTarget::MainDepth), Targets(RenderTarget::FogVolume), [&]()
+			{
+				Scene3D::Get().RenderVolumetricFog(game, renderer);
+			});
+			RunPass("FogComposite", Targets(RenderTarget::FogVolume, RenderTarget::MainDepth),
+				Targets(RenderTarget::WorldHdr), [&]()
+			{
+				CompositeFog(TextureHandle(target.depthTexture), renderer.camera.nearPlane,
+					renderer.camera.farPlane, width, height);
+				Device().SetViewport(0, 0, width, height);
+			});
+		}
+
+		if (TemporalAAActive())
+		{
+			const TextureHandle depth(target.depthTexture);
+			RunPass("Taa", Targets(RenderTarget::WorldHdr, RenderTarget::MainDepth, RenderTarget::MotionVectors,
+				RenderTarget::TaaHistory), Targets(RenderTarget::TaaHistory, RenderTarget::TaaOutput), [&]()
+			{
+				ResolveTemporalAA(WorldHdrTexture(), depth, renderer.camera, width, height);
+			});
+		}
+		RestoreCamera(renderer.camera);
+
+		if (TemporalOutput())
+		{
+			// Weather and fountain particles over the anti-aliased image, unjittered
+			// and depth-tested against the world: through the history their fast,
+			// thin streaks would be clipped away or smear.
+			RunPass("Weather", Targets(), Targets(RenderTarget::TaaOutput, RenderTarget::MainDepth), [&]()
+			{
+				if (!BindTemporalOutputTarget(TextureHandle(target.depthTexture)))
+					return;
+				RenderState s = CurrentRenderState();
+				s.depthTest = true;
+				s.depthCompare = CompareOp::Less;
+				s.blend = BlendMode::Alpha;
+				ScopedRenderState scope(s);
+				Scene3D::Get().RenderWeather(game, renderer);
+				Scene3D::Get().RenderFountain(game, renderer);
+				SetTargetLinear(false);
+			});
+			SetWorldSourceOverride(TemporalOutput());
+			worldImage = RenderTarget::TaaOutput;
+		}
+
+		// Depth of field (linear workflow, when a scene or script turns it on): on
+		// the finished world image, before bloom so blurred highlights glow as
+		// soft discs (render/DepthOfField.h).
+		Scene3D::Get().UpdateDepthOfField(renderer);
+		if (linear && DepthOfFieldActive() && Scene3D::Get().active && !renderer.camera.useOrthoCamera)
+		{
+			const TextureHandle image = TemporalOutput() ? TemporalOutput() : WorldHdrTexture();
+			RunPass("DepthOfField", Targets(worldImage, RenderTarget::MainDepth), Targets(RenderTarget::DepthOfField), [&]()
+			{
+				ApplyDepthOfField(image, TextureHandle(target.depthTexture), renderer.camera.nearPlane,
+					renderer.camera.farPlane, width, height);
+				Device().SetViewport(0, 0, width, height);
+			});
+			if (DepthOfFieldOutput())
+			{
+				SetWorldSourceOverride(DepthOfFieldOutput());
+				worldImage = RenderTarget::DepthOfField;
+			}
+		}
+
+		if (linear)
+		{
+			TargetSet resolveReads = Targets(worldImage);
+			if (BloomEnabled())
+			{
+				RunPass("Bloom", Targets(worldImage), Targets(RenderTarget::Bloom), [&]()
+				{
+					BloomWorldTarget();
+				});
+				resolveReads |= Targets(RenderTarget::Bloom);
+			}
+			RunPass("Resolve", resolveReads, Targets(RenderTarget::MainColor), [&]()
+			{
+				ResolveWorldTarget(target);
+			});
+			SetWorldSourceOverride(TextureHandle());   // the crossfade capture resolves its own world
+		}
+	}
+}
+
 void Game::Render()
 {	
 
@@ -3273,260 +3609,44 @@ void Game::Render()
 		}
 	}
 
-	// Shadow maps: render scene depth from the sun's POV (outdoor) and from the
-	// strongest point light (indoor cube map) before the main pass.
-	RunPass("SunShadow", Targets(), Targets(RenderTarget::ShadowMap), [&]()
-	{
-		Scene3D::Get().RenderShadowDepth(*this, renderer);
-	});
+	// Point-light (cube) shadows: once a frame (they barely depend on the camera).
 	RunPass("PointShadows", Targets(), Targets(RenderTarget::PointShadowMaps), [&]()
 	{
 		Scene3D::Get().RenderPointShadowDepth(*this, renderer);
 	});
 
-	// Temporal anti-aliasing (linear workflow, a perspective 3D scene): from here
-	// through the world, the camera carries this frame's sub-pixel offset
-	// (render/TemporalAA.h). The shadow passes above stay unjittered.
-	BeginTemporalFrame(TemporalAAWanted() && Scene3D::Get().active && !renderer.camera.useOrthoCamera,
-		screenWidth, screenHeight);
-	outlineInWorld = false;
-
-	// Clustered lighting: this frame's point and spot lights, sorted into the
-	// camera's light clusters for the lit shaders. Before the jitter below: the
-	// clusters carry a few pixels of margin, and an unjittered camera keeps
-	// their data unchanged - no upload - while the view is still.
-	const bool clusters = ClusteredLightsWanted() && Scene3D::Get().active && !renderer.camera.useOrthoCamera;
-	if (clusters)
+	// The world: through renderer.camera into the main framebuffer - or, in
+	// split screen (Renderer::SetViews), once per view, through its own camera
+	// into its own framebuffer, which the composite puts in its place.
+	const int viewCount = ActiveViewCount(renderer);
+	if (viewCount == 0)
 	{
-		RunPass("Lights", Targets(), Targets(RenderTarget::LightClusters), [&]()
-		{
-			Scene3D::Get().UpdateLightClusters(*this, renderer);
-		});
+		ReleaseViewFrameBuffers();
+		RenderWorldChain(*this, *mainFrameBuffer, screenWidth, screenHeight);
 	}
 	else
 	{
-		DisableLightClusters();
-	}
-	JitterCamera(renderer.camera);
-
-	// Ambient occlusion (linear workflow): the opaque models' depth and normals,
-	// GTAO from them, then a denoise, all before the world, whose lit shaders
-	// darken their ambient light by the result (render/AmbientOcclusion.h).
-	// Screen-space reflections (linear workflow with TAA) march the same
-	// prepass, reflecting last frame's image (render/Reflections.h).
-	if (Scene3D::Get().WantsScreenSpacePrepass(renderer))
-	{
-		RunPass("AoPrepass", Targets(), Targets(RenderTarget::AoGeometry), [&]()
+		static const char* const kViewPasses[kMaxRenderViews] = { "View 1", "View 2", "View 3", "View 4" };
+		const Camera mainCamera = renderer.camera;
+		for (int i = 0; i < viewCount; i++)
 		{
-			Scene3D::Get().RenderAoPrepass(*this, renderer);
-		});
-		if (AmbientOcclusionWanted())
-		{
-			RunPass("Gtao", Targets(RenderTarget::AoGeometry), Targets(RenderTarget::AoRaw), [&]()
+			const RenderView& view = renderer.GetViews()[i];
+			const ViewRect r = ViewPixels(view, screenWidth, screenHeight);
+			FrameBuffer& target = ViewFrameBuffer(renderer, i, r.width, r.height);
+			FitViewProjection(*view.camera, r.width, r.height);
+			renderer.camera = *view.camera;
+			renderer.camera.guiProjection = mainCamera.guiProjection;   // the GUI's, whatever the view
+			BeginViewRender(i, r.width, r.height, &target);
+			RunPass(kViewPasses[i], Targets(), Targets(), [&]()
 			{
-				ComputeAmbientOcclusion(renderer.camera.projection);
-			});
-			RunPass("AoDenoise", Targets(RenderTarget::AoGeometry, RenderTarget::AoRaw),
-				Targets(RenderTarget::AmbientOcclusion), [&]()
-			{
-				DenoiseAmbientOcclusion(screenWidth, screenHeight);
+				RenderWorldChain(*this, target, r.width, r.height);
 			});
 		}
-		if (ReflectionsWanted() && TemporalAAActive())
-		{
-			RunPass("Ssr", Targets(RenderTarget::AoGeometry, RenderTarget::TaaHistory),
-				Targets(RenderTarget::Reflections), [&]()
-			{
-				ComputeReflections(renderer.camera.CalculateViewMatrix(), renderer.camera.projection,
-					screenWidth, screenHeight);
-				Device().SetViewport(0, 0, screenWidth, screenHeight);
-			});
-		}
+		EndViewRender();
+		renderer.camera = mainCamera;
+		Device().SetViewport(0, 0, screenWidth, screenHeight);
 	}
-
-	// The world (backgrounds, entities, the 3D scene) into the main framebuffer -
-	// or, with the linear workflow, into the linear HDR world target that the
-	// Resolve pass then encodes into the main framebuffer (render/ColorPipeline.h).
 	const bool linear = LinearWorkflow();
-	const RenderTarget worldColor = linear ? RenderTarget::WorldHdr : RenderTarget::MainColor;
-	worldPassTargets = Targets(worldColor, RenderTarget::MainDepth, RenderTarget::CharacterMask);
-	worldPassReads = Targets(RenderTarget::ShadowMap, RenderTarget::PointShadowMaps);
-	if (EnvironmentActive())
-		worldPassReads |= Targets(RenderTarget::EnvMaps);
-	if (AmbientOcclusionActive())
-		worldPassReads |= Targets(RenderTarget::AoGeometry, RenderTarget::AmbientOcclusion);
-	if (clusters)
-		worldPassReads |= Targets(RenderTarget::LightClusters);
-	if (ReflectionsActive())
-		worldPassReads |= Targets(RenderTarget::AoGeometry, RenderTarget::Reflections);
-	weatherAfterTemporal = TemporalAAActive();
-	if (TemporalAAActive())
-		worldPassTargets |= Targets(RenderTarget::MotionVectors);
-	// MSAA (render/Multisample.h): the world draws into multisampled buffers
-	// instead, and MsaaResolve copies them into the targets above.
-	const TargetSet resolvedWorldTargets = worldPassTargets;
-	const bool msaa = EnsureMultisampleWorld(screenWidth, screenHeight,
-		linear ? TextureFormat::RGBA16F : TextureFormat::RGBA8, TemporalAAActive());
-	if (msaa)
-		worldPassTargets = Targets(RenderTarget::MultisampleWorld);
-	RunPass("World", worldPassReads, worldPassTargets, [&]()
-	{
-		RenderDevice& device = Device();
-		BindWorldTarget(*mainFrameBuffer);
-		if (msaa)
-			BindMultisampleWorld();
-
-		// While a cel-shaded 3D scene is up, the character-outline mask (draw buffer 1)
-		// must be cleared to 0 too, so include it in the clear then revert to
-		// color-only for the opaque pass (characters re-enable it while they draw).
-		// Likewise the motion vectors (draw buffer 2) under temporal anti-aliasing:
-		// 0 = "no object wrote here", and Scene3D's lit draws enable it for themselves.
-		bool outlineActive = Scene3D::Get().active && Scene3D::Get().celShading
-			&& Scene3D::Get().outlineEnabled;
-		SetMotionWrites(TemporalAAActive());
-		const unsigned int clearBuffers = 1u | (outlineActive ? 2u : 0u) | (MotionWritesActive() ? 4u : 0u);
-		if (clearBuffers != 1u)
-			device.SetBoundDrawBufferMask(clearBuffers);
-
-		device.Clear(true, true, glm::vec4(0.0f));
-
-		if (clearBuffers != 1u)
-			device.SetBoundDrawBufferMask(1u);
-
-		RenderNormally();
-		SetMotionWrites(false);
-	});
-	weatherAfterTemporal = false;
-	if (msaa)
-	{
-		worldPassTargets = resolvedWorldTargets;
-		RunPass("MsaaResolve", Targets(RenderTarget::MultisampleWorld), worldPassTargets, [&]()
-		{
-			ResolveMultisampleWorld(WorldTargetFramebuffer(*mainFrameBuffer));
-		});
-	}
-
-	// KINJO_HIZ_STATS: how many in-view models a Hi-Z occlusion test against
-	// this frame's depth would cull - a measurement, nothing is culled
-	// (docs/RENDERING_NEXT_STEPS.md). The camera still carries the world's jitter.
-	if (Scene3DInternal::HizStatsWanted() && Scene3D::Get().active && !renderer.camera.useOrthoCamera
-		&& mainFrameBuffer->depthTexture != 0)
-	{
-		RunPass("HizStats", Targets(RenderTarget::MainDepth), Targets(), [&]()
-		{
-			Scene3DInternal::MeasureOcclusion(renderer, mainFrameBuffer->depthTexture, screenWidth, screenHeight);
-		});
-	}
-
-	// Temporal anti-aliasing: the toon outline joins the world first (so it is
-	// smoothed too and doesn't shimmer with the jitter), then this frame is
-	// blended into the history. The camera goes back to unjittered after.
-	RenderTarget worldImage = RenderTarget::WorldHdr;
-	if (TemporalAAActive())
-	{
-		const TextureHandle depth(mainFrameBuffer->depthTexture);
-		Scene3D& scene = Scene3D::Get();
-		if (scene.celShading && scene.outlineEnabled && mainFrameBuffer->depthTexture != 0)
-		{
-			RunPass("Outline", Targets(RenderTarget::MainDepth, RenderTarget::CharacterMask),
-				Targets(RenderTarget::WorldHdr), [&]()
-			{
-				const OutlineBlockData outline = MakeOutlineBlock(scene, renderer.camera, screenWidth, screenHeight);
-				outlineBlocks.Bind(&outline);
-				outlineInWorld = DrawWorldOutline(depth, TextureHandle(mainFrameBuffer->maskTexture));
-			});
-		}
-	}
-
-	// Volumetric fog and light shafts (linear workflow): marched at half
-	// resolution and laid over the world - over the outline too, so distant
-	// lines fade into the haze - before TAA smooths the march's noise
-	// (render/VolumetricFog.h).
-	if (linear && Scene3D::Get().WantsVolumetricFog(renderer))
-	{
-		RunPass("Fog", worldPassReads | Targets(RenderTarget::MainDepth), Targets(RenderTarget::FogVolume), [&]()
-		{
-			Scene3D::Get().RenderVolumetricFog(*this, renderer);
-		});
-		RunPass("FogComposite", Targets(RenderTarget::FogVolume, RenderTarget::MainDepth),
-			Targets(RenderTarget::WorldHdr), [&]()
-		{
-			CompositeFog(TextureHandle(mainFrameBuffer->depthTexture), renderer.camera.nearPlane,
-				renderer.camera.farPlane, screenWidth, screenHeight);
-			Device().SetViewport(0, 0, screenWidth, screenHeight);
-		});
-	}
-
-	if (TemporalAAActive())
-	{
-		const TextureHandle depth(mainFrameBuffer->depthTexture);
-		RunPass("Taa", Targets(RenderTarget::WorldHdr, RenderTarget::MainDepth, RenderTarget::MotionVectors,
-			RenderTarget::TaaHistory), Targets(RenderTarget::TaaHistory, RenderTarget::TaaOutput), [&]()
-		{
-			ResolveTemporalAA(WorldHdrTexture(), depth, renderer.camera, screenWidth, screenHeight);
-		});
-	}
-	RestoreCamera(renderer.camera);
-
-	if (TemporalOutput())
-	{
-		// Weather and fountain particles over the anti-aliased image, unjittered
-		// and depth-tested against the world: through the history their fast,
-		// thin streaks would be clipped away or smear.
-		RunPass("Weather", Targets(), Targets(RenderTarget::TaaOutput, RenderTarget::MainDepth), [&]()
-		{
-			if (!BindTemporalOutputTarget(TextureHandle(mainFrameBuffer->depthTexture)))
-				return;
-			RenderState s = CurrentRenderState();
-			s.depthTest = true;
-			s.depthCompare = CompareOp::Less;
-			s.blend = BlendMode::Alpha;
-			ScopedRenderState scope(s);
-			Scene3D::Get().RenderWeather(*this, renderer);
-			Scene3D::Get().RenderFountain(*this, renderer);
-			SetTargetLinear(false);
-		});
-		SetWorldSourceOverride(TemporalOutput());
-		worldImage = RenderTarget::TaaOutput;
-	}
-
-	// Depth of field (linear workflow, when a scene or script turns it on): on
-	// the finished world image, before bloom so blurred highlights glow as
-	// soft discs (render/DepthOfField.h).
-	Scene3D::Get().UpdateDepthOfField(renderer);
-	if (linear && DepthOfFieldActive() && Scene3D::Get().active && !renderer.camera.useOrthoCamera)
-	{
-		const TextureHandle image = TemporalOutput() ? TemporalOutput() : WorldHdrTexture();
-		RunPass("DepthOfField", Targets(worldImage, RenderTarget::MainDepth), Targets(RenderTarget::DepthOfField), [&]()
-		{
-			ApplyDepthOfField(image, TextureHandle(mainFrameBuffer->depthTexture), renderer.camera.nearPlane,
-				renderer.camera.farPlane, screenWidth, screenHeight);
-			Device().SetViewport(0, 0, screenWidth, screenHeight);
-		});
-		if (DepthOfFieldOutput())
-		{
-			SetWorldSourceOverride(DepthOfFieldOutput());
-			worldImage = RenderTarget::DepthOfField;
-		}
-	}
-
-	if (linear)
-	{
-		TargetSet resolveReads = Targets(worldImage);
-		if (BloomEnabled())
-		{
-			RunPass("Bloom", Targets(worldImage), Targets(RenderTarget::Bloom), [&]()
-			{
-				BloomWorldTarget();
-			});
-			resolveReads |= Targets(RenderTarget::Bloom);
-		}
-		RunPass("Resolve", resolveReads, Targets(RenderTarget::MainColor), [&]()
-		{
-			ResolveWorldTarget(*mainFrameBuffer);
-		});
-		SetWorldSourceOverride(TextureHandle());   // the crossfade capture resolves its own world
-	}
 
 	// Cutscene layer (text boxes, VN sprites, editor UI) into its own framebuffer.
 	RunPass("Cutscene", Targets(), Targets(RenderTarget::CutsceneColor), [&]()
@@ -3541,8 +3661,9 @@ void Game::Render()
 	bool renderSecondCutsceneBuffer = false;
 	//bool renderSecondMainBuffer = false;
 	
-	// Don't render the scene twice outside of cutscenes
-	if (!cutsceneManager.watchingCutscene)
+	// Don't render the scene twice outside of cutscenes - nor in split screen,
+	// where the crossfade's capture of the world doesn't apply
+	if (!cutsceneManager.watchingCutscene || viewCount > 0)
 	{
 		updateScreenTexture = false;
 	}
@@ -3627,43 +3748,71 @@ void Game::Render()
 
 		RenderQuake(screenPos);
 
-		if (celEdge)
+		// One world image - the window's, or a view's - with its camera and size
+		// (the outline reads its depth and mask, and linearises with its planes).
+		// The quad is the texture's size times the scale, so a view's smaller
+		// image gets a larger scale: either way it fills the viewport.
+		auto drawWorld = [&](FrameBuffer& fb, const Camera& camera, int width, int height)
 		{
-			ShaderProgram* prevShader = mainFrameBuffer->sprite->GetShader();
-			ShaderProgram* edge = scene3d.EdgeShader();
-			mainFrameBuffer->sprite->SetShader(edge);
-			edge->UseShader();
-			RenderDevice& device = Device();
-			const ProgramHandle eid(edge->GetID());
-			device.SetUniform(device.UniformLocation(eid, "depthTex"), 1);
-			device.SetUniform(device.UniformLocation(eid, "maskTex"), 2);
-
-			const OutlineBlockData outline = MakeOutlineBlock(scene3d, renderer.camera, screenWidth, screenHeight);
-			if (device.HasUniformBlock(eid, "Outline"))
+			const glm::vec2 imageScale(renderer.camera.startScreenWidth / width, renderer.camera.startScreenHeight / -height);
+			if (celEdge && fb.depthTexture != 0)
 			{
-				CheckUniformBlockLayout(eid.id, "Outline", kOutlineMembers,
-					sizeof(kOutlineMembers) / sizeof(kOutlineMembers[0]), sizeof(OutlineBlockData));
-				outlineBlocks.Bind(&outline);
+				ShaderProgram* prevShader = fb.sprite->GetShader();
+				ShaderProgram* edge = scene3d.EdgeShader();
+				fb.sprite->SetShader(edge);
+				edge->UseShader();
+				RenderDevice& device = Device();
+				const ProgramHandle eid(edge->GetID());
+				device.SetUniform(device.UniformLocation(eid, "depthTex"), 1);
+				device.SetUniform(device.UniformLocation(eid, "maskTex"), 2);
+
+				const OutlineBlockData outline = MakeOutlineBlock(scene3d, camera, width, height);
+				if (device.HasUniformBlock(eid, "Outline"))
+				{
+					CheckUniformBlockLayout(eid.id, "Outline", kOutlineMembers,
+						sizeof(kOutlineMembers) / sizeof(kOutlineMembers[0]), sizeof(OutlineBlockData));
+					outlineBlocks.Bind(&outline);
+				}
+				else
+				{
+					// Legacy: a scene3d_edge.frag copy in the game that predates the block.
+					device.SetUniform(device.UniformLocation(eid, "texelSize"), outline.texelSize);
+					device.SetUniform(device.UniformLocation(eid, "nearPlane"), outline.nearPlane);
+					device.SetUniform(device.UniformLocation(eid, "farPlane"), outline.farPlane);
+					device.SetUniform(device.UniformLocation(eid, "edgeThreshold"), outline.edgeThreshold);
+					device.SetUniform(device.UniformLocation(eid, "thickness"), outline.thickness);
+					device.SetUniform(device.UniformLocation(eid, "outlineColor"), outline.outlineColor);
+				}
+				device.BindTexture(1, TextureHandle(fb.depthTexture));
+				device.BindTexture(2, TextureHandle(fb.maskTexture));
+
+				fb.sprite->Render(screenPos, renderer, imageScale);
+				fb.sprite->SetShader(prevShader);
 			}
 			else
 			{
-				// Legacy: a scene3d_edge.frag copy in the game that predates the block.
-				device.SetUniform(device.UniformLocation(eid, "texelSize"), outline.texelSize);
-				device.SetUniform(device.UniformLocation(eid, "nearPlane"), outline.nearPlane);
-				device.SetUniform(device.UniformLocation(eid, "farPlane"), outline.farPlane);
-				device.SetUniform(device.UniformLocation(eid, "edgeThreshold"), outline.edgeThreshold);
-				device.SetUniform(device.UniformLocation(eid, "thickness"), outline.thickness);
-				device.SetUniform(device.UniformLocation(eid, "outlineColor"), outline.outlineColor);
+				fb.sprite->Render(screenPos, renderer, imageScale);
 			}
-			device.BindTexture(1, TextureHandle(mainFrameBuffer->depthTexture));
-			device.BindTexture(2, TextureHandle(mainFrameBuffer->maskTexture));
+		};
 
-			mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
-			mainFrameBuffer->sprite->SetShader(prevShader);
+		if (viewCount == 0)
+		{
+			drawWorld(*mainFrameBuffer, renderer.camera, screenWidth, screenHeight);
 		}
 		else
 		{
-			mainFrameBuffer->sprite->Render(screenPos, renderer, screenScale);
+			// Each view's world into its rectangle (GL counts rows from the
+			// bottom), through the main world's screen shader (a game's effect).
+			for (int i = 0; i < viewCount; i++)
+			{
+				const RenderView& view = renderer.GetViews()[i];
+				const ViewRect r = ViewPixels(view, screenWidth, screenHeight);
+				FrameBuffer& fb = *viewFrameBuffers[i];
+				fb.sprite->SetShader(mainFrameBuffer->sprite->GetShader());
+				Device().SetViewport(r.x, screenHeight - r.y - r.height, r.width, r.height);
+				drawWorld(fb, *view.camera, r.width, r.height);
+			}
+			Device().SetViewport(0, 0, screenWidth, screenHeight);
 		}
 
 		if (renderSecondCutsceneBuffer)

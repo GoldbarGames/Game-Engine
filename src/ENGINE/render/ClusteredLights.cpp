@@ -5,6 +5,7 @@
 #include "ColorPipeline.h"
 #include "RenderDevice.h"
 #include "ProgramEvents.h"
+#include "RenderViews.h"
 #include "../UniformBlocks.h"
 #include "../UniformBufferCache.h"
 #include "../globals.h"
@@ -36,27 +37,16 @@ namespace
 	bool verifyAll = false;  // KINJO_CLUSTER_VERIFY: every light in every cluster (brute force, for comparison)
 
 	// --- state --------------------------------------------------------------
-	bool active = false;
-	// Three textures in rotation: new data goes into the next one, never into
-	// one the GPU may still be reading for a frame in flight (overwriting that
-	// stalls the pipeline until those draws finish).
+	// Three textures in rotation (per view, below): new data goes into the next
+	// one, never into one the GPU may still be reading for a frame in flight
+	// (overwriting that stalls the pipeline until those draws finish).
 	const int kRing = 3;
-	TextureHandle ring[kRing];
-	int ringRows[kRing] = {};
-	int current = 0;                  // the one lit shaders read
 	std::vector<uint32_t> texels;     // what this frame uploads (4 uints per texel)
 	std::vector<uint32_t> counts;       // per cluster
 	std::vector<uint32_t> pairCluster;  // (cluster, light) for every light reaching a cluster,
 	std::vector<uint32_t> pairLight;    // in light order
 
-	// Each cluster's view-space box, for the sphere tests. Depends only on the
-	// projection, planes and target size, so it is rebuilt only when they change.
-	std::vector<glm::vec3> clusterMin, clusterMax;
-	std::vector<float> boxKey;
-
-	// What the last build was made from: unchanged lights and camera (a still
-	// view) skip the whole build.
-	std::vector<float> inputKey, lastInputKey;
+	std::vector<float> inputKey;      // what this build is made from (lights and camera)
 	int builds = 0;
 
 	struct Bounds
@@ -79,7 +69,26 @@ namespace
 		{ "clusterLayout", offsetof(ClustersBlockData, layout), false },
 	};
 	UniformBufferCache clusterBlocks(UniformBlock::Clusters, sizeof(ClustersBlockData), 2);
-	ClustersBlockData blockData = {};
+
+	// One set per split-screen view (render/RenderViews.h): each view's
+	// clusters follow its own camera, so its cache and ring are its own too.
+	struct ClusterView
+	{
+		bool active = false;
+		TextureHandle ring[kRing];
+		int ringRows[kRing] = {};
+		int current = 0;                  // the one lit shaders read
+		// Each cluster's view-space box, for the sphere tests. Depends only on the
+		// projection, planes and target size, so it is rebuilt only when they change.
+		std::vector<glm::vec3> clusterMin, clusterMax;
+		std::vector<float> boxKey;
+		// What the last build was made from: unchanged lights and camera (a still
+		// view) skip the whole build.
+		std::vector<float> lastInputKey;
+		ClustersBlockData blockData = {};
+	};
+	ClusterView clusterViews[kMaxRenderViews];
+	ClusterView* cv = &clusterViews[0];   // the view drawing now (SetLightClusterView)
 
 	struct ProgramLocs { bool hasBlock = false; int sampler = -1; };
 	std::unordered_map<unsigned int, ProgramLocs> locsByProgram;
@@ -169,7 +178,8 @@ void SetClusterDebugView(bool on)
 {
 	debugView = on;
 	// An unchanged frame reuses the last build, block included: flip it in place.
-	blockData.layout.w = on ? 1 : 0;
+	for (ClusterView& view : clusterViews)
+		view.blockData.layout.w = on ? 1 : 0;
 }
 
 bool ClusterDebugView()
@@ -213,13 +223,13 @@ void BuildLightClusters(const std::vector<ClusterLight>& lights, const glm::mat4
 			l.dir.x, l.dir.y, l.dir.z, l.cosOuter, l.cosInner, l.spot ? 1.0f : 0.0f, (float)l.shadow, 0.0f };
 		inputKey.insert(inputKey.end(), v, v + 16);
 	}
-	if (active && inputKey.size() == lastInputKey.size()
-		&& std::memcmp(inputKey.data(), lastInputKey.data(), inputKey.size() * sizeof(float)) == 0)
+	if (cv->active && inputKey.size() == cv->lastInputKey.size()
+		&& std::memcmp(inputKey.data(), cv->lastInputKey.data(), inputKey.size() * sizeof(float)) == 0)
 	{
-		clusterBlocks.Bind(&blockData);
+		clusterBlocks.Bind(&cv->blockData);
 		return;
 	}
-	lastInputKey.swap(inputKey);
+	cv->lastInputKey.swap(inputKey);
 
 	// 1. The clusters' view-space boxes (only when the projection changed).
 	// For a perspective projection, view x at depth d for NDC x is
@@ -231,11 +241,11 @@ void BuildLightClusters(const std::vector<ClusterLight>& lights, const glm::mat4
 		key.push_back(farPlane);
 		key.push_back((float)width);
 		key.push_back((float)height);
-		if (key != boxKey)
+		if (key != cv->boxKey)
 		{
-			boxKey.swap(key);
-			clusterMin.resize(kClusters);
-			clusterMax.resize(kClusters);
+			cv->boxKey.swap(key);
+			cv->clusterMin.resize(kClusters);
+			cv->clusterMax.resize(kClusters);
 			const float marginX = 4.0f / (float)width, marginY = 4.0f / (float)height;
 			for (int sl = 0; sl < kSlices; sl++)
 			{
@@ -262,8 +272,8 @@ void BuildLightClusters(const std::vector<ClusterLight>& lights, const glm::mat4
 						lo.z = -d1;
 						hi.z = -d0;
 						const int k = (sl * kTilesY + ty) * kTilesX + tx;
-						clusterMin[k] = lo;
-						clusterMax[k] = hi;
+						cv->clusterMin[k] = lo;
+						cv->clusterMax[k] = hi;
 					}
 				}
 			}
@@ -280,8 +290,8 @@ void BuildLightClusters(const std::vector<ClusterLight>& lights, const glm::mat4
 	// depth range cover - then the sphere against each cluster's box.
 	counts.assign(kClusters, 0);
 	uint32_t* countOf = counts.data();
-	const glm::vec3* boxMin = clusterMin.data();
-	const glm::vec3* boxMax = clusterMax.data();
+	const glm::vec3* boxMin = cv->clusterMin.data();
+	const glm::vec3* boxMax = cv->clusterMax.data();
 	pairCluster.clear();
 	pairLight.clear();
 	for (int i = 0; i < lightCount; i++)
@@ -372,39 +382,39 @@ void BuildLightClusters(const std::vector<ClusterLight>& lights, const glm::mat4
 	// 4. Upload into the next texture of the ring.
 	{
 		RenderDevice& device = Device();
-		const int next = (current + 1) % kRing;
-		if (!ring[next] || rows > ringRows[next])
+		const int next = (cv->current + 1) % kRing;
+		if (!cv->ring[next] || rows > cv->ringRows[next])
 		{
-			if (ring[next])
-				device.DestroyTexture(ring[next]);
+			if (cv->ring[next])
+				device.DestroyTexture(cv->ring[next]);
 			int height = 8;
 			while (height < rows)
 				height *= 2;
-			ring[next] = MakeTexture(height);
-			ringRows[next] = height;
+			cv->ring[next] = MakeTexture(height);
+			cv->ringRows[next] = height;
 		}
-		device.UpdateTexture(ring[next], TextureFormat::RGBA32UI, 0, 0, kTextureWidth, rows, texels.data());
-		current = next;
+		device.UpdateTexture(cv->ring[next], TextureFormat::RGBA32UI, 0, 0, kTextureWidth, rows, texels.data());
+		cv->current = next;
 	}
 
-	blockData.grid = glm::ivec4(kTilesX, kTilesY, kSlices, 1);
-	blockData.params = glm::vec4(scale, bias, 1.0f / (float)width, 1.0f / (float)height);
-	blockData.layout = glm::ivec4(kTextureWidth, tableStart, indexStart, debugView ? 1 : 0);
-	active = true;
-	clusterBlocks.Bind(&blockData);
+	cv->blockData.grid = glm::ivec4(kTilesX, kTilesY, kSlices, 1);
+	cv->blockData.params = glm::vec4(scale, bias, 1.0f / (float)width, 1.0f / (float)height);
+	cv->blockData.layout = glm::ivec4(kTextureWidth, tableStart, indexStart, debugView ? 1 : 0);
+	cv->active = true;
+	clusterBlocks.Bind(&cv->blockData);
 }
 
 void DisableLightClusters()
 {
-	active = false;
-	lastInputKey.clear();
-	blockData = ClustersBlockData();
-	clusterBlocks.Bind(&blockData);
+	cv->active = false;
+	cv->lastInputKey.clear();
+	cv->blockData = ClustersBlockData();
+	clusterBlocks.Bind(&cv->blockData);
 }
 
 void BindLightClusters(unsigned int program)
 {
-	clusterBlocks.Bind(&blockData);
+	clusterBlocks.Bind(&cv->blockData);
 	if (program == 0)
 		return;
 	RenderDevice& device = Device();
@@ -427,26 +437,29 @@ void BindLightClusters(unsigned int program)
 	// sampled then): an integer sampler over the albedo on unit 0, or over no
 	// texture, is undefined behaviour the driver may complain about every draw.
 	device.SetUniform(it->second.sampler, 14);
-	if (!ring[current])
+	if (!cv->ring[cv->current])
 	{
-		ring[current] = MakeTexture(8);
-		ringRows[current] = 8;
+		cv->ring[cv->current] = MakeTexture(8);
+		cv->ringRows[cv->current] = 8;
 	}
-	device.BindTexture(14, ring[current]);
+	device.BindTexture(14, cv->ring[cv->current]);
+}
+
+void SetLightClusterView(int index)
+{
+	cv = &clusterViews[(index >= 0 && index < kMaxRenderViews) ? index : 0];
 }
 
 void ReleaseClusteredLights()
 {
-	for (int i = 0; i < kRing; i++)
+	for (ClusterView& view : clusterViews)
 	{
-		if (ring[i])
-			Device().DestroyTexture(ring[i]);
-		ringRows[i] = 0;
+		for (int i = 0; i < kRing; i++)
+			if (view.ring[i])
+				Device().DestroyTexture(view.ring[i]);
+		view = ClusterView();
 	}
-	current = 0;
+	cv = &clusterViews[0];
 	texels.clear();
-	lastInputKey.clear();
-	boxKey.clear();
 	locsByProgram.clear();
-	active = false;
 }

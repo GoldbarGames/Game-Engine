@@ -82,8 +82,13 @@ bool DrawWorldOutline(TextureHandle depth, TextureHandle mask);
 // world's depth (`depthStencil`) for depth testing. Flags the target linear.
 bool BindTemporalOutputTarget(TextureHandle depthStencil);
 
-// Forget the history (a camera cut: Scene3D::JumpToCamera, a scene load).
+// Forget the history (a camera cut: Scene3D::JumpToCamera, a scene load) -
+// every split-screen view's.
 void ResetTemporalHistory();
+
+// Split screen (render/RenderViews.h): which view's history, output and last
+// camera the calls above use. 0 outside split screen.
+void SetTemporalView(int index);
 
 void ReleaseTemporalAA();
 

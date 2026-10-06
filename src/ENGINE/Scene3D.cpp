@@ -42,6 +42,7 @@
 #include "render/DepthOfField.h"
 #include "render/VolumetricFog.h"
 #include "render/DistanceFog.h"
+#include "render/RenderViews.h"
 #include "render/Reflections.h"
 
 using Scene3DInternal::ProgramHasBlock;
@@ -333,7 +334,7 @@ void Scene3D::RenderAoPrepass(Game& game, const Renderer& renderer)
 {
 #ifdef USE_ASSIMP
 	unsigned int program = 0, instancedProgram = 0;
-	if (!BeginAoPrepass(game.screenWidth, game.screenHeight, program, instancedProgram))
+	if (!BeginAoPrepass(ViewTargetWidth(game), ViewTargetHeight(game), program, instancedProgram))
 		return;
 	RenderDevice& device = Device();
 	renderer.BindWorldCameraBlock();
@@ -385,7 +386,7 @@ void Scene3D::RenderAoPrepass(Game& game, const Renderer& renderer)
 	if (Scene3DInternal::GpuDrivenFrame())
 		DrawGpuColourView(renderer, Scene3DInternal::GpuPrepassProgram(), false);
 
-	EndAoPrepass(game.screenWidth, game.screenHeight);
+	EndAoPrepass(ViewTargetWidth(game), ViewTargetHeight(game));
 #else
 	(void)game;
 	(void)renderer;
@@ -2964,17 +2965,18 @@ bool Scene3D::WantsVolumetricFog(const Renderer& renderer)
 
 void Scene3D::RenderVolumetricFog(Game& game, const Renderer& renderer)
 {
-	const unsigned int program = BeginFogMarch(game.screenWidth, game.screenHeight);
+	const int width = ViewTargetWidth(game), height = ViewTargetHeight(game);
+	const unsigned int program = BeginFogMarch(width, height);
 	if (program == 0)
 		return;
 	const Camera& cam = renderer.camera;
-	const TextureHandle depth(game.mainFrameBuffer->depthTexture);
+	const TextureHandle depth(ViewTargetFrameBuffer(game)->depthTexture);
 	Device().UseProgram(ProgramHandle(program));
 	renderer.BindWorldCameraBlock();
 	ApplyLighting(program, renderer);   // sun, lights, shadows, sky: what the fog scatters
-	DrawFogMarch(glm::inverse(cam.projection * cam.CalculateViewMatrix()), depth, game.screenWidth, game.screenHeight,
+	DrawFogMarch(glm::inverse(cam.projection * cam.CalculateViewMatrix()), depth, width, height,
 		renderer.now * 0.001f);
-	Device().SetViewport(0, 0, game.screenWidth, game.screenHeight);
+	Device().SetViewport(0, 0, width, height);
 }
 
 void Scene3D::NotifyCameraCut()

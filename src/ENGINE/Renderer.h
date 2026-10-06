@@ -30,6 +30,16 @@ class Renderable;
 class Texture;
 class Mesh;
 
+// One view of the 3D world in split screen (Renderer::SetViews): a camera and
+// the part of the window it fills, as fractions of the window measured from
+// its top-left corner (0..1), so it follows resolution changes.
+struct RenderView
+{
+	Camera* camera = nullptr;     // the game's; its projection is rebuilt for the view's shape each frame
+	float x = 0.0f, y = 0.0f;     // top-left corner
+	float width = 1.0f, height = 1.0f;
+};
+
 class KINJO_API Renderer
 {
 private:
@@ -149,6 +159,20 @@ public:
 	void BindCameraBlock(const glm::mat4& view, const glm::mat4& projection) const;
 	// Shorthand for the world camera: camera's view + perspective/ortho projection.
 	void BindWorldCameraBlock() const;
+
+	// Split screen (since 2026-10-05): the 3D world is drawn once per view,
+	// each through its own camera into its own part of the window; the
+	// cutscene layer, GUI and menus then go over the whole window once. Up to
+	// 4 views (more are ignored). Each frame a view camera's projection is
+	// rebuilt at its view's aspect from its fov, nearPlane and farPlane, and
+	// renderer.camera stays the main camera (picking, the editor, JumpToCamera).
+	// Views of one size share the engine's temporary targets; views of
+	// different sizes work, but reallocate them every frame. Count 0, or
+	// ClearViews(), goes back to the one full-window renderer.camera.
+	void SetViews(const RenderView* views, int count);
+	void ClearViews();
+	int ViewCount() const;
+	const RenderView* GetViews() const;
 
 	void Init(Game* g);
 	void SetDepthTestEnabled(bool enabled) const;

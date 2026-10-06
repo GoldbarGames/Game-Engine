@@ -36,6 +36,7 @@
 #include "Scene3DInternal.h"
 #include "render/ColorPipeline.h"
 #include "render/ProgramEvents.h"
+#include "render/RenderViews.h"
 #include "globals.h"
 #include <unordered_map>
 
@@ -189,18 +190,26 @@ namespace
 	};
 	UniformBufferCache cascadeBlocks(UniformBlock::Cascades, sizeof(CascadesBlockData), 4);
 
-	TextureHandle cascadeTexture;          // Depth24 array, kMaxCascades layers, hardware compare
 	TextureHandle cascadePlaceholder;      // 1x1 of the same kind: a shadow sampler must always see one
-	FramebufferHandle cascadeFbo;
-	CascadesBlockData cascadeData = {};    // what the last render produced
-	int cascadesThisFrame = 0;             // 0 until this frame's cascades exist
-	glm::mat4 cascadeRendered[kMaxCascades];   // per-layer cache: the matrix it was drawn with...
-	double cascadeRenderedSig[kMaxCascades];   // ...and the casters it saw
-	bool cascadeValid[kMaxCascades] = {};
+
+	// One set per split-screen view (render/RenderViews.h): each view's
+	// cascades are fitted to its own camera and cached on their own.
+	struct CascadeSet
+	{
+		TextureHandle texture;             // Depth24 array, kMaxCascades layers, hardware compare
+		FramebufferHandle fbo;
+		CascadesBlockData data = {};       // what the last render produced
+		int thisFrame = 0;                 // 0 until this frame's cascades exist
+		glm::mat4 rendered[kMaxCascades];  // per-layer cache: the matrix it was drawn with...
+		double renderedSig[kMaxCascades] = {};   // ...and the casters it saw
+		bool valid[kMaxCascades] = {};
+	};
+	CascadeSet cascadeSets[kMaxRenderViews];
+	CascadeSet* cs = &cascadeSets[0];      // the view drawing now (Scene3DInternal::SetShadowView)
 
 	void EnsureCascadeTargets()
 	{
-		if (cascadeTexture)
+		if (cs->texture)
 			return;
 		RenderDevice& device = Device();
 		TextureDesc desc;
@@ -211,12 +220,12 @@ namespace
 		desc.filter = TextureFilter::Linear;   // with compare: bilinear PCF per tap
 		desc.wrap = TextureWrap::ClampToEdge;
 		desc.depthCompare = true;
-		cascadeTexture = device.CreateTexture(desc);
-		cascadeFbo = device.CreateFramebuffer();
-		device.AttachTexture(cascadeFbo, Attachment::Depth, cascadeTexture, TextureType::Tex2DArray, 0);
-		device.SetDrawBuffers(cascadeFbo, 0);   // depth only
+		cs->texture = device.CreateTexture(desc);
+		cs->fbo = device.CreateFramebuffer();
+		device.AttachTexture(cs->fbo, Attachment::Depth, cs->texture, TextureType::Tex2DArray, 0);
+		device.SetDrawBuffers(cs->fbo, 0);   // depth only
 		device.BindFramebuffer(FramebufferHandle());
-		for (bool& v : cascadeValid)
+		for (bool& v : cs->valid)
 			v = false;
 	}
 
@@ -231,8 +240,8 @@ void Scene3DInternal::ApplyShadowPass(unsigned int program, const glm::mat4& vie
 
 void Scene3DInternal::BindCascades(unsigned int program)
 {
-	CascadesBlockData d = cascadeData;
-	d.count = cascadesThisFrame;
+	CascadesBlockData d = cs->data;
+	d.count = cs->thisFrame;
 	cascadeBlocks.Bind(&d);
 	if (program == 0)
 		return;
@@ -251,9 +260,9 @@ void Scene3DInternal::BindCascades(unsigned int program)
 	if (it->second >= 0)
 	{
 		Device().SetUniform(it->second, 11);
-		if (cascadesThisFrame > 0)
+		if (cs->thisFrame > 0)
 		{
-			Device().BindTexture(11, cascadeTexture, TextureType::Tex2DArray);
+			Device().BindTexture(11, cs->texture, TextureType::Tex2DArray);
 		}
 		else
 		{
@@ -289,6 +298,11 @@ float Scene3DInternal::SceneShadowDistance()
 float Scene3DInternal::ProjectShadowDistance()
 {
 	return Cascades().distance;
+}
+
+void Scene3DInternal::SetShadowView(int index)
+{
+	cs = &cascadeSets[(index >= 0 && index < kMaxRenderViews) ? index : 0];
 }
 
 void Scene3DInternal::ReloadShadowSettings()
@@ -380,19 +394,19 @@ void Scene3D::RenderShadowCascades(Game& game, const Renderer& renderer, const g
 		const glm::mat4 viewProj = proj * lightRotation;
 		const float depthRange = 2.0f * radius + back;
 
-		cascadeData.viewProj[i] = viewProj;
+		cs->data.viewProj[i] = viewProj;
 		// Selection sphere a couple of texels inside the map's edge.
 		const float selectRadius = radius - 2.0f * texel;
-		cascadeData.sphere[i] = glm::vec4(center, selectRadius * selectRadius);
-		cascadeData.texelWorld[i] = texel;
-		cascadeData.depthBias[i] = 0.5f * texel / depthRange;
+		cs->data.sphere[i] = glm::vec4(center, selectRadius * selectRadius);
+		cs->data.texelWorld[i] = texel;
+		cs->data.depthBias[i] = 0.5f * texel / depthRange;
 
-		if (cascadeValid[i] && cascadeRendered[i] == viewProj && cascadeRenderedSig[i] == casterSig
+		if (cs->valid[i] && cs->rendered[i] == viewProj && cs->renderedSig[i] == casterSig
 			&& !ShadowsEveryFrame())
 			continue;   // nothing moved in this cascade: keep its map
-		cascadeValid[i] = true;
-		cascadeRendered[i] = viewProj;
-		cascadeRenderedSig[i] = casterSig;
+		cs->valid[i] = true;
+		cs->rendered[i] = viewProj;
+		cs->renderedSig[i] = casterSig;
 
 		if (!bound)
 		{
@@ -402,8 +416,8 @@ void Scene3D::RenderShadowCascades(Game& game, const Renderer& renderer, const g
 			Device().SetUniform(Device().UniformLocation(ProgramHandle(id), "theTexture"), 0);
 			bound = true;
 		}
-		device.AttachTexture(cascadeFbo, Attachment::Depth, cascadeTexture, TextureType::Tex2DArray, i);
-		device.BindFramebuffer(cascadeFbo);
+		device.AttachTexture(cs->fbo, Attachment::Depth, cs->texture, TextureType::Tex2DArray, i);
+		device.BindFramebuffer(cs->fbo);
 		device.Clear(false, true);
 		ApplyShadowPass(id, viewProj, glm::vec3(0.0f), 1.0f, 0.5f, true);
 		DrawShadowCasters(renderer, id, center, radius, L);
@@ -418,13 +432,13 @@ void Scene3D::RenderShadowCascades(Game& game, const Renderer& renderer, const g
 		}
 	}
 
-	cascadeData.count = count;
-	cascadeData.softness = cfg.softness;
-	cascadesThisFrame = count;
+	cs->data.count = count;
+	cs->data.softness = cfg.softness;
+	cs->thisFrame = count;
 	if (bound)
 	{
 		device.BindFramebuffer(FramebufferHandle());
-		device.SetViewport(0, 0, game.screenWidth, game.screenHeight);
+		device.SetViewport(0, 0, ViewTargetWidth(game), ViewTargetHeight(game));
 	}
 }
 
@@ -560,7 +574,7 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 {
 #ifdef USE_ASSIMP
 	shadowActive = false;
-	cascadesThisFrame = 0;
+	cs->thisFrame = 0;
 	if (!active || !shadowsEnabled || renderer.camera.useOrthoCamera)
 		return;
 	if (dirLight.diffuse <= 0.02f)   // no sun (night / point-lit room) -> no shadows
@@ -704,7 +718,7 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	// Restore the default framebuffer + full viewport; Game::Render rebinds the
 	// main scene framebuffer next.
 	device.BindFramebuffer(FramebufferHandle());
-	device.SetViewport(0, 0, game.screenWidth, game.screenHeight);
+	device.SetViewport(0, 0, ViewTargetWidth(game), ViewTargetHeight(game));
 	shadowActive = true;
 #endif
 }
@@ -938,7 +952,7 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 	}
 
 	device.BindFramebuffer(FramebufferHandle());
-	device.SetViewport(0, 0, game.screenWidth, game.screenHeight);
+	device.SetViewport(0, 0, ViewTargetWidth(game), ViewTargetHeight(game));
 	pointShadowActive = true;
 #endif
 }

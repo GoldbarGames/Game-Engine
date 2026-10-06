@@ -3,6 +3,7 @@
 
 #include "TemporalAA.h"
 #include "ColorPipeline.h"
+#include "RenderViews.h"
 #include "../Camera.h"
 #include "../Shader.h"
 #include "../RenderState.h"
@@ -30,7 +31,6 @@ namespace
 	// --- frame state ----------------------------------------------------------
 	bool frameActive = false;    // TAA resolves this frame
 	bool resolved = false;       // ...and has: TemporalOutput is valid
-	bool historyValid = false;   // the history holds last frame's image
 	unsigned int frameCounter = 0;
 	glm::vec2 jitter(0.0f);      // this frame's offset, in pixels
 
@@ -38,9 +38,27 @@ namespace
 	glm::mat4 unjitteredProjection(1.0f);
 	glm::mat4 jitteredProjection(1.0f);
 
-	bool havePrevViewProj = false;
-	glm::mat4 prevViewProj(1.0f);   // last frame's camera, unjittered
 	bool motionWrites = false;      // the world pass is drawing (motion attachment enabled per draw)
+
+	// --- per view (split screen, render/RenderViews.h) -------------------------
+	// Everything that carries from one frame to the next: each view blends
+	// into its own history, from its own last camera.
+	struct ViewHistory
+	{
+		int width = 0, height = 0;
+		TextureHandle history[2];       // RGBA16F, ping-pong: one is read, the other written
+		TextureHandle display;          // RGBA16F: this frame's result, + weather drawn after TAA
+		FramebufferHandle resolveFbo[2];   // history[i] + display (MRT)
+		int writeIndex = 0;
+		FramebufferHandle displayFbo;   // display + the world's depth (weather after TAA)
+		unsigned int displayFboDepth = 0;
+		bool historyValid = false;      // the history holds last frame's image
+		bool havePrevViewProj = false;
+		glm::mat4 prevViewProj = glm::mat4(1.0f);   // last frame's camera, unjittered
+	};
+	ViewHistory views[kMaxRenderViews];
+	ViewHistory* cur = &views[0];        // the view drawing now (SetTemporalView)
+	int currentView = 0;
 
 	// std140 mirror of the GLSL "Motion" block (shaders/motion.glsl).
 	struct MotionBlockData
@@ -63,13 +81,6 @@ namespace
 	}
 
 	// --- resources ----------------------------------------------------------
-	int width = 0, height = 0;
-	TextureHandle history[2];       // RGBA16F, ping-pong: one is read, the other written
-	TextureHandle display;          // RGBA16F: this frame's result, + weather drawn after TAA
-	FramebufferHandle resolveFbo[2];   // history[i] + display (MRT)
-	int writeIndex = 0;
-	FramebufferHandle displayFbo;   // display + the world's depth (weather after TAA)
-	unsigned int displayFboDepth = 0;
 	VertexArrayHandle emptyVao;
 
 	ShaderProgram* outlineShader = nullptr;   // the toon outline into the world, before the resolve
@@ -123,23 +134,24 @@ namespace
 		return true;
 	}
 
+	// The current view's targets.
 	void ReleaseTargets()
 	{
 		RenderDevice& device = Device();
-		for (TextureHandle* t : { &history[0], &history[1], &display })
+		for (TextureHandle* t : { &cur->history[0], &cur->history[1], &cur->display })
 			if (*t)
 				device.DestroyTexture(*t);
-		for (FramebufferHandle* f : { &resolveFbo[0], &resolveFbo[1], &displayFbo })
+		for (FramebufferHandle* f : { &cur->resolveFbo[0], &cur->resolveFbo[1], &cur->displayFbo })
 			if (*f)
 				device.DestroyFramebuffer(*f);
-		displayFboDepth = 0;
-		width = height = 0;
-		historyValid = false;
+		cur->displayFboDepth = 0;
+		cur->width = cur->height = 0;
+		cur->historyValid = false;
 	}
 
 	bool EnsureTargets(int w, int h)
 	{
-		if (display && w == width && h == height)
+		if (cur->display && w == cur->width && h == cur->height)
 			return true;
 		ReleaseTargets();
 		RenderDevice& device = Device();
@@ -149,21 +161,21 @@ namespace
 		desc.height = h;
 		desc.filter = TextureFilter::Linear;   // Catmull-Rom history taps; bloom's first downsample
 		desc.wrap = TextureWrap::ClampToEdge;
-		history[0] = device.CreateTexture(desc);
-		history[1] = device.CreateTexture(desc);
-		display = device.CreateTexture(desc);
-		width = w;
-		height = h;
+		cur->history[0] = device.CreateTexture(desc);
+		cur->history[1] = device.CreateTexture(desc);
+		cur->display = device.CreateTexture(desc);
+		cur->width = w;
+		cur->height = h;
 
 		bool ok = true;
 		for (int i = 0; i < 2; i++)
 		{
-			resolveFbo[i] = device.CreateFramebuffer();
-			device.AttachTexture(resolveFbo[i], Attachment::Color0, history[i]);
-			device.AttachTexture(resolveFbo[i], Attachment::Color1, display);
-			device.SetDrawBuffers(resolveFbo[i], 2);
+			cur->resolveFbo[i] = device.CreateFramebuffer();
+			device.AttachTexture(cur->resolveFbo[i], Attachment::Color0, cur->history[i]);
+			device.AttachTexture(cur->resolveFbo[i], Attachment::Color1, cur->display);
+			device.SetDrawBuffers(cur->resolveFbo[i], 2);
 			std::string error;
-			if (!device.IsFramebufferComplete(resolveFbo[i], &error))
+			if (!device.IsFramebufferComplete(cur->resolveFbo[i], &error))
 			{
 				std::cout << "ERROR: temporal anti-aliasing target incomplete (" << error << "); anti-aliasing disabled" << std::endl;
 				ok = false;
@@ -214,12 +226,13 @@ void BeginTemporalFrame(bool active, int w, int h)
 	frameActive = active && TemporalAAWanted() && w > 0 && h > 0 && EnsureShader() && EnsureTargets(w, h);
 	if (!frameActive)
 	{
-		historyValid = false;   // the next active frame starts afresh
-		havePrevViewProj = false;
+		cur->historyValid = false;   // the next active frame starts afresh
+		cur->havePrevViewProj = false;
 		jitter = glm::vec2(0.0f);
 		return;
 	}
-	frameCounter++;
+	if (currentView == 0)
+		frameCounter++;   // once a frame: every split-screen view takes the same step of the sequence
 	const unsigned int phase = (frameCounter % kJitterPhases) + 1;   // Halton from index 1 (0 is the origin)
 	jitter = glm::vec2(Halton(phase, 2) - 0.5f, Halton(phase, 3) - 0.5f);
 }
@@ -238,8 +251,8 @@ void JitterCamera(Camera& camera)
 	// y/w by a constant for every depth (perspective divides by -z, which that
 	// column's w component carries).
 	glm::mat4 p = camera.projection;
-	p[2][0] += jitter.x * 2.0f / (float)width;
-	p[2][1] += jitter.y * 2.0f / (float)height;
+	p[2][0] += jitter.x * 2.0f / (float)cur->width;
+	p[2][1] += jitter.y * 2.0f / (float)cur->height;
 	jitteredProjection = p;
 	camera.projection = p;
 	cameraJittered = true;
@@ -247,8 +260,8 @@ void JitterCamera(Camera& camera)
 	// Motion vectors compare this frame's camera with last frame's, both
 	// without the jitter (TAA's output pixels are the unjittered ones).
 	const glm::mat4 viewProj = unjitteredProjection * camera.CalculateViewMatrix();
-	const bool havePrev = historyValid && havePrevViewProj;
-	BindMotionBlock(viewProj, havePrev ? prevViewProj : viewProj, havePrev);
+	const bool havePrev = cur->historyValid && cur->havePrevViewProj;
+	BindMotionBlock(viewProj, havePrev ? cur->prevViewProj : viewProj, havePrev);
 }
 
 void SetMotionWrites(bool on)
@@ -288,8 +301,8 @@ void ResolveTemporalAA(TextureHandle worldColor, TextureHandle depth, const Came
 	// unjittered pixel centre, and last frame's image was resolved the same way.
 	const glm::mat4 projection = cameraJittered ? unjitteredProjection : camera.projection;
 	const glm::mat4 viewProj = projection * camera.CalculateViewMatrix();
-	const bool useHistory = historyValid && havePrevViewProj;
-	const glm::mat4 reproject = useHistory ? prevViewProj * glm::inverse(viewProj) : glm::mat4(1.0f);
+	const bool useHistory = cur->historyValid && cur->havePrevViewProj;
+	const glm::mat4 reproject = useHistory ? cur->prevViewProj * glm::inverse(viewProj) : glm::mat4(1.0f);
 
 	{
 		RenderState s = CurrentRenderState();
@@ -299,11 +312,11 @@ void ResolveTemporalAA(TextureHandle worldColor, TextureHandle depth, const Came
 		s.cull = CullMode::None;
 		ScopedRenderState scope(s);
 
-		device.BindFramebuffer(resolveFbo[writeIndex]);
-		device.SetViewport(0, 0, width, height);
+		device.BindFramebuffer(cur->resolveFbo[cur->writeIndex]);
+		device.SetViewport(0, 0, cur->width, cur->height);
 		taaShader->UseShader();
 		device.BindTexture(0, worldColor);
-		device.BindTexture(1, history[1 - writeIndex]);
+		device.BindTexture(1, cur->history[1 - cur->writeIndex]);
 		device.BindTexture(2, depth);
 		device.BindTexture(3, WorldMotionTexture());
 		device.SetUniform(locs.current, 0);
@@ -311,7 +324,7 @@ void ResolveTemporalAA(TextureHandle worldColor, TextureHandle depth, const Came
 		device.SetUniform(locs.depth, 2);
 		device.SetUniform(locs.motion, 3);
 		device.SetUniform(locs.reproject, reproject);
-		device.SetUniform(locs.size, glm::vec2((float)width, (float)height));
+		device.SetUniform(locs.size, glm::vec2((float)cur->width, (float)cur->height));
 		device.SetUniform(locs.feedback, kFeedback);
 		device.SetUniform(locs.useHistory, useHistory ? 1 : 0);
 		// The projection offset moved the image by -jitter pixels, so texel q
@@ -322,10 +335,10 @@ void ResolveTemporalAA(TextureHandle worldColor, TextureHandle depth, const Came
 	device.BindFramebuffer(FramebufferHandle());
 	device.SetViewport(0, 0, screenWidth, screenHeight);
 
-	prevViewProj = viewProj;
-	havePrevViewProj = true;
-	historyValid = true;
-	writeIndex = 1 - writeIndex;
+	cur->prevViewProj = viewProj;
+	cur->havePrevViewProj = true;
+	cur->historyValid = true;
+	cur->writeIndex = 1 - cur->writeIndex;
 	resolved = true;
 }
 
@@ -370,15 +383,15 @@ bool DrawWorldOutline(TextureHandle depth, TextureHandle mask)
 
 TextureHandle TemporalHistory(glm::mat4& prevViewProjOut)
 {
-	if (!frameActive || !historyValid || !havePrevViewProj)
+	if (!frameActive || !cur->historyValid || !cur->havePrevViewProj)
 		return TextureHandle();
-	prevViewProjOut = prevViewProj;
-	return history[1 - writeIndex];
+	prevViewProjOut = cur->prevViewProj;
+	return cur->history[1 - cur->writeIndex];
 }
 
 TextureHandle TemporalOutput()
 {
-	return resolved ? display : TextureHandle();
+	return resolved ? cur->display : TextureHandle();
 }
 
 bool BindTemporalOutputTarget(TextureHandle depthStencil)
@@ -386,32 +399,45 @@ bool BindTemporalOutputTarget(TextureHandle depthStencil)
 	if (!resolved || !depthStencil)
 		return false;
 	RenderDevice& device = Device();
-	if (!displayFbo || displayFboDepth != depthStencil.id)
+	if (!cur->displayFbo || cur->displayFboDepth != depthStencil.id)
 	{
-		if (displayFbo)
-			device.DestroyFramebuffer(displayFbo);
-		displayFbo = device.CreateFramebuffer();
-		device.AttachTexture(displayFbo, Attachment::Color0, display);
-		device.AttachTexture(displayFbo, Attachment::DepthStencil, depthStencil);
-		displayFboDepth = depthStencil.id;
+		if (cur->displayFbo)
+			device.DestroyFramebuffer(cur->displayFbo);
+		cur->displayFbo = device.CreateFramebuffer();
+		device.AttachTexture(cur->displayFbo, Attachment::Color0, cur->display);
+		device.AttachTexture(cur->displayFbo, Attachment::DepthStencil, depthStencil);
+		cur->displayFboDepth = depthStencil.id;
 		std::string error;
-		if (!device.IsFramebufferComplete(displayFbo, &error))
+		if (!device.IsFramebufferComplete(cur->displayFbo, &error))
 			std::cout << "ERROR: anti-aliased world target incomplete (" << error << ")" << std::endl;
 	}
-	device.BindFramebuffer(displayFbo);
-	device.SetViewport(0, 0, width, height);
+	device.BindFramebuffer(cur->displayFbo);
+	device.SetViewport(0, 0, cur->width, cur->height);
 	SetTargetLinear(true);
 	return true;
 }
 
 void ResetTemporalHistory()
 {
-	historyValid = false;
+	for (ViewHistory& view : views)
+		view.historyValid = false;
+}
+
+void SetTemporalView(int index)
+{
+	currentView = (index >= 0 && index < kMaxRenderViews) ? index : 0;
+	cur = &views[currentView];
 }
 
 void ReleaseTemporalAA()
 {
-	ReleaseTargets();
+	for (ViewHistory& view : views)
+	{
+		cur = &view;
+		ReleaseTargets();
+		view = ViewHistory();
+	}
+	SetTemporalView(0);
 	if (emptyVao)
 		Device().DestroyVertexArray(emptyVao);
 	delete taaShader;
@@ -419,5 +445,5 @@ void ReleaseTemporalAA()
 	delete outlineShader;
 	outlineShader = nullptr;
 	shadersFailed = outlineFailed = false;
-	frameActive = resolved = cameraJittered = havePrevViewProj = false;
+	frameActive = resolved = cameraJittered = false;
 }

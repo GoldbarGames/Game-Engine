@@ -34,11 +34,17 @@
 
 #include "Scene3DInternal.h"
 #include "render/DistanceFog.h"
+#include "render/RenderViews.h"
 
 using Scene3DInternal::ProgramHasBlock;
 
 namespace
 {
+	// Where the weather volume was last centred (the main camera, Scene3D::Update).
+	// Each split-screen view draws it moved to its own camera: the box wraps, so
+	// the moved copy is just as full.
+	glm::vec3 weatherCentre(0.0f);
+
 	// Particles fade out into the distance fog (weather.frag; amount 0 = off).
 	void SetParticleDistanceFog(unsigned int program)
 	{
@@ -206,6 +212,7 @@ void Scene3D::UpdateWeather(const glm::vec3& camPos, float dtSec)
 {
 	// The volume is a box centered on the camera; particles fall and wrap so the
 	// density stays constant around the player regardless of where they move.
+	weatherCentre = camPos;
 	const float scale = (weatherScale > 0.001f) ? weatherScale : 1.0f;
 	const float R = 1600.0f * scale;     // half extent in X/Z
 	const float topH = 1800.0f * scale;  // how far ABOVE the camera (up = -Y)
@@ -266,9 +273,19 @@ void Scene3D::RenderWeather(Game& game, const Renderer& renderer)
 		return;
 
 	// This frame's particle positions (instance attribute 3): streamed through
-	// the transient ring, or into weatherInstVBO if it is unavailable.
-	StreamInstanceAttrib(weatherVAO, weatherInstVBO, 3, 4, weatherParticles.data(),
-		weatherParticles.size() * sizeof(glm::vec4));
+	// the transient ring, or into weatherInstVBO if it is unavailable. A
+	// split-screen view draws them around its own camera.
+	const glm::vec4* particles = weatherParticles.data();
+	static std::vector<glm::vec4> moved;
+	if (RenderingViews())
+	{
+		const glm::vec4 d(renderer.camera.position - weatherCentre, 0.0f);
+		moved.resize(weatherParticles.size());
+		for (size_t i = 0; i < weatherParticles.size(); i++)
+			moved[i] = weatherParticles[i] + d;
+		particles = moved.data();
+	}
+	StreamInstanceAttrib(weatherVAO, weatherInstVBO, 3, 4, particles, weatherParticles.size() * sizeof(glm::vec4));
 
 	weatherShader->UseShader();
 	renderer.BindWorldCameraBlock();

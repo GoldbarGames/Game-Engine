@@ -717,6 +717,11 @@ bool Scene3DInternal::GpuDrivenFrame()
 	return frameActive;
 }
 
+void Scene3DInternal::ResetGpuWorldDraw()
+{
+	worldDrawnFrame = frameNumber - 1;   // not drawn this frame
+}
+
 bool Scene3DInternal::GpuDrawnColour(const Scene3DModel* model)
 {
 	return frameActive && colourModels.count(model) > 0;

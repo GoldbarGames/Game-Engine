@@ -43,6 +43,9 @@ namespace Scene3DInternal
 	float SceneShadowDistance();
 	float ProjectShadowDistance();                 // renderer.dat `shadowDistance`
 	void ReloadShadowSettings();                   // re-read renderer.dat's shadow keys
+	// Split screen (render/RenderViews.h): which view's sun cascades are fitted,
+	// drawn and bound. 0 outside split screen.
+	void SetShadowView(int index);
 
 	// A scene's own cel-shading / outline settings. Games set Scene3D's
 	// celShading and outline* fields in code; a scene may override any of them
@@ -90,6 +93,9 @@ namespace Scene3DInternal
 	// --- GPU-driven models (Scene3DGpuDriven.cpp, Phase 1.5 item 11) ---------
 	//   renderer.dat `gpuDriven 1|0` (default 1); KINJO_GPU_DRIVEN=0/1 for a run.
 	bool GpuDrivenFrame();                            // this frame's models go through it
+	// The first GPU-driven model to Render in a frame draws them all, once; a
+	// split-screen view's world pass clears that so its own draw happens too.
+	void ResetGpuWorldDraw();
 	bool GpuDrawnColour(const Scene3DModel* model);   // its world / AO-prepass draws are the GPU path's
 	bool GpuDrawnCaster(const Scene3DModel* model);   // its shadow draws are
 	// The models a CPU loop still has to consider: `all` minus those the GPU
