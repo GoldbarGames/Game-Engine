@@ -12,5 +12,9 @@ layout(std140) uniform Outline
 	vec3  outlineColor;    // 16
 	float edgeThreshold;   // 28  world-unit sensitivity (smaller = more edges)
 	float thickness;       // 32  outline width in pixels
-};                         // 48 bytes
+	// Distance fog (render/DistanceFog.h), so far outlines fade into it.
+	vec3  distFogColor;    // 48  authored, like outlineColor
+	float distFogAmount;   // 60  0 = off
+	vec4  distFogRange;    // 64  near, far, then 1 / projection[0][0] and [1][1] (a pixel's view ray)
+};                         // 80 bytes
 #endif

@@ -15,6 +15,7 @@ layout (location = 4) in vec3 iVel;        // per-instance velocity (uMode 2 = f
 
 out vec2  TexCoord;
 out float vAlpha;
+out vec3  vWorldPos;   // for the distance fog
 
 void main()
 {
@@ -46,6 +47,7 @@ void main()
     }
 
     gl_Position = projection * view * vec4(worldPos, 1.0);
+    vWorldPos = worldPos;
     TexCoord = uv;
     vAlpha = mix(0.65, 1.0, fract(seed * 7.13));
 }

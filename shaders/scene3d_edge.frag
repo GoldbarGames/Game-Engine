@@ -22,5 +22,7 @@ void main()
 {
 	vec4 base = texture(theTexture, TexCoord) * draw.spriteColor;
 	float edge = OutlineEdge(TexCoord);
-	color = vec4(mix(base.rgb, outlineColor, edge), base.a);
+	// Far lines take the distance fog's colour, as the surfaces under them did.
+	vec3 ink = mix(outlineColor, distFogColor, OutlineFogAmount(TexCoord));
+	color = vec4(mix(base.rgb, ink, edge), base.a);
 }

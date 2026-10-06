@@ -41,6 +41,7 @@
 #include "render/ColorGrading.h"
 #include "render/DepthOfField.h"
 #include "render/VolumetricFog.h"
+#include "render/DistanceFog.h"
 #include "render/Reflections.h"
 
 using Scene3DInternal::ProgramHasBlock;
@@ -1074,6 +1075,7 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	SetSceneColorGrade("", 1.0f, 0.0f);   // and "grade"
 	::SetDepthOfField(500.0f, 0.0f, 0.0f);   // and "dof"
 	SetSceneFog(false, FogSettings(), 0.0f);   // and "fog"
+	SetSceneDistanceFog(false, DistanceFogSettings(), 0.0f);   // and "distfog"
 
 	// Shared unit billboard quad: x[-0.5,0.5], y[0,1] (base at origin), z=0,
 	// with dummy normals so Mesh::CreateMesh's stride-8 layout is satisfied
@@ -1440,6 +1442,30 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 				if (ss >> v) fog.anisotropy = v;
 				if (ss >> v) fog.noise = v;
 				SetSceneFog(true, fog, 0.0f);
+			}
+		}
+		else if (tag == "distfog")
+		{
+			// distfog <r g b> <near> <far> - this scene's distance fog, any colour
+			// mode (render/DistanceFog.h): none nearer than near, all of it from
+			// far on. `distfog off` turns renderer.dat's default off here.
+			std::string first;
+			if (ss >> first)
+			{
+				DistanceFogSettings fog;
+				if (first == "off")
+					SetSceneDistanceFog(true, fog, 0.0f);   // on = false
+				else
+				{
+					std::istringstream rest(first);
+					if ((rest >> fog.color.r) && (ss >> fog.color.g >> fog.color.b >> fog.nearDistance >> fog.farDistance))
+					{
+						fog.on = true;
+						SetSceneDistanceFog(true, fog, 0.0f);
+					}
+					else
+						std::cout << "Scene3D: distfog wants <r g b> <near> <far> or off" << std::endl;
+				}
 			}
 		}
 		else if (tag == "dof")
@@ -2057,6 +2083,16 @@ void Scene3D::WriteScene(std::ostream& out) const
 			{
 				o << fog.density << " " << fog.heightFalloff << " " << fog.color.r << " " << fog.color.g
 					<< " " << fog.color.b << " " << fog.anisotropy << " " << fog.noise;
+			});
+		DistanceFogSettings distFog;
+		if (GetSceneDistanceFog(distFog))
+			setting("distfog", [&](std::ostringstream& o)
+			{
+				if (!distFog.on)
+					o << "off";
+				else
+					o << distFog.color.r << " " << distFog.color.g << " " << distFog.color.b
+						<< " " << distFog.nearDistance << " " << distFog.farDistance;
 			});
 		float dofFocus = 0.0f, dofAperture = 0.0f;
 		GetSceneDepthOfField(dofFocus, dofAperture);
@@ -2828,6 +2864,7 @@ void Scene3D::Unload(Game& game)
 	SetSceneColorGrade("", 1.0f, 0.0f);
 	::SetDepthOfField(500.0f, 0.0f, 0.0f);
 	SetSceneFog(false, FogSettings(), 0.0f);
+	SetSceneDistanceFog(false, DistanceFogSettings(), 0.0f);
 	Scene3DInternal::ForgetMotion();
 
 	RestoreOrtho(game);
@@ -2896,6 +2933,19 @@ void Scene3D::UpdateDepthOfField(const Renderer& renderer)
 void Scene3D::SetFog(float density, float fadeSeconds)
 {
 	SetSceneFogDensity(density, fadeSeconds);
+}
+
+void Scene3D::SetDistanceFog(bool on, const glm::vec3& color, float nearDistance, float farDistance, float fadeSeconds)
+{
+	DistanceFogSettings fog;
+	fog.on = on;
+	if (on)
+	{
+		fog.color = color;
+		fog.nearDistance = nearDistance;
+		fog.farDistance = farDistance;
+	}
+	SetSceneDistanceFog(true, fog, fadeSeconds);
 }
 
 bool Scene3D::WantsVolumetricFog(const Renderer& renderer)

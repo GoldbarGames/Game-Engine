@@ -49,5 +49,10 @@ layout(std140) uniform Scene
 	vec3  pointShadowPositions[MAX_PT_SHADOW_SLOTS];  // 1120
 	float pointShadowFars[MAX_PT_SHADOW_SLOTS];       // 1248
 	int   pointShadowLightIdx[MAX_PT_SHADOW_SLOTS];   // 1376
-};                                                    // 1504 bytes
+
+	// Distance fog (distance_fog.glsl). Last, so a program built with an
+	// older, smaller copy of this block still binds the engine's buffer.
+	vec4  distFogColor;    // 1504  rgb = colour (in the target's space)
+	vec4  distFogParams;   // 1520  near, far, amount (0 = off), unused
+};                         // 1536 bytes
 #endif

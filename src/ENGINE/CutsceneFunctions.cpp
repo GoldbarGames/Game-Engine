@@ -2618,6 +2618,24 @@ namespace CutsceneFunctions
 			};
 			Scene3D::Get().SetFog(pf(parameters[2], 0.0f), (parameters.size() > 3) ? pf(parameters[3], 0.0f) : 0.0f);
 		}
+		else if (sub == "distfog" && parameters.size() > 2)
+		{
+			// scene3d distfog <r g b> <near> <far> [seconds] - the scene's distance
+			// fog (any colour mode; colour 0..1), fading from what shows now when
+			// given seconds. scene3d distfog off [seconds] - fades it out.
+			auto pf = [](const std::string& s, float fallback) -> float
+			{
+				try { return std::stof(s); } catch (...) { return fallback; }
+			};
+			Scene3D& scene = Scene3D::Get();
+			if (parameters[2] == "off")
+				scene.SetDistanceFog(false, glm::vec3(0.0f), 0.0f, 0.0f, (parameters.size() > 3) ? pf(parameters[3], 0.0f) : 0.0f);
+			else if (parameters.size() > 6)
+				scene.SetDistanceFog(true, glm::vec3(pf(parameters[2], 0.5f), pf(parameters[3], 0.5f), pf(parameters[4], 0.5f)),
+					pf(parameters[5], 1000.0f), pf(parameters[6], 5000.0f), (parameters.size() > 7) ? pf(parameters[7], 0.0f) : 0.0f);
+			else
+				game->logger.Log("scene3d distfog: expected <r g b> <near> <far> [seconds], or off [seconds]");
+		}
 		else if (sub == "dof" && parameters.size() > 2)
 		{
 			// scene3d dof <focus> <aperture> [seconds]     - focus distance + blur

@@ -635,6 +635,14 @@ public:
 	// `fog <density> [falloff] [r g b] [anisotropy] [noise]`; rain, snow and
 	// storms bring their own when a scene sets none. Scripts: `scene3d fog`.
 	void SetFog(float density, float fadeSeconds = 0.0f);
+	// Distance fog (any colour mode): the world fades to `color` (authored
+	// sRGB, 0..1) with its distance from the camera - none nearer than
+	// nearDistance, all of it from farDistance on. on = false turns it off for
+	// this scene even when renderer.dat's `distanceFog` is on. Fades from what
+	// shows now over fadeSeconds. The ".scene" token is
+	// `distfog <r g b> <near> <far>` or `distfog off`, reset on every load;
+	// scripts use `scene3d distfog`. The panorama skybox stays unfogged.
+	void SetDistanceFog(bool on, const glm::vec3& color, float nearDistance, float farDistance, float fadeSeconds = 0.0f);
 	// Game::Render: this frame has fog to draw (sets the weather's), and the
 	// half-resolution march, lit like the scene (the composite onto the world
 	// is render/VolumetricFog.h's CompositeFog, in its own pass).

@@ -25,6 +25,7 @@
 #include "render/DepthOfField.h"
 #include "render/Environment.h"
 #include "render/VolumetricFog.h"
+#include "render/DistanceFog.h"
 #include "editor/EditorUI.h"
 #include "render/Reflections.h"
 #include "render/TemporalAA.h"
@@ -299,6 +300,7 @@ static const float kAnchorHalf = 26.0f;
 	{
 		Exposure, Bloom, SkyLight, SkyShine, Ao, AoRadius,
 		Shadows, Fog, FogFalloff, FogGlow, FogDrift, FogRed, FogGreen, FogBlue, Weather,
+		DistFogNear, DistFogFar, DistFogRed, DistFogGreen, DistFogBlue,
 		Focus, Aperture, PickFocus, Grade, Lut,
 		Sky, AoView, LightCount, SkySize, Project, Toon,
 	};
@@ -331,6 +333,11 @@ static const float kAnchorHalf = 26.0f;
 		{ 1, LookProp::FogRed,     "FOG RED",     false, 0.05f,  false, 0.0f,   1.0f,     0.0f,    "%.2f" },
 		{ 1, LookProp::FogGreen,   "FOG GREEN",   false, 0.05f,  false, 0.0f,   1.0f,     0.0f,    "%.2f" },
 		{ 1, LookProp::FogBlue,    "FOG BLUE",    false, 0.05f,  false, 0.0f,   1.0f,     0.0f,    "%.2f" },
+		{ 1, LookProp::DistFogNear, "DISTFOG NEAR", false, 1.15f, true, 0.0f,   100000.0f, 50.0f,  "%.0f" },
+		{ 1, LookProp::DistFogFar, "DISTFOG FAR", false, 1.15f,  true,  0.0f,   100000.0f, 50.0f,  "%.0f" },
+		{ 1, LookProp::DistFogRed, "DISTFOG RED", false, 0.05f,  false, 0.0f,   1.0f,     0.0f,    "%.2f" },
+		{ 1, LookProp::DistFogGreen, "DISTFOG GREEN", false, 0.05f, false, 0.0f, 1.0f,    0.0f,    "%.2f" },
+		{ 1, LookProp::DistFogBlue, "DISTFOG BLUE", false, 0.05f, false, 0.0f,  1.0f,     0.0f,    "%.2f" },
 		{ 2, LookProp::Focus,      "FOCUS",       false, 1.15f,  true,  10.0f,  50000.0f, 0.0f,    "%.0f" },
 		{ 2, LookProp::Aperture,   "APERTURE",    false, 0.5f,   false, 0.0f,   40.0f,    0.0f,    "%.1f" },
 		{ 2, LookProp::PickFocus,  "PICK FOCUS",  true,  0.0f,   false, 0.0f,   0.0f,     0.0f,    "" },
@@ -660,6 +667,9 @@ static const float kAnchorHalf = 26.0f;
 		{ 2, ProjectKind::Value,  "fogNoise",           "FOG DRIFT",        0.05f, false, 0.0f,  1.0f,     0.0f,    "%.2f", "0",          false },
 		{ 2, ProjectKind::Value,  "fogDistance",        "FOG REACH",        1.25f, true,  500.0f, 40000.0f, 0.0f,   "%.0f", "6000",       false },
 		{ 2, ProjectKind::OnOff,  "volumetricFog",      "VOLUMETRIC FOG",   0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "1",          false },
+		{ 2, ProjectKind::OnOff,  "distanceFog",        "DISTANCE FOG",     0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "0",          false },
+		{ 2, ProjectKind::Value,  "distanceFogNear",    "DIST. FOG STARTS", 1.15f, true,  0.0f,  100000.0f, 50.0f,  "%.0f", "1000",       false },
+		{ 2, ProjectKind::Value,  "distanceFogFar",     "DIST. FOG FULL",   1.15f, true,  0.0f,  100000.0f, 50.0f,  "%.0f", "5000",       false },
 		{ 3, ProjectKind::Choice, "antialiasing",       "ANTI-ALIASING",    0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "taa",        false },
 		{ 3, ProjectKind::OnOff,  "reflections",        "REFLECTIONS",      0.0f,  false, 0.0f,  0.0f,     0.0f,    "",     "1",          false },
 		{ 3, ProjectKind::Value,  "reflectionDistance", "REFLECT REACH",    1.25f, true,  50.0f, 20000.0f, 0.0f,    "%.0f", "1500",       false },
@@ -754,6 +764,7 @@ static const float kAnchorHalf = 26.0f;
 		LoadColorGradeSettings();
 		LoadDepthOfFieldSettings();
 		LoadFogSettings();
+		LoadDistanceFogSettings();
 		LoadReflectionSettings();
 		LoadTextureSettings();
 		Scene3DInternal::ReloadShadowSettings();
@@ -948,6 +959,20 @@ static const float kAnchorHalf = 26.0f;
 			v.value = (p == LookProp::Fog) ? f.density : (p == LookProp::FogFalloff) ? f.heightFalloff
 				: (p == LookProp::FogGlow) ? f.anisotropy : (p == LookProp::FogDrift) ? f.noise
 				: (p == LookProp::FogRed) ? f.color.r : (p == LookProp::FogGreen) ? f.color.g : f.color.b;
+			break;
+		}
+		case LookProp::DistFogNear:
+		case LookProp::DistFogFar:
+		case LookProp::DistFogRed:
+		case LookProp::DistFogGreen:
+		case LookProp::DistFogBlue:
+		{
+			DistanceFogSettings f;
+			v.own = GetSceneDistanceFog(f);
+			if (!v.own)
+				f = DistanceFogInForce();
+			v.value = (p == LookProp::DistFogNear) ? f.nearDistance : (p == LookProp::DistFogFar) ? f.farDistance
+				: (p == LookProp::DistFogRed) ? f.color.r : (p == LookProp::DistFogGreen) ? f.color.g : f.color.b;
 			break;
 		}
 		case LookProp::Weather:
@@ -3636,6 +3661,24 @@ namespace
 			SetSceneFog(true, f, 0.0f);
 			break;
 		}
+		case LookProp::DistFogNear:
+		case LookProp::DistFogFar:
+		case LookProp::DistFogRed:
+		case LookProp::DistFogGreen:
+		case LookProp::DistFogBlue:
+		{
+			// Likewise the distance fog in force, keeping near no further than far.
+			DistanceFogSettings f;
+			if (!GetSceneDistanceFog(f))
+				f = DistanceFogInForce();
+			if (p == LookProp::DistFogNear) { f.nearDistance = nv; f.farDistance = std::max(f.farDistance, nv); }
+			else if (p == LookProp::DistFogFar) { f.farDistance = nv; f.nearDistance = std::min(f.nearDistance, nv); }
+			else if (p == LookProp::DistFogRed) f.color.r = nv;
+			else if (p == LookProp::DistFogGreen) f.color.g = nv;
+			else f.color.b = nv;
+			SetSceneDistanceFog(true, f, 0.0f);
+			break;
+		}
 		case LookProp::Weather:
 			if (scene.GetWeather() != Scene3D::WeatherType::None)
 				scene.SetWeather(scene.GetWeather(), nv);
@@ -3693,6 +3736,11 @@ namespace
 		case LookProp::FogRed:
 		case LookProp::FogGreen:
 		case LookProp::FogBlue: SetSceneFog(false, FogSettings(), 0.0f); break;
+		case LookProp::DistFogNear:
+		case LookProp::DistFogFar:
+		case LookProp::DistFogRed:
+		case LookProp::DistFogGreen:
+		case LookProp::DistFogBlue: SetSceneDistanceFog(false, DistanceFogSettings(), 0.0f); break;
 		case LookProp::Focus:
 		case LookProp::Aperture: scene.SetDepthOfField(500.0f, 0.0f); break;
 		case LookProp::Grade: scene.SetColorGrade("", 1.0f); break;
@@ -3723,6 +3771,11 @@ namespace
 		case LookProp::FogRed:
 		case LookProp::FogGreen:
 		case LookProp::FogBlue: return "The fog's colour";
+		case LookProp::DistFogNear: return "Distance fog: how far from the camera it starts, in world units";
+		case LookProp::DistFogFar: return "Distance fog: how far from the camera everything is fog, in world units";
+		case LookProp::DistFogRed:
+		case LookProp::DistFogGreen:
+		case LookProp::DistFogBlue: return "The distance fog's colour";
 		case LookProp::Weather: return "How heavy the rain, snow or storm is";
 		case LookProp::Focus: return "How far away things are sharp (depth of field)";
 		case LookProp::Aperture: return "How blurred things away from the focus get (0 = off)";
@@ -4556,6 +4609,36 @@ void Scene3DEditor::InspectLook(Game& game, ui::Column& col)
 	LookRow(col, LookProp::FogRed, "RED", commit);
 	LookRow(col, LookProp::FogGreen, "GREEN", commit);
 	LookRow(col, LookProp::FogBlue, "BLUE", commit);
+
+	col.Header("DISTANCE FOG");
+	{
+		DistanceFogSettings f;
+		const bool own = GetSceneDistanceFog(f);
+		if (!own)
+			f = DistanceFogInForce();
+		std::function<void()> reset;
+		if (own)
+			reset = [this]() { SetSceneDistanceFog(false, DistanceFogSettings(), 0.0f); CommitEdit(); };
+		ToggleRow(col, "look.distfog", "DISTANCE FOG", f.on, [this]()
+			{
+				// The fog in force becomes the scene's own, switched.
+				DistanceFogSettings g;
+				if (!GetSceneDistanceFog(g))
+					g = DistanceFogInForce();
+				g.on = !g.on;
+				SetSceneDistanceFog(true, g, 0.0f);
+				CommitEdit();
+			},
+			"Everything fades to one colour with its distance from the camera (any colour mode; the sky panorama doesn't)",
+			own, reset);
+		LookRow(col, LookProp::DistFogNear, "STARTS AT", commit, f.on);
+		LookRow(col, LookProp::DistFogFar, "FULL AT", commit, f.on);
+		LookRow(col, LookProp::DistFogRed, "RED", commit, f.on);
+		LookRow(col, LookProp::DistFogGreen, "GREEN", commit, f.on);
+		LookRow(col, LookProp::DistFogBlue, "BLUE", commit, f.on);
+		if (f.on && FogActive())
+			col.Note("Both fogs are on, and they add up: use one.", ui::Colour::warning);
+	}
 
 	col.Header("DEPTH OF FIELD");
 	LookRow(col, LookProp::Focus, "FOCUS", commit);

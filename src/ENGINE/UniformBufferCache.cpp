@@ -128,6 +128,10 @@ void CheckUniformBlockLayout(unsigned int program, const char* blockName,
 		int offset = -1, stride = 0;
 		if (!device.UniformOffset(handle, m.name, offset, stride))
 		{
+			// A member past the end of this shader's block was added after the
+			// shader's copy of it was written: fine, the shader just doesn't read it.
+			if (dataSize > 0 && m.offset >= (size_t)dataSize)
+				continue;
 			std::cout << "ERROR: uniform block " << blockName << " has no member " << m.name << std::endl;
 			problems++;
 			continue;

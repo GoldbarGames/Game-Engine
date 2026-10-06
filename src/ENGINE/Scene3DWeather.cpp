@@ -33,11 +33,21 @@
 #include "TransientBuffer.h"
 
 #include "Scene3DInternal.h"
+#include "render/DistanceFog.h"
 
 using Scene3DInternal::ProgramHasBlock;
 
 namespace
 {
+	// Particles fade out into the distance fog (weather.frag; amount 0 = off).
+	void SetParticleDistanceFog(unsigned int program)
+	{
+		const DistanceFogFrame fog = CurrentDistanceFog();
+		const glm::vec4 range = (fog.amount > 0.0f)
+			? glm::vec4(fog.nearDistance, fog.farDistance, fog.amount, 0.0f) : glm::vec4(0.0f);
+		Device().SetUniform(ShaderProgram::DrawUniformLocation(program, "uDistFog"), range);
+	}
+
 	// Upload one float-vector instance attribute (location `location`, `components`
 	// floats per instance) for this frame and point `vao` at it: via the transient
 	// ring when available, else into the feature's own `fallbackVBO` as before.
@@ -275,6 +285,7 @@ void Scene3D::RenderWeather(Game& game, const Renderer& renderer)
 	// Fall direction (down = +Y) with a little wind lean; used to orient rain streaks.
 	glm::vec3 fdir = rain ? glm::normalize(glm::vec3(0.07f, 1.0f, 0.025f)) : glm::vec3(0, 1, 0);
 	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "uFallDir")), glm::vec3(fdir.x, fdir.y, fdir.z));
+	SetParticleDistanceFog(id);
 
 	const float pscale = (weatherScale > 0.001f) ? weatherScale : 1.0f;
 
@@ -428,6 +439,7 @@ void Scene3D::RenderFountain(Game& game, const Renderer& renderer)
 	glm::vec3 cp = renderer.camera.position;
 	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "uCamPos")), glm::vec3(cp.x, cp.y, cp.z));
 	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "uFallDir")), glm::vec3(0.0f, 1.0f, 0.0f));
+	SetParticleDistanceFog(id);
 	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "uSize")), (float)(streak ? fountainDropSize * 0.6f : fountainDropSize));
 	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "uLength")), (float)(fountainDropSize * (streak ? fountainStretch : 1.0f)));
 	Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "uSway")), (float)(0.0f));

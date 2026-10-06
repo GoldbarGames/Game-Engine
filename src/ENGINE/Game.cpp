@@ -11,6 +11,7 @@
 #include "render/ColorGrading.h"
 #include "render/DepthOfField.h"
 #include "render/VolumetricFog.h"
+#include "render/DistanceFog.h"
 #include "render/Reflections.h"
 #include "render/TextureFiles.h"
 
@@ -104,9 +105,12 @@ namespace
 		glm::vec3 outlineColor;
 		float edgeThreshold;
 		float thickness;
-		float pad[3];   // std140 rounds the block up to 16 bytes
+		float pad[3];                // std140: the vec3 below starts on a 16-byte boundary
+		glm::vec3 distFogColor;      // the distance fog (render/DistanceFog.h), authored
+		float distFogAmount;         // 0 = off
+		glm::vec4 distFogRange;      // near, far, 1 / projection[0][0], 1 / projection[1][1]
 	};
-	static_assert(sizeof(OutlineBlockData) == 48, "OutlineBlockData must match shaders/outline.glsl");
+	static_assert(sizeof(OutlineBlockData) == 80, "OutlineBlockData must match shaders/outline.glsl");
 
 	const UniformBlockMember kOutlineMembers[] = {
 		{ "texelSize", offsetof(OutlineBlockData, texelSize), false },
@@ -115,6 +119,9 @@ namespace
 		{ "outlineColor", offsetof(OutlineBlockData, outlineColor), false },
 		{ "edgeThreshold", offsetof(OutlineBlockData, edgeThreshold), false },
 		{ "thickness", offsetof(OutlineBlockData, thickness), false },
+		{ "distFogColor", offsetof(OutlineBlockData, distFogColor), false },
+		{ "distFogAmount", offsetof(OutlineBlockData, distFogAmount), false },
+		{ "distFogRange", offsetof(OutlineBlockData, distFogRange), false },
 	};
 
 	UniformBufferCache outlineBlocks(UniformBlock::Outline, sizeof(OutlineBlockData), 2);
@@ -152,6 +159,16 @@ namespace
 		outline.edgeThreshold = scene.outlineDepthThreshold;
 		outline.thickness = scene.outlineWidth;
 		outline.outlineColor = scene.outlineColor;
+		// Far lines fade into the distance fog. The shader measures each pixel's
+		// distance along its view ray, whose slope comes from the projection.
+		const DistanceFogFrame fog = CurrentDistanceFog();
+		if (fog.amount > 0.0f && camera.projection[0][0] != 0.0f && camera.projection[1][1] != 0.0f)
+		{
+			outline.distFogColor = fog.color;
+			outline.distFogAmount = fog.amount;
+			outline.distFogRange = glm::vec4(fog.nearDistance, fog.farDistance,
+				1.0f / camera.projection[0][0], 1.0f / camera.projection[1][1]);
+		}
 		return outline;
 	}
 }
@@ -836,6 +853,7 @@ void Game::InitOpenGL()
 	LoadColorGradeSettings();
 	LoadDepthOfFieldSettings();
 	LoadFogSettings();
+	LoadDistanceFogSettings();
 	LoadReflectionSettings();
 	LoadTextureSettings();
 

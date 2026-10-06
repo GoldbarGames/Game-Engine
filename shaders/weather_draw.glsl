@@ -1,7 +1,7 @@
 #ifndef KINJO_WEATHER_DRAW_GLSL
 #define KINJO_WEATHER_DRAW_GLSL
 // Per-draw values for weather / fountain particles (one instanced draw per
-// pass), shared by weather.vert and weather.frag. 60 bytes.
+// pass), shared by weather.vert and weather.frag. 80 bytes.
 #include "draw.glsl"
 
 struct DrawData
@@ -14,6 +14,7 @@ struct DrawData
 	float uLength;    // rain streak length (snow uses uSize)
 	float uSway;      // snow horizontal sway amplitude (world units)
 	int   uMode;      // 0 = snow (dot), 1 = rain streak, 2 = fountain streak (along iVel)
+	vec4  uDistFog;   // distance fog: near, far, amount (0 = off), unused
 };
 PER_DRAW(DrawData);
 #endif

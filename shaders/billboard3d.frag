@@ -30,6 +30,7 @@ uniform sampler2D theTexture;
 #include "motion.glsl"
 #include "camera.glsl"
 #include "lights.glsl"        // point and spot lights, clustered (LightRange / GetLight)
+#include "distance_fog.glsl"  // ApplyDistanceFog (distFogParams.z = 0 when off)
 
 float Attenuate(float dist, float range)
 {
@@ -109,7 +110,7 @@ void main()
 		}
 	}
 
-	color = vec4(c.rgb * light, c.a);
+	color = vec4(ApplyDistanceFog(c.rgb * light, FragPos), c.a);
 	oMask = vec4(1.0, 0.0, 0.0, c.a);   // character; alpha = coverage for blending
 	oMotion = MotionVector(FragPos, PrevWorldPos, step(0.5, c.a));
 }

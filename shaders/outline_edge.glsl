@@ -63,4 +63,16 @@ float OutlineEdge(vec2 uv)
 		edge = 0.0;
 	return edge;
 }
+
+// How much distance fog lies over the surface at `uv` (0 = none): the ramp of
+// distance_fog.glsl, with the distance to the camera worked out from the depth
+// and the pixel's view ray. The outline takes the fog colour by this much.
+float OutlineFogAmount(vec2 uv)
+{
+	if (distFogAmount <= 0.0)
+		return 0.0;
+	vec2 ndc = uv * 2.0 - 1.0;
+	float d = OutlineLinearDepth(uv) * length(vec3(ndc * distFogRange.zw, 1.0));
+	return clamp((d - distFogRange.x) / max(distFogRange.y - distFogRange.x, 0.001), 0.0, 1.0) * distFogAmount;
+}
 #endif

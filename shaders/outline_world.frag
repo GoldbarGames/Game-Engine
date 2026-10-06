@@ -22,5 +22,6 @@ void main()
 	float edge = OutlineEdge(uv);
 	if (edge <= 0.001)
 		discard;
-	color = vec4(TargetColor(outlineColor), edge);
+	// Far lines take the distance fog's colour, as the surfaces under them did.
+	color = vec4(mix(TargetColor(outlineColor), TargetColor(distFogColor), OutlineFogAmount(uv)), edge);
 }

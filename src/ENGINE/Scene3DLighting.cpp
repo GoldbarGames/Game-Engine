@@ -39,6 +39,8 @@
 #include "render/Environment.h"
 #include "render/AmbientOcclusion.h"
 #include "render/ClusteredLights.h"
+#include "render/DistanceFog.h"
+#include <set>
 
 using Scene3DInternal::ProgramHasBlock;
 
@@ -74,8 +76,10 @@ namespace
 		glm::vec4 pointShadowPositions[8];
 		glm::vec4 pointShadowFars[8];
 		glm::ivec4 pointShadowLightIdx[8];
+		glm::vec4 distFogColor;    // rgb
+		glm::vec4 distFogParams;   // near, far, amount (0 = off)
 	};
-	static_assert(sizeof(SceneBlockData) == 1504, "SceneBlockData must match shaders/scene.glsl");
+	static_assert(sizeof(SceneBlockData) == 1536, "SceneBlockData must match shaders/scene.glsl");
 	static_assert(offsetof(SceneBlockData, lightSpaceMatrix) == 80, "std140: mat4 starts on a 16-byte boundary");
 	static_assert(offsetof(SceneBlockData, pointPos) == 160, "std140 offset of pointPos");
 
@@ -109,6 +113,8 @@ namespace
 		{ "pointShadowPositions[0]", offsetof(SceneBlockData, pointShadowPositions), true },
 		{ "pointShadowFars[0]", offsetof(SceneBlockData, pointShadowFars), true },
 		{ "pointShadowLightIdx[0]", offsetof(SceneBlockData, pointShadowLightIdx), true },
+		{ "distFogColor", offsetof(SceneBlockData, distFogColor), false },
+		{ "distFogParams", offsetof(SceneBlockData, distFogParams), false },
 	};
 
 	// std140 mirror of the GLSL "Material" block (shaders/material.glsl).
@@ -319,6 +325,14 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 	if (focusSpotOn) packSpot(focusSpot);
 	d.spotCount = sc;
 
+	// Distance fog (render/DistanceFog.h); all zero while it is off.
+	const DistanceFogFrame fog = CurrentDistanceFog();
+	if (fog.amount > 0.0f)
+	{
+		d.distFogColor = glm::vec4(SceneColor(fog.color), 0.0f);
+		d.distFogParams = glm::vec4(fog.nearDistance, fog.farDistance, fog.amount, 0.0f);
+	}
+
 	if (ProgramHasBlock(id, "Scene"))
 	{
 		CheckUniformBlockLayout(id, "Scene", kSceneMembers,
@@ -330,6 +344,14 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 	// Legacy: a program that predates the Scene block (an old copy in a game's
 	// data/shaders) reads the same values as loose uniforms. Arrays are
 	// repacked from the block's 16-byte stride to tight vec3/float arrays.
+	// Such a copy knows nothing of the distance fog, so it draws unfogged.
+	if (fog.amount > 0.0f)
+	{
+		static std::set<unsigned int> warned;
+		if (warned.insert(id).second)
+			std::cout << "WARNING - distance fog is on, but lit shader program " << id << " is an old copy without it"
+				" (a game's data/shaders/scene3d.frag or billboard3d.frag): what it draws stays unfogged" << std::endl;
+	}
 	auto loc = [id](const char* name) { return Device().UniformLocation(ProgramHandle(id), name); };
 	Device().SetUniform((int)(loc("ambientColor")), d.ambientColor);
 	Device().SetUniform((int)(loc("dirLightDir")), d.dirLightDir);

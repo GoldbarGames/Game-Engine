@@ -66,6 +66,14 @@ fogColor 1 1 1
 fogAnisotropy 0.5
 fogNoise 0
 fogDistance 6000
+# distanceFog  1 | 0: distance fog, in either colour mode (default 0): the
+#           world fades to distanceFogColor r g b (0..1) from distanceFogNear
+#           to distanceFogFar world units from the camera. Per scene:
+#           `distfog <r g b> <near> <far>` or `distfog off`.
+distanceFog 0
+distanceFogColor 0.6 0.65 0.7
+distanceFogNear 1000
+distanceFogFar 5000
 # reflections  1 | 0: screen-space reflections on glossy surfaces (needs
 #           antialiasing taa); reflectionDistance  how far rays search.
 reflections 1

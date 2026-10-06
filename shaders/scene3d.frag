@@ -41,6 +41,7 @@ const float PI = 3.14159265;
 #include "motion.glsl"        // motion vectors (motionOn = 0 when unused)
 #include "camera.glsl"
 #include "lights.glsl"        // point and spot lights, clustered (LightRange / GetLight)
+#include "distance_fog.glsl"  // ApplyDistanceFog (distFogParams.z = 0 when off)
 
 // --- ground splatting (MAT_SPLAT) ---------------------------------------------
 // A ground material (materials.txt `splat`) lays three more textures over its
@@ -75,6 +76,18 @@ vec3 SplatAlbedo(vec3 base, vec2 uv)
 	vec4 w = vec4(0.0, clamp(Tangent, 0.0, 1.0));
 	w.x = clamp(1.0 - (w.y + w.z + w.w), 0.0, 1.0);
 
+	// Far off, the base texture's repeat shows as a checker across the whole
+	// country. There, half of it is the same texture again at about three
+	// and a half times the size, turned 37 degrees, which no repeat lines up
+	// with. "Far" is judged by how many repeats a pixel covers, so it holds in
+	// any game's units.
+	float far = smoothstep(0.012, 0.06, length(fwidth(uv)));
+	if (far > 0.0)
+	{
+		vec2 big = mat2(0.8, -0.6, 0.6, 0.8) * uv * 0.29 + vec2(0.31, 0.67);
+		base = mix(base, texture(theTexture, big).rgb, far * 0.5);
+	}
+
 	// Wandering edges. The weights are the mesh's, interpolated across its
 	// triangles, so left alone every boundary runs straight along them - a
 	// staircase, seen from above. Each layer's weight is nudged by noise of
@@ -107,9 +120,16 @@ vec3 SplatAlbedo(vec3 base, vec2 uv)
 	float sum = max(b.x + b.y + b.z + b.w, 1e-4);
 
 	// The base layer wanders a little in brightness and warmth over a few
-	// repeats of its texture, so a field does not show its tile.
+	// repeats of its texture, so a field does not show its tile; and where it
+	// is green, it dries toward straw in patches a repeat to several across -
+	// the dry rises and the lush hollows of open country, which one grass
+	// texture repeated over kilometres does not have.
 	float wander = 0.5 + 0.25 * sin(uv.x * 0.61 + sin(uv.y * 0.47) * 2.0)
 	                   + 0.25 * sin(uv.y * 0.83 + sin(uv.x * 0.37) * 2.0);
+	float dryness = smoothstep(0.3, 0.72, SplatNoise(uv * 0.21 + 3.7) * 0.65 + SplatNoise(uv * 0.93 + 1.3) * 0.35);
+	float green = clamp((base.g - max(base.r, base.b)) * 12.0, 0.0, 1.0);
+	vec3 straw = vec3(dot(base, LUMA)) * vec3(2.6, 2.2, 0.9);
+	base = mix(base, straw, dryness * green * 0.85);
 	base *= mix(vec3(0.86, 0.94, 0.90), vec3(1.14, 1.04, 0.76), wander);
 
 	return (base * b.x + c1 * b.y + c2 * b.z + c3 * b.w) / sum;
@@ -290,7 +310,7 @@ void main()
 	// KHR_materials_unlit: the base colour as it is.
 	if ((matMaps & MAT_UNLIT) != 0)
 	{
-		color = vec4(albedo, alpha);
+		color = vec4(ApplyDistanceFog(albedo, FragPos), alpha);
 		return;
 	}
 
@@ -360,7 +380,7 @@ void main()
 		}
 
 		float a = clamp(matOpacity + fres * 0.35 + max(glint.r, max(glint.g, glint.b)), 0.0, 1.0);
-		color = vec4(wcol + glint, a);
+		color = vec4(ApplyDistanceFog(wcol + glint, FragPos), a);
 		return;
 	}
 
@@ -529,6 +549,7 @@ void main()
 		emissive *= texture(emissiveMap, uv).rgb;
 #endif
 	lit += emissive;
+	lit = ApplyDistanceFog(lit, FragPos);
 
 	if (aoDebug != 0 && aoOn != 0)
 		lit = vec3(ambientVisibility);   // KINJO_AO_DEBUG: the occlusion itself
