@@ -8,6 +8,13 @@
 // overlapping coplanar surfaces resolve the same way every frame) into the
 // view's region of the visible list, and the count goes into each of the
 // batch's indirect draw commands.
+//
+// Levels of detail (Scene3D::SetModelLevels, since 2026-10-10): an instance
+// may draw only while its model's screen size, seen from the view's camera,
+// is in a range (info.z to info.w). Across a switch the colour passes draw
+// both levels, each keeping its share of a 4 x 4 dither (shaders/scene3d.frag):
+// the code for it rides in the visible entry's top byte. The depth passes
+// switch at the size, without a fade.
 layout(local_size_x = 64) in;
 
 #include "scene_instances.glsl"
@@ -19,33 +26,73 @@ layout(std430, binding = 2) readonly buffer Batches { uint batches[]; };
 layout(std430, binding = 3) readonly buffer BatchCommands { uint batchCommands[]; };
 // DrawIndexedIndirectCommand records, 5 words each; word 1 = instanceCount.
 layout(std430, binding = 4) buffer Commands { uint commands[]; };
-// The visible instances' indices, read by the vertex shaders as a
-// per-instance attribute (baseInstance points each command at its batch).
+// The visible instances' indices (low 24 bits), read by the vertex shaders as
+// a per-instance attribute (baseInstance points each command at its batch),
+// with a level-of-detail fade in the top 8 (0 = drawn whole).
 layout(std430, binding = 5) writeonly buffer Visible { uint visible[]; };
 
 #include "draw.glsl"
 struct DrawData
 {
 	vec4 planes[6];     // the view's frustum, normalized, pointing inward
-	int commandSet;     // 0 colour, 1 depth
+	vec4 levelEye;      // levels of detail: the view's camera (xyz), its projection's y scale (w)
+	int setFlags;       // bits 0-7: an instance needs one of these flags (SceneInstance.info.y);
+	                    // bit 8: the depth passes' command set (else the colour passes')
 	int commandBase;    // this view's first command (in records)
 	int visibleBase;    // this view's region in visible[]
-	int flags;          // an instance needs one of these flags (SceneInstance.info.y)
 	int batchCount;     // (ints: the engine sets per-draw values with glUniform*i)
 };
 PER_DRAW(DrawData);
 
+// Scene3DInternal::kLevelFade: the share of a switch size either side of it
+// over which two levels cross-fade
+const float LEVEL_FADE = 0.08;
+
 shared uint scan[64];
+
+// The level-of-detail test for an instance: false when its size is out of
+// its range; `code` the colour passes' fade (0 = drawn whole; else bit 7 set:
+// drawn where the dither's cell is at or past the share in bits 0-6 / 127,
+// bit 7 clear: where it is below).
+bool InLevel(SceneInstance inst, bool depthSet, out uint code)
+{
+	code = 0u;
+	float lo = uintBitsToFloat(inst.info.z);
+	float hi = uintBitsToFloat(inst.info.w);
+	if ((lo <= 0.0 && isinf(hi)) || inst.sphere.w < 0.0)
+		return true;   // no levels (or no bounds to size it by)
+	float size = inst.sphere.w * draw.levelEye.w / max(distance(draw.levelEye.xyz, inst.sphere.xyz), 1e-4);
+	if (depthSet)
+		return size >= lo && size < hi;
+	if (size < lo * (1.0 - LEVEL_FADE) || size >= hi * (1.0 + LEVEL_FADE))
+		return false;
+	if (!isinf(hi) && size > hi * (1.0 - LEVEL_FADE))
+	{
+		// The finer level is coming in above: this one keeps the cells from its share on
+		float share = (size - hi * (1.0 - LEVEL_FADE)) / (2.0 * LEVEL_FADE * hi);
+		code = 128u | uint(clamp(round(share * 127.0), 1.0, 127.0));
+	}
+	else if (lo > 0.0 && size < lo * (1.0 + LEVEL_FADE))
+	{
+		// Going out below (to the next level, or to nothing): the cells under its share
+		float share = (size - lo * (1.0 - LEVEL_FADE)) / (2.0 * LEVEL_FADE * lo);
+		code = uint(clamp(round(share * 127.0), 1.0, 127.0));
+	}
+	return true;
+}
 
 void main()
 {
 	uint b = gl_WorkGroupID.y * 65535u + gl_WorkGroupID.x;
 	if (b >= uint(draw.batchCount))
 		return;   // the whole group: no barrier is reached
+	bool depthSet = (draw.setFlags & 256) != 0;
+	uint flags = uint(draw.setFlags & 255);
+	uint commandSet = depthSet ? 1u : 0u;
 	uint first = batches[b * 6u];
 	uint count = batches[b * 6u + 1u];
-	uint listOffset = batches[b * 6u + 2u + uint(draw.commandSet)];
-	uint listCount = batches[b * 6u + 4u + uint(draw.commandSet)];
+	uint listOffset = batches[b * 6u + 2u + commandSet];
+	uint listCount = batches[b * 6u + 4u + commandSet];
 	if (listCount == 0u)
 		return;
 
@@ -55,10 +102,11 @@ void main()
 	{
 		uint i = start + lane;
 		bool keep = false;
+		uint code = 0u;
 		if (i < count)
 		{
 			SceneInstance inst = sceneInstances[first + i];
-			keep = (inst.info.y & uint(draw.flags)) != 0u;
+			keep = (inst.info.y & flags) != 0u;
 			if (keep && inst.sphere.w >= 0.0)
 			{
 				for (int p = 0; p < 6; p++)
@@ -67,6 +115,8 @@ void main()
 						keep = false;
 				}
 			}
+			if (keep)
+				keep = InLevel(inst, depthSet, code);
 		}
 
 		// Inclusive prefix sum of `keep` across the 64 lanes.
@@ -80,7 +130,7 @@ void main()
 			barrier();
 		}
 		if (keep)
-			visible[uint(draw.visibleBase) + first + written + scan[lane] - 1u] = first + i;
+			visible[uint(draw.visibleBase) + first + written + scan[lane] - 1u] = (first + i) | (code << 24u);
 		written += scan[63];
 		barrier();   // everyone has read scan[] before the next round writes it
 	}

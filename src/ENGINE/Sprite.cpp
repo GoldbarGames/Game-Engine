@@ -1,5 +1,6 @@
 #include "leak_check.h"
 #include "render/RenderDevice.h"
+#include "AxisRotation.h"
 #include "Sprite.h"
 #include "globals.h"
 #include "Renderer.h"
@@ -754,12 +755,12 @@ void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const
 		// Position
 		if (keepPositionRelativeToCamera)
 		{
-			model = glm::translate(model, glm::vec3(position.x + renderer.guiCamera.position.x,
+			model = TranslationMatrix(glm::vec3(position.x + renderer.guiCamera.position.x,
 				position.y + renderer.guiCamera.position.y, optsRelative[renderer.guiCamera.useOrthoCamera]));
 		}
 		else
 		{
-			model = glm::translate(model, glm::vec3(position.x, position.y, optsAbsolute[renderer.camera.useOrthoCamera]));
+			model = TranslationMatrix(glm::vec3(position.x, position.y, optsAbsolute[renderer.camera.useOrthoCamera]));
 		}
 
 		// Rotation
@@ -769,16 +770,18 @@ void Sprite::CalculateModel(glm::vec3 position, const glm::vec3& rotation, const
 			
 		}*/
 
+		// About -x, -y and -z: what three glm::rotate calls gave, made directly
+		// (AxisRotation.h) - this runs for every part drawn.
 		const float toRadians = 3.14159265f / 180.0f;
-		model = glm::rotate(model, rotation.x * toRadians, glm::vec3(-1.0f, 0.0f, 0.0f));
-		model = glm::rotate(model, rotation.y * toRadians, glm::vec3(0.0f, -1.0f, 0.0f));
-		model = glm::rotate(model, rotation.z * toRadians, glm::vec3(0.0f, 0.0f, -1.0f));
+		RotateAboutAxis(model, rotation.x * toRadians, 0, -1.0f);
+		RotateAboutAxis(model, rotation.y * toRadians, 1, -1.0f);
+		RotateAboutAxis(model, rotation.z * toRadians, 2, -1.0f);
 
 		// Scale
 		const int width = (texture != nullptr) ? texture->GetWidth() : 1;
 		const int height = (texture != nullptr) ? texture->GetHeight() : 1;
 
-		model = glm::scale(model, glm::vec3(-1 * scale.x * width / (float)(framesPerRow),
+		ScaleColumns(model, glm::vec3(-1 * scale.x * width / (float)(framesPerRow),
 			scale.y * height / (float)numberRows, scale.z));
 	}	
 }

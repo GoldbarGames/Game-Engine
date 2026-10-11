@@ -250,7 +250,7 @@ namespace
 
 void LoadAmbientOcclusionSettings()
 {
-	auto config = GetMapStringsFromFile(RendererConfigPath());
+	auto config = ReadRendererConfig();
 	auto parse = [](const std::string& s, float fallback) -> float
 	{
 		try { return std::max(std::stof(s), 0.0f); }

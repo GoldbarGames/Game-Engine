@@ -1,10 +1,13 @@
 #include "leak_check.h"
 #include "StartupTrace.h"
 #include "Gamepads.h"
+#include "Smoke.h"
 #include "render/RenderDevice.h"
+#include "render/DrawStats.h"
 #include "render/RenderContext.h"
 #include "render/ColorPipeline.h"
 #include "render/Environment.h"
+#include "SkyImage.h"
 #include "render/AmbientOcclusion.h"
 #include "render/TemporalAA.h"
 #include "render/ClusteredLights.h"
@@ -397,7 +400,9 @@ int Game::MainLoop()
 		//std::cout << "Draw calls: " << renderer.drawCallsPerFrame << std::endl;
 	}
 
-#if _DEBUG
+	// Automatic captures (a game's --shots / --screenshots / GIF flags) work in
+	// every build since 2026-10-10, so test runs can use the fast Release build;
+	// nothing is captured unless a game asks for it.
 	// Latch the scene gate EVERY frame (not just at shot ticks): a scene that shows
 	// only briefly during fast/paced travel would otherwise slip between ticks.
 	if (!autoScreenshotsAfterScene.empty() && !autoScreenshotsArmed
@@ -437,7 +442,6 @@ int Game::MainLoop()
 				shouldQuit = true;
 		}
 	}
-#endif
 
 	return 0;
 }
@@ -929,6 +933,7 @@ void Game::InitOpenGL()
 	LoadMultisampleSettings();
 	LoadReflectionSettings();
 	LoadTextureSettings();
+	LoadSmokeSettings();
 
 	// Engine default state (depth test LESS with writes, alpha blending, no
 	// culling, no depth bias), set on GL and tracked from here on.
@@ -1350,14 +1355,86 @@ void Game::DeleteEntity(int index)
 	entitiesToDelete.erase(entitiesToDelete.begin());
 }
 
+namespace
+{
+	// A game's own text field (StartTextInput with `done`): kept here rather
+	// than in Game, so Game's layout - and every game's build - is unchanged
+	std::function<void(const std::string&, bool)> textDone;
+	size_t textMaxLength = 0;
+
+	// Game::CaptureFrame's request, kept here for the same reason
+	std::function<void(const unsigned char*, int, int)> frameCapture;
+	bool frameCaptureWithGui = true;
+
+	// The back buffer as it stands, handed to the request: RGB, rows from the top
+	void RunFrameCapture(int width, int height)
+	{
+		if (!frameCapture || width <= 0 || height <= 0)
+			return;
+		std::vector<unsigned char> rgba(static_cast<size_t>(width) * height * 4);
+		std::vector<unsigned char> rgb(static_cast<size_t>(width) * height * 3);
+		Device().ReadPixels(0, 0, width, height, ReadbackFormat::RGBA8, rgba.data());
+		for (int y = 0; y < height; y++)
+		{
+			const unsigned char* src = rgba.data() + static_cast<size_t>(height - 1 - y) * width * 4;
+			unsigned char* dst = rgb.data() + static_cast<size_t>(y) * width * 3;
+			for (int x = 0; x < width; x++)
+			{
+				dst[x * 3 + 0] = src[x * 4 + 0];
+				dst[x * 3 + 1] = src[x * 4 + 1];
+				dst[x * 3 + 2] = src[x * 4 + 2];
+			}
+		}
+		auto done = std::move(frameCapture);
+		frameCapture = nullptr;
+		done(rgb.data(), width, height);
+	}
+}
+
+void Game::CaptureFrame(std::function<void(const unsigned char* rgb, int width, int height)> done, bool withGui)
+{
+	frameCapture = std::move(done);
+	frameCaptureWithGui = withGui;
+}
+
 void Game::StartTextInput(Dialog& dialog, const std::string& reason)
 {
+	textDone = nullptr;
+	textMaxLength = 0;
 	currentDialog = &dialog;
 	shouldUpdateDialogInput = true;
 	inputReason = reason;
 	SDL_StartTextInput();
 	inputText = "";
 	inputType = "String";
+}
+
+void Game::StartTextInput(const std::string& reason, std::function<void(const std::string& text, bool accepted)> done,
+	const std::string& initial, size_t maxLength)
+{
+	textDone = std::move(done);
+	textMaxLength = maxLength;
+	currentDialog = nullptr;
+	shouldUpdateDialogInput = true;
+	inputReason = reason;
+	SDL_StartTextInput();
+	inputText = (maxLength > 0 && initial.size() > maxLength) ? initial.substr(0, maxLength) : initial;
+	inputType = "String";
+}
+
+void Game::CancelTextInput()
+{
+	if (!shouldUpdateDialogInput)
+		return;
+	shouldUpdateDialogInput = false;
+	if (currentDialog != nullptr)
+		currentDialog->visible = false;
+	SDL_StopTextInput();
+	// (moved out first: `done` may start another field)
+	std::function<void(const std::string&, bool)> done = std::move(textDone);
+	textDone = nullptr;
+	if (done)
+		done(inputText, false);
 }
 
 void Game::StopTextInput(Dialog& dialog)
@@ -1826,8 +1903,9 @@ bool Game::CheckInputs()
 			break;
 	}
 
-	// Multi-pad: read every pad. Menus confirm on any pad's A, and a button
-	// remap takes the button pressed on any pad.
+	// Multi-pad: read every pad. Menus confirm on A, and a button remap takes
+	// the button pressed, from any pad or only the menu's owner's
+	// (InputManager::SetMenuOwner).
 	if (Gamepads::MultiPad() && !quit)
 	{
 		Gamepads::Poll();
@@ -1837,7 +1915,8 @@ bool Game::CheckInputs()
 			if (button >= 0)
 				inputManager.pressedButton = static_cast<uint8_t>(button);
 		}
-		else if (openedMenus.size() > 0 && !cutsceneManager.watchingCutscene && Gamepads::AnyPressed(SDL_CONTROLLER_BUTTON_A))
+		else if (openedMenus.size() > 0 && !cutsceneManager.watchingCutscene && !shouldUpdateDialogInput
+			&& Gamepads::MenuPressed(SDL_CONTROLLER_BUTTON_A))
 		{
 			quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
 		}
@@ -2188,12 +2267,122 @@ void Game::LoadSettings()
 }
 
 // PRE-CONDITION: openedMenus.size() > 0
+// Text entry's keys (StartTextInput), from HandleEvent and, over a menu,
+// HandleMenuEvent: every key goes to the text until it ends
+void Game::HandleTextInputEvent(const SDL_Event& event)
+{
+	// Shows the text in the dialog being typed in (a game's own field has none)
+	auto show = [this]()
+	{
+		if (currentDialog != nullptr && currentDialog->input != nullptr)
+			currentDialog->Update(inputText);
+	};
+	auto fits = [](const std::string& text, size_t more) { return textMaxLength == 0 || text.size() + more <= textMaxLength; };
+
+	if (event.type == SDL_KEYDOWN)
+	{
+		const SDL_Keycode key = event.key.keysym.sym;
+		//Handle backspace
+		if (key == SDLK_BACKSPACE && inputText.length() > 0)
+		{
+			inputText.pop_back();
+			show();
+		}
+		//Handle copy
+		else if (key == SDLK_c && SDL_GetModState() & KMOD_CTRL)
+		{
+			SDL_SetClipboardText(inputText.c_str());
+		}
+		//Handle paste
+		else if (key == SDLK_v && SDL_GetModState() & KMOD_CTRL)
+		{
+			//TODO: Handle type checking here
+			char* clip = SDL_GetClipboardText();   // (SDL's to free)
+			if (clip != nullptr)
+			{
+				for (const char* c = clip; *c != '\0' && fits(inputText, 1); c++)
+					inputText += *c;
+				SDL_free(clip);
+			}
+			show();
+		}
+		// The editor's property dialog steps through a property's options
+		else if ((key == SDLK_DOWN || key == SDLK_UP) && !textDone)
+		{
+			std::string optionString = editor->GetCurrentPropertyOptionString(key == SDLK_DOWN ? 1 : -1);
+			if (optionString != "")
+			{
+				inputText = optionString;
+				show();
+			}
+		}
+		// Pressed enter, submit the input
+		else if (key == SDLK_RETURN)
+		{
+			if (textDone)
+			{
+				shouldUpdateDialogInput = false;
+				SDL_StopTextInput();
+				std::function<void(const std::string&, bool)> done = std::move(textDone);
+				textDone = nullptr;
+				done(inputText, true);
+			}
+			else if (currentDialog != nullptr)
+			{
+				StopTextInput(*currentDialog);
+			}
+		}
+		// Esc gives up a game's field (the editor's dialogs ignore it, as before)
+		else if (key == SDLK_ESCAPE && textDone)
+		{
+			CancelTextInput();
+		}
+	}
+	else if (event.type == SDL_TEXTINPUT)
+	{
+		//Not copy or pasting, just entering characters as usual
+		if (!(SDL_GetModState() & KMOD_CTRL && (event.text.text[0] == 'c' || event.text.text[0] == 'C' ||
+			event.text.text[0] == 'v' || event.text.text[0] == 'V')))
+		{
+			char c = *event.text.text;
+			bool valid = fits(inputText, 1);
+
+			// Check if the character is valid for the text we are getting
+			if (inputType == "Integer")
+			{
+				valid = valid && (std::isdigit(c) || (c == '-' && inputText.size() == 0));
+			}
+			else if (inputType == "Float") // check for negative numbers, decimal point
+			{
+				valid = valid && (std::isdigit(c)
+					|| (c == '-' && inputText.size() == 0)
+					|| (c == '.' && inputText.size() > 1 && inputText[inputText.size() - 1] != '-' && inputText.find('.') == string::npos));
+			}
+
+			if (valid)
+			{
+				//Append character
+				inputText += c;
+				show();
+			}
+		}
+	}
+}
+
 bool Game::HandleMenuEvent(SDL_Event& event)
 {
 	bool quit = false;
 
 	if (event.type == SDL_QUIT)
 		quit = true;
+
+	// Typing over a menu: the keys are the text's, not the menu's (Return
+	// finishes the text rather than pressing a button)
+	if (shouldUpdateDialogInput && (event.type == SDL_KEYDOWN || event.type == SDL_TEXTINPUT))
+	{
+		HandleTextInputEvent(event);
+		return quit;
+	}
 
 	if (event.type == SDL_KEYDOWN)
 	{
@@ -2208,7 +2397,9 @@ bool Game::HandleMenuEvent(SDL_Event& event)
 			{
 			case SDLK_RETURN:
 				//std::cout << "Handle Menu Event - hit return key" << std::endl;
-				quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
+				// (not on a menu a pad owns: InputManager::SetMenuOwner)
+				if (Gamepads::MenuKeyboardAllowed())
+					quit = openedMenus[openedMenus.size() - 1]->PressSelectedButton(*this);
 				break;
 #if _DEBUG
 			case SDLK_2:
@@ -2340,50 +2531,7 @@ bool Game::HandleEvent(SDL_Event& event)
 	{
 		if (shouldUpdateDialogInput)
 		{
-			//Handle backspace
-			if (event.key.keysym.sym == SDLK_BACKSPACE && inputText.length() > 0)
-			{
-				inputText.pop_back();
-				editor->dialog->Update(inputText);
-			}
-			//Handle copy
-			else if (event.key.keysym.sym == SDLK_c && SDL_GetModState() & KMOD_CTRL)
-			{
-				SDL_SetClipboardText(inputText.c_str());
-			}
-			//Handle paste
-			else if (event.key.keysym.sym == SDLK_v && SDL_GetModState() & KMOD_CTRL)
-			{
-				//TODO: Handle type checking here
-				inputText += SDL_GetClipboardText();
-				editor->dialog->Update(inputText);
-			}
-			else if (event.key.keysym.sym == SDLK_DOWN)
-			{
-				std::string optionString = editor->GetCurrentPropertyOptionString(1);
-				if (optionString != "")
-				{
-					inputText = optionString;
-					editor->dialog->Update(inputText);
-				}
-			}
-			else if (event.key.keysym.sym == SDLK_UP)
-			{
-				std::string optionString = editor->GetCurrentPropertyOptionString(-1);
-				if (optionString != "")
-				{
-					inputText = optionString;
-					editor->dialog->Update(inputText);
-				}
-			}
-			// Pressed enter, submit the input
-			else if (event.key.keysym.sym == SDLK_RETURN)
-			{
-				if (currentDialog != nullptr)
-				{
-					StopTextInput(*currentDialog);
-				}				
-			}
+			HandleTextInputEvent(event);
 		}
 		else
 		{
@@ -2532,32 +2680,7 @@ bool Game::HandleEvent(SDL_Event& event)
 	{
 		if (shouldUpdateDialogInput)
 		{
-			//Not copy or pasting, just entering characters as usual
-			if (!(SDL_GetModState() & KMOD_CTRL && (event.text.text[0] == 'c' || event.text.text[0] == 'C' ||
-				event.text.text[0] == 'v' || event.text.text[0] == 'V')))
-			{
-				char c = *event.text.text;
-				bool valid = true;
-
-				// Check if the character is valid for the text we are getting
-				if (inputType == "Integer")
-				{
-					valid = std::isdigit(c) || (c == '-' && inputText.size() == 0);
-				}
-				else if (inputType == "Float") // check for negative numbers, decimal point
-				{
-					valid = std::isdigit(c)
-						|| (c == '-' && inputText.size() == 0)
-						|| (c == '.' && inputText.size() > 1 && inputText[inputText.size() - 1] != '-' && inputText.find('.') == string::npos);
-				}
-
-				if (valid)
-				{
-					//Append character
-					inputText += c;
-					editor->dialog->Update(inputText);
-				}
-			}
+			HandleTextInputEvent(event);
 		}
 		else
 		{
@@ -2767,6 +2890,11 @@ void Game::SaveScreenshot(const std::string& filepath, const std::string& filena
 
 void Game::GetMenuInput()
 {
+	// While text is typed the keys are the text's (StartTextInput): the menu
+	// waits, or WASD and the arrows would move it under the typing
+	if (shouldUpdateDialogInput)
+		return;
+
 	const uint8_t* input = SDL_GetKeyboardState(NULL);
 
 	if (cutsceneManager.watchingCutscene && cutsceneManager.GetLabelName(cutsceneManager.currentLabel) == "title")
@@ -3534,6 +3662,19 @@ namespace
 				Scene3D::Get().RenderFountain(game, renderer);
 				SetTargetLinear(false);
 			});
+			// Smoke and steam (Smoke.h): over the anti-aliased image like the
+			// weather, but with no depth attached - the shader reads the world's
+			// depth, to soften each puff where it meets the world.
+			if (SmokeToDraw() && target.depthTexture != 0)
+			{
+				RunPass("Smoke", Targets(RenderTarget::MainDepth), Targets(RenderTarget::TaaOutput), [&]()
+				{
+					if (!BindTemporalOutputColorOnly())
+						return;
+					RenderSmoke(renderer, target.depthTexture, width, height);
+					SetTargetLinear(false);
+				});
+			}
 			SetWorldSourceOverride(TemporalOutput());
 			worldImage = RenderTarget::TaaOutput;
 		}
@@ -3598,7 +3739,10 @@ void Game::Render()
 	// a time-of-day cross-fade step, a tint - recapture it (render/Environment.h).
 	{
 		SkySource sky;
-		const bool hasSky = Scene3D::Get().GetSkySource(sky.sky, sky.next, sky.blend, sky.tint);
+		bool hasSky = Scene3D::Get().GetSkySource(sky.sky, sky.next, sky.blend, sky.tint);
+		// A sky the game painted (Scene3D::SetSkyImage) is the sky while it is set
+		if (Scene3D::Get().active && HdrSkyImage(sky.hdrSky, sky.hdrVersion))
+			hasSky = true;
 		SetEnvironmentSource(hasSky, sky);
 		if (EnvironmentDirty())
 		{
@@ -3828,6 +3972,10 @@ void Game::Render()
 		}
 	});
 
+	// A game's capture of the world without its GUI (CaptureFrame)
+	if (!frameCaptureWithGui)
+		RunFrameCapture(screenWidth, screenHeight);
+
 	// GUI, menu screens and the mouse cursor, on top of everything.
 	RunPass("GUI", Targets(), Targets(RenderTarget::Backbuffer), [&]()
 	{
@@ -3863,6 +4011,8 @@ void Game::Render()
 	});
 
 	Device().UseProgram(ProgramHandle());
+	if (frameCaptureWithGui)
+		RunFrameCapture(screenWidth, screenHeight);
 	PresentFrame(window);
 	if (startupTrace.on && !startupTrace.done)
 	{
@@ -4162,6 +4312,8 @@ void Game::RenderNormally()
 				visibleSet);
 		}
 
+		// KINJO_GPU_TIMINGS: each entity's draws, by its type (DrawStats.h).
+		const bool drawStats = DrawStatsOn();
 		for (unsigned int i = 0; i < entities.size(); i++)
 		{
 			if (entities[i]->active)
@@ -4176,7 +4328,10 @@ void Game::RenderNormally()
 					if (!visible)
 						continue;
 				}
+				const uint64_t drawsBefore = drawStats ? DeviceDrawCalls() : 0;
 				entities[i]->Render(renderer);
+				if (drawStats)
+					AttributeDraws(entities[i]->etype, DeviceDrawCalls() - drawsBefore);
 			}
 
 			if (debugMode)
@@ -4202,6 +4357,9 @@ void Game::RenderNormally()
 			{
 				Scene3D::Get().RenderWeather(*this, renderer);
 				Scene3D::Get().RenderFountain(*this, renderer);
+				// Smoke and steam, depth-tested and hard-edged here: the
+				// world's depth is being drawn, so it can't be read.
+				RenderSmoke(renderer, 0, 0, 0);
 			});
 		}
 	}

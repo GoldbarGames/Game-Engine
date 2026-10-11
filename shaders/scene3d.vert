@@ -10,6 +10,10 @@ out vec3 FragPos;
 out vec3 Normal;
 out vec3 Tangent;
 out vec3 PrevWorldPos;   // where this point was last frame (motion vectors, motion.glsl)
+out vec3 RestPos;        // where it stands out of the wind: shadows are looked up here
+// The model's origin (the occluder fade, scene3d.frag); w = its level-of-detail
+// fade, which only the GPU-driven path draws (0 here)
+flat out vec4 ModelBase;
 
 #include "camera.glsl"
 #include "draw.glsl"
@@ -33,6 +37,7 @@ PER_DRAW(DrawData);
 // Material block.
 #include "scene.glsl"
 #include "material.glsl"
+#include "wind.glsl"
 
 void main()
 {
@@ -77,12 +82,28 @@ void main()
 		N = normalize(vec3(hx, -1.0, hz));      // slope normal (flat => -Y up)
 	}
 
+	// Swaying in the wind (`wind` in materials.txt, wind.glsl). Last frame's
+	// sway goes into the motion vector, so TAA follows the leaves rather than
+	// smearing them; shadows are looked up where the plant stands at rest, as
+	// the cached shadow map has it.
+	RestPos = worldPos.xyz;
+	vec3 lastSway = vec3(0.0);
+	if (matWind != 0.0)
+	{
+		vec3 w = WindWeights(pos, tangent, draw.model);
+		worldPos.xyz += WindSway(RestPos, w, true);
+		lastSway = WindSway(RestPos, w, false);
+		PrevWorldPos = RestPos + lastSway - draw.motionOffset;
+	}
+	else
+		PrevWorldPos = worldPos.xyz - draw.motionOffset;
+
 	FragPos = worldPos.xyz;
-	PrevWorldPos = worldPos.xyz - draw.motionOffset;
 	gl_Position = projection * view * worldPos;
 	TexCoord = tex;
 	Normal = N;
 	// A splat material's tangent slot carries its ground layers' weights,
 	// which are not a direction and must not be turned with the model.
 	Tangent = ((matMaps & MAT_SPLAT) != 0) ? tangent : draw.normalMatrix * tangent;
+	ModelBase = vec4(draw.model[3].xyz, 0.0);
 }

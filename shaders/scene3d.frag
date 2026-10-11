@@ -5,6 +5,11 @@ in vec3 FragPos;
 in vec3 Normal;
 in vec3 Tangent;
 in vec3 PrevWorldPos;
+in vec3 RestPos;       // FragPos out of the wind (wind.glsl): where shadows are looked up
+// The model's origin, and in w a level-of-detail fade from the GPU-driven
+// cull (cull_instances.comp; 0 = drawn whole, else bit 7 the side and bits
+// 0-6 the share, 1..127). Every vertex shader paired with this one writes it.
+flat in vec4 ModelBase;
 
 layout(location = 0) out vec4 color;
 // Motion vectors for temporal anti-aliasing (motion.glsl). Only stored while
@@ -268,8 +273,52 @@ void AddLight(vec3 L, vec3 radiance, vec3 N, vec3 V, vec3 albedo, vec3 F0,
 	}
 }
 
+// A 4 x 4 ordered dither's threshold at this pixel, (0.5 .. 15.5) / 16
+float Bayer4(vec2 p)
+{
+	const float m[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+	ivec2 i = ivec2(mod(p, 4.0));
+	return (m[i.x + i.y * 4] + 0.5) / 16.0;
+}
+
+// Screen-door dissolves (both off for most draws): a level of detail handing
+// over to the next (Scene3D::SetModelLevels: the two levels keep complementary
+// cells), and a `fade on` model standing between the camera and what it
+// follows (Scene3D::SetOccluderFade). The shadow passes draw neither.
+void Dissolve()
+{
+	int levelCode = int(ModelBase.w + 0.5);
+	bool occluder = (matFlags & MATF_OCCLUDER_FADE) != 0 && occluderParams.w > 0.0;
+	if (levelCode == 0 && !occluder)
+		return;
+	float cell = Bayer4(gl_FragCoord.xy);
+	if (levelCode != 0)
+	{
+		float share = float(levelCode & 127) / 127.0;
+		if ((levelCode & 128) != 0 ? cell < share : cell >= share)
+			discard;
+	}
+	if (occluder)
+	{
+		vec2 a = occluderFrom.xz;
+		vec2 ab = occluderTo.xz - a;
+		vec2 q = ModelBase.xz - a;
+		float L = max(length(ab), 1e-3);
+		float t = clamp(dot(q, ab) / (L * L), 0.0, 1.0);
+		float d = length(q - ab * t);
+		float r = occluderParams.x;
+		float reach = occluderParams.y;
+		float fade = (1.0 - smoothstep(0.6 * r, 1.4 * r, d))   // near the line
+			* (1.0 - smoothstep(0.8, 0.95, t))                  // not what stands at its end
+			* (1.0 - smoothstep(0.8 * reach, 1.2 * reach, t * L));   // and near its start
+		if (1.0 - occluderParams.z * fade < cell)
+			discard;
+	}
+}
+
 void main()
 {
+	Dissolve();
 	vec2 uv = TexCoord * matUVTile;
 
 	vec4 texColor = texture(theTexture, uv);
@@ -289,8 +338,8 @@ void main()
 			alpha = 1.0;
 		}
 	}
-	else if (texColor.a < 0.1)
-		discard;
+	else if (texColor.a < (((matMaps & MAT_ALPHA_MASK) != 0) ? matAlphaCutoff : 0.1))
+		discard;   // (a materials.txt `cutout` sets the mask bit and its threshold)
 
 	surfMetallic = matMetallic;
 	surfRoughness = matRoughness;
@@ -426,10 +475,30 @@ void main()
 	vec3 specularAccum = vec3(0.0);
 	vec3 F0 = mix(vec3(0.04), albedo, surfMetallic);   // PBR base reflectance
 
-	// Directional fill (usually off in a point/spot-lit room)
+	// The sun (the directional light), kept apart: its shadow, below, darkens its
+	// light only. (Until 2026-10-08 the sun's shadow also darkened every point and
+	// spot light, so lamps lit little or nothing wherever the sun was blocked, even
+	// at night with the sun at 0.)
+	vec3 sunDiffuse = vec3(0.0);
+	vec3 sunSpecular = vec3(0.0);
 	if (dirLightDiffuse > 0.0)
 		AddLight(normalize(-dirLightDir), dirLightColor * dirLightDiffuse,
-			N, V, albedo, F0, diffuseAccum, specularAccum);
+			N, V, albedo, F0, sunDiffuse, sunSpecular);
+
+	// Backlit leaves (`translucency`): the sun shining through from behind,
+	// brightest looking into it, tinted yellow-green. It joins the sun's own
+	// light, so it is shadowed with it: leaves in shade don't glow. Unscaled
+	// by 1/pi, as Golf Galaxy's example lit it (so times pi beside Phong's
+	// diffuse, which has no 1/pi either).
+	if (matTranslucency > 0.0 && dirLightDiffuse > 0.0)
+	{
+		vec3 L = normalize(-dirLightDir);
+		float back = clamp(dot(-N, L), 0.0, 1.0);
+		float forward = pow(clamp(dot(-V, L), 0.0, 1.0), 3.0) * 0.7 + 0.3;
+		vec3 tint = albedo * vec3(1.25, 1.45, 0.55) + vec3(0.012, 0.018, 0.0);
+		sunDiffuse += tint * back * forward * matTranslucency * dirLightColor * dirLightDiffuse
+			* ((matLighting == 1) ? 1.0 : PI);
+	}
 
 	// Point and spot lights: the ones that reach this pixel's cluster
 	// (lights.glsl), points first, then spots.
@@ -445,7 +514,7 @@ void main()
 		{
 			vec3 radiance = l.color * l.intensity * Attenuate(dist, l.range);
 			if (l.shadow >= 0)
-				radiance *= PointShadowSlot(l.shadow, FragPos);
+				radiance *= PointShadowSlot(l.shadow, RestPos);
 			AddLight(Lv / dist, radiance, N, V, albedo, F0, diffuseAccum, specularAccum);
 		}
 		else
@@ -459,8 +528,9 @@ void main()
 		}
 	}
 
-	// Sun shadow: darken the direct (diffuse+specular) contribution where the
-	// fragment is occluded from the sun; ambient still fills shadowed areas.
+	// Sun shadow: darken the sun's direct (diffuse+specular) light where the
+	// fragment is occluded from the sun; ambient still fills shadowed areas, and
+	// lamps have their own (cube) shadows.
 	float ndotl = max(dot(N, normalize(-dirLightDir)), 0.0);
 	// Cascaded maps when the engine renders them (Scene3DShadows.cpp), else the
 	// single sun map. The cascades offset along the TRUE face normal (from
@@ -468,12 +538,15 @@ void main()
 	// normal: generated or smoothed normals - a box with no normals in its
 	// file, stretched non-uniformly - can point almost anywhere, and offsetting
 	// along one pushed the lookup inside the object.
+	// A plant swaying in the wind is looked up where it stands at rest
+	// (RestPos), as the cached shadow maps hold it: at its moved place it
+	// would shade itself in patches as it swayed.
 	vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
 	if (dot(faceNormal, viewPos - FragPos) < 0.0)
 		faceNormal = -faceNormal;
 	float shadow = (cascadeCount > 0)
-		? 1.0 - shadowStrength * (1.0 - SunShadow(FragPos, faceNormal, normalize(dirLightDir)))
-		: ShadowFactor(FragPos, ndotl);
+		? 1.0 - shadowStrength * (1.0 - SunShadow(RestPos, faceNormal, normalize(dirLightDir)))
+		: ShadowFactor(RestPos, ndotl);
 
 	// Ambient: the scene's flat `ambient` colour - or, with image-based lighting
 	// (a linear-workflow scene with a sky; environment.glsl), the sky's own
@@ -529,7 +602,7 @@ void main()
 				* (pbr ? 1.0 : matSpecular) * SpecularVisibility(NdotV, ambientVisibility, rough);
 		}
 	}
-	vec3 lit = ambient + skySpecular + (diffuseAccum + specularAccum) * shadow;
+	vec3 lit = ambient + skySpecular + (sunDiffuse + sunSpecular) * shadow + diffuseAccum + specularAccum;
 
 	// Storm lightning floods the surface with a brief sky-lit burst.
 	lit += albedo * LightningLight(N);

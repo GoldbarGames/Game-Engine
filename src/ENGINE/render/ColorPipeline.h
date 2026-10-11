@@ -27,7 +27,9 @@
 //   - Scene3D's linear-aware shaders always come from the engine's shaders/
 //     folder (a game's old copies predate this and would be decoded twice).
 
+#include <map>
 #include <string>
+#include <unordered_map>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include "RenderDevice.h"
@@ -42,6 +44,13 @@ void ReloadColorSettings();
 // The renderer settings file: data/config/renderer.dat, or the file named by
 // KINJO_RENDERER_DAT for one run (tests that must not touch a game's).
 const std::string& RendererConfigPath();
+// The settings as every module reads them: the file, with a game's own values
+// on top (Renderer::SetRenderSetting; render/RenderSettings.cpp)
+std::unordered_map<std::string, std::string> ReadRendererConfig();
+const std::map<std::string, std::string>& RendererSettingOverrides();
+// Re-read every setting that can change while running (the 3D editor's PROJECT
+// tab, Renderer::ApplyRenderSettings). linearLighting and gpuDriven need a restart.
+void ReloadRenderSettingsLive();
 
 // Is the linear workflow on for this run?
 bool LinearWorkflow();

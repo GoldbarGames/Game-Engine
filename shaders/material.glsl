@@ -34,7 +34,21 @@ layout(std140) uniform Material
 	int   matMaps;            // 88  MAT_* bits below
 	float matAlphaCutoff;     // 92  MAT_ALPHA_MASK: alpha below this is cut out
 	float matOcclusionStrength; // 96 how far the occlusion map darkens ambient light
-};                            // 112 bytes (rounded to vec4)
+	// Swaying in the wind (`wind <sway> [height]`, wind.glsl): how far the top
+	// leans in a fresh breeze, world units (0 = still); and, if over 0, the
+	// height the sway is weighted by (else the mesh's tangent slot weights it).
+	float matWind;            // 100
+	float matWindHeight;      // 104
+	// The flutter's share (`wind <sway> <height> <flutter>`; 1 unless given):
+	// a tree's bark 0, its leaves 1.
+	float matFlutter;         // 108
+	// Sunlight through thin leaves from behind (`translucency <v>`; 0 = none).
+	float matTranslucency;    // 112
+	// MATF_* bits below.
+	int   matFlags;           // 116
+};                            // 128 bytes (rounded to vec4)
+
+const int MATF_OCCLUDER_FADE = 1;      // `fade on`: dissolves near the occluder-fade line (scene.glsl)
 
 const int MAT_METAL_ROUGH_MAP  = 1;    // metallicRoughnessMap (unit 2): G = roughness, B = metallic
 const int MAT_OCCLUSION_PACKED = 2;    // ... and R = occlusion

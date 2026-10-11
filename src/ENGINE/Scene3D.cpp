@@ -1,4 +1,5 @@
 #include "Scene3D.h"
+#include "AxisRotation.h"
 #include "render/RenderDevice.h"
 #include "Game.h"
 #include "Renderer.h"
@@ -18,6 +19,7 @@
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <algorithm>
 #include <filesystem>
 #include <map>
@@ -37,6 +39,7 @@
 #include "render/ColorPipeline.h"
 #include "render/Environment.h"
 #include "render/AmbientOcclusion.h"
+#include "render/MeshPool.h"
 #include "render/TemporalAA.h"
 #include "render/ColorGrading.h"
 #include "render/DepthOfField.h"
@@ -44,6 +47,9 @@
 #include "render/DistanceFog.h"
 #include "render/RenderViews.h"
 #include "render/Reflections.h"
+#include "Smoke.h"
+#include "Wind.h"
+#include "SkyClouds.h"
 
 using Scene3DInternal::ProgramHasBlock;
 using Scene3DInternal::SceneColorTexture;
@@ -91,6 +97,21 @@ void Scene3DInternal::DrawMeshesForDepth(const std::vector<Mesh*>& meshes, Textu
 	}
 }
 
+// ------------------------------------------------------- the camera's clip range
+
+namespace
+{
+	// The current scene's clip range: the ".scene" token `clip <near> <far>`, the
+	// engine's 0.1 / 5000 otherwise. A scene with tall or distant things (a skyscraper
+	// street) needs a longer reach, and since the depth buffer's precision is set
+	// almost entirely by the near limit, such a scene should raise that too. Kept here,
+	// so no exported class changed.
+	const float kDefaultClipNear = 0.1f;
+	const float kDefaultClipFar = 5000.0f;
+	float gClipNear = kDefaultClipNear;
+	float gClipFar = kDefaultClipFar;
+}
+
 // ------------------------------------------------------- motion vectors
 
 namespace
@@ -133,6 +154,67 @@ namespace
 			if (instances != nullptr)
 				mesh->ClearInstances();   // restore pristine VAO for the shadow/other passes
 		}
+	}
+
+	// Whether a model is wholly out of the camera's view: all eight corners of
+	// its local bounds, through its matrix now, beyond the same side of the
+	// frustum (tested in clip space, which is exact for corners behind the
+	// camera too). The GPU-driven path culls its models on the GPU; this is
+	// for the rest - a game's runtime models above all, which can be a whole
+	// country's trees (TrainRails). A model without bounds is always drawn.
+	// KINJO_CPU_CULL=0 draws everything, to compare.
+	bool OutsideView(const Scene3DModel& m, const glm::mat4& model, const Renderer& renderer)
+	{
+		static const bool enabled = []()
+		{
+			const char* v = std::getenv("KINJO_CPU_CULL");
+			return v == nullptr || v[0] != '0';
+		}();
+		if (!enabled || !m.hasLocalBounds || renderer.camera.useOrthoCamera)
+			return false;
+		// The camera's view-projection, made again only when the camera has
+		// changed (this runs for every model in every pass), and the corners
+		// done in plain arithmetic: in a Debug build glm's operators cost far
+		// more than the sums.
+		const Camera& cam = renderer.camera;
+		static glm::mat4 viewProj(1.0f), keyProj(0.0f);
+		static glm::vec3 keyPos(0.0f), keyFront(0.0f), keyUp(0.0f);
+		static bool keyed = false;
+		if (!keyed || std::memcmp(&keyProj, &cam.projection, sizeof(glm::mat4)) != 0
+			|| std::memcmp(&keyPos, &cam.position, sizeof(glm::vec3)) != 0
+			|| std::memcmp(&keyFront, &cam.ViewFront(), sizeof(glm::vec3)) != 0
+			|| std::memcmp(&keyUp, &cam.ViewUp(), sizeof(glm::vec3)) != 0)
+		{
+			viewProj = cam.projection * cam.CalculateViewMatrix();
+			keyProj = cam.projection;
+			keyPos = cam.position;
+			keyFront = cam.ViewFront();
+			keyUp = cam.ViewUp();
+			keyed = true;
+		}
+		const glm::mat4 mvp = viewProj * model;
+		const float* p = &mvp[0][0];
+		int out[6] = { 0, 0, 0, 0, 0, 0 };
+		for (int i = 0; i < 8; i++)
+		{
+			const float x = (i & 1) ? m.localMax.x : m.localMin.x;
+			const float y = (i & 2) ? m.localMax.y : m.localMin.y;
+			const float z = (i & 4) ? m.localMax.z : m.localMin.z;
+			const float cx = p[0] * x + p[4] * y + p[8] * z + p[12];
+			const float cy = p[1] * x + p[5] * y + p[9] * z + p[13];
+			const float cz = p[2] * x + p[6] * y + p[10] * z + p[14];
+			const float cw = p[3] * x + p[7] * y + p[11] * z + p[15];
+			out[0] += cx < -cw;
+			out[1] += cx > cw;
+			out[2] += cy < -cw;
+			out[3] += cy > cw;
+			out[4] += cz < -cw;
+			out[5] += cz > cw;
+		}
+		for (int k = 0; k < 6; k++)
+			if (out[k] == 8)
+				return true;
+		return false;
 	}
 }
 
@@ -186,14 +268,47 @@ void Scene3DModel::Update(Game& game)
 
 glm::mat4 Scene3DModel::ModelMatrix() const
 {
-	glm::mat4 model(1.0f);
-	model = glm::translate(model, position);
-	// Yaw about vertical (-Y), then pitch about X, then roll about Z.
-	model = glm::rotate(model, glm::radians(yawDeg), glm::vec3(0, -1, 0));
-	model = glm::rotate(model, glm::radians(pitchDeg), glm::vec3(1, 0, 0));
-	model = glm::rotate(model, glm::radians(rollDeg), glm::vec3(0, 0, 1));
-	model = glm::scale(model, EffectiveScale());
+	// Yaw about vertical (-Y), then pitch about X, then roll about Z: what
+	// translate, three glm::rotate and glm::scale gave, made directly
+	// (AxisRotation.h) - this runs for every model in every pass.
+	glm::mat4 model = TranslationMatrix(position);
+	RotateAboutAxis(model, yawDeg * kDegToRad, 1, -1.0f);
+	RotateAboutAxis(model, pitchDeg * kDegToRad, 0);
+	RotateAboutAxis(model, rollDeg * kDegToRad, 2);
+	ScaleColumns(model, EffectiveScale());
 	return model;
+}
+
+// A game's own program for a model (Scene3D::SetModelProgram): the program and
+// the callback that binds its textures and uniforms, per model. Kept here so no
+// exported class changes layout. An entry counts only while the model still
+// draws with that program (a model made later at a freed one's address draws
+// with the scene's).
+namespace
+{
+	struct ModelProgram
+	{
+		const ShaderProgram* program = nullptr;
+		std::function<void(unsigned int)> bind;
+	};
+	std::unordered_map<const Scene3DModel*, ModelProgram> modelProgramBind;
+}
+
+void Scene3D::SetModelProgram(Scene3DModel* model, ShaderProgram* program, std::function<void(unsigned int)> bind)
+{
+	if (model == nullptr)
+		return;
+	if (program == nullptr || program == shader)
+	{
+		model->shader = shader;
+		modelProgramBind.erase(model);
+		return;
+	}
+	model->shader = program;
+	if (bind)
+		modelProgramBind[model] = { program, std::move(bind) };
+	else
+		modelProgramBind.erase(model);
 }
 
 void Scene3DModel::Render(const Renderer& renderer)
@@ -219,6 +334,8 @@ void Scene3DModel::Render(const Renderer& renderer)
 	// in Scene3D::RenderTransparentModels - skip them in the normal opaque pass.
 	if (material != nullptr && material->IsTransparent() && !HasModelMaterials(model3D.meshList))
 		return;
+	if (OutsideView(*this, ModelMatrix(), renderer))
+		return;
 	DrawGeometry(renderer);
 }
 
@@ -232,6 +349,10 @@ void Scene3DModel::DrawGeometry(const Renderer& renderer)
 	}
 
 	glm::mat4 model = ModelMatrix();
+	// Its level of detail (Scene3D::SetModelLevels): its own meshes, a level's, or none
+	const std::vector<Mesh*>* meshes = Scene3DInternal::LevelMeshes(*this, model);
+	if (meshes == nullptr)
+		return;
 	glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
 
 	Scene3D& scene = Scene3D::Get();
@@ -255,6 +376,18 @@ void Scene3DModel::DrawGeometry(const Renderer& renderer)
 
 	texture->UseTexture();
 
+	// A game's own program (Scene3D::SetModelProgram): its textures and uniforms,
+	// after everything the engine binds
+	if (!modelProgramBind.empty())
+	{
+		auto it = modelProgramBind.find(this);
+		if (it != modelProgramBind.end() && it->second.program == shader)
+		{
+			it->second.bind(id);
+			shader->UseShader();   // (in case the callback bound another)
+		}
+	}
+
 	// Motion vectors (temporal anti-aliasing): this draw also writes how far
 	// the model moved since last frame.
 	const unsigned int buffers = Scene3DInternal::WorldDrawBuffers(id, false);
@@ -263,7 +396,7 @@ void Scene3DModel::DrawGeometry(const Renderer& renderer)
 	if (buffers != 1u)
 		Device().SetBoundDrawBufferMask(buffers);
 
-	DrawModelMeshes(id, model3D.meshList, drawingTransparent);
+	DrawModelMeshes(id, *meshes, drawingTransparent);
 
 	if (buffers != 1u)
 		Device().SetBoundDrawBufferMask(1u);
@@ -274,7 +407,18 @@ void Scene3DModel::DrawGeometry(const Renderer& renderer)
 // Transparent pass: draw every model whose material has opacity < 1, sorted
 // back-to-front, with depth writes off (so overlapping glass/ice blends in the
 // right order without occluding itself). Called by Game after the opaque 3D
-// pass, while depth testing is still on. No-op with no transparent models.
+// pass, while depth testing is still on. Then a game's own (SetTransparentHook).
+namespace
+{
+	// SetTransparentHook: a game's own see-through geometry, after the scene's.
+	std::function<void()> transparentHookDraw;
+}
+
+void Scene3D::SetTransparentHook(std::function<void()> draw)
+{
+	transparentHookDraw = std::move(draw);
+}
+
 void Scene3D::RenderTransparentModels(Game& game, const Renderer& renderer)
 {
 	if (!active || renderer.camera.useOrthoCamera)
@@ -291,26 +435,39 @@ void Scene3D::RenderTransparentModels(Game& game, const Renderer& renderer)
 			: (m->material != nullptr && m->material->IsTransparent()))
 			transparent.push_back(m);
 	}
-	if (transparent.empty())
-		return;
+	if (!transparent.empty())
+	{
+		// Sort back-to-front by squared distance from the camera.
+		glm::vec3 camPos = renderer.camera.position;
+		std::sort(transparent.begin(), transparent.end(),
+			[&](Scene3DModel* a, Scene3DModel* b)
+			{
+				float da = glm::dot(a->position - camPos, a->position - camPos);
+				float db = glm::dot(b->position - camPos, b->position - camPos);
+				return da > db;   // farthest first
+			});
 
-	// Sort back-to-front by squared distance from the camera.
-	glm::vec3 camPos = renderer.camera.position;
-	std::sort(transparent.begin(), transparent.end(),
-		[&](Scene3DModel* a, Scene3DModel* b)
-		{
-			float da = glm::dot(a->position - camPos, a->position - camPos);
-			float db = glm::dot(b->position - camPos, b->position - camPos);
-			return da > db;   // farthest first
-		});
+		RenderState glass = CurrentRenderState();
+		glass.depthWrite = false;   // don't write depth; keep depth TEST on
+		ScopedRenderState scope(glass);
+		drawingTransparent = true;
+		for (Scene3DModel* m : transparent)
+			m->DrawGeometry(renderer);
+		drawingTransparent = false;
+	}
 
-	RenderState glass = CurrentRenderState();
-	glass.depthWrite = false;   // don't write depth; keep depth TEST on
-	ScopedRenderState scope(glass);
-	drawingTransparent = true;
-	for (Scene3DModel* m : transparent)
-		m->DrawGeometry(renderer);
-	drawingTransparent = false;
+	// ...and then the game's own (glass it draws itself, SetTransparentHook):
+	// premultiplied, so a pane adds its reflection and keeps the rest of what
+	// is behind it.
+	if (transparentHookDraw)
+	{
+		RenderState pane = CurrentRenderState();
+		pane.blend = BlendMode::Premultiplied;
+		pane.depthTest = true;
+		pane.depthWrite = false;
+		ScopedRenderState scope(pane);
+		transparentHookDraw();
+	}
 }
 
 // ------------------------------------------------- ambient occlusion prepass
@@ -351,10 +508,16 @@ void Scene3D::RenderAoPrepass(Game& game, const Renderer& renderer)
 		const bool own = HasModelMaterials(m->model3D.meshList);
 		if (m->material != nullptr && m->material->IsTransparent() && !own)
 			continue;
-		device.SetUniform(modelLoc, m->ModelMatrix());
+		const glm::mat4 matrix = m->ModelMatrix();
+		if (OutsideView(*m, matrix, renderer))
+			continue;
+		const std::vector<Mesh*>* meshes = Scene3DInternal::LevelMeshes(*m, matrix);
+		if (meshes == nullptr)
+			continue;
+		device.SetUniform(modelLoc, matrix);
 		ApplyMaterial(program, m->material ? *m->material : MaterialLibrary::Get().Default(), nullptr);
 		m->texture->UseTexture();
-		DrawModelMeshes(program, m->model3D.meshList, false);
+		DrawModelMeshes(program, *meshes, false);
 	}
 
 	// Instance groups (built for this frame by UpdateCameraUBO): one draw each.
@@ -452,9 +615,14 @@ void Scene3D::SetSeason(Game& game, Season s)
 				if (toBare || !wantBare)
 				{
 #ifdef USE_ASSIMP
-					for (Mesh* mesh : m->model3D.meshList)
-						if (mesh != nullptr) delete_it(mesh);
+					// The meshes belong to Model.cpp's process-lifetime cache, shared by
+					// every model that loaded the same file: drop this model's references
+					// and load the other file (from the cache once one tree has). Until
+					// 2026-10-08 they were deleted here, so the second tree of a kind to
+					// go bare freed them again (an abort in winter on DB2's campus).
 					m->model3D.meshList.clear();
+					m->model3D.textureList.clear();
+					m->model3D.meshToTexture.clear();
 					m->model3D.LoadModel(meshPath);
 					m->loaded = !m->model3D.meshList.empty();
 #endif
@@ -500,6 +668,35 @@ void Scene3D::UpdateCameraUBO(const Renderer& renderer)
 
 void Scene3D::RebuildInstanceGroups()
 {
+	// The groups change only when the models do: which there are, whether they
+	// are loaded or hidden, their texture, program and material and levels. A
+	// signature of those first: bucketing every model every frame, each key
+	// copying two strings, was 5% of a Debug frame. (A model's place doesn't
+	// matter - the group draw takes each one's matrix as it draws.)
+	{
+		uint64_t sig = 1469598103934665603ull;
+		auto mix = [&sig](uint64_t v) { sig = (sig ^ v) * 1099511628211ull; };
+		mix(instancingEnabled ? 1u : 0u);
+		mix(Scene3DInternal::GpuDrivenFrame() ? 1u : 0u);
+		mix((uint64_t)models.size());
+		for (const Scene3DModel* m : models)
+		{
+			mix((uint64_t)(uintptr_t)m);
+			if (m == nullptr)
+				continue;
+			mix((uint64_t)(uintptr_t)m->texture);
+			mix((uint64_t)(uintptr_t)m->shader);
+			mix((uint64_t)(uintptr_t)m->material);
+			mix((m->loaded ? 1u : 0u) | (m->guardHidden ? 2u : 0u) | (m->model3D.meshList.empty() ? 4u : 0u)
+				| ((m->material != nullptr && m->material->IsTransparent()) ? 8u : 0u) | (m->IsWater() ? 16u : 0u)
+				| ((Scene3DInternal::LevelsOf(m) != nullptr) ? 32u : 0u));
+		}
+		static uint64_t lastSig = 0;
+		if (sig == lastSig)
+			return;
+		lastSig = sig;
+	}
+
 	instanceGroups.clear();
 	for (Scene3DModel* m : models)
 	{
@@ -518,8 +715,10 @@ void Scene3D::RebuildInstanceGroups()
 	{
 		if (m == nullptr || !m->loaded || m->texture == nullptr) continue;
 		if (m->guardHidden) continue;   // availability guard: not present -> not drawn
+		if (m->shader != shader) continue;   // a game's own program (SetModelProgram): drawn alone
 		if (m->IsWater()) continue;
 		if (m->material != nullptr && m->material->IsTransparent()) continue;
+		if (Scene3DInternal::LevelsOf(m) != nullptr) continue;   // levels of detail: each picks its own
 		if (m->model3D.meshList.empty()) continue;
 		buckets[std::make_tuple(m->objPath, m->texPath, m->material)].push_back(m);
 	}
@@ -997,6 +1196,7 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 			skybox = nullptr;
 		}
 		models.clear();
+		Scene3DInternal::ClearModelLevels();
 		modelTweens.clear();
 		characters.clear();
 		solids.clear();
@@ -1072,6 +1272,8 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	SetSceneBloom(-1.0f);              // likewise "bloom"
 	SetSceneIBL(-1.0f, -1.0f);         // and "ibl"
 	Scene3DInternal::SetSceneShadowDistance(-1.0f);   // and "shadowdistance"
+	gClipNear = kDefaultClipNear;      // and "clip"
+	gClipFar = kDefaultClipFar;
 	SetSceneAO(-1.0f, -1.0f);          // and "ao"
 	SetSceneColorGrade("", 1.0f, 0.0f);   // and "grade"
 	::SetDepthOfField(500.0f, 0.0f, 0.0f);   // and "dof"
@@ -1428,6 +1630,17 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 			if (ss >> d)
 				Scene3DInternal::SetSceneShadowDistance(d);
 		}
+		else if (tag == "clip")
+		{
+			// clip <near> <far> - the camera's clip range in this scene (0.1 / 5000
+			// otherwise). The sky is drawn at most 0.9 x far from the eye.
+			float n = 0.0f, f = 0.0f;
+			if ((ss >> n >> f) && n > 0.0f && f > n * 2.0f)
+			{
+				gClipNear = n;
+				gClipFar = f;
+			}
+		}
 		else if (tag == "fog")
 		{
 			// fog <density> [height falloff] [r g b] [anisotropy] [noise] - this
@@ -1596,6 +1809,11 @@ bool Scene3D::LoadFromStream(Game& game, std::istream& file, const std::string& 
 	if (!active)
 	{
 		EnterPerspective(game);
+	}
+	else
+	{
+		// Already in 3D: the scene's own clip range (EnterPerspective sets it otherwise).
+		game.renderer.camera.SetupPerspective(perspFovDeg, gClipNear, gClipFar);
 	}
 	active = true;
 	sceneEverLoaded = true;
@@ -2072,6 +2290,8 @@ void Scene3D::WriteScene(std::ostream& out) const
 	}
 	if (Scene3DInternal::SceneShadowDistance() > 0.0f)
 		setting("shadowdistance", [&](std::ostringstream& o) { o << Scene3DInternal::SceneShadowDistance(); });
+	if (gClipNear != kDefaultClipNear || gClipFar != kDefaultClipFar)
+		setting("clip", [&](std::ostringstream& o) { o << gClipNear << " " << gClipFar; });
 	{
 		std::string gradePath;
 		float gradeStrength = 1.0f;
@@ -2400,6 +2620,91 @@ Scene3DModel* Scene3D::AddRuntimeModel(Game& game, Mesh* mesh, const std::string
 	return m;
 }
 
+void Scene3D::ShareRuntimeMesh(const Mesh* mesh, const float* vertices, size_t floatCount,
+	const unsigned int* indices, size_t indexCount, unsigned int stride,
+	unsigned int uvOffset, unsigned int normalOffset, int tangentOffset)
+{
+	if (mesh == nullptr || vertices == nullptr || indices == nullptr || stride < 5 || floatCount < stride
+		|| indexCount == 0)
+		return;
+	// The pool's layout (MeshPool.h): position, uv, normal, tangent. A slot the
+	// mesh doesn't have is zero, as the CPU path reads an attribute it lacks.
+	const size_t count = floatCount / stride;
+	std::vector<float> pooled(count * 11, 0.0f);
+	for (size_t v = 0; v < count; v++)
+	{
+		const float* src = vertices + v * stride;
+		float* dst = pooled.data() + v * 11;
+		dst[0] = src[0];
+		dst[1] = src[1];
+		dst[2] = src[2];
+		dst[3] = src[uvOffset];
+		dst[4] = src[uvOffset + 1];
+		if (normalOffset > 0 && normalOffset + 2 < stride)
+		{
+			dst[5] = src[normalOffset];
+			dst[6] = src[normalOffset + 1];
+			dst[7] = src[normalOffset + 2];
+		}
+		if (tangentOffset >= 0 && (unsigned int)tangentOffset + 2 < stride)
+		{
+			dst[8] = src[tangentOffset];
+			dst[9] = src[tangentOffset + 1];
+			dst[10] = src[tangentOffset + 2];
+		}
+	}
+	MeshPoolAdd(mesh, pooled.data(), pooled.size(), indices, indexCount);
+}
+
+Scene3DModel* Scene3D::AddRuntimeModelFile(Game& game, const std::string& file, const std::string& texture,
+	const std::string& material, const glm::vec3& pos)
+{
+	if (shader == nullptr)   // no scene loaded
+		return nullptr;
+#ifdef USE_ASSIMP
+	Model loaded;
+	loaded.LoadModel(file);   // the cache's meshes: never freed (Model doesn't free its meshes)
+	if (loaded.meshList.empty())
+	{
+		std::cout << "Scene3D: runtime model file " << file << " didn't load" << std::endl;
+		return nullptr;
+	}
+	Scene3DModel* m = new Scene3DModel(pos);
+	m->shader = shader;
+	m->texture = SceneColorTexture(game, texture);
+	m->texPath = texture;
+	// Runtime (removed by RemoveRuntimeModels, never saved); models of one file
+	// group together, as their meshes are the same
+	m->objPath = std::string(kRuntimePrefix) + file;
+	m->model3D.meshList = loaded.meshList;
+	m->model3D.textureList = loaded.textureList;
+	m->model3D.meshToTexture = loaded.meshToTexture;
+	m->loaded = true;
+	m->materialName = material;
+	m->material = material.empty() ? nullptr : MaterialLibrary::Get().Find(material);
+	if (!material.empty() && m->material == nullptr)
+		std::cout << "Scene3D: runtime model material '" << material << "' not found" << std::endl;
+	float lo[3], hi[3];
+	if (Model::LoadedBounds(file, lo, hi))
+	{
+		m->localMin = glm::vec3(lo[0], lo[1], lo[2]);
+		m->localMax = glm::vec3(hi[0], hi[1], hi[2]);
+		m->hasLocalBounds = true;
+	}
+	RecomputeModelBounds(m);
+	models.push_back(m);
+	game.entities.push_back(m);
+	return m;
+#else
+	(void)game;
+	(void)file;
+	(void)texture;
+	(void)material;
+	(void)pos;
+	return nullptr;
+#endif
+}
+
 void Scene3D::RemoveRuntimeModels(Game& game)
 {
 	bool solidGone = false;
@@ -2413,6 +2718,8 @@ void Scene3D::RemoveRuntimeModels(Game& game)
 		}
 		modelTweens.erase(std::remove_if(modelTweens.begin(), modelTweens.end(),
 			[m](const ModelTween& t) { return t.model == m; }), modelTweens.end());
+		modelProgramBind.erase(m);
+		Scene3DInternal::ForgetModelLevels(m);
 		solidGone = solidGone || m->solid;
 		models.erase(models.begin() + i);
 		game.ShouldDeleteEntity(m);
@@ -2435,6 +2742,7 @@ bool Scene3D::RemoveModel(Game& game, int index)
 	modelTweens.erase(std::remove_if(modelTweens.begin(), modelTweens.end(),
 		[m](const ModelTween& t) { return t.model == m; }), modelTweens.end());
 	models.erase(models.begin() + index);
+	Scene3DInternal::ForgetModelLevels(m);
 	game.ShouldDeleteEntity(m);   // engine removes it from entities + frees it
 	RebuildSolids();
 	std::cout << "Scene3D: removed model " << index << std::endl;
@@ -2846,6 +3154,7 @@ void Scene3D::Unload(Game& game)
 		skybox = nullptr;
 	}
 	models.clear();
+	Scene3DInternal::ClearModelLevels();
 	modelTweens.clear();
 	characters.clear();
 	solids.clear();
@@ -2867,6 +3176,7 @@ void Scene3D::Unload(Game& game)
 	SetSceneFog(false, FogSettings(), 0.0f);
 	SetSceneDistanceFog(false, DistanceFogSettings(), 0.0f);
 	Scene3DInternal::ForgetMotion();
+	ClearSmoke();
 
 	RestoreOrtho(game);
 	std::cout << "Scene3D: unloaded, back to 2D" << std::endl;
@@ -3196,6 +3506,11 @@ void Scene3D::Update(Game& game)
 	if (!active)
 		return;
 
+	// A painted sky (SetSkyImage) outlives a scene load: give a scene without a
+	// sky the sphere to draw it on
+	if (skybox == nullptr && HasSkyImage())
+		EnsureSkyForImage(game);
+
 	float dtSec = game.dt / 1000.0f;
 
 	// Model animations (scene3d model <tag> turn|move): eased to the target.
@@ -3325,6 +3640,13 @@ void Scene3D::Update(Game& game)
 	// Fountain spray (ballistic droplets).
 	if (hasFountain)
 		UpdateFountain(dtSec);
+
+	// Smoke and steam puffs (Smoke.h).
+	UpdateSmoke(dtSec);
+
+	// The wind the plants sway in (Wind.h), and the clouds it drives (SkyClouds.h).
+	UpdateWind(dtSec);
+	UpdateSkyClouds(dtSec);
 }
 
 void Scene3D::AddOrUpdateCamera(const std::string& name, const CamPose& pose)
@@ -3436,7 +3758,7 @@ void Scene3D::EnterPerspective(Game& game)
 
 	cam.useOrthoCamera = false;
 	cam.SetWorldUp(glm::vec3(0, 1, 0));  // engine Y-up convention (visual up = -Y)
-	cam.SetupPerspective(60.0f, 0.1f, 5000.0f);
+	cam.SetupPerspective(perspFovDeg, gClipNear, gClipFar);   // the scene's `clip`, 0.1 / 5000 by default
 
 	game.useDepthTesting = true;
 	game.renderer.SetDepthTestEnabled(true);

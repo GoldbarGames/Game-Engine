@@ -54,5 +54,16 @@ layout(std140) uniform Scene
 	// older, smaller copy of this block still binds the engine's buffer.
 	vec4  distFogColor;    // 1504  rgb = colour (in the target's space)
 	vec4  distFogParams;   // 1520  near, far, amount (0 = off), unused
-};                         // 1536 bytes
+
+	// The wind (Wind.h, wind.glsl), after the fog for the same reason.
+	vec4  windParams;      // 1536  x, y = blowing toward (world x, z); z = strength; w = its clock (s, wrapped)
+	vec4  windParams2;     // 1552  x = last frame's clock; y = gust length; z = gust travel (wrapped); w = last frame's
+
+	// The occluder fade (Scene3D::SetOccluderFade): models whose material says
+	// `fade on` dissolve near the line from occluderFrom to occluderTo, across
+	// the ground (x and z).
+	vec4  occluderFrom;    // 1568  xyz
+	vec4  occluderTo;      // 1584  xyz
+	vec4  occluderParams;  // 1600  x = radius, y = reach from `from`, z = strength (0..1), w = 1 on / 0 off
+};                         // 1616 bytes
 #endif

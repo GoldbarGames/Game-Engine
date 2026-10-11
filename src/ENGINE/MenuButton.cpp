@@ -258,31 +258,32 @@ BaseButton* MenuButton::Update(Game& game, const Uint8* currentKeyStates)
 {
 	pressedAnyKey = true;
 
-	// Multi-pad: the d-pad or left stick of any pad navigates too
-	const Gamepads::MenuDirection pad = Gamepads::AnyMenuDirection();
+	// The arrows or WASD and, with multi-pad, a pad's d-pad or left stick:
+	// only the menu's owner's (InputManager::SetMenuOwner)
+	const Gamepads::MenuDirection dir = Gamepads::HeldMenuDirection(currentKeyStates);
 
-	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W] || pad == Gamepads::Up)
+	if (dir == Gamepads::Up)
 	{
 		if (buttonPressedUp != nullptr)
 		{
 			return buttonPressedUp;
 		}
 	}
-	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S] || pad == Gamepads::Down)
+	else if (dir == Gamepads::Down)
 	{
 		if (buttonPressedDown != nullptr)
 		{
 			return buttonPressedDown;
 		}
 	}
-	else if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A] || pad == Gamepads::Left)
+	else if (dir == Gamepads::Left)
 	{
 		if (buttonPressedLeft != nullptr)
 		{
 			return buttonPressedLeft;
 		}
 	}
-	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D] || pad == Gamepads::Right)
+	else if (dir == Gamepads::Right)
 	{
 		if (buttonPressedRight != nullptr)
 		{

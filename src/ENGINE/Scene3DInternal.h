@@ -6,6 +6,7 @@
 // Scene3DLighting, Scene3DShadows, Scene3DWeather). Not exported.
 
 #include "render/RenderDevice.h"
+#include <cmath>
 #include <string>
 #include <vector>
 #include <glm/vec3.hpp>
@@ -34,6 +35,10 @@ namespace Scene3DInternal
 	//   renderer.dat  `shadowCascades <0-4>` (default 4; 0 = the single sun map)
 	//                 `shadowDistance <world units>` (default 5000)
 	//                 `shadowSoftness <texels>` (PCF spacing, default 1)
+	//                 `shadowMinCasterHeight <world units>` (default 15): models
+	//                 less tall than this cast no shadow (flat ground and slabs
+	//                 in DB2's centimetre-scale world), unless their material
+	//                 says `shadow on`; `shadow off` never casts
 	//   .scene        `shadowdistance <world units>` - that scene's own reach
 	// Used when the scene's model shader declares the "Cascades" block (the
 	// engine's scene3d.frag); an older game copy keeps the single sun map.
@@ -43,6 +48,10 @@ namespace Scene3DInternal
 	float SceneShadowDistance();
 	float ProjectShadowDistance();                 // renderer.dat `shadowDistance`
 	void ReloadShadowSettings();                   // re-read renderer.dat's shadow keys
+	// Whether a model casts shadows (sun, cascades, lamps' cubes, the GPU-driven
+	// path alike): its material's `shadow on|off`, else its height against
+	// `shadowMinCasterHeight`
+	bool CastsShadow(const Scene3DModel& model);
 	// Split screen (render/RenderViews.h): which view's sun cascades are fitted,
 	// drawn and bound. 0 outside split screen.
 	void SetShadowView(int index);
@@ -112,6 +121,45 @@ namespace Scene3DInternal
 	// A shadow pass's values for a bound depth program (Scene3DShadows.cpp).
 	void ApplyShadowPass(unsigned int program, const glm::mat4& viewProj, const glm::vec3& lightPos,
 		float farPlane, float alphaCutoff, bool sun);
+
+	// --- levels of detail (Scene3D::SetModelLevels; Scene3DLevels.cpp) -------
+	// A model's levels: level 0 is its own mesh list, then one per SetModelLevels
+	// entry (an empty list: nothing drawn). `below[k]` is the screen size under
+	// which level k + 1 takes over from level k.
+	struct ModelLevels
+	{
+		std::vector<std::vector<Mesh*>> meshes;   // levels 1..n
+		std::vector<float> below;                 // one per level after the first
+	};
+	const ModelLevels* LevelsOf(const Scene3DModel* model);   // nullptr: none
+	void ForgetModelLevels(const Scene3DModel* model);        // a model is going
+	void ClearModelLevels();                                  // the scene is
+	// The camera levels are measured from, for the view being drawn: its
+	// position and its projection's vertical scale (1 / tan(fov / 2)). Set from
+	// the renderer's camera as each view's shadows and world are drawn.
+	void SetLevelCamera(const glm::vec3& eye, float scale);
+	glm::vec3 LevelEye();
+	float LevelScale();
+	// The fraction either side of a switch size over which the GPU path
+	// cross-fades two levels (shaders/cull_instances.comp has it too).
+	const float kLevelFade = 0.08f;
+	// A world bounding sphere's screen size (Scene3D::ModelScreenSize)
+	inline float SphereScreenSize(const glm::vec3& centre, float radius, const glm::vec3& eye, float scale)
+	{
+		const glm::vec3 d = centre - eye;
+		const float dist = std::sqrt(d.x * d.x + d.y * d.y + d.z * d.z);
+		return radius * scale / (dist > 1e-4f ? dist : 1e-4f);
+	}
+	// A model's bounding sphere in the world (xyz centre, w radius; w < 0 when
+	// it has no local bounds), as the GPU cull has it
+	glm::vec4 ModelSphere(const Scene3DModel& model, const glm::mat4& matrix);
+	// The CPU paths' choice: the mesh list to draw `model` with now (its own,
+	// or a level's), or nullptr when its level is nothing
+	const std::vector<Mesh*>* LevelMeshes(const Scene3DModel& model, const glm::mat4& matrix);
+
+	// Bumped by any change made through the MaterialLibrary (an edit in place
+	// through FindMutable included): the GPU-driven list's cache
+	unsigned int MaterialLibraryVersion();
 }
 
 #endif

@@ -22,6 +22,7 @@ namespace UniformBlock
 		AmbientOcclusion = 9,   // "AmbientOcclusion": screen-space occlusion of ambient light (shaders/ao.glsl, render/AmbientOcclusion.h)
 		Motion = 10,        // "Motion": cameras for motion vectors (shaders/motion.glsl, render/TemporalAA.h)
 		Clusters = 11,      // "Clusters": clustered light grid (shaders/lights.glsl, render/ClusteredLights.h)
+		Sky = 12,           // "Sky": the sun and the moon in the sky (shaders/sky_bodies.glsl, SkyBodies.h)
 	};
 
 	struct Entry { const char* name; Binding binding; };
@@ -38,6 +39,7 @@ namespace UniformBlock
 		{ "AmbientOcclusion", AmbientOcclusion },
 		{ "Motion", Motion },
 		{ "Clusters", Clusters },
+		{ "Sky", Sky },
 	};
 
 	// Per-draw values are not a block: each shader declares a `DrawData` struct

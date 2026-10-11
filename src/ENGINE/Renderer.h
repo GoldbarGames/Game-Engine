@@ -174,6 +174,16 @@ public:
 	int ViewCount() const;
 	const RenderView* GetViews() const;
 
+	// Renderer settings from game code (since 2026-10-09; a player's graphics
+	// level): a `key value` as renderer.dat writes it, kept over the file's value
+	// until cleared, so the project's file stays as authored. ApplyRenderSettings
+	// makes the changes take effect, mid-game too, as the 3D editor's PROJECT
+	// tab does. linearLighting and gpuDriven need a restart, so they are refused
+	// (false, with a log line). render/RenderSettings.cpp.
+	bool SetRenderSetting(const std::string& key, const std::string& value);
+	void ClearRenderSettings();
+	void ApplyRenderSettings();
+
 	void Init(Game* g);
 	void SetDepthTestEnabled(bool enabled) const;
 	void SetDepthBias(float factor, float units) const;

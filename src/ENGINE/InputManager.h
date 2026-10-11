@@ -137,7 +137,8 @@ public:
 	// lowest free slot in the order they connect: pad 0 is player 1. With it
 	// off (the default) these report no pads and the engine keeps its old
 	// single-pad behaviour. When on, GetKeyPressed / GetKeyReleased count a
-	// press on ANY pad, and menus navigate and confirm (A) from any pad.
+	// press on ANY pad, and menus navigate and confirm (A) from any pad
+	// (or only from the menu's owner: SetMenuOwner below).
 	// For testing without pads: KINJO_PAD_SCRIPT (see Gamepads.cpp).
 	void SetMultiPad(bool on);
 	bool IsMultiPad() const;
@@ -161,6 +162,26 @@ public:
 	// The left stick as a direction: -1, 0 or +1 once it's past threshold
 	int GetPadStickX(int pad, float threshold = 0.5f) const;
 	int GetPadStickY(int pad, float threshold = 0.5f) const;
+
+	// --- A menu owned by one input (multi-pad only) ------------------------
+	// In local multiplayer, a menu one player opens can belong to that
+	// player's input: SetMenuOwner(pad 0-3), or MenuOwnerKeyboard for the
+	// keyboard and mouse. The engine's menus then move (arrows/WASD, d-pad or
+	// stick), confirm (Return, A), take the mouse and remap buttons from that
+	// input only. MenuOwnerAny, the default, takes every input, as before. Set
+	// it when the menu opens and back to MenuOwnerAny when it closes. If the
+	// owning pad is unplugged, the keyboard and mouse take over (logged).
+	// Ignored with multi-pad off. A game's own menu code asks the same
+	// questions with the methods below.
+	enum MenuOwner : int { MenuOwnerAny = -1, MenuOwnerKeyboard = -2 };
+	void SetMenuOwner(int owner);
+	int GetMenuOwner() const;
+	bool MenuKeyboardAllowed() const;     // the keyboard and mouse may use the open menu
+	bool MenuPadAllowed(int pad) const;   // this (connected) pad may
+	// The direction the menu's owner holds: 0 none, 1 up, 2 down, 3 left, 4 right
+	int GetMenuDirection() const;
+	// A button pressed this update on a pad that may use the menu (B to go back)
+	bool GetMenuPadPressed(int sdlButton) const;
 
 	const glm::vec3 GetMouseWorldPosition() const;
 

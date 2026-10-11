@@ -4,7 +4,7 @@
 // as point_shadow_depth.vert, with the model matrix from the frame's instance list.
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec2 tex;
-layout (location = 3) in uint instanceIndex;
+layout (location = 3) in uint instanceIndex;   // low 24 bits (the top 8: a level fade, colour passes only)
 
 out vec2 TexCoord;
 out vec3 WorldPos;
@@ -14,7 +14,7 @@ out vec3 WorldPos;
 
 void main()
 {
-	vec4 w = sceneInstances[instanceIndex].model * vec4(pos, 1.0);
+	vec4 w = sceneInstances[instanceIndex & 0x00FFFFFFu].model * vec4(pos, 1.0);
 	WorldPos = w.xyz;
 	gl_Position = viewProj * w;
 	TexCoord = tex;

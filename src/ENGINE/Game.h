@@ -5,6 +5,7 @@
 #include "filesystem_types.h"
 #include "GUI.h"
 #include <chrono>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include "globals.h"
@@ -215,6 +216,8 @@ public:
 
 	bool HandleEvent(SDL_Event& event);
 	bool HandleMenuEvent(SDL_Event& event);
+	// A key or typed character while text entry is on (from either of those)
+	void HandleTextInputEvent(const SDL_Event& event);
 	void HandleEditMode();
 
 	void GetMenuInput();
@@ -417,8 +420,21 @@ public:
 
 	Dialog* currentDialog = nullptr;
 
+	// Text entry. While it is on, the keys go to inputText, over a menu too
+	// (the menu waits): Backspace deletes, Ctrl+C / Ctrl+V copy and paste, and
+	// Return finishes. The 2D editor's and the tools' dialogs: a Dialog that
+	// shows the text, and a reason StopTextInput acts on.
 	void StartTextInput(Dialog& dialog, const std::string& reason);
 	void StopTextInput(Dialog& dialog);
+	// A game's own field (since 2026-10-09): `done(text, accepted)` runs once,
+	// when Return accepts it or Esc cancels it. It starts from `initial` and
+	// takes at most `maxLength` characters (0: no limit). The game draws it,
+	// from inputText; `reason` only names it in logs.
+	void StartTextInput(const std::string& reason, std::function<void(const std::string& text, bool accepted)> done,
+		const std::string& initial = "", size_t maxLength = 0);
+	// Ends a game's field as Esc does (not accepted)
+	void CancelTextInput();
+	bool TypingText() const { return shouldUpdateDialogInput; }
 
 	void ResetLevel();
 
@@ -436,6 +452,13 @@ public:
 
 	void SaveCreatedScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension);
 	void SaveScreenshot(const std::string& filepath, const std::string& filename, const std::string& extension);
+
+	// The next frame's pixels, for a game's own checks (since 2026-10-09; Golf
+	// Galaxy's --zonecheck): `done` is called once, at the end of that frame's
+	// rendering, with width x height RGB bytes, rows from the top. `withGui`
+	// false takes the world as composited, before the GUI, menus and cursor.
+	// The state is file-local, so Game's layout is unchanged.
+	void CaptureFrame(std::function<void(const unsigned char* rgb, int width, int height)> done, bool withGui = true);
 
 	Sprite* CreateSprite(const std::string& filepath, const int shaderName = 1);
 

@@ -6,6 +6,9 @@
 #include "Texture.h"
 #include "Mesh.h"
 #include "RenderState.h"
+#include "SkyClouds.h"
+#include "SkyBodies.h"
+#include "SkyImage.h"
 #include <cmath>
 #include <vector>
 #include <iostream>
@@ -70,6 +73,10 @@ Skybox::Skybox(Game& game, const std::string& texturePath, float radius,
 			(unsigned int)verts.size(), (unsigned int)inds.size(), 8, 3, 5);
 	}
 
+	// No path: a sphere for a sky the game paints itself (Scene3D::SetSkyImage)
+	if (texturePath.empty())
+		return;
+
 	Texture* tex = game.spriteManager.GetImage(texturePath);
 	if (tex != nullptr)
 	{
@@ -97,6 +104,22 @@ void Skybox::Update(Game& game)
 
 void Skybox::Render(const Renderer& renderer)
 {
+	// Keep the sphere safely inside the far plane no matter what a scene sets, so
+	// it can never be clipped away (the far margin was only ~800u here).
+	float r = skyRadius;
+	const float maxR = renderer.camera.farPlane * 0.9f;
+	if (maxR > 0.0f && r > maxR)
+		r = maxR;
+
+	// A sky the game painted itself (Scene3D::SetSkyImage), in linear HDR: it is
+	// the sky while it is set, with the clouds that move over it
+	if (DrawHdrSky(renderer, r))
+	{
+		position = renderer.camera.position;
+		DrawSkyClouds(renderer, r);
+		return;
+	}
+
 	Sprite* s = GetSprite();
 	if (s == nullptr || s->texture == nullptr)
 		return;
@@ -108,13 +131,6 @@ void Skybox::Render(const Renderer& renderer)
 	// here guarantees the surface is always exactly skyRadius from the eye.
 	position = renderer.camera.position;
 
-	// Keep the sphere safely inside the far plane no matter what a scene sets, so
-	// it can never be clipped away (the far margin was only ~800u here).
-	float r = skyRadius;
-	const float maxR = renderer.camera.farPlane * 0.9f;
-	if (maxR > 0.0f && r > maxR)
-		r = maxR;
-
 	// The sphere mesh puts the panorama's top row (v = 0) at mesh +Y, which in
 	// this -Y-up world is DOWN, so it is drawn mirrored in Y: the zenith overhead,
 	// the ordinary equirectangular layout (and the one image-based lighting reads,
@@ -122,6 +138,15 @@ void Skybox::Render(const Renderer& renderer)
 	// drew upside down; TrainRails and CruiseShipCleanup had flipped their
 	// panoramas to compensate, and were flipped back when this was fixed.
 	const glm::vec3 skyScale(r, -r, r);
+
+	// The sun and the moon where a game has put them (SkyBodies.h): one shader
+	// draws the panorama with them, in place of the two passes below.
+	if (rotation == glm::vec3(0.0f) && DrawSkyWithBodies(renderer, r, s->texture, nextTexture, blendToNext,
+		glm::vec3(s->color.r, s->color.g, s->color.b) / 255.0f))
+	{
+		DrawSkyClouds(renderer, r);
+		return;
+	}
 
 	// There is no backface culling, so the sphere is visible from inside.
 	// Pass 1: the base panorama (tint in colour.rgb, fully opaque).
@@ -152,4 +177,7 @@ void Skybox::Render(const Renderer& renderer)
 	}
 
 	s->color = baseColor;
+
+	// The clouds that move (SkyClouds.h), over whichever sky is showing.
+	DrawSkyClouds(renderer, r);
 }

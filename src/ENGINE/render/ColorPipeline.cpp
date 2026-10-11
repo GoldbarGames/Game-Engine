@@ -339,7 +339,7 @@ void ReloadColorSettings()
 
 void LoadColorSettings()
 {
-	auto config = GetMapStringsFromFile(RendererConfigPath());
+	auto config = ReadRendererConfig();
 
 	bool want = false;
 	const char* env = std::getenv("KINJO_LINEAR");

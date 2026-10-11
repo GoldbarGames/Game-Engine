@@ -71,4 +71,9 @@ void RunPass(const char* name, TargetSet reads, TargetSet writes, const std::fun
 void BeginFramePasses();
 void EndFramePasses();
 
+// A number that changes at the start and the end of every pass, and of every
+// frame: what holds for the length of a pass (the scene's lighting, packed
+// once for all its draws) can be kept against it.
+unsigned int RenderPassSerial();
+
 #endif

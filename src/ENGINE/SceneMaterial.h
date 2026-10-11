@@ -130,6 +130,44 @@ public:
 	// The layers as a texture array for the current season, made on first use
 	// (0: none, or this GPU can't). For the renderer (Scene3D::ApplyMaterial).
 	unsigned int SplatLayersTexture(const SceneMaterial& material) const;
+	// Swaying in the wind (`wind <sway> [height]`, Wind.h): how far the top of a
+	// model with this material leans in a fresh breeze, world units (0: it
+	// doesn't), and, through `height` if given, the height the sway is weighted
+	// by (0: the mesh's tangent slot weights it). 0 for a material that isn't
+	// one of the library's.
+	float Wind(const SceneMaterial& material, float* height = nullptr) const;
+	void SetWind(SceneMaterial& material, float sway, float height);
+	// How much its parts flutter, times their weights: `wind <sway> <height>
+	// <flutter>` (since 2026-10-10; 1 unless given). A tree's bark wants 0 (it
+	// sways but doesn't flutter), its leaves 1.
+	float WindFlutter(const SceneMaterial& material) const;
+	void SetWindFlutter(SceneMaterial& material, float flutter);
+	// Backlit leaves (`translucency <v>`, since 2026-10-10): the sun shining
+	// through from behind, shadowed as its direct light is, tinted yellow-green
+	// by the albedo. 0 = none (the default); leaves 0.2-0.45.
+	float Translucency(const SceneMaterial& material) const;
+	void SetTranslucency(SceneMaterial& material, float strength);
+	// Alpha cut-out threshold (`cutout <v>`, since 2026-10-10): texels whose
+	// alpha is below it are cut out (leaf cards want 0.5, as the shadow maps
+	// cut). 0 = the engine's usual 0.1.
+	float Cutout(const SceneMaterial& material) const;
+	void SetCutout(SceneMaterial& material, float threshold);
+	// `fade on` (since 2026-10-10): models with this material dissolve where
+	// they stand between the camera and what it follows, while the scene's
+	// occluder fade is on (Scene3D::SetOccluderFade). Colour passes only: their
+	// shadows stay.
+	bool FadesNearLine(const SceneMaterial& material) const;
+	void SetFadesNearLine(SceneMaterial& material, bool fades);
+	// `shadow off`: models with this material cast no shadow (grass: too small
+	// to show in a shadow map, and too many to draw into one).
+	bool CastsShadow(const SceneMaterial& material) const;
+	void SetCastsShadow(SceneMaterial& material, bool casts);
+	// The material's shadow choice: -1 `shadow off` (never casts), +1 `shadow
+	// on` (always casts, however small), 0 none (the model's height decides:
+	// renderer.dat `shadowMinCasterHeight`). 0 for a material that isn't one of
+	// the library's.
+	int ShadowChoice(const SceneMaterial& material) const;
+	void SetShadowChoice(SceneMaterial& material, int choice);
 	// The whole library as material-file text (the editor's undo snapshots),
 	// and back: materials missing from the text are dropped from Names() and
 	// saving, as if never made. Then refresh held pointers, as after Add.

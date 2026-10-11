@@ -30,6 +30,10 @@ struct SkySource
 	Texture* next = nullptr;          // cross-fade target (time-of-day), or null
 	float blend = 0.0f;               // toward `next`, 0..1
 	glm::vec3 tint = glm::vec3(1.0f); // the sky's tint as authored (sRGB, 0..1)
+	// A sky the game painted (Scene3D::SetSkyImage, SkyImage.h): when set, the
+	// sky is this linear HDR texture, captured as it is (no decode, tint or fade)
+	unsigned int hdrSky = 0;
+	int hdrVersion = 0;               // changes with each new image
 };
 
 void LoadEnvironmentSettings();       // renderer.dat / KINJO_IBL (after LoadColorSettings)

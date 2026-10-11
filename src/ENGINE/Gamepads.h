@@ -47,9 +47,26 @@ namespace Gamepads
 	bool Released(int pad, int sdlButton);
 	int Axis(int pad, int sdlAxis);        // raw, -32768..32767
 
-	bool AnyPressed(int sdlButton);         // on any pad this update
-	int AnyButtonPressed();                 // the first button pressed on any pad, or -1
-	MenuDirection AnyMenuDirection();       // d-pad, or left stick past half way, on any pad
+	bool AnyPressed(int sdlButton);         // on any pad this update (game keys: GetKeyPressed)
+
+	// A menu owned by one input (InputManager::SetMenuOwner). kMenuOwnerAny,
+	// the default, lets every input use the menus; kMenuOwnerKeyboard only the
+	// keyboard and mouse; 0-3 only that pad. Ignored with multi-pad off. If the
+	// owning pad is unplugged, the keyboard and mouse take the menu over.
+	constexpr int kMenuOwnerAny = -1;
+	constexpr int kMenuOwnerKeyboard = -2;
+	void SetMenuOwner(int owner);
+	int MenuOwner();
+	bool MenuKeyboardAllowed();             // the keyboard and mouse may use the open menu
+	bool MenuPadAllowed(int pad);           // this pad may
+
+	// The menus' reads: only the pads that may use the menu count
+	bool MenuPressed(int sdlButton);        // this update
+	int AnyButtonPressed();                 // the first button pressed (a remap), or -1
+	MenuDirection AnyMenuDirection();       // d-pad, or left stick past half way
+	// The arrows or WASD (when the keyboard may use the menu), or a pad's d-pad
+	// or left stick, tested in that order: what MenuButton and SettingsButton read
+	MenuDirection HeldMenuDirection(const Uint8* keyStates);
 }
 
 #endif

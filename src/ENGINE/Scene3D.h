@@ -18,6 +18,7 @@ class Texture;
 class ShaderProgram;
 class Mesh;
 class Skybox;
+class Camera;
 
 // Optional directional fill light (the .scene "light" line). Diffuse 0
 // leaves it off - a point/spot-lit room usually wants only a faint fill.
@@ -706,8 +707,99 @@ public:
 	Scene3DModel* AddRuntimeModel(Game& game, Mesh* mesh, const std::string& texture,
 		const std::string& material, const glm::vec3& localMin, const glm::vec3& localMax,
 		const glm::vec3& pos = glm::vec3(0.0f));
+	// ...and its vertices handed over too (since 2026-10-10), as they went to
+	// Mesh::CreateMesh: `stride` floats a vertex, uv, normal and (or -1) tangent
+	// at those offsets. The engine copies them into the GPU-driven path's shared
+	// mesh pool, so a runtime model of this mesh is drawn there - culled on the
+	// GPU and drawn with every other model of its texture and material in one
+	// multi-draw - instead of one draw of its own in every pass. Call it once,
+	// before or after AddRuntimeModel; the copy is forgotten with the mesh.
+	// (Without it a game-built mesh stays on the CPU path, as before.)
+	static void ShareRuntimeMesh(const Mesh* mesh, const float* vertices, size_t floatCount,
+		const unsigned int* indices, size_t indexCount, unsigned int stride,
+		unsigned int uvOffset = 3, unsigned int normalOffset = 5, int tangentOffset = -1);
 	void RemoveRuntimeModels(Game& game);
 	static bool IsRuntimeModel(const Scene3DModel* m);
+	// A model FILE as a runtime model (since 2026-10-10): loaded through the
+	// engine's model cache, so every model of the same file shares its meshes
+	// (and the GPU-driven path instances them), its bounds the file's; removed
+	// with the game's own by RemoveRuntimeModels. For games that place many
+	// copies of generated models (Golf Galaxy's trees) without the model loader's
+	// headers. nullptr when no scene is loaded or the file won't load.
+	Scene3DModel* AddRuntimeModelFile(Game& game, const std::string& file, const std::string& texture,
+		const std::string& material, const glm::vec3& pos = glm::vec3(0.0f));
+
+	// --- a game's own program for a scene model (since 2026-10-09) ----------
+	// The model's colour draws use `program` in place of the scene's model shader
+	// (a terrain painted from the game's own data). Each draw sets the camera, the
+	// model's matrices, its material, the scene's lighting (ApplyLighting) and its
+	// texture on unit 0 as for any model, then calls `bind` with the program, to
+	// bind the game's own textures (DataTexture.h) and uniforms. Its shadows, AO
+	// prepass and depth keep the engine's programs, and it stays out of instanced
+	// and GPU-driven drawing. nullptr puts the scene's shader back.
+	// Texture units: the engine's lit shaders use all 16 (albedo 0, normal map 1,
+	// metal-roughness 2, the single sun map 3, point shadows 4, occlusion 5, glow 6,
+	// splat 7, sky light 8-10, cascades 11, ambient occlusion 12-13, light clusters
+	// 14, reflections 15). A game program that leaves out the material maps may
+	// use 0, 1, 2, 5, 6 and 7 - except that on the GL 3.3 / web fallback 5-7 hold
+	// point-shadow cubes when a lamp casts shadows.
+	// The program follows the world pass's rules: it writes motion vectors
+	// (motion.glsl) or leaves the Motion block out, and it includes target.glsl
+	// if it works in linear light.
+	void SetModelProgram(Scene3DModel* model, ShaderProgram* program,
+		std::function<void(unsigned int program)> bind = nullptr);
+
+	// --- a sky the game paints itself, in linear HDR (since 2026-10-09) -----
+	// `rgb` is width x height linear RGB floats, an equirectangular panorama laid
+	// out as the scene's (u around the horizon, v = 0 at the zenith; SkyImage.cpp).
+	// It becomes the sky: drawn as it is (a sun far brighter than 1 blooms) in
+	// place of the scene's panorama file and of the sun and moon (SkyBodies.h),
+	// and image-based lighting is captured from it. Call again with a new image
+	// (the same size updates in place); nullptr goes back to the scene's own sky.
+	// A scene without a sky gets the sky sphere to draw it on.
+	void SetSkyImage(Game& game, const float* rgb, int width, int height);
+	bool HasSkyImage() const;
+	// The sun's disc over the painted sky (since 2026-10-09), worked out per pixel:
+	// a disc painted into the image would be a texel or two of blur. `toSun` is
+	// world (up is -Y); `angularRadius` in radians (life: 0.0047); `radiance` is
+	// linear, far over 1 so it blooms (0: no disc, the default). A low sun is
+	// squashed to `flatten` of its height by refraction, and tinted from
+	// `lowerTint` at its lower edge to `upperTint` at its upper one (the lower
+	// edge crosses more air). Golf Galaxy's view/Lighting sets it from its
+	// atmosphere model. Not captured by image-based lighting.
+	void SetSkyImageSun(const glm::vec3& toSun, float angularRadius, const glm::vec3& radiance,
+		float flatten = 1.0f, const glm::vec3& lowerTint = glm::vec3(1.0f), const glm::vec3& upperTint = glm::vec3(1.0f));
+
+	// --- levels of detail (since 2026-10-10; Scene3DLevels.cpp) ---------------
+	// A model drawn simpler as it gets smaller on screen. `objs[i]` takes over
+	// from the level before it (the model's own mesh is the first) once the
+	// model covers less than `below[i]` of the screen's height (ModelScreenSize);
+	// an empty path draws nothing from there on (undergrowth far off). The sizes
+	// must fall from one level to the next. The levels draw with the model's own
+	// texture and material, so their UVs must map into the same texture. The
+	// size is measured from the camera of the view being drawn (it shrinks with
+	// distance and grows with zoom), so a shadow cascade casts the level its view
+	// shows. The GPU-driven path cross-fades two levels with a dither over 8% of
+	// a size either side of each switch (no fade in the shadows); the other paths
+	// switch at the size. An empty list takes the levels away again.
+	void SetModelLevels(Scene3DModel* model, const std::vector<std::string>& objs, const std::vector<float>& below);
+	// What the levels are measured in: the diameter of the model's bounding sphere
+	// (from its local bounds and its scale) over the screen's height, seen by
+	// `camera` (a perspective one). Shared with the GPU cull, so a game can work
+	// out its switch sizes the same way.
+	float ModelScreenSize(const Scene3DModel* model, const Camera& camera) const;
+
+	// --- the occluder fade (since 2026-10-10) --------------------------------
+	// Models whose material says `fade on` dissolve, with a dither in the colour
+	// passes only (their shadows stay), where they stand near the line from
+	// `from` to `to`: across the ground (x, z) within `radius` of it (whole inside
+	// 0.6 x radius, faded fully by 1.4 x), short of the last fifth of the way to
+	// `to`, and within `reach` of `from` (fading from 0.8 x to 1.2 x); at most
+	// `strength` of their pixels go. For a camera following something past
+	// trees: `from` the camera, `to` what it follows (Golf Galaxy's ball). Off
+	// until a game turns it on; world units.
+	void SetOccluderFade(const glm::vec3& from, const glm::vec3& to, bool enabled,
+		float radius = 5.0f, float reach = 25.0f, float strength = 0.85f);
 
 	// --- a game's own moving geometry in the sun's shadow -----------------
 	// For geometry a game draws itself each frame (a moving train): `draw` runs
@@ -717,6 +809,14 @@ public:
 	void SetShadowCasterHook(std::function<void()> draw, std::function<double()> signature);
 	// Only inside the hook's draw: one mesh into the shadow map being drawn.
 	void DrawShadowMesh(Mesh* mesh, const glm::mat4& model) const;
+
+	// --- a game's own see-through geometry ---------------------------------
+	// For glass and the like that a game draws itself (a train's windows): `draw`
+	// runs once a frame (and once per view) after every opaque thing and the
+	// scene's own transparent models, with PREMULTIPLIED blending (the colour
+	// written is added; what is behind is kept by 1 - alpha), depth tested and
+	// not written. Its draws should go back to front. Empty = none.
+	void SetTransparentHook(std::function<void()> draw);
 
 	// The sky panorama entity (nullptr without a sky), e.g. to drive its
 	// cross-fade (nextTexture / blendToNext) from a game's time of day.
@@ -775,6 +875,9 @@ private:
 	void WriteScene(std::ostream& out) const;
 	bool LoadFromStream(Game& game, std::istream& file,
 		const std::string& sceneName, bool jumpCamera);
+	// A painted sky (SetSkyImage) needs a sky sphere: one without a texture
+	// file, when the scene has none
+	void EnsureSkyForImage(Game& game);
 
 	std::vector<Scene3DModel*> models;
 	std::vector<Character3D*> characters;
@@ -829,6 +932,7 @@ private:
 	// depth passes (sun cascades, point-light cube faces). False = not active
 	// this frame (the caller draws every model itself).
 	void BuildGpuDrawList(const Renderer& renderer);
+	void RebuildGpuComposition();   // (BuildGpuDrawList, when the models' composition changes)
 	bool DrawGpuColourView(const Renderer& renderer, unsigned int program, bool world);
 	bool DrawGpuDepthView(const glm::mat4& viewProj, unsigned int program);
 	int shadowMapSize = 2048;

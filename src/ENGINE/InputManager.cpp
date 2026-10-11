@@ -654,6 +654,36 @@ int InputManager::GetPadStickX(int pad, float threshold) const
 	return (x >= threshold) ? 1 : (x <= -threshold ? -1 : 0);
 }
 
+void InputManager::SetMenuOwner(int owner)
+{
+	Gamepads::SetMenuOwner(owner);
+}
+
+int InputManager::GetMenuOwner() const
+{
+	return Gamepads::MenuOwner();
+}
+
+bool InputManager::MenuKeyboardAllowed() const
+{
+	return Gamepads::MenuKeyboardAllowed();
+}
+
+bool InputManager::MenuPadAllowed(int pad) const
+{
+	return Gamepads::Connected(pad) && Gamepads::MenuPadAllowed(pad);
+}
+
+int InputManager::GetMenuDirection() const
+{
+	return Gamepads::HeldMenuDirection(SDL_GetKeyboardState(NULL));
+}
+
+bool InputManager::GetMenuPadPressed(int sdlButton) const
+{
+	return Gamepads::MenuPressed(sdlButton);
+}
+
 int InputManager::GetPadStickY(int pad, float threshold) const
 {
 	const float y = GetPadAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);

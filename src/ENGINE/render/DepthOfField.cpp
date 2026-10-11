@@ -160,7 +160,7 @@ namespace
 
 void LoadDepthOfFieldSettings()
 {
-	auto config = GetMapStringsFromFile(RendererConfigPath());
+	auto config = ReadRendererConfig();
 	allowed = !(config.count("depthOfField") > 0 && config["depthOfField"] == "0");
 	if (const char* e = std::getenv("KINJO_DOF"))
 	{

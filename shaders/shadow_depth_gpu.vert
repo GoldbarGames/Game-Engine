@@ -4,7 +4,7 @@
 // shadow_depth.vert, with the model matrix from the frame's instance list.
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec2 tex;
-layout (location = 3) in uint instanceIndex;
+layout (location = 3) in uint instanceIndex;   // low 24 bits (the top 8: a level fade, colour passes only)
 
 out vec2 TexCoord;
 
@@ -13,6 +13,6 @@ out vec2 TexCoord;
 
 void main()
 {
-	gl_Position = viewProj * sceneInstances[instanceIndex].model * vec4(pos, 1.0);
+	gl_Position = viewProj * sceneInstances[instanceIndex & 0x00FFFFFFu].model * vec4(pos, 1.0);
 	TexCoord = tex;
 }

@@ -7,7 +7,9 @@ struct SceneInstance
 {
 	mat4  model;
 	vec4  sphere;   // world-space bounding sphere: xyz centre, w radius (< 0 = unknown: never culled)
-	uvec4 info;     // x = batch, y = flags (1 = drawn in the colour passes, 2 = casts shadows)
+	uvec4 info;     // x = batch, y = flags (1 = drawn in the colour passes, 2 = casts shadows),
+	                // z, w = the screen sizes it draws between (float bits; 0 and +inf: always;
+	                // levels of detail, cull_instances.comp)
 };
 
 layout(std430, binding = 0) readonly buffer SceneInstances

@@ -91,6 +91,11 @@ public:
 	glm::mat4 projection = glm::mat4();
 	glm::mat4 guiProjection = glm::mat4();
 	glm::mat4 CalculateViewMatrix() const;
+	// What CalculateViewMatrix builds the view from (with `position`), for code
+	// that keeps a view against it rather than making it again (inline: no
+	// change to the class's layout).
+	const glm::vec3& ViewFront() const { return front; }
+	const glm::vec3& ViewUp() const { return up; }
 
 	const SDL_Rect GetBounds() const;
 

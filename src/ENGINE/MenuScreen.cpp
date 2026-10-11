@@ -6,6 +6,7 @@
 #include "Renderer.h"
 #include "Editor.h"
 #include "FileManager.h"
+#include "Gamepads.h"
 
 MenuAnimation::MenuAnimation(Entity* e)
 {
@@ -425,6 +426,10 @@ bool MenuScreen::Update(Game& game)
 
 	if (useMouse)
 	{
+		// A menu owned by a pad (InputManager::SetMenuOwner) ignores the mouse
+		if (!Gamepads::MenuKeyboardAllowed())
+			return false;
+
 		SDL_Rect mouseRect;
 
 		previousMouseState = mouseState;

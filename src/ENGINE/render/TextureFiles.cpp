@@ -235,7 +235,7 @@ std::string PreferredTextureFile(const std::string& path)
 
 void LoadTextureSettings()
 {
-	auto config = GetMapStringsFromFile(RendererConfigPath());
+	auto config = ReadRendererConfig();
 	anisotropy = 8.0f;
 	if (config.count("anisotropy") > 0)
 	{

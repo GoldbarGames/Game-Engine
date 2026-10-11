@@ -29,6 +29,9 @@ void Mesh::CreateMesh(float* vertices, unsigned int* indices,
 {
     RenderDevice& device = Device();
     indexCount = numOfIndices;
+    // Made again: a copy in the shared pool is out of date (Model.cpp adds the
+    // new one after this).
+    MeshPoolForget(this);
 
     const VertexArrayHandle vao = device.CreateVertexArray();
     const BufferHandle ibo = device.CreateIndexBuffer(sizeof(indices[0]) * numOfIndices, indices);
@@ -58,6 +61,9 @@ void Mesh::UpdateVertices(const float* vertices, unsigned int floatCount)
     if (VBO == 0 || vertices == nullptr || floatCount == 0)
         return;
     Device().UpdateBuffer(BufferHandle(VBO), 0, sizeof(float) * floatCount, vertices);
+    // A copy in the shared pool would now be out of date: drop it, and the
+    // models drawing this mesh go back to the CPU path.
+    MeshPoolForget(this);
 }
 
 void Mesh::BindMesh()

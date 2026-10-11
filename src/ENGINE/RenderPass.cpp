@@ -1,6 +1,8 @@
 #include "RenderPass.h"
 #include "Shader.h"
 #include "render/RenderDevice.h"
+#include "render/DrawStats.h"
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -73,6 +75,7 @@ namespace
 		int depth = 0;
 		QueryHandle begin, end;
 		double cpuMs = 0.0;
+		uint64_t draws = 0;   // draw calls recorded, nested passes included
 	};
 	std::vector<PassTiming> timingRing[kTimingFrames];
 	int timingSlot = 0;
@@ -83,12 +86,17 @@ namespace
 		std::string name;
 		int depth = 0;
 		double gpuMs = 0.0, cpuMs = 0.0;
+		double draws = 0.0;
 		int samples = 0;
 	};
 	std::vector<TimingStat> timingStats;   // in the order passes first appeared
 	double frameGpuMs = 0.0;
 	int timedFrames = 0;
 	int droppedFrames = 0;   // results not ready in time
+
+	// The World pass's draws by entity type (DrawStats.h), since the last report.
+	std::vector<std::pair<std::string, double>> drawsBy;
+	int drawsByFrames = 0;
 
 	QueryHandle TakeQuery()
 	{
@@ -138,6 +146,7 @@ namespace
 				}
 				stat->gpuMs += gpu[i];
 				stat->cpuMs += passes[i].cpuMs;
+				stat->draws += (double)passes[i].draws;
 				stat->samples++;
 			}
 			frameGpuMs += (double)(last - first) / 1.0e6;
@@ -159,12 +168,12 @@ namespace
 			std::cout << "Pass timings (ms per frame, avg of " << timedFrames << " frames";
 			if (droppedFrames > 0)
 				std::cout << "; " << droppedFrames << " more not ready in time";
-			std::cout << ")  GPU / CPU-record:" << std::endl;
+			std::cout << ")  GPU / CPU-record, draw calls:" << std::endl;
 			for (const TimingStat& s : timingStats)
 			{
-				char line[160];
-				std::snprintf(line, sizeof(line), "  %-*s%-20s %7.3f / %6.3f%s", s.depth * 2, "", s.name.c_str(),
-					s.gpuMs / s.samples, s.cpuMs / s.samples,
+				char line[192];
+				std::snprintf(line, sizeof(line), "  %-*s%-20s %7.3f / %6.3f %7.0f%s", s.depth * 2, "", s.name.c_str(),
+					s.gpuMs / s.samples, s.cpuMs / s.samples, s.draws / s.samples,
 					(s.samples < timedFrames) ? "  (not every frame)" : "");
 				std::cout << line << std::endl;
 			}
@@ -173,6 +182,21 @@ namespace
 				char total[96];
 				std::snprintf(total, sizeof(total), "  GPU frame (first pass to last): %.3f", frameGpuMs / timedFrames);
 				std::cout << total << std::endl;
+			}
+			if (!drawsBy.empty() && drawsByFrames > 0)
+			{
+				std::sort(drawsBy.begin(), drawsBy.end(),
+					[](const std::pair<std::string, double>& a, const std::pair<std::string, double>& b)
+					{ return a.second > b.second; });
+				std::cout << "  World draws by entity type:" << std::endl;
+				for (const auto& who : drawsBy)
+				{
+					char line[128];
+					std::snprintf(line, sizeof(line), "    %-24s %7.0f", who.first.c_str(), who.second / drawsByFrames);
+					std::cout << line << std::endl;
+				}
+				drawsBy.clear();
+				drawsByFrames = 0;
 			}
 			timingStats.clear();
 			frameGpuMs = 0.0;
@@ -227,8 +251,37 @@ const char* RenderTargetName(RenderTarget target)
 	}
 }
 
+namespace
+{
+	unsigned int passSerial = 1;
+}
+
+unsigned int RenderPassSerial()
+{
+	return passSerial;
+}
+
+bool DrawStatsOn()
+{
+	return TimingRequested();
+}
+
+void AttributeDraws(const std::string& who, uint64_t draws)
+{
+	for (auto& entry : drawsBy)
+	{
+		if (entry.first == who)
+		{
+			entry.second += (double)draws;
+			return;
+		}
+	}
+	drawsBy.push_back({ who, (double)draws });
+}
+
 void BeginFramePasses()
 {
+	passSerial++;
 	writtenThisFrame = 0;
 	depth = 0;
 	frame.clear();
@@ -265,16 +318,20 @@ void RunPass(const char* name, TargetSet reads, TargetSet writes, const std::fun
 		passes[timing].begin = TakeQuery();
 		Device().WriteTimestamp(passes[timing].begin);
 		cpuStart = std::chrono::steady_clock::now();
+		passes[timing].draws = DeviceDrawCalls();
 	}
 
+	passSerial++;
 	depth++;
 	body();
 	depth--;
+	passSerial++;
 
 	if (timed)
 	{
 		PassTiming& p = timingRing[timingSlot][timing];
 		p.cpuMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - cpuStart).count();
+		p.draws = DeviceDrawCalls() - p.draws;
 		p.end = TakeQuery();
 		Device().WriteTimestamp(p.end);
 	}
@@ -286,9 +343,12 @@ void RunPass(const char* name, TargetSet reads, TargetSet writes, const std::fun
 
 void EndFramePasses()
 {
+	passSerial++;
 	frameNumber++;
 	if (TimingRequested())
 	{
+		if (!drawsBy.empty())
+			drawsByFrames++;
 		// The next slot holds the frame from kTimingFrames - 1 frames ago.
 		timingSlot = (timingSlot + 1) % kTimingFrames;
 		CollectTimings(timingRing[timingSlot]);

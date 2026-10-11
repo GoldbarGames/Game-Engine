@@ -28,6 +28,7 @@ namespace Gamepads
 		Slot slots[kMaxPads];
 		bool multiPad = false;
 		bool rescanPending = false;
+		int menuOwner = kMenuOwnerAny;
 
 		// KINJO_PAD_SCRIPT: made-up pad input for test runs with no pads plugged
 		// in. Entries separated by ';', each "<pad> <control>[=<value>] <from>[-<to>]",
@@ -254,6 +255,12 @@ namespace Gamepads
 				SDL_GameControllerClose(slots[slot].pad);
 				slots[slot] = Slot();
 				SyncGameController(game);
+				// A menu it owned would be left with no input that can reach it
+				if (menuOwner == slot)
+				{
+					menuOwner = kMenuOwnerKeyboard;
+					std::cout << "Gamepad " << slot << " owned the open menu: the keyboard and mouse have it now" << std::endl;
+				}
 			}
 		}
 	}
@@ -369,10 +376,44 @@ namespace Gamepads
 		return false;
 	}
 
+	void SetMenuOwner(int owner)
+	{
+		if (owner != kMenuOwnerAny && owner != kMenuOwnerKeyboard && (owner < 0 || owner >= kMaxPads))
+			owner = kMenuOwnerAny;
+		menuOwner = owner;
+	}
+
+	int MenuOwner()
+	{
+		return menuOwner;
+	}
+
+	bool MenuKeyboardAllowed()
+	{
+		return !multiPad || menuOwner == kMenuOwnerAny || menuOwner == kMenuOwnerKeyboard;
+	}
+
+	bool MenuPadAllowed(int pad)
+	{
+		return !multiPad || menuOwner == kMenuOwnerAny || menuOwner == pad;
+	}
+
+	bool MenuPressed(int sdlButton)
+	{
+		for (int i = 0; i < kMaxPads; i++)
+		{
+			if (MenuPadAllowed(i) && Pressed(i, sdlButton))
+				return true;
+		}
+		return false;
+	}
+
 	int AnyButtonPressed()
 	{
 		for (int i = 0; i < kMaxPads; i++)
 		{
+			if (!MenuPadAllowed(i))
+				continue;
 			for (int b = 0; b < SDL_CONTROLLER_BUTTON_MAX; b++)
 			{
 				if (Pressed(i, b))
@@ -382,12 +423,27 @@ namespace Gamepads
 		return -1;
 	}
 
+	MenuDirection HeldMenuDirection(const Uint8* keys)
+	{
+		const MenuDirection pad = AnyMenuDirection();
+		const bool k = keys != nullptr && MenuKeyboardAllowed();
+		if ((k && (keys[SDL_SCANCODE_UP] || keys[SDL_SCANCODE_W])) || pad == Up)
+			return Up;
+		if ((k && (keys[SDL_SCANCODE_DOWN] || keys[SDL_SCANCODE_S])) || pad == Down)
+			return Down;
+		if ((k && (keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_A])) || pad == Left)
+			return Left;
+		if ((k && (keys[SDL_SCANCODE_RIGHT] || keys[SDL_SCANCODE_D])) || pad == Right)
+			return Right;
+		return None;
+	}
+
 	MenuDirection AnyMenuDirection()
 	{
 		const int half = 16384;
 		for (int i = 0; i < kMaxPads; i++)
 		{
-			if (!Connected(i))
+			if (!Connected(i) || !MenuPadAllowed(i))
 				continue;
 			if (Held(i, SDL_CONTROLLER_BUTTON_DPAD_UP) || Axis(i, SDL_CONTROLLER_AXIS_LEFTY) <= -half)
 				return Up;

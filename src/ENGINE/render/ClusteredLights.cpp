@@ -158,7 +158,7 @@ namespace
 
 void LoadClusteredLightSettings()
 {
-	auto config = GetMapStringsFromFile(RendererConfigPath());
+	auto config = ReadRendererConfig();
 	projectOn = !(config.count("clusteredLights") > 0 && config["clusteredLights"] == "0");
 	if (const char* e = std::getenv("KINJO_CLUSTERS"))
 		forced = (e[0] == '0') ? 0 : (e[0] == '1') ? 1 : -1;

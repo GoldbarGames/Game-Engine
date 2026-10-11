@@ -28,7 +28,8 @@ Dialog::~Dialog()
 
 void Dialog::Update(const std::string& newText)
 {
-	input->SetText(newText);
+	if (input != nullptr)
+		input->SetText(newText);
 }
 
 void Dialog::Render(const Renderer& renderer)

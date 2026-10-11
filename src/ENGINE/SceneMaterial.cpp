@@ -1,6 +1,7 @@
 #include "SceneMaterial.h"
 #include "Game.h"
 #include "Scene3D.h"
+#include "Scene3DInternal.h"
 #include "Shader.h"
 #include "SpriteManager.h"
 #include "StartupTrace.h"
@@ -10,12 +11,14 @@
 #include "render/TextureFiles.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <set>
 #include <thread>
+#include <unordered_map>
 
 namespace
 {
@@ -30,12 +33,67 @@ namespace
 		std::string emissivePath;    // `emissivemap`: multiplies `emissive`
 		std::string roughnessPath;   // `roughnessmap`: G x roughness, B x metallic
 		std::string splatPath;       // `splat`: up to three ground layers, space-separated
+		float wind = 0.0f;           // `wind`: sway in a fresh breeze, world units (Wind.h)...
+		float windHeight = 0.0f;     // ...weighted by this height (0: by the mesh's tangent slot)
+		float windFlutter = 1.0f;    // ...and its flutter scaled by this (bark 0, leaves 1)
+		float translucency = 0.0f;   // `translucency`: sunlight through leaves from behind
+		float cutout = 0.0f;         // `cutout`: alpha cut-out threshold (0: the usual 0.1)
+		bool fade = false;           // `fade on`: dissolves near the occluder-fade line
+		bool noShadow = false;       // `shadow off`: casts none (grass: too small to show, too many to draw)
+		bool forceShadow = false;    // `shadow on`: casts, however small (a golf ball, a flagstick)
+
+		// Anything beyond the defaults (worth an entry in extraMaps)
+		bool Any() const
+		{
+			return !emissivePath.empty() || !roughnessPath.empty() || !splatPath.empty() || wind != 0.0f
+				|| windFlutter != 1.0f || translucency != 0.0f || cutout != 0.0f || fade || noShadow || forceShadow;
+		}
 		Texture* emissive = nullptr;
 		Texture* roughness = nullptr;
 		unsigned int splatTexture = 0;   // the layers as one texture array, made on first use...
 		int splatSeason = -1;            // ...for this season (Scene3D::Season)
 	};
 	std::map<std::string, ExtraMaps> extraMaps;
+
+	// The library's own materials' extra fields by address, for the accessors
+	// the renderer calls per model and per draw: by name, two string-keyed
+	// lookups each were several milliseconds a frame in a Debug build with a
+	// thousand models (Golf Galaxy's trees). Rebuilt after any change to the
+	// library (ExtrasChanged), with the same test as before: a material is the
+	// library's own only if Find(its name) is it.
+	std::unordered_map<const SceneMaterial*, ExtraMaps*> extraByAddress;
+	bool extraByAddressValid = false;
+
+	unsigned int libraryVersion = 0;   // Scene3DInternal::MaterialLibraryVersion
+
+	void ExtrasChanged()
+	{
+		extraByAddressValid = false;
+		libraryVersion++;
+	}
+
+	// The extra fields of one of the library's own materials (nullptr: none,
+	// or a model's own material, or a copy)
+	ExtraMaps* OwnExtras(const MaterialLibrary& library, const SceneMaterial& material)
+	{
+		if (extraMaps.empty())
+			return nullptr;
+		if (!extraByAddressValid)
+		{
+			extraByAddress.clear();
+			for (const SceneMaterial& m : library.All())
+			{
+				if (library.Find(m.name) != &m)
+					continue;
+				auto it = extraMaps.find(m.name);
+				if (it != extraMaps.end())
+					extraByAddress[&m] = &it->second;
+			}
+			extraByAddressValid = true;
+		}
+		auto it = extraByAddress.find(&material);
+		return it == extraByAddress.end() ? nullptr : it->second;
+	}
 
 	// Splat layers sample as one texture array: three layers, all the size of
 	// the first, one after another. A missing layer is mid grey (its weights
@@ -197,6 +255,22 @@ namespace
 			for (std::string p; ss >> p;)
 				x.splatPath += (x.splatPath.empty() ? "" : " ") + p;
 		}
+		else if (tok == "wind")
+		{
+			ss >> v;
+			x.wind = ParseNumber(v);
+			x.windHeight = (ss >> v) ? ParseNumber(v) : 0.0f;
+			x.windFlutter = (ss >> v) ? ParseNumber(v) : 1.0f;
+		}
+		else if (tok == "translucency")   { ss >> v; x.translucency = ParseNumber(v); }
+		else if (tok == "cutout")         { ss >> v; x.cutout = ParseNumber(v); }
+		else if (tok == "fade")           { ss >> v; x.fade = (v == "on" || v == "1" || v == "true"); }
+		else if (tok == "shadow")
+		{
+			ss >> v;
+			x.noShadow = (v == "off" || v == "0" || v == "false");
+			x.forceShadow = (v == "on" || v == "1" || v == "true");
+		}
 		else if (tok == "metallic")       { ss >> v; m.metallic = ParseNumber(v); }
 		else if (tok == "roughness")      { ss >> v; m.roughness = ParseNumber(v); }
 		else if (tok == "opacity")        { ss >> v; m.opacity = ParseNumber(v); }
@@ -256,7 +330,7 @@ namespace
 	// the seasonal / deciduous flag lines.
 	const char* const kFields[] = { "lighting", "specular", "shininess", "metallic", "roughness", "roughnessmap",
 		"tint", "emissive", "emissivemap", "fresnel", "uvtile", "normal", "normalstrength", "normalmode", "opacity",
-		"outline", "splat", "season" };
+		"outline", "splat", "wind", "translucency", "cutout", "fade", "shadow", "season" };
 
 	// A field's value as written after its keyword ("" = no line: an unset
 	// map, or no season flag).
@@ -275,6 +349,18 @@ namespace
 		if (f == "emissivemap") return x.emissivePath;
 		if (f == "roughnessmap") return x.roughnessPath;
 		if (f == "splat") return x.splatPath;
+		if (f == "shadow") return x.noShadow ? "off" : x.forceShadow ? "on" : "";
+		if (f == "wind")
+		{
+			if (x.wind == 0.0f)
+				return std::string();
+			if (x.windFlutter != 1.0f)
+				return Num(x.wind) + " " + Num(x.windHeight) + " " + Num(x.windFlutter);
+			return Num(x.wind) + (x.windHeight > 0.0f ? " " + Num(x.windHeight) : "");
+		}
+		if (f == "translucency") return (x.translucency == 0.0f) ? std::string() : Num(x.translucency);
+		if (f == "cutout") return (x.cutout == 0.0f) ? std::string() : Num(x.cutout);
+		if (f == "fade") return x.fade ? "on" : "";
 		if (f == "normalstrength") return Num(m.normalStrength);
 		if (f == "normalmode") return m.normalMode == NormalMode::Vertex ? "vertex" : "screen";
 		if (f == "opacity") return Num(m.opacity);
@@ -320,6 +406,7 @@ std::vector<std::string> MaterialLibrary::Names() const
 
 SceneMaterial* MaterialLibrary::FindMutable(const std::string& name)
 {
+	ExtrasChanged();   // (the list may move, or a caller change it)
 	auto it = byName.find(name);
 	return (it == byName.end()) ? nullptr : &materials[it->second];
 }
@@ -334,6 +421,7 @@ void MaterialLibrary::SetNormalMap(Game& game, SceneMaterial& material, const st
 
 void MaterialLibrary::SetEmissiveMap(Game& game, SceneMaterial& material, const std::string& path)
 {
+	ExtrasChanged();
 	ExtraMaps& x = extraMaps[material.name];
 	x.emissivePath = path;
 	x.emissive = LoadEmissiveMap(game, path);
@@ -341,6 +429,7 @@ void MaterialLibrary::SetEmissiveMap(Game& game, SceneMaterial& material, const 
 
 void MaterialLibrary::SetRoughnessMap(Game& game, SceneMaterial& material, const std::string& path)
 {
+	ExtrasChanged();
 	ExtraMaps& x = extraMaps[material.name];
 	x.roughnessPath = path;
 	x.roughness = LoadRoughnessMap(game, path);
@@ -360,22 +449,19 @@ std::string MaterialLibrary::RoughnessMapPath(const SceneMaterial& material) con
 
 Texture* MaterialLibrary::EmissiveMap(const SceneMaterial& material) const
 {
-	if (Find(material.name) != &material)   // a model's own material, or a copy
-		return nullptr;
-	auto it = extraMaps.find(material.name);
-	return (it == extraMaps.end()) ? nullptr : it->second.emissive;
+	const ExtraMaps* x = OwnExtras(*this, material);   // (none for a model's own material, or a copy)
+	return x != nullptr ? x->emissive : nullptr;
 }
 
 Texture* MaterialLibrary::RoughnessMap(const SceneMaterial& material) const
 {
-	if (Find(material.name) != &material)
-		return nullptr;
-	auto it = extraMaps.find(material.name);
-	return (it == extraMaps.end()) ? nullptr : it->second.roughness;
+	const ExtraMaps* x = OwnExtras(*this, material);
+	return x != nullptr ? x->roughness : nullptr;
 }
 
 void MaterialLibrary::SetSplatLayers(Game& game, SceneMaterial& material, const std::string& paths)
 {
+	ExtrasChanged();
 	(void)game;
 	ExtraMaps& x = extraMaps[material.name];
 	DropSplatArray(x);   // made again, from these, on next use
@@ -391,13 +477,13 @@ std::string MaterialLibrary::SplatLayersPath(const SceneMaterial& material) cons
 unsigned int MaterialLibrary::SplatLayersTexture(const SceneMaterial& material) const
 {
 	// The shader's array has a fixed unit, which needs GLSL 4.20.
-	if (ShaderProgram::glslVersion < 420 || Find(material.name) != &material)
+	if (ShaderProgram::glslVersion < 420)
 		return 0;
-	auto it = extraMaps.find(material.name);
-	if (it == extraMaps.end() || it->second.splatPath.empty())
+	ExtraMaps* own = OwnExtras(*this, material);
+	if (own == nullptr || own->splatPath.empty())
 		return 0;
 
-	ExtraMaps& x = it->second;
+	ExtraMaps& x = *own;
 	const Scene3D::Season season = material.seasonal ? Scene3D::Get().GetSeason() : Scene3D::Season::Summer;
 	// Made once per season; a set that will not load is remembered as 0 for
 	// that season rather than tried again every frame.
@@ -414,8 +500,119 @@ unsigned int MaterialLibrary::SplatLayersTexture(const SceneMaterial& material) 
 	return x.splatTexture;
 }
 
+float MaterialLibrary::Wind(const SceneMaterial& material, float* height) const
+{
+	if (height != nullptr)
+		*height = 0.0f;
+	const ExtraMaps* x = OwnExtras(*this, material);
+	if (x == nullptr)
+		return 0.0f;
+	if (height != nullptr)
+		*height = x->windHeight;
+	return x->wind;
+}
+
+void MaterialLibrary::SetWind(SceneMaterial& material, float sway, float height)
+{
+	ExtrasChanged();
+	if (sway == 0.0f && extraMaps.find(material.name) == extraMaps.end())
+		return;
+	ExtraMaps& x = extraMaps[material.name];
+	x.wind = sway;
+	x.windHeight = std::max(0.0f, height);
+}
+
+float MaterialLibrary::WindFlutter(const SceneMaterial& material) const
+{
+	const ExtraMaps* x = OwnExtras(*this, material);
+	return x != nullptr ? x->windFlutter : 1.0f;
+}
+
+void MaterialLibrary::SetWindFlutter(SceneMaterial& material, float flutter)
+{
+	ExtrasChanged();
+	if (flutter == 1.0f && extraMaps.find(material.name) == extraMaps.end())
+		return;
+	extraMaps[material.name].windFlutter = std::max(0.0f, flutter);
+}
+
+float MaterialLibrary::Translucency(const SceneMaterial& material) const
+{
+	const ExtraMaps* x = OwnExtras(*this, material);
+	return x != nullptr ? x->translucency : 0.0f;
+}
+
+void MaterialLibrary::SetTranslucency(SceneMaterial& material, float strength)
+{
+	ExtrasChanged();
+	if (strength == 0.0f && extraMaps.find(material.name) == extraMaps.end())
+		return;
+	extraMaps[material.name].translucency = std::max(0.0f, strength);
+}
+
+float MaterialLibrary::Cutout(const SceneMaterial& material) const
+{
+	const ExtraMaps* x = OwnExtras(*this, material);
+	return x != nullptr ? x->cutout : 0.0f;
+}
+
+void MaterialLibrary::SetCutout(SceneMaterial& material, float threshold)
+{
+	ExtrasChanged();
+	if (threshold == 0.0f && extraMaps.find(material.name) == extraMaps.end())
+		return;
+	extraMaps[material.name].cutout = std::max(0.0f, std::min(threshold, 1.0f));
+}
+
+bool MaterialLibrary::FadesNearLine(const SceneMaterial& material) const
+{
+	const ExtraMaps* x = OwnExtras(*this, material);
+	return x != nullptr && x->fade;
+}
+
+void MaterialLibrary::SetFadesNearLine(SceneMaterial& material, bool fades)
+{
+	ExtrasChanged();
+	if (!fades && extraMaps.find(material.name) == extraMaps.end())
+		return;
+	extraMaps[material.name].fade = fades;
+}
+
+bool MaterialLibrary::CastsShadow(const SceneMaterial& material) const
+{
+	const ExtraMaps* x = OwnExtras(*this, material);
+	return x == nullptr || !x->noShadow;
+}
+
+void MaterialLibrary::SetCastsShadow(SceneMaterial& material, bool casts)
+{
+	ExtrasChanged();
+	if (casts && extraMaps.find(material.name) == extraMaps.end())
+		return;
+	extraMaps[material.name].noShadow = !casts;
+}
+
+int MaterialLibrary::ShadowChoice(const SceneMaterial& material) const
+{
+	const ExtraMaps* x = OwnExtras(*this, material);
+	if (x == nullptr)
+		return 0;
+	return x->noShadow ? -1 : x->forceShadow ? 1 : 0;
+}
+
+void MaterialLibrary::SetShadowChoice(SceneMaterial& material, int choice)
+{
+	ExtrasChanged();
+	if (choice == 0 && extraMaps.find(material.name) == extraMaps.end())
+		return;
+	ExtraMaps& x = extraMaps[material.name];
+	x.noShadow = choice < 0;
+	x.forceShadow = choice > 0;
+}
+
 SceneMaterial* MaterialLibrary::Add(Game& game, const SceneMaterial& material)
 {
+	ExtrasChanged();   // (the list may move, or a caller change it)
 	discarded.erase(material.name);
 	SceneMaterial* m = FindMutable(material.name);
 	if (m == nullptr)
@@ -472,6 +669,12 @@ void MaterialLibrary::ApplySerialized(Game& game, const std::string& text)
 			SetRoughnessMap(game, *m, s.maps.roughnessPath);
 		if (SplatLayersPath(*m) != s.maps.splatPath)
 			SetSplatLayers(game, *m, s.maps.splatPath);
+		SetWind(*m, s.maps.wind, s.maps.windHeight);
+		SetWindFlutter(*m, s.maps.windFlutter);
+		SetTranslucency(*m, s.maps.translucency);
+		SetCutout(*m, s.maps.cutout);
+		SetFadesNearLine(*m, s.maps.fade);
+		SetShadowChoice(*m, s.maps.noShadow ? -1 : s.maps.forceShadow ? 1 : 0);
 	}
 	for (const SceneMaterial& m : materials)
 		if (present.count(m.name) == 0)
@@ -641,6 +844,7 @@ bool MaterialLibrary::SaveChanges(std::string& message) const
 
 bool MaterialLibrary::Load(Game& game, const std::string& path)
 {
+	ExtrasChanged();
 	materials.clear();
 	byName.clear();
 	discarded.clear();
@@ -666,12 +870,20 @@ bool MaterialLibrary::Load(Game& game, const std::string& path)
 	{
 		SceneMaterial& m = materials[i];
 		const ExtraMaps& x = parsed[i].maps;
-		if (!x.emissivePath.empty() || !x.roughnessPath.empty() || !x.splatPath.empty())
+		if (x.Any())
 		{
 			ExtraMaps& own = extraMaps[m.name];
 			own.emissivePath = x.emissivePath;
 			own.roughnessPath = x.roughnessPath;
 			own.splatPath = x.splatPath;   // the layers load on first use (SplatLayersTexture)
+			own.wind = x.wind;
+			own.windHeight = x.windHeight;
+			own.windFlutter = x.windFlutter;
+			own.translucency = x.translucency;
+			own.cutout = x.cutout;
+			own.fade = x.fade;
+			own.noShadow = x.noShadow;
+			own.forceShadow = x.forceShadow;
 			own.emissive = LoadEmissiveMap(game, x.emissivePath);
 			own.roughness = LoadRoughnessMap(game, x.roughnessPath);
 		}
@@ -686,4 +898,9 @@ bool MaterialLibrary::Load(Game& game, const std::string& path)
 
 	std::cout << "MaterialLibrary: loaded " << materials.size() << " materials" << std::endl;
 	return true;
+}
+
+unsigned int Scene3DInternal::MaterialLibraryVersion()
+{
+	return libraryVersion;
 }

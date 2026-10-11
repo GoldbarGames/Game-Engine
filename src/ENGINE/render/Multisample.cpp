@@ -90,7 +90,7 @@ namespace
 
 void LoadMultisampleSettings()
 {
-	auto config = GetMapStringsFromFile(RendererConfigPath());
+	auto config = ReadRendererConfig();
 	requested = 0;
 	if (config.count("msaa") > 0)
 		requested = std::atoi(config["msaa"].c_str());

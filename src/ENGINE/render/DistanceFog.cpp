@@ -95,7 +95,7 @@ namespace
 
 void LoadDistanceFogSettings()
 {
-	auto config = GetMapStringsFromFile(RendererConfigPath());
+	auto config = ReadRendererConfig();
 	project = DistanceFogSettings();
 	project.on = config.count("distanceFog") > 0 && config["distanceFog"] == "1";
 	float v = 0.0f;

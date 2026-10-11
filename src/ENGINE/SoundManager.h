@@ -96,6 +96,14 @@ public:
 
 	void PlaySound(const std::string& filepath, int channel = -1, int loop = 0);
 	bool IsPlayingSound(int channel);
+	// SDL_mixer starts with 8 channels (0-7); a game that wants more asks once
+	void ReserveChannels(int count);
+	// Stops a channel at once. PlaySound frees and reloads a channel's sound,
+	// so a game that replays effects should stop the channel first.
+	void StopSound(int channel);
+	// Every sound channel at once (a game's pause); the music is separate
+	void PauseSounds();
+	void ResumeSounds();
 	void SetVolumeSound(int index);
 	void SetVolumeSoundIndex(int index);
 	void SetVolumeSoundOnChannel(int newVolume, int channel);

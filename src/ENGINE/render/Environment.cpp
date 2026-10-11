@@ -10,6 +10,7 @@
 #include "../RenderState.h"
 #include "../UniformBlocks.h"
 #include "../UniformBufferCache.h"
+#include "../SkyBodies.h"
 #include "../globals.h"
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
@@ -62,9 +63,13 @@ namespace
 		Texture* next = nullptr;
 		int blend = 0;
 		int r = 0, g = 0, b = 0;
+		int bodies = 0;   // the sun's glow in the sky (SkyBodiesCaptureVersion)
+		unsigned int hdr = 0;   // a painted sky (SetSkyImage) and its image's version
+		int hdrVersion = 0;
 		bool operator==(const Signature& o) const
 		{
-			return sky == o.sky && next == o.next && blend == o.blend && r == o.r && g == o.g && b == o.b;
+			return sky == o.sky && next == o.next && blend == o.blend && r == o.r && g == o.g && b == o.b
+				&& bodies == o.bodies && hdr == o.hdr && hdrVersion == o.hdrVersion;
 		}
 	};
 	Signature lastSignature;
@@ -79,6 +84,9 @@ namespace
 		sig.r = (int)std::lround(s.tint.r * 255.0f);
 		sig.g = (int)std::lround(s.tint.g * 255.0f);
 		sig.b = (int)std::lround(s.tint.b * 255.0f);
+		sig.bodies = SkyBodiesCaptureVersion();
+		sig.hdr = s.hdrSky;
+		sig.hdrVersion = s.hdrVersion;
 		return sig;
 	}
 
@@ -100,7 +108,7 @@ namespace
 	struct Pass
 	{
 		ShaderProgram* shader = nullptr;
-		int dstSize = -1, a = -1, b = -1, c = -1;   // pass-specific uniform locations
+		int dstSize = -1, a = -1, b = -1, c = -1, d = -1;   // pass-specific uniform locations
 		int tex0 = -1, tex1 = -1;
 	};
 	Pass capture, irradiance, specular, lut;
@@ -153,6 +161,8 @@ namespace
 		capture.dstSize = loc(capture, "dstSize");
 		capture.a = loc(capture, "tint");
 		capture.b = loc(capture, "blend");
+		capture.c = loc(capture, "skyLight");
+		capture.d = loc(capture, "linearSky");
 		capture.tex0 = sampler(capture, "skyTexture");
 		capture.tex1 = sampler(capture, "nextTexture");
 		irradiance.dstSize = loc(irradiance, "dstSize");
@@ -205,7 +215,7 @@ namespace
 
 void LoadEnvironmentSettings()
 {
-	auto config = GetMapStringsFromFile(RendererConfigPath());
+	auto config = ReadRendererConfig();
 	auto parse = [](const std::string& s, float fallback) -> float
 	{
 		try { return std::max(std::stof(s), 0.0f); }
@@ -222,7 +232,7 @@ void LoadEnvironmentSettings()
 
 void SetEnvironmentSource(bool hasSky, const SkySource& source)
 {
-	const bool want = LinearWorkflow() && hasSky && source.sky != nullptr && !shadersFailed
+	const bool want = LinearWorkflow() && hasSky && (source.sky != nullptr || source.hdrSky != 0) && !shadersFailed
 		&& (EffectiveDiffuse() > 0.0f || EffectiveSpecular() > 0.0f);
 	if (!want)
 	{
@@ -254,7 +264,7 @@ bool EnvironmentActive()
 void UpdateEnvironment(int screenWidth, int screenHeight)
 {
 	dirty = false;
-	if (!active || current.sky == nullptr || !EnsureShaders())
+	if (!active || (current.sky == nullptr && current.hdrSky == 0) || !EnsureShaders())
 		return;
 	EnsureTargets();
 
@@ -277,13 +287,29 @@ void UpdateEnvironment(int screenWidth, int screenHeight)
 
 	// 1. The sky (cross-fade and tint included), in linear light.
 	capture.shader->UseShader();
-	current.sky->UseTexture(0);
-	Texture* next = (current.next != nullptr && current.blend > 0.0f) ? current.next : current.sky;
-	next->UseTexture(1);
+	if (current.hdrSky != 0)
+	{
+		// A sky the game painted (SetSkyImage): linear already, taken as it is
+		device.BindTexture(0, TextureHandle(current.hdrSky));
+		device.BindTexture(1, TextureHandle(current.hdrSky));
+		device.SetUniform(capture.a, glm::vec4(1.0f));
+		device.SetUniform(capture.b, 0.0f);
+		device.SetUniform(capture.c, 0.0f);
+		device.SetUniform(capture.d, 1.0f);
+	}
+	else
+	{
+		current.sky->UseTexture(0);
+		Texture* next = (current.next != nullptr && current.blend > 0.0f) ? current.next : current.sky;
+		next->UseTexture(1);
+		device.SetUniform(capture.a, glm::vec4(SceneColor(current.tint), 1.0f));
+		device.SetUniform(capture.b, (next != current.sky) ? std::min(std::max(current.blend, 0.0f), 1.0f) : 0.0f);
+		device.SetUniform(capture.c, SkySunInSky() ? 1.0f : 0.0f);
+		device.SetUniform(capture.d, 0.0f);
+	}
 	device.SetUniform(capture.tex0, 0);
 	device.SetUniform(capture.tex1, 1);
-	device.SetUniform(capture.a, glm::vec4(SceneColor(current.tint), 1.0f));
-	device.SetUniform(capture.b, (next != current.sky) ? std::min(std::max(current.blend, 0.0f), 1.0f) : 0.0f);
+	BindSkyBlock();
 	device.SetUniform(capture.dstSize, glm::vec2((float)kBaseWidth, (float)kBaseHeight));
 	DrawInto(envBase, 0, kBaseWidth, kBaseHeight);
 	device.GenerateMipmaps(envBase);

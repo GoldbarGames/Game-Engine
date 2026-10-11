@@ -74,6 +74,13 @@ enum class TextureFormat : uint8_t
 	BC5,              // two channels (RG), 16 bytes a block: normal maps (z rebuilt in the shader)
 	BC7,              // RGBA, 16 bytes a block, the best quality
 	BC7_SRGB,
+	// Data a game fills itself (DataTexture.h): uploaded tightly packed, the
+	// 16-bit float formats as halves, the 32-bit ones as floats
+	RG8,
+	R16F,
+	RG16F,
+	RG32F,
+	RGBA32F,
 };
 
 inline bool IsBlockCompressed(TextureFormat f)
@@ -152,6 +159,10 @@ public:
 	virtual BufferHandle CreateBuffer(size_t bytes, const void* data, BufferUsage usage) = 0;
 	virtual BufferHandle CreateIndexBuffer(size_t bytes, const void* data) = 0;
 	virtual void UpdateBuffer(BufferHandle buffer, size_t offset, size_t bytes, const void* data) = 0;
+	// `bytes` from one buffer into another, on the GPU (the shared mesh pool
+	// grows and compacts this way, keeping no copy of itself on the CPU).
+	virtual void CopyBuffer(BufferHandle source, size_t sourceOffset, BufferHandle target, size_t targetOffset,
+		size_t bytes) = 0;
 	// Re-specify the whole store (lets the driver orphan the old one).
 	virtual void ReplaceBuffer(BufferHandle buffer, size_t bytes, const void* data, BufferUsage usage) = 0;
 	// A buffer mapped for CPU writes for its whole life (coherent). Returns the
@@ -321,5 +332,9 @@ public:
 // The active device. Created on first use (the GL backend, the only one
 // today); needs a current graphics context.
 RenderDevice& Device();
+
+// Draw calls issued so far (Draw, DrawIndexed, MultiDrawIndexedIndirect: one
+// each), for KINJO_GPU_TIMINGS' per-pass counts.
+uint64_t DeviceDrawCalls();
 
 #endif

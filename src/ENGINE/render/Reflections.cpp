@@ -90,7 +90,7 @@ namespace
 
 void LoadReflectionSettings()
 {
-	auto config = GetMapStringsFromFile(RendererConfigPath());
+	auto config = ReadRendererConfig();
 	projectOn = !(config.count("reflections") > 0 && config["reflections"] == "0");
 	if (config.count("reflectionDistance") > 0)
 	{

@@ -2,6 +2,7 @@
 // Split out of Scene3D.cpp (render-pass refactor, Phase 1 step 6).
 
 #include "Scene3D.h"
+#include "RenderPass.h"
 #include "render/RenderDevice.h"
 #include "Game.h"
 #include "Renderer.h"
@@ -41,6 +42,7 @@
 #include "render/ClusteredLights.h"
 #include "render/DistanceFog.h"
 #include "render/RenderViews.h"
+#include "Wind.h"
 #include <set>
 
 using Scene3DInternal::ProgramHasBlock;
@@ -79,8 +81,13 @@ namespace
 		glm::ivec4 pointShadowLightIdx[8];
 		glm::vec4 distFogColor;    // rgb
 		glm::vec4 distFogParams;   // near, far, amount (0 = off)
+		glm::vec4 windParams;      // Wind.h: toward x, z; strength; clock
+		glm::vec4 windParams2;     // last frame's clock; gust length; gust travel, and last frame's
+		glm::vec4 occluderFrom;    // Scene3D::SetOccluderFade: xyz
+		glm::vec4 occluderTo;      // xyz
+		glm::vec4 occluderParams;  // radius, reach, strength, on
 	};
-	static_assert(sizeof(SceneBlockData) == 1536, "SceneBlockData must match shaders/scene.glsl");
+	static_assert(sizeof(SceneBlockData) == 1616, "SceneBlockData must match shaders/scene.glsl");
 	static_assert(offsetof(SceneBlockData, lightSpaceMatrix) == 80, "std140: mat4 starts on a 16-byte boundary");
 	static_assert(offsetof(SceneBlockData, pointPos) == 160, "std140 offset of pointPos");
 
@@ -116,7 +123,15 @@ namespace
 		{ "pointShadowLightIdx[0]", offsetof(SceneBlockData, pointShadowLightIdx), true },
 		{ "distFogColor", offsetof(SceneBlockData, distFogColor), false },
 		{ "distFogParams", offsetof(SceneBlockData, distFogParams), false },
+		{ "windParams", offsetof(SceneBlockData, windParams), false },
+		{ "windParams2", offsetof(SceneBlockData, windParams2), false },
+		{ "occluderFrom", offsetof(SceneBlockData, occluderFrom), false },
+		{ "occluderTo", offsetof(SceneBlockData, occluderTo), false },
+		{ "occluderParams", offsetof(SceneBlockData, occluderParams), false },
 	};
+
+	// The occluder fade (Scene3D::SetOccluderFade): off until a game sets it.
+	glm::vec4 occluderFrom(0.0f), occluderTo(0.0f), occluderParams(0.0f);
 
 	// std140 mirror of the GLSL "Material" block (shaders/material.glsl).
 	struct MaterialBlockData
@@ -139,9 +154,15 @@ namespace
 		int matMaps;
 		float matAlphaCutoff;
 		float matOcclusionStrength;
-		float pad[3];           // std140 rounds the block up to 16 bytes
+		float matWind;          // `wind`: sway, world units (0 = still)
+		float matWindHeight;    // ...and the height it is weighted by (0 = the tangent slot)
+		float matFlutter;       // ...and its flutter's share (1 unless set)
+		float matTranslucency;  // `translucency`: backlit leaves (0 = none)
+		int matFlags;           // MATF_* bits (`fade on`)
+		float pad[2];           // std140 rounds the block up to 16 bytes
 	};
-	static_assert(sizeof(MaterialBlockData) == 112, "MaterialBlockData must match shaders/material.glsl");
+	static_assert(sizeof(MaterialBlockData) == 128, "MaterialBlockData must match shaders/material.glsl");
+	const int kMatfOccluderFade = 1;
 
 	// shaders/material.glsl's MAT_* bits.
 	const int kMatMetalRoughMap = 1;
@@ -177,6 +198,11 @@ namespace
 		{ "matMaps", offsetof(MaterialBlockData, matMaps), false },
 		{ "matAlphaCutoff", offsetof(MaterialBlockData, matAlphaCutoff), false },
 		{ "matOcclusionStrength", offsetof(MaterialBlockData, matOcclusionStrength), false },
+		{ "matWind", offsetof(MaterialBlockData, matWind), false },
+		{ "matWindHeight", offsetof(MaterialBlockData, matWindHeight), false },
+		{ "matFlutter", offsetof(MaterialBlockData, matFlutter), false },
+		{ "matTranslucency", offsetof(MaterialBlockData, matTranslucency), false },
+		{ "matFlags", offsetof(MaterialBlockData, matFlags), false },
 	};
 
 	// Lighting rarely changes within a frame (a lightning flash does), so two
@@ -204,6 +230,29 @@ namespace
 
 }
 
+void Scene3D::SetOccluderFade(const glm::vec3& from, const glm::vec3& to, bool enabled, float radius, float reach,
+	float strength)
+{
+	occluderFrom = glm::vec4(from, 0.0f);
+	occluderTo = glm::vec4(to, 0.0f);
+	occluderParams = glm::vec4(std::max(radius, 1e-3f), std::max(reach, 1e-3f), glm::clamp(strength, 0.0f, 1.0f),
+		enabled ? 1.0f : 0.0f);
+}
+
+namespace
+{
+	// The Scene block as ApplyLighting last packed it, and for which pass
+	// (RenderPassSerial): what goes in it doesn't change from one draw to the
+	// next within a pass, and packing it and hashing its 1.5 KB for every model
+	// drawn was 9% of a Debug frame. Packed again for a new pass, and whenever
+	// the camera or the clock it holds has moved (an environment capture turns
+	// the camera within one pass).
+	SceneBlockData sceneMemo = {};
+	unsigned int sceneMemoPass = 0;
+	bool sceneMemoValid = false;
+	UniformBufferCache::Held sceneMemoHeld;
+}
+
 void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) const
 {
 	const int MAX_POINTS = 8;
@@ -219,52 +268,69 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 	BindAmbientOcclusion(id);
 	BindLightClusters(id);   // point and spot lights, clustered (render/ClusteredLights.h)
 
-	// Pack everything once into the std140 mirror of the Scene block. Programs
-	// with the block get it uploaded (only when it changed); older programs get
-	// the same values as loose uniforms below.
-	SceneBlockData d = {};
-	// Colours convert to linear when the linear workflow is on (ColorPipeline.h);
-	// intensities and ranges are already linear scalars.
-	d.ambientColor = SceneColor(ambientColor);
-	d.dirLightDir = dirLight.dir;
-	d.dirLightColor = SceneColor(dirLight.color);
-	d.dirLightDiffuse = dirLight.diffuse;
-	// Storm lightning: a scene-wide flash of sky light (0 unless a strike is active).
-	d.lightningFlash = flashIntensity;
-	d.lightningColor = SceneColor(glm::vec3(0.80f, 0.85f, 1.0f));
-	d.shadowStrength = shadowStrength;
-	d.viewPos = renderer.camera.position;
-	d.toon = celShading ? 1 : 0;
-	// Seconds since start, for animated materials (water ripples).
-	d.uTime = renderer.now * 0.001f;
+	// Pack everything into the std140 mirror of the Scene block - once a pass
+	// (sceneMemo). Programs with the block get it uploaded (only when it
+	// changed); older programs get the same values as loose uniforms below. The
+	// textures are bound for every program, packed or not.
+	const float uTime = renderer.now * 0.001f;
+	const unsigned int pass = RenderPassSerial();
+	const bool repack = !sceneMemoValid || sceneMemoPass != pass || sceneMemo.uTime != uTime
+		|| sceneMemo.viewPos != renderer.camera.position;
+	SceneBlockData& d = sceneMemo;
+	if (repack)
+	{
+		d = {};
+		// Colours convert to linear when the linear workflow is on (ColorPipeline.h);
+		// intensities and ranges are already linear scalars.
+		d.ambientColor = SceneColor(ambientColor);
+		d.dirLightDir = dirLight.dir;
+		d.dirLightColor = SceneColor(dirLight.color);
+		d.dirLightDiffuse = dirLight.diffuse;
+		// Storm lightning: a scene-wide flash of sky light (0 unless a strike is active).
+		d.lightningFlash = flashIntensity;
+		d.lightningColor = SceneColor(glm::vec3(0.80f, 0.85f, 1.0f));
+		d.shadowStrength = shadowStrength;
+		d.viewPos = renderer.camera.position;
+		d.toon = celShading ? 1 : 0;
+		// Seconds since start, for animated materials (water ripples).
+		d.uTime = uTime;
+		sceneMemoPass = pass;
+		sceneMemoValid = true;
+	}
 
 	// Sun shadow map (bound to unit 3; unit 0 = albedo, 1 = normal map).
 	if (shadowActive && shadowsEnabled && shadowDepthTex != 0)
 	{
 		device.BindTexture(3, TextureHandle(shadowDepthTex));
 		Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(id), "shadowMap")), (int)(3));
-		d.lightSpaceMatrix = lightSpaceMatrix;
-		d.shadowsOn = 1;
+		if (repack)
+		{
+			d.lightSpaceMatrix = lightSpaceMatrix;
+			d.shadowsOn = 1;
+		}
 	}
 
 	// Point lights: pack the ENABLED ones contiguously (off lights are skipped,
 	// shrinking the count the shader loops over).
 	int packedForSlot[kMaxPointShadows];   // cube-shadow caster slot -> packed index
 	for (int s = 0; s < kMaxPointShadows; s++) packedForSlot[s] = -1;
-	int pc = 0;
-	for (const ScenePointLight& p : pointLights)
+	if (repack)
 	{
-		if (!p.on || p.guardHidden || pc >= MAX_POINTS) continue;
-		d.pointPos[pc] = glm::vec4(p.pos, 0.0f);
-		d.pointColor[pc] = glm::vec4(SceneColor(p.color), 0.0f);
-		d.pointRange[pc].x = p.range;
-		d.pointIntensity[pc].x = p.intensity;
-		if (pointShadowActive)
-			for (int s = 0; s < pointShadowCount; s++)
-				if (p.pos == pointShadowPositions[s]) packedForSlot[s] = pc;
-		pc++;
+		int pc = 0;
+		for (const ScenePointLight& p : pointLights)
+		{
+			if (!p.on || p.guardHidden || pc >= MAX_POINTS) continue;
+			d.pointPos[pc] = glm::vec4(p.pos, 0.0f);
+			d.pointColor[pc] = glm::vec4(SceneColor(p.color), 0.0f);
+			d.pointRange[pc].x = p.range;
+			d.pointIntensity[pc].x = p.intensity;
+			if (pointShadowActive)
+				for (int s = 0; s < pointShadowCount; s++)
+					if (p.pos == pointShadowPositions[s]) packedForSlot[s] = pc;
+			pc++;
+		}
+		d.pointCount = pc;
 	}
-	d.pointCount = pc;
 
 	// Point-light (cube) shadows: textures to units 4, 5, ...; position, far and
 	// the packed light index each caster shadows go in the block.
@@ -276,11 +342,14 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 		{
 			// GL4 cube-map array: the shader samples layer == caster slot, so
 			// slots are used directly (no compaction) to keep layer/index aligned.
-			for (int s = 0; s < pointShadowCount; s++)
+			if (repack)
 			{
-				d.pointShadowPositions[s] = glm::vec4(pointShadowPositions[s], 0.0f);
-				d.pointShadowFars[s].x = pointShadowFars[s];
-				d.pointShadowLightIdx[s].x = packedForSlot[s];
+				for (int s = 0; s < pointShadowCount; s++)
+				{
+					d.pointShadowPositions[s] = glm::vec4(pointShadowPositions[s], 0.0f);
+					d.pointShadowFars[s].x = pointShadowFars[s];
+					d.pointShadowLightIdx[s].x = packedForSlot[s];
+				}
 			}
 			casters = pointShadowCount;
 			device.BindTexture(4, TextureHandle(pointShadowArrayTex), TextureType::CubeArray);
@@ -297,48 +366,65 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 				if (pointShadowCubes[s] == 0) continue;
 				device.BindTexture(4 + casters, TextureHandle(pointShadowCubes[s]), TextureType::Cube);
 				units[casters] = 4 + casters;
-				d.pointShadowPositions[casters] = glm::vec4(pointShadowPositions[s], 0.0f);
-				d.pointShadowFars[casters].x = pointShadowFars[s];
-				d.pointShadowLightIdx[casters].x = packedForSlot[s];
+				if (repack)
+				{
+					d.pointShadowPositions[casters] = glm::vec4(pointShadowPositions[s], 0.0f);
+					d.pointShadowFars[casters].x = pointShadowFars[s];
+					d.pointShadowLightIdx[casters].x = packedForSlot[s];
+				}
 				casters++;
 			}
 			if (casters > 0)
 				device.SetUniformArray(device.UniformLocation(ProgramHandle(id), "pointShadowMaps"), units, casters);
 		}
 	}
-	d.pointShadowCount = casters;
-
-	// Spot lights (enabled only), plus the runtime focus/debate spotlight.
-	int sc = 0;
-	auto packSpot = [&](const SceneSpotLight& s)
+	if (repack)
 	{
-		if (!s.on || sc >= MAX_SPOTS) return;
-		d.spotPos[sc] = glm::vec4(s.pos, 0.0f);
-		d.spotDir[sc] = glm::vec4(glm::normalize(s.dir), 0.0f);
-		d.spotColor[sc] = glm::vec4(SceneColor(s.color), 0.0f);
-		d.spotRange[sc].x = s.range;
-		d.spotIntensity[sc].x = s.intensity;
-		d.spotCosInner[sc].x = cosf(glm::radians(s.innerDeg));
-		d.spotCosOuter[sc].x = cosf(glm::radians(s.outerDeg));
-		sc++;
-	};
-	for (const SceneSpotLight& s : spotLights) packSpot(s);
-	if (focusSpotOn) packSpot(focusSpot);
-	d.spotCount = sc;
+		d.pointShadowCount = casters;
 
-	// Distance fog (render/DistanceFog.h); all zero while it is off.
-	const DistanceFogFrame fog = CurrentDistanceFog();
-	if (fog.amount > 0.0f)
-	{
-		d.distFogColor = glm::vec4(SceneColor(fog.color), 0.0f);
-		d.distFogParams = glm::vec4(fog.nearDistance, fog.farDistance, fog.amount, 0.0f);
+		// Spot lights (enabled only), plus the runtime focus/debate spotlight.
+		int sc = 0;
+		auto packSpot = [&](const SceneSpotLight& s)
+		{
+			if (!s.on || sc >= MAX_SPOTS) return;
+			d.spotPos[sc] = glm::vec4(s.pos, 0.0f);
+			d.spotDir[sc] = glm::vec4(glm::normalize(s.dir), 0.0f);
+			d.spotColor[sc] = glm::vec4(SceneColor(s.color), 0.0f);
+			d.spotRange[sc].x = s.range;
+			d.spotIntensity[sc].x = s.intensity;
+			d.spotCosInner[sc].x = cosf(glm::radians(s.innerDeg));
+			d.spotCosOuter[sc].x = cosf(glm::radians(s.outerDeg));
+			sc++;
+		};
+		for (const SceneSpotLight& s : spotLights) packSpot(s);
+		if (focusSpotOn) packSpot(focusSpot);
+		d.spotCount = sc;
+
+		// Distance fog (render/DistanceFog.h); all zero while it is off.
+		const DistanceFogFrame fog = CurrentDistanceFog();
+		if (fog.amount > 0.0f)
+		{
+			d.distFogColor = glm::vec4(SceneColor(fog.color), 0.0f);
+			d.distFogParams = glm::vec4(fog.nearDistance, fog.farDistance, fog.amount, 0.0f);
+		}
+
+		// The wind (Wind.h): what `wind` materials sway in.
+		d.windParams = WindBlockParams();
+		d.windParams2 = WindBlockParams2();
+
+		// The occluder fade (`fade on` materials).
+		d.occluderFrom = occluderFrom;
+		d.occluderTo = occluderTo;
+		d.occluderParams = occluderParams;
 	}
 
 	if (ProgramHasBlock(id, "Scene"))
 	{
 		CheckUniformBlockLayout(id, "Scene", kSceneMembers,
 			sizeof(kSceneMembers) / sizeof(kSceneMembers[0]), sizeof(SceneBlockData));
-		sceneBlocks.Bind(&d);
+		// Unchanged since the last draw: its buffer again, without hashing it.
+		if (repack || !sceneBlocks.BindAgain(sceneMemoHeld))
+			sceneMemoHeld = sceneBlocks.Bind(&d);
 		return;
 	}
 
@@ -346,13 +432,16 @@ void Scene3D::ApplyLighting(unsigned int shaderID, const Renderer& renderer) con
 	// data/shaders) reads the same values as loose uniforms. Arrays are
 	// repacked from the block's 16-byte stride to tight vec3/float arrays.
 	// Such a copy knows nothing of the distance fog, so it draws unfogged.
-	if (fog.amount > 0.0f)
+	if (d.distFogParams.z > 0.0f)
 	{
 		static std::set<unsigned int> warned;
 		if (warned.insert(id).second)
 			std::cout << "WARNING - distance fog is on, but lit shader program " << id << " is an old copy without it"
 				" (a game's data/shaders/scene3d.frag or billboard3d.frag): what it draws stays unfogged" << std::endl;
 	}
+	const int pc = d.pointCount;
+	const int sc = d.spotCount;
+	casters = d.pointShadowCount;
 	auto loc = [id](const char* name) { return Device().UniformLocation(ProgramHandle(id), name); };
 	Device().SetUniform((int)(loc("ambientColor")), d.ambientColor);
 	Device().SetUniform((int)(loc("dirLightDir")), d.dirLightDir);
@@ -472,20 +561,11 @@ void Scene3D::UpdateLightClusters(Game& game, const Renderer& renderer)
 		ViewTargetWidth(game), ViewTargetHeight(game));
 }
 
-// The Material block for `mat`, plus an imported (glTF) material's map bits
-// (shaders/material.glsl MAT_*), which ApplyModelMaterial passes.
-static void BindMaterialBlock(unsigned int shaderID, const SceneMaterial& mat, const WaterSurface* water,
+// The Material block for `mat` packed, with an imported (glTF) material's map
+// bits (shaders/material.glsl MAT_*), which ApplyModelMaterial passes.
+static MaterialBlockData PackMaterialBlock(const SceneMaterial& mat, const WaterSurface* water,
 	int maps, float alphaCutoff, float occlusionStrength)
 {
-	const unsigned int id = shaderID;
-
-	// Normal map on unit 1 (if any); the device leaves unit 0 active.
-	if (mat.normalMap != nullptr)
-	{
-		Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(id), "normalMap")), (int)(1));
-		mat.normalMap->UseTexture(1);
-	}
-
 	MaterialBlockData m = {};
 	m.matTint = SceneColor(mat.tint);
 	m.matEmissive = SceneColor(mat.emissive);
@@ -505,14 +585,20 @@ static void BindMaterialBlock(unsigned int shaderID, const SceneMaterial& mat, c
 		m.matMaps |= kMatNormalXY;   // a BC5 normal map: x and y only
 	m.matAlphaCutoff = alphaCutoff;
 	m.matOcclusionStrength = occlusionStrength;
+	// Swaying in the wind (a library material's `wind` line; wind.glsl), backlit
+	// leaves and the occluder fade.
+	const MaterialLibrary& library = MaterialLibrary::Get();
+	m.matWind = library.Wind(mat, &m.matWindHeight);
+	m.matFlutter = library.WindFlutter(mat);
+	m.matTranslucency = library.Translucency(mat);
+	m.matFlags = library.FadesNearLine(mat) ? kMatfOccluderFade : 0;
 	// The shader only reads these for water; defaults match the old uniform
 	// initializers so non-water materials hash identically.
 	m.uWaterAmp = 9.0f;
 	m.uWaterWaveScale = 1.0f;
 	m.uWaterShoreFade = 0.35f;
 	m.uWaterChoppy = 1.0f;
-	const bool isWater = (mat.lighting == LightingModel::Water && water != nullptr);
-	if (isWater)
+	if (mat.lighting == LightingModel::Water && water != nullptr)
 	{
 		m.uWaterAmp = water->amplitude;
 		m.uWaterWaveScale = water->waveScale;
@@ -522,12 +608,32 @@ static void BindMaterialBlock(unsigned int shaderID, const SceneMaterial& mat, c
 		m.matShininess = water->shininess;
 		m.matOpacity = water->opacity;
 	}
+	return m;
+}
+
+// ...bound to `shaderID`, with the material's normal map: the block, if the
+// program has it (`held`, when given: where the same block went last time,
+// bound again without hashing it), or loose uniforms if not.
+static void BindPackedMaterial(unsigned int shaderID, const SceneMaterial& mat, MaterialBlockData m,
+	UniformBufferCache::Held* held = nullptr)
+{
+	const unsigned int id = shaderID;
+
+	// Normal map on unit 1 (if any); the device leaves unit 0 active.
+	if (mat.normalMap != nullptr)
+	{
+		Device().SetUniform((int)(Device().UniformLocation(ProgramHandle(id), "normalMap")), (int)(1));
+		mat.normalMap->UseTexture(1);
+	}
 
 	if (ProgramHasBlock(id, "Material"))
 	{
 		CheckUniformBlockLayout(id, "Material", kMaterialMembers,
 			sizeof(kMaterialMembers) / sizeof(kMaterialMembers[0]), sizeof(MaterialBlockData));
-		materialBlocks.Bind(&m);
+		if (held == nullptr)
+			materialBlocks.Bind(&m);
+		else if (!materialBlocks.BindAgain(*held))
+			*held = materialBlocks.Bind(&m);
 		return;
 	}
 
@@ -553,8 +659,9 @@ static void BindMaterialBlock(unsigned int shaderID, const SceneMaterial& mat, c
 	Device().SetUniform((int)(loc("matRoughness")), (float)(m.matRoughness));
 	Device().SetUniform((int)(loc("matOpacity")), (float)(m.matOpacity));
 	Device().SetUniform((int)(loc("matHasNormal")), (int)(m.matHasNormal));
-	if (isWater)
+	if (mat.lighting == LightingModel::Water)
 	{
+		// (without its model's tuning, the defaults the shader's own uniforms had)
 		Device().SetUniform((int)(loc("uWaterAmp")), (float)(m.uWaterAmp));
 		Device().SetUniform((int)(loc("uWaterWaveScale")), (float)(m.uWaterWaveScale));
 		Device().SetUniform((int)(loc("uWaterShoreFade")), (float)(m.uWaterShoreFade));
@@ -562,46 +669,118 @@ static void BindMaterialBlock(unsigned int shaderID, const SceneMaterial& mat, c
 	}
 }
 
+// Packed and bound in one (an imported glTF material's, each draw).
+static void BindMaterialBlock(unsigned int shaderID, const SceneMaterial& mat, const WaterSurface* water,
+	int maps, float alphaCutoff, float occlusionStrength)
+{
+	BindPackedMaterial(shaderID, mat, PackMaterialBlock(mat, water, maps, alphaCutoff, occlusionStrength));
+}
+
+namespace
+{
+	// What ApplyMaterial worked out for a material, kept for the pass
+	// (RenderPassSerial): its library lookups - roughness and glow maps, ground
+	// layers, cut-out, wind, translucency - and its packed block. Every draw with
+	// a material looked them all up again: 8% of a Debug frame.
+	struct MaterialMemo
+	{
+		const SceneMaterial* material = nullptr;
+		const WaterSurface* water = nullptr;      // a water material's model's tuning; else none
+		unsigned int pass = 0;
+		Texture* rough = nullptr;
+		unsigned int splat = 0;
+		Texture* glow = nullptr;
+		MaterialBlockData block = {};
+		UniformBufferCache::Held held;
+	};
+	const int kMaterialMemos = 32;
+	MaterialMemo materialMemos[kMaterialMemos];
+	int materialMemoNext = 0;
+}
+
 void Scene3D::ApplyMaterial(unsigned int shaderID, const SceneMaterial& mat, const WaterSurface* water) const
 {
-	// A library material's roughness map (unit 2, as a glTF material's) and
-	// glow map (unit 6: GL 4 only, like a glTF emissive map).
 	RenderDevice& device = Device();
 	const ProgramHandle handle(shaderID);
-	const MaterialLibrary& library = MaterialLibrary::Get();
-	int maps = 0;
-	if (Texture* rough = library.RoughnessMap(mat))
+
+	// Worked out once a pass for each material (MaterialMemo). Only a water
+	// material reads its model's water tuning: other models share an entry.
+	const WaterSurface* key = (mat.lighting == LightingModel::Water) ? water : nullptr;
+	const unsigned int pass = RenderPassSerial();
+	MaterialMemo* memo = nullptr;
+	for (MaterialMemo& e : materialMemos)
 	{
-		maps |= kMatMetalRoughMap;
-		device.SetUniform(device.UniformLocation(handle, "metallicRoughnessMap"), 2);
-		rough->UseTexture(2);
-	}
-	// Ground layers (`splat`): a texture array on unit 7, whose binding the
-	// shader fixes (GLSL 4.20+; SplatLayersTexture is 0 below that).
-	if (const unsigned int layers = library.SplatLayersTexture(mat))
-	{
-		maps |= kMatSplat;
-		device.BindTexture(7, TextureHandle(layers), TextureType::Tex2DArray);
-	}
-	if (Texture* glow = library.EmissiveMap(mat))
-	{
-		if (ModelMaterialExtraMaps())
+		if (e.material == &mat && e.water == key && e.pass == pass)
 		{
-			maps |= kMatEmissiveMap;
-			device.SetUniform(device.UniformLocation(handle, "emissiveMap"), 6);
-			glow->UseTexture(6);
+			memo = &e;
+			break;
 		}
-		else
+	}
+	if (memo == nullptr)
+	{
+		memo = &materialMemos[materialMemoNext];
+		materialMemoNext = (materialMemoNext + 1) % kMaterialMemos;
+		*memo = MaterialMemo();
+		memo->material = &mat;
+		memo->water = key;
+		memo->pass = pass;
+		const MaterialLibrary& library = MaterialLibrary::Get();
+		int maps = 0;
+		// A library material's roughness map (unit 2, as a glTF material's).
+		memo->rough = library.RoughnessMap(mat);
+		if (memo->rough != nullptr)
+			maps |= kMatMetalRoughMap;
+		// Ground layers (`splat`): a texture array on unit 7, whose binding the
+		// shader fixes (GLSL 4.20+; SplatLayersTexture is 0 below that).
+		memo->splat = library.SplatLayersTexture(mat);
+		if (memo->splat != 0)
+			maps |= kMatSplat;
+		// Its own cut-out threshold (`cutout`): the glTF mask bit, which a library
+		// material otherwise never has, says the shaders should cut there rather
+		// than at their usual 0.1.
+		float cutoff = 0.5f;
+		if (const float cut = library.Cutout(mat))
+		{
+			maps |= kMatAlphaMask;
+			cutoff = cut;
+		}
+		// Its glow map (unit 6: GL 4 only, like a glTF emissive map).
+		bool noGlow = false;
+		if (Texture* glow = library.EmissiveMap(mat))
+		{
+			if (ModelMaterialExtraMaps())
+			{
+				maps |= kMatEmissiveMap;
+				memo->glow = glow;
+			}
+			else
+				noGlow = true;
+		}
+		if (noGlow)
 		{
 			// No unit for it here (the 3.3/web fallback): no glow, rather than
 			// the factor glowing over the whole surface.
 			SceneMaterial dark = mat;
 			dark.emissive = glm::vec3(0.0f);
-			BindMaterialBlock(shaderID, dark, water, maps, 0.5f, 1.0f);
-			return;
+			memo->block = PackMaterialBlock(dark, water, maps, cutoff, 1.0f);
 		}
+		else
+			memo->block = PackMaterialBlock(mat, water, maps, cutoff, 1.0f);
 	}
-	BindMaterialBlock(shaderID, mat, water, maps, 0.5f, 1.0f);
+
+	if (memo->rough != nullptr)
+	{
+		device.SetUniform(device.UniformLocation(handle, "metallicRoughnessMap"), 2);
+		memo->rough->UseTexture(2);
+	}
+	if (memo->splat != 0)
+		device.BindTexture(7, TextureHandle(memo->splat), TextureType::Tex2DArray);
+	if (memo->glow != nullptr)
+	{
+		device.SetUniform(device.UniformLocation(handle, "emissiveMap"), 6);
+		memo->glow->UseTexture(6);
+	}
+	BindPackedMaterial(shaderID, mat, memo->block, &memo->held);
 }
 
 void Scene3DInternal::ApplyModelMaterial(unsigned int program, const ModelMaterial& material)

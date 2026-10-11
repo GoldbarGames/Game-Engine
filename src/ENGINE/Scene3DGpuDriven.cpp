@@ -19,6 +19,11 @@
 // meshes not in the pool, an old game shader copy without the Material block)
 // keep drawing themselves exactly as before. Engine-internal; Scene3D's
 // layout is unchanged (file statics, private methods only).
+//
+// Since 2026-10-10 models swaying in the wind take this path too (its vertex
+// shaders sway them, wind.glsl), and a model with levels of detail
+// (Scene3D::SetModelLevels, Scene3DLevels.cpp) is an instance in each of its
+// levels' batches, each kept by the cull only within its level's screen sizes.
 
 #include "Scene3D.h"
 #include "Scene3DInternal.h"
@@ -39,9 +44,12 @@
 #include "render/HiZ.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
+#include <limits>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -59,7 +67,7 @@ namespace
 		if (!settingsLoaded)
 		{
 			settingsLoaded = true;
-			auto config = GetMapStringsFromFile(RendererConfigPath());
+			auto config = ReadRendererConfig();
 			wanted = !(config.count("gpuDriven") > 0 && config["gpuDriven"] == "0");
 			if (const char* v = std::getenv("KINJO_GPU_DRIVEN"))
 				wanted = (v[0] == '1');
@@ -73,18 +81,36 @@ namespace
 	{
 		glm::mat4 model;
 		glm::vec4 sphere;   // xyz centre, w radius (< 0: unknown, never culled)
-		glm::uvec4 info;    // x batch, y flags
+		glm::uvec4 info;    // x batch, y flags, z and w the screen sizes it draws between (float bits)
 	};
 	static_assert(sizeof(InstanceRecord) == 96, "InstanceRecord must match shaders/scene_instances.glsl");
 
 	const uint32_t kFlagColour = 1u;   // drawn in the world and the AO prepass
 	const uint32_t kFlagCaster = 2u;   // casts sun and point-light shadows
+	const int kDepthSetBit = 256;      // cull_instances.comp's setFlags: the depth passes' commands
 	enum { kColourSet = 0, kDepthSet = 1 };
+
+	uint32_t FloatBits(float f)
+	{
+		uint32_t u;
+		memcpy(&u, &f, sizeof(u));
+		return u;
+	}
 
 	struct Batch
 	{
 		const Scene3DModel* leader = nullptr;
+		const std::vector<Mesh*>* meshes = nullptr;   // the leader's own, or one of its levels'
 		uint32_t firstInstance = 0, instanceCount = 0;
+	};
+
+	// One instance of a batch: its model, flags, and the screen sizes it draws
+	// between (a level of detail; 0 and infinity for the rest)
+	struct Member
+	{
+		const Scene3DModel* model;
+		uint32_t flags;
+		float lo, hi;
 	};
 
 	// One multi-draw: consecutive commands that share draw state.
@@ -109,7 +135,7 @@ namespace
 	std::vector<Scene3DModel*> cpuColourModels, cpuCasterModels;
 	uint32_t worldDrawnFrame = 0, frameNumber = 0;
 
-	// A model's transform as last computed, so still models cost a compare.
+	// An instance's transform as last computed, so still models cost a compare.
 	struct CachedTransform
 	{
 		glm::vec3 position, scale, localMin, localMax;
@@ -118,7 +144,16 @@ namespace
 		glm::mat4 model;
 		glm::vec4 sphere;
 	};
-	std::unordered_map<const Scene3DModel*, CachedTransform> transforms;
+	std::vector<CachedTransform> instanceTransforms;   // parallel to instances
+	std::vector<uint32_t> instancePrimary;             // each instance's model's first instance (motion)
+
+	// The models' composition the lists were built for: while a frame's is the
+	// same, the batches, commands and flags are kept and only the matrices of
+	// models that moved are refreshed. Rebuilding every frame was 12 ms of a
+	// Debug frame with Golf Galaxy's two thousand tree instances.
+	bool haveComposition = false;
+	uint64_t composition = 0;
+	uint64_t instanceVersion = 0, tableVersion = 0;   // bumped when they change (the slots' uploads)
 
 	// ---- GPU buffers, one set per frame in flight ------------------------------
 	// Rotated in step with the transient ring, whose end-of-frame fence wait
@@ -134,6 +169,7 @@ namespace
 		Buffer instances, motion, batches, lists, commands, visible;
 	};
 	Slot slots[kSlots];
+	uint64_t slotInstanceVersion[kSlots] = {}, slotTableVersion[kSlots] = {};
 	int slot = 0;
 	int viewIndex = 0;   // views culled this frame (each has its own commands + visible region)
 
@@ -160,7 +196,7 @@ namespace
 	ShaderProgram* shadowProgram = nullptr;
 	ShaderProgram* pointProgram = nullptr;
 	unsigned int cullProgram = 0;
-	struct CullLocations { int planes[6], commandSet, commandBase, visibleBase, flags, batchCount; } cullLoc;
+	struct CullLocations { int planes[6], levelEye, setFlags, commandBase, visibleBase, batchCount; } cullLoc;
 
 	bool EnsurePrograms()
 	{
@@ -187,10 +223,10 @@ namespace
 		const ProgramHandle cull(cullProgram);
 		for (int p = 0; p < 6; p++)
 			cullLoc.planes[p] = device.UniformLocation(cull, ("draw.planes[" + std::to_string(p) + "]").c_str());
-		cullLoc.commandSet = device.UniformLocation(cull, "draw.commandSet");
+		cullLoc.levelEye = device.UniformLocation(cull, "draw.levelEye");
+		cullLoc.setFlags = device.UniformLocation(cull, "draw.setFlags");
 		cullLoc.commandBase = device.UniformLocation(cull, "draw.commandBase");
 		cullLoc.visibleBase = device.UniformLocation(cull, "draw.visibleBase");
-		cullLoc.flags = device.UniformLocation(cull, "draw.flags");
 		cullLoc.batchCount = device.UniformLocation(cull, "draw.batchCount");
 		std::cout << "GPU-driven models: on (GPU culling + indirect multi-draws)" << std::endl;
 		return true;
@@ -220,17 +256,17 @@ namespace
 
 	// A model's matrix and world bounding sphere (from its local bounds, so a
 	// model a game moves without refreshing its picking box is still culled right).
-	const CachedTransform& TransformOf(const Scene3DModel* m)
+	bool SameTransform(const Scene3DModel* m, const CachedTransform& c)
 	{
-		CachedTransform& c = transforms[m];
-		const glm::vec3 scale = m->EffectiveScale();
-		const bool same = c.position == m->position && c.scale == scale && c.yaw == m->yawDeg
+		return c.position == m->position && c.scale == m->EffectiveScale() && c.yaw == m->yawDeg
 			&& c.pitch == m->pitchDeg && c.roll == m->rollDeg && c.hasLocal == m->hasLocalBounds
 			&& c.localMin == m->localMin && c.localMax == m->localMax;
-		if (same)
-			return c;
+	}
+
+	void ComputeTransform(const Scene3DModel* m, CachedTransform& c)
+	{
 		c.position = m->position;
-		c.scale = scale;
+		c.scale = m->EffectiveScale();
 		c.yaw = m->yawDeg;
 		c.pitch = m->pitchDeg;
 		c.roll = m->rollDeg;
@@ -238,20 +274,17 @@ namespace
 		c.localMin = m->localMin;
 		c.localMax = m->localMax;
 		c.model = m->ModelMatrix();
-		if (m->hasLocalBounds)
-		{
-			const glm::vec3 centre = (m->localMin + m->localMax) * 0.5f;
-			const glm::vec3 half = (m->localMax - m->localMin) * 0.5f;
-			const float axis = std::max(glm::length(glm::vec3(c.model[0])),
-				std::max(glm::length(glm::vec3(c.model[1])), glm::length(glm::vec3(c.model[2]))));
-			c.sphere = glm::vec4(glm::vec3(c.model * glm::vec4(centre, 1.0f)), glm::length(half) * axis * 1.01f + 0.5f);
-		}
-		else
-		{
-			c.sphere = glm::vec4(glm::vec3(c.model[3]), -1.0f);
-		}
-		return c;
+		// (Shared with the levels of detail, which size a model by the same sphere)
+		c.sphere = Scene3DInternal::ModelSphere(*m, c.model);
 	}
+
+	// FNV-1a over 64-bit words: the composition's signature
+	struct Signature
+	{
+		uint64_t h = 1469598103934665603ull;
+		void Add(uint64_t v) { h = (h ^ v) * 1099511628211ull; }
+		void Add(const void* p) { Add((uint64_t)(uintptr_t)p); }
+	};
 
 	struct ColourKey
 	{
@@ -299,14 +332,162 @@ namespace
 
 // ------------------------------------------------------------ per-frame list
 
+namespace
+{
+	// KINJO_GPU_TIMINGS: the list's CPU cost too (it is built outside the passes
+	// the timings cover), averaged over the same number of frames
+	struct BuildTimer
+	{
+		int every = -1;   // -1 unread, 0 off
+		int frames = 0;
+		double sum = 0.0;
+		std::chrono::steady_clock::time_point start;
+		bool On()
+		{
+			if (every < 0)
+			{
+				const char* v = std::getenv("KINJO_GPU_TIMINGS");
+				every = v != nullptr ? std::max(0, std::atoi(v)) : 0;
+				if (every == 1)
+					every = 60;
+			}
+			return every > 0;
+		}
+		void Begin() { if (On()) start = std::chrono::steady_clock::now(); }
+		void End()
+		{
+			if (!On())
+				return;
+			sum += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+			if (++frames >= every)
+			{
+				std::cout << "GPU-driven list build (CPU): " << sum / frames << " ms per frame, " << instances.size()
+					<< " instances" << std::endl;
+				frames = 0;
+				sum = 0.0;
+			}
+		}
+	} buildTimer;
+
+	struct BuildTimerScope
+	{
+		BuildTimerScope() { buildTimer.Begin(); }
+		~BuildTimerScope() { buildTimer.End(); }
+	};
+}
+
 void Scene3D::BuildGpuDrawList(const Renderer& renderer)
 {
+	BuildTimerScope timed;
 	frameActive = false;
 	frameNumber++;
 	slot = (slot + 1) % kSlots;
 	viewIndex = 0;
+
+	// The camera levels of detail are sized from, GPU path or not (each view
+	// and its shadows set their own again)
+	if (!renderer.camera.useOrthoCamera)
+		Scene3DInternal::SetLevelCamera(renderer.camera.position, renderer.camera.projection[1][1]);
+
+#ifdef USE_ASSIMP
+	if (!active || renderer.camera.useOrthoCamera || shader == nullptr || !GpuDrivenWanted())
+		return;
+	// A game's own (older) scene3d copy keeps its own path: the GPU programs
+	// pair the engine's vertex shaders with the scene's fragment shader.
+	if (!ProgramHasBlock(shader->GetID(), "Material") || !EnsurePrograms())
+		return;
+	MeshPoolCompact();   // before the list is built from the pool's places, never after
+	if (!MeshPoolVertexArray())
+		return;   // no pooled meshes
+
+	// The composition: everything the batches, commands and flags depend on
+	// (models' places aren't in it: those are refreshed below)
+	Signature sig;
+	sig.Add((uint64_t)models.size());
+	sig.Add(shader);
+	sig.Add(MeshPoolVersion());
+	sig.Add((uint64_t)Scene3DInternal::MaterialLibraryVersion());
+	for (const Scene3DModel* m : models)
+	{
+		sig.Add(m);
+		if (m == nullptr)
+			continue;
+		const bool transparent = m->material != nullptr && m->material->IsTransparent();
+		sig.Add((uint64_t)((m->loaded ? 1u : 0u) | (m->guardHidden ? 2u : 0u) | (m->active ? 4u : 0u) | (m->IsWater() ? 8u : 0u)
+			| (transparent ? 16u : 0u) | (Scene3DInternal::CastsShadow(*m) ? 32u : 0u)));
+		sig.Add(m->texture);
+		sig.Add(m->material);
+		sig.Add(m->shader);
+		sig.Add(m->model3D.meshList.data());
+		sig.Add((uint64_t)m->model3D.meshList.size());
+		sig.Add(Scene3DInternal::LevelsOf(m));
+	}
+	if (haveComposition && sig.h == composition)
+	{
+		// The same models: only those that moved get new matrices
+		bool moved = false;
+		for (size_t i = 0; i < instances.size(); i++)
+		{
+			CachedTransform& c = instanceTransforms[i];
+			const Scene3DModel* m = instanceModels[i];
+			if (SameTransform(m, c))
+				continue;
+			ComputeTransform(m, c);
+			instances[i].model = c.model;
+			instances[i].sphere = c.sphere;
+			moved = true;
+		}
+		if (moved)
+			instanceVersion++;
+	}
+	else
+	{
+		haveComposition = true;
+		composition = sig.h;
+		instanceVersion++;
+		tableVersion++;
+		RebuildGpuComposition();
+	}
+	if (batches.empty())
+		return;
+
+	// Upload what this slot's buffers don't hold yet (a grown buffer starts empty).
+	RenderDevice& device = Device();
+	Slot& sl = slots[slot];
+	const size_t instanceBytes = instances.size() * sizeof(InstanceRecord);
+	if (sl.instances.capacity < instanceBytes)
+		slotInstanceVersion[slot] = 0;
+	if (slotInstanceVersion[slot] != instanceVersion)
+	{
+		device.UpdateBuffer(Ensure(sl.instances, instanceBytes), 0, instanceBytes, instances.data());
+		slotInstanceVersion[slot] = instanceVersion;
+	}
+	const size_t tableBytes = batchTable.size() * sizeof(uint32_t);
+	const size_t listBytes = std::max<size_t>(batchCommands.size(), 1) * sizeof(uint32_t);
+	if (sl.batches.capacity < tableBytes || sl.lists.capacity < listBytes)
+		slotTableVersion[slot] = 0;
+	if (slotTableVersion[slot] != tableVersion)
+	{
+		device.UpdateBuffer(Ensure(sl.batches, tableBytes), 0, tableBytes, batchTable.data());
+		device.UpdateBuffer(Ensure(sl.lists, listBytes), 0, batchCommands.size() * sizeof(uint32_t),
+			batchCommands.empty() ? nullptr : batchCommands.data());
+		slotTableVersion[slot] = tableVersion;
+	}
+	frameActive = true;
+#else
+	(void)renderer;
+#endif
+}
+
+// The batches, instances, commands and flags for the scene's models as they
+// are now (BuildGpuDrawList, when the composition changes)
+void Scene3D::RebuildGpuComposition()
+{
+#ifdef USE_ASSIMP
 	instances.clear();
 	instanceModels.clear();
+	instanceTransforms.clear();
+	instancePrimary.clear();
 	batches.clear();
 	batchTable.clear();
 	batchCommands.clear();
@@ -320,22 +501,20 @@ void Scene3D::BuildGpuDrawList(const Renderer& renderer)
 	cpuColourModels.clear();
 	cpuCasterModels.clear();
 
-#ifdef USE_ASSIMP
-	if (!active || renderer.camera.useOrthoCamera || shader == nullptr || !GpuDrivenWanted())
-		return;
-	// A game's own (older) scene3d copy keeps its own path: the GPU programs
-	// pair the engine's vertex shaders with the scene's fragment shader.
-	if (!ProgramHasBlock(shader->GetID(), "Material") || !EnsurePrograms())
-		return;
-	if (!MeshPoolVertexArray())
-		return;   // no pooled meshes
-
-	if (transforms.size() > models.size() * 2 + 256)
-		transforms.clear();   // deleted models' entries pile up
+	auto allPooled = [](const std::vector<Mesh*>& meshes)
+	{
+		for (const Mesh* mesh : meshes)
+		{
+			MeshPoolRange range;
+			if (mesh == nullptr || !MeshPoolFind(mesh, range))
+				return false;
+		}
+		return true;
+	};
 
 	// Batches in first-appearance order: models sharing meshes, texture and material.
 	std::unordered_map<BatchKey, uint32_t, BatchKeyHash> batchOf;
-	std::vector<std::vector<std::pair<const Scene3DModel*, uint32_t>>> members;
+	std::vector<std::vector<Member>> members;
 	std::vector<uint8_t> modelFlags(models.size(), 0);
 	for (size_t mi = 0; mi < models.size(); mi++)
 	{
@@ -343,48 +522,58 @@ void Scene3D::BuildGpuDrawList(const Renderer& renderer)
 		if (m == nullptr || !m->loaded || m->texture == nullptr || m->guardHidden || m->IsWater())
 			continue;
 		const std::vector<Mesh*>& meshes = m->model3D.meshList;
-		if (meshes.empty())
+		if (meshes.empty() || !allPooled(meshes))
 			continue;
-		bool pooled = true;
-		for (const Mesh* mesh : meshes)
+		// Its levels of detail (SetModelLevels): each one an instance of its own
+		const Scene3DInternal::ModelLevels* levels = Scene3DInternal::LevelsOf(m);
+		if (levels != nullptr)
 		{
-			MeshPoolRange range;
-			if (mesh == nullptr || !MeshPoolFind(mesh, range))
-			{
-				pooled = false;
-				break;
-			}
+			bool ok = true;
+			for (const std::vector<Mesh*>& level : levels->meshes)
+				ok = ok && allPooled(level);
+			if (!ok)
+				continue;
 		}
-		if (!pooled)
-			continue;
 
 		const bool own = HasModelMaterials(meshes);
 		uint32_t flags = 0;
 		// As Scene3DModel::Render would draw it (the entity loop skips inactive ones).
 		if (m->active && m->shader == shader && !(m->material != nullptr && m->material->IsTransparent() && !own))
 			flags |= kFlagColour;
-		// As the shadow passes pick casters: real height (flat ground doesn't cast).
-		if (std::fabs(m->aabbMax.y - m->aabbMin.y) >= 15.0f)
+		// As the shadow passes pick casters (flat ground doesn't cast)
+		if (Scene3DInternal::CastsShadow(*m))
 			flags |= kFlagCaster;
 		if (flags == 0)
 			continue;
 
-		const BatchKey key = { meshes[0], meshes.size(), m->texture, m->material };
-		auto it = batchOf.find(key);
-		uint32_t b;
-		if (it == batchOf.end())
+		// Its own meshes, then each level's (none: no instance), each drawing
+		// between the sizes either side of it
+		const size_t levelCount = (levels != nullptr) ? levels->meshes.size() : 0;
+		for (size_t level = 0; level <= levelCount; level++)
 		{
-			b = (uint32_t)batches.size();
-			batchOf.emplace(key, b);
-			batches.push_back(Batch());
-			batches.back().leader = m;
-			members.emplace_back();
+			const std::vector<Mesh*>& drawn = (level == 0) ? meshes : levels->meshes[level - 1];
+			if (drawn.empty())
+				continue;
+			const float lo = (level < levelCount) ? levels->below[level] : 0.0f;
+			const float hi = (level == 0) ? std::numeric_limits<float>::infinity() : levels->below[level - 1];
+			const BatchKey key = { drawn[0], drawn.size(), m->texture, m->material };
+			auto it = batchOf.find(key);
+			uint32_t b;
+			if (it == batchOf.end())
+			{
+				b = (uint32_t)batches.size();
+				batchOf.emplace(key, b);
+				batches.push_back(Batch());
+				batches.back().leader = m;
+				batches.back().meshes = &drawn;
+				members.emplace_back();
+			}
+			else
+			{
+				b = it->second;
+			}
+			members[b].push_back({ m, flags, lo, hi });
 		}
-		else
-		{
-			b = it->second;
-		}
-		members[b].emplace_back(m, flags);
 		modelFlags[mi] = (uint8_t)flags;
 		if (flags & kFlagColour)
 			colourModels.insert(m);
@@ -402,19 +591,23 @@ void Scene3D::BuildGpuDrawList(const Renderer& renderer)
 	}
 
 	// Instances, batch by batch, each batch's models in scene order.
+	std::unordered_map<const Scene3DModel*, uint32_t> firstOf;
 	for (uint32_t b = 0; b < (uint32_t)batches.size(); b++)
 	{
 		batches[b].firstInstance = (uint32_t)instances.size();
 		batches[b].instanceCount = (uint32_t)members[b].size();
-		for (const auto& entry : members[b])
+		for (const Member& entry : members[b])
 		{
-			const CachedTransform& t = TransformOf(entry.first);
+			CachedTransform t;
+			ComputeTransform(entry.model, t);
 			InstanceRecord r;
 			r.model = t.model;
 			r.sphere = t.sphere;
-			r.info = glm::uvec4(b, entry.second, 0u, 0u);
+			r.info = glm::uvec4(b, entry.flags, FloatBits(entry.lo), FloatBits(entry.hi));
+			instancePrimary.push_back(firstOf.emplace(entry.model, (uint32_t)instances.size()).first->second);
 			instances.push_back(r);
-			instanceModels.push_back(entry.first);
+			instanceModels.push_back(entry.model);
+			instanceTransforms.push_back(t);
 		}
 	}
 
@@ -427,7 +620,7 @@ void Scene3D::BuildGpuDrawList(const Renderer& renderer)
 	for (uint32_t b = 0; b < (uint32_t)batches.size(); b++)
 	{
 		const Scene3DModel* leader = batches[b].leader;
-		for (const Mesh* mesh : leader->model3D.meshList)
+		for (const Mesh* mesh : *batches[b].meshes)
 		{
 			MeshPoolRange range;
 			MeshPoolFind(mesh, range);
@@ -505,17 +698,6 @@ void Scene3D::BuildGpuDrawList(const Renderer& renderer)
 		}
 	}
 
-	// Upload this frame's list.
-	RenderDevice& device = Device();
-	Slot& sl = slots[slot];
-	device.UpdateBuffer(Ensure(sl.instances, instances.size() * sizeof(InstanceRecord)), 0,
-		instances.size() * sizeof(InstanceRecord), instances.data());
-	device.UpdateBuffer(Ensure(sl.batches, batchTable.size() * sizeof(uint32_t)), 0,
-		batchTable.size() * sizeof(uint32_t), batchTable.data());
-	device.UpdateBuffer(Ensure(sl.lists, std::max<size_t>(batchCommands.size(), 1) * sizeof(uint32_t)), 0,
-		batchCommands.size() * sizeof(uint32_t), batchCommands.empty() ? nullptr : batchCommands.data());
-	frameActive = true;
-
 	if (instances.size() != loggedInstances || batches.size() != loggedBatches
 		|| groups[kColourSet].size() + groups[kDepthSet].size() != loggedGroups)
 	{
@@ -540,8 +722,6 @@ void Scene3D::BuildGpuDrawList(const Renderer& renderer)
 			}
 		}
 	}
-#else
-	(void)renderer;
 #endif
 }
 
@@ -584,10 +764,11 @@ namespace
 		device.UseProgram(ProgramHandle(cullProgram));
 		for (int p = 0; p < 6; p++)
 			device.SetUniform(cullLoc.planes[p], planes[p]);
-		device.SetUniform(cullLoc.commandSet, set);
+		// Levels of detail are sized from the camera of the view being drawn
+		device.SetUniform(cullLoc.levelEye, glm::vec4(Scene3DInternal::LevelEye(), Scene3DInternal::LevelScale()));
+		device.SetUniform(cullLoc.setFlags, (int)flags | (set == kDepthSet ? kDepthSetBit : 0));
 		device.SetUniform(cullLoc.commandBase, (int)commandBase);
 		device.SetUniform(cullLoc.visibleBase, (int)visibleBase);
-		device.SetUniform(cullLoc.flags, (int)flags);
 		device.SetUniform(cullLoc.batchCount, (int)batches.size());
 		device.BindStorageBuffer(0, sl.instances.handle);
 		device.BindStorageBuffer(2, sl.batches.handle);
@@ -625,6 +806,7 @@ bool Scene3D::DrawGpuColourView(const Renderer& renderer, unsigned int program, 
 {
 	if (!frameActive || colourModels.empty())
 		return false;
+	Scene3DInternal::SetLevelCamera(renderer.camera.position, renderer.camera.projection[1][1]);
 	const long commandBase = CullView(kColourSet, renderer.camera.projection * renderer.camera.CalculateViewMatrix(),
 		kFlagColour);
 	if (commandBase < 0)
@@ -645,8 +827,10 @@ bool Scene3D::DrawGpuColourView(const Renderer& renderer, unsigned int program, 
 		motion.assign(instances.size(), glm::vec4(0.0f));
 		if (buffers & 4u)
 		{
+			// Once a model: its levels' instances copy its first one's
 			for (size_t i = 0; i < instanceModels.size(); i++)
-				motion[i] = glm::vec4(Scene3DInternal::MotionOffset(instanceModels[i], instanceModels[i]->position), 0.0f);
+				motion[i] = instancePrimary[i] < i ? motion[instancePrimary[i]]
+					: glm::vec4(Scene3DInternal::MotionOffset(instanceModels[i], instanceModels[i]->position), 0.0f);
 		}
 		Slot& sl = slots[slot];
 		device.UpdateBuffer(Ensure(sl.motion, motion.size() * sizeof(glm::vec4)), 0,
@@ -849,7 +1033,7 @@ void Scene3DInternal::MeasureOcclusion(const Renderer& renderer, unsigned int de
 	triangles.assign(batches.size(), 0u);
 	for (size_t b = 0; b < batches.size(); b++)
 	{
-		for (const Mesh* mesh : batches[b].leader->model3D.meshList)
+		for (const Mesh* mesh : *batches[b].meshes)
 		{
 			const ModelMaterial* own = MeshMaterial(mesh);
 			MeshPoolRange range;

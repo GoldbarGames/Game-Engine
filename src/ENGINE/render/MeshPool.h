@@ -29,7 +29,14 @@ struct MeshPoolRange
 void MeshPoolAdd(const Mesh* mesh, const float* vertices, size_t floatCount,
 	const unsigned int* indices, size_t indexCount);
 bool MeshPoolFind(const Mesh* mesh, MeshPoolRange& out);
-void MeshPoolForget(const Mesh* mesh);   // ~Mesh (its data stays until the pool is rebuilt)
+// Bumped whenever a mesh is added or forgotten (the GPU-driven list's cache)
+uint64_t MeshPoolVersion();
+void MeshPoolForget(const Mesh* mesh);   // ~Mesh (its data stays until the pool is compacted)
+// Squeeze out forgotten meshes once they are a good part of the pool (a game
+// that rebuilds its world: TrainRails' next route). Moves the live meshes, so
+// it bumps the version; call it only where the draw list is about to be
+// built (Scene3D::BuildGpuDrawList), never between building and drawing.
+void MeshPoolCompact();
 
 // The pool's vertex array, uploading whatever was added since the last call.
 // No handle when the pool is empty.

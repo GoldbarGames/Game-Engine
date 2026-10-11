@@ -121,6 +121,7 @@ namespace
 		int count = 4;
 		float distance = 5000.0f;
 		float softness = 1.0f;
+		float minCasterHeight = 15.0f;   // `shadowMinCasterHeight` (every shadow map, not only the cascades)
 	};
 	CascadeSettings cascadeSettings;
 	float sceneShadowDistance = -1.0f;   // .scene `shadowdistance`; < 0 = project default
@@ -130,7 +131,7 @@ namespace
 		if (!cascadeSettings.loaded)
 		{
 			cascadeSettings.loaded = true;
-			auto config = GetMapStringsFromFile(RendererConfigPath());
+			auto config = ReadRendererConfig();
 			try
 			{
 				if (config.count("shadowCascades") > 0)
@@ -139,6 +140,8 @@ namespace
 					cascadeSettings.distance = std::max(std::stof(config["shadowDistance"]), 100.0f);
 				if (config.count("shadowSoftness") > 0)
 					cascadeSettings.softness = std::max(std::stof(config["shadowSoftness"]), 0.0f);
+				if (config.count("shadowMinCasterHeight") > 0)
+					cascadeSettings.minCasterHeight = std::max(std::stof(config["shadowMinCasterHeight"]), 0.0f);
 			}
 			catch (...)
 			{
@@ -310,6 +313,15 @@ void Scene3DInternal::ReloadShadowSettings()
 	cascadeSettings = CascadeSettings();   // read again on next use
 }
 
+bool Scene3DInternal::CastsShadow(const Scene3DModel& m)
+{
+	const int choice = (m.material != nullptr) ? MaterialLibrary::Get().ShadowChoice(*m.material) : 0;
+	if (choice != 0)
+		return choice > 0;   // `shadow on` / `shadow off`
+	// Models with real height cast; flat ground and slabs don't
+	return std::fabs(m.aabbMax.y - m.aabbMin.y) >= Cascades().minCasterHeight;
+}
+
 namespace
 {
 	void RunCasterHook(unsigned int program);   // below, with SetShadowCasterHook
@@ -464,7 +476,7 @@ void Scene3D::DrawShadowCasters(const Renderer& renderer, unsigned int program, 
 	{
 		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
 			continue;
-		if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
+		if (!Scene3DInternal::CastsShadow(*m))
 			continue;
 		const glm::vec3 c = (m->aabbMin + m->aabbMax) * 0.5f;
 		if (!canShadow(c, glm::length(m->aabbMax - m->aabbMin) * 0.5f))
@@ -475,8 +487,11 @@ void Scene3D::DrawShadowCasters(const Renderer& renderer, unsigned int program, 
 		model = glm::rotate(model, glm::radians(m->pitchDeg), glm::vec3(1, 0, 0));
 		model = glm::rotate(model, glm::radians(m->rollDeg), glm::vec3(0, 0, 1));
 		model = glm::scale(model, m->EffectiveScale());
+		const std::vector<Mesh*>* meshes = Scene3DInternal::LevelMeshes(*m, model);   // its level of detail
+		if (meshes == nullptr)
+			continue;
 		Device().SetUniform(ShaderProgram::DrawUniformLocation(program, "model"), model);
-		Scene3DInternal::DrawMeshesForDepth(m->model3D.meshList, m->texture);
+		Scene3DInternal::DrawMeshesForDepth(*meshes, m->texture);
 	}
 
 	// Characters: the quad oriented exactly like the visible billboard (yaw-only,
@@ -577,6 +592,8 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	cs->thisFrame = 0;
 	if (!active || !shadowsEnabled || renderer.camera.useOrthoCamera)
 		return;
+	// Casters' levels of detail are the ones this view's camera sees
+	Scene3DInternal::SetLevelCamera(renderer.camera.position, renderer.camera.projection[1][1]);
 	if (dirLight.diffuse <= 0.02f)   // no sun (night / point-lit room) -> no shadows
 		return;
 
@@ -596,7 +613,7 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	{
 		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
 			continue;   // guardHidden in the sig -> shadow re-renders when it appears/hides
-		if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
+		if (!Scene3DInternal::CastsShadow(*m))
 			continue;
 		glm::vec3 s = m->EffectiveScale();
 		sig += m->position.x * 1.1 + m->position.y * 2.3 + m->position.z * 3.7
@@ -665,7 +682,7 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 	{
 		if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
 			continue;
-		if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
+		if (!Scene3DInternal::CastsShadow(*m))
 			continue;
 		glm::mat4 model(1.0f);
 		model = glm::translate(model, m->position);
@@ -673,8 +690,11 @@ void Scene3D::RenderShadowDepth(Game& game, const Renderer& renderer)
 		model = glm::rotate(model, glm::radians(m->pitchDeg), glm::vec3(1, 0, 0));
 		model = glm::rotate(model, glm::radians(m->rollDeg), glm::vec3(0, 0, 1));
 		model = glm::scale(model, m->EffectiveScale());
+		const std::vector<Mesh*>* meshes = Scene3DInternal::LevelMeshes(*m, model);   // its level of detail
+		if (meshes == nullptr)
+			continue;
 		Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "model")), model);
-		Scene3DInternal::DrawMeshesForDepth(m->model3D.meshList, m->texture);
+		Scene3DInternal::DrawMeshesForDepth(*meshes, m->texture);
 	}
 
 	// Character casters: orient the shadow quad EXACTLY like the visible billboard
@@ -765,6 +785,8 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 	pointShadowActive = false;
 	if (!active || !pointShadowsEnabled || renderer.camera.useOrthoCamera)
 		return;
+	// Casters' levels of detail are the ones the camera sees
+	Scene3DInternal::SetLevelCamera(renderer.camera.position, renderer.camera.projection[1][1]);
 	// Only indoors: an outdoor scene with a sun uses the directional shadow map.
 	if (dirLight.diffuse > 0.02f)
 		return;
@@ -890,7 +912,7 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 			{
 				if (m == nullptr || !m->loaded || m->texture == nullptr || m->IsWater() || m->guardHidden)
 					continue;
-				if (std::fabs(m->aabbMax.y - m->aabbMin.y) < 15.0f)
+				if (!Scene3DInternal::CastsShadow(*m))
 					continue;
 				glm::vec3 c = (m->aabbMin + m->aabbMax) * 0.5f;
 				float r = glm::length(m->aabbMax - m->aabbMin) * 0.5f;
@@ -902,8 +924,11 @@ void Scene3D::RenderPointShadowDepth(Game& game, const Renderer& renderer)
 				model = glm::rotate(model, glm::radians(m->pitchDeg), glm::vec3(1, 0, 0));
 				model = glm::rotate(model, glm::radians(m->rollDeg), glm::vec3(0, 0, 1));
 				model = glm::scale(model, m->EffectiveScale());
+				const std::vector<Mesh*>* meshes = Scene3DInternal::LevelMeshes(*m, model);   // its level of detail
+				if (meshes == nullptr)
+					continue;
 				Device().SetUniform((int)(ShaderProgram::DrawUniformLocation(id, "model")), model);
-				Scene3DInternal::DrawMeshesForDepth(m->model3D.meshList, m->texture);
+				Scene3DInternal::DrawMeshesForDepth(*meshes, m->texture);
 			}
 
 			// Characters: orient the shadow quad like the visible billboard (yaw-only,

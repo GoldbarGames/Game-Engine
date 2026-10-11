@@ -52,6 +52,7 @@ namespace
 		int writeIndex = 0;
 		FramebufferHandle displayFbo;   // display + the world's depth (weather after TAA)
 		unsigned int displayFboDepth = 0;
+		FramebufferHandle displayColorFbo;   // display alone: smoke, which samples the depth instead
 		bool historyValid = false;      // the history holds last frame's image
 		bool havePrevViewProj = false;
 		glm::mat4 prevViewProj = glm::mat4(1.0f);   // last frame's camera, unjittered
@@ -141,7 +142,7 @@ namespace
 		for (TextureHandle* t : { &cur->history[0], &cur->history[1], &cur->display })
 			if (*t)
 				device.DestroyTexture(*t);
-		for (FramebufferHandle* f : { &cur->resolveFbo[0], &cur->resolveFbo[1], &cur->displayFbo })
+		for (FramebufferHandle* f : { &cur->resolveFbo[0], &cur->resolveFbo[1], &cur->displayFbo, &cur->displayColorFbo })
 			if (*f)
 				device.DestroyFramebuffer(*f);
 		cur->displayFboDepth = 0;
@@ -195,7 +196,7 @@ namespace
 
 void LoadTemporalAASettings()
 {
-	auto config = GetMapStringsFromFile(RendererConfigPath());
+	auto config = ReadRendererConfig();
 	projectOn = true;
 	if (config.count("antialiasing") > 0)
 	{
@@ -412,6 +413,25 @@ bool BindTemporalOutputTarget(TextureHandle depthStencil)
 			std::cout << "ERROR: anti-aliased world target incomplete (" << error << ")" << std::endl;
 	}
 	device.BindFramebuffer(cur->displayFbo);
+	device.SetViewport(0, 0, cur->width, cur->height);
+	SetTargetLinear(true);
+	return true;
+}
+
+bool BindTemporalOutputColorOnly()
+{
+	if (!resolved)
+		return false;
+	RenderDevice& device = Device();
+	if (!cur->displayColorFbo)
+	{
+		cur->displayColorFbo = device.CreateFramebuffer();
+		device.AttachTexture(cur->displayColorFbo, Attachment::Color0, cur->display);
+		std::string error;
+		if (!device.IsFramebufferComplete(cur->displayColorFbo, &error))
+			std::cout << "ERROR: anti-aliased world target (colour only) incomplete (" << error << ")" << std::endl;
+	}
+	device.BindFramebuffer(cur->displayColorFbo);
 	device.SetViewport(0, 0, cur->width, cur->height);
 	SetTargetLinear(true);
 	return true;

@@ -12,10 +12,132 @@
 #include <fstream>
 #include <initializer_list>
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace
 {
+	// ---- names asked of a program, remembered ---------------------------------
+	//
+	// A linked program's uniform locations and block indices never change, and
+	// asking the driver for them by name was a few percent of a TrainRails frame
+	// (Sprite::Render asks for several on every draw, a game's SetVec4("surface")
+	// another). So each answer is kept, per program and name, and forgotten when
+	// the program is destroyed, because its id can be given to the next program.
+	struct NamedLookup
+	{
+		unsigned int program = 0;
+		std::string name;
+		int value = -1;
+	};
+	std::unordered_map<uint64_t, NamedLookup> uniformLocations;
+	std::unordered_map<uint64_t, NamedLookup> blockIndices;
+
+	uint64_t LookupKey(unsigned int program, const char* name)
+	{
+		uint64_t h = 1469598103934665603ull ^ program;
+		for (const char* c = name; *c != '\0'; c++)
+			h = (h ^ (unsigned char)*c) * 1099511628211ull;
+		return h;
+	}
+
+	template <typename Ask>
+	int Remembered(std::unordered_map<uint64_t, NamedLookup>& known, unsigned int program, const char* name, Ask ask)
+	{
+		const uint64_t key = LookupKey(program, name);
+		auto it = known.find(key);
+		if (it != known.end() && it->second.program == program && it->second.name == name)
+			return it->second.value;
+		const int value = ask();
+		if (it == known.end())       // (two names with one key: the second is simply asked each time)
+		{
+			NamedLookup entry;
+			entry.program = program;
+			entry.name = name;
+			entry.value = value;
+			known.emplace(key, std::move(entry));
+		}
+		return value;
+	}
+
+	void ForgetProgram(unsigned int program)
+	{
+		for (auto* known : { &uniformLocations, &blockIndices })
+		{
+			for (auto it = known->begin(); it != known->end(); )
+			{
+				if (it->second.program == program)
+					it = known->erase(it);
+				else
+					++it;
+			}
+		}
+	}
+
+	GLuint BlockIndex(unsigned int program, const char* name)
+	{
+		return (GLuint)Remembered(blockIndices, program, name,
+			[&]() { return (int)glGetUniformBlockIndex(program, name); });
+	}
+
+	// ---- the program in use, and what its uniforms hold ------------------------
+	//
+	// Sprite::Render makes the same program current and sets about ten uniforms
+	// for every draw, most of them what they already were (the view, the
+	// projection, the clock). The driver treats each as a change to check at the
+	// draw. So the program in use is remembered, and so is every uniform's
+	// value, and a value it already holds is not sent. KINJO_UNIFORM_CACHE=0
+	// sends every value, to compare. (A game that sets a uniform with its own
+	// glUniform call goes behind this cache's back: FOIAQuest, BVN,
+	// JigsawPuzzles, O2A2_2023 and x still do, and may show wrong colours.)
+	unsigned int currentProgram = 0;
+	bool currentKnown = false;
+	struct UniformValue
+	{
+		int floats = 0;          // 0: not known
+		float v[16];
+	};
+	std::unordered_map<unsigned int, std::vector<UniformValue>> uniformValues;
+	std::vector<UniformValue>* currentValues = nullptr;
+
+	bool UniformCacheOn()
+	{
+		static const bool on = []()
+		{
+			const char* v = std::getenv("KINJO_UNIFORM_CACHE");
+			return !(v != nullptr && v[0] == '0');
+		}();
+		return on;
+	}
+
+	// Whether `n` floats' worth of value at `location` must be sent (and
+	// remembers it); false when the program already holds exactly these bits.
+	bool UniformChanged(int location, const void* value, int n)
+	{
+		if (location < 0 || currentValues == nullptr || location >= 4096)
+			return true;
+		std::vector<UniformValue>& values = *currentValues;
+		if ((size_t)location >= values.size())
+			values.resize((size_t)location + 1);
+		UniformValue& u = values[(size_t)location];
+		if (u.floats == n && std::memcmp(u.v, value, (size_t)n * sizeof(float)) == 0)
+			return false;
+		u.floats = n;
+		std::memcpy(u.v, value, (size_t)n * sizeof(float));
+		return true;
+	}
+
+	// An array covers `count` locations from `location`: no longer known.
+	void UniformsUnknown(int location, int count)
+	{
+		if (location < 0 || currentValues == nullptr)
+			return;
+		std::vector<UniformValue>& values = *currentValues;
+		for (int k = 0; k < count && (size_t)(location + k) < values.size(); k++)
+			values[(size_t)(location + k)].floats = 0;
+	}
+
 #ifndef __EMSCRIPTEN__
 	// ---- the program cache -----------------------------------------------
 	//
@@ -214,6 +336,11 @@ namespace
 		case TextureFormat::RGBA16F:         return { GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT };
 		case TextureFormat::R8:              return { GL_R8, GL_RED, GL_UNSIGNED_BYTE };
 		case TextureFormat::R32F:            return { GL_R32F, GL_RED, GL_FLOAT };
+		case TextureFormat::RG8:             return { GL_RG8, GL_RG, GL_UNSIGNED_BYTE };
+		case TextureFormat::R16F:            return { GL_R16F, GL_RED, GL_HALF_FLOAT };
+		case TextureFormat::RG16F:           return { GL_RG16F, GL_RG, GL_HALF_FLOAT };
+		case TextureFormat::RG32F:           return { GL_RG32F, GL_RG, GL_FLOAT };
+		case TextureFormat::RGBA32F:         return { GL_RGBA32F, GL_RGBA, GL_FLOAT };
 		case TextureFormat::RGBA32UI:        return { GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT };
 		case TextureFormat::Depth24:         return { GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT };
 		case TextureFormat::Depth24Stencil8: return { GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8 };
@@ -388,6 +515,19 @@ void GLDevice::UpdateBuffer(BufferHandle buffer, size_t offset, size_t bytes, co
 	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 }
 
+void GLDevice::CopyBuffer(BufferHandle source, size_t sourceOffset, BufferHandle target, size_t targetOffset,
+	size_t bytes)
+{
+	if (bytes == 0 || source.id == 0 || target.id == 0)
+		return;
+	glBindBuffer(GL_COPY_READ_BUFFER, source.id);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, target.id);
+	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, (GLintptr)sourceOffset, (GLintptr)targetOffset,
+		(GLsizeiptr)bytes);
+	glBindBuffer(GL_COPY_READ_BUFFER, 0);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+}
+
 void GLDevice::ReplaceBuffer(BufferHandle buffer, size_t bytes, const void* data, BufferUsage usage)
 {
 	glBindBuffer(GL_COPY_WRITE_BUFFER, buffer.id);
@@ -503,6 +643,10 @@ TextureHandle GLDevice::CreateTexture(const TextureDesc& desc, const void* rgbaP
 
 	SetSamplerState(target, desc);
 
+	// Rows are tightly packed (1- and 2-byte texels too: R8 and RG8 data whose
+	// width isn't a multiple of 4 would read skewed at GL's default of 4)
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
 	switch (desc.type)
 	{
 	case TextureType::Cube:
@@ -538,6 +682,8 @@ TextureHandle GLDevice::CreateTexture(const TextureDesc& desc, const void* rgbaP
 		}
 		break;
 	}
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
 	if (desc.generateMipmaps)
 		glGenerateMipmap(target);
@@ -698,7 +844,9 @@ void GLDevice::UpdateTexture(TextureHandle texture, TextureFormat format, int x,
 		return;
 	const GLFormat fmt = FormatOf(format);
 	glBindTexture(GL_TEXTURE_2D, texture.id);   // on unit 0, which stays active
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);      // tightly packed rows (as CreateTexture)
 	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, fmt.format, fmt.type, data);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 	boundUnit0 = texture.id;
 	unit0Known = true;
 }
@@ -867,8 +1015,19 @@ void GLDevice::Clear(bool color, bool depth, const glm::vec4& clearColor)
 		glClear(mask);
 }
 
+namespace
+{
+	uint64_t drawCalls = 0;
+}
+
+uint64_t DeviceDrawCalls()
+{
+	return drawCalls;
+}
+
 void GLDevice::Draw(VertexArrayHandle vao, Primitive primitive, int first, int count, int instances)
 {
+	drawCalls++;
 	glBindVertexArray(vao.id);
 	if (instances > 0)
 		glDrawArraysInstanced(ToGL(primitive), first, count, instances);
@@ -879,6 +1038,7 @@ void GLDevice::Draw(VertexArrayHandle vao, Primitive primitive, int first, int c
 
 void GLDevice::DrawIndexed(VertexArrayHandle vao, Primitive primitive, int indexCount, int instances)
 {
+	drawCalls++;
 	glBindVertexArray(vao.id);
 	if (instances > 0)
 		glDrawElementsInstanced(ToGL(primitive), indexCount, GL_UNSIGNED_INT, 0, instances);
@@ -1007,6 +1167,7 @@ void GLDevice::MultiDrawIndexedIndirect(VertexArrayHandle vao, Primitive primiti
 #ifndef __EMSCRIPTEN__
 	if (drawCount <= 0)
 		return;
+	drawCalls++;
 	glBindVertexArray(vao.id);
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commands.id);
 	glMultiDrawElementsIndirect(ToGL(primitive), GL_UNSIGNED_INT, (const void*)offset, drawCount, (GLsizei)stride);
@@ -1133,28 +1294,44 @@ ProgramHandle GLDevice::CreateProgram(const char* vertexSource, const char* frag
 void GLDevice::DestroyProgram(ProgramHandle& program)
 {
 	if (program.id != 0)
+	{
 		glDeleteProgram(program.id);
+		ForgetProgram(program.id);
+		uniformValues.erase(program.id);
+		if (currentKnown && currentProgram == program.id)
+		{
+			// Its id can come back as a new program: use it again then.
+			currentKnown = false;
+			currentValues = nullptr;
+		}
+	}
 	program = ProgramHandle();
 }
 
 void GLDevice::UseProgram(ProgramHandle program)
 {
+	if (currentKnown && currentProgram == program.id)
+		return;
 	glUseProgram(program.id);
+	currentProgram = program.id;
+	currentKnown = true;
+	currentValues = (UniformCacheOn() && program.id != 0) ? &uniformValues[program.id] : nullptr;
 }
 
 int GLDevice::UniformLocation(ProgramHandle program, const char* name)
 {
-	return glGetUniformLocation(program.id, name);
+	return Remembered(uniformLocations, program.id, name,
+		[&]() { return (int)glGetUniformLocation(program.id, name); });
 }
 
 bool GLDevice::HasUniformBlock(ProgramHandle program, const char* name)
 {
-	return glGetUniformBlockIndex(program.id, name) != GL_INVALID_INDEX;
+	return BlockIndex(program.id, name) != GL_INVALID_INDEX;
 }
 
 void GLDevice::SetUniformBlockBinding(ProgramHandle program, const char* name, unsigned int binding)
 {
-	const GLuint index = glGetUniformBlockIndex(program.id, name);
+	const GLuint index = BlockIndex(program.id, name);
 	if (index != GL_INVALID_INDEX)
 		glUniformBlockBinding(program.id, index, binding);
 }
@@ -1183,16 +1360,56 @@ bool GLDevice::UniformOffset(ProgramHandle program, const char* name, int& offse
 	return true;
 }
 
-void GLDevice::SetUniform(int location, int value) { glUniform1i(location, value); }
-void GLDevice::SetUniform(int location, float value) { glUniform1f(location, value); }
-void GLDevice::SetUniform(int location, const glm::vec2& value) { glUniform2fv(location, 1, glm::value_ptr(value)); }
-void GLDevice::SetUniform(int location, const glm::vec3& value) { glUniform3fv(location, 1, glm::value_ptr(value)); }
-void GLDevice::SetUniform(int location, const glm::vec4& value) { glUniform4fv(location, 1, glm::value_ptr(value)); }
-void GLDevice::SetUniform(int location, const glm::mat3& value) { glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(value)); }
-void GLDevice::SetUniform(int location, const glm::mat4& value) { glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value)); }
-void GLDevice::SetUniformArray(int location, const int* values, int count) { glUniform1iv(location, count, values); }
-void GLDevice::SetUniformArray(int location, const float* values, int count) { glUniform1fv(location, count, values); }
-void GLDevice::SetUniformArray(int location, const glm::vec3* values, int count) { glUniform3fv(location, count, glm::value_ptr(values[0])); }
+void GLDevice::SetUniform(int location, int value)
+{
+	if (UniformChanged(location, &value, 1))
+		glUniform1i(location, value);
+}
+void GLDevice::SetUniform(int location, float value)
+{
+	if (UniformChanged(location, &value, 1))
+		glUniform1f(location, value);
+}
+void GLDevice::SetUniform(int location, const glm::vec2& value)
+{
+	if (UniformChanged(location, glm::value_ptr(value), 2))
+		glUniform2fv(location, 1, glm::value_ptr(value));
+}
+void GLDevice::SetUniform(int location, const glm::vec3& value)
+{
+	if (UniformChanged(location, glm::value_ptr(value), 3))
+		glUniform3fv(location, 1, glm::value_ptr(value));
+}
+void GLDevice::SetUniform(int location, const glm::vec4& value)
+{
+	if (UniformChanged(location, glm::value_ptr(value), 4))
+		glUniform4fv(location, 1, glm::value_ptr(value));
+}
+void GLDevice::SetUniform(int location, const glm::mat3& value)
+{
+	if (UniformChanged(location, glm::value_ptr(value), 9))
+		glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(value));
+}
+void GLDevice::SetUniform(int location, const glm::mat4& value)
+{
+	if (UniformChanged(location, glm::value_ptr(value), 16))
+		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
+}
+void GLDevice::SetUniformArray(int location, const int* values, int count)
+{
+	UniformsUnknown(location, count);
+	glUniform1iv(location, count, values);
+}
+void GLDevice::SetUniformArray(int location, const float* values, int count)
+{
+	UniformsUnknown(location, count);
+	glUniform1fv(location, count, values);
+}
+void GLDevice::SetUniformArray(int location, const glm::vec3* values, int count)
+{
+	UniformsUnknown(location, count);
+	glUniform3fv(location, count, glm::value_ptr(values[0]));
+}
 
 // ---------------------------------------------------------------- state
 

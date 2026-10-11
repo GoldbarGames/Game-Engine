@@ -138,7 +138,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 		}
 		else
 		{
-			if (currentKeyStates[SDL_SCANCODE_SPACE] || currentKeyStates[SDL_SCANCODE_RETURN])
+			if (Gamepads::MenuKeyboardAllowed() && (currentKeyStates[SDL_SCANCODE_SPACE] || currentKeyStates[SDL_SCANCODE_RETURN]))
 			{
 				options[0]->SetText("Press Any Key");
 				game.inputManager.isCheckingForKeyMapping = true;
@@ -173,7 +173,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 		}
 		else
 		{
-			if (currentKeyStates[SDL_SCANCODE_SPACE] || currentKeyStates[SDL_SCANCODE_RETURN])
+			if (Gamepads::MenuKeyboardAllowed() && (currentKeyStates[SDL_SCANCODE_SPACE] || currentKeyStates[SDL_SCANCODE_RETURN]))
 			{
 				options[0]->SetText("Press Any Key");
 				game.inputManager.isCheckingForButtonMapping = true;
@@ -183,10 +183,11 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 		}
 	}
 
-	// Multi-pad: the d-pad or left stick of any pad navigates too
-	const Gamepads::MenuDirection pad = Gamepads::AnyMenuDirection();
+	// The arrows or WASD and, with multi-pad, a pad's d-pad or left stick:
+	// only the menu's owner's (InputManager::SetMenuOwner)
+	const Gamepads::MenuDirection dir = Gamepads::HeldMenuDirection(currentKeyStates);
 
-	if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W] || pad == Gamepads::Up)
+	if (dir == Gamepads::Up)
 	{
 		if (buttonPressedUp != nullptr)
 		{
@@ -195,7 +196,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 			return buttonPressedUp;
 		}
 	}
-	else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S] || pad == Gamepads::Down)
+	else if (dir == Gamepads::Down)
 	{
 		if (buttonPressedDown != nullptr)
 		{
@@ -204,7 +205,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 			return buttonPressedDown;
 		}
 	}
-	else if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A] || pad == Gamepads::Left)
+	else if (dir == Gamepads::Left)
 	{
 		selectedOption--;
 		if (selectedOption < 0)
@@ -212,7 +213,7 @@ BaseButton* SettingsButton::Update(Game& game, const Uint8* currentKeyStates)
 		ExecuteSelectedOption(game);
 		return this;
 	}
-	else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D] || pad == Gamepads::Right)
+	else if (dir == Gamepads::Right)
 	{
 		selectedOption++;
 		if (selectedOption > options.size() - 1)

@@ -81,6 +81,10 @@ bool DrawWorldOutline(TextureHandle depth, TextureHandle mask);
 // Draw over the anti-aliased image (weather after TAA): its colour with the
 // world's depth (`depthStencil`) for depth testing. Flags the target linear.
 bool BindTemporalOutputTarget(TextureHandle depthStencil);
+// ...the same image with no depth attached, for a draw that samples the
+// world's depth texture itself (smoke, Smoke.h): reading a texture attached to
+// the framebuffer being drawn is a feedback loop.
+bool BindTemporalOutputColorOnly();
 
 // Forget the history (a camera cut: Scene3D::JumpToCamera, a scene load) -
 // every split-screen view's.

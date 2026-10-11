@@ -100,6 +100,28 @@ bool SoundManager::IsPlayingBGM()
 	return Mix_PlayingMusic();
 }
 
+void SoundManager::ReserveChannels(int count)
+{
+	if (count > Mix_AllocateChannels(-1))
+		Mix_AllocateChannels(count);
+}
+
+void SoundManager::StopSound(int channel)
+{
+	if (channel >= 0)
+		Mix_HaltChannel(channel);
+}
+
+void SoundManager::PauseSounds()
+{
+	Mix_Pause(-1);
+}
+
+void SoundManager::ResumeSounds()
+{
+	Mix_Resume(-1);
+}
+
 void SoundManager::Update()
 {
 	if (loopPoint1 < loopPoint2 && loopPoint2 > 0)

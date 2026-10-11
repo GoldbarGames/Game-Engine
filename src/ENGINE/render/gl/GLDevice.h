@@ -14,6 +14,8 @@ public:
 	BufferHandle CreateBuffer(size_t bytes, const void* data, BufferUsage usage) override;
 	BufferHandle CreateIndexBuffer(size_t bytes, const void* data) override;
 	void UpdateBuffer(BufferHandle buffer, size_t offset, size_t bytes, const void* data) override;
+	void CopyBuffer(BufferHandle source, size_t sourceOffset, BufferHandle target, size_t targetOffset,
+		size_t bytes) override;
 	void ReplaceBuffer(BufferHandle buffer, size_t bytes, const void* data, BufferUsage usage) override;
 	void* CreatePersistentBuffer(size_t bytes, BufferHandle& out) override;
 	void DestroyBuffer(BufferHandle& buffer) override;

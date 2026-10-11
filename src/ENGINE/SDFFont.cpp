@@ -18,7 +18,10 @@
 // every side, distance saturating at SPREAD (the smoothstep band lives well
 // inside that). Each padded box downsamples into one fixed atlas cell.
 static const int SPREAD = 8;
-static const int CELL = 64;
+// 128 texels for the 88 px padded box: 64 lost the shapes of small letters
+// (a stroke was three texels across), and HUD text drawn small looked
+// pixelated. The layout is in font pixels, so this changes no text's size.
+static const int CELL = 128;
 static const int COLS = 16;
 static const int ROWS = 6;   // 16*6 = 96 cells >= 95 glyphs
 
@@ -44,11 +47,23 @@ static const char* SDF_FRAG =
 "uniform sampler2D theTexture;\n"
 "struct DrawData { mat4 mvp; vec4 sdfColor; };\n"   // same default precision as the vertex stage
 "uniform DrawData draw;\n"
+// Four samples across the pixel (a rotated grid), each with its own edge: text
+// drawn small, where one sample a pixel stair-stepped the strokes, comes out
+// smooth, and large text looks the same as before.
+"float Coverage(vec2 uv, float w)\n"
+"{\n"
+"    float d = texture(theTexture, uv).a;\n"
+"    return smoothstep(0.5 - w, 0.5 + w, d);\n"
+"}\n"
 "void main()\n"
 "{\n"
 "    float d = texture(theTexture, TexCoord).a;\n"
-"    float w = fwidth(d) * 0.8 + 0.004;\n"
-"    float alpha = smoothstep(0.5 - w, 0.5 + w, d);\n"
+"    float w = fwidth(d) * 0.55 + 0.002;\n"
+"    vec2 dx = dFdx(TexCoord), dy = dFdy(TexCoord);\n"
+"    float alpha = 0.25 * (Coverage(TexCoord + dx * 0.125 + dy * 0.375, w)\n"
+"        + Coverage(TexCoord - dx * 0.125 - dy * 0.375, w)\n"
+"        + Coverage(TexCoord + dx * 0.375 - dy * 0.125, w)\n"
+"        + Coverage(TexCoord - dx * 0.375 + dy * 0.125, w));\n"
 "    color = vec4(draw.sdfColor.rgb, draw.sdfColor.a * alpha);\n"
 "}";
 
@@ -144,7 +159,12 @@ SDFFont::SDFFont(Game& game, const std::string& ttfPath)
 
 		Glyph& g = glyphs[i];
 		g.advance = (float)adv;
-		g.xoff = (float)minx - SPREAD;
+		// The surface SDL_ttf renders a glyph into starts AT THE PEN (a glyph's
+		// left bearing is already inside it), unless the glyph reaches left of
+		// the pen, when it starts there instead. Adding minx again shifted every
+		// letter right by its own bearing, so the spacing went uneven - "rig ht",
+		// "w hen" - in every game's SDF text until 2026-10-06.
+		g.xoff = (float)std::min(0, minx) - SPREAD;
 		// Glyph surfaces are full-cell height: row 0 is the ascent line,
 		// NOT the glyph bbox top (maxy) - anchoring at maxy dropped short
 		// glyphs like 's' below the baseline

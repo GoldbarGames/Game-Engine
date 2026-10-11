@@ -18,8 +18,22 @@ class UniformBufferCache
 public:
 	UniformBufferCache(unsigned int binding, size_t blockSize, int slotCount);
 
-	// Make `data` (blockSize bytes) the contents of this block's binding point.
-	void Bind(const void* data);
+	// Where a block's bytes were put: which buffer, holding what.
+	struct Held
+	{
+		int slot = -1;
+		uint64_t hash = 0;
+	};
+
+	// Make `data` (blockSize bytes) the contents of this block's binding point;
+	// says where it is now.
+	Held Bind(const void* data);
+
+	// The same bytes as an earlier Bind, without hashing them again: binds that
+	// buffer if it still holds them, and returns false if it has been refilled
+	// since (then Bind them again). For a caller that knows its block hasn't
+	// changed - the scene's lighting within a pass.
+	bool BindAgain(const Held& held);
 
 	// Delete every cache's GL buffers (call while the context is alive).
 	static void ReleaseAll();
@@ -34,12 +48,18 @@ private:
 	};
 
 	void Release();
+	Held BindHashed(const void* data);
 
 	unsigned int binding;
 	size_t size;
 	std::vector<Slot> slots;
 	std::unordered_map<uint64_t, int> slotByHash;
 	int nextSlot = 0;
+
+	// The last bytes bound, and where: the same block bound draw after draw (a
+	// sprite's camera) is compared, not hashed and looked up again.
+	std::vector<unsigned char> lastBytes;
+	Held lastHeld;
 };
 
 // One member of a uniform block's C++ mirror, for CheckUniformBlockLayout.

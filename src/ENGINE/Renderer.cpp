@@ -2,6 +2,7 @@
 #include "render/RenderDevice.h"
 #include "render/ColorPipeline.h"
 #include "render/Environment.h"
+#include "SkyImage.h"
 #include "render/AmbientOcclusion.h"
 #include "render/TemporalAA.h"
 #include "render/ClusteredLights.h"
@@ -283,6 +284,7 @@ Renderer::~Renderer()
 	ReleaseOverlayResources();
 	ReleaseColorPipeline();
 	ReleaseEnvironment();
+	ReleaseHdrSky();
 	ReleaseAmbientOcclusion();
 	ReleaseTemporalAA();
 	ReleaseClusteredLights();
@@ -339,7 +341,7 @@ void Renderer::InitBatchRendering()
 
 	// Check config file for batching setting
 	bool batchingConfigEnabled = true;  // Default to enabled
-	auto rendererConfig = GetMapStringsFromFile(RendererConfigPath());
+	auto rendererConfig = ReadRendererConfig();
 	if (rendererConfig.count("batchRendering") > 0)
 	{
 		batchingConfigEnabled = (rendererConfig["batchRendering"] == "1");

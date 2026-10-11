@@ -39,7 +39,31 @@ UniformBufferCache::UniformBufferCache(unsigned int binding, size_t blockSize, i
 	Registry().push_back(this);
 }
 
-void UniformBufferCache::Bind(const void* data)
+bool UniformBufferCache::BindAgain(const Held& held)
+{
+	if (held.slot < 0 || held.slot >= (int)slots.size() || !slots[held.slot].filled || slots[held.slot].hash != held.hash)
+		return false;
+	const unsigned int ubo = slots[held.slot].ubo;
+	if (binding >= (unsigned int)kMaxBindings || boundAt[binding] != ubo)
+	{
+		Device().BindUniformBuffer(binding, BufferHandle(ubo));
+		if (binding < (unsigned int)kMaxBindings)
+			boundAt[binding] = ubo;
+	}
+	return true;
+}
+
+UniformBufferCache::Held UniformBufferCache::Bind(const void* data)
+{
+	if (lastBytes.size() == size && std::memcmp(lastBytes.data(), data, size) == 0 && BindAgain(lastHeld))
+		return lastHeld;
+	const Held held = BindHashed(data);
+	lastBytes.assign(static_cast<const unsigned char*>(data), static_cast<const unsigned char*>(data) + size);
+	lastHeld = held;
+	return held;
+}
+
+UniformBufferCache::Held UniformBufferCache::BindHashed(const void* data)
 {
 	const uint64_t hash = HashBytes(data, size);
 
@@ -78,6 +102,10 @@ void UniformBufferCache::Bind(const void* data)
 		if (binding < (unsigned int)kMaxBindings)
 			boundAt[binding] = ubo;
 	}
+	Held held;
+	held.slot = slot;
+	held.hash = hash;
+	return held;
 }
 
 void UniformBufferCache::Release()
@@ -90,6 +118,8 @@ void UniformBufferCache::Release()
 	}
 	slotByHash.clear();
 	nextSlot = 0;
+	lastBytes.clear();
+	lastHeld = Held();
 }
 
 void UniformBufferCache::ReleaseAll()
@@ -103,15 +133,27 @@ void UniformBufferCache::ReleaseAll()
 void CheckUniformBlockLayout(unsigned int program, const char* blockName,
 	const UniformBlockMember* members, size_t memberCount, size_t mirrorSize)
 {
+	// Called for every draw: the names already checked by the address of the
+	// literal first, which costs no string (a std::string made per draw was 5%
+	// of a Debug frame); by the name itself when the same name comes from another
+	// literal.
+	static std::vector<const char*> checkedLiterals;
+	for (const char* seen : checkedLiterals)
+		if (seen == blockName)
+			return;
 	static std::set<std::string> checked;
 	if (checked.count(blockName) != 0)
+	{
+		checkedLiterals.push_back(blockName);
 		return;
+	}
 
 	RenderDevice& device = Device();
 	const ProgramHandle handle(program);
 	if (!device.HasUniformBlock(handle, blockName))
 		return;
 	checked.insert(blockName);
+	checkedLiterals.push_back(blockName);
 
 	int problems = 0;
 	const int dataSize = device.UniformBlockSize(handle, blockName);

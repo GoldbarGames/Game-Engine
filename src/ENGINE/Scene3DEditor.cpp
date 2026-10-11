@@ -668,6 +668,7 @@ static const float kAnchorHalf = 26.0f;
 		{ 1, ProjectKind::Value,  "shadowCascades",     "SHADOW MAPS",      1.0f,  false, 0.0f,  4.0f,     0.0f,    "%.0f", "4",          false },
 		{ 1, ProjectKind::Value,  "shadowDistance",     "SHADOW REACH",     1.25f, true,  500.0f, 40000.0f, 0.0f,   "%.0f", "5000",       false },
 		{ 1, ProjectKind::Value,  "shadowSoftness",     "SHADOW SOFTNESS",  0.25f, false, 0.0f,  4.0f,     0.0f,    "%.2f", "1",          false },
+		{ 1, ProjectKind::Value,  "shadowMinCasterHeight", "SMALLEST CASTER", 1.25f, true, 0.0f,  1000.0f,  0.01f,   "%.2f", "15",         false },
 		{ 2, ProjectKind::Value,  "fog",                "FOG",              1.25f, true,  0.0f,  0.02f,    0.0001f, "%.5f", "0",          false },
 		{ 2, ProjectKind::Value,  "fogHeightFalloff",   "FOG FALLOFF",      1.25f, true,  0.0f,  0.05f,    0.0005f, "%.4f", "0.004",      false },
 		{ 2, ProjectKind::Value,  "fogAnisotropy",      "FOG GLOW",         0.05f, false, -0.95f, 0.95f,   0.0f,    "%.2f", "0.5",        false },
@@ -762,24 +763,9 @@ static const float kAnchorHalf = 26.0f;
 		return true;
 	}
 
-	// Re-read renderer.dat into everything that can change while running. The
-	// colour mode (linearLighting) and gpuDriven wait for a restart.
-	void ReloadRenderSettingsLive()
-	{
-		ReloadColorSettings();
-		LoadEnvironmentSettings();
-		LoadAmbientOcclusionSettings();
-		LoadTemporalAASettings();
-		LoadClusteredLightSettings();
-		LoadColorGradeSettings();
-		LoadDepthOfFieldSettings();
-		LoadFogSettings();
-		LoadDistanceFogSettings();
-		LoadMultisampleSettings();
-		LoadReflectionSettings();
-		LoadTextureSettings();
-		Scene3DInternal::ReloadShadowSettings();
-	}
+	// (Re-reading renderer.dat into everything that can change while running is
+	// the engine's ReloadRenderSettingsLive, render/RenderSettings.cpp: a game's
+	// own values, Renderer::SetRenderSetting, stay on top of the file's.)
 
 	// --- MATERIAL ---------------------------------------------------------------
 
@@ -2524,12 +2510,30 @@ void Scene3DEditor::UpdateNaming(const Uint8* keys, Game& game)
 		Scene3DModel* m = scene.GetModels()[selIndex];
 		const SceneMaterial* current = m->materialName.empty() ? nullptr : MaterialLibrary::Get().Find(m->materialName);
 		SceneMaterial made = current ? *current : SceneMaterial();
-		const std::string glowMap = current ? MaterialLibrary::Get().EmissiveMapPath(*current) : std::string();
-		const std::string roughMap = current ? MaterialLibrary::Get().RoughnessMapPath(*current) : std::string();
+		// Its lines kept beside the class (read before Add: the list may move)
+		MaterialLibrary& library = MaterialLibrary::Get();
+		const std::string glowMap = current ? library.EmissiveMapPath(*current) : std::string();
+		const std::string roughMap = current ? library.RoughnessMapPath(*current) : std::string();
+		const std::string splat = current ? library.SplatLayersPath(*current) : std::string();
+		float windHeight = 0.0f;
+		const float wind = current ? library.Wind(*current, &windHeight) : 0.0f;
+		const float flutter = current ? library.WindFlutter(*current) : 1.0f;
+		const float translucency = current ? library.Translucency(*current) : 0.0f;
+		const float cutout = current ? library.Cutout(*current) : 0.0f;
+		const bool fade = current && library.FadesNearLine(*current);
+		const int shadow = current ? library.ShadowChoice(*current) : 0;
 		made.name = nameBuffer;
-		SceneMaterial* added = MaterialLibrary::Get().Add(game, made);
-		MaterialLibrary::Get().SetEmissiveMap(game, *added, glowMap);
-		MaterialLibrary::Get().SetRoughnessMap(game, *added, roughMap);
+		SceneMaterial* added = library.Add(game, made);
+		library.SetEmissiveMap(game, *added, glowMap);
+		library.SetRoughnessMap(game, *added, roughMap);
+		if (!splat.empty())
+			library.SetSplatLayers(game, *added, splat);
+		library.SetWind(*added, wind, windHeight);
+		library.SetWindFlutter(*added, flutter);
+		library.SetTranslucency(*added, translucency);
+		library.SetCutout(*added, cutout);
+		library.SetFadesNearLine(*added, fade);
+		library.SetShadowChoice(*added, shadow);
 		RefreshMaterialPointers();
 		m->materialName = nameBuffer;
 		m->material = MaterialLibrary::Get().Find(nameBuffer);
@@ -5043,6 +5047,15 @@ void Scene3DEditor::InspectProject(Game& game, ui::Column& col)
 	col.Note("Every scene starts from these. Each change saves at once to", ui::Colour::dim);
 	col.Note(RendererConfigPath(), ui::Colour::text);
 	col.Note("Grey = not in the file (the engine's default).", ui::Colour::dim);
+	// The game's own values over the file's (Renderer::SetRenderSetting: a
+	// player's graphics level) win while they're set
+	if (!RendererSettingOverrides().empty())
+	{
+		std::string over;
+		for (const auto& [key, value] : RendererSettingOverrides())
+			over += (over.empty() ? "" : ", ") + key + " " + value;
+		col.Note("The game overrides: " + over, ui::Colour::text);
+	}
 
 	auto write = [this](int row, const std::string& value)
 	{

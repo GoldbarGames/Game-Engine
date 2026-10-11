@@ -27,8 +27,8 @@ void main()
 		if ((matMaps & MAT_ALPHA_MASK) != 0 && a < matAlphaCutoff)
 			discard;
 	}
-	else if (a < 0.1)
-		discard;
+	else if (a < (((matMaps & MAT_ALPHA_MASK) != 0) ? matAlphaCutoff : 0.1))
+		discard;   // (a materials.txt `cutout` sets the mask bit and its threshold)
 
 	// The TRUE face normal (from screen-space derivatives, turned toward the
 	// camera), not the mesh's: the occlusion search measures horizons in the
